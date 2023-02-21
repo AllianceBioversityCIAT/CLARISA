@@ -5,11 +5,14 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+
 @Injectable()
 export class UserService {
+
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    
   ) {}
 
   findAll(
@@ -109,4 +112,6 @@ export class UserService {
   async update(updateUserDtoList: UpdateUserDto[]): Promise<User[]> {
     return await this.usersRepository.save(updateUserDtoList);
   }
+
+
 }

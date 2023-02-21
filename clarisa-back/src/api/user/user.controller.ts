@@ -21,6 +21,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { PaginationParams } from '../../shared/interfaces/pageable';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { getDefaultSettings } from 'http2';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
@@ -65,4 +66,6 @@ export class UserController {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
+
+
 }
