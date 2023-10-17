@@ -1,11 +1,11 @@
+export class TocResultIndicatorTargetDTO {
+  id_indicator: number;
 
-export class TocResultIndicatorTargetDTO{
+  toc_result_indicator_id: string;
 
-    toc_result_indicator_id: string;
+  target_value: number;
 
-    target_value:number;
-    
-    target_date:string;
+  target_date: string;
 
-    number_target:number;
+  number_target: number;
 }

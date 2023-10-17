@@ -228,23 +228,7 @@ export class TocResultServices {
         );
         for (let indicatorItem of indicators) {
           if (
-            this.validatorType.existPropertyInObjectMul(indicatorItem, [
-              "country",
-              "description",
-              "main",
-              "baseline",
-              "creation_date",
-              "type",
-              "target",
-              "unit_of_measurement",
-              "location",
-              "data_collection_source",
-              "id",
-              "data_collection_frequency",
-              "region",
-              "related_node_id",
-              "data_collection_method",
-            ])
+            this.validatorType.existPropertyInObjectMul(indicatorItem, ["id"])
           ) {
             let indicator = new TocResultsIndicatorsDto();
             indicator.toc_result_indicator_id =
@@ -303,11 +287,11 @@ export class TocResultServices {
             indicator.related_node_id =
               typeof indicatorItem.related_node_id == "string"
                 ? indicatorItem.related_node_id
-                : null;
+                : indicatorItem.id;
             listResultsIndicator.push(indicator);
 
             const existingRecord = await tocResultRepo.findOne({
-              toc_result_indicator_id: indicator.toc_result_indicator_id,
+              related_node_id: indicator.related_node_id,
               toc_result_id_toc: indicator.toc_result_id_toc,
               toc_results_id: indicator.toc_results_id,
             });
@@ -315,7 +299,7 @@ export class TocResultServices {
             if (existingRecord) {
               await tocResultRepo.update(
                 {
-                  toc_result_indicator_id: indicator.toc_result_indicator_id,
+                  related_node_id: indicator.related_node_id,
                   toc_results_id: indicator.toc_results_id,
                 },
                 indicator
@@ -334,7 +318,8 @@ export class TocResultServices {
             listRegions = listRegions.concat(auxIndicatorGeoScope.listRegios);
 
             await this.saveIndicatorTarget(
-              indicatorItem.id,
+              indicatorItem.related_node_id,
+              existingRecord.id,
               indicatorItem.target
             );
           }
@@ -612,11 +597,11 @@ export class TocResultServices {
     }
   }
 
-  async saveIndicatorTarget(id_indicator: string, target: any) {
+  async saveIndicatorTarget(toc_id_indicator: string, id: number, target: any) {
     try {
       let dbConn: Connection = await this.database.getConnection();
       let tocResultRepo = await dbConn.getRepository(TocResultIndicatorTarget);
-      if (id_indicator != null) {
+      if (toc_id_indicator != null) {
         let validator = await this.validatorType.validatorIsObject(target);
         if (validator) {
           if (
@@ -626,13 +611,14 @@ export class TocResultServices {
             ])
           ) {
             let targetIndicator = new TocResultIndicatorTargetDTO();
-            targetIndicator.toc_result_indicator_id = id_indicator;
+            targetIndicator.id_indicator = id;
+            targetIndicator.toc_result_indicator_id = toc_id_indicator;
             targetIndicator.target_value =
               typeof target.value == "string" ? target.value : null;
             targetIndicator.target_date =
               typeof target.date == "string" ? target.date : null;
             await tocResultRepo.delete({
-              toc_result_indicator_id: id_indicator,
+              toc_result_indicator_id: toc_id_indicator,
             });
             await tocResultRepo.save(targetIndicator);
           }
@@ -647,7 +633,8 @@ export class TocResultServices {
               ])
             ) {
               let targetIndicator = new TocResultIndicatorTargetDTO();
-              targetIndicator.toc_result_indicator_id = id_indicator;
+              targetIndicator.id_indicator = id;
+              targetIndicator.toc_result_indicator_id = toc_id_indicator;
               targetIndicator.target_value =
                 typeof targetItem.value == "string" ? targetItem.value : null;
               targetIndicator.target_date =
@@ -655,7 +642,7 @@ export class TocResultServices {
               targetIndicator.number_target = targetNumber;
               targetNumber = targetNumber + 1;
               await tocResultRepo.delete({
-                toc_result_indicator_id: id_indicator,
+                toc_result_indicator_id: toc_id_indicator,
               });
               await tocResultRepo.save(targetIndicator);
             }

@@ -1,4 +1,6 @@
 export class TocResultsIndicatorsDto{
+    id: number;
+
     toc_result_indicator_id : string;
     
     toc_results_id: number;
