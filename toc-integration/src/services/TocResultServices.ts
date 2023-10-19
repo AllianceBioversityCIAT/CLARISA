@@ -618,13 +618,16 @@ export class TocResultServices {
             targetIndicator.target_date =
               typeof target.date == "string" ? target.date : null;
             await tocResultRepo.delete({
-              toc_result_indicator_id: toc_id_indicator,
+              id_indicator: id,
             });
             await tocResultRepo.save(targetIndicator);
           }
         }
         if (this.validatorType.validatorIsArray(target)) {
           let targetNumber = 0;
+          await tocResultRepo.delete({
+            id_indicator: id,
+          });
           for (let targetItem of target) {
             if (
               this.validatorType.existPropertyInObjectMul(targetItem, [
@@ -641,9 +644,6 @@ export class TocResultServices {
                 typeof targetItem.date == "string" ? targetItem.date : null;
               targetIndicator.number_target = targetNumber;
               targetNumber = targetNumber + 1;
-              await tocResultRepo.delete({
-                toc_result_indicator_id: toc_id_indicator,
-              });
               await tocResultRepo.save(targetIndicator);
             }
           }
