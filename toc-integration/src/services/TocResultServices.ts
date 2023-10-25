@@ -310,7 +310,7 @@ export class TocResultServices {
                 toc_results_id: indicator.toc_results_id,
               });
             } else {
-              recordTocIndicator = await tocResultRepo.insert(indicator);
+              await tocResultRepo.insert(indicator);
               recordTocIndicator = await tocResultRepo.findOne({
                 related_node_id: indicator.related_node_id,
                 toc_results_id: indicator.toc_results_id,
@@ -326,7 +326,7 @@ export class TocResultServices {
             );
             listRegions = listRegions.concat(auxIndicatorGeoScope.listRegios);
 
-            const saveIndicatorTarget = await this.saveIndicatorTarget(
+            await this.saveIndicatorTarget(
               indicatorItem.related_node_id,
               recordTocIndicator.id,
               indicatorItem.target
