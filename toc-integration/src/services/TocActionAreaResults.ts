@@ -19,7 +19,6 @@ export class ActionAreaTocServices {
     imapctAreaToc: any,
     phase
   ) {
-    console.log("🚀 ~ file: TocActionAreaResults.ts:22 ~ ActionAreaTocServices ~ actionAreaToc:", actionAreaToc)
     try {
       let dbConn: Connection = await this.database.getConnection();
       let actionAreaRepo = await dbConn.getRepository(TocActionAreaResults);

@@ -296,6 +296,7 @@ export class TocResultServices {
               toc_results_id: indicator.toc_results_id,
             });
 
+            let recordTocIndicator: any;
             if (existingRecord) {
               await tocResultRepo.update(
                 {
@@ -304,8 +305,16 @@ export class TocResultServices {
                 },
                 indicator
               );
+              recordTocIndicator = await tocResultRepo.findOne({
+                related_node_id: indicator.related_node_id,
+                toc_results_id: indicator.toc_results_id,
+              });
             } else {
-              await tocResultRepo.insert(indicator);
+              recordTocIndicator = await tocResultRepo.insert(indicator);
+              recordTocIndicator = await tocResultRepo.findOne({
+                related_node_id: indicator.related_node_id,
+                toc_results_id: indicator.toc_results_id,
+              });
             }
 
             const auxIndicatorGeoScope = await this.saveIndicatorGeoScope(
@@ -317,9 +326,9 @@ export class TocResultServices {
             );
             listRegions = listRegions.concat(auxIndicatorGeoScope.listRegios);
 
-            await this.saveIndicatorTarget(
+            const saveIndicatorTarget = await this.saveIndicatorTarget(
               indicatorItem.related_node_id,
-              existingRecord.id,
+              recordTocIndicator.id,
               indicatorItem.target
             );
           }
@@ -618,7 +627,7 @@ export class TocResultServices {
             targetIndicator.target_date =
               typeof target.date == "string" ? target.date : null;
             await tocResultRepo.delete({
-              id_indicator: id,
+              toc_result_indicator_id: toc_id_indicator,
             });
             await tocResultRepo.save(targetIndicator);
           }
@@ -626,7 +635,7 @@ export class TocResultServices {
         if (this.validatorType.validatorIsArray(target)) {
           let targetNumber = 0;
           await tocResultRepo.delete({
-            id_indicator: id,
+            toc_result_indicator_id: toc_id_indicator,
           });
           for (let targetItem of target) {
             if (
@@ -644,11 +653,13 @@ export class TocResultServices {
                 typeof targetItem.date == "string" ? targetItem.date : null;
               targetIndicator.number_target = targetNumber;
               targetNumber = targetNumber + 1;
-              await tocResultRepo.save(targetIndicator);
+              await tocResultRepo.insert(targetIndicator);
             }
           }
         }
       }
+
+      return true;
     } catch (error) {
       throw error;
     }
