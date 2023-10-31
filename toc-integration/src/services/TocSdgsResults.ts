@@ -21,7 +21,7 @@ export class TocSdgsServices {
       let listValidSdgResults = [];
       let listSdgTargets = [];
       let listIndicator = [];
-      
+
       if (this.validatorType.validatorIsArray(sdgResultToc)) {
         for (let sdgResult of sdgResultToc) {
           if (
@@ -97,7 +97,7 @@ export class TocSdgsServices {
         sdgIndicators: listIndicator,
       };
     } catch (error) {
-      throw error;
+      throw { error, message: "Error saving sdgs" };
     }
   }
 
@@ -136,7 +136,7 @@ export class TocSdgsServices {
               toc_sdg_results_id_toc: toc_results_id,
               sdg_target_id: relacionSdgTarget.sdg_target_id,
             });
-            
+
             if (!existingRecordSdgTarget) {
               // Update existing record
               await sdgRepoTarget.insert(relacionSdgTarget);

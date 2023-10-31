@@ -111,7 +111,7 @@ export class ActionAreaTocServices {
         impactAreaToc: listImpactAreaToc,
       };
     } catch (error) {
-      throw error;
+      throw { error, message: "Error saving action area toc" };
     }
   }
 
