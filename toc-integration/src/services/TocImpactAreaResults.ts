@@ -121,7 +121,8 @@ export class TocResultImpactAreaServices {
         ImpactAreaSdgResult: listSdgResults,
       };
     } catch (error) {
-      throw { error, message: "Error saving impact area results" };
+      console.error({ error, message: "Error saving impact area" });
+      throw error;
     }
   }
 

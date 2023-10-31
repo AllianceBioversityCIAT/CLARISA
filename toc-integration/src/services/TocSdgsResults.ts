@@ -97,7 +97,8 @@ export class TocSdgsServices {
         sdgIndicators: listIndicator,
       };
     } catch (error) {
-      throw { error, message: "Error saving sdgs" };
+      console.error({error, message: "Error saving sdg results"});
+      throw error;
     }
   }
 
