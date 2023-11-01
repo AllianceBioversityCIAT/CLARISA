@@ -24,7 +24,7 @@ export class CronReporting {
   @Cron('* * 21 * * 6')
   public async cronReportingPhasesData(): Promise<void> {
     const apps = PRMSApplication.getAllPhaseTables();
-    for (let app of apps) {
+    for (const app of apps) {
       await this.syncPhasesDataFromApplication(app);
     }
   }

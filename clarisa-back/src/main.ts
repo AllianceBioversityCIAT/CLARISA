@@ -4,9 +4,15 @@ import { AppModule } from './app.module';
 import { dataSource } from './ormconfig';
 import { env } from 'process';
 import 'dotenv/config';
+import { VersioningType } from '@nestjs/common';
+import { versionExtractor } from './shared/interfaces/version-extractor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableVersioning({
+    type: VersioningType.CUSTOM,
+    extractor: versionExtractor,
+  });
   app.use(bodyparser.urlencoded({ limit: '100mb', extended: true }));
   app.use(bodyparser.json({ limit: '100mb' }));
   app.enableCors();

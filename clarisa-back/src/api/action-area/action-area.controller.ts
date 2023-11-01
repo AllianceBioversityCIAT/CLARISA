@@ -11,6 +11,7 @@ import {
   ParseIntPipe,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Version,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
@@ -23,13 +24,15 @@ import { ActionArea } from './entities/action-area.entity';
 export class ActionAreaController {
   constructor(private readonly actionAreaService: ActionAreaService) {}
 
+  @Version('1')
   @Get()
-  async findAll(@Query('show') show: FindAllOptions) {
+  async findAllV1(@Query('show') show: FindAllOptions) {
     return await this.actionAreaService.findAll(show);
   }
 
+  @Version('1')
   @Get('get/:id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
+  async findOneV1(@Param('id', ParseIntPipe) id: number) {
     return await this.actionAreaService.findOne(id);
   }
 
