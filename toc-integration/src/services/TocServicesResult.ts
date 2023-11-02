@@ -163,9 +163,18 @@ export class TocServicesResults {
       }
 
       await this.saveInDataBase();
+      sendSlackNotification(
+        ":check1:",
+        officialCode,
+        "Synchronization with ToC was successful"
+      );
       return this.InformationSaving;
     } catch (error) {
-      sendSlackNotification(officialCode);
+      sendSlackNotification(
+        ":alert:",
+        officialCode,
+        "A problem occurred while synchronizing with ToC"
+      );
       throw new Error(error);
     }
   }
