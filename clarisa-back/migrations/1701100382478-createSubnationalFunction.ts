@@ -47,7 +47,8 @@ export class CreateSubnationalFunction1701100382478
                         "subnational_category_name", isc.name, 
                         "country_id", c.id, 
                         "country_iso_alpha_2", c.iso_alpha_2, 
-                        "country_name", c.name
+                        "country_name", c.name,
+                        "is_active", iss.is_active
                     ) as json_response from iso_subnational_scope iss
                     join iso_subnational_categories isc on iss.iso_subnational_category_id = isc.id and isc.is_active 
                     join countries c on iss.country_id = c.id and c.is_active

@@ -1,17 +1,17 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateIsoRelatedTables1700689996075 implements MigrationInterface {
-  name = 'CreateIsoRelatedTables1700689996075';
+export class CreateIsoRelatedTables1701708105926 implements MigrationInterface {
+  name = 'CreateIsoRelatedTables1701708105926';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `CREATE TABLE \`iso_country_names\` (\`id\` bigint NOT NULL AUTO_INCREMENT, \`full_name\` text NULL, \`short_name\` text NULL, \`country_id\` bigint NULL, \`iso_language_id\` bigint NULL, \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` timestamp(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`is_active\` tinyint(1) NOT NULL DEFAULT 1, \`created_by\` bigint NOT NULL, \`updated_by\` bigint NULL, \`modification_justification\` text NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`,
     );
     await queryRunner.query(
-      `CREATE TABLE \`iso_country_languages\` (\`id\` bigint NOT NULL AUTO_INCREMENT, \`is_administrative\` tinyint(1) NOT NULL DEFAULT 1, \`sorting_order\` bigint NULL, \`country_id\` bigint NOT NULL, \`iso_language_id\` bigint NOT NULL, \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` timestamp(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`is_active\` tinyint(1) NOT NULL DEFAULT 1, \`created_by\` bigint NOT NULL, \`updated_by\` bigint NULL, \`modification_justification\` text NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`,
+      `CREATE TABLE \`iso_country_languages\` (\`id\` bigint NOT NULL AUTO_INCREMENT, \`is_administrative\` tinyint(1) NOT NULL DEFAULT 1, \`sorting_order\` text NULL, \`country_id\` bigint NOT NULL, \`iso_language_id\` bigint NOT NULL, \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` timestamp(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`is_active\` tinyint(1) NOT NULL DEFAULT 1, \`created_by\` bigint NOT NULL, \`updated_by\` bigint NULL, \`modification_justification\` text NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`,
     );
     await queryRunner.query(
-      `CREATE TABLE \`iso_languages\` (\`id\` bigint NOT NULL AUTO_INCREMENT, \`name\` text NULL, \`iso_alpha_2\` varchar(64) NOT NULL, \`iso_alpha_3\` varchar(64) NOT NULL, \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` timestamp(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`is_active\` tinyint(1) NOT NULL DEFAULT 1, \`created_by\` bigint NOT NULL, \`updated_by\` bigint NULL, \`modification_justification\` text NULL, UNIQUE INDEX \`IDX_566aad6dc2c8da0449b3ed2453\` (\`iso_alpha_2\`), UNIQUE INDEX \`IDX_b129d9b056ebce0abf00991462\` (\`iso_alpha_3\`), PRIMARY KEY (\`id\`)) ENGINE=InnoDB`,
+      `CREATE TABLE \`iso_languages\` (\`id\` bigint NOT NULL AUTO_INCREMENT, \`name\` text NULL, \`iso_alpha_2\` varchar(64) NULL, \`iso_alpha_3\` varchar(64) NOT NULL, \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` timestamp(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`is_active\` tinyint(1) NOT NULL DEFAULT 1, \`created_by\` bigint NOT NULL, \`updated_by\` bigint NULL, \`modification_justification\` text NULL, UNIQUE INDEX \`IDX_b129d9b056ebce0abf00991462\` (\`iso_alpha_3\`), PRIMARY KEY (\`id\`)) ENGINE=InnoDB`,
     );
     await queryRunner.query(
       `CREATE TABLE \`iso_subnational_categories\` (\`id\` bigint NOT NULL AUTO_INCREMENT, \`iso_category_id\` bigint NOT NULL, \`name\` text NULL, \`plural_name\` text NULL, \`country_id\` bigint NULL, \`iso_language_id\` bigint NULL, \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` timestamp(6) NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`is_active\` tinyint(1) NOT NULL DEFAULT 1, \`created_by\` bigint NOT NULL, \`updated_by\` bigint NULL, \`modification_justification\` text NULL, INDEX \`IDX_777361e99dc290ae2da1a01802\` (\`iso_category_id\`), PRIMARY KEY (\`id\`)) ENGINE=InnoDB`,
@@ -86,9 +86,6 @@ export class CreateIsoRelatedTables1700689996075 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE \`iso_subnational_categories\``);
     await queryRunner.query(
       `DROP INDEX \`IDX_b129d9b056ebce0abf00991462\` ON \`iso_languages\``,
-    );
-    await queryRunner.query(
-      `DROP INDEX \`IDX_566aad6dc2c8da0449b3ed2453\` ON \`iso_languages\``,
     );
     await queryRunner.query(`DROP TABLE \`iso_languages\``);
     await queryRunner.query(`DROP TABLE \`iso_country_languages\``);

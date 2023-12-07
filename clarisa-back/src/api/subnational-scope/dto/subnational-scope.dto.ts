@@ -12,4 +12,5 @@ export class SubnationalScopeDto {
   country_id: string;
   country_iso_alpha_2: string;
   country_name: string;
+  is_active: string;
 }

@@ -18,8 +18,8 @@ export class CountryLanguage {
   @Column({ type: 'tinyint', width: 1, nullable: false, default: () => '1' })
   is_administrative: boolean;
 
-  @Column({ type: 'bigint', nullable: true })
-  sorting_order: number;
+  @Column({ type: 'text', nullable: true })
+  sorting_order: string;
 
   //relations
 

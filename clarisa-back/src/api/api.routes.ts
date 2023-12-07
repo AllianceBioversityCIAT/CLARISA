@@ -64,6 +64,8 @@ import { PermissionModule } from './permission/permission.module';
 import { PhaseModule } from './phase/phase.module';
 import { SubnationalScopeModule } from './subnational-scope/subnational-scope.module';
 import { LanguageModule } from './language/language.module';
+import { FirstOrderAdministrativeDivisionModule } from './first-order-administrative-division/first-order-administrative-division.module';
+import { SecondOrderAdministrativeDivisionModule } from './second-order-administrative-division/second-order-administrative-division.module';
 
 export const apiRoutes = [
   {
@@ -317,6 +319,14 @@ export const apiRoutes = [
   {
     path: 'permissions',
     module: PermissionModule,
+  },
+  {
+    path: 'first-order-administrative-division',
+    module: FirstOrderAdministrativeDivisionModule,
+  },
+  {
+    path: 'second-order-administrative-division',
+    module: SecondOrderAdministrativeDivisionModule,
   },
   {
     path: 'phases',

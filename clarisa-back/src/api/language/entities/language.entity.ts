@@ -20,8 +20,7 @@ export class Language {
   @Column({ type: 'text', nullable: true })
   name: string;
 
-  @Index({ unique: true })
-  @Column({ type: 'varchar', length: 64, nullable: false })
+  @Column({ type: 'varchar', length: 64, nullable: true })
   iso_alpha_2: string;
 
   @Index({ unique: true })
