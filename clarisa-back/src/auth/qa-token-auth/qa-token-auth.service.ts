@@ -22,7 +22,46 @@ export class QaTokenAuthService {
     });
   }
 
+  isEmail(email: string) {
+    const checkEmail =
+      /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
+    if (checkEmail.test(email)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   async create(createQaTokenDto: CreateQaTokenAuthDto): Promise<QaTokenAuth> {
+    //basic validations
+    if (
+      createQaTokenDto.name == '' ||
+      createQaTokenDto.appUser == '' ||
+      createQaTokenDto.email == '' ||
+      createQaTokenDto.misAcronym == '' ||
+      createQaTokenDto.username == ''
+    ) {
+      throw {
+        Error: 'All fields are required',
+        ErrorNumber: '400 Bad request',
+      };
+    }
+    if (this.isEmail(createQaTokenDto.email) == false) {
+      throw {
+        Error: 'The email is not valid',
+        ErrorNumber: '400 Bad request',
+      };
+    }
+    if (
+      createQaTokenDto.misAcronym.toLowerCase() == 'prms' &&
+      createQaTokenDto.official_code == ''
+    ) {
+      throw {
+        Error: 'The official code is required',
+        ErrorNumber: '400 Bad request',
+      };
+    }
+
     let qaTokenId: number = await this.qaTokenAuthRepository.query(
       `SELECT getQAToken(?,?,?,?,?,?)`,
       [

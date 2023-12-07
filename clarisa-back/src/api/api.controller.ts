@@ -20,12 +20,15 @@ import { CreateCountryOfficeRequestDto } from './country-office-request/dto/crea
 import { CreatePartnerRequestDto } from './partner-request/dto/create-partner-request.dto';
 import { PartnerRequestDto } from './partner-request/dto/partner-request.dto';
 import { PartnerRequestService } from './partner-request/partner-request.service';
+import { QaTokenAuthService } from '../auth/qa-token-auth/qa-token-auth.service';
+import { CreateQaTokenAuthDto } from '../auth/qa-token-auth/dto/create-qa-token-auth.dto';
 
 @Controller()
 export class ApiController {
   constructor(
     private _partnerRequestService: PartnerRequestService,
     private _countryOfficeRequestService: CountryOfficeRequestService,
+    private qaTokenAuthService: QaTokenAuthService,
     private readonly _apiService: ApiService,
   ) {}
 
@@ -198,5 +201,11 @@ export class ApiController {
       newCountryOfficeRequest,
       userDataMis,
     );
+  }
+
+  @Post('qa-token')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  generateQaToken(@Body() createQaTokenDto: CreateQaTokenAuthDto) {
+    return this.qaTokenAuthService.create(createQaTokenDto);
   }
 }

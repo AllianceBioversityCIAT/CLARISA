@@ -70,10 +70,12 @@ import { SubnationalScopeModule } from './subnational-scope/subnational-scope.mo
 import { LanguageModule } from './language/language.module';
 import { FirstOrderAdministrativeDivisionModule } from './first-order-administrative-division/first-order-administrative-division.module';
 import { SecondOrderAdministrativeDivisionModule } from './second-order-administrative-division/second-order-administrative-division.module';
+import { QaTokenAuthService } from '../auth/qa-token-auth/qa-token-auth.service';
+import { QaTokenAuthRepository } from '../auth/qa-token-auth/repositories/qa-token-auth.repository';
 
 @Module({
   controllers: [ApiController],
-  providers: [ApiService],
+  providers: [ApiService, QaTokenAuthService, QaTokenAuthRepository],
   imports: [
     UserModule,
     RoleModule,

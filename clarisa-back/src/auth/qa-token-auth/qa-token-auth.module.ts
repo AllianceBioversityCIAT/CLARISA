@@ -9,5 +9,6 @@ import { HttpModule } from '@nestjs/axios';
   imports: [HttpModule],
   controllers: [QaTokenAuthController],
   providers: [QaTokenAuthService, QaTokenAuthRepository, QaService],
+  exports: [QaTokenAuthService, QaTokenAuthRepository],
 })
 export class QaTokenAuthModule {}
