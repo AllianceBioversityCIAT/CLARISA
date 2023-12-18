@@ -126,7 +126,6 @@ export class TocResultServices {
               phase: tocResult.phase,
             });
             if (existingRecord) {
-              // Update existing record
               await tocResultRepo.update(
                 {
                   toc_result_id: tocResult.toc_result_id,
@@ -135,7 +134,6 @@ export class TocResultServices {
                 tocResult
               );
             } else {
-              // Insert new record
               await tocResultRepo.insert(tocResult);
             }
             const existingRecordSaveOrUpdate = await tocResultRepo.findOne({

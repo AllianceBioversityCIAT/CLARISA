@@ -46,10 +46,9 @@ export class TocSdgsServices {
               typeof sdgResult.sdg_contribution == "string"
                 ? sdgResult.sdg_contribution
                 : null;
-
             sdgResultT.id_toc_initiative = initiative_id;
-
             sdgResultT.phase = phase;
+            sdgResultT.is_active = true;
 
             const existingRecord = await sdgRepo.findOne({
               toc_result_id: sdgResultT.toc_result_id,
