@@ -2,40 +2,18 @@ import { Connection } from "typeorm";
 import { Database } from "../database/db";
 import { ValidatorTypes } from "../validators/validatorType";
 import { ErrorValidators } from "../validators/errorsValidators";
-import { CreateSdgResultsDto } from "../dto/tocSdgResults";
-import { TocSdgResultsSdgTargetsDto } from "../dto/tocSdgResultsSdgTargets";
-import { TocSdgResultsSdgIndicatorsDto } from "../dto/tocSdgResultsSdgIndicators";
-import { TocImpactAreaResultsDto } from "../dto/tocImpactAreaResults";
-import { TocImpactAreaResultsGlobalTargetsDto } from "../dto/tocImpactAreaResultsGlobalTargets";
-import { TocImpactAreaResultsImpactAreaIndicatorsDto } from "../dto/tocImpactAreaResultsImpactAreaIndicators";
-import { TocImpactAreaResultsSdgResultsDto } from "../dto/tocImpactAreaResultsSdgResults";
-import { TocActionAreaResultsDto } from "../dto/tocActionAreaResults";
-import { TocActionAreaResultsOutcomesIndicatorsDto } from "../dto/tocActionAreaResultsOutcomesIndicators";
-import { TocActionAreaResultsImpactAreaResultsDto } from "../dto/tocActionAreaResultsImpactAreaResults";
 import { TocResultsDto } from "../dto/tocResults";
 import { TocResultsActionAreaResultsDto } from "../dto/tocResultsActionAreaResults";
 import { TocResultsImpactAreaResultsDto } from "../dto/tocResultsImpactAreaResults";
 import { TocResultsSdgResultsDto } from "../dto/tocResultsSdgResults";
-import { TocSdgResultsSdgTargets } from "../entities/tocSdgResultsSdgTargets";
 import { TocResultsIndicatorsDto } from "../dto/tocResultsIndicators";
 import { TocResultsRegionsDto } from "../dto/tocResultsRegions";
 import { TocResultsCountriesDto } from "../dto/tocResultsCountries";
 import { TocResults } from "../entities/tocResults";
-import { TocImpactAreaResults } from "../entities/tocImpactAreaResults";
-import { TocActionAreaResults } from "../entities/tocActionAreaResults";
-import { TocSdgResults } from "../entities/tocSdgResults";
-import { TocSdgResultsSdgIndicators } from "../entities/tocSdgResultsSdgIndicators";
-import { TocImpactAreaResultsGlobalTargets } from "../entities/tocImpactAreaResultsGlobalTargets";
-import { TocImpactAreaResultsImpactAreaIndicators } from "../entities/tocImpactAreaResultsImpactAreaIndicators";
-import { TocImpactAreaResultsSdgResults } from "../entities/tocImpactAreaResultsSdgResults";
-import { TocActionAreaResultsOutcomesIndicators } from "../entities/tocActionAreaResultsOutcomesIndicators";
-import { TocActionAreaResultsImpactAreaResults } from "../entities/tocActionAreaResultsImpactAreaResults";
 import { TocResultsActionAreaResults } from "../entities/tocResultsActionAreaResults";
 import { TocResultsImpactAreaResults } from "../entities/tocResultsImpactAreaResults";
 import { TocResultsSdgResults } from "../entities/tocResultsSdgResults";
 import { TocResultsIndicators } from "../entities/tocResultsIndicators";
-import { TocResultsCountries } from "../entities/tocResultsCountries";
-import { TocResultsRegions } from "../entities/tocResultsRegions";
 import { TocResultIndicatorCountry } from "../entities/tocResultsIndicatorCountry";
 import { TocResultIndicatorRegion } from "../entities/tocResultIndicatorRegion";
 import { TocResultIndicatorRegionDto } from "../dto/tocIndicatorRegion";
@@ -206,7 +184,6 @@ export class TocResultServices {
         indicatorRegions: listRegionIndicator,
       };
     } catch (error) {
-      console.error({ error, message: "Error saving toc results" });
       throw error;
     }
   }
@@ -341,48 +318,64 @@ export class TocResultServices {
 
   async saveTocResultsSdg(
     id_result: string,
-    sdg_resutls: any,
-    sdg_results_save: any,
+    sdg_results: any[],
+    sdg_results_save: any[],
     tocre
   ) {
     try {
       let itemSdg = [];
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(TocResultsSdgResults);
-      if (this.validatorType.validatorIsArray(sdg_resutls)) {
-        tocResultRepo.update(
+      const dbConn: Connection = await this.database.getConnection();
+      const tocResultRepo = await dbConn.getRepository(TocResultsSdgResults);
+
+      if (this.validatorType.validatorIsArray(sdg_results)) {
+        await tocResultRepo.update(
           { toc_results_id: tocre.id },
-          { is_active: false }
+          { is_active: 0 }
         );
-        for (let resultSdgItem of sdg_resutls) {
+
+        for (let resultSdgItem of sdg_results) {
           if (
             this.validatorType.existPropertyInObjectMul(resultSdgItem, [
               "toc_result_id",
             ])
           ) {
-            let sdgResult = new TocResultsSdgResultsDto();
+            const sdgResult = new TocResultsSdgResultsDto();
             sdgResult.toc_results_id = tocre.id;
-            sdgResult.toc_sdg_results_id = sdg_results_save.find(
+
+            const matchedSdgResult = sdg_results_save.find(
               (sdgResult) =>
                 sdgResult.toc_result_id === resultSdgItem.toc_result_id
-            ).id;
-            sdgResult.toc_results_id_toc = id_result;
-            sdgResult.is_active = true;
-            sdgResult.toc_sdg_results_id_toc = resultSdgItem.toc_result_id;
-            const existingRecordSdgTarget = await tocResultRepo.findOne({
-              toc_results_id: sdgResult.toc_results_id,
-              toc_sdg_results_id: sdgResult.toc_sdg_results_id,
-            });
-            if (!existingRecordSdgTarget) {
-              // Update existing record
-              await tocResultRepo.insert(sdgResult);
+            );
+
+            if (matchedSdgResult) {
+              sdgResult.toc_sdg_results_id = matchedSdgResult.id;
+              sdgResult.toc_results_id_toc = id_result;
+              sdgResult.is_active = 1;
+              sdgResult.toc_sdg_results_id_toc = resultSdgItem.toc_result_id;
+
+              const existingRecordSdgTarget = await tocResultRepo.findOne({
+                toc_results_id: sdgResult.toc_results_id,
+                toc_sdg_results_id: sdgResult.toc_sdg_results_id,
+              });
+
+              if (!existingRecordSdgTarget) {
+                await tocResultRepo.insert(sdgResult);
+              } else {
+                await tocResultRepo.update(
+                  {
+                    toc_results_id: sdgResult.toc_results_id,
+                    toc_sdg_results_id: sdgResult.toc_sdg_results_id,
+                  },
+                  sdgResult
+                );
+              }
             }
-            itemSdg.push(sdgResult);
           }
         }
       }
       return itemSdg;
     } catch (error) {
+      // Consider logging the error or handling it more appropriately
       throw error;
     }
   }

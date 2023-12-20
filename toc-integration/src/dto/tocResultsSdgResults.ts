@@ -3,7 +3,7 @@ export class TocResultsSdgResultsDto{
     
     toc_sdg_results_id:number;
     
-    is_active:boolean;
+    is_active:number;
     
     toc_sdg_results_id_toc:string;
     
