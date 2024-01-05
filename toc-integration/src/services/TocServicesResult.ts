@@ -62,12 +62,30 @@ export class TocServicesResults {
     await queryRunner.connect();
 
     const getInitOfficialCodeQuery = `
-      SELECT 
-        *
-      FROM 
-        prdb.clarisa_initiatives ci
-      WHERE
-        ci.toc_id = ?
+    SELECT
+      i.official_code
+    FROM
+      ${env.OST_DB}.tocs t
+      INNER JOIN (
+        SELECT
+          max(t2.updated_at) AS max_date,
+          t2.initvStgId
+        FROM
+          ${env.OST_DB}.tocs t2
+          INNER JOIN ${env.OST_DB}.initiatives_by_stages ibs2 ON t2.initvStgId = ibs2.id
+        where
+          t2.active > 0
+          AND t2.type = 1
+        GROUP BY
+          t2.initvStgId
+      ) tr ON tr.initvStgId = t.initvStgId
+      AND tr.max_date = t.updated_at
+      INNER JOIN ${env.OST_DB}.initiatives_by_stages ibs ON t.initvStgId = ibs.id
+      INNER JOIN ${env.OST_DB}.initiatives i ON i.id = ibs.initiativeId
+    WHERE
+      t.active > 0
+      AND t.type = 1
+      AND t.toc_id = ?;
     `;
 
     const getInit = await queryRunner.query(getInitOfficialCodeQuery, [
