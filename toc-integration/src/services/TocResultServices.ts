@@ -49,7 +49,7 @@ export class TocResultServices {
 
       if (this.validatorType.validatorIsArray(toc_results)) {
         tocResultRepo.update(
-          { id_toc_initiative: id_toc_init },
+          { id_toc_initiative: id_toc_init, phase },
           { is_active: false }
         );
 
