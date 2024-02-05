@@ -1,21 +1,13 @@
 import {
   Controller,
   Get,
-  Body,
-  Patch,
   Param,
   Query,
   ParseIntPipe,
-  Res,
-  HttpStatus,
-  HttpException,
   UseInterceptors,
   ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { CgiarEntityTypeService } from './cgiar-entity-type.service';
-import { UpdateCgiarEntityTypeDto } from './dto/update-cgiar-entity-type.dto';
-import { CgiarEntityType } from './entities/cgiar-entity-type.entity';
-import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
 @Controller()
@@ -33,19 +25,5 @@ export class CgiarEntityTypeController {
   @Get('get/:id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.cgiarEntityTypeService.findOne(id);
-  }
-
-  @Patch('update')
-  async update(
-    @Res() res: Response,
-    @Body() updateCgiarEntityTypeDtoList: UpdateCgiarEntityTypeDto[],
-  ) {
-    try {
-      const result: CgiarEntityType[] =
-        await this.cgiarEntityTypeService.update(updateCgiarEntityTypeDtoList);
-      return res.status(HttpStatus.OK).json(result);
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
   }
 }

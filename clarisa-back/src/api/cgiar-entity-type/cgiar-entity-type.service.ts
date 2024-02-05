@@ -1,63 +1,55 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { FindOptionsWhere, In } from 'typeorm';
 import { CgiarEntityTypeOption } from '../../shared/entities/enums/cgiar-entity-types';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { UpdateCgiarEntityTypeDto } from './dto/update-cgiar-entity-type.dto';
-import { CgiarEntityType } from './entities/cgiar-entity-type.entity';
 import { CgiarEntityTypeRepository } from './repositories/cgiar-entity-type.repository';
+import { CgiarEntityTypeMapper } from './mappers/cgiar-entity-type.mapper';
+import { CgiarEntityTypeDto } from './dto/cgiar-entity-type.dto';
+import { CgiarEntityType } from './entities/cgiar-entity-type.entity';
 
 @Injectable()
 export class CgiarEntityTypeService {
-  constructor(private cgiarEntityTypeRepository: CgiarEntityTypeRepository) {}
-
-  private readonly defaultTypes = [
-    CgiarEntityTypeOption.CRP,
-    CgiarEntityTypeOption.PLATFORM,
-    CgiarEntityTypeOption.CENTER,
-    CgiarEntityTypeOption.INITIATIVES,
-    CgiarEntityTypeOption.ONE_CGIAR_PLATFORM,
-    CgiarEntityTypeOption.ONE_CGIAR_SGP,
-  ].map((cet) => cet.entity_type_id);
-
-  private readonly whereClause: FindOptionsWhere<CgiarEntityType> = {
-    id: In(this.defaultTypes),
-  };
+  constructor(
+    private _cgiarEntityTypeRepository: CgiarEntityTypeRepository,
+    private _cgiarEntityTypeMapper: CgiarEntityTypeMapper,
+  ) {}
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<CgiarEntityType[]> {
-    switch (option) {
-      case FindAllOptions.SHOW_ALL:
-        return await this.cgiarEntityTypeRepository.find({
-          where: this.whereClause,
-        });
-      case FindAllOptions.SHOW_ONLY_ACTIVE:
-      case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return await this.cgiarEntityTypeRepository.find({
-          where: {
-            ...this.whereClause,
-            auditableFields: {
-              is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
-            },
-          },
-        });
-      default:
-        throw Error('?!');
+  ): Promise<CgiarEntityTypeDto[]> {
+    const commonTypesIds = CgiarEntityTypeOption.getCommonTypes().map(
+      (cet) => cet.entity_type_id,
+    );
+    const whereClause: FindOptionsWhere<CgiarEntityType> = {
+      id: In(commonTypesIds),
+    };
+
+    if (option !== FindAllOptions.SHOW_ALL) {
+      whereClause.auditableFields = {
+        is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
+      };
     }
+
+    const cgiarEntityTypes = await this._cgiarEntityTypeRepository.find({
+      select: { id: true, name: true },
+      where: whereClause,
+    });
+
+    return cgiarEntityTypes.map((cet) =>
+      this._cgiarEntityTypeMapper.classToDto(cet),
+    );
   }
 
-  async findOne(id: number): Promise<CgiarEntityType> {
-    return await this.cgiarEntityTypeRepository.findOneBy({
+  async findOne(id: number): Promise<CgiarEntityTypeDto> {
+    const cgiarEntityType = await this._cgiarEntityTypeRepository.findOneBy({
       id,
       auditableFields: { is_active: true },
     });
-  }
 
-  async update(
-    updateCgiarEntityTypeDtoList: UpdateCgiarEntityTypeDto[],
-  ): Promise<CgiarEntityType[]> {
-    return await this.cgiarEntityTypeRepository.save(
-      updateCgiarEntityTypeDtoList,
-    );
+    if (!cgiarEntityType) {
+      throw new NotFoundException(`Entity Type with id "${id}" not found`);
+    }
+
+    return this._cgiarEntityTypeMapper.classToDto(cgiarEntityType);
   }
 }

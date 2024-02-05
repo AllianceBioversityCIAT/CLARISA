@@ -1,4 +1,3 @@
-import { Exclude, Expose } from 'class-transformer';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
 import { CgiarEntity } from '../../cgiar-entity/entities/cgiar-entity.entity';
@@ -6,7 +5,6 @@ import { CgiarEntity } from '../../cgiar-entity/entities/cgiar-entity.entity';
 @Entity('global_unit_types')
 export class CgiarEntityType {
   @PrimaryGeneratedColumn({ type: 'bigint' })
-  @Expose({ name: 'code' })
   id: number;
 
   @Column({ type: 'text', nullable: true })
@@ -17,7 +15,6 @@ export class CgiarEntityType {
 
   //auditable fields
 
-  @Exclude()
   @Column(() => AuditableEntity, { prefix: '' })
   auditableFields: AuditableEntity;
 }
