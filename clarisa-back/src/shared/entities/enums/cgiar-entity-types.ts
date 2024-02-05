@@ -21,6 +21,11 @@ export class CgiarEntityTypeOption {
     10,
     'one-cgiar-sgps',
   );
+  public static readonly FLAGSHIPS = new CgiarEntityTypeOption(11, 'flagships');
+  public static readonly WORKPACKAGES = new CgiarEntityTypeOption(
+    12,
+    'workpackages',
+  );
 
   private constructor(
     public readonly entity_type_id: number,
@@ -39,5 +44,19 @@ export class CgiarEntityTypeOption {
     return (Object.values(this) as CgiarEntityTypeOption[]).find(
       (p) => p.entity_type_id === entity_type_id,
     );
+  }
+
+  public static getCommonTypes(): CgiarEntityTypeOption[] {
+    return [
+      this.CRP,
+      this.PLATFORM,
+      this.CENTER,
+      this.INITIATIVES,
+      this.OFFICES,
+      this.ONE_CGIAR_PLATFORM,
+      this.ONE_CGIAR_SGP,
+      this.FLAGSHIPS,
+      this.WORKPACKAGES,
+    ];
   }
 }
