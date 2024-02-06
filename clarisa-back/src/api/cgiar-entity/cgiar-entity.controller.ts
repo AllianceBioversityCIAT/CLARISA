@@ -39,6 +39,11 @@ export class CgiarEntityController {
     return await this.cgiarEntityService.findAllWorkpackages(show, flagship);
   }
 
+  @Get('getInitiativeTree')
+  async findInitiativeTree() {
+    return await this.cgiarEntityService.findAllInitiativeTree();
+  }
+
   @Get('get/:id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.cgiarEntityService.findOne(id);

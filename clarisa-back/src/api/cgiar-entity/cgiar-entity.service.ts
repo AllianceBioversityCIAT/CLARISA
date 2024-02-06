@@ -32,7 +32,49 @@ export class CgiarEntityService {
     return this.findEntities(
       whereClause,
       option === FindAllOptions.SHOW_ONLY_ACTIVE,
+    ).then((ce) => ce.map((e) => this._cgiarEntityMapper.classToDto(e)));
+  }
+
+  async findAllInitiativeTree(): Promise<CgiarEntityDto[]> {
+    const entities = await this.findAll_helper(FindAllOptions.SHOW_ONLY_ACTIVE);
+
+    return this.getTreeFromType(
+      CgiarEntityTypeOption.INITIATIVES,
+      entities,
+    ).then((ce) => ce.map((e) => this._cgiarEntityMapper.classToDto(e)));
+  }
+
+  private async getTreeFromNode(
+    startingNode: CgiarEntity,
+    allNodes: CgiarEntity[],
+  ): Promise<CgiarEntity> {
+    const children = allNodes.filter(
+      (entity) => entity.parent_object?.id === startingNode.id,
     );
+
+    if (children.length > 0) {
+      const childPromises = children.map((child) =>
+        this.getTreeFromNode(child, allNodes),
+      );
+      startingNode.children_array = await Promise.all(childPromises);
+    }
+
+    return startingNode;
+  }
+
+  private getTreeFromType(
+    type: CgiarEntityTypeOption,
+    allNodes: CgiarEntity[],
+  ): Promise<CgiarEntity[]> {
+    const roots = allNodes.filter(
+      (entity) =>
+        !entity.parent_id &&
+        entity.cgiar_entity_type_object.id === type.entity_type_id,
+    );
+
+    const branches = roots.map((root) => this.getTreeFromNode(root, allNodes));
+
+    return Promise.all(branches);
   }
 
   async findAllFlagships(
@@ -53,13 +95,13 @@ export class CgiarEntityService {
     return this.findEntities(
       whereClause,
       option === FindAllOptions.SHOW_ONLY_ACTIVE,
-    );
+    ).then((ce) => ce.map((e) => this._cgiarEntityMapper.classToDto(e)));
   }
 
-  async findAll(
+  private async findAll_helper(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     type?: string,
-  ): Promise<CgiarEntityDto[]> {
+  ): Promise<CgiarEntity[]> {
     const typeOption: CgiarEntityTypeOption =
       CgiarEntityTypeOption.getfromPath(type);
 
@@ -82,6 +124,15 @@ export class CgiarEntityService {
     return this.findEntities(
       whereClause,
       option === FindAllOptions.SHOW_ONLY_ACTIVE,
+    );
+  }
+
+  async findAll(
+    option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    type?: string,
+  ): Promise<CgiarEntityDto[]> {
+    return this.findAll_helper(option, type).then((ce) =>
+      ce.map((e) => this._cgiarEntityMapper.classToDto(e)),
     );
   }
 
@@ -128,9 +179,10 @@ export class CgiarEntityService {
   private async findEntities(
     whereClause: FindOptionsWhere<CgiarEntity>,
     isActive: boolean,
-  ): Promise<CgiarEntityDto[]> {
+  ): Promise<CgiarEntity[]> {
     const entities = await this._cgiarEntityRepository.find({
       select: {
+        id: true,
         name: true,
         acronym: true,
         smo_code: true,
@@ -146,6 +198,6 @@ export class CgiarEntityService {
       relations: { cgiar_entity_type_object: true, parent_object: true },
     });
 
-    return entities.map((e) => this._cgiarEntityMapper.classToDto(e));
+    return entities;
   }
 }
