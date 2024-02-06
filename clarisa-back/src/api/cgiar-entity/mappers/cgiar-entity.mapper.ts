@@ -27,6 +27,12 @@ export class CgiarEntityMapper {
       cgiarEntityDto.parent = this.classToDto(cgiarEntity.parent_object);
     }
 
+    if (cgiarEntity.children_array) {
+      cgiarEntityDto.children = cgiarEntity.children_array.map((child) =>
+        this.classToDto(child),
+      );
+    }
+
     return cgiarEntityDto;
   }
 }

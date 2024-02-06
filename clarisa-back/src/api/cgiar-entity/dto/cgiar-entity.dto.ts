@@ -8,4 +8,5 @@ export class CgiarEntityDto {
   institutionId: number;
   cgiarEntityTypeDTO: CgiarEntityTypeDto;
   parent?: CgiarEntityDto;
+  children?: CgiarEntityDto[];
 }
