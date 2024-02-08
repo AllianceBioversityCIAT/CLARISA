@@ -66,6 +66,7 @@ import { SubnationalScopeModule } from './subnational-scope/subnational-scope.mo
 import { LanguageModule } from './language/language.module';
 import { FirstOrderAdministrativeDivisionModule } from './first-order-administrative-division/first-order-administrative-division.module';
 import { SecondOrderAdministrativeDivisionModule } from './second-order-administrative-division/second-order-administrative-division.module';
+import { FrameworkModule } from './framework/framework.module';
 
 export const apiRoutes = [
   {
@@ -339,5 +340,9 @@ export const apiRoutes = [
   {
     path: 'languages',
     module: LanguageModule,
+  },
+  {
+    path: 'frameworks',
+    module: FrameworkModule,
   },
 ];
