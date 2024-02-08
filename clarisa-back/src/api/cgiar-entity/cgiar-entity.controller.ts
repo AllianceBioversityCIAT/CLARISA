@@ -39,9 +39,14 @@ export class CgiarEntityController {
     return await this.cgiarEntityService.findAllWorkpackages(show, flagship);
   }
 
-  @Get('getInitiativeTree')
-  async findInitiativeTree() {
-    return await this.cgiarEntityService.findAllInitiativeTree();
+  @Get('getEntityTypeTree')
+  async findEntityTypeTree(@Query('type') type: string) {
+    return await this.cgiarEntityService.findAllEntityTypeTree(type);
+  }
+
+  @Get('getFrameworkTree')
+  async findFrameworkTree(@Query('framework') framework: string) {
+    return await this.cgiarEntityService.findAllFrameworkTree(framework);
   }
 
   @Get('get/:id')
