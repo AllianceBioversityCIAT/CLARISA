@@ -26,6 +26,11 @@ export class CgiarEntityTypeOption {
     12,
     'workpackages',
   );
+  public static readonly OTHER_W3S = new CgiarEntityTypeOption(13, 'other-w3s');
+  public static readonly BILATERALS = new CgiarEntityTypeOption(
+    14,
+    'bilaterals',
+  );
 
   private constructor(
     public readonly entity_type_id: number,
@@ -57,6 +62,8 @@ export class CgiarEntityTypeOption {
       this.ONE_CGIAR_SGP,
       this.FLAGSHIPS,
       this.WORKPACKAGES,
+      this.OTHER_W3S,
+      this.BILATERALS,
     ];
   }
 }
