@@ -6,6 +6,7 @@ import { CgiarEntity } from './entities/cgiar-entity.entity';
 import { CgiarEntityMapper } from './mappers/cgiar-entity.mapper';
 import { CgiarEntityDto } from './dto/cgiar-entity.dto';
 import { CgiarEntityRepository } from './repositories/cgiar-entity.repository';
+import { FrameworkOptions } from '../../shared/entities/enums/framework-options';
 
 @Injectable()
 export class CgiarEntityService {
@@ -35,13 +36,45 @@ export class CgiarEntityService {
     ).then((ce) => ce.map((e) => this._cgiarEntityMapper.classToDto(e)));
   }
 
-  async findAllInitiativeTree(): Promise<CgiarEntityDto[]> {
+  async findAllFrameworkTree(
+    framework: string = FrameworkOptions.PORTFOLIO_2025.path,
+  ): Promise<CgiarEntityDto[]> {
+    const frameworkOption = FrameworkOptions.getfromPath(framework);
+    if (!frameworkOption) {
+      throw new NotFoundException('Invalid framework');
+    }
+
+    const allEntities = await this.findAll_helper(
+      FindAllOptions.SHOW_ONLY_ACTIVE,
+    );
+    const frameworkEntities = allEntities.filter(
+      (e) => e.framework_object.id === frameworkOption.framework_id,
+    );
+    const frameworkRoots = this.getRoots(
+      frameworkEntities,
+      null,
+      frameworkOption,
+    );
+    const frameworkTree = Promise.all(
+      frameworkRoots.map((e) => this.getTreeFromNode(e, allEntities)),
+    );
+
+    return frameworkTree.then((ce) =>
+      ce.map((e) => this._cgiarEntityMapper.classToDto(e, false)),
+    );
+  }
+
+  async findAllEntityTypeTree(type: string): Promise<CgiarEntityDto[]> {
+    const entityType = CgiarEntityTypeOption.getfromPath(type);
+    if (!entityType) {
+      throw new NotFoundException('Invalid entity type');
+    }
+
     const entities = await this.findAll_helper(FindAllOptions.SHOW_ONLY_ACTIVE);
 
-    return this.getTreeFromType(
-      CgiarEntityTypeOption.INITIATIVES,
-      entities,
-    ).then((ce) => ce.map((e) => this._cgiarEntityMapper.classToDto(e)));
+    return this.getTreeFromType(entityType, entities).then((ce) =>
+      ce.map((e) => this._cgiarEntityMapper.classToDto(e, false)),
+    );
   }
 
   private async getTreeFromNode(
@@ -66,15 +99,31 @@ export class CgiarEntityService {
     type: CgiarEntityTypeOption,
     allNodes: CgiarEntity[],
   ): Promise<CgiarEntity[]> {
-    const roots = allNodes.filter(
-      (entity) =>
-        !entity.parent_id &&
-        entity.cgiar_entity_type_object.id === type.entity_type_id,
-    );
+    const roots = this.getRoots(allNodes, type);
 
     const branches = roots.map((root) => this.getTreeFromNode(root, allNodes));
 
     return Promise.all(branches);
+  }
+
+  private getRoots(
+    nodes: CgiarEntity[],
+    type?: CgiarEntityTypeOption,
+    framework?: FrameworkOptions,
+  ) {
+    return nodes.filter((entity) => {
+      let filterCondition = !entity.parent_object?.id;
+      if (type) {
+        filterCondition &&=
+          entity.cgiar_entity_type_object.id === type.entity_type_id;
+      }
+      if (framework) {
+        filterCondition &&=
+          entity.framework_object.id === framework.framework_id;
+      }
+
+      return filterCondition;
+    });
   }
 
   async findAllFlagships(
@@ -190,12 +239,17 @@ export class CgiarEntityService {
         institution_id: true,
         cgiar_entity_type_object: { id: true, name: true },
         parent_object: { id: true, name: true, smo_code: true },
+        framework_object: { id: true, name: true },
       },
       where: isActive
         ? { ...whereClause, auditableFields: { is_active: true } }
         : whereClause,
       order: { smo_code: 'ASC' },
-      relations: { cgiar_entity_type_object: true, parent_object: true },
+      relations: {
+        cgiar_entity_type_object: true,
+        parent_object: true,
+        framework_object: true,
+      },
     });
 
     return entities;

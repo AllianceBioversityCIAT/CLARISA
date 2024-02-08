@@ -9,6 +9,7 @@ import {
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
 import { CgiarEntityType } from '../../cgiar-entity-type/entities/cgiar-entity-type.entity';
 import { Institution } from '../../institution/entities/institution.entity';
+import { Framework } from '../../framework/entities/framework.entity';
 
 @Entity('global_units')
 export class CgiarEntity {
@@ -38,11 +39,18 @@ export class CgiarEntity {
   @Column({ type: 'bigint', nullable: true })
   parent_id: number;
 
+  @Column({ type: 'bigint', nullable: false })
+  framework_id: number;
+
   //object relations
 
   @ManyToOne(() => CgiarEntityType, (cet) => cet.cgiar_entity_array)
   @JoinColumn({ name: 'global_unit_type_id' })
   cgiar_entity_type_object: CgiarEntityType;
+
+  @ManyToOne(() => Framework, (f) => f.cgiar_entity_array)
+  @JoinColumn({ name: 'framework_id' })
+  framework_object: Framework;
 
   @ManyToOne(() => Institution, (i) => i.cgiar_entity_array)
   @JoinColumn({ name: 'institution_id' })
