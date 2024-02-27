@@ -92,6 +92,7 @@ export class TocServicesResults {
       idInitiativeToc,
     ]);
     const officialCode = getInit[0]?.official_code;
+    console.log(`🚀 ~ Start sync with ${officialCode}`);
 
     try {
       const narrative = await axios({
