@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { tocController } from "../controllers/tocControllerResult";
-import { sendSlackNotification } from "../validators/slackNotification";
 
 const router = Router();
 const TocResultDashboard = new tocController();

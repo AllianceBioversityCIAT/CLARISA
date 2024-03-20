@@ -28,13 +28,14 @@ export class InitiativeRepository extends Repository<Initiative> {
     }
 
     const initiativeQuery = `
-        select sti.id, sti.name, sti.short_name, sti.official_code, 
+        select sti.id, sti.name, sti.short_name, sti.official_code, gu.global_unit_type_id as type_id,
             sti.is_active as active, stis.status, sts.id as stageId, sts.description,
             aa.id as action_area_id, aa.description as action_area_description
         from submission_tool_initiative_stages stis
         join submission_tool_initiatives sti on sti.id = stis.initiative_id
         join submission_tool_stages sts on sts.id = stis.stage_id
         join action_areas aa on aa.id = stis.action_area_id
+        join global_units gu on sti.official_code = gu.smo_code
         where ${isActiveCondition} stis.id in (
             select stis.id from submission_tool_initiative_stages stis
             inner join (

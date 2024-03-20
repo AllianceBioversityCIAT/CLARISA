@@ -55,4 +55,9 @@ export class InitiativeDto {
    * All initiative stages
    */
   stages: StageDto[];
+
+  /**
+   * The initiative type id
+   */
+  type_id: number;
 }
