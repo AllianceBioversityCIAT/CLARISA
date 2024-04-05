@@ -1,33 +1,24 @@
 import {
   Controller,
   Get,
-  Body,
-  Patch,
   Param,
-  Query,
   ParseIntPipe,
-  Res,
-  HttpStatus,
-  HttpException,
-  UseInterceptors,
-  ClassSerializerInterceptor,
+  Query,
+  Version,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { ActionAreaOutcomeService } from './action-area-outcome.service';
-import { UpdateActionAreaOutcomeDto } from './dto/update-action-area-outcome.dto';
-import { ActionAreaOutcome } from './entities/action-area-outcome.entity';
 
 @Controller()
-@UseInterceptors(ClassSerializerInterceptor)
 export class ActionAreaOutcomeController {
   constructor(
     private readonly actionAreaOutcomeService: ActionAreaOutcomeService,
   ) {}
 
+  @Version('1')
   @Get()
-  async findAll(@Query('show') show: FindAllOptions) {
-    return await this.actionAreaOutcomeService.findAll(show);
+  async findAllV1(@Query('show') show: FindAllOptions) {
+    return await this.actionAreaOutcomeService.findAllV1(show);
   }
 
   @Get('get/:id')
@@ -35,19 +26,9 @@ export class ActionAreaOutcomeController {
     return await this.actionAreaOutcomeService.findOne(id);
   }
 
-  @Patch('update')
-  async update(
-    @Res() res: Response,
-    @Body() updateActionAreaOutcomeDtoList: UpdateActionAreaOutcomeDto[],
-  ) {
-    try {
-      const result: ActionAreaOutcome[] =
-        await this.actionAreaOutcomeService.update(
-          updateActionAreaOutcomeDtoList,
-        );
-      return res.status(HttpStatus.OK).json(result);
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
+  @Version('2')
+  @Get()
+  async findAllV2(@Query('show') show: FindAllOptions) {
+    return await this.actionAreaOutcomeService.findAllV2(show);
   }
 }

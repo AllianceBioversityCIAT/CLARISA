@@ -1,54 +1,41 @@
 import {
   Controller,
   Get,
-  Body,
-  Patch,
   Param,
-  Query,
   ParseIntPipe,
-  Res,
-  HttpStatus,
-  HttpException,
-  UseInterceptors,
-  ClassSerializerInterceptor,
+  Query,
+  Version,
 } from '@nestjs/common';
-import { Response } from 'express';
-import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { ActionAreaOutcomeIndicatorService } from './action-area-outcome-indicator.service';
-import { UpdateActionAreaOutcomeIndicatorDto } from './dto/update-action-area-outcome-indicator.dto';
-import { ActionAreaOutcomeIndicator } from './entities/action-area-outcome-indicator.entity';
+import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
 @Controller()
-@UseInterceptors(ClassSerializerInterceptor)
 export class ActionAreaOutcomeIndicatorController {
   constructor(
     private readonly actionAreaOutcomeIndicatorService: ActionAreaOutcomeIndicatorService,
   ) {}
 
+  @Version('1')
   @Get()
-  async findAll(@Query('show') show: FindAllOptions) {
-    return await this.actionAreaOutcomeIndicatorService.findAll(show);
+  async findAllV1(@Query('show') show: FindAllOptions) {
+    return await this.actionAreaOutcomeIndicatorService.findAllV1(show);
   }
 
+  @Version('1')
   @Get('get/:id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return await this.actionAreaOutcomeIndicatorService.findOne(id);
+  async findOneV1(@Param('id', ParseIntPipe) id: number) {
+    return await this.actionAreaOutcomeIndicatorService.findOneV1(id);
   }
 
-  @Patch('update')
-  async update(
-    @Res() res: Response,
-    @Body()
-    updateActionAreaOutcomeIndicatorDtoList: UpdateActionAreaOutcomeIndicatorDto[],
-  ) {
-    try {
-      const result: ActionAreaOutcomeIndicator[] =
-        await this.actionAreaOutcomeIndicatorService.update(
-          updateActionAreaOutcomeIndicatorDtoList,
-        );
-      return res.status(HttpStatus.OK).json(result);
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
+  @Version('2')
+  @Get()
+  async findAllV2(@Query('show') show: FindAllOptions) {
+    return await this.actionAreaOutcomeIndicatorService.findAllV2(show);
+  }
+
+  @Version('2')
+  @Get('get/:id')
+  async findOneV2(@Param('id', ParseIntPipe) id: number) {
+    return await this.actionAreaOutcomeIndicatorService.findOneV2(id);
   }
 }

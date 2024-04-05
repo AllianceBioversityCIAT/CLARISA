@@ -11,9 +11,7 @@ describe('ActionAreaOutcomeIndicatorController', () => {
       providers: [ActionAreaOutcomeIndicatorService],
     }).compile();
 
-    controller = module.get<ActionAreaOutcomeIndicatorController>(
-      ActionAreaOutcomeIndicatorController,
-    );
+    controller = module.get<ActionAreaOutcomeIndicatorController>(ActionAreaOutcomeIndicatorController);
   });
 
   it('should be defined', () => {

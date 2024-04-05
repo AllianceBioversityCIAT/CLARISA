@@ -1,10 +1,10 @@
 import { Exclude } from 'class-transformer';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
-import { ActionAreaOutcomeIndicator } from '../../action-area-outcome-indicator/entities/action-area-outcome-indicator.entity';
+import { ActionAreaOutcome } from '../../action-area-outcome/entities/action-area-outcome.entity';
 
-@Entity('outcome_indicators')
-export class OutcomeIndicator {
+@Entity('outcomes')
+export class Outcome {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
@@ -12,15 +12,12 @@ export class OutcomeIndicator {
   smo_code: string;
 
   @Column({ type: 'text', nullable: true })
-  outcome_indicator_statement: string;
+  outcome_statement: string;
 
   //object relations
 
-  @OneToMany(
-    () => ActionAreaOutcomeIndicator,
-    (aaoi) => aaoi.action_area_outcome_object,
-  )
-  action_area_outcome_indicators: ActionAreaOutcomeIndicator[];
+  @OneToMany(() => ActionAreaOutcome, (aaoi) => aaoi.outcome_object)
+  action_area_outcomes: ActionAreaOutcome[];
 
   //auditable fields
 

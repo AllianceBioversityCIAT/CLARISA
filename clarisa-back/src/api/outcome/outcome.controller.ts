@@ -2,26 +2,26 @@ import {
   Controller,
   Get,
   Param,
-  ParseIntPipe,
-  Query,
   Version,
+  Query,
+  ParseIntPipe,
 } from '@nestjs/common';
-import { ActionAreaService } from './action-area.service';
+import { OutcomeService } from './outcome.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
 @Controller()
-export class ActionAreaController {
-  constructor(private readonly actionAreaService: ActionAreaService) {}
+export class OutcomeController {
+  constructor(private readonly outcomeService: OutcomeService) {}
 
   @Version('1')
   @Get()
   async findAllV1(@Query('show') show: FindAllOptions) {
-    return await this.actionAreaService.findAll(show);
+    return await this.outcomeService.findAll(show);
   }
 
   @Version('1')
   @Get('get/:id')
   async findOneV1(@Param('id', ParseIntPipe) id: number) {
-    return await this.actionAreaService.findOne(id);
+    return await this.outcomeService.findOne(id);
   }
 }

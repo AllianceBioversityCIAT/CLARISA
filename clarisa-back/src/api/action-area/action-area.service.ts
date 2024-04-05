@@ -1,43 +1,48 @@
 import { Injectable } from '@nestjs/common';
-import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { UpdateActionAreaDto } from './dto/update-action-area.dto';
-import { ActionArea } from './entities/action-area.entity';
 import { ActionAreaRepository } from './repositories/action-area.repository';
+import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { ActionAreaDto } from './dto/action-area.dto';
+import { ActionAreaMapper } from './mappers/action-area.mapper';
+import { ActionArea } from './entities/action-area.entity';
 
 @Injectable()
 export class ActionAreaService {
-  constructor(private actionAreasRepository: ActionAreaRepository) {}
+  constructor(
+    private actionAreasRepository: ActionAreaRepository,
+    private actionAreaMapper: ActionAreaMapper,
+  ) {}
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<ActionArea[]> {
+  ): Promise<ActionAreaDto[]> {
+    let actionAreas: ActionArea[] = [];
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return await this.actionAreasRepository.find();
+        actionAreas = await this.actionAreasRepository.find();
+        break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return await this.actionAreasRepository.find({
+        actionAreas = await this.actionAreasRepository.find({
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
             },
           },
         });
+        break;
       default:
         throw Error('?!');
     }
+
+    return this.actionAreaMapper.classListToDtoList(actionAreas);
   }
 
-  async findOne(id: number): Promise<ActionArea> {
-    return await this.actionAreasRepository.findOneBy({
+  async findOne(id: number): Promise<ActionAreaDto> {
+    const actionArea = await this.actionAreasRepository.findOneBy({
       id,
       auditableFields: { is_active: true },
     });
-  }
 
-  async update(
-    updateUserDtoList: UpdateActionAreaDto[],
-  ): Promise<ActionArea[]> {
-    return await this.actionAreasRepository.save(updateUserDtoList);
+    return this.actionAreaMapper.classToDto(actionArea);
   }
 }

@@ -12,7 +12,6 @@ import { SdgTargetModule } from './sdg-target/sdg-target.module';
 import { ProjectedBenefitProbabilityModule } from './projected-benefit-probability/projected-benefit-probability.module';
 import { ProjectedBenefitModule } from './projected-benefit/projected-benefit.module';
 import { ActionAreaOutcomeModule } from './action-area-outcome/action-area-outcome.module';
-import { OutcomeIndicatorModule } from './outcome-indicator/outcome-indicator.module';
 import { ActionAreaOutcomeIndicatorModule } from './action-area-outcome-indicator/action-area-outcome-indicator.module';
 import { GeopositionModule } from './geoposition/geoposition.module';
 import { RegionTypeModule } from './region-type/region-type.module';
@@ -72,6 +71,8 @@ import { FirstOrderAdministrativeDivisionModule } from './first-order-administra
 import { SecondOrderAdministrativeDivisionModule } from './second-order-administrative-division/second-order-administrative-division.module';
 import { QaTokenAuthService } from '../auth/qa-token-auth/qa-token-auth.service';
 import { QaTokenAuthRepository } from '../auth/qa-token-auth/repositories/qa-token-auth.repository';
+import { OutcomeModule } from './outcome/outcome.module';
+import { IndicatorModule } from './indicator/indicator.module';
 
 @Module({
   controllers: [ApiController],
@@ -90,7 +91,6 @@ import { QaTokenAuthRepository } from '../auth/qa-token-auth/repositories/qa-tok
     ProjectedBenefitProbabilityModule,
     ProjectedBenefitModule,
     ActionAreaOutcomeModule,
-    OutcomeIndicatorModule,
     ActionAreaOutcomeIndicatorModule,
     SourceModule,
     CountryModule,
@@ -146,6 +146,8 @@ import { QaTokenAuthRepository } from '../auth/qa-token-auth/repositories/qa-tok
     SecondOrderAdministrativeDivisionModule,
     FirstOrderAdministrativeDivisionModule,
     LanguageModule,
+    OutcomeModule,
+    IndicatorModule,
   ],
 })
 export class ApiModule {}

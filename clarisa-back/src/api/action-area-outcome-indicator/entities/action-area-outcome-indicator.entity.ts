@@ -8,8 +8,7 @@ import {
 } from 'typeorm';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
 import { ActionAreaOutcome } from '../../action-area-outcome/entities/action-area-outcome.entity';
-import { ActionArea } from '../../action-area/entities/action-area.entity';
-import { OutcomeIndicator } from '../../outcome-indicator/entities/outcome-indicator.entity';
+import { Indicator } from '../../indicator/entities/indicator.entity';
 
 @Entity('action_area_outcome_indicators')
 export class ActionAreaOutcomeIndicator {
@@ -22,10 +21,7 @@ export class ActionAreaOutcomeIndicator {
   action_area_outcome_id: number;
 
   @Column({ type: 'bigint', nullable: true })
-  outcome_indicator_id: number;
-
-  @Column({ type: 'bigint', nullable: true })
-  action_area_id: number;
+  indicator_id: number;
 
   //object relations
 
@@ -36,13 +32,9 @@ export class ActionAreaOutcomeIndicator {
   @JoinColumn({ name: 'action_area_outcome_id' })
   action_area_outcome_object: ActionAreaOutcome;
 
-  @ManyToOne(() => OutcomeIndicator, (oi) => oi.action_area_outcome_indicators)
-  @JoinColumn({ name: 'outcome_indicator_id' })
-  outcome_indicator_object: OutcomeIndicator;
-
-  @ManyToOne(() => ActionArea, (aao) => aao.action_area_outcome_indicators)
-  @JoinColumn({ name: 'action_area_id' })
-  action_area_object: ActionArea;
+  @ManyToOne(() => Indicator, (i) => i.action_area_outcome_indicators)
+  @JoinColumn({ name: 'indicator_id' })
+  indicator_object: Indicator;
 
   //auditable fields
 

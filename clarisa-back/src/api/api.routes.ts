@@ -9,7 +9,6 @@ import { SdgTargetModule } from './sdg-target/sdg-target.module';
 import { ProjectedBenefitProbabilityModule } from './projected-benefit-probability/projected-benefit-probability.module';
 import { ProjectedBenefitModule } from './projected-benefit/projected-benefit.module';
 import { ActionAreaOutcomeModule } from './action-area-outcome/action-area-outcome.module';
-import { OutcomeIndicatorModule } from './outcome-indicator/outcome-indicator.module';
 import { ActionAreaOutcomeIndicatorModule } from './action-area-outcome-indicator/action-area-outcome-indicator.module';
 import { CountryModule } from './country/country.module';
 import { GeopositionModule } from './geoposition/geoposition.module';
@@ -66,6 +65,8 @@ import { SubnationalScopeModule } from './subnational-scope/subnational-scope.mo
 import { LanguageModule } from './language/language.module';
 import { FirstOrderAdministrativeDivisionModule } from './first-order-administrative-division/first-order-administrative-division.module';
 import { SecondOrderAdministrativeDivisionModule } from './second-order-administrative-division/second-order-administrative-division.module';
+import { OutcomeModule } from './outcome/outcome.module';
+import { IndicatorModule } from './indicator/indicator.module';
 
 export const apiRoutes = [
   {
@@ -120,10 +121,10 @@ export const apiRoutes = [
     path: 'action-area-outcomes',
     module: ActionAreaOutcomeModule,
   },
-  {
+  /*{
     path: 'outcome-indicators',
     module: OutcomeIndicatorModule,
-  },
+  },*/
   {
     path: 'action-area-outcome-indicators',
     module: ActionAreaOutcomeIndicatorModule,
@@ -339,5 +340,13 @@ export const apiRoutes = [
   {
     path: 'languages',
     module: LanguageModule,
+  },
+  {
+    path: 'outcomes',
+    module: OutcomeModule,
+  },
+  {
+    path: 'indicators',
+    module: IndicatorModule,
   },
 ];

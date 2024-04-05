@@ -1,11 +1,11 @@
-export class ActionAreaOutcomeDto {
-  id: number;
+export class ActionAreaOutcomeIndicatorV1Dto {
+  actionAreaOutcomeIndicatorId: number;
   actionAreaId: number;
   actionAreaName: string;
   outcomeId: number;
   outcomeSMOcode: string;
   outcomeStatement: string;
   outcomeIndicatorId: number;
-  outcomeIndicatorSMOcode: string;
+  outcomeIndicatorsSMOcode: string;
   outcomeIndicatorStatement: string;
 }
