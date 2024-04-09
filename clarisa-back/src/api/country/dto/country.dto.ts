@@ -1,3 +1,4 @@
+import { GeopositionDto } from '../../geoposition/dto/geoposition.dto';
 import { SimpleRegionDto } from '../../region/dto/simple-region.dto';
 
 export class CountryDto {
@@ -6,4 +7,5 @@ export class CountryDto {
   isoAlpha3: string;
   name: string;
   regionDTO: SimpleRegionDto;
+  locationDTO: GeopositionDto;
 }

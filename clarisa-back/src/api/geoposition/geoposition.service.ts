@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { UpdateGeopositionDto } from './dto/update-geoposition.dto';
 import { Geoposition } from './entities/geoposition.entity';
 import { GeopositionRepository } from './repositories/geoposition.repository';
 
@@ -33,9 +32,5 @@ export class GeopositionService {
       id,
       auditableFields: { is_active: true },
     });
-  }
-
-  async update(updateGeopositionDto: UpdateGeopositionDto[]) {
-    return await this.geopositionsRepository.save(updateGeopositionDto);
   }
 }

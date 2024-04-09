@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, FindManyOptions, Repository } from 'typeorm';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { ParentRegionDto } from '../../region/dto/parent-region.dto';
 import { SimpleRegionDto } from '../../region/dto/simple-region.dto';
@@ -9,22 +9,28 @@ import { Country } from '../entities/country.entity';
 
 @Injectable()
 export class CountryRepository extends Repository<Country> {
+  private readonly _findCriteria: FindManyOptions<Country> = {
+    relations: {
+      geoposition_object: true,
+    },
+  };
   constructor(private dataSource: DataSource) {
     super(Country, dataSource.createEntityManager());
   }
 
   async findAllCountries(option: FindAllOptions): Promise<CountryDto[]> {
-    const countries: Country[] = await this.find(
-      option !== FindAllOptions.SHOW_ALL
-        ? {
-            where: {
+    const countries: Country[] = await this.find({
+      ...this._findCriteria,
+      where:
+        option !== FindAllOptions.SHOW_ALL
+          ? {
               auditableFields: {
                 is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
               },
-            },
-          }
-        : undefined,
-    );
+            }
+          : undefined,
+    });
+
     const countryDtos: CountryDto[] = [];
 
     await Promise.all(
@@ -68,6 +74,13 @@ export class CountryRepository extends Repository<Country> {
           regionDto.name = region.name;
           regionDto.um49Code = region.iso_numeric;
           regionDto.parentRegion = parentRegionDto;
+        }
+
+        if (c.geoposition_object) {
+          countryDto.locationDTO = {
+            latitude: c.geoposition_object.latitude,
+            longitude: c.geoposition_object.longitude,
+          };
         }
 
         countryDto.code = c.iso_numeric;
