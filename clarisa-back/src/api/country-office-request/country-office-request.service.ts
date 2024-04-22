@@ -79,7 +79,10 @@ export class CountryOfficeRequestService {
     });
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(validationErrors, this.constructor);
+      throw ResponseDto.createBadResponse(
+        validationErrors,
+        CountryOfficeRequestService,
+      );
     }
 
     //Comprehensive validations
@@ -134,7 +137,10 @@ export class CountryOfficeRequestService {
     );
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(validationErrors, this.constructor);
+      throw ResponseDto.createBadResponse(
+        validationErrors,
+        CountryOfficeRequestService,
+      );
     }
 
     const newCountryOfficeRequests: CountryOfficeRequest[] = await Promise.all(
@@ -158,7 +164,10 @@ export class CountryOfficeRequestService {
         newCountryOfficeRequests,
       );
 
-    return ResponseDto.createCreatedResponse(response, this.constructor);
+    return ResponseDto.createCreatedResponse(
+      response,
+      CountryOfficeRequestService,
+    );
   }
 
   async respondCountryOfficeRequest(
@@ -183,7 +192,10 @@ export class CountryOfficeRequestService {
     });
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(validationErrors, this.constructor);
+      throw ResponseDto.createBadResponse(
+        validationErrors,
+        CountryOfficeRequestService,
+      );
     }
 
     //Comprehensive validations
@@ -209,7 +221,10 @@ export class CountryOfficeRequestService {
     }
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(validationErrors, this.constructor);
+      throw ResponseDto.createBadResponse(
+        validationErrors,
+        CountryOfficeRequestService,
+      );
     }
 
     const now = new Date();
@@ -254,7 +269,10 @@ export class CountryOfficeRequestService {
     ).flatMap((e) => Object.values(e.constraints).map((m) => m));
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(validationErrors, this.constructor);
+      throw ResponseDto.createBadResponse(
+        validationErrors,
+        CountryOfficeRequestService,
+      );
     }
 
     //Comprehensive validations
@@ -298,7 +316,10 @@ export class CountryOfficeRequestService {
     }
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(validationErrors, this.constructor);
+      throw ResponseDto.createBadResponse(
+        validationErrors,
+        CountryOfficeRequestService,
+      );
     }
 
     const response: CountryOfficeRequestDto =
@@ -307,6 +328,9 @@ export class CountryOfficeRequestService {
         countryOfficeRequest,
       );
 
-    return ResponseDto.createCreatedResponse(response, this.constructor);
+    return ResponseDto.createCreatedResponse(
+      response,
+      CountryOfficeRequestService,
+    );
   }
 }

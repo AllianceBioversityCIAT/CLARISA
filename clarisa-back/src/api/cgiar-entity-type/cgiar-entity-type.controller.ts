@@ -1,21 +1,14 @@
 import {
   Controller,
   Get,
-  Body,
-  Patch,
   Param,
   Query,
   ParseIntPipe,
-  Res,
-  HttpStatus,
-  HttpException,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Version,
 } from '@nestjs/common';
 import { CgiarEntityTypeService } from './cgiar-entity-type.service';
-import { UpdateCgiarEntityTypeDto } from './dto/update-cgiar-entity-type.dto';
-import { CgiarEntityType } from './entities/cgiar-entity-type.entity';
-import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
 @Controller()
@@ -25,27 +18,27 @@ export class CgiarEntityTypeController {
     private readonly cgiarEntityTypeService: CgiarEntityTypeService,
   ) {}
 
+  @Version('1')
   @Get()
-  async findAll(@Query('show') show: FindAllOptions) {
-    return await this.cgiarEntityTypeService.findAll(show);
+  async findAllV1(@Query('show') show: FindAllOptions) {
+    return await this.cgiarEntityTypeService.findAllV1(show);
   }
 
+  @Version('1')
   @Get('get/:id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return await this.cgiarEntityTypeService.findOne(id);
+  async findOneV1(@Param('id', ParseIntPipe) id: number) {
+    return await this.cgiarEntityTypeService.findOneV1(id);
   }
 
-  @Patch('update')
-  async update(
-    @Res() res: Response,
-    @Body() updateCgiarEntityTypeDtoList: UpdateCgiarEntityTypeDto[],
-  ) {
-    try {
-      const result: CgiarEntityType[] =
-        await this.cgiarEntityTypeService.update(updateCgiarEntityTypeDtoList);
-      return res.status(HttpStatus.OK).json(result);
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
+  @Version('2')
+  @Get()
+  async findAllV2(@Query('show') show: FindAllOptions) {
+    return await this.cgiarEntityTypeService.findAllV2(show);
+  }
+
+  @Version('2')
+  @Get('get/:id')
+  async findOneV2(@Param('id', ParseIntPipe) id: number) {
+    return await this.cgiarEntityTypeService.findOneV2(id);
   }
 }

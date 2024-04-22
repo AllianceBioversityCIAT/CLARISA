@@ -72,6 +72,8 @@ import { FirstOrderAdministrativeDivisionModule } from './first-order-administra
 import { SecondOrderAdministrativeDivisionModule } from './second-order-administrative-division/second-order-administrative-division.module';
 import { QaTokenAuthService } from '../auth/qa-token-auth/qa-token-auth.service';
 import { QaTokenAuthRepository } from '../auth/qa-token-auth/repositories/qa-token-auth.repository';
+import { PortfolioModule } from './portfolio/portfolio.module';
+import { FundingSourceModule } from './funding-source/funding-source.module';
 
 @Module({
   controllers: [ApiController],
@@ -146,6 +148,8 @@ import { QaTokenAuthRepository } from '../auth/qa-token-auth/repositories/qa-tok
     SecondOrderAdministrativeDivisionModule,
     FirstOrderAdministrativeDivisionModule,
     LanguageModule,
+    PortfolioModule,
+    FundingSourceModule,
   ],
 })
 export class ApiModule {}

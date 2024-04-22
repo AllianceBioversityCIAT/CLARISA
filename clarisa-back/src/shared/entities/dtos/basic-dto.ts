@@ -1,4 +1,6 @@
 export class BasicDto {
-  code: string;
-  description: string;
+  code: string | number;
+  name?: string;
+  description?: string;
+  is_active?: boolean;
 }

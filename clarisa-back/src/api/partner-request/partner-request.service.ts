@@ -80,7 +80,10 @@ export class PartnerRequestService {
     });
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(validationErrors, this.constructor);
+      throw ResponseDto.createBadResponse(
+        validationErrors,
+        PartnerRequestService,
+      );
     }
 
     //Comprehensive validations
@@ -138,7 +141,10 @@ export class PartnerRequestService {
     }
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(validationErrors, this.constructor);
+      throw ResponseDto.createBadResponse(
+        validationErrors,
+        PartnerRequestService,
+      );
     }
 
     const response: PartnerRequestDto =
@@ -147,7 +153,7 @@ export class PartnerRequestService {
         newPartnerRequest,
       );
 
-    return ResponseDto.createCreatedResponse(response, this.constructor);
+    return ResponseDto.createCreatedResponse(response, PartnerRequestService);
   }
 
   async respondPartnerRequest(
@@ -172,7 +178,10 @@ export class PartnerRequestService {
     });
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(validationErrors, this.constructor);
+      throw ResponseDto.createBadResponse(
+        validationErrors,
+        PartnerRequestService,
+      );
     }
 
     //Comprehensive validations
@@ -205,7 +214,10 @@ export class PartnerRequestService {
     }
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(validationErrors, this.constructor);
+      throw ResponseDto.createBadResponse(
+        validationErrors,
+        PartnerRequestService,
+      );
     }
 
     const now = new Date();
@@ -250,7 +262,10 @@ export class PartnerRequestService {
     ).flatMap((e) => Object.values(e.constraints).map((m) => m));
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(validationErrors, this.constructor);
+      throw ResponseDto.createBadResponse(
+        validationErrors,
+        PartnerRequestService,
+      );
     }
 
     //Comprehensive validations
@@ -304,7 +319,10 @@ export class PartnerRequestService {
     }
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(validationErrors, this.constructor);
+      throw ResponseDto.createBadResponse(
+        validationErrors,
+        PartnerRequestService,
+      );
     }
 
     const response: PartnerRequestDto =
@@ -313,7 +331,7 @@ export class PartnerRequestService {
         partnerRequest,
       );
 
-    return ResponseDto.createCreatedResponse(response, this.constructor);
+    return ResponseDto.createCreatedResponse(response, PartnerRequestService);
   }
 
   async statisticsPartnerRequest(mis: string = MisOption.ALL.path) {

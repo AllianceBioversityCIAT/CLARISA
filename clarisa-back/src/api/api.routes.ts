@@ -66,6 +66,8 @@ import { SubnationalScopeModule } from './subnational-scope/subnational-scope.mo
 import { LanguageModule } from './language/language.module';
 import { FirstOrderAdministrativeDivisionModule } from './first-order-administrative-division/first-order-administrative-division.module';
 import { SecondOrderAdministrativeDivisionModule } from './second-order-administrative-division/second-order-administrative-division.module';
+import { PortfolioModule } from './portfolio/portfolio.module';
+import { FundingSourceModule } from './funding-source/funding-source.module';
 
 export const apiRoutes = [
   {
@@ -339,5 +341,13 @@ export const apiRoutes = [
   {
     path: 'languages',
     module: LanguageModule,
+  },
+  {
+    path: 'portfolios',
+    module: PortfolioModule,
+  },
+  {
+    path: 'funding-sources',
+    module: FundingSourceModule,
   },
 ];
