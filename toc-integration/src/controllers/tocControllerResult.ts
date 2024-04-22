@@ -12,8 +12,8 @@ export class tocController {
 
       res.json({ response: message });
     } catch (error) {
-      console.log(error.response);
-      return res.status(error.response).json(error.response.data);
+      console.error(error);
+      return res.status(500).json(error);
     }
   }
 
@@ -25,8 +25,8 @@ export class tocController {
 
       res.json({ response: "Hello Toc", message });
     } catch (error) {
-      console.log(error.response);
-      return res.status(error.response.status).json(error.response.data);
+      console.error(error);
+      return res.status(500).json(error);
     }
   }
 

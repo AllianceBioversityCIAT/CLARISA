@@ -1,20 +1,3 @@
-import { Connection } from "typeorm";
-//import { Database } from "../database/db";
-
-import { TocSdgResultsSdgIndicators } from "../entities/tocSdgResultsSdgIndicators";
-import { TocSdgResultsSdgTargets } from "../entities/tocSdgResultsSdgTargets";
-import { TocImpactAreaResultsGlobalTargets } from "../entities/tocImpactAreaResultsGlobalTargets";
-import { TocImpactAreaResultsImpactAreaIndicators } from "../entities/tocImpactAreaResultsImpactAreaIndicators";
-import { TocImpactAreaResultsSdgResults } from "../entities/tocImpactAreaResultsSdgResults";
-import { TocActionAreaResultsOutcomesIndicators } from "../entities/tocActionAreaResultsOutcomesIndicators";
-import { TocActionAreaResultsImpactAreaResults } from "../entities/tocActionAreaResultsImpactAreaResults";
-import { TocResultsIndicators } from "../entities/tocResultsIndicators";
-import { TocResultsActionAreaResults } from "../entities/tocResultsActionAreaResults";
-import { TocResultsImpactAreaResults } from "../entities/tocResultsImpactAreaResults";
-import { TocResultsSdgResults } from "../entities/tocResultsSdgResults";
-import { TocResultsRegions } from "../entities/tocResultsRegions";
-import { TocResultsCountries } from "../entities/tocResultsCountries";
-
 export class ValidatorTypes {
   async validatorIsObject(value: any) {
     return value instanceof Object;

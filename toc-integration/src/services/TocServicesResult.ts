@@ -10,6 +10,7 @@ import { TocSdgsServices } from "./TocSdgsResults";
 import { TocResultImpactAreaServices } from "./TocImpactAreaResults";
 import { ActionAreaTocServices } from "./TocActionAreaResults";
 import { TocResultServices } from "./TocResultServices";
+import { TocOutputOutcomeRelationService } from "./TocOutputOutcomeRelations";
 import { sendSlackNotification } from "../validators/slackNotification";
 import { env } from "process";
 
@@ -20,6 +21,7 @@ export class TocServicesResults {
   public tocImpactAreas = new TocResultImpactAreaServices();
   public actionAreaToc = new ActionAreaTocServices();
   public resultsToc = new TocResultServices();
+  public outputOutcomeRelations = new TocOutputOutcomeRelationService();
   InformationSaving = null;
   async queryTest() {
     let database = new Database();
@@ -98,7 +100,7 @@ export class TocServicesResults {
       const narrative = await axios({
         method: "get",
         url: tocHost,
-        timeout: 20000, // only wait for 2s
+        timeout: 20000,
       });
 
       if (
@@ -114,7 +116,6 @@ export class TocServicesResults {
           idInitiativeToc,
           narrative.data.phase
         );
-
         let impactAreaTocResults =
           await this.tocImpactAreas.saveImpactAreaTocResult(
             narrative.data.impact_area_results,
@@ -122,14 +123,12 @@ export class TocServicesResults {
             sdgTocResults.sdgResults,
             narrative.data.phase
           );
-
         let actionAreaResults = await this.actionAreaToc.saveActionAreaToc(
           narrative.data.action_area_results,
           idInitiativeToc,
           impactAreaTocResults.listImpactAreaResults,
           narrative.data.phase
         );
-
         let tocResult = await this.resultsToc.saveTocResults(
           narrative.data.output_outcome_results,
           sdgTocResults.sdgResults,
@@ -139,13 +138,21 @@ export class TocServicesResults {
           narrative.data.phase,
           narrative.data.version_id
         );
+        let relations =
+          await this.outputOutcomeRelations.saveRelationsOutputOutcomes(
+            narrative.data.relations,
+            idInitiativeToc
+          );
 
         this.InformationSaving = {
           ...sdgTocResults,
           ...impactAreaTocResults,
           ...actionAreaResults,
+          ...relations,
           ...tocResult,
         };
+      } else {
+        throw new Error("The properties are not in the object");
       }
 
       await this.saveInDataBase();
