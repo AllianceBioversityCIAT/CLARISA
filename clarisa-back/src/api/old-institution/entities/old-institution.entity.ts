@@ -1,15 +1,6 @@
 import { Exclude } from 'class-transformer';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
-import { InstitutionType } from '../../institution-type/entities/institution-type.entity';
-import { InstitutionLocation } from '../../institution/entities/institution-location.entity';
 
 @Entity('old_institutions')
 export class OldInstitution {
@@ -35,12 +26,12 @@ export class OldInstitution {
 
   //object "relations"
 
-  @OneToMany(() => InstitutionLocation, (il) => il.old_institution_object)
-  institution_locations: InstitutionLocation[];
+  // @OneToMany(() => InstitutionLocation, (il) => il.old_institution_object)
+  // institution_locations: InstitutionLocation[];
 
-  @ManyToOne(() => InstitutionType, (it) => it.institutions)
-  @JoinColumn({ name: 'institution_type_id' })
-  institution_type_object: InstitutionType;
+  // @ManyToOne(() => InstitutionType, (it) => it.institutions)
+  // @JoinColumn({ name: 'institution_type_id' })
+  // institution_type_object: InstitutionType;
 
   //auditable fields
 
