@@ -2,12 +2,20 @@ import { Injectable } from '@nestjs/common';
 import { CgiarEntity } from '../entities/cgiar-entity.entity';
 import { CgiarEntityDtoV1 } from '../dto/cgiar-entity.v1.dto';
 import { CgiarEntityTypeMapper } from '../../cgiar-entity-type/mappers/cgiar-entity-type.mapper';
-import { BasicDtoMapper } from '../../../shared/mappers/basic-dto.mapper';
+import {
+  BasicDtoEquivalences,
+  BasicDtoMapper,
+} from '../../../shared/mappers/basic-dto.mapper';
 import { CgiarEntityDtoV2 } from '../dto/cgiar-entity.v2.dto';
 import { Portfolio } from '../../portfolio/entities/portfolio.entity';
 
 @Injectable()
 export class CgiarEntityMapper {
+  private readonly _mappedBasicFields: BasicDtoEquivalences<CgiarEntity> = {
+    code: 'smo_code',
+    name: 'name',
+  };
+
   constructor(
     private readonly _cgiarEntityTypeMapper: CgiarEntityTypeMapper,
     private readonly _basicCEDtoMapper: BasicDtoMapper<CgiarEntity>,
@@ -55,7 +63,11 @@ export class CgiarEntityMapper {
 
     Object.assign(
       cgiarEntityDtoV2,
-      this._basicCEDtoMapper.classToDto(cgiarEntity, showIsActive),
+      this._basicCEDtoMapper.classToDto(
+        cgiarEntity,
+        showIsActive,
+        this._mappedBasicFields,
+      ),
     );
 
     cgiarEntityDtoV2.acronym = cgiarEntity.acronym;
@@ -72,9 +84,10 @@ export class CgiarEntityMapper {
     }
 
     if (cgiarEntity.parent_object) {
-      cgiarEntityDtoV2.parent = this.classToDtoV1(
+      cgiarEntityDtoV2.parent = this._basicCEDtoMapper.classToDto(
         cgiarEntity.parent_object,
         showIsActive,
+        this._mappedBasicFields,
       );
     }
 
