@@ -7,6 +7,9 @@ export class TocOutputOutcomeRelation {
   
   @Column()
   id_toc_initiative: string;
+  
+  @Column()
+  phase_id: string;
 
   @Column()
   from: string;

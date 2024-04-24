@@ -141,6 +141,7 @@ export class TocServicesResults {
         let relations =
           await this.outputOutcomeRelations.saveRelationsOutputOutcomes(
             narrative.data.relations,
+            narrative.data.phase,
             idInitiativeToc
           );
 
