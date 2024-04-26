@@ -27,8 +27,8 @@ export class CgiarEntityTypeService {
     CgiarEntityTypeOption.CRP,
     CgiarEntityTypeOption.PLATFORM,
     CgiarEntityTypeOption.CENTER,
-    CgiarEntityTypeOption.INITIATIVES,
-    CgiarEntityTypeOption.ONE_CGIAR_PLATFORM,
+    CgiarEntityTypeOption.INITIATIVE,
+    CgiarEntityTypeOption.IMPACT_AREA_PLATFORM,
     CgiarEntityTypeOption.ONE_CGIAR_SGP,
   ].map((cet) => cet.entity_type_id);
 

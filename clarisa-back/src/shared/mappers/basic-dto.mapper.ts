@@ -16,7 +16,10 @@ export class BasicDtoMapper<E> {
     const dto: BasicDto = new BasicDto();
     Object.keys(mappedFields).forEach((key) => {
       if (key === 'is_active' && !showIsActive) return;
-      dto[key] = entity[mappedFields[key]];
+      const entityKey: string = mappedFields[key];
+      dto[key] = entityKey
+        .split('.')
+        .reduce((prev, curr) => prev && prev[curr], entity);
     });
 
     return dto;

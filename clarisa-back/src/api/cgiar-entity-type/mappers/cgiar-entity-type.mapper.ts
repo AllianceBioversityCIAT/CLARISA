@@ -44,6 +44,7 @@ export class CgiarEntityTypeMapper {
 
     cgiarEntityTypeDtoV2.prefix = cgiarEntityType.prefix;
     cgiarEntityTypeDtoV2.level = cgiarEntityType.level;
+    cgiarEntityTypeDtoV2.definition = cgiarEntityType.definition;
 
     if (cgiarEntityType.parent_object) {
       cgiarEntityTypeDtoV2.parent = this.classToDtoV1(

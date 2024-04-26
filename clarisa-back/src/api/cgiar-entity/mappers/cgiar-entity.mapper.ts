@@ -8,6 +8,7 @@ import {
 } from '../../../shared/mappers/basic-dto.mapper';
 import { CgiarEntityDtoV2 } from '../dto/cgiar-entity.v2.dto';
 import { Portfolio } from '../../portfolio/entities/portfolio.entity';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class CgiarEntityMapper {
@@ -73,8 +74,12 @@ export class CgiarEntityMapper {
     cgiarEntityDtoV2.acronym = cgiarEntity.acronym;
     cgiarEntityDtoV2.short_name = cgiarEntity.short_name;
     cgiarEntityDtoV2.acronym = cgiarEntity.acronym;
-    cgiarEntityDtoV2.start_date = cgiarEntity.start_date?.getFullYear();
-    cgiarEntityDtoV2.end_date = cgiarEntity.end_date?.getFullYear();
+    cgiarEntityDtoV2.start_date = cgiarEntity.start_date
+      ? DateTime.fromJSDate(cgiarEntity.start_date).toFormat('yyyy-MM-dd')
+      : null;
+    cgiarEntityDtoV2.end_date = cgiarEntity.end_date
+      ? DateTime.fromJSDate(cgiarEntity.end_date).toFormat('yyyy-MM-dd')
+      : null;
     cgiarEntityDtoV2.level = cgiarEntity.level;
 
     if (cgiarEntity.cgiar_entity_type_object) {

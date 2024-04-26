@@ -74,6 +74,7 @@ import { QaTokenAuthService } from '../auth/qa-token-auth/qa-token-auth.service'
 import { QaTokenAuthRepository } from '../auth/qa-token-auth/repositories/qa-token-auth.repository';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { FundingSourceModule } from './funding-source/funding-source.module';
+import { CenterModule } from './center/center.module';
 
 @Module({
   controllers: [ApiController],
@@ -150,6 +151,7 @@ import { FundingSourceModule } from './funding-source/funding-source.module';
     LanguageModule,
     PortfolioModule,
     FundingSourceModule,
+    CenterModule,
   ],
 })
 export class ApiModule {}

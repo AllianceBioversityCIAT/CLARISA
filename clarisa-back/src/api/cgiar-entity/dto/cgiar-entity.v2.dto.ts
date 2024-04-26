@@ -6,7 +6,7 @@ export class CgiarEntityDtoV2 extends BasicDto {
   entity_type: BasicDto;
   parent: BasicDto;
   portfolio: BasicDto;
-  start_date: number;
-  end_date: number;
+  start_date: string;
+  end_date: string;
   level: number;
 }
