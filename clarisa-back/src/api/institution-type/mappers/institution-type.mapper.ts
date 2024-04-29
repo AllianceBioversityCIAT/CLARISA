@@ -9,6 +9,7 @@ export class InstitutionTypeMapper {
 
     institutionTypeDto.code = institutionType.id;
     institutionTypeDto.name = institutionType.name;
+    institutionTypeDto.description = institutionType.description;
     institutionTypeDto.id_parent = institutionType.parent_id;
 
     return institutionTypeDto;
