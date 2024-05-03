@@ -57,6 +57,7 @@ export class TocResultServices {
           if (
             this.validatorType.existPropertyInObjectMul(tocResultItem, [
               "toc_result_id",
+              "id",
               "result_type",
               "wp_id",
               "result_title",
@@ -70,39 +71,51 @@ export class TocResultServices {
             ])
           ) {
             let tocResult = new TocResultsDto();
+
             tocResult.toc_result_id =
               typeof tocResultItem.toc_result_id == "string"
                 ? tocResultItem.toc_result_id
                 : null;
+
+            tocResult.relation_id =
+              typeof tocResultItem.id == "string" ? tocResultItem.id : null;
+
             tocResult.result_type =
               typeof tocResultItem.result_type == "number"
                 ? tocResultItem.result_type
                 : null;
+
             tocResult.work_packages_id =
               typeof tocResultItem.wp_id == "number"
                 ? tocResultItem.wp_id
                 : null;
+
             tocResult.result_title =
               typeof tocResultItem.result_title == "string"
                 ? tocResultItem.result_title
                 : null;
+
             tocResult.result_description =
               typeof tocResultItem.result_description == "string"
                 ? tocResultItem.result_description
                 : null;
+
             tocResult.outcome_type =
               typeof tocResultItem.outcome_type == "string"
                 ? tocResultItem.outcome_type
                 : null;
+
             tocResult.is_global = true;
             tocResult.is_active = true;
             tocResult.id_toc_initiative = id_toc_init;
             tocResult.phase = phase;
             tocResult.version_id = version_id;
+
             const existingRecord = await tocResultRepo.findOne({
               toc_result_id: tocResult.toc_result_id,
               phase: tocResult.phase,
             });
+
             if (existingRecord) {
               await tocResultRepo.update(
                 {
@@ -114,6 +127,7 @@ export class TocResultServices {
             } else {
               await tocResultRepo.insert(tocResult);
             }
+
             const existingRecordSaveOrUpdate = await tocResultRepo.findOne({
               toc_result_id: tocResult.toc_result_id,
               phase: tocResult.phase,
