@@ -1,36 +1,13 @@
 import { Injectable } from '@nestjs/common/decorators';
-import {
-  DataSource,
-  FindOptionsRelations,
-  FindOptionsWhere,
-  MoreThanOrEqual,
-  Repository,
-} from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
-import { InstitutionTypeDto } from '../../institution-type/dto/institution-type.dto';
-import { InstitutionTypeRepository } from '../../institution-type/repositories/institution-type.repository';
-import { InstitutionCountryDto } from '../../institution/dto/institution-country.dto';
 import { InstitutionSimpleDto } from '../../institution/dto/institution-simple.dto';
 import { InstitutionDto } from '../../institution/dto/institution.dto';
-import { InstitutionLocation } from '../../institution/entities/institution-location.entity';
-import { InstitutionLocationRepository } from '../../institution/repositories/institution-location.repository';
 import { OldInstitution } from '../entities/old-institution.entity';
 
 @Injectable()
 export class OldInstitutionRepository extends Repository<OldInstitution> {
-  private readonly institutionRelations: FindOptionsRelations<OldInstitution> =
-    {
-      institution_type_object: true,
-      institution_locations: {
-        country_object: true,
-      },
-    };
-
-  constructor(
-    private dataSource: DataSource,
-    private institutionLocationRepository: InstitutionLocationRepository,
-    private institutionTypeRepository: InstitutionTypeRepository,
-  ) {
+  constructor(private readonly dataSource: DataSource) {
     super(OldInstitution, dataSource.createEntityManager());
   }
 
@@ -38,127 +15,83 @@ export class OldInstitutionRepository extends Repository<OldInstitution> {
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     from: string = undefined,
   ): Promise<InstitutionDto[]> {
-    const institutionDtos: InstitutionDto[] = [];
-    let whereClause: FindOptionsWhere<OldInstitution> = {};
+    let institutionDtos: InstitutionDto[] = [];
 
-    switch (option) {
-      case FindAllOptions.SHOW_ALL:
-        //do nothing. we will be showing everything, so no condition is needed;
-        break;
-      case FindAllOptions.SHOW_ONLY_ACTIVE:
-      case FindAllOptions.SHOW_ONLY_INACTIVE:
-        whereClause = {
-          auditableFields: {
-            is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
-          },
-        };
-        break;
+    try {
+      const query = `
+        select oi.id as code, oi.name, oi.acronym, oi.website_link as websiteLink, oi.created_at as added, oi.is_active,
+          (
+            select json_arrayagg(json_object(
+              "code", c_q1.id,
+              "isHeadquarter", il_q1.is_headquater,
+              "isoAlpha2", c_q1.iso_alpha_2,
+              "name", c_q1.name,
+              "regionDTO", null
+            ))
+            from institution_locations il_q1
+            left join countries c_q1 on il_q1.country_id = c_q1.id
+            where il_q1.institution_id = oi.id and il_q1.is_active
+            group by il_q1.institution_id
+          ) as countryOfficeDTO,
+          (
+            select json_object(
+              "code", it_q1.id,
+              "name", it_q1.name
+            )
+            from institution_types it_q1
+            where it_q1.is_active and oi.institution_type_id = it_q1.id
+          ) as institutionType
+        from old_institutions oi
+        where oi.updated_at >= ? and oi.is_active in (?)
+      `;
+
+      institutionDtos = await this.query(query, [
+        from ?? 0,
+        option === FindAllOptions.SHOW_ALL
+          ? '1,0'
+          : option === FindAllOptions.SHOW_ONLY_ACTIVE
+          ? '1'
+          : '0',
+      ]);
+
+      institutionDtos.forEach((i) => {
+        i.name, i.countryOfficeDTO, i.countryOfficeDTO, i.institutionType.code;
+      });
+
+      return institutionDtos;
+    } catch (error) {
+      console.log(error);
+      throw Error('Error fetching old institutions');
     }
-
-    if (from) {
-      whereClause = {
-        ...whereClause,
-        auditableFields: { updated_at: MoreThanOrEqual(new Date(+from)) },
-      };
-    }
-
-    const institutions: OldInstitution[] = await this.find({
-      where: whereClause,
-      relations: this.institutionRelations,
-    });
-
-    await Promise.all(
-      institutions.map(async (i) => {
-        const institutionDto: InstitutionDto = this.fillOutInstitutionInfo(
-          i,
-          option === FindAllOptions.SHOW_ALL,
-        );
-        institutionDtos.push(institutionDto);
-      }),
-    );
-
-    return institutionDtos;
   }
 
   async findAllInstitutionsSimple(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<InstitutionSimpleDto[]> {
-    let whereClause: FindOptionsWhere<OldInstitution> = {};
-    switch (option) {
-      case FindAllOptions.SHOW_ALL:
-        //do nothing. we will be showing everything, so no condition is needed;
-        break;
-      case FindAllOptions.SHOW_ONLY_ACTIVE:
-      case FindAllOptions.SHOW_ONLY_INACTIVE:
-        whereClause = {
-          auditableFields: {
-            is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
-          },
-        };
-        break;
+    let oldInstitutions: InstitutionSimpleDto[] = [];
+    try {
+      const query = `
+        select oi.id as code, oi.acronym, c.name as hqLocation, c.iso_alpha_2 as hqLocationISOalpha2,
+          it.name as institutionType, it.id as institutionTypeId, oi.name, oi.website_link as websiteLink
+        from old_institutions oi
+        left join institution_locations il on il.institution_id = oi.id and il.is_active and il.is_headquater 
+        left join countries c on il.country_id = c.id
+        left join institution_types it on oi.institution_type_id = it.id
+        where oi.is_active in (?)
+      `;
+
+      oldInstitutions = await this.dataSource.query(query, [
+        option === FindAllOptions.SHOW_ALL
+          ? '1,0'
+          : option === FindAllOptions.SHOW_ONLY_ACTIVE
+          ? '1'
+          : '0',
+      ]);
+
+      return oldInstitutions;
+    } catch (error) {
+      console.log(error);
+      throw Error('Error fetching simple old institutions');
     }
-
-    const oldInstitutions: OldInstitution[] = await this.find({
-      where: whereClause,
-      relations: this.institutionRelations,
-    });
-
-    return oldInstitutions.map((i) => {
-      const institutionDto: InstitutionSimpleDto = new InstitutionSimpleDto();
-
-      institutionDto.code = i.id;
-      institutionDto.acronym = i.acronym;
-
-      const hq: InstitutionLocation = i.institution_locations.find(
-        (il) => il.is_headquater,
-      );
-      institutionDto.hqLocation = hq.country_object.name;
-
-      institutionDto.hqLocationISOalpha2 = hq.country_object.iso_alpha_2;
-      institutionDto.institutionType = i.institution_type_object.name;
-      institutionDto.institutionTypeId = i.institution_type_object.id;
-      institutionDto.name = i.name;
-      institutionDto.websiteLink = i.website_link;
-
-      return institutionDto;
-    });
-  }
-
-  private fillOutInstitutionInfo(
-    oldInstitution: OldInstitution,
-    showActiveField = false,
-  ): InstitutionDto {
-    const institutionDto: InstitutionDto = new InstitutionDto();
-
-    institutionDto.code = oldInstitution.id;
-    institutionDto.name = oldInstitution.name;
-    institutionDto.acronym = oldInstitution.acronym;
-    institutionDto.websiteLink = oldInstitution.website_link;
-    institutionDto.added = oldInstitution.auditableFields.created_at;
-    if (showActiveField) {
-      institutionDto.is_active = oldInstitution.auditableFields.is_active;
-    }
-
-    institutionDto.countryOfficeDTO = oldInstitution.institution_locations.map(
-      (il) => {
-        const countryDto: InstitutionCountryDto = new InstitutionCountryDto();
-
-        countryDto.code = il.country_object.id;
-        countryDto.isHeadquarter = il.is_headquater;
-        countryDto.isoAlpha2 = il.country_object.iso_alpha_2;
-        countryDto.name = il.country_object.name;
-        countryDto.regionDTO = null;
-
-        return countryDto;
-      },
-    );
-
-    institutionDto.institutionType = new InstitutionTypeDto();
-    institutionDto.institutionType.code =
-      oldInstitution.institution_type_object.id;
-    institutionDto.institutionType.name =
-      oldInstitution.institution_type_object.name;
-
-    return institutionDto;
   }
 }
