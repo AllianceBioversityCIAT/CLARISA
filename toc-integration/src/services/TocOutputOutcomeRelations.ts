@@ -9,7 +9,7 @@ export class TocOutputOutcomeRelationService {
   public errorMessage = new ErrorValidators();
   public database = new Database();
 
-  async saveRelationsOutputOutcomes(relations: any, idInitiative: string) {
+  async saveRelationsOutputOutcomes(relations: any, phase: string, idInitiative: string) {
     let dbConn: Connection = await this.database.getConnection();
     let outcomeOutputRelations = await dbConn.getRepository(
       TocOutputOutcomeRelation
@@ -17,7 +17,7 @@ export class TocOutputOutcomeRelationService {
     let listOutcomeOutputRelations = [];
     try {
       const relationExists = await outcomeOutputRelations.find({
-        where: { id_toc_initiative: idInitiative, is_active: true },
+        where: { id_toc_initiative: idInitiative, is_active: true, phase_id: phase },
       });
 
       if (this.validatorType.validatorIsArray(relationExists)) {
@@ -34,6 +34,7 @@ export class TocOutputOutcomeRelationService {
           relation.from = r.from;
           relation.to = r.to;
           relation.is_active = true;
+          relation.phase_id = phase;
           listOutcomeOutputRelations.push(relation);
         }
       }

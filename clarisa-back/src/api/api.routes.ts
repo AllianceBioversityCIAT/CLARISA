@@ -67,6 +67,9 @@ import { FirstOrderAdministrativeDivisionModule } from './first-order-administra
 import { SecondOrderAdministrativeDivisionModule } from './second-order-administrative-division/second-order-administrative-division.module';
 import { OutcomeModule } from './outcome/outcome.module';
 import { IndicatorModule } from './indicator/indicator.module';
+import { PortfolioModule } from './portfolio/portfolio.module';
+import { FundingSourceModule } from './funding-source/funding-source.module';
+import { CenterModule } from './center/center.module';
 
 export const apiRoutes = [
   {
@@ -186,7 +189,7 @@ export const apiRoutes = [
     module: CgiarEntityModule,
   },
   {
-    path: 'cgiar-entity-types',
+    path: 'cgiar-entity-typology',
     module: CgiarEntityTypeModule,
   },
   {
@@ -348,5 +351,17 @@ export const apiRoutes = [
   {
     path: 'indicators',
     module: IndicatorModule,
+  },
+  {
+    path: 'portfolios',
+    module: PortfolioModule,
+  },
+  {
+    path: 'funding-sources',
+    module: FundingSourceModule,
+  },
+  {
+    path: 'centers',
+    module: CenterModule,
   },
 ];

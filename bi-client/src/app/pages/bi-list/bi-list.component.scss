@@ -1,0 +1,40 @@
+.reports {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px 50px;
+
+  a {
+    box-shadow: 0 0 5px 5px rgb(0 0 0 / 4.8%);
+    border-radius: 4px;
+    padding: 10px;
+    text-decoration: none;
+    transition: all ease-in-out 0.3s;
+
+    .report-title {
+      font-weight: 600;
+      font-size: 0.9em;
+      color: rgb(127 61 233);
+    }
+
+    .report-description {
+      font-size: 0.8em;
+      color: rgb(41 39 126);
+    }
+
+    .report-filters {
+      font-size: 0.8em;
+      color: rgb(56 56 56);
+    }
+
+    &:hover {
+      background-color: rgb(157 117 223);
+
+      .report-title,
+      .report-description,
+      .report-filters {
+        color: white !important;
+      }
+    }
+  }
+}

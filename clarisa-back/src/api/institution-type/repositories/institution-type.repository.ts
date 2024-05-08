@@ -65,6 +65,7 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
         const newInstitutionType = new InstitutionTypeDto();
         newInstitutionType.code = it.id;
         newInstitutionType.name = it.name;
+        newInstitutionType.description = it.description;
 
         if (incomingType == SourceOption.ALL) {
           newInstitutionType.legacy = it.source_id === 2;
@@ -144,6 +145,7 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
         const newInstitutionType = new InstitutionTypeFromParentDto();
         newInstitutionType.code = `${it.id}`;
         newInstitutionType.name = it.name;
+        newInstitutionType.description = it.description;
 
         if (it.children?.length > 0) {
           newInstitutionType.children = this.fillChildren(it);

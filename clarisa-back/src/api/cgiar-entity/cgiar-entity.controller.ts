@@ -1,21 +1,14 @@
 import {
   Controller,
   Get,
-  Body,
-  Patch,
   Param,
   Query,
   ParseIntPipe,
-  Res,
-  HttpException,
-  HttpStatus,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Version,
 } from '@nestjs/common';
 import { CgiarEntityService } from './cgiar-entity.service';
-import { UpdateCgiarEntityDto } from './dto/update-cgiar-entity.dto';
-import { Response } from 'express';
-import { CgiarEntity } from './entities/cgiar-entity.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
 @Controller()
@@ -23,31 +16,30 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 export class CgiarEntityController {
   constructor(private readonly cgiarEntityService: CgiarEntityService) {}
 
+  @Version('1')
   @Get()
-  async findAll(
+  async findAllV1(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
   ) {
-    return await this.cgiarEntityService.findAll(show, type);
+    return await this.cgiarEntityService.findAllV1(show, type);
   }
 
+  @Version('1')
   @Get('get/:id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return await this.cgiarEntityService.findOne(id);
+  async findOneV1(@Param('id', ParseIntPipe) id: number) {
+    return await this.cgiarEntityService.findOneV1(id);
   }
 
-  @Patch('update')
-  async update(
-    @Res() res: Response,
-    @Body() updateCgiarEntityDtoList: UpdateCgiarEntityDto[],
-  ) {
-    try {
-      const result: CgiarEntity[] = await this.cgiarEntityService.update(
-        updateCgiarEntityDtoList,
-      );
-      return res.status(HttpStatus.OK).json(result);
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
+  @Version('2')
+  @Get()
+  async findAllV2(@Query('show') show: FindAllOptions) {
+    return await this.cgiarEntityService.findAllV2(show);
+  }
+
+  @Version('2')
+  @Get('get/:id')
+  async findOneV2(@Param('id', ParseIntPipe) id: number) {
+    return await this.cgiarEntityService.findOneV2(id);
   }
 }

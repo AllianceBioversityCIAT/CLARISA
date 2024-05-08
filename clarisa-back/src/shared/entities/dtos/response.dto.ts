@@ -25,7 +25,7 @@ export class ResponseDto<T> {
 
   static createCreatedResponse<T>(
     response: T,
-    serviceConstructor: Function,
+    serviceConstructor: new (...args: any[]) => any,
   ): ResponseDto<T> {
     return ResponseDto.createCustomResponse(
       response,
@@ -39,7 +39,7 @@ export class ResponseDto<T> {
 
   static createBadResponse<T>(
     response: T,
-    serviceConstructor: Function,
+    serviceConstructor: new (...args: any[]) => any,
   ): ResponseDto<T> {
     return ResponseDto.createCustomResponse(
       response,

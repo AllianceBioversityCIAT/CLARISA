@@ -14,6 +14,7 @@ import { InstitutionDictionary } from '../../institution-dictionary/entities/ins
 import { InstitutionType } from '../../institution-type/entities/institution-type.entity';
 import { PartnerRequest } from '../../partner-request/entities/partner-request.entity';
 import { InstitutionLocation } from './institution-location.entity';
+import { Center } from '../../center/entities/center.entity';
 
 @Entity('institutions')
 export class Institution {
@@ -64,6 +65,9 @@ export class Institution {
 
   @OneToMany(() => CgiarEntity, (ce) => ce.institution_object)
   cgiar_entity_array: CgiarEntity[];
+
+  @OneToMany(() => Center, (c) => c.institution_object)
+  center_array: Center[];
 
   //auditable fields
 
