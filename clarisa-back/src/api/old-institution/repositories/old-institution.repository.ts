@@ -19,7 +19,8 @@ export class OldInstitutionRepository extends Repository<OldInstitution> {
 
     try {
       const query = `
-        select oi.id as code, oi.name, oi.acronym, oi.website_link as websiteLink, oi.created_at as added, oi.is_active,
+        select oi.id as code, oi.name, oi.acronym, oi.website_link as websiteLink, oi.created_at as added, 
+        ${option !== FindAllOptions.SHOW_ONLY_ACTIVE ? 'oi.is_active,' : ''}
           (
             select json_arrayagg(json_object(
               "code", c_q1.id,
@@ -54,10 +55,6 @@ export class OldInstitutionRepository extends Repository<OldInstitution> {
           : '0',
       ]);
 
-      institutionDtos.forEach((i) => {
-        i.name, i.countryOfficeDTO, i.countryOfficeDTO, i.institutionType.code;
-      });
-
       return institutionDtos;
     } catch (error) {
       console.log(error);
@@ -72,6 +69,7 @@ export class OldInstitutionRepository extends Repository<OldInstitution> {
     try {
       const query = `
         select oi.id as code, oi.acronym, c.name as hqLocation, c.iso_alpha_2 as hqLocationISOalpha2,
+        ${option !== FindAllOptions.SHOW_ONLY_ACTIVE ? 'oi.is_active,' : ''}
           it.name as institutionType, it.id as institutionTypeId, oi.name, oi.website_link as websiteLink
         from old_institutions oi
         left join institution_locations il on il.institution_id = oi.id and il.is_active and il.is_headquater 
