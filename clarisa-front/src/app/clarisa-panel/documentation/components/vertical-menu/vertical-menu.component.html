@@ -1,21 +1,9 @@
 <div class="sticky">
   <div class="app-sidebar__overlay" data-bs-toggle="sidebar"></div>
+
   <div class="app-sidebar" style="background-color: #f0f0f0; overflow: scroll">
     <div class="side-header">
       <a class="header-brand1" href="index.html">
-        <img src="" class="header-brand-img desktop-logo" alt="logo" />
-        <img src="" class="header-brand-img toggle-logo" alt="logo" />
-        <img
-          src="../assets/images/CGIAR_Fondo_verde.png"
-          class="header-brand-img light-logo"
-          alt="logo"
-          style="
-            margin-top: 20px;
-            width: 120px;
-            height: 120px;
-            border-radius: 0 0 10px 10px;
-          "
-        />
         <img
           src="../assets/images/CGIAR_Fondo_verde.png"
           style="
@@ -28,8 +16,8 @@
           alt="logo"
         />
       </a>
-      <!-- LOGO -->
     </div>
+
     <div class="main-sidemenu" style="background-color: #f0f0f0">
       <div class="slide-left disabled" id="slide-left">
         <svg
@@ -49,9 +37,10 @@
         <li class="sub-category">
           <h3>Categories</h3>
         </li>
+
         <li
           class="slide"
-          *ngFor="let item of subCategories.subcategories"
+          *ngFor="let item of subCategories?.subcategories"
           [class.active]="homeLinks.classList.contains('active')"
           id="{{ item.name.split(' ').join('_') }}1"
         >
@@ -59,14 +48,16 @@
             #homeLinks
             class="side-menu__item"
             data-bs-toggle="slide"
-            routerLink="/clarisa-panel/documentation/{{
-              subCategories.name.split(' ').join('_')
-            }}/{{ item.name.split(' ').join('_') }}"
+            [routerLink]="setUrl(subCategories, item)"
             routerLinkActive="active"
             (click)="clickMenu(item.name.split(' ').join('_'))"
-            ><span class="side-menu__label"> {{ item.name }}</span
-            ><i class="angle fe fe-chevron-right"></i
-          ></a>
+          >
+            <span class="side-menu__label">
+              {{ item.name }}
+            </span>
+            <i class="angle fe fe-chevron-right"></i>
+          </a>
+
           <ul
             class="slide-menu categoriesNoActive"
             id="{{ item.name.split(' ').join('_') }}"
@@ -81,20 +72,15 @@
                 #homeLink
                 class="slide-item"
                 style="color: black; font-weight: 500; cursor: pointer"
-                routerLink="/clarisa-panel/documentation/{{
-                  subCategories.name.split(' ').join('_')
-                }}/{{ item.name.split(' ').join('_') }}/{{
-                  items.name.split(' ').join('_')
-                }}"
+                [routerLink]="setUrl(subCategories, item, items)"
                 routerLinkActive="active"
               >
-                {{ items.name }}</a
-              >
+                {{ items.name }}
+              </a>
             </li>
           </ul>
         </li>
       </ul>
     </div>
   </div>
-  <!--/APP-SIDEBAR-->
 </div>

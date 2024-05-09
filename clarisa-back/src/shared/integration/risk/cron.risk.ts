@@ -35,7 +35,7 @@ export class CronRisk {
       let newPhasesDb: PhaseRisk[] = [];
 
       const phasesRisk: PhaseRiskDto[] =
-        (phasesRequest?.data as PhaseRiskDto[]) ?? [];
+        (phasesRequest?.data?.result as PhaseRiskDto[]) ?? [];
       const newPhasesRisk = CronRisk.getNewPhases(oldPhasesDb, phasesRisk);
 
       oldPhasesDb.forEach((op) => {

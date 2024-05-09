@@ -21,7 +21,6 @@ export class ClarisaPanelComponent implements OnInit {
   urlAditionalTwo = `./assets/css/transparent-style.css`;
   urlAditionalThree = `./assets/css/skin-modes.css`;
   estado = true;
-  constructor() {}
 
   ngOnInit(): void {
     this.changesStyles.setAttribute('href', this.url);

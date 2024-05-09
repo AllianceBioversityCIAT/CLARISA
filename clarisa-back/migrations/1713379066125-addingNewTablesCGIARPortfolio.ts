@@ -46,6 +46,9 @@ export class AddingNewTablesCGIARPortfolio1713379066125
       `ALTER TABLE \`global_units\` ADD \`portfolio_id\` bigint NULL`,
     );
     await queryRunner.query(
+      `ALTER TABLE \`global_units\` ADD \`parent_id\` bigint NULL`,
+    );
+    await queryRunner.query(
       `ALTER TABLE \`global_units\` CHANGE \`acronym\` \`acronym\` text NULL`,
     );
     await queryRunner.query(
@@ -63,9 +66,15 @@ export class AddingNewTablesCGIARPortfolio1713379066125
     await queryRunner.query(
       `ALTER TABLE \`global_units\` ADD CONSTRAINT \`FK_bed6b12ce70f2912623e99d8cc7\` FOREIGN KEY (\`portfolio_id\`) REFERENCES \`portfolios\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
+    await queryRunner.query(
+      `ALTER TABLE \`global_units\` ADD CONSTRAINT \`FK_f90b3f8b90420da5cbe9c77bdf5\` FOREIGN KEY (\`parent_id\`) REFERENCES \`global_units\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE \`global_units\` DROP FOREIGN KEY \`FK_f90b3f8b90420da5cbe9c77bdf5\``,
+    );
     await queryRunner.query(
       `ALTER TABLE \`global_units\` DROP FOREIGN KEY \`FK_bed6b12ce70f2912623e99d8cc7\``,
     );
@@ -83,6 +92,9 @@ export class AddingNewTablesCGIARPortfolio1713379066125
     );
     await queryRunner.query(
       `ALTER TABLE \`global_units\` CHANGE \`acronym\` \`acronym\` text CHARACTER SET "utf8mb4" COLLATE "utf8mb4_0900_ai_ci" NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE \`global_units\` DROP COLUMN \`parent_id\``,
     );
     await queryRunner.query(
       `ALTER TABLE \`global_units\` DROP COLUMN \`portfolio_id\``,

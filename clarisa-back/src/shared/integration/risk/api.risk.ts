@@ -4,7 +4,7 @@ import { env } from 'process';
 import { Injectable, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { AxiosResponse } from 'axios';
-import { PhaseRiskDto } from './dto/phases.risk.dto';
+import { ResponseRiskDto } from './dto/response.risk.dto';
 
 @Injectable()
 export class ApiRisk extends BaseApi {
@@ -17,7 +17,7 @@ export class ApiRisk extends BaseApi {
     this.logger = new Logger(BaseApi.name);
   }
 
-  getPhases(): Observable<AxiosResponse<PhaseRiskDto[]>> {
+  getPhases(): Observable<AxiosResponse<ResponseRiskDto>> {
     return this.getRequest('phases');
   }
 }
