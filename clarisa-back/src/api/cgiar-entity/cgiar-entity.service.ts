@@ -78,15 +78,6 @@ export class CgiarEntityService {
         throw Error('?!');
     }
 
-    // calculation of center pseudo code, as they are on a different db table
-    const maxId = result.reduce((max, entity) => {
-      return entity.id > max ? entity.id : max;
-    }, 0);
-
-    centers.forEach((center) => {
-      center.code = <number>center.code + maxId;
-    });
-
     return this._cgiarEntityMapper.classListToDtoV1List(result).concat(centers);
   }
 
@@ -100,10 +91,7 @@ export class CgiarEntityService {
     );
 
     if (id > maxId) {
-      return this._centerService.findOneV1(id - maxId).then((center) => {
-        if (center) center.code = id;
-        return center;
-      });
+      return this._centerService.findOneV1(id - maxId);
     }
 
     const result = await this._cgiarEntityRepository.findOneBy({
