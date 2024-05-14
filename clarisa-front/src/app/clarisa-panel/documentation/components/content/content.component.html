@@ -1,19 +1,7 @@
 <div class="main-content app-content mt-0">
   <div class="side-app">
     <!-- CONTAINER -->
-    <div class="main-container container-fluid">
-      <!-- PAGE-HEADER -->
-      <div class="page-header">
-        <h1 class="page-title"></h1>
-        <div>
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="javascript:void(0)"></a></li>
-            <li class="breadcrumb-item active" aria-current="page"></li>
-          </ol>
-        </div>
-      </div>
-      <!-- PAGE-HEADER END -->
-      <!-- Row -->
+    <div class="main-container container-fluid" style="margin-top: 96px">
       <div
         class="row"
         *ngIf="urlParams.hasOwnProperty('namesubcategory') == false"
@@ -151,7 +139,6 @@
                           id="collapseFour"
                           class="panel-collapse collapse show"
                           role="tabpanel"
-                          aria-expanded="true"
                         >
                           <div class="panel-body">
                             <h3
@@ -429,11 +416,7 @@
   class="modal fade"
   id="extralargemodal"
   tabindex="-1"
-  role="dialog"
-  *ngIf="
-    informationPrint != undefined &&
-    informationPrint.hasOwnProperty('route') == true
-  "
+  *ngIf="informationPrint && informationPrint.hasOwnProperty('route')"
 >
   <p-dialog
     header="{{ informationPrint.name }}"
@@ -451,9 +434,9 @@
       [value]="informationEndpoint"
       responsiveLayout="scroll"
       [paginator]="true"
-      [rows]="10"
+      [rows]="8"
       [showCurrentPageReport]="true"
-      [rowsPerPageOptions]="[10, 25, 50]"
+      [rowsPerPageOptions]="[8, 15, 30]"
       [globalFilterFields]="findColumns"
       paginatorDropdownAppendTo="body"
       style="height: 100%"

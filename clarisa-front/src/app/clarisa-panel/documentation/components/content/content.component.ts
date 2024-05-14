@@ -93,6 +93,9 @@ export class ContentComponent implements OnInit, OnChanges {
   iniciativeEndInformation() {
     let auxVariable = JSON.parse(this.informationPrint.response_json);
     this.arrayColumns = this.columnsTable(auxVariable.properties);
+
+    this.arrayColumns = this.arrayColumns.filter((x) => x);
+
     this.findColumns = [];
     for (let i of this.arrayColumns) {
       this.findColumns.push(i[1]);
