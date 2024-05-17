@@ -58,7 +58,7 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
           children: true,
         },
       })
-    ).filter((it) => it.children?.length === 0);
+    ).filter((it) => it.children.length === 0);
 
     institutionTypeDtos = await Promise.all(
       institutionTypes.map(async (it) => {
@@ -147,7 +147,7 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
         newInstitutionType.name = it.name;
         newInstitutionType.description = it.description;
 
-        if (it.children?.length > 0) {
+        if (it.children.length > 0) {
           newInstitutionType.children = this.fillChildren(it);
         }
 
@@ -161,7 +161,7 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
   private fillChildren(
     institutionType: InstitutionType,
   ): InstitutionTypeFromParentDto[] {
-    if (institutionType.children?.length === 0) {
+    if (institutionType.children.length === 0) {
       return undefined;
     }
 

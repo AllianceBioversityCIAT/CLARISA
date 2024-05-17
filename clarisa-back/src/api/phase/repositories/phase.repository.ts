@@ -78,7 +78,7 @@ export class PhaseRepository {
           })) as Phase[];
           phases = phases.concat(
             currentMisPhases.map((cmp) => {
-              cmp['application'] =
+              cmp.application =
                 PRMSApplication.getfromTableName(key)?.prettyName;
               return cmp;
             }),

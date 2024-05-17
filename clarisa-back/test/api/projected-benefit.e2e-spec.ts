@@ -17,14 +17,14 @@ describe('Projected Benefits (e2e)', () => {
   it('/api/projected-benefits (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/projected-benefits')
-      .expect(200);
+      .expect(HttpStatus.OK);
   });
 
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/projected-benefits/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/projected-benefits/get/' + 1)
-      .expect(200)
+      .get(`/api/projected-benefits/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('id');

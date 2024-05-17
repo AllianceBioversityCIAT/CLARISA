@@ -12,10 +12,10 @@ export class PortfolioMapper {
 
     portfolioDto.code = portfolio.id;
     portfolioDto.name = portfolio.name;
-    portfolioDto.start_date = portfolio.start_date?.getFullYear();
-    portfolioDto.end_date = portfolio.end_date?.getFullYear();
+    portfolioDto.start_date = portfolio.start_date.getFullYear();
+    portfolioDto.end_date = portfolio.end_date.getFullYear();
     if (showIsActive) {
-      portfolioDto.is_active = portfolio.auditableFields?.is_active;
+      portfolioDto.is_active = portfolio.auditableFields.is_active;
     }
 
     return portfolioDto;

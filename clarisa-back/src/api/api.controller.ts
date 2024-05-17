@@ -36,7 +36,7 @@ export class ApiController {
     });
 
     // Perform the redirect
-    return res.redirect(HttpStatus.MOVED_PERMANENTLY, urlObject);
+    res.redirect(HttpStatus.MOVED_PERMANENTLY, urlObject);
   }
 
   @Post('qa-token')

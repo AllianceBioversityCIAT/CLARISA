@@ -17,14 +17,14 @@ describe('Innovation readiness levels (e2e)', () => {
   it('/api/innovation-readiness-levels (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/innovation-readiness-levels')
-      .expect(200);
+      .expect(HttpStatus.OK);
   });
 
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/innovation-readiness-levels/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/innovation-readiness-levels/get/' + 1)
-      .expect(200)
+      .get(`/api/innovation-readiness-levels/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('id');

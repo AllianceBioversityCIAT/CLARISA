@@ -10,19 +10,17 @@ import { Observable, tap } from 'rxjs';
 export class AuditlogInterceptor implements NestInterceptor {
   intercept(
     context: ExecutionContext,
-    next: CallHandler<any>,
+    next: CallHandler,
   ): Observable<any> | Promise<Observable<any>> {
     //TODO implement the logig ONLY for PATCH requests
     console.log('before...');
 
     const before = Date.now();
 
-    return next
-      .handle()
-      .pipe(
-        tap(() =>
-          console.log(`intercepted... we took ${Date.now() - before}ms`),
-        ),
-      );
+    return next.handle().pipe(
+      tap(() => {
+        console.log(`intercepted... we took ${Date.now() - before}ms`);
+      }),
+    );
   }
 }

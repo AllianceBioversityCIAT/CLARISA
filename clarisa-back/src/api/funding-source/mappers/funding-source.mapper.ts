@@ -16,7 +16,7 @@ export class FundingSourceMapper {
     fundingSourceDto.type_term = fundingSource.type_term;
     fundingSourceDto.funding_to = fundingSource.funding_to;
     if (showIsActive) {
-      fundingSourceDto.is_active = fundingSource.auditableFields?.is_active;
+      fundingSourceDto.is_active = fundingSource.auditableFields.is_active;
     }
 
     return fundingSourceDto;

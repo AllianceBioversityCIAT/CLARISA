@@ -17,14 +17,14 @@ describe('Impact Area indicators (e2e)', () => {
   it('/api/impact-area-indicators (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/impact-area-indicators')
-      .expect(200);
+      .expect(HttpStatus.OK);
   });
 
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/impact-area-indicators/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/impact-area-indicators/get/' + 1)
-      .expect(200)
+      .get(`/api/impact-area-indicators/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('indicatorId');

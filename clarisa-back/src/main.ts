@@ -4,29 +4,36 @@ import { AppModule } from './app.module';
 import { dataSource } from './ormconfig';
 import { env } from 'process';
 import 'dotenv/config';
-import { VersioningType } from '@nestjs/common';
+import { Logger, VersioningType } from '@nestjs/common';
 import { versionExtractor } from './shared/interfaces/version-extractor';
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
+  const logger: Logger = new Logger('MainApp');
+  const defaultPort = '3000';
+
   const app = await NestFactory.create(AppModule);
   app.enableVersioning({
     type: VersioningType.CUSTOM,
     extractor: versionExtractor,
   });
+  logger.log(app.getHttpServer());
   app.use(bodyparser.urlencoded({ limit: '100mb', extended: true }));
   app.use(bodyparser.json({ limit: '100mb' }));
   app.enableCors();
+
   await dataSource
     .initialize()
     .then(() => {
-      console.log('Data Source has been initialized!');
+      logger.log('Data Source has been initialized!');
     })
-    .catch((err) => {
-      console.error('Error during Data Source initialization', err);
+    .catch((err: unknown) => {
+      logger.error('Error during Data Source initialization', err);
     });
-  await app.listen(env.APP_PORT);
-  console.log(
-    `Our server is running on port ${env.APP_PORT} - Please go to "http://localhost:${env.APP_PORT}/" to access the application`,
+
+  const currentPort = env.APP_PORT ?? defaultPort;
+  await app.listen(currentPort);
+  logger.log(
+    `Our server is running on port ${currentPort} - Please go to "http://localhost:${currentPort}/" to access the application`,
   );
 
   /*TODO now that he know how to extract all the routes in the app
@@ -49,4 +56,5 @@ async function bootstrap() {
     })
     .filter((item) => item !== undefined);*/
 }
-bootstrap();
+
+void bootstrap();

@@ -15,14 +15,16 @@ describe('Global targets (e2e)', () => {
 
   //It is tested to return a 200 since it is the get all
   it('/api/global-targets (GET)', () => {
-    return request(app.getHttpServer()).get('/api/global-targets').expect(200);
+    return request(app.getHttpServer())
+      .get('/api/global-targets')
+      .expect(HttpStatus.OK);
   });
 
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/global-targets/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/global-targets/get/' + 1)
-      .expect(200)
+      .get(`/api/global-targets/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('targetId');

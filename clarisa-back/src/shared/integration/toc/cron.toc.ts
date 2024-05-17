@@ -35,7 +35,7 @@ export class CronTOC {
       let newPhasesDb: PhaseToc[] = [];
 
       const phasesToc: PhaseTocDto[] =
-        (phasesRequest.data?.data as PhaseTocDto[]) ?? [];
+        (phasesRequest.data.data as PhaseTocDto[]) ?? [];
       const newPhasesToc = CronTOC.getNewPhases(oldPhasesDb, phasesToc);
 
       oldPhasesDb.forEach((op) => {

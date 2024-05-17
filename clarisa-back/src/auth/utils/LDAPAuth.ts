@@ -17,10 +17,11 @@ export class LDAPAuth implements BaseAuthenticator {
         console.log({ auth });
         if (auth) {
           console.log('Authenticated AD!', JSON.stringify(auth));
-          return resolve(auth);
+          resolve(auth);
+          return;
         }
         if (err) {
-          console.log('ERROR AUTH: ' + JSON.stringify(err));
+          console.log(`ERROR AUTH: ${JSON.stringify(err)}`);
           const notFound: BaseMessageDTO = {
             name: 'SERVER_NOT_FOUND',
             description: `There was an internal server error: ${err.lde_message}`,
@@ -33,7 +34,8 @@ export class LDAPAuth implements BaseAuthenticator {
           // console.log(err)
           // console.log(typeof err)
 
-          return reject(notFound);
+          reject(notFound);
+          return;
         } else {
           console.log('Authentication failed!');
           const err: BaseMessageDTO = {
@@ -42,8 +44,9 @@ export class LDAPAuth implements BaseAuthenticator {
             httpCode: HttpStatus.INTERNAL_SERVER_ERROR,
           };
 
-          console.log('ERROR: ' + JSON.stringify(err));
-          return reject(err);
+          console.log(`ERROR: ${JSON.stringify(err)}`);
+          reject(err);
+          return;
         }
       });
     });

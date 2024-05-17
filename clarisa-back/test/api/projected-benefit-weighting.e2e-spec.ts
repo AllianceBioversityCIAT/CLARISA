@@ -17,14 +17,14 @@ describe('Projected benefit weighting (e2e)', () => {
   it('/api/projected-benefit-weighting (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/projected-benefit-weighting')
-      .expect(200);
+      .expect(HttpStatus.OK);
   });
 
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/projected-benefit-weighting/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/projected-benefit-weighting/get/' + 1)
-      .expect(200)
+      .get(`/api/projected-benefit-weighting/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('id');

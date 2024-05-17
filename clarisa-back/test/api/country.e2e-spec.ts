@@ -15,14 +15,16 @@ describe('Countries (e2e)', () => {
 
   //It is tested to return a 200 since it is the get all
   it('/api/countries (GET)', () => {
-    return request(app.getHttpServer()).get('/api/countries').expect(200);
+    return request(app.getHttpServer())
+      .get('/api/countries')
+      .expect(HttpStatus.OK);
   }, 30000);
 
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/countries/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/countries/get/' + 1)
-      .expect(200)
+      .get(`/api/countries/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('id');

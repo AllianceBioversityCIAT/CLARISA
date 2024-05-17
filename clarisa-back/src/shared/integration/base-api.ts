@@ -17,7 +17,7 @@ export abstract class BaseApi {
 
   protected getRequest<T = any>(
     endpoint: string,
-  ): Observable<AxiosResponse<T, any>> {
+  ): Observable<AxiosResponse<T>> {
     return this.httpService
       .get(`${this.externalAppEndpoint}/${endpoint}`, {
         auth: { username: this.user, password: this.pass },

@@ -17,7 +17,7 @@ describe('Geographic Scope (e2e)', () => {
   it('/api/geographic-scopes (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/geographic-scopes')
-      .expect(200);
+      .expect(HttpStatus.OK);
   });
 
   //It is tested to return a 200 since it is the get all
@@ -30,8 +30,8 @@ describe('Geographic Scope (e2e)', () => {
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/geographic-scopes/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/geographic-scopes/get/' + 1)
-      .expect(200)
+      .get(`/api/geographic-scopes/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('code');

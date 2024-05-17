@@ -15,14 +15,16 @@ describe('Depth descriptions (e2e)', () => {
 
   //It is tested to return a 200 since it is the get all
   it('/api/depth-descriptions (GET)', () => {
-    return request(app.getHttpServer()).get('/api/beneficiaries').expect(200);
+    return request(app.getHttpServer())
+      .get('/api/beneficiaries')
+      .expect(HttpStatus.OK);
   });
 
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/depth-descriptions/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/depth-descriptions/get/' + 1)
-      .expect(200)
+      .get(`/api/depth-descriptions/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('descriptionID');

@@ -15,11 +15,11 @@ export class BasicAuthMiddleware implements NestMiddleware {
     @Res() response: Response,
     @Next() next: NextFunction,
   ): Promise<void> {
-    const authHeader: string = request.headers?.authorization ?? '';
-    const basic: boolean = authHeader?.toLocaleLowerCase().includes('basic');
+    const authHeader: string = request.headers.authorization ?? '';
+    const basic: boolean = authHeader.toLocaleLowerCase().includes('basic');
 
     if (basic) {
-      const token: string = authHeader?.replace('Basic ', '');
+      const token: string = authHeader.replace('Basic ', '');
       const auth: string = Buffer.from(token, 'base64').toString();
       const credentials: string[] = auth.split(':');
 

@@ -89,7 +89,7 @@ export class CronOST {
       );
 
       const workpackagesOST: WorkpackageOstDto[] =
-        workpackagesRequest.data?.response?.workpackages ?? [];
+        workpackagesRequest.data.response.workpackages ?? [];
       const newWorkpackages: WorkpackageOstDto[] = CronOST.getNewWorkpackages(
         oldWorkpackagesDb,
         workpackagesOST,
@@ -299,8 +299,8 @@ export class CronOST {
       (ost) =>
         !workpackagesDb.find(
           (db) =>
-            db.initiative_stage_object?.initiative_id === ost.initiative_id &&
-            db.initiative_stage_object?.stage_id === ost.stage_id &&
+            db.initiative_stage_object.initiative_id === ost.initiative_id &&
+            db.initiative_stage_object.stage_id === ost.stage_id &&
             db.wp_official_code === ost.wp_official_code,
         ),
     );
@@ -336,9 +336,9 @@ export class CronOST {
   ): WorkpackageOstDto {
     const ostWorkpackage: WorkpackageOstDto = ostWorkpackages.find(
       (oi) =>
-        workpackage.initiative_stage_object?.initiative_id ===
+        workpackage.initiative_stage_object.initiative_id ===
           oi.initiative_id &&
-        workpackage.initiative_stage_object?.stage_id === oi.stage_id &&
+        workpackage.initiative_stage_object.stage_id === oi.stage_id &&
         workpackage.wp_official_code === oi.wp_official_code,
     );
 
@@ -369,7 +369,7 @@ export class CronOST {
         !workpackageCountriesDb.find(
           (db) =>
             db.work_package_id === workpackage.id &&
-            db.country_object?.iso_numeric === ost.country_id,
+            db.country_object.iso_numeric === ost.country_id,
         ),
     );
   }
@@ -382,7 +382,7 @@ export class CronOST {
     const ostWorkpackageCountry: WorkpackageCountryOstDto =
       ostWorkpackageCountries.find(
         (owc) =>
-          owc.country_id === workpackageCountry.country_object?.iso_numeric,
+          owc.country_id === workpackageCountry.country_object.iso_numeric,
       );
 
     if (
@@ -427,7 +427,7 @@ export class CronOST {
         !workpackageRegionsDb.find(
           (db) =>
             db.work_package_id === workpackage.id &&
-            db.region_object?.id === ost.region_id,
+            db.region_object.id === ost.region_id,
         ),
     );
   }
@@ -439,7 +439,7 @@ export class CronOST {
   ): WorkpackageRegionOstDto {
     const ostWorkpackageRegion: WorkpackageRegionOstDto =
       ostWorkpackageRegions.find(
-        (owc) => owc.region_id === workpackageRegion.region_object?.id,
+        (owc) => owc.region_id === workpackageRegion.region_object.id,
       );
 
     if (
@@ -492,7 +492,7 @@ export class CronOST {
       let newInitiativeStagesDb: InitiativeStage[] = [];
 
       const initiativesOST: InitiativeOstDto[] =
-        initiativesRequest.data?.response?.initiatives ?? [];
+        initiativesRequest.data.response.initiatives ?? [];
       const newInitiatives: InitiativeOstDto[] = CronOST.getNewInitiatives(
         oldInitiativesDb,
         initiativesOST,

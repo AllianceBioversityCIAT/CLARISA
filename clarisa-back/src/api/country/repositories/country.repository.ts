@@ -52,7 +52,7 @@ export class CountryRepository extends Repository<Country> {
         select r.* from regions r
         where r.id = ?;
       `,
-          [region?.parent_id ?? 0],
+          [region.parent_id ?? 0],
         );
         parentRegion =
           ((<unknown>parentRegion) as Region[]).length === 1

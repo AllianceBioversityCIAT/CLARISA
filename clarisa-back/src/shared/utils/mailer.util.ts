@@ -19,12 +19,14 @@ export class MailUtil {
     Handlebars.registerHelper('support_email', () => env.SUPPORT_EMAIL);
   }
 
-  private async getTransporterInstance() {
+  private async getTransporterInstance(): Promise<
+    nodemailer.Transporter<SMTPTransport.SentMessageInfo>
+  > {
     const isProd: boolean = env.APP_PROFILE === 'PROD';
     // create reusable transporter object using the default SMTP transport
     let options: SMTPTransport.Options = {
       host: env.PREFERRED_EMAIL_HOST,
-      port: +env.PREFERRED_EMAIL_PORT,
+      port: env.PREFERRED_EMAIL_PORT as number | undefined,
       logger: isProd,
       debug: isProd,
       secure: false,
@@ -54,9 +56,9 @@ export class MailUtil {
         this.logger.debug('Peferred mail connection established!');
         return res;
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         this.logger.warn(
-          `An error trying to establish a connection with the preferred mail connection was detected: ${err.toString()}`,
+          `An error trying to establish a connection with the preferred mail connection was detected: ${String(err)}`,
         );
         return false;
       });
@@ -68,7 +70,7 @@ export class MailUtil {
 
       options = {
         host: env.ALTERNATIVE_EMAIL_HOST,
-        port: +env.ALTERNATIVE_EMAIL_PORT,
+        port: env.ALTERNATIVE_EMAIL_PORT as number | undefined,
         logger: isProd,
         debug: isProd,
         secure: false,
@@ -98,9 +100,9 @@ export class MailUtil {
           this.logger.debug('Alternative mail connection established!');
           return res;
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           this.logger.error(
-            `An error trying to establish a connection with the alternative mail connection was detected: ${err.toString()}`,
+            `An error trying to establish a connection with the alternative mail connection was detected: ${String(err)}`,
           );
           return false;
         });
@@ -122,12 +124,12 @@ export class MailUtil {
   }
 
   public sendNewPartnerRequestNotification(
-    partnerRequest: PartnerRequest,
+    partnerRequest: Readonly<PartnerRequest>,
     //appContactPointMails: string[],
-  ) {
-    const isDev: boolean = Profile.getfromName(env.APP_PROFILE) == Profile.DEV;
+  ): void {
+    const isDev: boolean = Profile.getfromName(env.APP_PROFILE) === Profile.DEV;
     const isProd: boolean =
-      Profile.getfromName(env.APP_PROFILE) == Profile.PROD;
+      Profile.getfromName(env.APP_PROFILE) === Profile.PROD;
 
     const subject = `${isDev ? 'TEST' : ''} [CLARISA API - ${
       partnerRequest.mis_object.acronym
@@ -243,6 +245,6 @@ export class MailUtil {
   public async sendEmail(options: Mail.Options): Promise<any> {
     return this.getTransporterInstance()
       .then((transporter) => transporter.sendMail(options))
-      .catch((err) => err);
+      .catch((err: unknown) => err);
   }
 }

@@ -1,7 +1,8 @@
 import { TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import request from 'supertest';
+import { HttpStatus, INestApplication } from '@nestjs/common';
+import request, { Response } from 'supertest';
 import { testModule, usePipes } from './test.module';
+import * as http from 'http';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
@@ -15,10 +16,10 @@ describe('AppController (e2e)', () => {
   });
 
   it('/api/sdgs (GET)', () => {
-    return request(app.getHttpServer())
+    return request(app.getHttpServer() as http.Server)
       .get('/api/sdgs')
-      .then((res) => {
-        expect(res.status).toBe(200);
+      .then((res: Response) => {
+        expect(res.status).toBe(HttpStatus.OK);
         expect(res.body).toBeInstanceOf(Array);
       });
   });
@@ -26,7 +27,7 @@ describe('AppController (e2e)', () => {
   /*  it('/api/regions/get/1 (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/regions/get/' + 1)
-      .expect(200)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body
         expect(data).toHaveProperty("id");

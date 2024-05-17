@@ -15,14 +15,14 @@ describe('Sdg (e2e)', () => {
 
   //It is tested to return a 200 since it is the get all
   it('/api/sdgs (GET)', () => {
-    return request(app.getHttpServer()).get('/api/sdgs').expect(200);
+    return request(app.getHttpServer()).get('/api/sdgs').expect(HttpStatus.OK);
   });
 
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/sdgs/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/sdgs/get/' + 1)
-      .expect(200)
+      .get(`/api/sdgs/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('id');

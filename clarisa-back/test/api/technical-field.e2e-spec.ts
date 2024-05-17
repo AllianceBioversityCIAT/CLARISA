@@ -17,14 +17,14 @@ describe('Technical fields (e2e)', () => {
   it('/api/technical-fields (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/technical-fields')
-      .expect(200);
+      .expect(HttpStatus.OK);
   });
 
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/technical-fields/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/technical-fields/get/' + 1)
-      .expect(200)
+      .get(`/api/technical-fields/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('id');

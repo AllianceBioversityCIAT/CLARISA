@@ -115,7 +115,7 @@ export class PartnerRequestService {
     }
 
     if (
-      (newPartnerRequest.institution_type_object?.children ?? []).length != 0
+      (newPartnerRequest.institution_type_object.children ?? []).length != 0
     ) {
       validationErrors.push(
         `A partner request with an institution type with id '${incomingPartnerRequest.institutionTypeCode}' cannot be created. Use one of the institution types you get when using the /api/institution-types endpoint.`,

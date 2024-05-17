@@ -17,14 +17,14 @@ describe('CGIAR entity type (e2e)', () => {
   it('/api/cgiar-entity-types (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/cgiar-entity-types')
-      .expect(200);
+      .expect(HttpStatus.OK);
   });
 
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/cgiar-entity-type/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/cgiar-entity-types/get/' + 1)
-      .expect(200)
+      .get(`/api/cgiar-entity-types/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('code');

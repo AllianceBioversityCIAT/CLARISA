@@ -46,7 +46,7 @@ export class QaTokenAuthService {
         ErrorNumber: '400 Bad request',
       };
     }
-    if (this.isEmail(createQaTokenDto.email) == false) {
+    if (!this.isEmail(createQaTokenDto.email)) {
       throw {
         Error: 'The email is not valid',
         ErrorNumber: '400 Bad request',

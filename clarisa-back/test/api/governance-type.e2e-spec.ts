@@ -17,14 +17,14 @@ describe('Governance types (e2e)', () => {
   it('/api/governance-types (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/governance-types')
-      .expect(200);
+      .expect(HttpStatus.OK);
   });
 
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/governance-types/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/governance-types/get/' + 1)
-      .expect(200)
+      .get(`/api/governance-types/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('id');

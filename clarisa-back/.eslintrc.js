@@ -30,7 +30,6 @@ module.exports = {
     '@typescript-eslint/prefer-destructuring': 'warn',
     '@typescript-eslint/array-type': 'warn',
     '@typescript-eslint/no-for-in-array': 'warn',
-    '@typescript-eslint/prefer-readonly-parameter-types': 'warn',
     'logical-assignment-operators': 'warn',
     "dot-notation": "off",
     "@typescript-eslint/dot-notation": "error",

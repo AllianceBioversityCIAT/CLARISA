@@ -47,7 +47,7 @@ export class CronReporting {
       let newPhasesDb: T[] = [];
 
       const phasesReporting: PhaseReportingDto[] =
-        (phasesRequest.data?.response as PhaseReportingDto[]) ?? [];
+        (phasesRequest.data.response as PhaseReportingDto[]) ?? [];
       const newPhasesReporting = CronReporting.getNewPhases(
         oldPhasesDb,
         phasesReporting,

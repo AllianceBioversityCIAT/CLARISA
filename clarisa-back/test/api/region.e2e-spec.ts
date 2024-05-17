@@ -17,20 +17,20 @@ describe('Region (e2e)', () => {
   it('/api/regions/un-regions (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/regions/un-regions')
-      .expect(200);
+      .expect(HttpStatus.OK);
   });
 
   it('/api/regions/one-cgiar-regions (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/regions/one-cgiar-regions')
-      .expect(200);
+      .expect(HttpStatus.OK);
   });
 
   //The endpoint is used to search by id, a valid id is sent to it.
   it('/api/regions/get/1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/api/regions/get/' + 1)
-      .expect(200)
+      .get(`/api/regions/get/1`)
+      .expect(HttpStatus.OK)
       .expect((res) => {
         const data = res.body;
         expect(data).toHaveProperty('id');
