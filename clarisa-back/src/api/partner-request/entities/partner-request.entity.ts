@@ -50,7 +50,7 @@ export class PartnerRequest {
   reject_justification: string;
 
   @Column({ type: 'text', nullable: true })
-  external_user_mail: string;
+  external_user_mail?: string;
 
   @Column({ type: 'text', nullable: true })
   external_user_name: string;

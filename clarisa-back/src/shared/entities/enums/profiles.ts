@@ -5,7 +5,7 @@ export class Profile {
 
   private constructor(public readonly name: string) {}
 
-  public static getfromName(name: string): Profile | undefined {
+  public static getfromName(name: string | undefined): Profile | undefined {
     return (Object.values(this) as Profile[]).find((p) => p.name === name);
   }
 }

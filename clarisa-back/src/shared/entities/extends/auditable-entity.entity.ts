@@ -1,5 +1,6 @@
 import { Exclude } from 'class-transformer';
 import { Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { User } from '../../../api/user/entities/user.entity';
 
 export class AuditableEntity {
   @Exclude({ toPlainOnly: true })
@@ -32,8 +33,8 @@ export class AuditableEntity {
   //object "relations"
 
   @Exclude()
-  created_by_object: any;
+  created_by_object: User;
 
   @Exclude()
-  updated_by_object: any;
+  updated_by_object: User;
 }
