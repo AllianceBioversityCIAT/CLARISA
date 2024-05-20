@@ -91,7 +91,7 @@ export class ContentComponent implements OnInit, OnChanges {
   }
 
   iniciativeEndInformation() {
-    let auxVariable = JSON.parse(this.informationPrint.response_json);
+    let auxVariable = this.informationPrint.response_json;
     this.arrayColumns = this.columnsTable(auxVariable.properties);
 
     this.arrayColumns = this.arrayColumns.filter((x) => x);
@@ -105,7 +105,7 @@ export class ContentComponent implements OnInit, OnChanges {
   }
 
   returnResponseJson() {
-    let auxVariable = JSON.parse(this.informationPrint.response_json);
+    let auxVariable = this.informationPrint.response_json;
     this.responseJsonPrint = this.jsonResponse(
       auxVariable.properties,
       auxVariable.object_type
