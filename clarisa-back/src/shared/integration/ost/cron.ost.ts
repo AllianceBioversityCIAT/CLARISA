@@ -39,7 +39,7 @@ export class CronOST {
   ) {}
 
   // every sunday at 5 am
-  @Cron('* * 5 * * 0')
+  @Cron('0 0 5 * * 0')
   public async cronWorkpackageRelatedData() {
     const workpackagesRequest = await firstValueFrom(
       this.api.getWorkpackages(),
@@ -475,7 +475,7 @@ export class CronOST {
   }
 
   // every sunday at 4 am
-  @Cron('* * 4 * * 0')
+  @Cron('0 0 4 * * 0')
   public async cronInitiativeRelatedData() {
     const initiativesRequest = await firstValueFrom(this.api.getInitiatives());
 

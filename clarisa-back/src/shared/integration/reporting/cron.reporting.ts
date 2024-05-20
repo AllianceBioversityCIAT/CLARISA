@@ -21,7 +21,7 @@ export class CronReporting {
   ) {}
 
   // every saturday at 9 pm
-  @Cron('* * 21 * * 6')
+  @Cron('0 0 21 * * 6')
   public async cronReportingPhasesData(): Promise<void> {
     const apps = PRMSApplication.getAllPhaseTables();
     for (const app of apps) {

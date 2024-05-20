@@ -20,7 +20,7 @@ export class CronRisk {
   ) {}
 
   // every saturday at 11 pm
-  @Cron('* * 23 * * 6')
+  @Cron('0 0 23 * * 6')
   public async cronRiskPhasesData(): Promise<void> {
     const phasesRequest = await firstValueFrom(this.api.getPhases());
 
