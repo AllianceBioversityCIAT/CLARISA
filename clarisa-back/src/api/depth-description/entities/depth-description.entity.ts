@@ -3,8 +3,7 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
 import { ProjectedBenefitDepth } from '../../projected-benefit-depth/entities/projected-benefit-depth.entity';
 
-//TODO change table name to depth_descriptions
-@Entity('depths_description')
+@Entity('depth_descriptions')
 export class DepthDescription {
   @Expose({ name: 'depthScaleId' })
   @PrimaryGeneratedColumn({ type: 'bigint' })

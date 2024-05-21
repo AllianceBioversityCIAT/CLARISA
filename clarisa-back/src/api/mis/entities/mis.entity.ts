@@ -25,9 +25,8 @@ export class Mis {
   acronym: string;
 
   // relations
-  //FIXME change the name to main_contact_point_id
   @Column()
-  contact_point_id: string;
+  main_contact_point_id: string;
 
   //object relations
 

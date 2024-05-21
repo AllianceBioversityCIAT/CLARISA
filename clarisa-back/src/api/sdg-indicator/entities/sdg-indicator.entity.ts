@@ -1,4 +1,4 @@
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude } from 'class-transformer';
 import {
   Column,
   Entity,
@@ -14,17 +14,12 @@ export class SdgIndicator {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
-  //FIXME change name to unsd_indicator_code
-  @Expose({ name: 'unsdIndicatorCode' })
   @Column({ type: 'text', nullable: false })
-  unsd_indicator_codes: string;
+  unsd_indicator_code: string;
 
-  //FIXME change name to sdg_indicator_code
-  @Expose({ name: 'indicatorCode' })
   @Column({ type: 'text', nullable: false })
-  sdg_indicator_codes: string;
+  sdg_indicator_code: string;
 
-  @Expose({ name: 'indicatorName' })
   @Column({ type: 'text', nullable: false })
   sdg_indicator: string;
 
@@ -36,10 +31,7 @@ export class SdgIndicator {
 
   //object relations
 
-  @Expose({ name: 'sdg_target_id' })
-  @ManyToOne(() => SdgTarget, (sdgt) => sdgt.sdg_indicator_array, {
-    eager: true,
-  })
+  @ManyToOne(() => SdgTarget, (sdgt) => sdgt.sdg_indicator_array)
   @JoinColumn({ name: 'sdg_target_id' })
   sdg_target_object: SdgTarget;
 
