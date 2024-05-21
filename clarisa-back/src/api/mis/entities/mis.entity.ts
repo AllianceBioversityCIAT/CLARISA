@@ -31,7 +31,7 @@ export class Mis {
   //object relations
 
   @ManyToOne(() => User, (u) => u.mis_array)
-  @JoinColumn({ name: 'contact_point_id' })
+  @JoinColumn({ name: 'main_contact_point_id' })
   //@Expose()
   contact_point_object: User;
 
