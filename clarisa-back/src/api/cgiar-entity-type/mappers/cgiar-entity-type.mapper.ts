@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CgiarEntityType } from '../entities/cgiar-entity-type.entity';
-import { BasicDto } from '../../../shared/entities/dtos/basic-dto';
+import { BasicDtoV2 } from '../../../shared/entities/dtos/basic-dto.v2';
 import { BasicDtoMapper } from '../../../shared/mappers/basic-dto.mapper';
 import { CgiarEntityTypeDtoV2 } from '../dto/cgiar-entity-type.v2.dto';
 import { FundingSource } from '../../funding-source/entities/funding-source.entity';
@@ -16,14 +16,14 @@ export class CgiarEntityTypeMapper {
   public classToDtoV1(
     cgiarEntityType: CgiarEntityType,
     showIsActive: boolean = false,
-  ): BasicDto {
+  ): BasicDtoV2 {
     return this._basicCETDtoMapper.classToDto(cgiarEntityType, showIsActive);
   }
 
   public classListToDtoV1List(
     cgiarEntityTypes: CgiarEntityType[],
     showIsActive: boolean = false,
-  ): BasicDto[] {
+  ): BasicDtoV2[] {
     return this._basicCETDtoMapper.classListToDtoList(
       cgiarEntityTypes,
       showIsActive,

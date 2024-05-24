@@ -1,8 +1,8 @@
-import { BasicDto } from '../../../shared/entities/dtos/basic-dto';
+import { BasicDtoV2 } from '../../../shared/entities/dtos/basic-dto.v2';
 
-export class CgiarEntityDtoV1 extends BasicDto {
+export class CgiarEntityDtoV1 extends BasicDtoV2 {
   acronym: string;
   financial_code: string;
   institutionId: number;
-  cgiarEntityTypeDTO: BasicDto;
+  cgiarEntityTypeDTO: BasicDtoV2;
 }

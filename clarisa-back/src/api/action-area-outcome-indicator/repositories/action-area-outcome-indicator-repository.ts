@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { ActionAreaOutcomeDto } from '../../action-area-outcome/dto/action-area-outcome.dto';
-import { ActionAreaOutcomeIndicatorRequestDto } from '../dto/action-area-outcome-indicator-request.dto';
 import { ActionAreaOutcomeIndicator } from '../entities/action-area-outcome-indicator.entity';
+import { ActionAreaOutcomeIndicatorDto } from '../dto/action-area-outcome-indicator.dto';
 
 @Injectable()
 export class ActionAreaOutcomeIndicatorRepository extends Repository<ActionAreaOutcomeIndicator> {
@@ -81,7 +81,7 @@ export class ActionAreaOutcomeIndicatorRepository extends Repository<ActionAreaO
   }
 
   async actionAreaOutcomeIndicatorByAll(): Promise<
-    ActionAreaOutcomeIndicatorRequestDto[]
+    ActionAreaOutcomeIndicatorDto[]
   > {
     const impactAreaIndicatorsQuery = `
       SELECT aai.id as 'actionAreaOutcomeIndicatorId', aa.id AS 'actionAreaId', aa.name AS 'actionAreaName', aao.id AS 'outcomeId', 
@@ -96,7 +96,7 @@ export class ActionAreaOutcomeIndicatorRepository extends Repository<ActionAreaO
         ON  aai.outcome_indicator_id = oi.id;
             `;
 
-    const ImpactAreaIndicatorsbyImpactArea: ActionAreaOutcomeIndicatorRequestDto[] =
+    const ImpactAreaIndicatorsbyImpactArea: ActionAreaOutcomeIndicatorDto[] =
       await this.query(impactAreaIndicatorsQuery);
 
     return ImpactAreaIndicatorsbyImpactArea;
@@ -104,7 +104,7 @@ export class ActionAreaOutcomeIndicatorRepository extends Repository<ActionAreaO
 
   async actionAreaOutcomeIndicatorByAllIsActive(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<ActionAreaOutcomeIndicatorRequestDto[]> {
+  ): Promise<ActionAreaOutcomeIndicatorDto[]> {
     let isActiveOption = true;
     if (option == 'inactive') isActiveOption = false;
 
@@ -123,7 +123,7 @@ export class ActionAreaOutcomeIndicatorRepository extends Repository<ActionAreaO
         WHERE aai.is_active = ${isActiveOption}
             `;
 
-    const ImpactAreaIndicatorsbyImpactArea: ActionAreaOutcomeIndicatorRequestDto[] =
+    const ImpactAreaIndicatorsbyImpactArea: ActionAreaOutcomeIndicatorDto[] =
       await this.query(impactAreaIndicatorsQuery);
 
     return ImpactAreaIndicatorsbyImpactArea;

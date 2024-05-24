@@ -1,10 +1,10 @@
-import { BasicDto } from '../../../shared/entities/dtos/basic-dto';
+import { BasicDtoV2 } from '../../../shared/entities/dtos/basic-dto.v2';
 
-export class CgiarEntityTypeDtoV2 extends BasicDto {
+export class CgiarEntityTypeDtoV2 extends BasicDtoV2 {
   prefix: string;
-  parent: BasicDto;
+  parent: BasicDtoV2;
   definition: string;
   level: number;
-  funding_source: BasicDto;
-  portfolio: BasicDto;
+  funding_source: BasicDtoV2;
+  portfolio: BasicDtoV2;
 }

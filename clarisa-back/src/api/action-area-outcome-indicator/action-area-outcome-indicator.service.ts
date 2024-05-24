@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { UpdateActionAreaOutcomeIndicatorDto } from './dto/update-action-area-outcome-indicator.dto';
 import { ActionAreaOutcomeIndicator } from './entities/action-area-outcome-indicator.entity';
-import { ActionAreaOutcomeIndicatorRequestDto } from './dto/action-area-outcome-indicator-request.dto';
 import { ActionAreaOutcomeIndicatorRepository } from './repositories/action-area-outcome-indicator-repository';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { ActionAreaOutcomeIndicatorDto } from './dto/action-area-outcome-indicator.dto';
 
 @Injectable()
 export class ActionAreaOutcomeIndicatorService {
@@ -13,13 +13,13 @@ export class ActionAreaOutcomeIndicatorService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<ActionAreaOutcomeIndicatorRequestDto[]> {
+  ): Promise<ActionAreaOutcomeIndicatorDto[]> {
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return await this.actionAreaOutcomeIndicatorsRepository.actionAreaOutcomeIndicatorByAll();
+        return this.actionAreaOutcomeIndicatorsRepository.actionAreaOutcomeIndicatorByAll();
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return await this.actionAreaOutcomeIndicatorsRepository.actionAreaOutcomeIndicatorByAllIsActive(
+        return this.actionAreaOutcomeIndicatorsRepository.actionAreaOutcomeIndicatorByAllIsActive(
           option,
         );
 

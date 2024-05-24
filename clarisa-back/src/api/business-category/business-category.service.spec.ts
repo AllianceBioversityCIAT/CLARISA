@@ -1,19 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AccountTypeService } from './account-type.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { AccountTypeDto } from './dto/account-type.dto';
-import { AccountTypeModule } from './account-type.module';
 import { OrmConfigTestModule } from '../../shared/config/ormconfig.test.module';
+import { BusinessCategoryService } from './business-category.service';
+import { BusinessCategoryModule } from './business-category.module';
+import { BasicDtoV1 } from '../../shared/entities/dtos/basic-dto.v1';
 
-describe('AccountTypeService', () => {
-  let service: AccountTypeService;
+describe('BusinessCategoryService', () => {
+  let service: BusinessCategoryService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AccountTypeModule, OrmConfigTestModule],
+      imports: [OrmConfigTestModule, BusinessCategoryModule],
+      providers: [],
     }).compile();
 
-    service = module.get<AccountTypeService>(AccountTypeService);
+    service = module.get<BusinessCategoryService>(BusinessCategoryService);
   }, 10000);
 
   describe('findAll', () => {
@@ -28,18 +29,18 @@ describe('AccountTypeService', () => {
       expect(result).rejects.toThrow('?!');
     });
 
-    it('should return an array of AccountTypeDto', async () => {
+    it('should return an array of BasicDtoV1', async () => {
       // Arrange
-      const findAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE;
+      const options: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE;
 
       // Act
-      const result = await service.findAll(findAllOptions);
+      const result: BasicDtoV1[] = await service.findAll(options);
 
       // Assert
       expect(result).toBeDefined();
       expect(result).toBeInstanceOf(Array);
       if (result.length) {
-        expect(result[0]).toBeInstanceOf(AccountTypeDto);
+        expect(result[0]).toBeInstanceOf(BasicDtoV1);
         expect(result[0].id).toBeDefined();
         expect(result[0].id).toBe('1');
       }
@@ -47,16 +48,16 @@ describe('AccountTypeService', () => {
   });
 
   describe('findOne', () => {
-    it('should return an AccountTypeDto', async () => {
+    it('should return an BasicDtoV1', async () => {
       // Arrange
-      const id = 1;
+      const id: number = 1;
 
       // Act
-      const result = await service.findOne(id);
+      const result: BasicDtoV1 = await service.findOne(id);
 
       // Assert
       expect(result).toBeDefined();
-      expect(result).toBeInstanceOf(AccountTypeDto);
+      expect(result).toBeInstanceOf(BasicDtoV1);
       expect(result.id).toBeDefined();
       expect(result.id).toBe(`${id}`);
     });
