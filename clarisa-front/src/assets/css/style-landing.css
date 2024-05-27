@@ -3097,16 +3097,6 @@ footer p {
   .navbar-collapse.collapse.in {
     display: block !important;
   }
-  .navbar-default .navbar-toggle .icon-bar {
-    background-color: #fff;
-  }
-  .navbar-default .navbar-toggle {
-    border-color: #fff;
-  }
-  .navbar-default .navbar-toggle:focus,
-  .navbar-default .navbar-toggle:hover {
-    background-color: #528b00;
-  }
   .navbar-default .navbar-collapse,
   .navbar-default .navbar-form {
     border: none;
