@@ -30,7 +30,11 @@ export class CgiarEntityMapper {
 
     Object.assign(
       cgiarEntityDtoV1,
-      this._basicCEDtoMapper.classToDto(cgiarEntity, showIsActive),
+      this._basicCEDtoMapper.classToDto(
+        cgiarEntity,
+        showIsActive,
+        this._mappedBasicFields,
+      ),
     );
 
     cgiarEntityDtoV1.acronym = cgiarEntity.acronym;

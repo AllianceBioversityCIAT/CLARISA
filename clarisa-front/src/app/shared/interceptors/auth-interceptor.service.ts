@@ -35,8 +35,6 @@ export class GeneralInterceptorService implements HttpInterceptor {
       headers,
     });
 
-    console.log(reqClone);
-
     return next.handle(reqClone);
   }
 }

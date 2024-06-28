@@ -1,14 +1,23 @@
+<div *ngIf="!_manageApiService.isLoaded" class="loader">
+  <img
+    src="../../assets/images/loadeer.gif"
+    style="width: 50px; height: 50px"
+    alt="Loading..."
+  />
+</div>
+
 <div class="page" style="background-color: white">
   <div class="page-main">
     <app-horizontal-menu></app-horizontal-menu>
     <app-vertical-menu
       [urlParams]="_servicesUrl.getParams()"
-      [subCategories]="endpointsFilterInformation"
+      [subCategories]="_manageApiService?.endpointsFilterInformation"
+      *ngIf="_manageApiService.isLoaded"
     ></app-vertical-menu>
     <app-content
-      [information]="endpointsFilterInformation"
+      [information]="_manageApiService?.endpointsFilterInformation"
       [urlParams]="_servicesUrl.getParams()"
+      *ngIf="_manageApiService.isLoaded"
     ></app-content>
   </div>
 </div>
-

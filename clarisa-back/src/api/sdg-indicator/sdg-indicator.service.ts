@@ -1,25 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { UpdateSdgIndicatorDto } from './dto/update-sdg-indicator.dto';
 import { SdgIndicator } from './entities/sdg-indicator.entity';
 import { SdgIndicatorRepository } from './repositories/sdg-indicator.repository';
+import { FindManyOptions } from 'typeorm';
+import { SdgIndicatorMapper } from './mappers/sdg-indicator.mapper';
+import { SdgIndicatorV1Dto } from './dto/sdg-indicator.v1.dto';
+import { SdgIndicatorV2Dto } from './dto/sdg-indicator.v2.dto';
 
 @Injectable()
 export class SdgIndicatorService {
-  constructor(private sdgIndicatorRepository: SdgIndicatorRepository) {}
+  private readonly _findClause: FindManyOptions<SdgIndicator> = {
+    relations: { sdg_target_object: { sdg_object: true } },
+  };
 
-  async findAll(
+  constructor(
+    private readonly _sdgIndicatorRepository: SdgIndicatorRepository,
+    private readonly _sdgIndicatorMapper: SdgIndicatorMapper,
+  ) {}
+
+  private async _findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<SdgIndicator[]> {
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return await this.sdgIndicatorRepository.find();
+        return this._sdgIndicatorRepository.find(this._findClause);
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return await this.sdgIndicatorRepository.find({
-          where: {
-            auditableFields: {
-              is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
+        return this._sdgIndicatorRepository.find({
+          ...this._findClause,
+          ...{
+            where: {
+              auditableFields: {
+                is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
+              },
             },
           },
         });
@@ -28,16 +41,26 @@ export class SdgIndicatorService {
     }
   }
 
+  async findAllV1(
+    option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+  ): Promise<SdgIndicatorV1Dto[]> {
+    const result: SdgIndicator[] = await this._findAll(option);
+
+    return this._sdgIndicatorMapper.classListToDtoV1List(result);
+  }
+
+  async findAllV2(
+    option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+  ): Promise<SdgIndicatorV2Dto[]> {
+    const result: SdgIndicator[] = await this._findAll(option);
+
+    return this._sdgIndicatorMapper.classListToDtoV2List(result);
+  }
+
   async findOne(id: number): Promise<SdgIndicator> {
-    return await this.sdgIndicatorRepository.findOneBy({
+    return await this._sdgIndicatorRepository.findOneBy({
       id,
       auditableFields: { is_active: true },
     });
-  }
-
-  async update(
-    updateSdgIndicatorDtoList: UpdateSdgIndicatorDto[],
-  ): Promise<SdgIndicator[]> {
-    return await this.sdgIndicatorRepository.save(updateSdgIndicatorDtoList);
   }
 }

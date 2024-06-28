@@ -22,11 +22,10 @@ export class GlobalTarget {
   @Column({ type: 'text', nullable: true })
   global_target: string;
 
-  //FIXME change this name to impact_area_id when the data is inserted
   //relations
   @Expose({ name: 'impactAreaId' })
   @Column({ type: 'bigint', nullable: true })
-  impact_areas_id: number;
+  impact_area_id: number;
 
   //object_relations
   @Expose({ name: 'impactAreaName' })
@@ -34,7 +33,7 @@ export class GlobalTarget {
     return value.name;
   })
   @ManyToOne(() => ImpactArea, { eager: true })
-  @JoinColumn({ name: 'impact_areas_id' })
+  @JoinColumn({ name: 'impact_area_id' })
   impact_area_name: ImpactArea;
 
   //auditable fields

@@ -20,7 +20,7 @@ export class CronTOC {
   ) {}
 
   // every saturday at 10 pm
-  @Cron('* * 22 * * 6')
+  @Cron('0 0 22 * * 6')
   public async cronTocPhasesData(): Promise<void> {
     const phasesRequest = await firstValueFrom(this.api.getPhases());
 

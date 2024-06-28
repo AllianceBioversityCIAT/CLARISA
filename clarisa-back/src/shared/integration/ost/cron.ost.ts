@@ -39,7 +39,7 @@ export class CronOST {
   ) {}
 
   // every sunday at 5 am
-  @Cron('* * 5 * * 0')
+  @Cron('0 0 5 * * 0')
   public async cronWorkpackageRelatedData() {
     const workpackagesRequest = await firstValueFrom(
       this.api.getWorkpackages(),
@@ -475,7 +475,7 @@ export class CronOST {
   }
 
   // every sunday at 4 am
-  @Cron('* * 4 * * 0')
+  @Cron('0 0 4 * * 0')
   public async cronInitiativeRelatedData() {
     const initiativesRequest = await firstValueFrom(this.api.getInitiatives());
 
@@ -643,7 +643,9 @@ export class CronOST {
     const newInitiativeStage: InitiativeStage = new InitiativeStage();
 
     newInitiativeStage.id = +ostInitiativeStage.initvStgId;
-    newInitiativeStage.action_area_id = +ostInitiative.action_area_id;
+    newInitiativeStage.action_area_id = newInitiativeStage.action_area_id
+      ? +ostInitiative.action_area_id
+      : null;
     newInitiativeStage.auditableFields = new AuditableEntity();
     newInitiativeStage.auditableFields.created_at = new Date();
     newInitiativeStage.auditableFields.created_by = 3043; //clarisadmin
@@ -669,7 +671,9 @@ export class CronOST {
     );
 
     if (ostInitiativeStage) {
-      initiativeStage.action_area_id = +ostInitiative.action_area_id;
+      initiativeStage.action_area_id = initiativeStage.action_area_id
+        ? +ostInitiative.action_area_id
+        : null;
       initiativeStage.auditableFields.is_active =
         ostInitiativeStage.active === 1;
       //TODO: uncoment when ost send this field

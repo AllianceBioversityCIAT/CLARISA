@@ -36,12 +36,12 @@ export class SubnationalScopeRepository extends Repository<SubnationalScope> {
         throw Error('?!');
     }
 
-    const query: string = `select getSubnationalScopeData(cast(json_unquote('${JSON.stringify(
-      queryParams,
-    )}') as json)) as subnational_scope_data;`;
+    const query: string = `select getSubnationalScopeData(?) as subnational_scope_data;`;
 
-    const rawResponse = (await this.query(query))?.[0];
-    subnationalScopeDtos = JSON.parse(rawResponse?.subnational_scope_data);
+    const rawResponse = (
+      await this.query(query, [JSON.stringify(queryParams)])
+    )[0];
+    subnationalScopeDtos = rawResponse?.subnational_scope_data;
 
     return subnationalScopeDtos;
   }
@@ -57,12 +57,12 @@ export class SubnationalScopeRepository extends Repository<SubnationalScope> {
       is_active: 1,
     };
 
-    const query: string = `select getSubnationalScopeData(cast(json_unquote('${JSON.stringify(
-      queryParams,
-    )}') as json)) as subnational_scope_data;`;
+    const query: string = `select getSubnationalScopeData(?) as subnational_scope_data;`;
 
-    const rawResponse = (await this.query(query))?.[0];
-    subnationalScopeDtos = JSON.parse(rawResponse?.subnational_scope_data);
+    const rawResponse = (
+      await this.query(query, [JSON.stringify(queryParams)])
+    )?.[0];
+    subnationalScopeDtos = rawResponse?.subnational_scope_data;
 
     return subnationalScopeDtos[0] ?? null;
   }

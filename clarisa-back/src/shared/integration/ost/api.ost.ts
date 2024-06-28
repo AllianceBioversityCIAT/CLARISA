@@ -7,6 +7,7 @@ import { AxiosResponse } from 'axios';
 import { InitiativeResponse } from './dto/initivative.ost.dto';
 import { ResponseOstDto } from './dto/response.ost.dto';
 import { WorkpackageResponse } from './dto/workpackage.ost.dto';
+import { InitiativeEoiResponse } from './dto/eoi.ost.dto';
 
 @Injectable()
 export class ApiOST extends BaseApi {
@@ -35,7 +36,9 @@ export class ApiOST extends BaseApi {
     return this.getRequest('initiatives/stages');
   }
 
-  getEndOfIniciative() {
+  getEndOfIniciative(): Observable<
+    AxiosResponse<ResponseOstDto<InitiativeEoiResponse>>
+  > {
     return this.getRequest('stages-control/proposal/eoi/all/initiatives');
   }
 }

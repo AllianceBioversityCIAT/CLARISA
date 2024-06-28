@@ -10,17 +10,15 @@ import { AuditableEntity } from '../../../shared/entities/extends/auditable-enti
 import { DepthDescription } from '../../depth-description/entities/depth-description.entity';
 import { ProjectedBenefit } from '../../projected-benefit/entities/projected-benefit.entity';
 
-//FIXME change name to projected_benefit_depths
-@Entity('projected_benefits_depths')
+@Entity('projected_benefit_depths')
 export class ProjectedBenefitDepth {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   //relations
 
-  //FIXME change name to projected_benefit_id
   @Column({ type: 'bigint', nullable: true })
-  projected_benefits_id: number;
+  projected_benefit_id: number;
 
   @Column({ type: 'bigint', nullable: true })
   depth_description_id: number;
@@ -31,7 +29,7 @@ export class ProjectedBenefitDepth {
     () => ProjectedBenefit,
     (pb) => pb.projected_benefit_weighting_array,
   )
-  @JoinColumn({ name: 'projected_benefits_id' })
+  @JoinColumn({ name: 'projected_benefit_id' })
   projected_benefit_object: ProjectedBenefit;
 
   @ManyToOne(() => DepthDescription, (dd) => dd.projected_benefit_depth_array)

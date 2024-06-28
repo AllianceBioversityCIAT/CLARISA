@@ -1,19 +1,7 @@
 <div class="main-content app-content mt-0">
   <div class="side-app">
     <!-- CONTAINER -->
-    <div class="main-container container-fluid">
-      <!-- PAGE-HEADER -->
-      <div class="page-header">
-        <h1 class="page-title"></h1>
-        <div>
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="javascript:void(0)"></a></li>
-            <li class="breadcrumb-item active" aria-current="page"></li>
-          </ol>
-        </div>
-      </div>
-      <!-- PAGE-HEADER END -->
-      <!-- Row -->
+    <div class="main-container container-fluid" style="margin-top: 96px">
       <div
         class="row"
         *ngIf="urlParams.hasOwnProperty('namesubcategory') == false"
@@ -22,7 +10,7 @@
           <div class="card">
             <div class="card-header">
               <h3 class="card-title" style="color: #0065bd; font-size: 22px">
-                {{ information.name }}
+                {{ information?.name }}
               </h3>
             </div>
             <div class="card-body">
@@ -30,7 +18,7 @@
                 <div class="expanel-body" style="background-color: #f0f0f0">
                   <h3>Summary:</h3>
                   <p>
-                    {{ information.description }}
+                    {{ information?.description }}
                   </p>
                   <p>
                     <i class="pi pi-arrow-left"></i>
@@ -151,7 +139,6 @@
                           id="collapseFour"
                           class="panel-collapse collapse show"
                           role="tabpanel"
-                          aria-expanded="true"
                         >
                           <div class="panel-body">
                             <h3
@@ -429,11 +416,7 @@
   class="modal fade"
   id="extralargemodal"
   tabindex="-1"
-  role="dialog"
-  *ngIf="
-    informationPrint != undefined &&
-    informationPrint.hasOwnProperty('route') == true
-  "
+  *ngIf="informationPrint && informationPrint.hasOwnProperty('route')"
 >
   <p-dialog
     header="{{ informationPrint.name }}"
@@ -451,15 +434,14 @@
       [value]="informationEndpoint"
       responsiveLayout="scroll"
       [paginator]="true"
-      [rows]="10"
+      [rows]="8"
       [showCurrentPageReport]="true"
-      [rowsPerPageOptions]="[10, 25, 50]"
+      [rowsPerPageOptions]="[8, 15, 30]"
       [globalFilterFields]="findColumns"
       paginatorDropdownAppendTo="body"
-      style="height: 100%;"
+      style="height: 100%"
       styleClass="p-datatable-gridlines"
       [loading]="loading"
-      
     >
       <ng-template
         pTemplate="caption"
@@ -501,19 +483,6 @@
             >
               <i class="pi pi-file-excel" style="font-size: 1.5rem"></i>
             </button>
-            <!--
-            <button
-              type="button"
-              pButton
-              pRipple
-              (click)="exportPdf()"
-              class="p-button-warning mr-2"
-              pTooltip="PDF"
-              tooltipPosition="bottom"
-              style="margin-left: 20px; background-color: #cc5847"
-            >
-              <i class="pi pi-file-pdf" style="font-size: 1.5rem"></i>
-            </button>-->
           </div>
         </div>
       </ng-template>
@@ -523,7 +492,9 @@
             *ngFor="let col of columns"
             pSortableColumn="{{ col[1] }}"
             style="font-size: 15px; background-color: #739600; color: white"
+            scope="col"
           >
+            >
             {{ col[0] }}
             <p-sortIcon field="{{ col[1] }}"></p-sortIcon>
           </th>

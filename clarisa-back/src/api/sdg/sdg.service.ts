@@ -1,26 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { LegacySdgDto } from './dto/legacy-sdg.dto';
-import { UpdateSdgDto } from './dto/update-sdg.dto';
 import { Sdg } from './entities/sdg.entity';
 import { SdgRepository } from './repositories/sdg.repository';
+import { SdgMapper } from './mappers/sdg.mapper';
 
 @Injectable()
 export class SdgService {
-  constructor(private sdgsRepository: SdgRepository) {}
+  constructor(
+    private readonly _sdgsRepository: SdgRepository,
+    private readonly _sdgMapper: SdgMapper,
+  ) {}
 
-  async findAll(
+  private async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    isLegacy = false,
   ) {
     let response: Sdg[];
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        response = await this.sdgsRepository.find();
+        response = await this._sdgsRepository.find();
         break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        response = await this.sdgsRepository.find({
+        response = await this._sdgsRepository.find({
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
@@ -32,30 +33,23 @@ export class SdgService {
         throw Error('?!');
     }
 
-    return !isLegacy ? response : this.mapToLegacyResponse(response);
+    return response;
   }
 
-  mapToLegacyResponse(response: Sdg[]): LegacySdgDto[] {
-    return response.map((r) => {
-      const mappedSdg: LegacySdgDto = new LegacySdgDto();
+  async findAllV1(option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE) {
+    const sdgs = await this.findAll(option);
+    return this._sdgMapper.classListToDtoV1List(sdgs);
+  }
 
-      mappedSdg.financialCode = r.financial_code;
-      mappedSdg.fullName = r.full_name;
-      mappedSdg.shortName = r.short_name;
-      mappedSdg.usndCode = r.smo_code;
-
-      return mappedSdg;
-    });
+  async findAllV2(option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE) {
+    const sdgs = await this.findAll(option);
+    return this._sdgMapper.classListToDtoV2List(sdgs);
   }
 
   async findOne(id: number): Promise<Sdg> {
-    return await this.sdgsRepository.findOneBy({
+    return await this._sdgsRepository.findOneBy({
       id,
       auditableFields: { is_active: true },
     });
-  }
-
-  async update(updateSdgDto: UpdateSdgDto[]) {
-    return await this.sdgsRepository.save(updateSdgDto);
   }
 }
