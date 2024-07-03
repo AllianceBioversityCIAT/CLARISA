@@ -505,10 +505,9 @@
           <td *ngFor="let cols of columns" style="font-size: 15px">
             <span [ngSwitch]="cols[2]">
               <span *ngSwitchCase="'field'">
-                <span *ngIf="rowData[cols[1]] != null">
-                  {{ rowData[cols[1]] }}
+                <span *ngIf="rowData[cols[1]]" [innerHTML]="rowData[cols[1]]">
                 </span>
-                <span *ngIf="rowData[cols[1]] == null"> </span>
+                <span *ngIf="!rowData[cols[1]]"> </span>
               </span>
               <span *ngSwitchCase="'object'">
                 <span *ngFor="let i of cols[3]">
