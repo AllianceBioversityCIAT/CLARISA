@@ -22,6 +22,6 @@ export class FundingSourceController {
 
   @Get('get/:id')
   findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.fundingSourceService.findOne(+id);
+    return this.fundingSourceService.findOne(id);
   }
 }

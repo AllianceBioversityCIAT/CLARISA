@@ -1,6 +1,7 @@
 import { BasePasswordEncoder } from './interface/BasePasswordEncoder';
 import * as bcrypt from 'bcryptjs';
 import { Injectable } from '@nestjs/common';
+import 'dotenv/config';
 import { env } from 'process';
 
 @Injectable()
@@ -20,7 +21,7 @@ export class BCryptPasswordEncoder extends BasePasswordEncoder {
    * @returns a password encoded, using BCrypt
    */
   public encode(incomingPassword: any): string {
-    const salt = bcrypt.genSaltSync(env.BCRYPT_SALT_ROUNDS);
+    const salt = bcrypt.genSaltSync(Number(env.BCRYPT_SALT_ROUNDS));
     return bcrypt.hashSync(incomingPassword, salt);
   }
 }
