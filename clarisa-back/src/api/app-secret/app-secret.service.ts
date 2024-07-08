@@ -12,6 +12,7 @@ import { BCryptPasswordEncoder } from '../../auth/utils/BCryptPasswordEncoder';
 import { UserData } from '../../shared/interfaces/user-data';
 import { FindManyOptions } from 'typeorm';
 import { ValidateAppSecretDto } from './dto/validate-app-secret.dto';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AppSecretService {
@@ -140,6 +141,8 @@ export class AppSecretService {
     if (!correctSecret) {
       throw new Error('Invalid combination of client ID and secret');
     }
+
+    delete appSecret.secret;
 
     return ResponseDto.createOkResponse(
       this._appSecretMapper.classToDto(appSecret),
