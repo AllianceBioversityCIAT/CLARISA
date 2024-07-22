@@ -1,4 +1,4 @@
-import { BasicDto } from '../../../shared/entities/dtos/basic-dto';
+import { BasicDtoV2 } from '../../../shared/entities/dtos/basic.v2.dto';
 import { UnitTypeDto } from './unit-type.dto';
 
 export class UnitDto {
@@ -6,6 +6,6 @@ export class UnitDto {
   description: string;
   financialCode: string;
   unitType: UnitTypeDto;
-  scienceGroup: BasicDto;
-  parent: BasicDto;
+  scienceGroup: BasicDtoV2;
+  parent: BasicDtoV2;
 }

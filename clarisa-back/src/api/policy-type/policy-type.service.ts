@@ -5,6 +5,7 @@ import { SourceOption } from '../../shared/entities/enums/source-options';
 import { UpdatePolicyTypeDto } from './dto/update-policy-type.dto';
 import { PolicyType } from './entities/policy-type.entity';
 import { PolicyTypeRepository } from './repositories/policy-type.repository';
+import { PolicyTypeDto } from './dto/policy-type.dto';
 
 @Injectable()
 export class PolicyTypeService {
@@ -12,8 +13,8 @@ export class PolicyTypeService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
-  ): Promise<PolicyType[]> {
+    type: string = SourceOption.ONE_CGIAR.path,
+  ): Promise<PolicyTypeDto[]> {
     let whereClause: FindOptionsWhere<PolicyType> = {};
     const incomingType = SourceOption.getfromPath(type);
 
@@ -21,7 +22,7 @@ export class PolicyTypeService {
       case SourceOption.ALL.path:
         // do nothing. no extra conditions needed
         break;
-      case SourceOption.CGIAR.path:
+      case SourceOption.ONE_CGIAR.path:
         whereClause = {
           ...whereClause,
           source_id: incomingType.source_id,
@@ -52,7 +53,7 @@ export class PolicyTypeService {
     }
   }
 
-  async findOne(id: number): Promise<PolicyType> {
+  async findOne(id: number): Promise<PolicyTypeDto> {
     return await this.policyTypesRepository.findOneBy({
       id,
       auditableFields: { is_active: true },

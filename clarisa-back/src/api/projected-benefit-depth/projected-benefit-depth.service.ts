@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UpdateProjectedBenefitDepthDto } from './dto/update-projected-benefit-depth.dto';
-import { ProjectedBenefitDepth } from './entities/projected-benefit-depth.entity';
 import { ProjectedBenefitDepthRepository } from './repositories/projected-benefit-depth.repository';
+import { ProjectedBenefitDepthDto } from './dto/projected-benefit-depth.dto';
 
 @Injectable()
 export class ProjectedBenefitDepthService {
@@ -12,7 +12,7 @@ export class ProjectedBenefitDepthService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<ProjectedBenefitDepth[]> {
+  ): Promise<ProjectedBenefitDepthDto[]> {
     switch (option) {
       case FindAllOptions.SHOW_ALL:
         return await this.projectedBenefitDepthRepository.find();
@@ -30,7 +30,7 @@ export class ProjectedBenefitDepthService {
     }
   }
 
-  async findOne(id: number): Promise<ProjectedBenefitDepth> {
+  async findOne(id: number): Promise<ProjectedBenefitDepthDto> {
     return await this.projectedBenefitDepthRepository.findOneBy({
       id,
       auditableFields: { is_active: true },

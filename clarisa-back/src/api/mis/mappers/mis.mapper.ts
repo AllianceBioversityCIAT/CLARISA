@@ -10,7 +10,7 @@ export class MisMapper {
   public classToSimpleDto(mis: Mis): SimpleMisDto {
     const simpleMisDto: SimpleMisDto = new SimpleMisDto();
 
-    Object.assign(simpleMisDto, this._basicMDtoMapper.classToDto(mis, false));
+    Object.assign(simpleMisDto, this._basicMDtoMapper.classToDtoV1(mis, false));
 
     simpleMisDto.acronym = mis.acronym;
 

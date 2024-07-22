@@ -4,7 +4,7 @@ import { CgiarEntityTypeOption } from '../../shared/entities/enums/cgiar-entity-
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { CgiarEntityType } from './entities/cgiar-entity-type.entity';
 import { CgiarEntityTypeRepository } from './repositories/cgiar-entity-type.repository';
-import { BasicDto } from '../../shared/entities/dtos/basic-dto';
+import { BasicDtoV2 } from '../../shared/entities/dtos/basic.v2.dto';
 import { CgiarEntityTypeMapper } from './mappers/cgiar-entity-type.mapper';
 import { CgiarEntityTypeDtoV2 } from './dto/cgiar-entity-type.v2.dto';
 
@@ -38,7 +38,7 @@ export class CgiarEntityTypeService {
 
   async findAllV1(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<BasicDto[]> {
+  ): Promise<BasicDtoV2[]> {
     let cgiarEntityTypes: CgiarEntityType[] = [];
     let showIsActive = true;
     switch (option) {
@@ -69,7 +69,7 @@ export class CgiarEntityTypeService {
     );
   }
 
-  async findOneV1(id: number): Promise<BasicDto> {
+  async findOneV1(id: number): Promise<BasicDtoV2> {
     const result = await this._cgiarEntityTypeRepository.findOneBy({
       id,
       auditableFields: { is_active: true },

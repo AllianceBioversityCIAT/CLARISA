@@ -15,4 +15,13 @@ export class PhaseStatus {
   public static getfromName(name: string): PhaseStatus | undefined {
     return (Object.values(this) as PhaseStatus[]).find((p) => p.name === name);
   }
+
+  public static getAsEnumLikeObject(): { [key: string]: string } {
+    const enumeration: { [key: string]: string } = {};
+    (Object.values(this) as PhaseStatus[]).forEach((mo) => {
+      enumeration[mo.path.toUpperCase()] = mo.path;
+    });
+
+    return enumeration;
+  }
 }

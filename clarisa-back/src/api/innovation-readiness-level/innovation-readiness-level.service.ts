@@ -1,21 +1,28 @@
 import { Injectable } from '@nestjs/common';
-import { FindOptionsWhere } from 'typeorm';
+import { FindOptionsSelect, FindOptionsWhere } from 'typeorm';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { SourceOption } from '../../shared/entities/enums/source-options';
 import { UpdateInnovationReadinessLevelDto } from './dto/update-innovation-readiness-level.dto';
 import { InnovationReadinessLevel } from './entities/innovation-readiness-level.entity';
 import { InnovationReadinessLevelRepository } from './repositories/innovation-readiness-level.repository';
+import { InnovationReadinessLevelDto } from './dto/innovation-readiness-level.dto';
 
 @Injectable()
 export class InnovationReadinessLevelService {
   constructor(
     private innovationReadinessLevelRepository: InnovationReadinessLevelRepository,
   ) {}
+  private readonly _select: FindOptionsSelect<InnovationReadinessLevel> = {
+    id: true,
+    name: true,
+    definition: true,
+    level: true,
+  };
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
-  ): Promise<InnovationReadinessLevel[]> {
+    type: string = SourceOption.ONE_CGIAR.path,
+  ): Promise<InnovationReadinessLevelDto[]> {
     let whereClause: FindOptionsWhere<InnovationReadinessLevel> = {};
     const incomingType = SourceOption.getfromPath(type);
 
@@ -23,7 +30,7 @@ export class InnovationReadinessLevelService {
       case SourceOption.ALL.path:
         // do nothing. no extra conditions needed
         break;
-      case SourceOption.CGIAR.path:
+      case SourceOption.ONE_CGIAR.path:
       case SourceOption.LEGACY.path:
       case SourceOption.INNOVATION_CATALOG.path:
         whereClause = {
@@ -39,6 +46,7 @@ export class InnovationReadinessLevelService {
       case FindAllOptions.SHOW_ALL:
         return await this.innovationReadinessLevelRepository.find({
           where: whereClause,
+          select: this._select,
         });
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
@@ -50,6 +58,7 @@ export class InnovationReadinessLevelService {
         };
         return await this.innovationReadinessLevelRepository.find({
           where: whereClause,
+          select: this._select,
         });
       default:
         throw Error('?!');
@@ -57,9 +66,9 @@ export class InnovationReadinessLevelService {
   }
 
   async findOne(id: number): Promise<InnovationReadinessLevel> {
-    return await this.innovationReadinessLevelRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
+    return await this.innovationReadinessLevelRepository.findOne({
+      where: { id, auditableFields: { is_active: true } },
+      select: this._select,
     });
   }
 

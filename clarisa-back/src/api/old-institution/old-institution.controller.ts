@@ -15,8 +15,10 @@ import { UpdateOldInstitutionDto } from './dto/update-old-institution.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { OldInstitution } from './entities/old-institution.entity';
 import { Response } from 'express';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 @Controller()
+@ApiExcludeController()
 export class OldInstitutionController {
   constructor(private readonly oldInstitutionService: OldInstitutionService) {}
 

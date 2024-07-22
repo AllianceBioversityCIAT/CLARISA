@@ -1,6 +1,6 @@
-import { BasicDto } from '../../../shared/entities/dtos/basic-dto';
+import { BasicDtoV2 } from '../../../shared/entities/dtos/basic.v2.dto';
 
-export class ScienceGroupDto extends BasicDto {
+export class ScienceGroupDto extends BasicDtoV2 {
   financialCode: string;
-  parent: BasicDto;
+  parent: BasicDtoV2;
 }

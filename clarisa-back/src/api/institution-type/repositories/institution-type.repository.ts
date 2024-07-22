@@ -12,9 +12,10 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
     super(InstitutionType, dataSource.createEntityManager());
   }
 
-  async findAllTypesFromChildrenToParent(
+  async findTypesFromChildrenToParent(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
+    type: string = SourceOption.ONE_CGIAR.path,
+    id?: number,
   ): Promise<InstitutionTypeDto[]> {
     let institutionTypeDtos: InstitutionTypeDto[] = [];
     let whereClause: FindOptionsWhere<InstitutionType> = {};
@@ -33,11 +34,12 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
         };
         break;
     }
+
     switch (type) {
       case SourceOption.ALL.path:
         // do nothing. no extra conditions needed
         break;
-      case SourceOption.CGIAR.path:
+      case SourceOption.ONE_CGIAR.path:
       case SourceOption.LEGACY.path:
         whereClause = {
           ...whereClause,
@@ -46,6 +48,13 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
         break;
       default:
         throw Error('?!');
+    }
+
+    if (id) {
+      whereClause = {
+        ...whereClause,
+        id: id,
+      };
     }
 
     const institutionTypes: InstitutionType[] = (
@@ -94,7 +103,7 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
 
   async findAllTypesFromParentToChildren(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
+    type: string = SourceOption.ONE_CGIAR.path,
   ): Promise<InstitutionTypeFromParentDto[]> {
     let institutionTypeDtos: InstitutionTypeFromParentDto[] = [];
     let whereClause: FindOptionsWhere<InstitutionType> = {};
@@ -117,7 +126,7 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
       case SourceOption.ALL.path:
         // do nothing. no extra conditions needed
         break;
-      case SourceOption.CGIAR.path:
+      case SourceOption.ONE_CGIAR.path:
       case SourceOption.LEGACY.path:
         whereClause = {
           ...whereClause,

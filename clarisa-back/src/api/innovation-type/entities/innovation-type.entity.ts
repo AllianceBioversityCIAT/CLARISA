@@ -1,4 +1,4 @@
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude } from 'class-transformer';
 import {
   Column,
   Entity,
@@ -11,7 +11,6 @@ import { Source } from '../../source/entities/source.entity';
 
 @Entity('innovation_types')
 export class InnovationType {
-  @Expose({ name: 'code' })
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
@@ -23,7 +22,6 @@ export class InnovationType {
 
   //relations
 
-  @Exclude()
   @Column({ type: 'bigint', nullable: false })
   source_id: number;
 

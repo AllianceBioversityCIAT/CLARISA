@@ -41,7 +41,6 @@ export class Mis {
 
   @ManyToOne(() => User, (u) => u.mis_array)
   @JoinColumn({ name: 'main_contact_point_id' })
-  //@Expose()
   contact_point_object: User;
 
   @OneToMany(() => AppSecret, (asr) => asr.sender_mis_object)

@@ -5,6 +5,7 @@ import { SdgTargetRepository } from './repositories/sdg-target.repository';
 import { SdgTargetMapper } from './mappers/sdg-target.mapper';
 import { SdgTargetV1Dto } from './dto/sdg-target.v1.dto';
 import { SdgTargetV2Dto } from './dto/sdg-target.v2.dto';
+import { SdgTargetIpsrDto } from './dto/sdg-target-ipsr.dto';
 
 @Injectable()
 export class SdgTargetService {
@@ -33,6 +34,13 @@ export class SdgTargetService {
     }
   }
 
+  private async _findOne(id: number): Promise<SdgTarget> {
+    return await this._sdgTargetsRepository.findOneBy({
+      id,
+      auditableFields: { is_active: true },
+    });
+  }
+
   async findAllV1(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<SdgTargetV1Dto[]> {
@@ -49,36 +57,21 @@ export class SdgTargetService {
     return this._sdgTargetMapper.classListToDtoV2List(result);
   }
 
-  async findOne(id: number): Promise<SdgTarget> {
-    return await this._sdgTargetsRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  async findOneV1(id: number): Promise<SdgTargetV1Dto> {
+    const sdgTarget = await this._findOne(id);
+
+    return sdgTarget ? this._sdgTargetMapper.classToDtoV1(sdgTarget) : null;
   }
 
-  async findAllIpsr(
+  async findOneV2(id: number): Promise<SdgTargetV2Dto> {
+    const sdgTarget = await this._findOne(id);
+
+    return sdgTarget ? this._sdgTargetMapper.classToDtoV2(sdgTarget) : null;
+  }
+
+  findAllForIpsr(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<SdgTarget[]> {
-    switch (option) {
-      case FindAllOptions.SHOW_ALL:
-        return await this._sdgTargetsRepository
-          .query(`select sdgt.id, sdgt.sdg_target_code as sdgTargetCode, sdgt.sdg_target as sdgTarget, sdg.id as usndCode
-                                                         from sustainable_development_goal_targets sdgt 
-                                                        join sustainable_development_goals sdg on sdg.id = sdgt.sdg_id`);
-      case FindAllOptions.SHOW_ONLY_ACTIVE:
-        return await this._sdgTargetsRepository
-          .query(`select sdgt.id, sdgt.sdg_target_code as sdgTargetCode, sdgt.sdg_target as sdgTarget, sdg.id as usndCode
-                                                         from sustainable_development_goal_targets sdgt 
-                                                        join sustainable_development_goals sdg on sdg.id = sdgt.sdg_id 
-                                                        where sdgt.is_active = 1`);
-      case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return await this._sdgTargetsRepository
-          .query(`select sdgt.id, sdgt.sdg_target_code as sdgTargetCode, sdgt.sdg_target as sdgTarget, sdg.id as usndCode
-        from sustainable_development_goal_targets sdgt 
-       join sustainable_development_goals sdg on sdg.id = sdgt.sdg_id 
-       where sdgt.is_active = 0`);
-      default:
-        throw Error('?!');
-    }
+  ): Promise<SdgTargetIpsrDto[]> {
+    return this._sdgTargetsRepository.findAllForIpsr(option);
   }
 }

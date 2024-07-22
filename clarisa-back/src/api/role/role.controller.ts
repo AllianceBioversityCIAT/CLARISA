@@ -9,9 +9,11 @@ import {
 } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { RoleService } from './role.service';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiExcludeController()
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 

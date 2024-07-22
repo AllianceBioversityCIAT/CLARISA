@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UpdateTechnicalFieldDto } from './dto/update-technical-field.dto';
-import { TechnicalField } from './entities/technical-field.entity';
 import { TechnicalFieldRepository } from './repositories/technical-field.repository';
+import { BasicDtoV1 } from '../../shared/entities/dtos/basic.v1.dto';
 
 @Injectable()
 export class TechnicalFieldService {
@@ -10,7 +10,7 @@ export class TechnicalFieldService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<TechnicalField[]> {
+  ): Promise<BasicDtoV1[]> {
     switch (option) {
       case FindAllOptions.SHOW_ALL:
         return await this.technicalFieldsRepository.find();
@@ -28,7 +28,7 @@ export class TechnicalFieldService {
     }
   }
 
-  async findOne(id: number): Promise<TechnicalField> {
+  async findOne(id: number): Promise<BasicDtoV1> {
     return await this.technicalFieldsRepository.findOneBy({
       id,
       auditableFields: { is_active: true },

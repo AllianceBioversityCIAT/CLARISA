@@ -10,7 +10,7 @@ import { AuditableEntity } from '../../../shared/entities/extends/auditable-enti
 import { ProjectedBenefitWeightDescription } from '../../projected-benefit-weight-description/entities/projected-benefit-weight-description.entity';
 import { ProjectedBenefit } from '../../projected-benefit/entities/projected-benefit.entity';
 
-@Entity('projected_benefits_weighting')
+@Entity('projected_benefit_weightings')
 export class ProjectedBenefitWeighting {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;

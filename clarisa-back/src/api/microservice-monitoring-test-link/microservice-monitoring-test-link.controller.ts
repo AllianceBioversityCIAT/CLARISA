@@ -1,8 +1,10 @@
 import { Controller, Get, Param, Query, ParseIntPipe } from '@nestjs/common';
 import { MicroserviceMonitoringTestLinkService } from './microservice-monitoring-test-link.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 @Controller()
+@ApiExcludeController()
 export class MicroserviceMonitoringTestLinkController {
   constructor(
     private readonly microserviceMonitoringTestLinkService: MicroserviceMonitoringTestLinkService,

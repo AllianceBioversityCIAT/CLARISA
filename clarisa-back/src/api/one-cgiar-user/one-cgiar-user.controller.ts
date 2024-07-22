@@ -17,23 +17,48 @@ import { UpdateOneCgiarUserDto } from './dto/update-one-cgiar-user.dto';
 import { OneCgiarUser } from './entities/one-cgiar-user.entity';
 import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import {
+  ApiExcludeEndpoint,
+  ApiOkResponse,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { BasicDtoV1 } from '../../shared/entities/dtos/basic.v1.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiTags('OneCGIAR Users')
 export class OneCgiarUserController {
   constructor(private readonly oneCgiarUserService: OneCgiarUserService) {}
 
   @Get()
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description:
+      'Show active, inactive or all OneCGIAR users. Defaults to active.',
+  })
+  @ApiOkResponse({ type: [BasicDtoV1] })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.oneCgiarUserService.findAll(show);
   }
 
   @Get('get/:id')
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    required: true,
+    description: 'The id of the OneCGIAR user',
+  })
+  @ApiOkResponse({ type: [BasicDtoV1] })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.oneCgiarUserService.findOne(id);
   }
 
   @Patch('update')
+  @ApiExcludeEndpoint()
   async update(
     @Res() res: Response,
     @Body() updateOneCgiarUserDtoList: UpdateOneCgiarUserDto[],

@@ -16,14 +16,16 @@ export class ScienceGroupService {
       throw Error('?!');
     }
 
-    return this.scienceGroupsRepository.findAllScienceGroups(option);
+    return this.scienceGroupsRepository.findScienceGroups(option);
   }
 
-  async findOne(id: number): Promise<ScienceGroup> {
-    return await this.scienceGroupsRepository.findOneBy({
+  async findOne(id: number): Promise<ScienceGroupDto> {
+    const result = await this.scienceGroupsRepository.findScienceGroups(
+      FindAllOptions.SHOW_ONLY_ACTIVE,
       id,
-      auditableFields: { is_active: true },
-    });
+    );
+
+    return result.length === 1 ? result[0] : null;
   }
 
   async update(

@@ -27,11 +27,8 @@ export class PhaseService {
       show,
       PRMSApplication.ALL.simpleName,
     );
-    const phaseDtos: PhaseDto[] = phases.map((p) =>
-      this._phaseMapper.classToDto(p),
-    );
 
-    return phaseDtos;
+    return this._phaseMapper.classListToDtoList(phases);
   }
 
   async findAllByApplication(
@@ -53,10 +50,6 @@ export class PhaseService {
       application,
     );
 
-    const phaseDtos: PhaseDto[] = phases.map((p) =>
-      this._phaseMapper.classToDto(p),
-    );
-
-    return phaseDtos;
+    return this._phaseMapper.classListToDtoList(phases);
   }
 }

@@ -17,25 +17,50 @@ import { UpdateProjectedBenefitProbabilityDto } from './dto/update-projected-ben
 import { Response } from 'express';
 import { ProjectedBenefitProbability } from './entities/projected-benefit-probability.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import {
+  ApiExcludeEndpoint,
+  ApiOkResponse,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { ProjectedBenefitProbabilityDto } from './dto/projected-benefit-probability.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiTags('Projected Benefit Probabilities')
 export class ProjectedBenefitProbabilityController {
   constructor(
     private readonly projectedBenefitProbabilityService: ProjectedBenefitProbabilityService,
   ) {}
 
   @Get()
-  async findAll(@Query('show') show: FindAllOptions) {
-    return await this.projectedBenefitProbabilityService.findAll(show);
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description:
+      'Show active, inactive or all projected benefit probabilities. Defaults to active.',
+  })
+  @ApiOkResponse({ type: [ProjectedBenefitProbabilityDto] })
+  findAll(@Query('show') show: FindAllOptions) {
+    return this.projectedBenefitProbabilityService.findAll(show);
   }
 
   @Get('get/:id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return await this.projectedBenefitProbabilityService.findOne(id);
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    required: true,
+    description: 'The id of the projected benefit probability',
+  })
+  @ApiOkResponse({ type: [ProjectedBenefitProbabilityDto] })
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.projectedBenefitProbabilityService.findOne(id);
   }
 
   @Patch('update')
+  @ApiExcludeEndpoint()
   async update(
     @Res() res: Response,
     @Body()

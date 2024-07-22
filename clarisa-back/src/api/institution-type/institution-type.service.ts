@@ -18,7 +18,7 @@ export class InstitutionTypeService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
+    type: string = SourceOption.ONE_CGIAR.path,
   ): Promise<InstitutionTypeDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
       throw Error('?!');
@@ -28,7 +28,7 @@ export class InstitutionTypeService {
       throw Error('?!');
     }
 
-    return this._institutionTypesRepository.findAllTypesFromChildrenToParent(
+    return this._institutionTypesRepository.findTypesFromChildrenToParent(
       option,
       type,
     );
@@ -36,7 +36,7 @@ export class InstitutionTypeService {
 
   async findAllFromParentToChildren(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
+    type: string = SourceOption.ONE_CGIAR.path,
   ): Promise<InstitutionTypeFromParentDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
       throw Error('?!');
@@ -54,7 +54,7 @@ export class InstitutionTypeService {
 
   async findAllSimple(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
+    type: string = SourceOption.ONE_CGIAR.path,
   ): Promise<InstitutionTypeDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
       throw Error('?!');
@@ -84,7 +84,7 @@ export class InstitutionTypeService {
       case SourceOption.ALL.path:
         // do nothing. no extra conditions needed
         break;
-      case SourceOption.CGIAR.path:
+      case SourceOption.ONE_CGIAR.path:
       case SourceOption.LEGACY.path:
         whereClause = {
           ...whereClause,
@@ -105,11 +105,14 @@ export class InstitutionTypeService {
     );
   }
 
-  async findOne(id: number): Promise<InstitutionType> {
-    return await this._institutionTypesRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  async findOne(id: number): Promise<InstitutionTypeDto> {
+    const result =
+      await this._institutionTypesRepository.findTypesFromChildrenToParent(
+        FindAllOptions.SHOW_ONLY_ACTIVE,
+        SourceOption.ONE_CGIAR.path,
+        id,
+      );
+    return result.length === 1 ? result[0] : null;
   }
 
   async update(updateInstitutionTypeDto: UpdateInstitutionTypeDto[]) {

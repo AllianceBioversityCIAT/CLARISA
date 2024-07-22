@@ -13,12 +13,13 @@ export class RegionRepository extends Repository<Region> {
     super(Region, dataSource.createEntityManager());
   }
 
-  async findRegionsByType(
+  async findRegions(
     regionType: RegionTypeEnum,
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    regionId?: number,
   ): Promise<RegionDto[]> {
     let whereClause: FindOptionsWhere<Region> = {
-      region_type_id: regionType,
+      region_type_id: regionId ? undefined : regionType,
     };
     switch (option) {
       case FindAllOptions.SHOW_ONLY_ACTIVE:
@@ -42,8 +43,17 @@ export class RegionRepository extends Repository<Region> {
     });
     const regionDtos: RegionDto[] = [];
 
+    if (regionId && regions.length === 1) {
+      if (regions[0].region_type_id in RegionTypeEnum) {
+        regionType = regions[0].region_type_id;
+      } else {
+        throw new Error('Region type not found');
+      }
+    }
+
     await Promise.all(
       regions.map(async (r) => {
+        //TODO extract this to a mapper
         const regionDto: RegionDto = new RegionDto();
         let parentRegionDto: ParentRegionDto = null;
 

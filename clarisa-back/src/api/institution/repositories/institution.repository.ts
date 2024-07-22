@@ -163,8 +163,9 @@ export class InstitutionRepository extends Repository<Institution> {
     return institutionDto;
   }
 
-  async findAllInstitutionSourceEntries(
+  async findInstitutionSourceEntries(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    institutionId?: number,
   ): Promise<InstitutionDictionaryDto[]> {
     let institutionDictionaryDtos: InstitutionDictionaryDto[] = [];
 
@@ -188,14 +189,15 @@ export class InstitutionRepository extends Repository<Institution> {
         left join countries c on il.country_id = c.id
         left join institution_types it on i.institution_type_id = it.id
         where i.is_active in (?)
+        ${institutionId ? `and i.id = ${institutionId}` : ''}
       `;
 
       institutionDictionaryDtos = await this.dataSource.query(query, [
         option === FindAllOptions.SHOW_ALL
           ? '1,0'
           : option === FindAllOptions.SHOW_ONLY_ACTIVE
-          ? '1'
-          : '0',
+            ? '1'
+            : '0',
       ]);
 
       return institutionDictionaryDtos;

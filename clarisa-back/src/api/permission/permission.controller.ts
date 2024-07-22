@@ -1,10 +1,18 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  Controller,
+  Get,
+  Param,
+} from '@nestjs/common';
 import { PermissionService } from './permission.service';
-import { Query } from '@nestjs/common/decorators';
+import { Query, UseInterceptors } from '@nestjs/common/decorators';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { ParseIntPipe } from '@nestjs/common/pipes';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 @Controller()
+@ApiExcludeController()
+@UseInterceptors(ClassSerializerInterceptor)
 export class PermissionController {
   constructor(private readonly permissionService: PermissionService) {}
 

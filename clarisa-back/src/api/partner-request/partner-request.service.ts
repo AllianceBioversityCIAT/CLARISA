@@ -13,7 +13,7 @@ import { PartnerRequestDto } from './dto/partner-request.dto';
 import { UpdatePartnerRequestDto } from './dto/update-partner-request.dto';
 import { PartnerRequest } from './entities/partner-request.entity';
 import { PartnerRequestRepository } from './repositories/partner-request.repository';
-import { BulkPartnerRequestDto } from './dto/create-partner-dto';
+import { CreateBulkPartnerRequestDto } from './dto/create-bulk-partner-request.dto';
 import { FindAllOptions } from 'src/shared/entities/enums/find-all-options';
 import { InstitutionTypeRepository } from '../institution-type/repositories/institution-type.repository';
 import { MisRepository } from '../mis/repositories/mis.repository';
@@ -341,7 +341,7 @@ export class PartnerRequestService {
     return this.partnerRequestRepository.statisticsPartner(mis);
   }
 
-  async createBulk(createBulkPartner: BulkPartnerRequestDto) {
+  async createBulk(createBulkPartner: CreateBulkPartnerRequestDto) {
     return await this.partnerRequestRepository.createPartnerRequestBulk(
       createBulkPartner,
     );

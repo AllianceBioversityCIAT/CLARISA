@@ -16,14 +16,16 @@ export class UnitService {
       throw Error('?!');
     }
 
-    return this.unitsRepository.findAllUnits(option);
+    return this.unitsRepository.findUnits(option);
   }
 
-  async findOne(id: number): Promise<Unit> {
-    return await this.unitsRepository.findOneBy({
+  async findOne(id: number): Promise<UnitDto> {
+    const result = await this.unitsRepository.findUnits(
+      FindAllOptions.SHOW_ALL,
       id,
-      auditableFields: { is_active: true },
-    });
+    );
+
+    return result.length === 1 ? result[0] : null;
   }
 
   async update(updateUserDtoList: UpdateUnitDto[]): Promise<Unit[]> {

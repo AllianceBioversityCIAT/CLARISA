@@ -21,9 +21,11 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { PaginationParams } from '../../shared/interfaces/pageable';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiExcludeController()
 export class UserController {
   constructor(private readonly userService: UserService) {}
 

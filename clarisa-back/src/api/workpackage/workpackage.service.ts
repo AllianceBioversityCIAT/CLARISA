@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UpdateWorkpackageDto } from './dto/update-workpackage.dto';
 import { WorkpackageDto } from './dto/workpackage.dto';
-import { Workpackage } from './entities/workpackage.entity';
 import { WorkpackageRepository } from './repositories/workpackage.repository';
 
 @Injectable()
@@ -21,19 +20,20 @@ export class WorkpackageService {
       throw Error('?!');
     }
 
-    return this.workpackageRepository.findAllWorkpackages(
+    return this.workpackageRepository.findWorkpackages(
       showWorkpackages,
       showInitiatives,
     );
   }
 
-  async findOne(id: number): Promise<Workpackage> {
-    return await this.workpackageRepository.findOneBy({
+  async findOne(id: number): Promise<WorkpackageDto> {
+    const result = await this.workpackageRepository.findWorkpackages(
+      FindAllOptions.SHOW_ONLY_ACTIVE,
+      FindAllOptions.SHOW_ONLY_ACTIVE,
       id,
-      auditableFields: {
-        is_active: true,
-      },
-    });
+    );
+
+    return result.length === 1 ? result[0] : null;
   }
 
   async update(updateInitiativeDto: UpdateWorkpackageDto[]) {

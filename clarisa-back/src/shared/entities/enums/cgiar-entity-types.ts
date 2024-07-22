@@ -69,4 +69,14 @@ export class CgiarEntityTypeOption {
       (p) => p.entity_type_id === entity_type_id,
     );
   }
+
+  public static getAsEnumLikeObject(): { [key: string]: string } {
+    const enumeration: { [key: string]: string } = {};
+    (Object.values(this) as CgiarEntityTypeOption[]).forEach((mo) => {
+      const key = mo.path.toUpperCase().replace(/-/g, '_');
+      enumeration[key] = mo.path;
+    });
+
+    return enumeration;
+  }
 }

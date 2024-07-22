@@ -3,8 +3,8 @@ import { CgiarEntity } from '../entities/cgiar-entity.entity';
 import { CgiarEntityDtoV1 } from '../dto/cgiar-entity.v1.dto';
 import { CgiarEntityTypeMapper } from '../../cgiar-entity-type/mappers/cgiar-entity-type.mapper';
 import {
-  BasicDtoEquivalences,
   BasicDtoMapper,
+  BasicDtoV2Equivalences,
 } from '../../../shared/mappers/basic-dto.mapper';
 import { CgiarEntityDtoV2 } from '../dto/cgiar-entity.v2.dto';
 import { Portfolio } from '../../portfolio/entities/portfolio.entity';
@@ -12,7 +12,7 @@ import { DateTime } from 'luxon';
 
 @Injectable()
 export class CgiarEntityMapper {
-  private readonly _mappedBasicFields: BasicDtoEquivalences<CgiarEntity> = {
+  private readonly _mappedBasicFields: BasicDtoV2Equivalences<CgiarEntity> = {
     code: 'smo_code',
     name: 'name',
   };
@@ -30,7 +30,7 @@ export class CgiarEntityMapper {
 
     Object.assign(
       cgiarEntityDtoV1,
-      this._basicCEDtoMapper.classToDto(
+      this._basicCEDtoMapper.classToDtoV2(
         cgiarEntity,
         showIsActive,
         this._mappedBasicFields,
@@ -68,7 +68,7 @@ export class CgiarEntityMapper {
 
     Object.assign(
       cgiarEntityDtoV2,
-      this._basicCEDtoMapper.classToDto(
+      this._basicCEDtoMapper.classToDtoV2(
         cgiarEntity,
         showIsActive,
         this._mappedBasicFields,
@@ -93,7 +93,7 @@ export class CgiarEntityMapper {
     }
 
     if (cgiarEntity.parent_object) {
-      cgiarEntityDtoV2.parent = this._basicCEDtoMapper.classToDto(
+      cgiarEntityDtoV2.parent = this._basicCEDtoMapper.classToDtoV2(
         cgiarEntity.parent_object,
         showIsActive,
         this._mappedBasicFields,
@@ -101,7 +101,7 @@ export class CgiarEntityMapper {
     }
 
     if (cgiarEntity.portfolio_object) {
-      cgiarEntityDtoV2.portfolio = this._basicPDtoMapper.classToDto(
+      cgiarEntityDtoV2.portfolio = this._basicPDtoMapper.classToDtoV2(
         cgiarEntity.portfolio_object,
       );
     }

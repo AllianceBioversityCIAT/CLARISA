@@ -1,19 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { FindOptionsWhere } from 'typeorm';
+import { FindOptionsSelect, FindOptionsWhere } from 'typeorm';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { SourceOption } from '../../shared/entities/enums/source-options';
 import { UpdateGeographicScopeDto } from './dto/update-geographic-scope.dto';
 import { GeographicScope } from './entities/geographic-scope.entity';
 import { GeographicScopeRepository } from './repositories/geographic-scope.repository';
+import { GeographicScopeDto } from './dto/geographic-scope.dto';
+import { GeographicScopeMapper } from './mappers/geographic-scope.mapper';
 
 @Injectable()
 export class GeographicScopeService {
-  constructor(private geographicScopesRepository: GeographicScopeRepository) {}
+  constructor(
+    private _geographicScopesRepository: GeographicScopeRepository,
+    private _geographicScopesMapper: GeographicScopeMapper,
+  ) {}
+  private readonly _select: FindOptionsSelect<GeographicScope> = {
+    id: true,
+    name: true,
+    definition: true,
+  };
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     type: string = SourceOption.LEGACY.path,
-  ): Promise<GeographicScope[]> {
+  ): Promise<GeographicScopeDto[]> {
+    let geographicScopes: GeographicScope[] = [];
     let whereClause: FindOptionsWhere<GeographicScope> = {};
     const incomingType = SourceOption.getfromPath(type);
 
@@ -27,7 +38,7 @@ export class GeographicScopeService {
           source_id: incomingType.source_id,
         };
         break;
-      case SourceOption.CGIAR.path:
+      case SourceOption.ONE_CGIAR.path:
         whereClause = {
           ...whereClause,
           source_id: SourceOption.LEGACY.source_id,
@@ -40,9 +51,11 @@ export class GeographicScopeService {
 
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return await this.geographicScopesRepository.find({
+        geographicScopes = await this._geographicScopesRepository.find({
           where: whereClause,
+          select: this._select,
         });
+        break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
         whereClause = {
@@ -51,22 +64,33 @@ export class GeographicScopeService {
             is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
           },
         };
-        return await this.geographicScopesRepository.find({
+        geographicScopes = await this._geographicScopesRepository.find({
           where: whereClause,
+          select: this._select,
         });
+        break;
       default:
         throw Error('?!');
     }
+
+    return this._geographicScopesMapper.classListToDtoList(geographicScopes);
   }
 
-  async findOne(id: number): Promise<GeographicScope> {
-    return await this.geographicScopesRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  async findOne(id: number): Promise<GeographicScopeDto> {
+    const geographicScope: GeographicScope =
+      await this._geographicScopesRepository.findOne({
+        where: { id, auditableFields: { is_active: true } },
+        select: this._select,
+      });
+
+    return geographicScope
+      ? this._geographicScopesMapper.classToDto(geographicScope)
+      : null;
   }
 
   async update(updateGeographicScopeDto: UpdateGeographicScopeDto[]) {
-    return await this.geographicScopesRepository.save(updateGeographicScopeDto);
+    return await this._geographicScopesRepository.save(
+      updateGeographicScopeDto,
+    );
   }
 }

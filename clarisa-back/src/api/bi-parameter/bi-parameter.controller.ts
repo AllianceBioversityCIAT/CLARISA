@@ -17,9 +17,11 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { BiParameterService } from './bi-parameter.service';
 import { UpdateBiParameterDto } from './dto/update-bi-parameter.dto';
 import { BiParameter } from './entities/bi-parameter.entity';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiExcludeController()
 //@UseGuards(JwtAuthGuard, PermissionGuard)
 export class BiParameterController {
   constructor(private readonly biParameterService: BiParameterService) {}

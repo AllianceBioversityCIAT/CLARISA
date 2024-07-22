@@ -1,12 +1,11 @@
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude } from 'class-transformer';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
 import { ProjectedBenefitWeighting } from '../../projected-benefit-weighting/entities/projected-benefit-weighting.entity';
 
-@Entity('projected_benefits_weight_description')
+@Entity('projected_benefit_weight_descriptions')
 export class ProjectedBenefitWeightDescription {
   @PrimaryGeneratedColumn({ type: 'bigint' })
-  @Expose({ name: 'descriptionID' })
   id: number;
 
   @Column({ type: 'text', nullable: true })

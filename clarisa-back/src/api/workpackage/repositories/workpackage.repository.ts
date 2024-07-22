@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
-import { WorkpackageCountryDto } from '../dto/workpackage-country.dto';
-import { WorkpackageRegionDto } from '../dto/workpackage-region.dto';
 import { WorkpackageDto } from '../dto/workpackage.dto';
 import { Workpackage } from '../entities/workpackage.entity';
 
@@ -12,9 +10,10 @@ export class WorkpackageRepository extends Repository<Workpackage> {
     super(Workpackage, dataSource.createEntityManager());
   }
 
-  async findAllWorkpackages(
+  async findWorkpackages(
     showWorkpackages: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     showInitiatives: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    workpackageId?: number,
   ): Promise<WorkpackageDto[]> {
     let where = '';
     switch (showWorkpackages) {
@@ -41,11 +40,35 @@ export class WorkpackageRepository extends Repository<Workpackage> {
         break;
     }
 
+    if (workpackageId) {
+      where += `${where ? 'and' : 'where'} stwp.id = ${workpackageId}`;
+    }
+
     const workpackageQuery = `
-        select sti.id as initiative_id, sti.official_code as initiative_offical_code,
-            stis.stage_id, stis.status as initiative_status, stwp.wp_official_code,
-            stwp.id as wp_id, stwp.name, stwp.acronym, stwp.results, stwp.pathway_content,
-            stwp.is_global_dimension as is_global, stwp.is_active as status
+        select sti.id as initiative_id, sti.official_code as initiative_offical_code, stis.stage_id, 
+          stis.status as initiative_status, stwp.wp_official_code, stwp.id as wp_id, stwp.name, stwp.acronym, 
+          stwp.results, stwp.pathway_content, stwp.is_global_dimension as is_global, stwp.is_active as status,
+          (
+            select json_arrayagg(json_object(
+              "id", r.id, 
+              "name", r.name
+            ))
+            from submission_tool_work_package_regions stwpr_q1
+            join regions r on stwpr_q1.region_id = r.id 
+            where stwpr_q1.work_package_id = stwp.id and r.is_active = 1 and stwpr_q1.is_active = 1
+            order by r.id
+          ) regions,
+          (
+            select json_arrayagg(json_object(
+              "id", c.id, 
+              "iso_alpha_2", c.iso_alpha_2, 
+              "name", c.name
+            ))
+            from submission_tool_work_package_countries stwpc_q1
+            join countries c on stwpc_q1.country_id = c.id 
+            where stwpc_q1.work_package_id = stwp.id and c.is_active = 1 and stwpc_q1.is_active = 1
+            order by c.id
+          ) countries
         from submission_tool_work_packages stwp 
         join submission_tool_initiative_stages stis on stwp.submission_tool_initiative_stage_id = stis.id
         join submission_tool_initiatives sti on stis.initiative_id = sti.id
@@ -53,38 +76,6 @@ export class WorkpackageRepository extends Repository<Workpackage> {
         order by sti.id asc, stis.stage_id asc, stwp.wp_official_code asc;
     `;
 
-    const regionQuery = `
-        select r.id, r.name from submission_tool_work_package_regions stwpr
-        join regions r on stwpr.region_id = r.id 
-        where stwpr.work_package_id = ? and r.is_active = 1 and stwpr.is_active = 1
-        order by r.id;
-    `;
-
-    const countryQuery = `
-        select c.id, c.iso_alpha_2, c.name from submission_tool_work_package_countries stwpc 
-        join countries c on stwpc.country_id = c.id 
-        where stwpc.work_package_id = ? and c.is_active = 1 and stwpc.is_active = 1
-        order by c.id;
-    `;
-
-    const workpackages: WorkpackageDto[] = await this.query(workpackageQuery);
-
-    await Promise.all(
-      workpackages.map(async (w) => {
-        const workpackageCountries: WorkpackageCountryDto[] = await this.query(
-          countryQuery,
-          [w.wp_id],
-        );
-        const workpackageRegions: WorkpackageRegionDto[] = await this.query(
-          regionQuery,
-          [w.wp_id],
-        );
-
-        w.countries = workpackageCountries;
-        w.regions = workpackageRegions;
-      }),
-    );
-
-    return workpackages;
+    return this.query(workpackageQuery) as Promise<WorkpackageDto[]>;
   }
 }

@@ -26,12 +26,13 @@ import { CreatePartnerRequestDto } from '../dto/create-partner-request.dto';
 import { PartnerRequestDto } from '../dto/partner-request.dto';
 import { UpdatePartnerRequestDto } from '../dto/update-partner-request.dto';
 import { PartnerRequest } from '../entities/partner-request.entity';
-import { BulkPartnerRequestDto } from '../dto/create-partner-dto';
+import { CreateBulkPartnerRequestDto } from '../dto/create-bulk-partner-request.dto';
 import { InstitutionType } from '../../institution-type/entities/institution-type.entity';
 import { CountryRepository } from '../../country/repositories/country.repository';
 import { InstitutionTypeRepository } from '../../institution-type/repositories/institution-type.repository';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
+import { PartnerStatsDto } from '../dto/partner-stats.dto';
 
 @Injectable()
 export class PartnerRequestRepository extends Repository<PartnerRequest> {
@@ -393,73 +394,23 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
   }
 
   async statisticsPartner(mis: string = MisOption.ALL.path) {
-    let whereClause: FindOptionsWhere<PartnerRequest> = {};
-    let whereClauseRejected: FindOptionsWhere<PartnerRequest> = {};
-    let whereClausePending: FindOptionsWhere<PartnerRequest> = {};
-    const incomingMis = MisOption.getfromPath(mis);
-    switch (mis) {
-      case MisOption.ALL.path:
-        // do nothing. no extra conditions needed
-        break;
-      case MisOption.AICCRA.path:
-      case MisOption.CGSPACE.path:
-      case MisOption.CLARISA.path:
-      case MisOption.ECONTRACTS.path:
-      case MisOption.FORESIGHT.path:
-      case MisOption.MEL.path:
-      case MisOption.OST.path:
-      case MisOption.TOC.path:
-      case MisOption.PRMS.path:
-      case MisOption.MARLO.path:
-      case MisOption.PIPELINE.path:
-        whereClause = {
-          ...whereClause,
-          mis_id: incomingMis.mis_id,
-        };
-        break;
-      default:
-        throw Error('?!');
-    }
+    const query = `
+      select 
+        count(pr.id) as total,
+        sum(case when pr.accepted = 0 then 1 else 0 end) as rejected,
+        sum(case when pr.accepted = 1 then 1 else 0 end) as accepted,
+        sum(case when pr.accepted is null then 1 else 0 end) as pending
+      from partner_requests pr
+      where pr.partner_request_id is not null
+      ${mis !== MisOption.ALL.path ? `and pr.mis_id = '${mis}'` : ''}
+    `;
 
-    const partnerRequest: PartnerRequest[] = await this.find({
-      where: whereClause,
-    });
-
-    whereClauseRejected = {
-      ...whereClause,
-      accepted: false,
-    };
-    whereClausePending = {
-      ...whereClause,
-      auditableFields: { is_active: true },
-    };
-    whereClause = {
-      ...whereClause,
-      accepted: true,
-    };
-
-    const partnerRequestAccepted: PartnerRequest[] = await this.find({
-      where: whereClause,
-    });
-
-    const partnerRequestRejected: PartnerRequest[] = await this.find({
-      where: whereClauseRejected,
-    });
-
-    const partnerRequestPending: PartnerRequest[] = await this.find({
-      where: whereClausePending,
-    });
-    const stadisticsPartner = {
-      Total: partnerRequest.length,
-      Accepted: partnerRequestAccepted.length,
-      Rejected: partnerRequestRejected.length,
-      Pending: partnerRequestPending.length,
-    };
-
-    return stadisticsPartner;
+    return this.query(query) as Promise<PartnerStatsDto>;
   }
 
-  async createPartnerRequestBulk(partnerRequestBulk: BulkPartnerRequestDto) {
+  async createPartnerRequestBulk(
+    partnerRequestBulk: CreateBulkPartnerRequestDto,
+  ) {
     let bulkInstitutions: Institution;
     const partnerCreate: any[] = [];
     const today = new Date();

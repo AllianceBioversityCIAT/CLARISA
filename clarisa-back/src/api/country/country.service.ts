@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { CountryDto } from './dto/country.dto';
 import { UpdateCountryDto } from './dto/update-country.dto';
-import { Country } from './entities/country.entity';
 import { CountryRepository } from './repositories/country.repository';
 
 @Injectable()
@@ -19,11 +18,10 @@ export class CountryService {
     return this.countriesRepository.findAllCountries(option);
   }
 
-  async findOne(id: number): Promise<Country> {
-    return await this.countriesRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  async findOne(isoCode: number): Promise<CountryDto> {
+    const result = await this.countriesRepository.findCountryByIsoCode(isoCode);
+
+    return result.length === 1 ? result[0] : null;
   }
 
   async update(updateCountryDto: UpdateCountryDto[]) {

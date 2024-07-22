@@ -41,6 +41,13 @@ export class SdgIndicatorService {
     }
   }
 
+  private async _findOne(id: number): Promise<SdgIndicator> {
+    return await this._sdgIndicatorRepository.findOneBy({
+      id,
+      auditableFields: { is_active: true },
+    });
+  }
+
   async findAllV1(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<SdgIndicatorV1Dto[]> {
@@ -57,10 +64,13 @@ export class SdgIndicatorService {
     return this._sdgIndicatorMapper.classListToDtoV2List(result);
   }
 
-  async findOne(id: number): Promise<SdgIndicator> {
-    return await this._sdgIndicatorRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  async findOneV1(id: number): Promise<SdgIndicatorV1Dto> {
+    const result: SdgIndicator = await this._findOne(id);
+    return result ? this._sdgIndicatorMapper.classToDtoV1(result) : null;
+  }
+
+  async findOneV2(id: number): Promise<SdgIndicatorV2Dto> {
+    const result: SdgIndicator = await this._findOne(id);
+    return result ? this._sdgIndicatorMapper.classToDtoV2(result) : null;
   }
 }

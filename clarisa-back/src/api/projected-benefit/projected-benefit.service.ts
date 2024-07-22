@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { ProjectedBenefitDto } from './dto/projected-benefit.dto';
 import { UpdateProjectedBenefitDto } from './dto/update-projected-benefit.dto';
-import { ProjectedBenefit } from './entities/projected-benefit.entity';
 import { ProjectedBenefitRepository } from './repositories/projected-benefit.repository';
 
 @Injectable()
@@ -18,14 +17,16 @@ export class ProjectedBenefitService {
       throw Error('?!');
     }
 
-    return this.projectedBenefitsRepository.findAllProjectedBenefits(option);
+    return this.projectedBenefitsRepository.findProjectedBenefits(option);
   }
 
-  async findOne(id: number): Promise<ProjectedBenefit> {
-    return await this.projectedBenefitsRepository.findOneBy({
+  async findOne(id: number): Promise<ProjectedBenefitDto> {
+    const result = await this.projectedBenefitsRepository.findProjectedBenefits(
+      FindAllOptions.SHOW_ONLY_ACTIVE,
       id,
-      auditableFields: { is_active: true },
-    });
+    );
+
+    return result.length === 1 ? result[0] : null;
   }
 
   async update(updateProjectedBenefitDto: UpdateProjectedBenefitDto[]) {

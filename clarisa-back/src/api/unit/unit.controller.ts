@@ -17,23 +17,47 @@ import { UpdateUnitDto } from './dto/update-unit.dto';
 import { Response } from 'express';
 import { Unit } from './entities/unit.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import {
+  ApiExcludeEndpoint,
+  ApiOkResponse,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { UnitDto } from './dto/unit.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiTags('Units')
 export class UnitController {
   constructor(private readonly unitService: UnitService) {}
 
   @Get()
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: 'Show active, inactive or all units. Defaults to active.',
+  })
+  @ApiOkResponse({ type: [UnitDto] })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.unitService.findAll(show);
   }
 
   @Get('get/:id')
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    required: true,
+    description: 'The id of the unit',
+  })
+  @ApiOkResponse({ type: [UnitDto] })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.unitService.findOne(id);
   }
 
   @Patch('update')
+  @ApiExcludeEndpoint()
   async update(
     @Res() res: Response,
     @Body() updateUserDtoList: UpdateUnitDto[],

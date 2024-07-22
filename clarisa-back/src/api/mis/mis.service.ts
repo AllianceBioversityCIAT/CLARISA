@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { Mis } from './entities/mis.entity';
 import { MisRepository } from './repositories/mis.repository';
+import { MisDto } from './dto/mis.dto';
 import { CreateMisDto } from './dto/create-mis.dto';
 import { UserData } from '../../shared/interfaces/user-data';
 import { EnvironmentService } from '../environment/environment.service';
@@ -20,6 +21,12 @@ export class MisService {
   ) {}
 
   private readonly _where: FindManyOptions<Mis> = {
+    select: {
+      id: true,
+      name: true,
+      acronym: true,
+      main_contact_point_id: true,
+    },
     relations: {
       environment_object: true,
     },
@@ -94,7 +101,7 @@ export class MisService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<Mis[]> {
+  ): Promise<MisDto[]> {
     switch (option) {
       case FindAllOptions.SHOW_ALL:
         return await this._misRepository.find(this._where);

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UpdateStudyTypeDto } from './dto/update-study-type.dto';
-import { StudyType } from './entities/study-type.entity';
 import { StudyTypeRepository } from './repositories/study-type.repository';
+import { BasicDtoV1 } from '../../shared/entities/dtos/basic.v1.dto';
 
 @Injectable()
 export class StudyTypeService {
@@ -10,7 +10,7 @@ export class StudyTypeService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<StudyType[]> {
+  ): Promise<BasicDtoV1[]> {
     switch (option) {
       case FindAllOptions.SHOW_ALL:
         return await this.studyTypesRepository.find();
@@ -28,7 +28,7 @@ export class StudyTypeService {
     }
   }
 
-  async findOne(id: number): Promise<StudyType> {
+  async findOne(id: number): Promise<BasicDtoV1> {
     return await this.studyTypesRepository.findOneBy({
       id,
       auditableFields: { is_active: true },

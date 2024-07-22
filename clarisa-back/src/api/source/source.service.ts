@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { Source } from './entities/source.entity';
 import { SourceRepository } from './repositories/source.repository';
+import { SourceDto } from './dto/source.dto';
 
 @Injectable()
 export class SourceService {
@@ -9,7 +9,7 @@ export class SourceService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<Source[]> {
+  ): Promise<SourceDto[]> {
     switch (option) {
       case FindAllOptions.SHOW_ALL:
         return await this.sourceRepository.find();
@@ -27,7 +27,7 @@ export class SourceService {
     }
   }
 
-  async findOne(id: number): Promise<Source> {
+  async findOne(id: number): Promise<SourceDto> {
     return await this.sourceRepository.findOneBy({
       id,
       auditableFields: { is_active: true },

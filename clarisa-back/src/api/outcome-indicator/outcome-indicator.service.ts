@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UpdateOutcomeIndicatorDto } from './dto/update-outcome-indicator.dto';
-import { OutcomeIndicator } from './entities/outcome-indicator.entity';
 import { OutcomeIndicatorRepository } from './repositories/outcome-indicator.repository';
+import { OutcomeIndicatorDto } from './dto/outcome-indicator.dto';
 
 @Injectable()
 export class OutcomeIndicatorService {
@@ -12,7 +12,7 @@ export class OutcomeIndicatorService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<OutcomeIndicator[]> {
+  ): Promise<OutcomeIndicatorDto[]> {
     switch (option) {
       case FindAllOptions.SHOW_ALL:
         return await this.outcomeIndicatorsRepository.find();
@@ -30,7 +30,7 @@ export class OutcomeIndicatorService {
     }
   }
 
-  async findOne(id: number): Promise<OutcomeIndicator> {
+  async findOne(id: number): Promise<OutcomeIndicatorDto> {
     return await this.outcomeIndicatorsRepository.findOneBy({
       id,
       auditableFields: { is_active: true },

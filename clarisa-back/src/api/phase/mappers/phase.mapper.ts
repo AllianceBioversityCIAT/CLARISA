@@ -16,4 +16,8 @@ export class PhaseMapper {
 
     return phaseDto;
   }
+
+  public classListToDtoList(phases: Phase[]): PhaseDto[] {
+    return phases.map((phase) => this.classToDto(phase));
+  }
 }

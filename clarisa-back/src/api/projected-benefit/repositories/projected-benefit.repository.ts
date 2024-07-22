@@ -1,126 +1,70 @@
-import {
-  DataSource,
-  FindOptionsRelations,
-  FindOptionsWhere,
-  Repository,
-} from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { ProjectedBenefit } from '../entities/projected-benefit.entity';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { ProjectedBenefitDto } from '../dto/projected-benefit.dto';
-import { DepthDescriptionDto } from '../../depth-description/dto/depth-description.dto';
-import { ProjectedBenefitWeightingDto } from '../../projected-benefit-weighting/dto/projected-benefit-weighting.dto';
 
 @Injectable()
 export class ProjectedBenefitRepository extends Repository<ProjectedBenefit> {
-  private readonly _projectedBenefitRelations: FindOptionsRelations<ProjectedBenefit> =
-    {
-      impact_area_indicator_object: {
-        impact_area_object: true,
-      },
-      projected_benefit_depth_array: {
-        depth_description_object: true,
-      },
-      projected_benefit_weighting_array: {
-        weight_description_object: true,
-      },
-    };
-
   constructor(private dataSource: DataSource) {
     super(ProjectedBenefit, dataSource.createEntityManager());
   }
 
-  async findAllProjectedBenefits(
+  async findProjectedBenefits(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    projectedBenefitId?: number,
   ): Promise<ProjectedBenefitDto[]> {
-    let projectedBenefitDtos: ProjectedBenefitDto[] = [];
-    let whereClause: FindOptionsWhere<ProjectedBenefit> = {};
-    switch (option) {
-      case FindAllOptions.SHOW_ALL:
-        //do nothing. we will be showing everything, so no condition is needed;
-        break;
-      case FindAllOptions.SHOW_ONLY_ACTIVE:
-      case FindAllOptions.SHOW_ONLY_INACTIVE:
-        whereClause = {
-          auditableFields: {
-            is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
-          },
-        };
-        break;
+    let whereClause = '';
+    if (option !== FindAllOptions.SHOW_ALL) {
+      whereClause = `where pb.is_active = 
+        ${option === FindAllOptions.SHOW_ONLY_ACTIVE}`;
     }
 
-    const projectedBenefits: ProjectedBenefit[] = await this.find({
-      where: whereClause,
-      relations: this._projectedBenefitRelations,
-    });
+    if (projectedBenefitId) {
+      if (whereClause) {
+        whereClause += ` and pb.id = ${projectedBenefitId}`;
+      } else {
+        whereClause = `where pb.id = ${projectedBenefitId}`;
+      }
+    }
 
-    projectedBenefitDtos = await Promise.all(
-      projectedBenefits.map(async (pb) => {
-        const projectedBenefitDto: ProjectedBenefitDto =
-          new ProjectedBenefitDto();
+    const query = `
+      select
+        pb.id projectedBenefitId,
+        ia.id impactAreaId,
+          ia.name impactAreaName,
+          iai.id impactAreaIndicator,
+          iai.indicator_statement impactAreaIndicatorName,
+          iai.is_aplicable_projected_benefits isAplicableProjectedBenefits,
+          iai.target_unit targetUnit,
+          iai.target_year targetYear,
+          iai.target_value value,
+          (
+            select json_arrayagg(json_object(
+              "depthScaleId", dd.id,
+              "depthScaleName", dd.name
+            ))
+            from projected_benefit_depths pbd 
+            left join depth_descriptions dd on pbd.depth_description_id = dd.id
+            where pbd.projected_benefit_id = pb.id
+          ) depthScales,
+          (
+            select json_arrayagg(json_object(
+              "descriptionID", pbwd.id,
+              "description", pbwd.description,
+              "weightValue", pbw.weight_value
+            ))
+            from projected_benefit_weightings pbw 
+            left join projected_benefit_weight_descriptions pbwd on pbw.weight_description_id = pbwd.id
+            where pbw.projected_benefits_id = pb.id
+          ) weightingValues
+      from projected_benefits pb
+      left join impact_area_indicators iai on pb.impact_area_indicator_id = iai.id 
+      left join impact_areas ia on iai.impact_areas_id = ia.id
+      ${whereClause}
+      order by pb.id
+    `;
 
-        if (pb.impact_area_indicator_object) {
-          projectedBenefitDto.impactAreaIndicator =
-            pb.impact_area_indicator_object.id;
-          projectedBenefitDto.impactAreaIndicatorName =
-            pb.impact_area_indicator_object.indicator_statement;
-          projectedBenefitDto.isApplicableProjectedBenefits =
-            pb.impact_area_indicator_object.is_aplicable_projected_benefits;
-          projectedBenefitDto.targetYear =
-            pb.impact_area_indicator_object.target_year;
-          projectedBenefitDto.targetUnit =
-            pb.impact_area_indicator_object.target_unit;
-          projectedBenefitDto.value =
-            pb.impact_area_indicator_object.target_value;
-
-          if (pb.impact_area_indicator_object.impact_area_object) {
-            projectedBenefitDto.impactAreaId =
-              pb.impact_area_indicator_object.impact_area_object.id;
-            projectedBenefitDto.impactAreaName =
-              pb.impact_area_indicator_object.impact_area_object.name;
-          }
-        }
-
-        projectedBenefitDto.depthScales = (
-          pb.projected_benefit_depth_array ?? []
-        )
-          .map((ds) => {
-            if (!ds.depth_description_object) {
-              return undefined;
-            }
-
-            const depthScale: DepthDescriptionDto = new DepthDescriptionDto();
-
-            depthScale.depthScaleId = ds.depth_description_object.id;
-            depthScale.depthScaleName = ds.depth_description_object.name;
-
-            return depthScale;
-          })
-          .filter((ds) => ds);
-
-        projectedBenefitDto.weightingValues = (
-          pb.projected_benefit_weighting_array ?? []
-        )
-          .map((wa) => {
-            if (!wa.weight_description_object) {
-              return undefined;
-            }
-
-            const weighting: ProjectedBenefitWeightingDto =
-              new ProjectedBenefitWeightingDto();
-
-            weighting.descriptionID = wa.weight_description_object.id;
-            weighting.description = wa.weight_description_object.description;
-            weighting.weightValue = wa.weight_value;
-
-            return weighting;
-          })
-          .filter((wa) => wa);
-
-        return projectedBenefitDto;
-      }),
-    );
-
-    return projectedBenefitDtos;
+    return this.query(query) as Promise<ProjectedBenefitDto[]>;
   }
 }

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { LanguageService } from './language.service';
 import { LanguageController } from './language.controller';
-import { LanguageRepository } from './language.repository';
+import { LanguageRepository } from './repositories/language.repository';
 
 @Module({
   controllers: [LanguageController],

@@ -10,8 +10,9 @@ export class ScienceGroupRepository extends Repository<ScienceGroup> {
     super(ScienceGroup, dataSource.createEntityManager());
   }
 
-  async findAllScienceGroups(
+  async findScienceGroups(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    scienceGroupId?: number,
   ): Promise<ScienceGroupDto[]> {
     let whereClause: FindOptionsWhere<ScienceGroup> = {};
     const scienceGroupDtos: ScienceGroupDto[] = [];
@@ -27,6 +28,13 @@ export class ScienceGroupRepository extends Repository<ScienceGroup> {
           },
         };
         break;
+    }
+
+    if (scienceGroupId) {
+      whereClause = {
+        ...whereClause,
+        id: scienceGroupId,
+      };
     }
 
     const scienceGroups: ScienceGroup[] = await this.find({

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
-  BasicDtoEquivalences,
   BasicDtoMapper,
+  BasicDtoV2Equivalences,
 } from '../../../shared/mappers/basic-dto.mapper';
 import { CgiarEntityTypeMapper } from '../../cgiar-entity-type/mappers/cgiar-entity-type.mapper';
 import { CenterDtoV1 } from '../dto/center.v1.dto';
@@ -14,7 +14,7 @@ export class CenterMapper {
     private readonly _cgiarEntityTypeMapper: CgiarEntityTypeMapper,
   ) {}
 
-  private readonly _mappedBasicFields: BasicDtoEquivalences<Center> = {
+  private readonly _mappedBasicFields: BasicDtoV2Equivalences<Center> = {
     code: 'smo_code',
     name: 'name',
   };
@@ -27,7 +27,7 @@ export class CenterMapper {
 
     Object.assign(
       centerDtoV1,
-      this._basicDtoMapper.classToDto(
+      this._basicDtoMapper.classToDtoV2(
         center,
         showIsActive,
         this._mappedBasicFields,

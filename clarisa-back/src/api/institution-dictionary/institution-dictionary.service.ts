@@ -3,7 +3,6 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { InstitutionRepository } from '../institution/repositories/institution.repository';
 import { InstitutionDictionaryDto } from './dto/institution-dictionary.dto';
 import { UpdateInstitutionDictionaryDto } from './dto/update-institution-dictionary.dto';
-import { InstitutionDictionary } from './entities/institution-dictionary.entity';
 import { InstitutionDictionaryRepository } from './repositories/institution-dictionary.repository';
 
 @Injectable()
@@ -20,14 +19,16 @@ export class InstitutionDictionaryService {
       throw Error('?!');
     }
 
-    return this.institutionRepository.findAllInstitutionSourceEntries(option);
+    return this.institutionRepository.findInstitutionSourceEntries(option);
   }
 
-  async findOne(id: number): Promise<InstitutionDictionary> {
-    return await this.institutionDictionaryRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  async findOne(id: number): Promise<InstitutionDictionaryDto> {
+    const result =
+      await this.institutionRepository.findInstitutionSourceEntries(
+        FindAllOptions.SHOW_ONLY_ACTIVE,
+        id,
+      );
+    return result.length === 1 ? result[0] : null;
   }
 
   async update(

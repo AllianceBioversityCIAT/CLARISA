@@ -3,7 +3,6 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { RegionTypeEnum } from '../../shared/entities/enums/region-types';
 import { RegionDto } from './dto/region.dto';
 import { UpdateRegionDto } from './dto/update-region.dto';
-import { Region } from './entities/region.entity';
 import { RegionRepository } from './repositories/region.repository';
 
 @Injectable()
@@ -18,14 +17,17 @@ export class RegionService {
       throw Error('?!');
     }
 
-    return this.regionsRepository.findRegionsByType(regionType, option);
+    return this.regionsRepository.findRegions(regionType, option);
   }
 
-  async findOne(id: number): Promise<Region> {
-    return await this.regionsRepository.findOneBy({
+  async findOne(id: number): Promise<RegionDto> {
+    const result = await this.regionsRepository.findRegions(
+      null,
+      FindAllOptions.SHOW_ONLY_ACTIVE,
       id,
-      auditableFields: { is_active: true },
-    });
+    );
+
+    return result.length === 1 ? result[0] : null;
   }
 
   async update(updateRegionDto: UpdateRegionDto[]) {

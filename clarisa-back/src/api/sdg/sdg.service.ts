@@ -3,6 +3,8 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { Sdg } from './entities/sdg.entity';
 import { SdgRepository } from './repositories/sdg.repository';
 import { SdgMapper } from './mappers/sdg.mapper';
+import { SdgV1Dto } from './dto/sdg.v1.dto';
+import { SdgV2Dto } from './dto/sdg.v2.dto';
 
 @Injectable()
 export class SdgService {
@@ -11,7 +13,7 @@ export class SdgService {
     private readonly _sdgMapper: SdgMapper,
   ) {}
 
-  private async findAll(
+  private async _findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ) {
     let response: Sdg[];
@@ -36,20 +38,30 @@ export class SdgService {
     return response;
   }
 
-  async findAllV1(option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE) {
-    const sdgs = await this.findAll(option);
-    return this._sdgMapper.classListToDtoV1List(sdgs);
-  }
-
-  async findAllV2(option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE) {
-    const sdgs = await this.findAll(option);
-    return this._sdgMapper.classListToDtoV2List(sdgs);
-  }
-
-  async findOne(id: number): Promise<Sdg> {
+  private async _findOne(id: number) {
     return await this._sdgsRepository.findOneBy({
       id,
       auditableFields: { is_active: true },
     });
+  }
+
+  async findAllV1(option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE) {
+    const sdgs = await this._findAll(option);
+    return this._sdgMapper.classListToDtoV1List(sdgs);
+  }
+
+  async findAllV2(option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE) {
+    const sdgs = await this._findAll(option);
+    return this._sdgMapper.classListToDtoV2List(sdgs);
+  }
+
+  async findOneV1(id: number): Promise<SdgV1Dto> {
+    const sdg = await this._findOne(id);
+    return sdg ? this._sdgMapper.classToDtoV1(sdg) : null;
+  }
+
+  async findOneV2(id: number): Promise<SdgV2Dto> {
+    const sdg = await this._findOne(id);
+    return sdg ? this._sdgMapper.classToDtoV2(sdg) : null;
   }
 }

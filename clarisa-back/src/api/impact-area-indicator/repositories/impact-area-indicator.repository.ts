@@ -1,7 +1,7 @@
 import { ImpactAreaIndicator } from '../entities/impact-area-indicator.entity';
 import { ImpactAreaIndicatorDto } from '../dto/impact-area-indicator.dto';
 import { Injectable } from '@nestjs/common';
-import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 
 @Injectable()
@@ -9,59 +9,50 @@ export class ImpactAreaIndicatorRepository extends Repository<ImpactAreaIndicato
   constructor(private dataSource: DataSource) {
     super(ImpactAreaIndicator, dataSource.createEntityManager());
   }
-  async findAllImpactAreaIndicators(
+
+  public findAllImpactAreaIndicators(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<ImpactAreaIndicatorDto[]> {
-    const impactAreaIndicatorDtos: ImpactAreaIndicatorDto[] = [];
-    let whereClause: FindOptionsWhere<ImpactAreaIndicator> = {};
-    switch (option) {
-      case FindAllOptions.SHOW_ALL:
-        //do nothing. we will be showing everything, so no condition is needed;
-        break;
-      case FindAllOptions.SHOW_ONLY_ACTIVE:
-      case FindAllOptions.SHOW_ONLY_INACTIVE:
-        whereClause = {
-          auditableFields: {
-            is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
-          },
-          impact_area_object: {
-            auditableFields: {
-              is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
-            },
-          },
-        };
-        break;
-    }
+    return this._findImpactAreaIndicators(option);
+  }
 
-    const impactAreaIndicators: ImpactAreaIndicator[] = await this.find({
-      where: whereClause,
-      relations: {
-        impact_area_object: true,
-      },
+  public findOneImpactAreaById(id: number): Promise<ImpactAreaIndicatorDto> {
+    return this._findImpactAreaIndicators(
+      FindAllOptions.SHOW_ONLY_ACTIVE,
+      id,
+    ).then((ias) => {
+      return ias.length === 1 ? ias[0] : null;
     });
+  }
 
-    await Promise.all(
-      impactAreaIndicators.map(async (iai) => {
-        const impactAreaIndicatorDto: ImpactAreaIndicatorDto =
-          new ImpactAreaIndicatorDto();
+  private _findImpactAreaIndicators(
+    option = FindAllOptions.SHOW_ONLY_ACTIVE,
+    impactAreaId?: number,
+  ): Promise<ImpactAreaIndicatorDto[]> {
+    const isActive = option === FindAllOptions.SHOW_ONLY_ACTIVE;
+    const query = `
+      select 
+        ia.id impactAreaId,
+        ia.name impactAreaName,
+        iai.id indicatorId,
+        iai.indicator_statement indicatorStatement,
+        iai.is_aplicable_projected_benefits isAplicableProjectedBenefits,
+        iai.target_unit targetUnit,
+        iai.target_year targetYear,
+        iai.target_value value
+      from impact_area_indicators iai
+      left join impact_areas ia on iai.impact_areas_id = ia.id
+      ${
+        option === FindAllOptions.SHOW_ALL
+          ? ''
+          : `
+        where iai.is_active = ${isActive} and ia.is_active = ${isActive}
+        `
+      }
+      ${impactAreaId ? (option !== FindAllOptions.SHOW_ALL ? `and iai.id = ${impactAreaId}` : `where ia.id = ${impactAreaId}`) : ''}
+      order by ia.id, iai.id;
+    `;
 
-        if (iai.impact_area_object) {
-          impactAreaIndicatorDto.impactAreaId = iai.impact_areas_id;
-          impactAreaIndicatorDto.impactAreaName = iai.impact_area_object.name;
-        }
-
-        impactAreaIndicatorDto.indicatorId = iai.id;
-        impactAreaIndicatorDto.indicatorStatement = iai.indicator_statement;
-        impactAreaIndicatorDto.isAplicableProjectedBenefits =
-          iai.is_aplicable_projected_benefits;
-        impactAreaIndicatorDto.targetUnit = iai.target_unit;
-        impactAreaIndicatorDto.targetYear = iai.target_year;
-        impactAreaIndicatorDto.value = iai.target_value;
-
-        impactAreaIndicatorDtos.push(impactAreaIndicatorDto);
-      }),
-    );
-
-    return impactAreaIndicatorDtos;
+    return this.query(query) as Promise<ImpactAreaIndicatorDto[]>;
   }
 }

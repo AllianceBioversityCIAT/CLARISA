@@ -10,8 +10,9 @@ export class UnitRepository extends Repository<Unit> {
     super(Unit, dataSource.createEntityManager());
   }
 
-  async findAllUnits(
+  async findUnits(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    unitId?: number,
   ): Promise<UnitDto[]> {
     let whereClause: FindOptionsWhere<Unit> = {};
     const unitDtos: UnitDto[] = [];
@@ -27,6 +28,10 @@ export class UnitRepository extends Repository<Unit> {
           },
         };
         break;
+    }
+
+    if (unitId) {
+      whereClause.id = unitId;
     }
 
     const units: Unit[] = await this.find({

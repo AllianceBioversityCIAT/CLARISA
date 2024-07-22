@@ -26,4 +26,13 @@ export class MisOption {
       (p) => p.mis_id === mis_id,
     );
   }
+
+  public static getAsEnumLikeObject(): { [key: string]: string } {
+    const enumeration: { [key: string]: string } = {};
+    (Object.values(this) as MisOption[]).forEach((mo) => {
+      enumeration[mo.path.toUpperCase()] = mo.path;
+    });
+
+    return enumeration;
+  }
 }

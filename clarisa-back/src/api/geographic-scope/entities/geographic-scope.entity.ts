@@ -18,26 +18,22 @@ export class GeographicScope {
   @Column({ type: 'text', nullable: true })
   name: string;
 
-  @Exclude()
   @Column({ type: 'text', nullable: true })
   iati_name: string;
 
   @Column({ type: 'text', nullable: true })
   definition: string;
 
-  @Exclude()
   @Column({ type: 'tinyint', width: 1, nullable: false, default: () => '1' })
   is_one_cgiar: boolean;
 
   //relations
 
-  @Exclude()
   @Column({ type: 'bigint', nullable: false })
   source_id: number;
 
   //object relations
 
-  @Exclude()
   @ManyToOne(() => Source, (s) => s.geographic_scope_array)
   @JoinColumn({ name: 'source_id' })
   source_object: Source;
