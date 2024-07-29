@@ -12,7 +12,13 @@ import {
 } from '@nestjs/common';
 import { MisService } from './mis.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { MisDto } from './dto/mis.dto';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
@@ -28,6 +34,7 @@ export class MisController {
 
   @Post('create')
   @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ApiBearerAuth()
   create(
     @GetUserData() userData: UserData,
     @Body() createMisDto: CreateMisDto,

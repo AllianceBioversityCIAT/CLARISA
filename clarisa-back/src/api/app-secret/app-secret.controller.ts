@@ -17,6 +17,7 @@ import { UserData } from '../../shared/interfaces/user-data';
 import { GetUserData } from '../../shared/decorators/user-data.decorator';
 import { ValidateAppSecretDto } from './dto/validate-app-secret.dto';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiOkResponse,
   ApiParam,
@@ -37,6 +38,7 @@ export class AppSecretController {
     required: true,
   })
   @ApiOkResponse({ type: [AppSecretDto] })
+  @ApiBearerAuth()
   create(
     @GetUserData() userData: UserData,
     @Body() createAppSecretDto: CreateAppSecretDto,
@@ -51,6 +53,7 @@ export class AppSecretController {
     required: true,
   })
   @ApiOkResponse({ type: [AppSecretDto] })
+  @ApiBearerAuth()
   validate(@Body() validateAppSecret: ValidateAppSecretDto) {
     return this.appSecretService.validateAppSecret(validateAppSecret);
   }

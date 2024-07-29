@@ -119,8 +119,8 @@ export class PartnerRequestController {
   @ApiQuery({
     name: 'source',
     enum: MisOption.getAsEnumLikeObject(),
-    required: true,
-    description: 'The MIS to link this new request to',
+    required: false,
+    description: `The MIS to link this new request to. If it's not provided, the MIS will be taken from the request's body (misAcronym).`,
   })
   @ApiBearerAuth()
   @ApiOkResponse({ type: [PartnerRequestDto] })

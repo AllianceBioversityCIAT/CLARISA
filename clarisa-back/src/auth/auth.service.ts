@@ -7,6 +7,7 @@ import { DBAuth } from './utils/DBAuth';
 import { BaseMessageDTO } from './utils/BaseMessageDTO';
 import { UserService } from '../api/user/user.service';
 import { User } from '../api/user/entities/user.entity';
+import { LoginResponseDto } from './dto/login-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -22,10 +23,6 @@ export class AuthService {
       (await this.usersService.findOneByEmail(login, false)) ??
       (await this.usersService.findOneByUsername(login, false));
     let authenticator: BaseAuthenticator;
-
-    // const user_Info = await user.userInfo;
-
-    // console.log({user_Info});
 
     if (user) {
       authenticator = this.moduleRef.get(
@@ -47,7 +44,7 @@ export class AuthService {
     }
   }
 
-  async login(user: User) {
+  async login(user: User): Promise<LoginResponseDto> {
     const payload = {
       login: user.email,
       sub: user.id,
