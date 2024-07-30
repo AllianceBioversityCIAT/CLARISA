@@ -3,89 +3,69 @@
     <div class="row">
       <div class="col-sm-6 col-md-3 about">
         <img
-          src="assets/images/cgiarlogo.png"
-          style="width: '90px'; height: '120px'"
+          src="../../../../assets/images/cgiarlogo.png"
+          style="width: 90px; margin-bottom: 20px"
           alt="Grow Landscape"
         />
+
         <p>
           CLARISA is a One CGIAR web service supporting information management
         </p>
       </div>
-      <div class="col-sm-6 col-md-2 footer-nav">
+
+      <div class="col-sm-6 col-md-3 footer-nav">
         <h3>Quick Links</h3>
+
         <ul>
-          <li>
-            <a href="/landing-page/dashboards"
-              ><i class="fa fa-angle-right hidden-xs"></i>Dashboard</a
-            >
+          <li *ngFor="let item of quickLinks">
+            <a [routerLink]="item.link">
+              <i class="fa fa-angle-right hidden-xs"></i>
+              {{ item.name }}
+            </a>
           </li>
+
           <li>
-            <a href="/landing-page/api-services"
-              ><i class="fa fa-angle-right hidden-xs"></i>Services</a
+            <a
+              href="https://cgiar-prms.notion.site/Legal-Terms-eb2f3e436f3e46bd9057b1cb1e3391b8"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-          </li>
-          <li>
-            <a href="/landing-page/faq"
-              ><i class="fa fa-angle-right hidden-xs"></i>Help</a
-            >
-          </li>
-          <li>
-            <a href="https://cgiar-prms.notion.site/Legal-Terms-eb2f3e436f3e46bd9057b1cb1e3391b8" target="_blank"
-              ><i class="fa fa-angle-right hidden-xs"></i>Terms and Conditions</a
-            >
+              <i class="fa fa-angle-right hidden-xs"></i>
+              Terms and Conditions
+            </a>
           </li>
         </ul>
       </div>
-      <div class="col-sm-6 col-md-4">
+
+      <div class="col-sm-6 col-md-3">
         <h3>Achievements</h3>
-        <div class="recent-post">
-          <div class="row">
-            <div class="col-sm-3">
-              <a
-                class="hover-img"
-                href="https://cgiar-prms.notion.site/What-is-new-in-CLARISA-943a928675974d8eb5d8e51d3c7467d0"
-                target="_blank"
-              >
-                <img
-                  alt="Grow Landscape"
-                  src="assets/images/megaphone.png "
-                  style="
-                    height: 50px;
-                    width: auto;
-                    margin-top: -20px;
-                    margin-left: 20px;
-                  "
-                />
-              </a>
-            </div>
-            <div class="col-sm-9 meta-info">
-              <h4>
-                <a
-                  href="https://cgiar-prms.notion.site/What-is-new-in-CLARISA-943a928675974d8eb5d8e51d3c7467d0"
-                  target="_blank"
-                  >What is new in CLARISA</a
-                >
-              </h4>
-            </div>
-          </div>
-        </div>
+
+        <a
+          class="achievements__content"
+          href="https://cgiar-prms.notion.site/What-is-new-in-CLARISA-943a928675974d8eb5d8e51d3c7467d0"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <i class="pi pi-megaphone" style="font-size: 1.5rem"></i>
+          <p>What is new in CLARISA</p>
+        </a>
       </div>
+
       <div class="col-sm-6 col-md-3">
         <h3>Contact Info</h3>
-        <ul class="address">
-          <li>
-            <i class="fa fa-envelope-o" aria-hidden="true"></i>
-            <p>
-              <a href="mailto:ClarisaSupport@cgiar.org"
-                >ClarisaSupport@cgiar.org</a
-              >
-            </p>
-          </li>
-        </ul>
+
+        <a
+          class="achievements__content"
+          href="mailto: clarisasupport@cgiar.org"
+        >
+          <i class="pi pi-envelope" style="font-size: 1.5rem"></i>
+          <p>clarisasupport@cgiar.org</p>
+        </a>
       </div>
     </div>
   </div>
 </section>
+
 <footer>
   <div class="container">
     <p>

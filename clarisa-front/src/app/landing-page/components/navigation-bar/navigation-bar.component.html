@@ -1,42 +1,27 @@
 <header class="wow fadeInDown" data-offset-top="197" data-spy="affix">
-  <!-- Logo and Nav -->
   <div class="logo-wrapper">
     <div class="container">
       <div class="row">
-        <!-- Logo -->
         <div class="col-sm-12 col-md-3 hidden-xs">
           <div class="logo">
-            <a href="index.html"
-              ><img
-                src="assets/images/CGIAR_Fondo_verde.png"
+            <a routerLink="/landing-page/home">
+              <img
+                src="../../../../assets/images/CGIAR_Fondo_verde.png"
                 alt="Grow Landscape"
                 style="
                   width: 120px;
                   height: 120px;
                   border-radius: 0 0 10px 10px;
                 "
-            /></a>
-          </div>
-          <div class="affix-logo">
-            <a href="index.html"
-              ><img
-                src="assets/images/logocgiar.png"
-                style="
-                  margin-top: -15px;
-                  width: 80px;
-                  height: 80px;
-                  border-radius: 10px;
-                "
-                alt="Grow Landscape"
-            /></a>
+              />
+            </a>
           </div>
         </div>
-        <!-- Navigation -->
+
         <div class="col-sm-12 col-md-9">
           <div class="row">
             <div class="col-sm-12 col-md-11">
               <nav class="navbar navbar-default">
-                <!-- Brand and toggle get grouped for better mobile display -->
                 <div class="navbar-header">
                   <button
                     type="button"
@@ -50,72 +35,81 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                   </button>
-                  <a class="navbar-brand" href="index.html"
-                    ><img
-                      src="assets/images/logocgiar.png"
+
+                  <a class="navbar-brand" routerLink="/landing-page/home">
+                    <img
+                      src="../../../../assets/images/logocgiar.png"
                       style="width: 70px; height: 70px"
                       alt="Grow Landscape"
-                  /></a>
+                    />
+                  </a>
                 </div>
-                <!-- Collect the nav links, forms, and other content for toggling -->
+
                 <div
                   class="collapse navbar-collapse"
                   id="bs-example-navbar-collapse-1"
                 >
                   <ul class="nav navbar-nav" style="margin-left: 30px">
-                    <li><a href="index.html">Home</a></li>
+                    <li>
+                      <a routerLink="/landing-page/home"> Home </a>
+                    </li>
+
                     <li class="dropdown">
                       <a
                         href="javascript:void(0)"
                         class="dropdown-toggle"
                         data-toggle="dropdown"
-                        role="button"
                         aria-haspopup="true"
                         aria-expanded="false"
-                        >Dashboards <i class="fa fa-caret-down"></i
-                      ></a>
+                      >
+                        Dashboards
+                        <i class="fa fa-caret-down"></i>
+                      </a>
+
                       <ul
                         class="dropdown-menu"
                         style="border-top: 4px solid #427730"
                       >
                         <li>
-                          <a [routerLink]="['dashboards']">Introduction</a>
+                          <a routerLink="dashboards">Introduction</a>
                         </li>
+
                         <li>
-                          <a [routerLink]="['institutionsRequestBi']"
-                            >Institutions request BI</a
-                          >
+                          <a routerLink="institutionsRequestBi">
+                            Institutions request BI
+                          </a>
                         </li>
                       </ul>
                     </li>
+
                     <li class="dropdown">
                       <a
                         href="javascript:void(0)"
                         class="dropdown-toggle"
                         data-toggle="dropdown"
-                        role="button"
                         aria-haspopup="true"
                         aria-expanded="false"
-                        >Services <i class="fa fa-caret-down"></i
-                      ></a>
+                      >
+                        Services
+                        <i class="fa fa-caret-down"></i>
+                      </a>
+
                       <ul
                         class="dropdown-menu"
                         style="border-top: 4px solid #427730"
                       >
                         <li>
-                          <a [routerLink]="['api-services']">Introduction</a>
+                          <a routerLink="api-services">Introduction</a>
                         </li>
 
                         <li>
                           <a
-                            [routerLink]="[
-                              '../clarisa-panel/documentation',
-                              'One_CGIAR_Control_List'
-                            ]"
+                            routerLink="/clarisa-panel/documentation/One_CGIAR_Control_List"
                           >
-                            One CGIAR Control List</a
-                          >
+                            One CGIAR Control List
+                          </a>
                         </li>
+
                         <li>
                           <a
                             [routerLink]="[
@@ -123,9 +117,10 @@
                               'One_CGIAR_Operation'
                             ]"
                           >
-                            One CGIAR Operation</a
-                          >
+                            One CGIAR Operation
+                          </a>
                         </li>
+
                         <li>
                           <a routerLink="/clarisa-panel/manage/partner-request">
                             Institution Request
@@ -133,23 +128,29 @@
                         </li>
                       </ul>
                     </li>
+
                     <li class="dropdown">
                       <a
                         href="javascript:void(0)"
                         class="dropdown-toggle"
                         data-toggle="dropdown"
-                        role="button"
                         aria-haspopup="true"
                         aria-expanded="false"
-                        >Help <i class="fa fa-caret-down"></i
-                      ></a>
+                      >
+                        Help
+                        <i class="fa fa-caret-down"></i>
+                      </a>
+
                       <ul
                         class="dropdown-menu"
                         style="border-top: 4px solid #427730"
                       >
-                        <li><a [routerLink]="['faq']">FAQ List</a></li>
                         <li>
-                          <a [routerLink]="['contact-us']"> Contact US</a>
+                          <a routerLink="faq">FAQ List</a>
+                        </li>
+
+                        <li>
+                          <a routerLink="contact-us"> Contact us</a>
                         </li>
                       </ul>
                     </li>
@@ -157,28 +158,6 @@
                 </div>
               </nav>
             </div>
-            <!--
-            <div class="col-sm-12 col-md-1 hidden-sm hidden-xs">
-              <div class="search pull-right">
-                <a
-                  href="https://cgiar-prms.notion.site/How-can-I-request-to-add-a-new-institution-to-the-system-Developer-s-guide-d68e767b2a27437db3c4574bf1894571"
-                  target="_blank"
-                  ><i
-                    class="fa fa-users"
-                    aria-hidden="true"
-                    style="color: #7ab800; cursor: pointer"
-                    ><span
-                      style="
-                        font-size: 15px;
-                        font-weight: 700;
-                        margin-left: 10px;
-                      "
-                      >DEVELOPERS</span
-                    ></i
-                  ></a
-                >
-              </div>
-            </div>-->
           </div>
         </div>
       </div>

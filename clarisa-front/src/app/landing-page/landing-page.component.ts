@@ -1,12 +1,12 @@
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component } from '@angular/core';
+import { AuthService } from '../shared/services/auth.service';
 
 @Component({
   selector: 'app-landing-page',
   templateUrl: './landing-page.component.html',
   styleUrls: ['./landing-page.component.scss'],
 })
-export class LandingPageComponent implements OnInit {
+export class LandingPageComponent {
   changesStyles: any = document.querySelector('#style-css');
   changesBoostrap: any = document.querySelector('#boostrap');
   changesFont: any = document.querySelector('#font');
@@ -23,13 +23,14 @@ export class LandingPageComponent implements OnInit {
   urlAditionalTwo = `./assets/owl-carousel/css/owl.theme.css`;
   urlAditionalThree = `./assets/css/ionicons.min.css`;
   urlAditinalFour = `./assets/css/magnific-popup.css`;
-  estado = true;
+  loadingStyles = true;
+  title = 'clarisa-front';
   urls: any;
-  constructor(private activeRoute: Router) {
-    this.urls = this.activeRoute.url;
-  }
+
+  constructor(public authService: AuthService) {}
 
   ngOnInit(): void {
+    this.authService.inLogin = false;
     this.changesStyles.setAttribute('href', this.url);
     this.changesBoostrap.setAttribute('href', this.urlBoostrap);
     this.changesFont.setAttribute('href', this.urlFont);
@@ -40,8 +41,7 @@ export class LandingPageComponent implements OnInit {
     this.changesAditinalFour.setAttribute('href', this.urlAditinalFour);
 
     setTimeout(() => {
-      this.estado = false;
-    }, 2000);
-    console.log(this.urls);
+      this.loadingStyles = false;
+    }, 100);
   }
 }
