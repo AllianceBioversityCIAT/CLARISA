@@ -643,7 +643,9 @@ export class CronOST {
     const newInitiativeStage: InitiativeStage = new InitiativeStage();
 
     newInitiativeStage.id = +ostInitiativeStage.initvStgId;
-    newInitiativeStage.action_area_id = +ostInitiative.action_area_id;
+    newInitiativeStage.action_area_id = ostInitiative.action_area_id
+      ? +ostInitiative.action_area_id
+      : null;
     newInitiativeStage.auditableFields = new AuditableEntity();
     newInitiativeStage.auditableFields.created_at = new Date();
     newInitiativeStage.auditableFields.created_by = 3043; //clarisadmin
@@ -669,7 +671,9 @@ export class CronOST {
     );
 
     if (ostInitiativeStage) {
-      initiativeStage.action_area_id = +ostInitiative.action_area_id;
+      initiativeStage.action_area_id = ostInitiative.action_area_id
+        ? +ostInitiative.action_area_id
+        : null;
       initiativeStage.auditableFields.is_active =
         ostInitiativeStage.active === 1;
       //TODO: uncoment when ost send this field

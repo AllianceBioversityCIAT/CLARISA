@@ -75,6 +75,9 @@ import { QaTokenAuthRepository } from '../auth/qa-token-auth/repositories/qa-tok
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { FundingSourceModule } from './funding-source/funding-source.module';
 import { CenterModule } from './center/center.module';
+import { EnvironmentModule } from './environment/environment.module';
+import { AppSecretModule } from './app-secret/app-secret.module';
+import { MicroserviceMonitoringTestLinkModule } from './microservice-monitoring-test-link/microservice-monitoring-test-link.module';
 
 @Module({
   controllers: [ApiController],
@@ -152,6 +155,9 @@ import { CenterModule } from './center/center.module';
     PortfolioModule,
     FundingSourceModule,
     CenterModule,
+    EnvironmentModule,
+    AppSecretModule,
+    MicroserviceMonitoringTestLinkModule,
   ],
 })
 export class ApiModule {}

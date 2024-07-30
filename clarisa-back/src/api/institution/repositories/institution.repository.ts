@@ -194,8 +194,8 @@ export class InstitutionRepository extends Repository<Institution> {
         option === FindAllOptions.SHOW_ALL
           ? '1,0'
           : option === FindAllOptions.SHOW_ONLY_ACTIVE
-          ? '1'
-          : '0',
+            ? '1'
+            : '0',
       ]);
 
       return institutionDictionaryDtos;
