@@ -33,6 +33,8 @@ import { InstitutionTypeRepository } from '../../institution-type/repositories/i
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
 import { PartnerStatsDto } from '../dto/partner-stats.dto';
+import { StringContentComparator } from '../../../shared/utils/string-content-comparator';
+import { ResponseDto } from '../../../shared/entities/dtos/response.dto';
 
 @Injectable()
 export class PartnerRequestRepository extends Repository<PartnerRequest> {
@@ -411,68 +413,139 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
   async createPartnerRequestBulk(
     partnerRequestBulk: CreateBulkPartnerRequestDto,
   ) {
-    let bulkInstitutions: Institution;
-    const partnerCreate: any[] = [];
-    const today = new Date();
+    let newPartnerRequest: PartnerRequest;
+    const partnerCreate: PartnerRequest[] = [];
+    const now = new Date();
 
-    const countryInstitution: Country[] = await this.countryRepository.find();
+    const countries: Country[] = await this.countryRepository.find();
     const institutionTypes: InstitutionType[] = await this.institutionType.find(
-      {
-        where: {
-          source_id: 1,
-        },
-      },
+      { where: { source_id: 1 } },
     );
 
-    for (const partnerRequestBulkIterator of partnerRequestBulk.listPartnerRequest) {
-      let partnerRequests: PartnerRequest = new PartnerRequest();
-      partnerRequests.auditableFields = new AuditableEntity();
-      partnerRequests.partner_name = partnerRequestBulkIterator.name;
-      partnerRequests.acronym = partnerRequestBulkIterator.acronym;
-      partnerRequests.web_page = partnerRequestBulkIterator.website_link;
-      partnerRequests.is_office = false;
-      partnerRequests.external_user_mail = partnerRequestBulk.externalUserEmail;
-      partnerRequests.external_user_name = partnerRequestBulk.externalUserName;
-      partnerRequests.auditableFields.created_by =
-        partnerRequestBulk.externalUser;
+    return await this.dataSource
+      .transaction(async (manager) => {
+        for (const incomingPartnerRequest of partnerRequestBulk.listPartnerRequest) {
+          if (
+            incomingPartnerRequest.name == undefined ||
+            incomingPartnerRequest.name.trim() == ''
+          ) {
+            throw new Error(`Name is required for partner request`);
+          }
 
-      const filterCountry = countryInstitution.filter(
-        (country) => country.iso_alpha_2 == partnerRequestBulkIterator.country,
-      );
-      const filterType = institutionTypes.filter(
-        (typeIntitution) =>
-          typeIntitution.name == partnerRequestBulkIterator.institution_type,
-      );
-      partnerRequests.institution_type_id = filterType[0].id;
-      partnerRequests.country_id = filterCountry[0].id;
-      partnerRequests.mis_id = partnerRequestBulk.mis;
-      partnerRequests.auditableFields.is_active = false;
-      partnerRequests = await this.save(partnerRequests);
-      partnerRequests.partner_request_id = partnerRequests.id;
-      delete partnerRequests.id;
-      if (partnerRequestBulkIterator.status == 'Accepted') {
-        partnerRequests.accepted = true;
-        partnerRequests.accepted_by = partnerRequestBulk.accepted;
-        partnerRequests.accepted_date = today;
-        bulkInstitutions =
-          await this.institutionRepository.createBulkInstitution(
-            partnerRequests,
-            partnerRequestBulk.accepted,
+          newPartnerRequest = new PartnerRequest();
+
+          newPartnerRequest.partner_name = incomingPartnerRequest.name;
+          newPartnerRequest.acronym = incomingPartnerRequest.acronym;
+          newPartnerRequest.web_page = incomingPartnerRequest.website_link;
+          newPartnerRequest.is_office = false;
+          newPartnerRequest.external_user_mail =
+            partnerRequestBulk.externalUserEmail;
+          newPartnerRequest.external_user_name =
+            partnerRequestBulk.externalUserName;
+          newPartnerRequest.mis_id = partnerRequestBulk.mis;
+
+          newPartnerRequest.auditableFields = new AuditableEntity();
+          newPartnerRequest.auditableFields.created_by =
+            partnerRequestBulk.externalUser;
+          newPartnerRequest.auditableFields.is_active = false;
+          delete newPartnerRequest.id;
+
+          let incomingPRCountryCode = (
+            incomingPartnerRequest.country ?? ''
+          ).trim();
+          const foundParentheses = incomingPRCountryCode.lastIndexOf('(') + 1;
+          incomingPRCountryCode = incomingPRCountryCode.slice(
+            foundParentheses,
+            foundParentheses + 2,
           );
-        partnerRequests.institution_id = bulkInstitutions.id;
-      }
-      if (partnerRequestBulkIterator.status == 'Rejected') {
-        partnerRequests.accepted = false;
-        partnerRequests.rejected_by = partnerRequestBulk.accepted;
-        partnerRequests.reject_justification =
-          partnerRequestBulkIterator.justification;
-        partnerRequests.rejected_date = today;
-      }
+          const incomingPRCountry = countries.find(
+            (country) =>
+              StringContentComparator.contentCompare(
+                country.iso_alpha_2,
+                incomingPRCountryCode,
+              ) === 0,
+          );
+          if (!incomingPRCountry) {
+            throw new Error(
+              `Country with code "${incomingPRCountryCode}" not found for partner "${incomingPartnerRequest.name}"`,
+            );
+          }
 
-      partnerRequests = await this.save(partnerRequests);
+          newPartnerRequest.country_id = incomingPRCountry.id;
 
-      partnerCreate.push(partnerRequests);
-    }
-    return partnerCreate;
+          const incomingPRType = institutionTypes.find(
+            (typeIntitution) =>
+              StringContentComparator.contentCompare(
+                typeIntitution.name,
+                incomingPartnerRequest.institution_type,
+              ) === 0,
+          );
+          if (!incomingPRType) {
+            throw new Error(
+              `Institution type with name "${incomingPartnerRequest.institution_type}" not found for partner "${incomingPartnerRequest.name}"`,
+            );
+          }
+
+          newPartnerRequest.institution_type_id = incomingPRType.id;
+
+          newPartnerRequest = await manager.save(newPartnerRequest);
+          newPartnerRequest.partner_request_id = newPartnerRequest.id;
+
+          if (
+            StringContentComparator.contentCompare(
+              'Accepted',
+              incomingPartnerRequest.status,
+            ) === 0
+          ) {
+            newPartnerRequest.accepted = true;
+            newPartnerRequest.accepted_by = partnerRequestBulk.accepted;
+            newPartnerRequest.accepted_date = now;
+            const createdInstitution =
+              await this.institutionRepository.createBulkInstitution(
+                manager,
+                newPartnerRequest,
+                partnerRequestBulk.accepted,
+              );
+            newPartnerRequest.institution_id = createdInstitution.id;
+          } else if (
+            StringContentComparator.contentCompare(
+              'Rejected',
+              incomingPartnerRequest.status,
+            ) === 0
+          ) {
+            if (
+              incomingPartnerRequest.justification == undefined ||
+              incomingPartnerRequest.justification.trim() == ''
+            ) {
+              throw new Error(
+                `Justification is required for rejected partner request "${incomingPartnerRequest.name}"`,
+              );
+            }
+
+            newPartnerRequest.accepted = false;
+            newPartnerRequest.rejected_by = partnerRequestBulk.accepted;
+            newPartnerRequest.reject_justification =
+              incomingPartnerRequest.justification;
+            newPartnerRequest.rejected_date = now;
+          } else {
+            throw new Error(
+              `Status "${incomingPartnerRequest.status}" not recognized for partner "${incomingPartnerRequest.name}"`,
+            );
+          }
+
+          newPartnerRequest = await manager.save(newPartnerRequest);
+
+          partnerCreate.push(newPartnerRequest);
+        }
+
+        return partnerCreate;
+      })
+      .catch((error: Error) => {
+        throw ResponseDto.createCustomResponse(
+          error.message,
+          'The bulk partner request could not be processed. Please check your input',
+          400,
+        );
+      });
   }
 }
