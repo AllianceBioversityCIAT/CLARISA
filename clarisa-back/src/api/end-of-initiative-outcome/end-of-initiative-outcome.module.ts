@@ -1,17 +1,17 @@
 import { Module } from '@nestjs/common';
 import { EndOfInitiativeOutcomeService } from './end-of-initiative-outcome.service';
-import { ApiOST } from '../../shared/integration/ost/api.ost';
 import { HttpModule } from '@nestjs/axios';
-import { IntegrationModule } from '../../shared/integration/integration.module';
 import { EndOfInitiativeOutcomeController } from './end-of-initiative-outcome.controller';
 import { EndOfInitiativeOutcomeRepository } from './repositories/end-of-initiative-outcomes.repository';
+import { OSTApi } from '../../integration/ost/ost.api';
+import { IntegrationModule } from '../../integration/integration.module';
 
 @Module({
   imports: [HttpModule, IntegrationModule],
   controllers: [EndOfInitiativeOutcomeController],
   providers: [
     EndOfInitiativeOutcomeService,
-    ApiOST,
+    OSTApi,
     EndOfInitiativeOutcomeRepository,
   ],
 })

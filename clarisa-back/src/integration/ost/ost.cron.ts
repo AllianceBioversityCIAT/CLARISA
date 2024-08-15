@@ -1,34 +1,34 @@
 import { Cron } from '@nestjs/schedule';
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { ApiOST } from './api.ost';
+import { OSTApi } from './ost.api';
 import { WorkpackageOstDto } from './dto/workpackage.ost.dto';
 import { InitiativeOstDto } from './dto/initivative.ost.dto';
 import { firstValueFrom } from 'rxjs';
 import { InitiativeStageOstDto } from './dto/initiative-stage.ost.dto';
 import { WorkpackageCountryOstDto } from './dto/workpackage-country.ost.dto';
 import { WorkpackageRegionOstDto } from './dto/workpackage-region.ost.dto';
-import { WorkpackageRepository } from '../../../api/workpackage/repositories/workpackage.repository';
-import { InitiativeRepository } from '../../../api/initiative/repositories/initiative.repository';
-import { CountryRepository } from '../../../api/country/repositories/country.repository';
-import { RegionRepository } from '../../../api/region/repositories/region.repository';
-import { InitiativeStage } from '../../../api/initiative/entities/initiative-stage.entity';
-import { WorkpackageCountry } from '../../../api/workpackage/entities/workpackage-country.entity';
-import { WorkpackageRegion } from '../../../api/workpackage/entities/workpackage-region.entity';
-import { Workpackage } from '../../../api/workpackage/entities/workpackage.entity';
-import { Region } from '../../../api/region/entities/region.entity';
-import { Country } from '../../../api/country/entities/country.entity';
-import { Initiative } from '../../../api/initiative/entities/initiative.entity';
-import { InitiativeStageRepository } from '../../../api/initiative/repositories/initiative-stage.repository';
-import { WorkpackageCountryRepository } from '../../../api/workpackage/repositories/workpackage-country.repository';
-import { WorkpackageRegionRepository } from '../../../api/workpackage/repositories/workpackage-country.repository copy';
-import { AuditableEntity } from '../../entities/extends/auditable-entity.entity';
+import { WorkpackageRepository } from '../../api/workpackage/repositories/workpackage.repository';
+import { InitiativeRepository } from '../../api/initiative/repositories/initiative.repository';
+import { CountryRepository } from '../../api/country/repositories/country.repository';
+import { RegionRepository } from '../../api/region/repositories/region.repository';
+import { InitiativeStageRepository } from '../../api/initiative/repositories/initiative-stage.repository';
+import { WorkpackageCountryRepository } from '../../api/workpackage/repositories/workpackage-country.repository';
+import { WorkpackageRegionRepository } from '../../api/workpackage/repositories/workpackage-country.repository copy';
+import { Workpackage } from '../../api/workpackage/entities/workpackage.entity';
+import { InitiativeStage } from '../../api/initiative/entities/initiative-stage.entity';
+import { WorkpackageCountry } from '../../api/workpackage/entities/workpackage-country.entity';
+import { Country } from '../../api/country/entities/country.entity';
+import { WorkpackageRegion } from '../../api/workpackage/entities/workpackage-region.entity';
+import { Region } from '../../api/region/entities/region.entity';
+import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
+import { Initiative } from '../../api/initiative/entities/initiative.entity';
 
 @Injectable()
-export class CronOST {
-  private readonly logger: Logger = new Logger(CronOST.name);
+export class OSTCron {
+  private readonly logger: Logger = new Logger(OSTCron.name);
 
   constructor(
-    private readonly api: ApiOST,
+    private readonly api: OSTApi,
     private readonly workpackageRepository: WorkpackageRepository,
     private readonly initiativeRepository: InitiativeRepository,
     private readonly countryRepository: CountryRepository,
@@ -90,13 +90,13 @@ export class CronOST {
 
       const workpackagesOST: WorkpackageOstDto[] =
         workpackagesRequest.data?.response?.workpackages ?? [];
-      const newWorkpackages: WorkpackageOstDto[] = CronOST.getNewWorkpackages(
+      const newWorkpackages: WorkpackageOstDto[] = OSTCron.getNewWorkpackages(
         oldWorkpackagesDb,
         workpackagesOST,
       );
 
       oldWorkpackagesDb.forEach((w) => {
-        const workpackageOst: WorkpackageOstDto = CronOST.updateWorkpackages(
+        const workpackageOst: WorkpackageOstDto = OSTCron.updateWorkpackages(
           w,
           workpackagesOST,
         );
@@ -112,21 +112,21 @@ export class CronOST {
             );
 
           const newWorkpackageCountries: WorkpackageCountryOstDto[] =
-            CronOST.getNewWorkpackageCountries(
+            OSTCron.getNewWorkpackageCountries(
               w,
               currentWorkpackageCountries,
               workpackageOst,
             );
 
           const newWorkpackageRegions: WorkpackageRegionOstDto[] =
-            CronOST.getNewWorkpackageRegions(
+            OSTCron.getNewWorkpackageRegions(
               w,
               currentWorkpackageRegions,
               workpackageOst,
             );
 
           currentWorkpackageCountries.forEach((owc) => {
-            CronOST.updateWorkpackageCountries(
+            OSTCron.updateWorkpackageCountries(
               owc,
               workpackageOst,
               workpackageOst.countries ?? [],
@@ -135,7 +135,7 @@ export class CronOST {
           });
 
           currentWorkpackageRegions.forEach((owr) => {
-            CronOST.updateWorkpackageRegions(
+            OSTCron.updateWorkpackageRegions(
               owr,
               workpackageOst,
               workpackageOst.regions ?? [],
@@ -149,7 +149,7 @@ export class CronOST {
             );
             if (wpCountry) {
               const newWorkpackageCountry: WorkpackageCountry =
-                CronOST.createNewWorkpackageCountry(
+                OSTCron.createNewWorkpackageCountry(
                   workpackageOst,
                   wpCountry,
                   w,
@@ -170,7 +170,7 @@ export class CronOST {
             const wpRegion = regions.find((r) => r.id === nwr.region_id);
             if (wpRegion) {
               const newWorkpackageRegion: WorkpackageRegion =
-                CronOST.createNewWorkpackageRegion(workpackageOst, wpRegion, w);
+                OSTCron.createNewWorkpackageRegion(workpackageOst, wpRegion, w);
               newWorkpackageRegionsDb.push(newWorkpackageRegion);
             } else {
               this.logger.warn(
@@ -192,7 +192,7 @@ export class CronOST {
           (is) => is.id === nw.initvStgId,
         );
         if (dbInitiativeStage) {
-          const newWorkpackage: Workpackage = CronOST.createNewWorkpackage(
+          const newWorkpackage: Workpackage = OSTCron.createNewWorkpackage(
             nw,
             dbInitiativeStage,
           );
@@ -203,7 +203,7 @@ export class CronOST {
             );
             if (wpCountry) {
               const newWorkpackageCountry: WorkpackageCountry =
-                CronOST.createNewWorkpackageCountry(
+                OSTCron.createNewWorkpackageCountry(
                   nw,
                   wpCountry,
                   newWorkpackage,
@@ -224,7 +224,7 @@ export class CronOST {
             const wpRegion = regions.find((r) => r.id === nwr.region_id);
             if (wpRegion) {
               const newWorkpackageRegion: WorkpackageRegion =
-                CronOST.createNewWorkpackageRegion(
+                OSTCron.createNewWorkpackageRegion(
                   nw,
                   wpRegion,
                   newWorkpackage,
@@ -313,16 +313,17 @@ export class CronOST {
     const newWorkpackage: Workpackage = new Workpackage();
 
     newWorkpackage.acronym = ostWorkpackage.acronym;
-    newWorkpackage.auditableFields = new AuditableEntity();
-    newWorkpackage.auditableFields.created_at = ostWorkpackage.created_at;
-    newWorkpackage.auditableFields.created_by = 3043; //clarisadmin
-    newWorkpackage.auditableFields.is_active = ostWorkpackage.active === 1;
     newWorkpackage.is_global_dimension = ostWorkpackage.is_global === 1;
     newWorkpackage.name = ostWorkpackage.name;
     newWorkpackage.pathway_content = ostWorkpackage.pathway_content;
     newWorkpackage.results = ostWorkpackage.results;
     newWorkpackage.submission_tool_initiative_stage_id = dbInitiativeStage.id;
     newWorkpackage.wp_official_code = ostWorkpackage.wp_official_code;
+
+    newWorkpackage.auditableFields = new AuditableEntity();
+    newWorkpackage.auditableFields.created_at = ostWorkpackage.created_at;
+    newWorkpackage.auditableFields.created_by = 3043; //clarisadmin
+    newWorkpackage.auditableFields.is_active = ostWorkpackage.active === 1;
 
     newWorkpackage.countries = [];
     newWorkpackage.regions = [];
@@ -406,13 +407,14 @@ export class CronOST {
     const newWorkpackageCountry: WorkpackageCountry = new WorkpackageCountry();
 
     newWorkpackageCountry.country_id = dbCountry.id;
+    newWorkpackageCountry.work_package_id = dbWorkpackage.id;
+
     newWorkpackageCountry.auditableFields = new AuditableEntity();
     newWorkpackageCountry.auditableFields.created_at = new Date();
     newWorkpackageCountry.auditableFields.created_by = 3043; //clarisadmin
     newWorkpackageCountry.auditableFields.is_active =
       ostWorkpackage.active === 1;
     newWorkpackageCountry.auditableFields.updated_at = new Date();
-    newWorkpackageCountry.work_package_id = dbWorkpackage.id;
 
     return newWorkpackageCountry;
   }
@@ -463,13 +465,14 @@ export class CronOST {
     const newWorkpackageRegion: WorkpackageRegion = new WorkpackageRegion();
 
     newWorkpackageRegion.region_id = dbRegion.id;
+    newWorkpackageRegion.work_package_id = dbWorkpackage.id;
+
     newWorkpackageRegion.auditableFields = new AuditableEntity();
     newWorkpackageRegion.auditableFields.created_at = new Date();
     newWorkpackageRegion.auditableFields.created_by = 3043; //clarisadmin
     newWorkpackageRegion.auditableFields.is_active =
       ostWorkpackage.active === 1;
     newWorkpackageRegion.auditableFields.updated_at = new Date();
-    newWorkpackageRegion.work_package_id = dbWorkpackage.id;
 
     return newWorkpackageRegion;
   }
@@ -493,13 +496,13 @@ export class CronOST {
 
       const initiativesOST: InitiativeOstDto[] =
         initiativesRequest.data?.response?.initiatives ?? [];
-      const newInitiatives: InitiativeOstDto[] = CronOST.getNewInitiatives(
+      const newInitiatives: InitiativeOstDto[] = OSTCron.getNewInitiatives(
         oldInitiativesDb,
         initiativesOST,
       );
 
       oldInitiativesDb.forEach((i) => {
-        const initiativeOst: InitiativeOstDto = CronOST.updateInitiative(
+        const initiativeOst: InitiativeOstDto = OSTCron.updateInitiative(
           i,
           initiativesOST,
         );
@@ -509,13 +512,13 @@ export class CronOST {
             oldInitiativeStagesDb.filter((is) => is.initiative_id === i.id);
 
           const newInitiativeStages: InitiativeStageOstDto[] =
-            CronOST.getNewInitiativeStatus(
+            OSTCron.getNewInitiativeStatus(
               currentInitiativeStages,
               initiativeOst,
             );
 
           currentInitiativeStages.forEach((is) => {
-            CronOST.updateInitiativeStages(
+            OSTCron.updateInitiativeStages(
               is,
               initiativeOst,
               initiativeOst.stages ?? [],
@@ -525,7 +528,7 @@ export class CronOST {
 
           newInitiativeStages.forEach((nis) => {
             const newInitiativeStage: InitiativeStage =
-              CronOST.createNewInitiativeStage(nis, initiativeOst, i);
+              OSTCron.createNewInitiativeStage(nis, initiativeOst, i);
             newInitiativeStagesDb.push(newInitiativeStage);
           });
         }
@@ -534,11 +537,11 @@ export class CronOST {
       });
 
       newInitiatives.forEach((ni) => {
-        const newInitiative: Initiative = CronOST.createNewInitiative(ni);
+        const newInitiative: Initiative = OSTCron.createNewInitiative(ni);
 
         (ni.stages ?? []).forEach((nis) => {
           const newInitiativeStage: InitiativeStage =
-            CronOST.createNewInitiativeStage(nis, ni, newInitiative);
+            OSTCron.createNewInitiativeStage(nis, ni, newInitiative);
           newInitiative.initiative_stage_array.push(newInitiativeStage);
         });
 
@@ -584,14 +587,15 @@ export class CronOST {
   ): Initiative {
     const newInitiative: Initiative = new Initiative();
 
-    newInitiative.auditableFields = new AuditableEntity();
-    newInitiative.auditableFields.created_at = new Date();
-    newInitiative.auditableFields.created_by = 3043; //clarisadmin
-    newInitiative.auditableFields.is_active = ostInitiative.active === 1;
     newInitiative.id = ostInitiative.id;
     newInitiative.name = ostInitiative.name;
     newInitiative.official_code = ostInitiative.official_code;
     newInitiative.short_name = ostInitiative.acronym ?? '';
+
+    newInitiative.auditableFields = new AuditableEntity();
+    newInitiative.auditableFields.created_at = new Date();
+    newInitiative.auditableFields.created_by = 3043; //clarisadmin
+    newInitiative.auditableFields.is_active = ostInitiative.active === 1;
     newInitiative.auditableFields.updated_at = new Date();
 
     newInitiative.initiative_stage_array = [];
@@ -652,8 +656,6 @@ export class CronOST {
     newInitiativeStage.initiative_id = dbInitiative.id;
     newInitiativeStage.auditableFields.is_active =
       ostInitiativeStage.active === 1;
-    //TODO: uncoment when ost send this field
-    //newInitiativeStage.is_global_dimension = ostInitiativeStage
     newInitiativeStage.stage_id = ostInitiativeStage.stageId;
     newInitiativeStage.status = ostInitiative.status;
     newInitiativeStage.auditableFields.updated_at = new Date();
@@ -676,8 +678,6 @@ export class CronOST {
         : null;
       initiativeStage.auditableFields.is_active =
         ostInitiativeStage.active === 1;
-      //TODO: uncoment when ost send this field
-      //initiativeStage.is_global_dimension = ostInitiative;
       initiativeStage.status = ostInitiative.status;
     } else {
       initiativeStage.auditableFields.is_active = false;

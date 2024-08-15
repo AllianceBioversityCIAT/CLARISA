@@ -4,8 +4,8 @@ import { env } from 'process';
 import { Injectable, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { AxiosResponse } from 'axios';
-import { ResponseOstDto } from './dto/response.ost.dto';
-import { OrderAministrativeDivisionDto } from './dto/order-administrative-division.dto';
+import { ResponseOstDto } from '../ost/dto/response.ost.dto';
+import { OrderAministrativeDivisionDto } from '../ost/dto/order-administrative-division.dto';
 
 @Injectable()
 export class ApiGeoNames extends BaseApi {

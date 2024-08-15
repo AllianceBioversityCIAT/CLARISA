@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { TokenQaDto } from '../../shared/integration/qa/dto/token-qa.dto';
-import { QaService } from '../../shared/integration/qa/qa.service';
 import { CreateQaTokenAuthDto } from './dto/create-qa-token-auth.dto';
 import { QaTokenAuth } from './entities/qa-token-auth.entity';
 import { QaTokenAuthRepository } from './repositories/qa-token-auth.repository';
+import { TokenQaDto } from '../../integration/qa/dto/token-qa.dto';
+import { QaApi } from '../../integration/qa/qa.api';
 
 @Injectable()
 export class QaTokenAuthService {
   constructor(
-    private qaService: QaService,
+    private qaService: QaApi,
     private qaTokenAuthRepository: QaTokenAuthRepository,
   ) {}
 
