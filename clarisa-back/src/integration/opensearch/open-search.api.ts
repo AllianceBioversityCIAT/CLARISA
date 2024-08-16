@@ -3,7 +3,7 @@ import { BaseApi } from '../base-api';
 import { Injectable, Logger } from '@nestjs/common';
 import { env } from 'process';
 import { ElasticOperationDto } from './dto/elastic-operation.dto';
-import { lastValueFrom, merge } from 'rxjs';
+import { forkJoin, lastValueFrom } from 'rxjs';
 import { InstitutionRepository } from '../../api/institution/repositories/institution.repository';
 import { InstitutionDto } from '../../api/institution/dto/institution.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
@@ -11,7 +11,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 @Injectable()
 export class OpenSearchApi extends BaseApi {
   private readonly OPENSEARCH_MAX_UPLOAD_SIZE = 1024 * 1024; // 1MB
-  private readonly _bulkElasticUrl = `${env.OPENSEARCH_URL}_bulk`;
+  private readonly _bulkElasticUrl = `_bulk`;
   private readonly _headers = {
     headers: {
       Authorization: `Basic ${Buffer.from(
@@ -128,13 +128,11 @@ export class OpenSearchApi extends BaseApi {
     fromBulk = false,
   ): string {
     const isPatch: boolean = operation.operation === 'PATCH';
-    operation.data['is_legacy'] =
-      <unknown>operation.data['is_legacy'] === 'true';
 
     let elasticOperation = `{ "${
       isPatch ? 'index' : 'delete'
     }" : { "_index" : "${documentName}", "_id" : "${
-      operation.data['id']
+      operation.data.code
     }"  } }\n${isPatch ? JSON.stringify(operation.data) : ''}`;
     if (fromBulk) {
       elasticOperation = elasticOperation.concat('\n');
@@ -160,7 +158,7 @@ export class OpenSearchApi extends BaseApi {
       this.postRequest(this._bulkElasticUrl, op, this._headers),
     );
 
-    return lastValueFrom(merge(allRequests));
+    return lastValueFrom(forkJoin(allRequests));
   }
 
   /**

@@ -7,6 +7,7 @@ import { OpenSearchApi } from './open-search.api';
 @UseGuards(JwtAuthGuard, PermissionGuard)
 export class OpenSearchController {
   constructor(private readonly openSearchApi: OpenSearchApi) {}
+
   @Post('reset')
   async resetOpenSearch() {
     return this.openSearchApi.resetElasticData();
