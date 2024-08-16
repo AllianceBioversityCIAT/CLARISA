@@ -23,14 +23,16 @@ export abstract class BaseApi {
     };
   }
 
-  protected concatTimeoutError<T = any>(
+  protected concatTimeoutError<T>(
     obserbable: Observable<AxiosResponse<T, any>>,
   ): Observable<AxiosResponse<T, any>> {
     return obserbable.pipe(
       timeout(30000), //we will wait 30 seconds for the response
       catchError((err) => {
         if (axios.isAxiosError(err)) {
-          this.logger.error(`axios error: ${err.message}`);
+          this.logger.error(
+            `axios error: ${err.message}; axios error response: ${JSON.stringify(err.response?.data)}`,
+          );
         } else {
           this.logger.error(`unexpected error: ${err.message}`);
         }
@@ -50,12 +52,12 @@ export abstract class BaseApi {
     return this.concatTimeoutError(request);
   }
 
-  protected patchRequest<T, D>(
+  protected patchRequest<D, R>(
     endpoint: string,
     data: D,
     config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<T, any>> {
-    const request = this.httpService.patch(
+  ): Observable<AxiosResponse<R, any>> {
+    const request = this.httpService.patch<R>(
       `${this.externalAppEndpoint}/${endpoint}`,
       data,
       config ?? this._getDefaultConfig(),
@@ -63,12 +65,12 @@ export abstract class BaseApi {
     return this.concatTimeoutError(request);
   }
 
-  protected postRequest<T, D>(
+  protected postRequest<D, R>(
     endpoint: string,
     data: D,
     config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<T, any>> {
-    const request = this.httpService.post(
+  ): Observable<AxiosResponse<R, any>> {
+    const request = this.httpService.post<R>(
       `${this.externalAppEndpoint}/${endpoint}`,
       data,
       config ?? this._getDefaultConfig(),
@@ -80,19 +82,19 @@ export abstract class BaseApi {
     endpoint: string,
     config?: AxiosRequestConfig,
   ): Observable<AxiosResponse<T, any>> {
-    const request = this.httpService.delete(
+    const request = this.httpService.delete<T>(
       `${this.externalAppEndpoint}/${endpoint}`,
       config ?? this._getDefaultConfig(),
     );
     return this.concatTimeoutError(request);
   }
 
-  protected putRequest<T, D>(
+  protected putRequest<D, R>(
     endpoint: string,
     data: D,
     config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<T, any>> {
-    const request = this.httpService.put(
+  ): Observable<AxiosResponse<R, any>> {
+    const request = this.httpService.put<R>(
       `${this.externalAppEndpoint}/${endpoint}`,
       data,
       config ?? this._getDefaultConfig(),

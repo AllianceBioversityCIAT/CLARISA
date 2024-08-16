@@ -7,19 +7,25 @@ import { forkJoin, lastValueFrom } from 'rxjs';
 import { InstitutionRepository } from '../../api/institution/repositories/institution.repository';
 import { InstitutionDto } from '../../api/institution/dto/institution.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { ElasticQueryDto, TypeSort } from './dto/elastic-query.dto';
+import {
+  ElasticQueryDto,
+  OpenSearchOperator,
+  OpenSearchQuery,
+  OpenSearchWildcard,
+  TypeSort,
+} from './dto/elastic-query.dto';
 import { ElasticResponse } from './dto/elastic-response.dto';
+import { AxiosRequestConfig } from 'axios';
 
 @Injectable()
 export class OpenSearchApi extends BaseApi {
   private readonly OPENSEARCH_MAX_UPLOAD_SIZE = 1024 * 1024; // 1MB
   private readonly _bulkElasticUrl = `_bulk`;
-  private readonly _headers = {
+  private readonly _config: AxiosRequestConfig = {
     headers: {
       Authorization: `Basic ${Buffer.from(
         `${env.OPENSEARCH_USERNAME}:${env.OPENSEARCH_PASSWORD}`,
       ).toString('base64')}`,
-      'Content-Type': 'application/x-ndjson',
     },
   };
 
@@ -157,7 +163,7 @@ export class OpenSearchApi extends BaseApi {
     bulkOperationsJson: string[],
   ): Promise<any> {
     const allRequests = bulkOperationsJson.map((op) =>
-      this.postRequest(this._bulkElasticUrl, op, this._headers),
+      this.postRequest(this._bulkElasticUrl, op, this._config),
     );
 
     return lastValueFrom(forkJoin(allRequests));
@@ -213,7 +219,7 @@ export class OpenSearchApi extends BaseApi {
     return this.findForOpenSearch(env.OPENSEARCH_DOCUMENT_NAME)
       .then((elasticData) =>
         lastValueFrom(
-          this.deleteRequest(`${env.OPENSEARCH_DOCUMENT_NAME}`, this._headers),
+          this.deleteRequest(`${env.OPENSEARCH_DOCUMENT_NAME}`, this._config),
         ).then(() => elasticData),
       )
       .then((elasticData) =>
@@ -221,7 +227,7 @@ export class OpenSearchApi extends BaseApi {
           this.putRequest(
             `${env.OPENSEARCH_DOCUMENT_NAME}`,
             null,
-            this._headers,
+            this._config,
           ),
         ).then(() => elasticData),
       )
@@ -238,15 +244,15 @@ export class OpenSearchApi extends BaseApi {
     const elasticQuery = this._getElasticQuery<InstitutionDto>(
       query,
       size,
-      ['name', 'code'],
+      ['name', 'acronym'],
       [{ code: { order: 'asc' } }],
     );
 
     return lastValueFrom(
       this.postRequest<
-        ElasticResponse<InstitutionDto>,
-        ElasticQueryDto<InstitutionDto>
-      >(`${env.OPENSEARCH_DOCUMENT_NAME}/_search`, elasticQuery, this._headers),
+        ElasticQueryDto<InstitutionDto>,
+        ElasticResponse<InstitutionDto>
+      >(`${env.OPENSEARCH_DOCUMENT_NAME}/_search`, elasticQuery, this._config),
     ).then((response) => {
       return response.data.hits.hits.map((hit) => ({
         ...hit._source,
@@ -270,31 +276,45 @@ export class OpenSearchApi extends BaseApi {
     fieldsToSearchOn: (keyof T)[],
     fieldsToSortOn: TypeSort<T>[],
   ): ElasticQueryDto<T> {
-    const individualKeywords = toFind.split('\\s');
     const query: ElasticQueryDto<T> = {
       size,
       query: {
         bool: {
           must: [
             {
-              multi_match: {
-                query: toFind,
-                fields: fieldsToSearchOn as (keyof T)[],
-                operator: 'and',
+              bool: {
+                should: [
+                  {
+                    multi_match: {
+                      query: toFind,
+                      fields: fieldsToSearchOn as (keyof T)[],
+                      operator: 'and',
+                    },
+                  },
+                ],
               },
             },
           ],
-          ...fieldsToSearchOn.flatMap((field) =>
-            individualKeywords.map((keyword) => ({
-              wildcard: {
-                [field]: `*${keyword}*`,
-              },
-            })),
-          ),
         },
       },
       sort: [{ _score: { order: 'desc' } }, ...fieldsToSortOn],
     };
+    const individualKeywords = toFind.split(/\s+/);
+
+    const wildcardQueries = fieldsToSearchOn.flatMap((field) =>
+      individualKeywords.map((keyword) => {
+        const wildcardQuery: OpenSearchOperator<T> = {
+          wildcard: {
+            [field]: `*${keyword}*`,
+          } as OpenSearchWildcard<T>,
+        };
+        return wildcardQuery;
+      }),
+    );
+
+    (query.query.bool.must[0] as OpenSearchQuery<T>).bool.should.push(
+      ...wildcardQueries,
+    );
 
     return query;
   }
