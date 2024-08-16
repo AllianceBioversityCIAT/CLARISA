@@ -7,6 +7,8 @@ import { forkJoin, lastValueFrom } from 'rxjs';
 import { InstitutionRepository } from '../../api/institution/repositories/institution.repository';
 import { InstitutionDto } from '../../api/institution/dto/institution.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { ElasticQueryDto, TypeSort } from './dto/elastic-query.dto';
+import { ElasticResponse } from './dto/elastic-response.dto';
 
 @Injectable()
 export class OpenSearchApi extends BaseApi {
@@ -227,5 +229,73 @@ export class OpenSearchApi extends BaseApi {
       .catch((error) => {
         this.logger.error(error);
       });
+  }
+
+  async search(
+    query: string,
+    size: number,
+  ): Promise<(InstitutionDto & { score: number })[]> {
+    const elasticQuery = this._getElasticQuery<InstitutionDto>(
+      query,
+      size,
+      ['name', 'code'],
+      [{ code: { order: 'asc' } }],
+    );
+
+    return lastValueFrom(
+      this.postRequest<
+        ElasticResponse<InstitutionDto>,
+        ElasticQueryDto<InstitutionDto>
+      >(`${env.OPENSEARCH_DOCUMENT_NAME}/_search`, elasticQuery, this._headers),
+    ).then((response) => {
+      return response.data.hits.hits.map((hit) => ({
+        ...hit._source,
+        score: hit._score,
+      }));
+    });
+  }
+
+  /**
+   * Generates an ElasticQueryDto based on the provided parameters.
+   *
+   * @template T - The type of the data to be queried.
+   * @param {string} toFind - The string to search for.
+   * @param {Array<keyof T>} fieldsToSearchOn - The fields to search on.
+   * @param {Array<TypeSort<T>>} fieldsToSortOn - The fields to sort on.
+   * @returns {ElasticQueryDto<T>} - The generated ElasticQueryDto.
+   */
+  private _getElasticQuery<T>(
+    toFind: string,
+    size: number,
+    fieldsToSearchOn: (keyof T)[],
+    fieldsToSortOn: TypeSort<T>[],
+  ): ElasticQueryDto<T> {
+    const individualKeywords = toFind.split('\\s');
+    const query: ElasticQueryDto<T> = {
+      size,
+      query: {
+        bool: {
+          must: [
+            {
+              multi_match: {
+                query: toFind,
+                fields: fieldsToSearchOn as (keyof T)[],
+                operator: 'and',
+              },
+            },
+          ],
+          ...fieldsToSearchOn.flatMap((field) =>
+            individualKeywords.map((keyword) => ({
+              wildcard: {
+                [field]: `*${keyword}*`,
+              },
+            })),
+          ),
+        },
+      },
+      sort: [{ _score: { order: 'desc' } }, ...fieldsToSortOn],
+    };
+
+    return query;
   }
 }
