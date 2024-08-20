@@ -81,6 +81,11 @@ export class InstitutionController {
     return await this.institutionService.findOne(id);
   }
 
+  @Get('simple/:id')
+  async findOneSimple(@Param('id', ParseIntPipe) id: number) {
+    return await this.institutionService.findOneSimple(id);
+  }
+
   @Patch('update')
   @ApiExcludeEndpoint()
   async update(

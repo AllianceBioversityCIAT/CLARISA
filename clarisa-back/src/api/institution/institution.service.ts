@@ -3,7 +3,6 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { InstitutionSimpleDto } from './dto/institution-simple.dto';
 import { InstitutionDto } from './dto/institution.dto';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
-import { Institution } from './entities/institution.entity';
 import { InstitutionRepository } from './repositories/institution.repository';
 
 @Injectable()
@@ -21,7 +20,7 @@ export class InstitutionService {
     if (from != null && Number.isNaN(from)) {
       throw Error('?!');
     } else {
-      return this.institutionRepository.findAllInstitutions(option, from);
+      return this.institutionRepository.findInstitutions(option, from);
     }
   }
 
@@ -35,11 +34,12 @@ export class InstitutionService {
     return this.institutionRepository.findAllInstitutionsSimple(option);
   }
 
-  async findOne(id: number): Promise<Institution> {
-    return await this.institutionRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  async findOne(id: number): Promise<InstitutionDto> {
+    return this.institutionRepository.findInstitutionById(id);
+  }
+
+  async findOneSimple(id: number): Promise<InstitutionSimpleDto> {
+    return this.institutionRepository.findInstitutionSimpleById(id);
   }
 
   async update(updateInitiativeDto: UpdateInstitutionDto[]) {
