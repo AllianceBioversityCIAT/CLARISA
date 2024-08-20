@@ -24,19 +24,23 @@ export abstract class BaseApi {
   }
 
   protected concatTimeoutError<T>(
-    obserbable: Observable<AxiosResponse<T, any>>,
-  ): Observable<AxiosResponse<T, any>> {
-    return obserbable.pipe(
-      timeout(30000), //we will wait 30 seconds for the response
+    observable: Observable<AxiosResponse<T, any>>,
+    returnError: boolean = false,
+  ): Observable<AxiosResponse<T, any> | null> {
+    return observable.pipe(
+      timeout(30000), // Wait for 30 seconds for the response
       catchError((err) => {
         if (axios.isAxiosError(err)) {
           this.logger.error(
-            `axios error: ${err.message}; axios error response: ${JSON.stringify(err.response?.data)}`,
+            `Axios error: ${err.message}; Axios error response: ${JSON.stringify(
+              err.response?.data,
+            )}`,
           );
+          return of(returnError ? err : null);
         } else {
-          this.logger.error(`unexpected error: ${err.message}`);
+          this.logger.error(`Unexpected error: ${err.message}`);
+          return of(returnError ? err : null);
         }
-        return of(null);
       }),
     );
   }

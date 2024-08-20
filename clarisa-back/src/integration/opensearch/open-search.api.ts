@@ -15,7 +15,7 @@ import {
   TypeSort,
 } from './dto/elastic-query.dto';
 import { ElasticResponse } from './dto/elastic-response.dto';
-import { AxiosRequestConfig } from 'axios';
+import { AxiosRequestConfig, isAxiosError } from 'axios';
 
 @Injectable()
 export class OpenSearchApi extends BaseApi {
@@ -239,7 +239,7 @@ export class OpenSearchApi extends BaseApi {
 
   async search(
     query: string,
-    size: number,
+    size: number = 20,
   ): Promise<(InstitutionDto & { score: number })[]> {
     const elasticQuery = this._getElasticQuery<InstitutionDto>(
       query,
@@ -253,12 +253,18 @@ export class OpenSearchApi extends BaseApi {
         ElasticQueryDto<InstitutionDto>,
         ElasticResponse<InstitutionDto>
       >(`${env.OPENSEARCH_DOCUMENT_NAME}/_search`, elasticQuery, this._config),
-    ).then((response) => {
-      return response.data.hits.hits.map((hit) => ({
-        ...hit._source,
-        score: hit._score,
-      }));
-    });
+    )
+      .then((response) => {
+        return response.data?.hits?.hits?.map((hit) => ({
+          ...hit._source,
+          score: hit._score,
+        }));
+      })
+      .catch((error: Error) => {
+        const data = isAxiosError(error) ? error.response?.data : error.message;
+        this.logger.error(data);
+        throw new Error(data);
+      });
   }
 
   /**
