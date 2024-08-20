@@ -7,7 +7,7 @@ import {
 import { FirstOrderAdministrativeDivisionService } from './first-order-administrative-division.service';
 import { UseInterceptors } from '@nestjs/common/decorators';
 import { ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
-import { OrderAministrativeDivisionDto } from '../../shared/integration/ost/dto/order-administrative-division.dto';
+import { OrderAministrativeDivisionDto } from '../../integration/ost/dto/order-administrative-division.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
