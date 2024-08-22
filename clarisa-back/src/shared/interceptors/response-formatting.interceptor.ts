@@ -29,7 +29,7 @@ export class ResponseFormattingInterceptor<T>
       catchError((error) => {
         const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
         const message = error.message || 'Internal server error';
-        const errorDto = ResponseDto.createCustomResponse(
+        const errorDto = ResponseDto.buildCustomResponse(
           error,
           message,
           status,
