@@ -19,6 +19,8 @@ import { InstitutionTypeRepository } from '../institution-type/repositories/inst
 import { MisRepository } from '../mis/repositories/mis.repository';
 import { UserRepository } from '../user/repositories/user.repository';
 import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
+import { OpenSearchApi } from '../../integration/opensearch/open-search.api';
+import { InstitutionDto } from '../institution/dto/institution.dto';
 
 @Injectable()
 export class PartnerRequestService {
@@ -28,6 +30,7 @@ export class PartnerRequestService {
     private misRepository: MisRepository,
     private countryRepository: CountryRepository,
     private userRepository: UserRepository,
+    private openSearchApi: OpenSearchApi,
   ) {}
 
   async findAll(
@@ -80,7 +83,7 @@ export class PartnerRequestService {
     });
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(
+      throw ResponseDto.buildBadResponse(
         validationErrors,
         PartnerRequestService,
       );
@@ -141,7 +144,7 @@ export class PartnerRequestService {
     }
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(
+      throw ResponseDto.buildBadResponse(
         validationErrors,
         PartnerRequestService,
       );
@@ -153,7 +156,7 @@ export class PartnerRequestService {
         newPartnerRequest,
       );
 
-    return ResponseDto.createCreatedResponse(response, PartnerRequestService);
+    return ResponseDto.buildCreatedResponse(response, PartnerRequestService);
   }
 
   async respondPartnerRequest(
@@ -178,7 +181,7 @@ export class PartnerRequestService {
     });
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(
+      throw ResponseDto.buildBadResponse(
         validationErrors,
         PartnerRequestService,
       );
@@ -214,7 +217,7 @@ export class PartnerRequestService {
     }
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(
+      throw ResponseDto.buildBadResponse(
         validationErrors,
         PartnerRequestService,
       );
@@ -232,10 +235,17 @@ export class PartnerRequestService {
         respondPartnerRequestDto.rejectJustification;
     }
 
-    return this.partnerRequestRepository.respondPartnerRequest(
-      partnerRequest,
-      respondPartnerRequestDto,
-    );
+    return this.partnerRequestRepository
+      .respondPartnerRequest(partnerRequest, respondPartnerRequestDto)
+      .then((pr) => {
+        if (respondPartnerRequestDto.accept && pr.institutionDTO) {
+          this.openSearchApi.uploadSingleInstitutionToOpenSearch(
+            pr.institutionDTO,
+          );
+        }
+
+        return pr;
+      });
   }
 
   async updatePartnerRequest(
@@ -262,7 +272,7 @@ export class PartnerRequestService {
     ).flatMap((e) => Object.values(e.constraints).map((m) => m));
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(
+      throw ResponseDto.buildBadResponse(
         validationErrors,
         PartnerRequestService,
       );
@@ -319,7 +329,7 @@ export class PartnerRequestService {
     }
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(
+      throw ResponseDto.buildBadResponse(
         validationErrors,
         PartnerRequestService,
       );
@@ -331,19 +341,26 @@ export class PartnerRequestService {
         partnerRequest,
       );
 
-    return ResponseDto.createCreatedResponse(response, PartnerRequestService);
+    return ResponseDto.buildCreatedResponse(response, PartnerRequestService);
   }
 
   async statisticsPartnerRequest(mis: string = MisOption.ALL.path) {
     if (!MisOption.getfromPath(mis)) {
       throw Error('?!');
     }
+
     return this.partnerRequestRepository.statisticsPartner(mis);
   }
 
   async createBulk(createBulkPartner: CreateBulkPartnerRequestDto) {
-    return await this.partnerRequestRepository.createPartnerRequestBulk(
-      createBulkPartner,
-    );
+    return await this.partnerRequestRepository
+      .createPartnerRequestBulk(createBulkPartner)
+      .then((prs) => {
+        const institutions = prs
+          .map((pr) => pr['institutionDto'] as InstitutionDto)
+          .filter((i) => i);
+        this.openSearchApi.uploadInstitutionsToOpenSearch(institutions);
+        return prs;
+      });
   }
 }

@@ -92,7 +92,7 @@ export class MisService {
         }),
       )
       .then((mis) => {
-        return ResponseDto.createCreatedResponse(
+        return ResponseDto.buildCreatedResponse(
           this._misMapper.classToSimpleDto(mis),
           MisService,
         );

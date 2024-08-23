@@ -13,5 +13,6 @@ import { InstitutionLocationRepository } from '../../api/institution/repositorie
     InstitutionLocationRepository,
   ],
   controllers: [OpenSearchController],
+  exports: [OpenSearchApi],
 })
 export class OpenSearchModule {}

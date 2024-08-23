@@ -16,6 +16,7 @@ import {
 } from './dto/elastic-query.dto';
 import { ElasticResponse } from './dto/elastic-response.dto';
 import { AxiosRequestConfig, isAxiosError } from 'axios';
+import { ArrayUtil } from '../../shared/utils/array-util';
 
 @Injectable()
 export class OpenSearchApi extends BaseApi {
@@ -179,16 +180,16 @@ export class OpenSearchApi extends BaseApi {
    * 4. Converts the array of ElasticOperationDto objects to a bulk OpenSearch operation JSON format.
    *
    * @param {string} documentName - The name of the OpenSearch document.
-   * @param {number} [id] - An optional ID to filter the institutions.
+   * @param {number} [ids] - An optional ID array to filter the institutions.
    * @returns {Promise<string[]>} A promise that resolves to an array of JSON strings representing the bulk OpenSearch operations.
    * @throws {Error} If no data is found in the repository.
    */
   async findForOpenSearch(
     documentName: string,
-    id?: number,
+    ids?: number[],
   ): Promise<string[]> {
     return this._institutionRepository
-      .findInstitutions(FindAllOptions.SHOW_ALL, undefined, id)
+      .findInstitutions(FindAllOptions.SHOW_ALL, undefined, ids)
       .then((queryResult) => {
         if (!queryResult.length) {
           throw new Error('No data found');
@@ -232,6 +233,57 @@ export class OpenSearchApi extends BaseApi {
         ).then(() => elasticData),
       )
       .then((elasticData) => this.sendBulkOperationToOpenSearch(elasticData))
+      .catch((error) => {
+        this.logger.error(error);
+      });
+  }
+
+  async uploadInstitutionsToOpenSearch(
+    institutions: number[] | InstitutionDto[],
+  ): Promise<void> {
+    const isNumericArray = ArrayUtil.isArrayOfType<number>(
+      institutions,
+      (e) => typeof e === 'number',
+    );
+    const promise = isNumericArray
+      ? this.findForOpenSearch(env.OPENSEARCH_DOCUMENT_NAME, institutions)
+      : Promise.resolve(
+          this.getBulkElasticOperationForInstitutions(
+            env.OPENSEARCH_DOCUMENT_NAME,
+            institutions.map((i) => new ElasticOperationDto('PATCH', i)),
+          ),
+        );
+
+    return promise
+      .then((elasticData) => this.sendBulkOperationToOpenSearch(elasticData))
+      .then(() => {
+        this.logger.log(`The institutions have been uploaded to OpenSearch`);
+      })
+      .catch((error) => {
+        this.logger.error(error);
+      });
+  }
+
+  async uploadSingleInstitutionToOpenSearch(
+    institution: number | InstitutionDto,
+  ): Promise<void> {
+    const isInstitutionId = typeof institution === 'number';
+    const promise = isInstitutionId
+      ? this.findForOpenSearch(env.OPENSEARCH_DOCUMENT_NAME, [institution])
+      : Promise.resolve([
+          this.getSingleElasticOperationForInstitutions(
+            env.OPENSEARCH_DOCUMENT_NAME,
+            new ElasticOperationDto('PATCH', institution),
+          ),
+        ]);
+
+    return promise
+      .then((elasticData) => this.sendBulkOperationToOpenSearch(elasticData))
+      .then(() => {
+        this.logger.log(
+          `Institution with id ${isInstitutionId ? institution : institution.code} has been uploaded to OpenSearch`,
+        );
+      })
       .catch((error) => {
         this.logger.error(error);
       });

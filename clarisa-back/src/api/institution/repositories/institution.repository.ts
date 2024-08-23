@@ -23,7 +23,7 @@ export class InstitutionRepository extends Repository<Institution> {
   async findInstitutions(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     from: string = undefined,
-    institutionId?: number,
+    institutionIds?: number[],
   ): Promise<InstitutionDto[]> {
     let whereClause: string = '';
     const whereValues: (string | number)[] = [];
@@ -33,9 +33,9 @@ export class InstitutionRepository extends Repository<Institution> {
       whereValues.push(from);
     }
 
-    if (institutionId) {
-      whereClause += `${whereClause ? 'and' : 'where'} i.id = ?`;
-      whereValues.push(institutionId);
+    if (institutionIds) {
+      whereClause += `${whereClause ? 'and' : 'where'} i.id in (?)`;
+      whereValues.push(institutionIds.join(','));
     }
 
     whereClause += `${whereClause ? 'and' : 'where'} i.is_active in (?)`;
@@ -74,7 +74,7 @@ export class InstitutionRepository extends Repository<Institution> {
   }
 
   async findInstitutionById(id: number): Promise<InstitutionDto> {
-    return this.findInstitutions(FindAllOptions.SHOW_ALL, undefined, id).then(
+    return this.findInstitutions(FindAllOptions.SHOW_ALL, undefined, [id]).then(
       (value) => (value ? value[0] : null),
     );
   }
