@@ -17,7 +17,7 @@ export class CountryOfficeRequest {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
-  @Column({ type: 'text', nullable: false })
+  @Column({ type: 'text', nullable: true })
   request_source: string;
 
   @Column({ type: 'timestamp', nullable: true })
