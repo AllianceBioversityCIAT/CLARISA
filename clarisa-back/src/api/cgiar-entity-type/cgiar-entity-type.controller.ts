@@ -10,7 +10,13 @@ import {
 } from '@nestjs/common';
 import { CgiarEntityTypeService } from './cgiar-entity-type.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CgiarEntityTypeDtoV2 } from './dto/cgiar-entity-type.v2.dto';
 import { BasicDtoV2 } from '../../shared/entities/dtos/basic.v2.dto';
 
@@ -32,6 +38,9 @@ export class CgiarEntityTypeController {
       'Show active, inactive or all CGIAR entity types. Defaults to active.',
   })
   @ApiOkResponse({ type: [BasicDtoV2] })
+  @ApiOperation({
+    summary: 'Get all CGIAR entity types, optionally filtered by status',
+  })
   async findAllV1(@Query('show') show: FindAllOptions) {
     return await this.cgiarEntityTypeService.findAllV1(show);
   }
@@ -45,6 +54,9 @@ export class CgiarEntityTypeController {
     description: 'The id of the CGIAR entity type',
   })
   @ApiOkResponse({ type: [BasicDtoV2] })
+  @ApiOperation({
+    summary: 'Get a CGIAR entity type by id',
+  })
   async findOneV1(@Param('id', ParseIntPipe) id: number) {
     return await this.cgiarEntityTypeService.findOneV1(id);
   }
@@ -59,6 +71,9 @@ export class CgiarEntityTypeController {
       'Show active, inactive or all CGIAR entity types. Defaults to active.',
   })
   @ApiOkResponse({ type: [CgiarEntityTypeDtoV2] })
+  @ApiOperation({
+    summary: 'Get all CGIAR entity types, optionally filtered by status',
+  })
   async findAllV2(@Query('show') show: FindAllOptions) {
     return await this.cgiarEntityTypeService.findAllV2(show);
   }
@@ -72,6 +87,9 @@ export class CgiarEntityTypeController {
     description: 'The id of the CGIAR entity type',
   })
   @ApiOkResponse({ type: [CgiarEntityTypeDtoV2] })
+  @ApiOperation({
+    summary: 'Get a CGIAR entity type by id',
+  })
   async findOneV2(@Param('id', ParseIntPipe) id: number) {
     return await this.cgiarEntityTypeService.findOneV2(id);
   }

@@ -28,6 +28,7 @@ import {
   ApiBody,
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -64,6 +65,10 @@ export class PartnerRequestController {
       'Show only partner requests with a specific status. Defaults to pending.',
   })
   @ApiOkResponse({ type: [PartnerRequestDto] })
+  @ApiOperation({
+    summary:
+      'Get all partner requests, optionally filtered by request status, active status, and source',
+  })
   async findAll(
     @Query('status') status: string,
     @Query('source') source: string,
@@ -94,6 +99,10 @@ export class PartnerRequestController {
       'The acronym of the MIS to filter the partner requests. Defaults to all.',
   })
   @ApiOkResponse({ type: [PartnerRequestDto] })
+  @ApiOperation({
+    summary:
+      'Get all partner requests from a specific MIS, optionally filtered by status and source',
+  })
   async findAllMis(@Query('status') status: string, @Param('mis') mis: string) {
     return await this.partnerRequestService.findAll(status, mis);
   }
@@ -106,6 +115,9 @@ export class PartnerRequestController {
     description: 'The id of the partner request',
   })
   @ApiOkResponse({ type: [PartnerRequestDto] })
+  @ApiOperation({
+    summary: 'Get a partner request by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.partnerRequestService.findOne(id);
   }
@@ -115,6 +127,42 @@ export class PartnerRequestController {
   @ApiBody({
     type: CreatePartnerRequestDto,
     required: true,
+    description: 'The data to create a new partner request',
+    examples: {
+      minimum: {
+        summary:
+          'Example of a new partner request with the minimum data required',
+        value: {
+          name: 'AKF',
+          institutionTypeCode: 39,
+          hqCountryIso: 'IN',
+          websiteLink: 'http://www.akdn.org/',
+          misAcronym: 'CLARISA',
+          userId: 3,
+          externalUserMail: 'test@example.com',
+          externalUserName: 'Testing User',
+        },
+      },
+      full: {
+        summary: 'Example of a new partner request with all the data',
+        value: {
+          name: 'General Electric',
+          acronym: 'GE',
+          institutionTypeCode: 39,
+          hqCountryIso: 'US',
+          websiteLink: 'https://www.ge.com/',
+          requestSource: 'Swagger',
+          misAcronym: 'CLARISA',
+          userId: 3,
+          externalUserMail: 'test@example.com',
+          externalUserName: 'Testing User',
+          externalUserComments:
+            'This is a legally registered company, as can be seen in the following link: https://www.ge.com/about-us',
+          category_1: 'Private Sector',
+          category_2: 'Reporting Tool',
+        },
+      },
+    },
   })
   @ApiQuery({
     name: 'source',
@@ -122,8 +170,11 @@ export class PartnerRequestController {
     required: false,
     description: `The MIS to link this new request to. If it's not provided, the MIS will be taken from the request's body (misAcronym).`,
   })
-  @ApiBearerAuth()
   @ApiOkResponse({ type: [PartnerRequestDto] })
+  @ApiOperation({
+    summary: 'Create a new partner request based on the provided data',
+  })
+  @ApiBearerAuth()
   async createPartnerRequest(
     @GetUserData() userData: UserData,
     @Body() newPartnerRequest: CreatePartnerRequestDto,
@@ -145,9 +196,41 @@ export class PartnerRequestController {
   @ApiBody({
     type: RespondRequestDto,
     required: true,
+    description: 'The data needed to respond a partner request',
+    examples: {
+      accepting: {
+        summary: 'Example of accepting a partner request',
+        value: {
+          requestId: 2,
+          userId: 1,
+          accept: true,
+          misAcronim: 'CLARISA',
+          externalUserMail: 'test@example.com',
+          externalUserName: 'Testing User',
+          externalUserComments:
+            'This is a legally registered company, as can be seen in the following link: https://www.ge.com/about-us',
+        },
+      },
+      rejecting: {
+        summary: 'Example of rejecting a partner request',
+        value: {
+          requestId: 1,
+          userId: 3,
+          accept: false,
+          misAcronim: 'CLARISA',
+          rejectJustification:
+            'The requested institution already exists in CLARISA as "Aga Khan Foundation"',
+          externalUserMail: 'test@example.com',
+          externalUserName: 'Testing User',
+        },
+      },
+    },
+  })
+  @ApiOkResponse({ type: [PartnerRequestDto] })
+  @ApiOperation({
+    summary: 'Respond to a partner request',
   })
   @ApiBearerAuth()
-  @ApiOkResponse({ type: [PartnerRequestDto] })
   async respondPartnerRequest(
     @GetUserData() userData: UserData,
     @Body() respondPartnerRequestDto: RespondRequestDto,
@@ -163,9 +246,32 @@ export class PartnerRequestController {
   @ApiBody({
     type: UpdatePartnerRequestDto,
     required: true,
+    description: 'The data needed to update a partner request',
+    examples: {
+      example: {
+        summary: 'Example of updating a partner request',
+        value: {
+          name: 'Aga Khan Foundation',
+          acronym: 'AKF',
+          institutionTypeCode: 39,
+          hqCountryIso: 'IN',
+          websiteLink: 'http://www.akdn.org/',
+          misAcronym: 'CLARISA',
+          userId: 3,
+          externalUserMail: 'test@example.com',
+          externalUserName: 'Testing User',
+          id: 1,
+          modification_justification:
+            'Spelling out acronym in name; adding acronym',
+        },
+      },
+    },
+  })
+  @ApiOkResponse({ type: [PartnerRequestDto] })
+  @ApiOperation({
+    summary: 'Update a partner request based on the provided data',
   })
   @ApiBearerAuth()
-  @ApiOkResponse({ type: [PartnerRequestDto] })
   async updatePartnerRequest(
     @GetUserData() userData: UserData,
     @Body() updatePartnerRequest: UpdatePartnerRequestDto,
@@ -177,13 +283,7 @@ export class PartnerRequestController {
   }
 
   @Post('create-bulk')
-  @UseGuards(JwtAuthGuard, PermissionGuard)
-  @ApiBody({
-    type: CreateBulkPartnerRequestDto,
-    required: true,
-  })
-  @ApiBearerAuth()
-  @ApiOkResponse({ type: [PartnerRequestDto] })
+  @ApiExcludeEndpoint()
   async createBulk(@Body() createBulkPartner: CreateBulkPartnerRequestDto) {
     const result: any =
       await this.partnerRequestService.createBulk(createBulkPartner);

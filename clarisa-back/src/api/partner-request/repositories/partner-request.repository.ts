@@ -431,6 +431,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
       partnerRequests.acronym = partnerRequestBulkIterator.acronym;
       partnerRequests.web_page = partnerRequestBulkIterator.website_link;
       partnerRequests.is_office = false;
+      partnerRequests.request_source = 'CLARISA Webpage';
       partnerRequests.external_user_mail = partnerRequestBulk.externalUserEmail;
       partnerRequests.external_user_name = partnerRequestBulk.externalUserName;
       partnerRequests.auditableFields.created_by =

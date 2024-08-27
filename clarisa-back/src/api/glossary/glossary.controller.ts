@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -41,6 +42,9 @@ export class GlossaryController {
       'Show active, inactive or all terms of the glossary. Defaults to active.',
   })
   @ApiOkResponse({ type: [GlossaryDto] })
+  @ApiOperation({
+    summary: 'Get all terms of the glossary, optionally filtered by status',
+  })
   findAll(@Query('show') show: FindAllOptions) {
     return this.glossaryService.findAll(show);
   }
@@ -51,9 +55,13 @@ export class GlossaryController {
     enum: FindAllOptions,
     required: false,
     description:
-      'Show active, inactive or all terms of the glossary (only used by the dashboard). Defaults to active.',
+      'Show active, inactive or all terms of the glossary. Defaults to active.',
   })
   @ApiOkResponse({ type: [GlossaryDto] })
+  @ApiOperation({
+    summary:
+      'Get all terms of the glossary for the Results Dashboard, optionally filtered by status',
+  })
   findAllForDashboard(@Query('show') show: FindAllOptions) {
     return this.glossaryService.findAll(show, true);
   }
@@ -66,6 +74,9 @@ export class GlossaryController {
     description: 'The id of the term of the glossary',
   })
   @ApiOkResponse({ type: [GlossaryDto] })
+  @ApiOperation({
+    summary: 'Get a term of the glossary by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.glossaryService.findOne(id);
   }

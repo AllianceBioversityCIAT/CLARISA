@@ -10,7 +10,13 @@ import {
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { SubnationalScopeService } from './subnational-scope.service';
 import { SubnationalScopeDto } from './dto/subnational-scope.dto';
-import { ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
@@ -40,6 +46,10 @@ export class SubnationalScopeController {
       'Show subnational scopes for a specific country by its ISO alpha-2 code.',
   })
   @ApiOkResponse({ type: [SubnationalScopeDto] })
+  @ApiOperation({
+    summary:
+      'Get all subnational scopes, optionally filtered by status, country ISO numeric, or country ISO alpha-2 code',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('country-id') country_id: number,
@@ -60,6 +70,9 @@ export class SubnationalScopeController {
     description: 'The id of the subnational scope',
   })
   @ApiOkResponse({ type: [SubnationalScopeDto] })
+  @ApiOperation({
+    summary: 'Get a subnational scope by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.studyTypeService.findOne(id);
   }

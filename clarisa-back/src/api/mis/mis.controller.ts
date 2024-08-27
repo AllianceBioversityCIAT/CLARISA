@@ -14,7 +14,9 @@ import { MisService } from './mis.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -25,6 +27,7 @@ import { PermissionGuard } from '../../shared/guards/permission.guard';
 import { GetUserData } from '../../shared/decorators/user-data.decorator';
 import { UserData } from '../../shared/interfaces/user-data';
 import { CreateMisDto } from './dto/create-mis.dto';
+import { SimpleMisDto } from './dto/simple-mis.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
@@ -33,8 +36,28 @@ export class MisController {
   constructor(private readonly _misService: MisService) {}
 
   @Post('create')
-  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @ApiBody({
+    type: CreateMisDto,
+    required: true,
+    description: 'The data to create a new MIS',
+    examples: {
+      example: {
+        summary: 'Example of a new MIS',
+        value: {
+          name: 'New System',
+          acronym: 'NS',
+          environment: 'PROD',
+          contact_point_id: 2,
+        },
+      },
+    },
+  })
+  @ApiOkResponse({ type: [SimpleMisDto] })
+  @ApiOperation({
+    summary: 'Create a new MIS based on the provided data',
+  })
   @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, PermissionGuard)
   create(
     @GetUserData() userData: UserData,
     @Body() createMisDto: CreateMisDto,
@@ -50,6 +73,9 @@ export class MisController {
     description: 'Show active, inactive or all MISes. Defaults to active.',
   })
   @ApiOkResponse({ type: [MisDto] })
+  @ApiOperation({
+    summary: 'Get all MISes, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this._misService.findAll(show);
   }
@@ -62,6 +88,9 @@ export class MisController {
     description: 'The id of the MIS',
   })
   @ApiOkResponse({ type: [MisDto] })
+  @ApiOperation({
+    summary: 'Get a MIS by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this._misService.findOne(id);
   }

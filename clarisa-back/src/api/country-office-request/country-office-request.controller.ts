@@ -25,6 +25,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -54,6 +55,10 @@ export class CountryOfficeRequestController {
     description: 'Status of the country office request',
   })
   @ApiOkResponse({ type: [CountryOfficeRequestDto] })
+  @ApiOperation({
+    summary:
+      'Get all country office requests, optionally filtered by status and source',
+  })
   async findAll(
     @Query('status') status: string,
     @Query('source') source: string,
@@ -78,14 +83,35 @@ export class CountryOfficeRequestController {
     name: 'mis',
     enum: MisOption.getAsEnumLikeObject(),
     required: false,
-    description: 'Source of the country office request',
+    description:
+      'Source of the country office request, optional if not sent on the body',
   })
   @ApiBody({
     type: CreateCountryOfficeRequestDto,
     description: 'The new country request object',
+    examples: {
+      example: {
+        summary:
+          'Example of two new country office request (one for each country)',
+        value: {
+          institutionCode: 1,
+          countryIso: ['KE', 'UG'],
+          misAcronym: 'CLARISA',
+          userId: 3,
+          requestSource: 'Swagger',
+          externalUserMail: 'test@example.com',
+          externalUserName: 'Testing User',
+          externalUserComments:
+            'You can find the information about the offices in the following link: www.example.com',
+        },
+      },
+    },
+  })
+  @ApiOkResponse({ type: [CountryOfficeRequestDto] })
+  @ApiOperation({
+    summary: 'Create a new country office request',
   })
   @ApiBearerAuth()
-  @ApiOkResponse({ type: [CountryOfficeRequestDto] })
   @UseGuards(JwtAuthGuard, PermissionGuard)
   async createCountryOfficeRequests(
     @GetUserData() userData: UserData,
@@ -104,12 +130,41 @@ export class CountryOfficeRequestController {
   }
 
   @Post('respond')
+  @ApiOkResponse({ type: CountryOfficeRequestDto })
   @ApiBody({
     type: RespondRequestDto,
     description: 'The data needed to respond a country request',
+    examples: {
+      accepting: {
+        summary: 'Example of accepting a country office request',
+        value: {
+          requestId: 1,
+          userId: 3,
+          accept: true,
+          misAcronim: 'CLARISA',
+          externalUserMail: 'test@example.com',
+          externalUserName: 'Testing User',
+          externalUserComments:
+            'You can find the information about the offices in the following link: www.example.com',
+        },
+      },
+      rejecting: {
+        summary: 'Example of rejecting a country office request',
+        value: {
+          requestId: 1,
+          userId: 3,
+          accept: false,
+          misAcronim: 'CLARISA',
+          rejectJustification: 'The requested country office already exists',
+          externalUserMail: 'test@example.com',
+          externalUserName: 'Testing User',
+          externalUserComments:
+            'You can find the information about the offices in the following link: www.example.com',
+        },
+      },
+    },
   })
   @ApiBearerAuth()
-  @ApiOkResponse({ type: CountryOfficeRequestDto })
   @UseGuards(JwtAuthGuard, PermissionGuard)
   async respondCountryOfficeRequest(
     @GetUserData() userData: UserData,
@@ -125,6 +180,25 @@ export class CountryOfficeRequestController {
   @ApiBody({
     type: UpdateCountryOfficeRequestDto,
     description: 'The data needed to update a country request',
+    examples: {
+      example: {
+        summary: 'Example of updating a country office request',
+        value: {
+          institutionCode: 1,
+          misAcronym: 'CLARISA',
+          userId: 3,
+          requestSource: 'Swagger',
+          externalUserMail: 'test@example.com',
+          externalUserName: 'Testing User',
+          externalUserComments:
+            'You can find the information about the offices in the following link: www.example.com',
+          id: 1,
+          modification_justification:
+            'The country linked to the request was wrong',
+          countryIso: 'SZ',
+        },
+      },
+    },
   })
   @ApiOkResponse({ type: CountryOfficeRequestDto })
   @ApiBearerAuth()

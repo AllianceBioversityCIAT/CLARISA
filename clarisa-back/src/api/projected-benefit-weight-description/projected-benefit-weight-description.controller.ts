@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -43,6 +44,10 @@ export class ProjectedBenefitWeightDescriptionController {
       'Show active, inactive or all projected benefit weight descriptions. Defaults to active.',
   })
   @ApiOkResponse({ type: [ProjectedBenefitWeightDescriptionDto] })
+  @ApiOperation({
+    summary:
+      'Get all projected benefit weight descriptions, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.projectedBenefitWeightDescriptionService.findAll(show);
   }
@@ -55,6 +60,9 @@ export class ProjectedBenefitWeightDescriptionController {
     description: 'The id of the projected benefit weight description',
   })
   @ApiOkResponse({ type: [ProjectedBenefitWeightDescriptionDto] })
+  @ApiOperation({
+    summary: 'Get a projected benefit weight description by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.projectedBenefitWeightDescriptionService.findOne(id);
   }

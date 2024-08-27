@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -49,6 +50,10 @@ export class InnovationTypeController {
       'Show only innovation types from a specific source. Defaults to all.',
   })
   @ApiOkResponse({ type: [InnovationTypeDto] })
+  @ApiOperation({
+    summary:
+      'Get all innovation types, optionally filtered by status and source',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
@@ -64,6 +69,9 @@ export class InnovationTypeController {
     description: 'The id of the innovation type',
   })
   @ApiOkResponse({ type: [InnovationTypeDto] })
+  @ApiOperation({
+    summary: 'Get an innovation type by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.innovationTypeService.findOne(id);
   }

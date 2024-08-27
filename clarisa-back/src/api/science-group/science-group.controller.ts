@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -41,6 +42,9 @@ export class ScienceGroupController {
       'Show active, inactive or all science groups. Defaults to active.',
   })
   @ApiOkResponse({ type: [ScienceGroupDto] })
+  @ApiOperation({
+    summary: 'Get all science groups, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.scienceGroupService.findAll(show);
   }
@@ -53,6 +57,9 @@ export class ScienceGroupController {
     description: 'The id of the science group',
   })
   @ApiOkResponse({ type: [ScienceGroupDto] })
+  @ApiOperation({
+    summary: 'Get a science group by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.scienceGroupService.findOne(id);
   }

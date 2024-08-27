@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -41,6 +42,9 @@ export class BeneficiaryController {
       'Show active, inactive or all beneficiaries. Defaults to active.',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get all beneficiaries, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.beneficiaryService.findAll(show);
   }
@@ -53,6 +57,9 @@ export class BeneficiaryController {
     description: 'The id of the beneficiary',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get a beneficiary by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.beneficiaryService.findOne(id);
   }

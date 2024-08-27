@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -43,6 +44,10 @@ export class InstitutionDictionaryController {
       'Show active, inactive or all institutions. Defaults to active.',
   })
   @ApiOkResponse({ type: [InstitutionDictionaryDto] })
+  @ApiOperation({
+    summary:
+      'Get all institutions and existing equivalents in other systems, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.institutionDictionaryService.findAll(show);
   }
@@ -52,9 +57,13 @@ export class InstitutionDictionaryController {
     name: 'id',
     type: Number,
     required: true,
-    description: 'The id of the institution',
+    description:
+      'The id of the institution and existing equivalents in other systems',
   })
   @ApiOkResponse({ type: [InstitutionDictionaryDto] })
+  @ApiOperation({
+    summary: 'Get an institution by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.institutionDictionaryService.findOne(id);
   }

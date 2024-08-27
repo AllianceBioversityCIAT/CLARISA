@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -43,6 +44,9 @@ export class InnovationUseLevelController {
       'Show active, inactive or all innovation use levels. Defaults to active.',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get all innovation use levels, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.innovationUseLevelService.findAll(show);
   }
@@ -55,6 +59,9 @@ export class InnovationUseLevelController {
     description: 'The id of the innovation use level',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get an innovation use level by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.innovationUseLevelService.findOne(id);
   }

@@ -12,9 +12,11 @@ import { CronTOC } from './toc/cron.toc';
 import { PRMSApplication } from '../entities/enums/prms-applications';
 import { CronReporting } from './reporting/cron.reporting';
 import { CronRisk } from './risk/cron.risk';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 @Controller('cronjobs')
 @UseGuards(JwtAuthGuard, PermissionGuard)
+@ApiTags('CronJobs')
 export class IntegrationController {
   constructor(
     private readonly cronOst: CronOST,
@@ -24,16 +26,31 @@ export class IntegrationController {
   ) {}
 
   @Get('ost/initiatives')
+  @ApiOperation({
+    summary: 'Update all initiatives data from OST',
+  })
   async updateAllInititatives() {
     this.cronOst.cronInitiativeRelatedData();
   }
 
   @Get('ost/workpackages')
+  @ApiOperation({
+    summary: 'Update all workpackages data from OST',
+  })
   async updateAllWorkpackages() {
     this.cronOst.cronWorkpackageRelatedData();
   }
 
   @Get(':mis/phases')
+  @ApiQuery({
+    name: 'mis',
+    enum: PRMSApplication.getAsEnumLikeObject(),
+    required: true,
+    description: 'The MIS to update phases data from',
+  })
+  @ApiOperation({
+    summary: 'Update all phases data from a specific application',
+  })
   async updateAllPhasesFromApplication(@Param('mis') mis: string) {
     const misObject = PRMSApplication.getfromSimpleName(mis);
     switch (misObject) {

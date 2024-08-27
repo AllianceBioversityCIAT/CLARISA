@@ -20,6 +20,7 @@ import { Account } from './entities/account.entity';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -40,6 +41,9 @@ export class AccountController {
     description: 'Show active, inactive or all accounts. Defaults to active.',
   })
   @ApiOkResponse({ type: [AccountDto] })
+  @ApiOperation({
+    summary: 'Get all accounts, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.accountService.findAll(show);
   }
@@ -52,6 +56,9 @@ export class AccountController {
     description: 'The id of the account',
   })
   @ApiOkResponse({ type: AccountDto })
+  @ApiOperation({
+    summary: 'Get an account by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.accountService.findOne(id);
   }

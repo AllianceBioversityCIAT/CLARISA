@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -27,7 +28,6 @@ import {
 import { OutcomeIndicatorDto } from './dto/outcome-indicator.dto';
 
 @Controller()
-@UseInterceptors(ClassSerializerInterceptor)
 @UseInterceptors(ClassSerializerInterceptor)
 @ApiTags('Outcome Indicators')
 export class OutcomeIndicatorController {
@@ -44,6 +44,9 @@ export class OutcomeIndicatorController {
       'Show active, inactive or all outcome indicators. Defaults to active.',
   })
   @ApiOkResponse({ type: [OutcomeIndicatorDto] })
+  @ApiOperation({
+    summary: 'Get all outcome indicators, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.outcomeIndicatorService.findAll(show);
   }
@@ -56,6 +59,9 @@ export class OutcomeIndicatorController {
     description: 'The id of the outcome indicator',
   })
   @ApiOkResponse({ type: [OutcomeIndicatorDto] })
+  @ApiOperation({
+    summary: 'Get an outcome indicator by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.outcomeIndicatorService.findOne(id);
   }

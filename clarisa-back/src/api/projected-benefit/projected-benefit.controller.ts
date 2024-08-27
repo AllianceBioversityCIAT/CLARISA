@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -43,6 +44,9 @@ export class ProjectedBenefitController {
       'Show active, inactive or all projected benefits. Defaults to active.',
   })
   @ApiOkResponse({ type: [ProjectedBenefitDto] })
+  @ApiOperation({
+    summary: 'Get all projected benefits, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.projectedBenefitService.findAll(show);
   }
@@ -55,6 +59,9 @@ export class ProjectedBenefitController {
     description: 'The id of the projected benefit',
   })
   @ApiOkResponse({ type: [ProjectedBenefitDto] })
+  @ApiOperation({
+    summary: 'Get a projected benefit by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.projectedBenefitService.findOne(id);
   }

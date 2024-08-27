@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -50,6 +51,10 @@ export class GeographicScopeController {
     description: 'Show the type of regions to display.',
   })
   @ApiOkResponse({ type: [GeographicScopeDto] })
+  @ApiOperation({
+    summary:
+      'Get all geographic scopes, optionally filtered by status and type',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
@@ -65,6 +70,9 @@ export class GeographicScopeController {
     description: 'The id of the geographic scope',
   })
   @ApiOkResponse({ type: [GeographicScopeDto] })
+  @ApiOperation({
+    summary: 'Get a geographic scope by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.geographicScopeService.findOne(id);
   }

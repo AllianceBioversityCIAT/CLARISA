@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -41,6 +42,9 @@ export class InitiativeController {
       'Show active, inactive or all initiatives. Defaults to active.',
   })
   @ApiOkResponse({ type: [InitiativeDto] })
+  @ApiOperation({
+    summary: 'Get all initiatives, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.initiativeService.findAll(show);
   }
@@ -53,6 +57,9 @@ export class InitiativeController {
     description: 'The id of the initiative',
   })
   @ApiOkResponse({ type: [InitiativeDto] })
+  @ApiOperation({
+    summary: 'Get an initiative by id',
+  })
   async findOneById(@Param('id', ParseIntPipe) id: number) {
     return await this.initiativeService.findOne(id);
   }
@@ -63,8 +70,21 @@ export class InitiativeController {
     type: String,
     required: true,
     description: 'The official code of the initiative',
+    examples: {
+      initiative: {
+        value: 'INIT-01',
+        summary: 'Example of a valid official code for an initiative',
+      },
+      platform: {
+        value: 'PLAT-03',
+        summary: 'Example of a valid official code for a platform',
+      },
+    },
   })
   @ApiOkResponse({ type: [InitiativeDto] })
+  @ApiOperation({
+    summary: 'Get an initiative by its official code',
+  })
   async findOneByOfficialCode(@Param('officialCode') officialCode: string) {
     return await this.initiativeService.findOneByOfficialCode(officialCode);
   }

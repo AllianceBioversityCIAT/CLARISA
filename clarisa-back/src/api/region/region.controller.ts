@@ -21,6 +21,7 @@ import { RegionTypeEnum } from '../../shared/entities/enums/region-types';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -41,6 +42,9 @@ export class RegionController {
     description: 'Show active, inactive or all regions. Defaults to active.',
   })
   @ApiOkResponse({ type: [RegionDto] })
+  @ApiOperation({
+    summary: 'Get all UN regions, optionally filtered by status',
+  })
   async findAllUNRegions(@Query('show') show: FindAllOptions) {
     return await this.regionService.findAll(RegionTypeEnum.UN_REGION, show);
   }
@@ -53,6 +57,9 @@ export class RegionController {
     description: 'Show active, inactive or all regions. Defaults to active.',
   })
   @ApiOkResponse({ type: [RegionDto] })
+  @ApiOperation({
+    summary: 'Get all One CGIAR regions, optionally filtered by status',
+  })
   async findAllCGIARRegions(@Query('show') show: FindAllOptions) {
     return await this.regionService.findAll(RegionTypeEnum.CGIAR_REGION, show);
   }
@@ -65,6 +72,9 @@ export class RegionController {
     description: 'The id of the region',
   })
   @ApiOkResponse({ type: [RegionDto] })
+  @ApiOperation({
+    summary: 'Get a region by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.regionService.findOne(id);
   }

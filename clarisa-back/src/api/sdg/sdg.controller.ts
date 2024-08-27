@@ -10,7 +10,13 @@ import {
 } from '@nestjs/common';
 import { SdgService } from './sdg.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { SdgV2Dto } from './dto/sdg.v2.dto';
 import { SdgV1Dto } from './dto/sdg.v1.dto';
 
@@ -32,6 +38,9 @@ export class SdgController {
     description: 'Show active, inactive or all SDGs. Defaults to active.',
   })
   @ApiOkResponse({ type: [SdgV2Dto] })
+  @ApiOperation({
+    summary: 'Get all SDGs, optionally filtered by status',
+  })
   async findAllV2(@Query('show') show: FindAllOptions) {
     return await this.sdgService.findAllV2(show);
   }
@@ -44,6 +53,9 @@ export class SdgController {
     description: 'Show active, inactive or all SDGs. Defaults to active.',
   })
   @ApiOkResponse({ type: [SdgV1Dto] })
+  @ApiOperation({
+    summary: 'Get all SDGs (legacy), optionally filtered by status',
+  })
   async findAllLegacy(@Query('show') show: FindAllOptions) {
     return await this.sdgService.findAllV1(show);
   }
@@ -56,6 +68,9 @@ export class SdgController {
     description: 'The id of the SDG',
   })
   @ApiOkResponse({ type: [SdgV2Dto] })
+  @ApiOperation({
+    summary: 'Get an SDG by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.sdgService.findOneV2(id);
   }

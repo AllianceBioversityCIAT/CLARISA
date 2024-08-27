@@ -143,8 +143,8 @@ export class CountryOfficeRequestService {
       );
     }
 
-    const newCountryOfficeRequests: CountryOfficeRequest[] = await Promise.all(
-      countries.map(async (c) => {
+    const newCountryOfficeRequests: CountryOfficeRequest[] = countries.map(
+      (c) => {
         const newCountryOfficeRequest: CountryOfficeRequest =
           new CountryOfficeRequest();
         newCountryOfficeRequest.auditableFields = new AuditableEntity();
@@ -155,7 +155,7 @@ export class CountryOfficeRequestService {
         newCountryOfficeRequest.country_object = c;
 
         return newCountryOfficeRequest;
-      }),
+      },
     );
 
     const response: CountryOfficeRequestDto[] =

@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -49,6 +50,10 @@ export class InstitutionController {
       'Show institutions from a certain date (in milis). Defaults to null (shows all institutions).',
   })
   @ApiOkResponse({ type: [InstitutionDto] })
+  @ApiOperation({
+    summary:
+      'Get all institutions, optionally filtered by status and date of creation',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('from') from: string = undefined,
@@ -65,6 +70,10 @@ export class InstitutionController {
       'Show active, inactive or all institutions. Defaults to active.',
   })
   @ApiOkResponse({ type: [InstitutionSimpleDto] })
+  @ApiOperation({
+    summary:
+      'Get all institutions with flattened data, optionally filtered by status',
+  })
   async findAllSimple(@Query('show') show: FindAllOptions) {
     return await this.institutionService.findAllSimple(show);
   }
@@ -77,6 +86,9 @@ export class InstitutionController {
     description: 'The id of the institution',
   })
   @ApiOkResponse({ type: [InstitutionDto] })
+  @ApiOperation({
+    summary: 'Get an institution by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.institutionService.findOne(id);
   }

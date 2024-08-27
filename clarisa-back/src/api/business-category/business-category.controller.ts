@@ -20,6 +20,7 @@ import { BusinessCategory } from './entities/business-category.entity';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -43,6 +44,9 @@ export class BusinessCategoryController {
       'Show active, inactive or all business categories. Defaults to active.',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get all business categories, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.businessCategoryService.findAll(show);
   }
@@ -55,6 +59,9 @@ export class BusinessCategoryController {
     description: 'The id of the business category',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get a business category by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.businessCategoryService.findOne(id);
   }

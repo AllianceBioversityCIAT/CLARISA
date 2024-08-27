@@ -20,6 +20,7 @@ import { Response } from 'express';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -49,6 +50,9 @@ export class PolicyTypeController {
       'Show only policy types from a specific source. Defaults to all.',
   })
   @ApiOkResponse({ type: [PolicyTypeDto] })
+  @ApiOperation({
+    summary: 'Get all policy types, optionally filtered by status and type',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
@@ -64,6 +68,9 @@ export class PolicyTypeController {
     description: 'The id of the policy type',
   })
   @ApiOkResponse({ type: [PolicyTypeDto] })
+  @ApiOperation({
+    summary: 'Get a policy type by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.policyTypeService.findOne(id);
   }

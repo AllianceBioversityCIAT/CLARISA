@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -41,6 +42,9 @@ export class StudyTypeController {
       'Show active, inactive or all study types. Defaults to active.',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get all study types, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.studyTypeService.findAll(show);
   }
@@ -53,6 +57,9 @@ export class StudyTypeController {
     description: 'The id of the study type',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get a study type by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.studyTypeService.findOne(id);
   }

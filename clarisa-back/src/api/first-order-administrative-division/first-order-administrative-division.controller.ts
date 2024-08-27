@@ -6,7 +6,12 @@ import {
 } from '@nestjs/common';
 import { FirstOrderAdministrativeDivisionService } from './first-order-administrative-division.service';
 import { UseInterceptors } from '@nestjs/common/decorators';
-import { ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 import { OrderAministrativeDivisionDto } from '../../shared/integration/ost/dto/order-administrative-division.dto';
 
 @Controller()
@@ -25,6 +30,10 @@ export class FirstOrderAdministrativeDivisionController {
     description: 'The ISO Alpha-2 of the country',
   })
   @ApiOkResponse({ type: [OrderAministrativeDivisionDto] })
+  @ApiOperation({
+    summary:
+      'Get all first order administrative divisions by ISO Alpha-2, directly from the Geonames API',
+  })
   findAll(@Param('isoAlpha2') isoAlpha2: string) {
     return this.firstOrderAdministrativeDivisionService.findIsoAlpha2(
       isoAlpha2,

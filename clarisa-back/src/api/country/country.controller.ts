@@ -20,6 +20,7 @@ import { Country } from './entities/country.entity';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -40,6 +41,9 @@ export class CountryController {
     description: 'Show active, inactive or all countries. Defaults to active.',
   })
   @ApiOkResponse({ type: [CountryDto] })
+  @ApiOperation({
+    summary: 'Get all countries, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.countryService.findAll(show);
   }
@@ -49,9 +53,12 @@ export class CountryController {
     name: 'id',
     type: Number,
     required: true,
-    description: 'The ISO code of the country',
+    description: 'The ISO numeric code of the country',
   })
   @ApiOkResponse({ type: [CountryDto] })
+  @ApiOperation({
+    summary: 'Get a country by ISO numeric code',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.countryService.findOne(id);
   }

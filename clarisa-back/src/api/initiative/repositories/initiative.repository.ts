@@ -45,7 +45,7 @@ export class InitiativeRepository extends Repository<Initiative> {
     if (initiativeId) {
       whereCondition = `where sti.id = ${initiativeId}`;
     } else if (initiativeCode) {
-      whereCondition = `where sti.official_code like %'${initiativeCode}'%`;
+      whereCondition = `where sti.official_code like '%${initiativeCode}%'`;
     }
     if (option !== FindAllOptions.SHOW_ALL) {
       if (whereCondition) {

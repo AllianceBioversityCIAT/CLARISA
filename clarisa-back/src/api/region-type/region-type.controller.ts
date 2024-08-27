@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -41,6 +42,9 @@ export class RegionTypeController {
       'Show active, inactive or all region types. Defaults to active.',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get all region types, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.regionTypeService.findAll(show);
   }
@@ -53,6 +57,9 @@ export class RegionTypeController {
     description: 'The id of the region type',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get a region type by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.regionTypeService.findOne(id);
   }

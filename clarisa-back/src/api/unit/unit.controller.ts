@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -40,6 +41,9 @@ export class UnitController {
     description: 'Show active, inactive or all units. Defaults to active.',
   })
   @ApiOkResponse({ type: [UnitDto] })
+  @ApiOperation({
+    summary: 'Get all units, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.unitService.findAll(show);
   }
@@ -52,6 +56,9 @@ export class UnitController {
     description: 'The id of the unit',
   })
   @ApiOkResponse({ type: [UnitDto] })
+  @ApiOperation({
+    summary: 'Get a unit by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.unitService.findOne(id);
   }

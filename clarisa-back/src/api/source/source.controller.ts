@@ -9,7 +9,13 @@ import {
 } from '@nestjs/common';
 import { SourceService } from './source.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { SourceDto } from './dto/source.dto';
 
 @Controller()
@@ -26,6 +32,9 @@ export class SourceController {
     description: 'Show active, inactive or all sources. Defaults to active.',
   })
   @ApiOkResponse({ type: [SourceDto] })
+  @ApiOperation({
+    summary: 'Get all sources, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.sourcesService.findAll(show);
   }
@@ -38,6 +47,9 @@ export class SourceController {
     description: 'The id of the beneficiary',
   })
   @ApiOkResponse({ type: [SourceDto] })
+  @ApiOperation({
+    summary: 'Get a source by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.sourcesService.findOne(id);
   }

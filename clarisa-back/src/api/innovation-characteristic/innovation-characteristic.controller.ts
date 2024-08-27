@@ -9,7 +9,13 @@ import {
 } from '@nestjs/common';
 import { InnovationCharacteristicService } from './innovation-characteristic.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { InnovationCharacteristicDto } from './dto/innovation-characteristic.dto';
 
 @Controller()
@@ -29,6 +35,10 @@ export class InnovationCharacteristicController {
       'Show active, inactive or all innovation characteristics. Defaults to active.',
   })
   @ApiOkResponse({ type: [InnovationCharacteristicDto] })
+  @ApiOperation({
+    summary:
+      'Get all innovation characteristics, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.innovationCharacteristicService.findAll(show);
   }
@@ -41,6 +51,9 @@ export class InnovationCharacteristicController {
     description: 'The id of the innovation characteristic',
   })
   @ApiOkResponse({ type: [InnovationCharacteristicDto] })
+  @ApiOperation({
+    summary: 'Get an innovation characteristic by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.innovationCharacteristicService.findOne(id);
   }

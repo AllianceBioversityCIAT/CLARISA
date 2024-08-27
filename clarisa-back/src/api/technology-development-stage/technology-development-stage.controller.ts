@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -43,6 +44,10 @@ export class TechnologyDevelopmentStageController {
       'Show active, inactive or all technology development stages. Defaults to active.',
   })
   @ApiOkResponse({ type: [TechnologyDevelopmentStageDto] })
+  @ApiOperation({
+    summary:
+      'Get all technology development stages, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.technologyDevelopmentStageService.findAll(show);
   }
@@ -55,6 +60,9 @@ export class TechnologyDevelopmentStageController {
     description: 'The id of the technology development stage',
   })
   @ApiOkResponse({ type: [TechnologyDevelopmentStageDto] })
+  @ApiOperation({
+    summary: 'Get a technology development stage by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.technologyDevelopmentStageService.findOne(id);
   }

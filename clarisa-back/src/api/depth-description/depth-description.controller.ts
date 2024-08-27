@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -43,6 +44,9 @@ export class DepthDescriptionController {
       'Show active, inactive or all depths description. Defaults to active.',
   })
   @ApiOkResponse({ type: [DepthDescriptionDto] })
+  @ApiOperation({
+    summary: 'Get all depths description, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.depthDescriptionService.findAll(show);
   }
@@ -55,6 +59,9 @@ export class DepthDescriptionController {
     description: 'The id of the depth description',
   })
   @ApiOkResponse({ type: [DepthDescriptionDto] })
+  @ApiOperation({
+    summary: 'Get a depth description by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.depthDescriptionService.findOne(id);
   }
