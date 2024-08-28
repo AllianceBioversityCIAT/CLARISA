@@ -40,7 +40,7 @@ export class AuthService {
       }
     } else {
       throw new HttpException(
-        'Invalid credentials. Please check the provided login data and try again.',
+        'Invalid credentials. Please check the provided login data and try again...',
         HttpStatus.UNAUTHORIZED,
       );
     }
