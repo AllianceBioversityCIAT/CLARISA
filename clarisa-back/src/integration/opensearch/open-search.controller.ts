@@ -24,7 +24,7 @@ export class OpenSearchController {
   @Get('search')
   async search(
     @Query('query') query: string,
-    @Query('size', new DefaultValuePipe(20), ParseIntPipe) size: number,
+    @Query('result-size', new DefaultValuePipe(20), ParseIntPipe) size: number,
   ) {
     return this.openSearchApi.search(query, size);
   }
