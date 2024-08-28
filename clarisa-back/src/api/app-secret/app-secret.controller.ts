@@ -20,6 +20,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -38,6 +39,9 @@ export class AppSecretController {
     required: true,
   })
   @ApiOkResponse({ type: [AppSecretDto] })
+  @ApiOperation({
+    summary: 'Create a new app secret based on the provided data',
+  })
   @ApiBearerAuth()
   create(
     @GetUserData() userData: UserData,
@@ -53,6 +57,9 @@ export class AppSecretController {
     required: true,
   })
   @ApiOkResponse({ type: [AppSecretDto] })
+  @ApiOperation({
+    summary: 'Validate an app secret based on the provided data',
+  })
   @ApiBearerAuth()
   validate(@Body() validateAppSecret: ValidateAppSecretDto) {
     return this.appSecretService.validateAppSecret(validateAppSecret);
@@ -63,9 +70,13 @@ export class AppSecretController {
     name: 'show',
     enum: FindAllOptions,
     required: false,
-    description: 'Show active, inactive or all secrets. Defaults to active.',
+    description:
+      'Show active, inactive or all app secrets. Defaults to active.',
   })
   @ApiOkResponse({ type: [AppSecretDto] })
+  @ApiOperation({
+    summary: 'Get all app secrets, optionally filtered by status',
+  })
   findAll(@Query('show') show: FindAllOptions) {
     return this.appSecretService.findAll(show);
   }
@@ -78,6 +89,9 @@ export class AppSecretController {
     description: 'The id of the secret',
   })
   @ApiOkResponse({ type: [AppSecretDto] })
+  @ApiOperation({
+    summary: 'Get an app secret by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.appSecretService.findOne(id);
   }

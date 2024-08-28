@@ -21,6 +21,7 @@ import { ActionArea } from './entities/action-area.entity';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -43,6 +44,9 @@ export class ActionAreaController {
       'Show active, inactive or all action areas. Defaults to active',
   })
   @ApiOkResponse({ type: [ActionAreaDto] })
+  @ApiOperation({
+    summary: 'Get all action areas, optionally filtered by status',
+  })
   async findAllV1(@Query('show') show: FindAllOptions) {
     return await this.actionAreaService.findAll(show);
   }
@@ -56,6 +60,9 @@ export class ActionAreaController {
     description: 'The id of the action area',
   })
   @ApiOkResponse({ type: [ActionAreaDto] })
+  @ApiOperation({
+    summary: 'Get an action area by id',
+  })
   async findOneV1(@Param('id', ParseIntPipe) id: number) {
     return await this.actionAreaService.findOne(id);
   }

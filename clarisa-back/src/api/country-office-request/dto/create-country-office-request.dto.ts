@@ -22,9 +22,9 @@ export class CreateCountryOfficeRequestDto {
   @ApiProperty({
     description: 'The source of the country office request',
     type: String,
-    nullable: true,
+    required: false,
   })
-  requestSource?: string;
+  requestSource: string = 'REST API';
 
   @ApiProperty({
     description:

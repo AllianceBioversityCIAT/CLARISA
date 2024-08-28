@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -49,6 +50,9 @@ export class PolicyStageController {
       'Show only policy stages from a specific source. Defaults to all',
   })
   @ApiOkResponse({ type: [PolicyStageDto] })
+  @ApiOperation({
+    summary: 'Get all policy stages, optionally filtered by status and type',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
@@ -64,6 +68,9 @@ export class PolicyStageController {
     description: 'The id of the policy stage',
   })
   @ApiOkResponse({ type: [PolicyStageDto] })
+  @ApiOperation({
+    summary: 'Get a policy stage by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.policyStageService.findOne(id);
   }

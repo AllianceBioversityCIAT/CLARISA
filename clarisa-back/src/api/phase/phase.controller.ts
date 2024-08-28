@@ -1,7 +1,13 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { PhaseService } from './phase.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PhaseDto } from './dto/phase.dto';
 import { PhaseStatus } from '../../shared/entities/enums/phase-status';
 import { PRMSApplication } from '../../shared/entities/enums/prms-applications';
@@ -25,6 +31,10 @@ export class PhaseController {
     description: 'Show only phases with a specific status. Defaults to open',
   })
   @ApiOkResponse({ type: [PhaseDto] })
+  @ApiOperation({
+    summary:
+      'Get all phases, optionally filtered by active status and opened/closed status',
+  })
   findAll(
     @Query('show') show: FindAllOptions,
     @Query('status') status: string,
@@ -54,6 +64,10 @@ export class PhaseController {
       'Show only phases from a specific application. Defaults to all.',
   })
   @ApiOkResponse({ type: [PhaseDto] })
+  @ApiOperation({
+    summary:
+      'Get all phases, optionally filtered by active status, opened/closed status and application',
+  })
   findAllByApplication(
     @Param('app') application: string,
     @Query('show') show: FindAllOptions,

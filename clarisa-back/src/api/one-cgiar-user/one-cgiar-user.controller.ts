@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -41,6 +42,9 @@ export class OneCgiarUserController {
       'Show active, inactive or all OneCGIAR users. Defaults to active.',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get all OneCGIAR users, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.oneCgiarUserService.findAll(show);
   }
@@ -53,6 +57,9 @@ export class OneCgiarUserController {
     description: 'The id of the OneCGIAR user',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get an OneCGIAR user by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.oneCgiarUserService.findOne(id);
   }

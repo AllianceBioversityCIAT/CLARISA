@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -41,6 +42,9 @@ export class GlobalTargetController {
       'Show active, inactive or all global targets. Defaults to active.',
   })
   @ApiOkResponse({ type: [GlobalTargetDto] })
+  @ApiOperation({
+    summary: 'Get all global targets, optionally filtered by status',
+  })
   findAll(@Query('show') show: FindAllOptions) {
     return this.globalTargetsService.findAll(show);
   }
@@ -53,6 +57,9 @@ export class GlobalTargetController {
     description: 'The id of the global target',
   })
   @ApiOkResponse({ type: [GlobalTargetDto] })
+  @ApiOperation({
+    summary: 'Get a global target by id',
+  })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.globalTargetsService.findOne(id);
   }

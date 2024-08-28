@@ -21,6 +21,7 @@ import { AccountType } from './entities/account-type.entity';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -42,6 +43,9 @@ export class AccountTypeController {
       'Show active, inactive or all account types. Defaults to active.',
   })
   @ApiOkResponse({ type: [AccountTypeDto] })
+  @ApiOperation({
+    summary: 'Get all account types, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.accountTypeService.findAll(show);
   }
@@ -54,6 +58,9 @@ export class AccountTypeController {
     description: 'The id of the account type',
   })
   @ApiOkResponse({ type: [AccountTypeDto] })
+  @ApiOperation({
+    summary: 'Get an account type by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.accountTypeService.findOne(id);
   }

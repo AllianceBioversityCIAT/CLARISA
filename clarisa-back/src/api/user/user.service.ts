@@ -3,10 +3,22 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UserRepository } from './repositories/user.repository';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UserData } from '../../shared/interfaces/user-data';
 
 @Injectable()
 export class UserService {
   constructor(private usersRepository: UserRepository) {}
+
+  create(userData: UserData, createUserDto: CreateUserDto) {
+    if (!createUserDto) {
+      throw new Error('Missing required data');
+    } else if (!createUserDto.email) {
+      throw new Error('Missing user email');
+    } else if (!createUserDto.roles || createUserDto.roles.length == 0) {
+      throw new Error('Missing user roles');
+    }
+  }
 
   findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,

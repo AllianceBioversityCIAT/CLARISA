@@ -9,7 +9,13 @@ import {
 } from '@nestjs/common';
 import { PortfolioService } from './portfolio.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PortfolioDto } from './dto/portfolio.dto';
 
 @Controller()
@@ -26,6 +32,9 @@ export class PortfolioController {
     description: 'Show active, inactive or all portfolios. Defaults to active.',
   })
   @ApiOkResponse({ type: [PortfolioDto] })
+  @ApiOperation({
+    summary: 'Get all portfolios, optionally filtered by status',
+  })
   findAll(@Query('show') show: FindAllOptions) {
     return this.portfolioService.findAll(show);
   }
@@ -38,7 +47,10 @@ export class PortfolioController {
     description: 'The id of the portfolio',
   })
   @ApiOkResponse({ type: [PortfolioDto] })
+  @ApiOperation({
+    summary: 'Get a portfolio by id',
+  })
   findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.portfolioService.findOne(+id);
+    return this.portfolioService.findOne(id);
   }
 }

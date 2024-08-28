@@ -8,7 +8,13 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { LanguageService } from './language.service';
-import { ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { LanguageDto } from './dto/language.dto';
 
@@ -26,6 +32,9 @@ export class LanguageController {
     description: 'Show active, inactive or all languages. Defaults to active.',
   })
   @ApiOkResponse({ type: [LanguageDto] })
+  @ApiOperation({
+    summary: 'Get all languages, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return this.languageService.findAll(show);
   }
@@ -38,6 +47,9 @@ export class LanguageController {
     description: 'The id of the language',
   })
   @ApiOkResponse({ type: [LanguageDto] })
+  @ApiOperation({
+    summary: 'Get a language by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.languageService.findOne(+id);
   }

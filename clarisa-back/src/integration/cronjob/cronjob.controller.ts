@@ -5,6 +5,7 @@ import {
   Param,
   UseGuards,
 } from '@nestjs/common';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
 import { OSTCron } from '../ost/ost.cron';
@@ -15,7 +16,8 @@ import { PRMSApplication } from '../../shared/entities/enums/prms-applications';
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionGuard)
-export class CronjobController {
+@ApiTags('CronJobs')
+export class IntegrationController {
   constructor(
     private readonly cronOst: OSTCron,
     private readonly cronToc: TOCCron,
@@ -24,16 +26,31 @@ export class CronjobController {
   ) {}
 
   @Get('ost/initiatives')
+  @ApiOperation({
+    summary: 'Update all initiatives data from OST',
+  })
   async updateAllInititatives() {
     this.cronOst.cronInitiativeRelatedData();
   }
 
   @Get('ost/workpackages')
+  @ApiOperation({
+    summary: 'Update all workpackages data from OST',
+  })
   async updateAllWorkpackages() {
     this.cronOst.cronWorkpackageRelatedData();
   }
 
   @Get(':mis/phases')
+  @ApiQuery({
+    name: 'mis',
+    enum: PRMSApplication.getAsEnumLikeObject(),
+    required: true,
+    description: 'The MIS to update phases data from',
+  })
+  @ApiOperation({
+    summary: 'Update all phases data from a specific application',
+  })
   async updateAllPhasesFromApplication(@Param('mis') mis: string) {
     const misObject = PRMSApplication.getfromSimpleName(mis);
     switch (misObject) {

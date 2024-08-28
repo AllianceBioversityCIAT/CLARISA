@@ -19,9 +19,11 @@ export class AuthService {
 
   async validateUser(login: string, pass: string) {
     login = login.trim().toLowerCase();
-    const user: User =
-      (await this.usersService.findOneByEmail(login, false)) ??
-      (await this.usersService.findOneByUsername(login, false));
+    const user: User = await this.usersService
+      .findOneByEmail(login, false)
+      .then((u) => {
+        return u ?? this.usersService.findOneByUsername(login, false);
+      });
     let authenticator: BaseAuthenticator;
 
     if (user) {
@@ -48,7 +50,6 @@ export class AuthService {
     const payload = {
       login: user.email,
       sub: user.id,
-      permissions: user.permissions,
     };
 
     return {

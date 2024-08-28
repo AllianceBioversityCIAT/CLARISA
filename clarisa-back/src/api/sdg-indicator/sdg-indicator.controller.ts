@@ -10,7 +10,13 @@ import {
 } from '@nestjs/common';
 import { SdgIndicatorService } from './sdg-indicator.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { SdgIndicatorV2Dto } from './dto/sdg-indicator.v2.dto';
 import { SdgIndicatorV1Dto } from './dto/sdg-indicator.v1.dto';
 
@@ -30,6 +36,9 @@ export class SdgIndicatorController {
       'Show active, inactive or all SDG Indicators. Defaults to active.',
   })
   @ApiOkResponse({ type: [SdgIndicatorV1Dto] })
+  @ApiOperation({
+    summary: 'Get all SDG Indicators (legacy), optionally filtered by status',
+  })
   async findAllV1(@Query('show') show: FindAllOptions) {
     return await this.sdgIndicatorService.findAllV1(show);
   }
@@ -44,6 +53,9 @@ export class SdgIndicatorController {
       'Show active, inactive or all SDG Indicators. Defaults to active.',
   })
   @ApiOkResponse({ type: [SdgIndicatorV2Dto] })
+  @ApiOperation({
+    summary: 'Get all SDG Indicators, optionally filtered by status',
+  })
   async findAllV2(@Query('show') show: FindAllOptions) {
     return await this.sdgIndicatorService.findAllV2(show);
   }
@@ -56,6 +68,9 @@ export class SdgIndicatorController {
     description: 'The id of the SDG Indicator',
   })
   @ApiOkResponse({ type: [SdgIndicatorV2Dto] })
+  @ApiOperation({
+    summary: 'Get a SDG Indicator by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.sdgIndicatorService.findOneV2(id);
   }

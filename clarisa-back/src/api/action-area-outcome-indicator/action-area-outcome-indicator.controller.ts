@@ -20,6 +20,7 @@ import { ActionAreaOutcomeIndicator } from './entities/action-area-outcome-indic
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -43,6 +44,10 @@ export class ActionAreaOutcomeIndicatorController {
       'Show active, inactive or all action area outcome indicators. Defaults to active',
   })
   @ApiOkResponse({ type: [ActionAreaOutcomeIndicatorRequestDto] })
+  @ApiOperation({
+    summary:
+      'Get all action area outcome indicators, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.actionAreaOutcomeIndicatorService.findAll(show);
   }
@@ -55,6 +60,9 @@ export class ActionAreaOutcomeIndicatorController {
     description: 'The id of the action area outcome indicator',
   })
   @ApiOkResponse({ type: ActionAreaOutcomeIndicator })
+  @ApiOperation({
+    summary: 'Get an action area outcome indicator by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.actionAreaOutcomeIndicatorService.findOne(id);
   }

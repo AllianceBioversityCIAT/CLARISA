@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -43,6 +44,9 @@ export class ImpactAreaIndicatorController {
       'Show active, inactive or all impact area indicators. Defaults to active.',
   })
   @ApiOkResponse({ type: [ImpactAreaIndicatorDto] })
+  @ApiOperation({
+    summary: 'Get all impact area indicators, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.impactAreaIndicatorService.findAll(show);
   }
@@ -55,6 +59,9 @@ export class ImpactAreaIndicatorController {
     description: 'The id of the impact area indicator',
   })
   @ApiOkResponse({ type: [ImpactAreaIndicatorDto] })
+  @ApiOperation({
+    summary: 'Get an impact area indicator by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.impactAreaIndicatorService.findOne(id);
   }

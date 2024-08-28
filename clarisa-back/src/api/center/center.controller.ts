@@ -9,7 +9,13 @@ import {
 } from '@nestjs/common';
 import { CenterService } from './center.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CenterDtoV1 } from './dto/center.v1.dto';
 
 @Controller()
@@ -26,6 +32,9 @@ export class CenterController {
     description: 'Show active, inactive or all centers. Defaults to active.',
   })
   @ApiOkResponse({ type: [CenterDtoV1] })
+  @ApiOperation({
+    summary: 'Get all centers, optionally filtered by status',
+  })
   findAll(@Query('show') show: FindAllOptions) {
     return this.centerService.findAllV1(show);
   }
@@ -38,6 +47,9 @@ export class CenterController {
     description: 'The id of the center',
   })
   @ApiOkResponse({ type: [CenterDtoV1] })
+  @ApiOperation({
+    summary: 'Get a center by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.centerService.findOneV1(id);
   }

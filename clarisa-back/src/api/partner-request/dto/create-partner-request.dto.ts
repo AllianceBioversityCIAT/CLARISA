@@ -46,7 +46,7 @@ export class CreatePartnerRequestDto {
     type: String,
     required: false,
   })
-  requestSource?: string;
+  requestSource: string = 'REST API';
 
   @ApiProperty({
     description: 'The MIS acronym linked to the partner',

@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -51,6 +52,10 @@ export class InnovationReadinessLevelController {
       'Show only innovation readiness levels from a specific source. Defaults to all.',
   })
   @ApiOkResponse({ type: [InnovationReadinessLevelDto] })
+  @ApiOperation({
+    summary:
+      'Get all innovation readiness levels, optionally filtered by status and source',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
@@ -66,6 +71,9 @@ export class InnovationReadinessLevelController {
     description: 'The id of the innovation readiness level',
   })
   @ApiOkResponse({ type: [InnovationReadinessLevelDto] })
+  @ApiOperation({
+    summary: 'Get an innovation readiness level by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.innovationReadinessLevelService.findOne(id);
   }

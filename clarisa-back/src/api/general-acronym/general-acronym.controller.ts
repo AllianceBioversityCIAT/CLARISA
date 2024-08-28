@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -41,6 +42,9 @@ export class GeneralAcronymController {
       'Show active, inactive or all general acronyms. Defaults to active.',
   })
   @ApiOkResponse({ type: [GeneralAcronymDto] })
+  @ApiOperation({
+    summary: 'Get all general acronyms, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.generalAcronymService.findAll(show);
   }
@@ -53,6 +57,9 @@ export class GeneralAcronymController {
     description: 'The id of the general acronym',
   })
   @ApiOkResponse({ type: [GeneralAcronymDto] })
+  @ApiOperation({
+    summary: 'Get a general acronym by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.generalAcronymService.findOne(id);
   }

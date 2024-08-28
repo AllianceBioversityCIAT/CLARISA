@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -43,6 +44,9 @@ export class ProjectedBenefitDepthController {
       'Show active, inactive or all projected benefit depths. Defaults to active.',
   })
   @ApiOkResponse({ type: [ProjectedBenefitDepthDto] })
+  @ApiOperation({
+    summary: 'Get all projected benefit depths, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.projectedBenefitDepthService.findAll(show);
   }
@@ -55,6 +59,9 @@ export class ProjectedBenefitDepthController {
     description: 'The id of the projected benefit depth',
   })
   @ApiOkResponse({ type: [ProjectedBenefitDepthDto] })
+  @ApiOperation({
+    summary: 'Get a projected benefit depth by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.projectedBenefitDepthService.findOne(id);
   }

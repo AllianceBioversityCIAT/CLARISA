@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -41,6 +42,9 @@ export class TechnicalFieldController {
       'Show active, inactive or all technical fields. Defaults to active.',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get all technical fields, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.technicalFieldService.findAll(show);
   }
@@ -53,6 +57,9 @@ export class TechnicalFieldController {
     description: 'The id of the technical field',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get a technical field by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.technicalFieldService.findOne(id);
   }

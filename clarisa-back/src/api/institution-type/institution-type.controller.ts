@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -52,6 +53,10 @@ export class InstitutionTypeController {
       'Show only institution types from a specific source. Defaults to all.',
   })
   @ApiOkResponse({ type: [InstitutionTypeDto] })
+  @ApiOperation({
+    summary:
+      'Get all institution types, with their direct ancestors, optionally filtered by status and source',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
@@ -75,6 +80,10 @@ export class InstitutionTypeController {
       'Show only institution types from a specific source. Defaults to all.',
   })
   @ApiOkResponse({ type: [InstitutionTypeDto] })
+  @ApiOperation({
+    summary:
+      'Get all institution types with flattened data, optionally filtered by status and source',
+  })
   async findAllSimple(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
@@ -98,6 +107,10 @@ export class InstitutionTypeController {
       'Show only institution types from a specific source. Defaults to all.',
   })
   @ApiOkResponse({ type: [InstitutionTypeFromParentDto] })
+  @ApiOperation({
+    summary:
+      'Get all institution types, on a tree-like structure, from parent to children, optionally filtered by status and source',
+  })
   async findAllFromParentToChildren(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
@@ -116,6 +129,9 @@ export class InstitutionTypeController {
     description: 'The id of the institution type',
   })
   @ApiOkResponse({ type: [InstitutionTypeDto] })
+  @ApiOperation({
+    summary: 'Get an institution type by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.institutionTypeService.findOne(id);
   }

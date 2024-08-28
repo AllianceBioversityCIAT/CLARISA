@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -43,6 +44,9 @@ export class EnvironmentalBenefitController {
       'Show active, inactive or all environmental benefits. Defaults to active.',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get all environmental benefits, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.environmentalBenefitService.findAll(show);
   }
@@ -55,6 +59,9 @@ export class EnvironmentalBenefitController {
     description: 'The id of the environmental benefit',
   })
   @ApiOkResponse({ type: [BasicDtoV1] })
+  @ApiOperation({
+    summary: 'Get an environmental benefit by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.environmentalBenefitService.findOne(id);
   }

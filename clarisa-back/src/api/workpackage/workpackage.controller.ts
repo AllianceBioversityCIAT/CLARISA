@@ -20,6 +20,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
+  ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
@@ -48,6 +49,10 @@ export class WorkpackageController {
       'Show active, inactive or all initiatives. Defaults to active.',
   })
   @ApiOkResponse({ type: [WorkpackageDto] })
+  @ApiOperation({
+    summary:
+      'Get all workpackages, optionally filtered by workpackage status, and initiative status',
+  })
   async findAll(
     @Query('workpackages') showWorkpackages: FindAllOptions,
     @Query('initiatives') showInitiatives: FindAllOptions,
@@ -66,6 +71,9 @@ export class WorkpackageController {
     description: 'The id of the beneficiary',
   })
   @ApiOkResponse({ type: [WorkpackageDto] })
+  @ApiOperation({
+    summary: 'Get a workpackage by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.workpackageService.findOne(id);
   }
