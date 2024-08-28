@@ -17,7 +17,7 @@ import { PRMSApplication } from '../../shared/entities/enums/prms-applications';
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionGuard)
 @ApiTags('CronJobs')
-export class IntegrationController {
+export class CronjobController {
   constructor(
     private readonly cronOst: OSTCron,
     private readonly cronToc: TOCCron,
