@@ -39,7 +39,6 @@ export default [
 
       parserOptions: {
         project: 'tsconfig.json',
-        tsconfigRootDir: 'D:\\workspace-node\\CLARISA\\clarisa-back',
       },
     },
 
