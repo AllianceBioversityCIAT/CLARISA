@@ -4,6 +4,7 @@ import { QaTokenAuth } from './entities/qa-token-auth.entity';
 import { QaTokenAuthRepository } from './repositories/qa-token-auth.repository';
 import { TokenQaDto } from '../../integration/qa/dto/token-qa.dto';
 import { QaApi } from '../../integration/qa/qa.api';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class QaTokenAuthService {
@@ -89,9 +90,7 @@ export class QaTokenAuthService {
       app_user: `${returnToken.app_user}`,
     };
 
-    await this.qaService.postQaToken(bodyRequestQa).subscribe((resp) => {
-      resp.data;
-    });
+    await lastValueFrom(this.qaService.postQaToken(bodyRequestQa));
 
     return returnToken;
   }
