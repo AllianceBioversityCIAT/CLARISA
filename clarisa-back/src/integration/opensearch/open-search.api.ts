@@ -27,6 +27,7 @@ export class OpenSearchApi extends BaseApi {
       Authorization: `Basic ${Buffer.from(
         `${env.OPENSEARCH_USERNAME}:${env.OPENSEARCH_PASSWORD}`,
       ).toString('base64')}`,
+      'Content-Type': 'application/x-ndjson',
     },
   };
 
@@ -216,7 +217,8 @@ export class OpenSearchApi extends BaseApi {
    *
    * @returns {Promise<void>} A promise that resolves when the reset operation is complete.
    */
-  async resetElasticData(): Promise<void> {
+  async resetElasticData(): Promise<string | void> {
+    const now = new Date();
     return this.findForOpenSearch(env.OPENSEARCH_DOCUMENT_NAME)
       .then((elasticData) =>
         lastValueFrom(
@@ -233,6 +235,10 @@ export class OpenSearchApi extends BaseApi {
         ).then(() => elasticData),
       )
       .then((elasticData) => this.sendBulkOperationToOpenSearch(elasticData))
+      .then(
+        () =>
+          `The data has been reset. Took ${new Date().getTime() - now.getTime()} ms`,
+      )
       .catch((error) => {
         this.logger.error(error);
       });
@@ -370,6 +376,7 @@ export class OpenSearchApi extends BaseApi {
       }),
     );
 
+    //icky but necessary
     (query.query.bool.must[0] as OpenSearchQuery<T>).bool.should.push(
       ...wildcardQueries,
     );
