@@ -34,7 +34,16 @@ export class PermissionGuard implements CanActivate {
           return userDb.id === 3043;
         }
 
-        return (userDb.permissions ?? []).some((p) => route.includes(p));
+        const isRoutePermitted = (userDb.permissions ?? []).some((p) =>
+          route.includes(p),
+        );
+        if (!isRoutePermitted) {
+          this._logger.error(
+            `User ${userDb.email} tried to access route ${route} without permission`,
+          );
+        }
+
+        return isRoutePermitted;
       });
   }
 }
