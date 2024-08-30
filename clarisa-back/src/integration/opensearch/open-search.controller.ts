@@ -22,6 +22,7 @@ export class OpenSearchController {
   }
 
   @Get('search')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
   async search(
     @Query('query') query: string,
     @Query('sample-size', new DefaultValuePipe(20), ParseIntPipe) size: number,
