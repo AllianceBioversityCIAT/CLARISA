@@ -34,6 +34,7 @@ import { AuditableEntity } from '../../../shared/entities/extends/auditable-enti
 import { PartnerStatsDto } from '../dto/partner-stats.dto';
 import { StringContentComparator } from '../../../shared/utils/string-content-comparator';
 import { ResponseDto } from '../../../shared/entities/dtos/response.dto';
+import { BulkPartnerRequestDto } from '../dto/create-partner-dto';
 
 @Injectable()
 export class PartnerRequestRepository extends Repository<PartnerRequest> {

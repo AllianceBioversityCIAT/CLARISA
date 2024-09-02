@@ -12,12 +12,17 @@ import { TOCCron } from '../toc/toc.cron';
 import { ReportingCron } from '../reporting/reporting.cron';
 import { RiskCron } from '../risk/risk.cron';
 import { PRMSApplication } from '../../shared/entities/enums/prms-applications';
-import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionGuard)
 @ApiTags('CronJobs')
-export class IntegrationController {
+export class CronjobController {
   constructor(
     private readonly cronOst: OSTCron,
     private readonly cronToc: TOCCron,
@@ -29,6 +34,7 @@ export class IntegrationController {
   @ApiOperation({
     summary: 'Update all initiatives data from OST',
   })
+  @ApiBearerAuth()
   async updateAllInititatives() {
     this.cronOst.cronInitiativeRelatedData();
   }
@@ -37,6 +43,7 @@ export class IntegrationController {
   @ApiOperation({
     summary: 'Update all workpackages data from OST',
   })
+  @ApiBearerAuth()
   async updateAllWorkpackages() {
     this.cronOst.cronWorkpackageRelatedData();
   }
@@ -51,6 +58,7 @@ export class IntegrationController {
   @ApiOperation({
     summary: 'Update all phases data from a specific application',
   })
+  @ApiBearerAuth()
   async updateAllPhasesFromApplication(@Param('mis') mis: string) {
     const misObject = PRMSApplication.getfromSimpleName(mis);
     switch (misObject) {

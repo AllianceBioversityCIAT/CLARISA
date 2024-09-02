@@ -12,7 +12,7 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { OrderAministrativeDivisionDto } from '../../shared/integration/ost/dto/order-administrative-division.dto';
+import { OrderAministrativeDivisionDto } from '../../integration/ost/dto/order-administrative-division.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
