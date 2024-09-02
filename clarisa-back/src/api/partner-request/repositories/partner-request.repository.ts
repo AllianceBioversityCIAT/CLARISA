@@ -26,7 +26,6 @@ import { CreatePartnerRequestDto } from '../dto/create-partner-request.dto';
 import { PartnerRequestDto } from '../dto/partner-request.dto';
 import { UpdatePartnerRequestDto } from '../dto/update-partner-request.dto';
 import { PartnerRequest } from '../entities/partner-request.entity';
-import { CreateBulkPartnerRequestDto } from '../dto/create-bulk-partner-request.dto';
 import { InstitutionType } from '../../institution-type/entities/institution-type.entity';
 import { CountryRepository } from '../../country/repositories/country.repository';
 import { InstitutionTypeRepository } from '../../institution-type/repositories/institution-type.repository';
@@ -35,6 +34,7 @@ import { AuditableEntity } from '../../../shared/entities/extends/auditable-enti
 import { PartnerStatsDto } from '../dto/partner-stats.dto';
 import { StringContentComparator } from '../../../shared/utils/string-content-comparator';
 import { ResponseDto } from '../../../shared/entities/dtos/response.dto';
+import { BulkPartnerRequestDto } from '../dto/create-partner-dto';
 
 @Injectable()
 export class PartnerRequestRepository extends Repository<PartnerRequest> {
@@ -410,9 +410,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
     return this.query(query) as Promise<PartnerStatsDto>;
   }
 
-  async createPartnerRequestBulk(
-    partnerRequestBulk: CreateBulkPartnerRequestDto,
-  ) {
+  async createPartnerRequestBulk(partnerRequestBulk: BulkPartnerRequestDto) {
     let newPartnerRequest: PartnerRequest;
     const partnerCreate: PartnerRequest[] = [];
     const now = new Date();
