@@ -23,12 +23,7 @@ export class InstitutionDictionaryService {
   }
 
   async findOne(id: number): Promise<InstitutionDictionaryDto> {
-    const result =
-      await this.institutionRepository.findInstitutionSourceEntries(
-        FindAllOptions.SHOW_ONLY_ACTIVE,
-        id,
-      );
-    return result.length === 1 ? result[0] : null;
+    return this.institutionRepository.findInstitutionSourceEntriesById(id);
   }
 
   async update(

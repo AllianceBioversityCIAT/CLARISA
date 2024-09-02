@@ -4,20 +4,21 @@ import { env } from 'process';
 import { Injectable, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { AxiosResponse } from 'axios';
-import { ResponseRiskDto } from './dto/response.risk.dto';
+import { ResponseTocDto } from './dto/response.toc.dto';
+import { PhaseTocDto } from './dto/phases.toc.dto';
 
 @Injectable()
-export class ApiRisk extends BaseApi {
+export class TOCApi extends BaseApi {
   constructor(protected readonly httpService: HttpService) {
     super();
     this.httpService = httpService;
-    this.externalAppEndpoint = env.RISK_URL;
-    this.user = env.RISK_USER;
-    this.pass = env.RISK_PASS;
-    this.logger = new Logger(BaseApi.name);
+    this.externalAppEndpoint = env.TOC_URL;
+    this.user = env.TOC_USER;
+    this.pass = env.TOC_PASS;
+    this.logger = new Logger(TOCApi.name);
   }
 
-  getPhases(): Observable<AxiosResponse<ResponseRiskDto>> {
+  getPhases(): Observable<AxiosResponse<ResponseTocDto<PhaseTocDto>>> {
     return this.getRequest('phases');
   }
 }

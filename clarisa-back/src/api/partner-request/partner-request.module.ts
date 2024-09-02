@@ -9,8 +9,12 @@ import { InstitutionTypeRepository } from '../institution-type/repositories/inst
 import { MisRepository } from '../mis/repositories/mis.repository';
 import { UserRepository } from '../user/repositories/user.repository';
 import { InstitutionLocationRepository } from '../institution/repositories/institution-location.repository';
+import { OpenSearchModule } from '../../integration/opensearch/open-search.module';
+import { OpenSearchApi } from '../../integration/opensearch/open-search.api';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
+  imports: [OpenSearchModule, HttpModule],
   controllers: [PartnerRequestController],
   providers: [
     PartnerRequestService,
@@ -22,6 +26,7 @@ import { InstitutionLocationRepository } from '../institution/repositories/insti
     MisRepository,
     UserRepository,
     InstitutionLocationRepository,
+    OpenSearchApi,
   ],
   exports: [
     PartnerRequestService,
@@ -33,6 +38,7 @@ import { InstitutionLocationRepository } from '../institution/repositories/insti
     MisRepository,
     UserRepository,
     InstitutionLocationRepository,
+    OpenSearchApi,
   ],
 })
 export class PartnerRequestModule {}

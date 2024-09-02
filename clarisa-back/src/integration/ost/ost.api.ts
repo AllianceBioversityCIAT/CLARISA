@@ -10,14 +10,14 @@ import { WorkpackageResponse } from './dto/workpackage.ost.dto';
 import { InitiativeEoiResponse } from './dto/eoi.ost.dto';
 
 @Injectable()
-export class ApiOST extends BaseApi {
+export class OSTApi extends BaseApi {
   constructor(protected readonly httpService: HttpService) {
     super();
     this.httpService = httpService;
     this.externalAppEndpoint = env.OST_URL;
     this.user = env.OST_USER;
     this.pass = env.OST_PASS;
-    this.logger = new Logger(BaseApi.name);
+    this.logger = new Logger(OSTApi.name);
   }
 
   getWorkpackages(): Observable<

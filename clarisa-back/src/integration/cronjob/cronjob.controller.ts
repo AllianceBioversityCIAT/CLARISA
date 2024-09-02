@@ -1,28 +1,28 @@
 import {
   Controller,
   Get,
-  UseGuards,
-  Param,
   HttpException,
+  Param,
+  UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { PermissionGuard } from '../guards/permission.guard';
-import { CronOST } from './ost/cron.ost';
-import { CronTOC } from './toc/cron.toc';
-import { PRMSApplication } from '../entities/enums/prms-applications';
-import { CronReporting } from './reporting/cron.reporting';
-import { CronRisk } from './risk/cron.risk';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { OSTCron } from '../ost/ost.cron';
+import { TOCCron } from '../toc/toc.cron';
+import { ReportingCron } from '../reporting/reporting.cron';
+import { RiskCron } from '../risk/risk.cron';
+import { PRMSApplication } from '../../shared/entities/enums/prms-applications';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
-@Controller('cronjobs')
+@Controller()
 @UseGuards(JwtAuthGuard, PermissionGuard)
 @ApiTags('CronJobs')
 export class IntegrationController {
   constructor(
-    private readonly cronOst: CronOST,
-    private readonly cronToc: CronTOC,
-    private readonly cronReporting: CronReporting,
-    private readonly cronRisk: CronRisk,
+    private readonly cronOst: OSTCron,
+    private readonly cronToc: TOCCron,
+    private readonly cronReporting: ReportingCron,
+    private readonly cronRisk: RiskCron,
   ) {}
 
   @Get('ost/initiatives')
