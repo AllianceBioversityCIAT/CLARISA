@@ -1,18 +1,10 @@
 import { Module } from '@nestjs/common';
-import { OpenSearchController } from './open-search.controller';
 import { HttpModule } from '@nestjs/axios';
-import { OpenSearchApi } from './open-search.api';
-import { InstitutionRepository } from '../../api/institution/repositories/institution.repository';
-import { InstitutionLocationRepository } from '../../api/institution/repositories/institution-location.repository';
+import { OpenSearchController } from './open-search.controller';
+import { OpenSearchInstitutionModule } from './institution/open-search-institution.module';
 
 @Module({
-  imports: [HttpModule],
-  providers: [
-    OpenSearchApi,
-    InstitutionRepository,
-    InstitutionLocationRepository,
-  ],
+  imports: [HttpModule, OpenSearchInstitutionModule],
   controllers: [OpenSearchController],
-  exports: [OpenSearchApi],
 })
 export class OpenSearchModule {}
