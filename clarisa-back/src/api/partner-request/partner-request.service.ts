@@ -19,8 +19,8 @@ import { MisRepository } from '../mis/repositories/mis.repository';
 import { UserRepository } from '../user/repositories/user.repository';
 import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
 import { InstitutionDto } from '../institution/dto/institution.dto';
-import { BulkPartnerRequestDto } from './dto/create-partner-dto';
 import { OpenSearchInstitutionApi } from '../../integration/opensearch/institution/open-search-institution.api';
+import { BulkPartnerRequestDto } from './dto/create-partner-dto';
 
 @Injectable()
 export class PartnerRequestService {
