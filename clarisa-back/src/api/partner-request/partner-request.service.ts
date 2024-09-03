@@ -18,9 +18,9 @@ import { InstitutionTypeRepository } from '../institution-type/repositories/inst
 import { MisRepository } from '../mis/repositories/mis.repository';
 import { UserRepository } from '../user/repositories/user.repository';
 import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
-import { OpenSearchApi } from '../../integration/opensearch/open-search.api';
 import { InstitutionDto } from '../institution/dto/institution.dto';
 import { BulkPartnerRequestDto } from './dto/create-partner-dto';
+import { OpenSearchInstitutionApi } from '../../integration/opensearch/institution/open-search-institution.api';
 
 @Injectable()
 export class PartnerRequestService {
@@ -30,7 +30,7 @@ export class PartnerRequestService {
     private misRepository: MisRepository,
     private countryRepository: CountryRepository,
     private userRepository: UserRepository,
-    private openSearchApi: OpenSearchApi,
+    private openSearchApi: OpenSearchInstitutionApi,
   ) {}
 
   async findAll(

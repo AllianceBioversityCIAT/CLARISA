@@ -1,25 +1,25 @@
 import { HttpService } from '@nestjs/axios';
-import { BaseApi } from '../base-api';
+import { BaseApi } from '../../base-api';
 import { Injectable, Logger } from '@nestjs/common';
 import { env } from 'process';
-import { ElasticOperationDto } from './dto/elastic-operation.dto';
+import { ElasticOperationDto } from '../dto/elastic-operation.dto';
 import { forkJoin, lastValueFrom } from 'rxjs';
-import { InstitutionRepository } from '../../api/institution/repositories/institution.repository';
-import { InstitutionDto } from '../../api/institution/dto/institution.dto';
-import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { InstitutionRepository } from '../../../api/institution/repositories/institution.repository';
+import { InstitutionDto } from '../../../api/institution/dto/institution.dto';
+import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import {
   ElasticQueryDto,
   OpenSearchOperator,
   OpenSearchQuery,
   OpenSearchWildcard,
   TypeSort,
-} from './dto/elastic-query.dto';
-import { ElasticResponse } from './dto/elastic-response.dto';
+} from '../dto/elastic-query.dto';
+import { ElasticResponse } from '../dto/elastic-response.dto';
 import { AxiosRequestConfig, isAxiosError } from 'axios';
-import { ArrayUtil } from '../../shared/utils/array-util';
+import { ArrayUtil } from '../../../shared/utils/array-util';
 
 @Injectable()
-export class OpenSearchApi extends BaseApi {
+export class OpenSearchInstitutionApi extends BaseApi {
   private readonly OPENSEARCH_MAX_UPLOAD_SIZE = 1024 * 1024; // 1MB
   private readonly _bulkElasticUrl = `_bulk`;
   private readonly _config: AxiosRequestConfig = {
@@ -40,7 +40,7 @@ export class OpenSearchApi extends BaseApi {
     this.externalAppEndpoint = env.OPENSEARCH_URL;
     this.user = env.OPENSEARCH_USER;
     this.pass = env.OPENSEARCH_PASS;
-    this.logger = new Logger(OpenSearchApi.name);
+    this.logger = new Logger(OpenSearchInstitutionApi.name);
   }
 
   public getSingleElasticOperation<T>(
