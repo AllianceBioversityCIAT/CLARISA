@@ -1,8 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Observable, catchError, of, timeout } from 'rxjs';
-import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AxiosRequestConfig, AxiosResponse, isAxiosError } from 'axios';
 import { Logger } from '@nestjs/common';
-import axios from 'axios';
 import https from 'https';
 import crypto from 'crypto';
 
@@ -54,7 +53,7 @@ export abstract class BaseApi {
     return observable.pipe(
       timeout(30000), // Wait for 30 seconds for the response
       catchError((err) => {
-        const errorMsg = axios.isAxiosError(err)
+        const errorMsg = isAxiosError(err)
           ? `Axios error: ${err.message}; Axios error response: ${JSON.stringify(err.response?.data)}`
           : `Unexpected error: ${err.message}`;
 

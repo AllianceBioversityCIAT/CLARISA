@@ -39,13 +39,17 @@ export class InstitutionRepository extends Repository<Institution> {
     }
 
     whereClause += `${whereClause ? 'and' : 'where'} i.is_active in (?)`;
-    whereValues.push(
-      option === FindAllOptions.SHOW_ALL
-        ? '1,0'
-        : option === FindAllOptions.SHOW_ONLY_ACTIVE
-          ? '1'
-          : '0',
-    );
+    let valueToPush: string;
+
+    if (option === FindAllOptions.SHOW_ALL) {
+      valueToPush = '1,0';
+    } else if (option === FindAllOptions.SHOW_ONLY_ACTIVE) {
+      valueToPush = '1';
+    } else {
+      valueToPush = '0';
+    }
+
+    whereValues.push(valueToPush);
 
     const query: string = `
       select i.id code, i.name, i.acronym, i.website_link websiteLink,
@@ -128,13 +132,17 @@ export class InstitutionRepository extends Repository<Institution> {
       whereValues.push(institutionId);
     }
 
-    whereValues.push(
-      option === FindAllOptions.SHOW_ALL
-        ? '1,0'
-        : option === FindAllOptions.SHOW_ONLY_ACTIVE
-          ? '1'
-          : '0',
-    );
+    let valueToPush: string;
+
+    if (option === FindAllOptions.SHOW_ALL) {
+      valueToPush = '1,0';
+    } else if (option === FindAllOptions.SHOW_ONLY_ACTIVE) {
+      valueToPush = '1';
+    } else {
+      valueToPush = '0';
+    }
+
+    whereValues.push(valueToPush);
 
     return await this.query(
       this._getQueryForInstitutionSimple(option, true),
