@@ -1,21 +1,21 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { PhaseRepository } from '../../../api/phase/repositories/phase.repository';
 import { Cron } from '@nestjs/schedule';
 import { firstValueFrom } from 'rxjs';
-import { PhaseStatus } from '../../entities/enums/phase-status';
-import { PRMSApplication } from '../../entities/enums/prms-applications';
-import { PhaseRisk } from '../../../api/phase/entities/phase-risk.entity';
-import { AuditableEntity } from '../../entities/extends/auditable-entity.entity';
 import { Repository } from 'typeorm';
-import { ApiRisk } from './api.risk';
+import { RiskApi } from './risk.api';
 import { PhaseRiskDto } from './dto/phases.risk.dto';
+import { PhaseRepository } from '../../api/phase/repositories/phase.repository';
+import { PRMSApplication } from '../../shared/entities/enums/prms-applications';
+import { PhaseRisk } from '../../api/phase/entities/phase-risk.entity';
+import { PhaseStatus } from '../../shared/entities/enums/phase-status';
+import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
 
 @Injectable()
-export class CronRisk {
-  private readonly logger: Logger = new Logger(CronRisk.name);
+export class RiskCron {
+  private readonly logger: Logger = new Logger(RiskCron.name);
 
   constructor(
-    private readonly api: ApiRisk,
+    private readonly api: RiskApi,
     private readonly phaseRepository: PhaseRepository,
   ) {}
 
@@ -36,15 +36,15 @@ export class CronRisk {
 
       const phasesRisk: PhaseRiskDto[] =
         (phasesRequest?.data?.result as PhaseRiskDto[]) ?? [];
-      const newPhasesRisk = CronRisk.getNewPhases(oldPhasesDb, phasesRisk);
+      const newPhasesRisk = RiskCron.getNewPhases(oldPhasesDb, phasesRisk);
 
       oldPhasesDb.forEach((op) => {
-        CronRisk.updatePhase(op, phasesRisk);
+        RiskCron.updatePhase(op, phasesRisk);
         updatedPhaseDb.push(op);
       });
 
       newPhasesRisk.forEach((np) => {
-        const newPhase = CronRisk.createNewPhase(np);
+        const newPhase = RiskCron.createNewPhase(np);
         newPhasesDb.push(newPhase);
       });
 
@@ -90,14 +90,15 @@ export class CronRisk {
   private static createNewPhase(riskPhase: PhaseRiskDto): PhaseRisk {
     const newPhase: PhaseRisk = new PhaseRisk();
 
-    newPhase.auditableFields = new AuditableEntity();
-    newPhase.auditableFields.created_at = new Date();
-    newPhase.auditableFields.created_by = 3043; //clarisadmin
-    newPhase.auditableFields.is_active = riskPhase.active;
     newPhase.id = String(riskPhase.id);
     newPhase.is_open = riskPhase.status === PhaseStatus.SHOW_ONLY_OPEN.name;
     newPhase.name = riskPhase.name;
     newPhase.year = riskPhase.reporting_year;
+
+    newPhase.auditableFields = new AuditableEntity();
+    newPhase.auditableFields.created_at = new Date();
+    newPhase.auditableFields.created_by = 3043; //clarisadmin
+    newPhase.auditableFields.is_active = riskPhase.active;
     newPhase.auditableFields.updated_at = new Date();
 
     return newPhase;

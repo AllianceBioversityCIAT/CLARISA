@@ -471,7 +471,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
       { where: { source_id: 1 } },
     );
 
-    return await this.dataSource
+    return this.dataSource
       .transaction(async (manager) => {
         for (const incomingPartnerRequest of partnerRequestBulk.listPartnerRequest) {
           if (
@@ -589,8 +589,27 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
 
         return partnerCreate;
       })
+      .then((partnerRequests) => {
+        const newInstitutionIds = partnerRequests
+          .filter((pr) => pr.accepted)
+          .map((pr) => pr.institution_id);
+        return this.institutionRepository
+          .findInstitutions(
+            FindAllOptions.SHOW_ALL,
+            undefined,
+            newInstitutionIds,
+          )
+          .then((institutions) => {
+            return partnerRequests.map((pr) => {
+              pr['institutionDto'] = institutions.find(
+                (i) => i.code === pr.institution_id,
+              );
+              return pr;
+            });
+          });
+      })
       .catch((error: Error) => {
-        throw ResponseDto.createCustomResponse(
+        throw ResponseDto.buildCustomResponse(
           error.message,
           'The bulk partner request could not be processed. Please check your input',
           400,

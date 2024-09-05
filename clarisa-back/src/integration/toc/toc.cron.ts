@@ -1,21 +1,21 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { ApiTOC } from './api.toc';
-import { PhaseRepository } from '../../../api/phase/repositories/phase.repository';
+import { TOCApi } from './toc.api';
 import { Cron } from '@nestjs/schedule';
 import { firstValueFrom } from 'rxjs';
-import { PhaseStatus } from '../../entities/enums/phase-status';
-import { PRMSApplication } from '../../entities/enums/prms-applications';
 import { PhaseTocDto } from './dto/phases.toc.dto';
-import { PhaseToc } from '../../../api/phase/entities/phase-toc.entity';
-import { AuditableEntity } from '../../entities/extends/auditable-entity.entity';
 import { Repository } from 'typeorm';
+import { PhaseRepository } from '../../api/phase/repositories/phase.repository';
+import { PRMSApplication } from '../../shared/entities/enums/prms-applications';
+import { PhaseToc } from '../../api/phase/entities/phase-toc.entity';
+import { PhaseStatus } from '../../shared/entities/enums/phase-status';
+import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
 
 @Injectable()
-export class CronTOC {
-  private readonly logger: Logger = new Logger(CronTOC.name);
+export class TOCCron {
+  private readonly logger: Logger = new Logger(TOCCron.name);
 
   constructor(
-    private readonly api: ApiTOC,
+    private readonly api: TOCApi,
     private readonly phaseRepository: PhaseRepository,
   ) {}
 
@@ -36,15 +36,15 @@ export class CronTOC {
 
       const phasesToc: PhaseTocDto[] =
         (phasesRequest.data?.data as PhaseTocDto[]) ?? [];
-      const newPhasesToc = CronTOC.getNewPhases(oldPhasesDb, phasesToc);
+      const newPhasesToc = TOCCron.getNewPhases(oldPhasesDb, phasesToc);
 
       oldPhasesDb.forEach((op) => {
-        CronTOC.updatePhase(op, phasesToc);
+        TOCCron.updatePhase(op, phasesToc);
         updatedPhaseDb.push(op);
       });
 
       newPhasesToc.forEach((np) => {
-        const newPhase = CronTOC.createNewPhase(np);
+        const newPhase = TOCCron.createNewPhase(np);
         newPhasesDb.push(newPhase);
       });
 
@@ -86,14 +86,15 @@ export class CronTOC {
   private static createNewPhase(tocPhase: PhaseTocDto): PhaseToc {
     const newPhase: PhaseToc = new PhaseToc();
 
-    newPhase.auditableFields = new AuditableEntity();
-    newPhase.auditableFields.created_at = new Date();
-    newPhase.auditableFields.created_by = 3043; //clarisadmin
-    newPhase.auditableFields.is_active = tocPhase.active;
     newPhase.id = tocPhase.id;
     newPhase.is_open = tocPhase.status === PhaseStatus.SHOW_ONLY_OPEN.name;
     newPhase.name = tocPhase.name;
     newPhase.year = tocPhase.reporting_year;
+
+    newPhase.auditableFields = new AuditableEntity();
+    newPhase.auditableFields.created_at = new Date();
+    newPhase.auditableFields.created_by = 3043; //clarisadmin
+    newPhase.auditableFields.is_active = tocPhase.active;
     newPhase.auditableFields.updated_at = new Date();
 
     return newPhase;

@@ -11,7 +11,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { routes } from './routes';
 import { ScheduleModule } from '@nestjs/schedule';
-import { IntegrationModule } from './shared/integration/integration.module';
 import { User } from './api/user/entities/user.entity';
 import { dataSource } from './ormconfig';
 import { AuthModule } from './auth/auth.module';
@@ -20,6 +19,7 @@ import { BasicAuthMiddleware } from './shared/guards/basic-auth.middleware';
 import { RequestLoggingInterceptor } from './shared/interceptors/request-logging.interceptor';
 import { ResponseFormattingInterceptor } from './shared/interceptors/response-formatting.interceptor';
 import { ExceptionsFilter } from './shared/filters/exceptions.filter';
+import { IntegrationModule } from './integration/integration.module';
 
 @Module({
   imports: [
@@ -57,6 +57,11 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(BasicAuthMiddleware)
-      .forRoutes({ path: 'api/*', method: RequestMethod.POST });
+      .forRoutes(
+        { path: 'api/*', method: RequestMethod.POST },
+        { path: 'api/*', method: RequestMethod.PUT },
+        { path: 'api/*', method: RequestMethod.PATCH },
+        { path: 'api/*', method: RequestMethod.DELETE },
+      );
   }
 }

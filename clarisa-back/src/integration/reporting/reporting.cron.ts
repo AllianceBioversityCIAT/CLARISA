@@ -1,22 +1,19 @@
 import { Injectable, Logger, HttpStatus } from '@nestjs/common';
-import { PRMSApplication } from '../../entities/enums/prms-applications';
-import { ApiReporting } from './api.reporting';
-import { PhaseRepository } from '../../../api/phase/repositories/phase.repository';
+import { ReportingApi } from './reporting.api';
 import { Cron } from '@nestjs/schedule';
 import { firstValueFrom } from 'rxjs';
-import {
-  Phase,
-  PhaseConstructor,
-} from '../../../api/phase/entities/phase.entity';
 import { PhaseReportingDto } from './dto/phases.reporting.dto';
-import { AuditableEntity } from '../../entities/extends/auditable-entity.entity';
+import { Phase, PhaseConstructor } from '../../api/phase/entities/phase.entity';
+import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
+import { PhaseRepository } from '../../api/phase/repositories/phase.repository';
+import { PRMSApplication } from '../../shared/entities/enums/prms-applications';
 
 @Injectable()
-export class CronReporting {
-  private readonly logger: Logger = new Logger(CronReporting.name);
+export class ReportingCron {
+  private readonly logger: Logger = new Logger(ReportingCron.name);
 
   constructor(
-    private readonly api: ApiReporting,
+    private readonly api: ReportingApi,
     private readonly phaseRepository: PhaseRepository,
   ) {}
 
@@ -48,21 +45,21 @@ export class CronReporting {
 
       const phasesReporting: PhaseReportingDto[] =
         (phasesRequest.data?.response as PhaseReportingDto[]) ?? [];
-      const newPhasesReporting = CronReporting.getNewPhases(
+      const newPhasesReporting = ReportingCron.getNewPhases(
         oldPhasesDb,
         phasesReporting,
       );
 
       oldPhasesDb.forEach((op) => {
-        CronReporting.updatePhase(op, phasesReporting);
+        ReportingCron.updatePhase(op, phasesReporting);
         updatedPhaseDb.push(op);
       });
 
       newPhasesReporting.forEach((np) => {
-        const newInstance = CronReporting.createNewPhaseObject(
+        const newInstance = ReportingCron.createNewPhaseObject(
           repoTargetClazz.constructor(),
         );
-        const newPhase = CronReporting.createNewPhase(np, newInstance);
+        const newPhase = ReportingCron.createNewPhase(np, newInstance);
         newPhasesDb.push(newPhase as T);
       });
 
@@ -125,11 +122,12 @@ export class CronReporting {
     newPhase.auditableFields.created_at = new Date();
     newPhase.auditableFields.created_by = 3043; //clarisadmin
     newPhase.auditableFields.is_active = appPhase.is_active;
+    newPhase.auditableFields.updated_at = new Date();
+
     newPhase.id = appPhase.id;
     newPhase.is_open = appPhase.status;
     newPhase.name = appPhase.phase_name;
     newPhase.year = appPhase.phase_year;
-    newPhase.auditableFields.updated_at = new Date();
 
     return newPhase;
   }
