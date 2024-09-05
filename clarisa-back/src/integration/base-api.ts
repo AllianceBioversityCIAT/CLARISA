@@ -6,103 +6,180 @@ import axios from 'axios';
 import https from 'https';
 import crypto from 'crypto';
 
+/**
+ * Abstract base class providing common HTTP request methods for interacting with external APIs.
+ */
 export abstract class BaseApi {
+  /** The base URL for the external application endpoint. */
   protected externalAppEndpoint: string;
+
+  /** The HttpService instance used to make HTTP requests. */
   protected httpService: HttpService;
+
+  /** Username for authentication with the external API. */
   protected user: string;
+
+  /** Password for authentication with the external API. */
   protected pass: string;
+
+  /** Logger instance for logging errors and other information. */
   protected logger: Logger;
 
-  protected _getDefaultConfig(): AxiosRequestConfig {
+  /**
+   * Provides the default Axios request configuration with authentication and HTTPS agent.
+   *
+   * @returns AxiosRequestConfig The default Axios request configuration.
+   */
+  protected get _defaultConfig(): AxiosRequestConfig {
     return {
       auth: { username: this.user, password: this.pass },
       httpsAgent: new https.Agent({
-        // allow legacy server
+        // allow legacy server connections
         secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
       }),
     };
   }
 
-  protected concatTimeoutError<T>(
-    observable: Observable<AxiosResponse<T, any>>,
+  /**
+   * Adds timeout and error handling to an observable of an Axios response.
+   *
+   * @param observable The observable for an Axios response.
+   * @param returnError If true, returns the error object on failure, otherwise returns null.
+   * @returns An observable that catches errors and applies a 30-second timeout.
+   */
+  private handleError<T>(
+    observable: Observable<AxiosResponse<T>>,
     returnError: boolean = false,
-  ): Observable<AxiosResponse<T, any> | null> {
+  ): Observable<AxiosResponse<T> | null> {
     return observable.pipe(
       timeout(30000), // Wait for 30 seconds for the response
       catchError((err) => {
-        if (axios.isAxiosError(err)) {
-          this.logger.error(
-            `Axios error: ${err.message}; Axios error response: ${JSON.stringify(
-              err.response?.data,
-            )}`,
-          );
-          return of(returnError ? err : null);
-        } else {
-          this.logger.error(`Unexpected error: ${err.message}`);
-          return of(returnError ? err : null);
-        }
+        const errorMsg = axios.isAxiosError(err)
+          ? `Axios error: ${err.message}; Axios error response: ${JSON.stringify(err.response?.data)}`
+          : `Unexpected error: ${err.message}`;
+
+        this.logger.error(errorMsg);
+        return of(returnError ? err : null);
       }),
     );
   }
 
+  /**
+   * Makes an HTTP request using the specified method, endpoint, and configuration.
+   *
+   * @param method The HTTP method (GET, POST, PUT, PATCH, DELETE).
+   * @param endpoint The API endpoint to send the request to.
+   * @param data Optional request body data.
+   * @param config Optional Axios request configuration.
+   * @returns An observable of the Axios response.
+   */
+  private request<D, R>(
+    method: 'get' | 'post' | 'put' | 'patch' | 'delete',
+    endpoint: string,
+    data?: D,
+    config?: AxiosRequestConfig,
+  ): Observable<AxiosResponse<R>> {
+    const url = `${this.externalAppEndpoint}/${endpoint}`;
+    const requestConfig = config ?? this._defaultConfig;
+
+    let requestObservable: Observable<AxiosResponse<R>>;
+
+    switch (method) {
+      case 'get':
+        requestObservable = this.httpService.get<R>(url, requestConfig);
+        break;
+      case 'post':
+        requestObservable = this.httpService.post<R>(url, data, requestConfig);
+        break;
+      case 'put':
+        requestObservable = this.httpService.put<R>(url, data, requestConfig);
+        break;
+      case 'patch':
+        requestObservable = this.httpService.patch<R>(url, data, requestConfig);
+        break;
+      case 'delete':
+        requestObservable = this.httpService.delete<R>(url, requestConfig);
+        break;
+      default:
+        throw new Error(`Unsupported HTTP method: ${method}`);
+    }
+
+    return this.handleError(requestObservable);
+  }
+
+  /**
+   * Sends a GET request to the specified endpoint.
+   *
+   * @param endpoint The API endpoint to send the request to.
+   * @param config Optional Axios request configuration.
+   * @returns An observable of the Axios response.
+   */
   protected getRequest<T>(
     endpoint: string,
     config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<T, any>> {
-    const request = this.httpService.get(
-      `${this.externalAppEndpoint}/${endpoint}`,
-      config ?? this._getDefaultConfig(),
-    );
-    return this.concatTimeoutError(request);
+  ): Observable<AxiosResponse<T>> {
+    return this.request('get', endpoint, undefined, config);
   }
 
-  protected patchRequest<D, R>(
-    endpoint: string,
-    data: D,
-    config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<R, any>> {
-    const request = this.httpService.patch<R>(
-      `${this.externalAppEndpoint}/${endpoint}`,
-      data,
-      config ?? this._getDefaultConfig(),
-    );
-    return this.concatTimeoutError(request);
-  }
-
+  /**
+   * Sends a POST request to the specified endpoint with the given data.
+   *
+   * @param endpoint The API endpoint to send the request to.
+   * @param data The data to include in the request body.
+   * @param config Optional Axios request configuration.
+   * @returns An observable of the Axios response.
+   */
   protected postRequest<D, R>(
     endpoint: string,
     data: D,
     config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<R, any>> {
-    const request = this.httpService.post<R>(
-      `${this.externalAppEndpoint}/${endpoint}`,
-      data,
-      config ?? this._getDefaultConfig(),
-    );
-    return this.concatTimeoutError(request);
+  ): Observable<AxiosResponse<R>> {
+    return this.request('post', endpoint, data, config);
   }
 
-  protected deleteRequest<T>(
-    endpoint: string,
-    config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<T, any>> {
-    const request = this.httpService.delete<T>(
-      `${this.externalAppEndpoint}/${endpoint}`,
-      config ?? this._getDefaultConfig(),
-    );
-    return this.concatTimeoutError(request);
-  }
-
+  /**
+   * Sends a PUT request to the specified endpoint with the given data.
+   *
+   * @param endpoint The API endpoint to send the request to.
+   * @param data The data to include in the request body.
+   * @param config Optional Axios request configuration.
+   * @returns An observable of the Axios response.
+   */
   protected putRequest<D, R>(
     endpoint: string,
     data: D,
     config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<R, any>> {
-    const request = this.httpService.put<R>(
-      `${this.externalAppEndpoint}/${endpoint}`,
-      data,
-      config ?? this._getDefaultConfig(),
-    );
-    return this.concatTimeoutError(request);
+  ): Observable<AxiosResponse<R>> {
+    return this.request('put', endpoint, data, config);
+  }
+
+  /**
+   * Sends a PATCH request to the specified endpoint with the given data.
+   *
+   * @param endpoint The API endpoint to send the request to.
+   * @param data The data to include in the request body.
+   * @param config Optional Axios request configuration.
+   * @returns An observable of the Axios response.
+   */
+  protected patchRequest<D, R>(
+    endpoint: string,
+    data: D,
+    config?: AxiosRequestConfig,
+  ): Observable<AxiosResponse<R>> {
+    return this.request('patch', endpoint, data, config);
+  }
+
+  /**
+   * Sends a DELETE request to the specified endpoint.
+   *
+   * @param endpoint The API endpoint to send the request to.
+   * @param config Optional Axios request configuration.
+   * @returns An observable of the Axios response.
+   */
+  protected deleteRequest<T>(
+    endpoint: string,
+    config?: AxiosRequestConfig,
+  ): Observable<AxiosResponse<T>> {
+    return this.request('delete', endpoint, undefined, config);
   }
 }
