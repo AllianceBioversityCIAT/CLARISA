@@ -101,7 +101,7 @@ export abstract class BaseApi {
         requestObservable = this.httpService.delete<R>(url, requestConfig);
         break;
       default:
-        throw new Error(`Unsupported HTTP method: ${method}`);
+        throw new Error(`Unsupported HTTP method: ${method}.`);
     }
 
     return this.handleError(requestObservable);
