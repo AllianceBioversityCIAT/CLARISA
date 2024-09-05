@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-import { ApiOST } from '../../shared/integration/ost/api.ost';
+import { OSTApi } from '../../integration/ost/ost.api';
 
 @Injectable()
 export class EndOfInitiativeOutcomeService {
-  constructor(private apiOst: ApiOST) {}
+  constructor(private apiOst: OSTApi) {}
 
   async findAll() {
-    let response: any = await firstValueFrom(this.apiOst.getEndOfIniciative());
+    const response = await firstValueFrom(this.apiOst.getEndOfIniciative());
 
-    response = response?.data?.response?.eoi_outcome_by_initiatives ?? [];
+    const eois = response?.data?.response?.eoi_outcome_by_initiatives ?? [];
 
-    return response;
+    return eois;
   }
 }

@@ -50,7 +50,7 @@ export class RegionRepository extends Repository<Region> {
         if (regionType === RegionTypeEnum.UN_REGION) {
           regionDto.um49Code = r.iso_numeric;
         } else if (regionType === RegionTypeEnum.CGIAR_REGION) {
-          regionDto.id = r.iso_numeric;
+          regionDto.code = r.iso_numeric;
         }
 
         regionDto.name = r.name;

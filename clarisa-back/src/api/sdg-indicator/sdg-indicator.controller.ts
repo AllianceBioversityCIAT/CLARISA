@@ -1,21 +1,14 @@
 import {
   Controller,
   Get,
-  Body,
-  Patch,
   Param,
   UseInterceptors,
   ClassSerializerInterceptor,
   Query,
   ParseIntPipe,
-  HttpStatus,
-  HttpException,
-  Res,
+  Version,
 } from '@nestjs/common';
 import { SdgIndicatorService } from './sdg-indicator.service';
-import { UpdateSdgIndicatorDto } from './dto/update-sdg-indicator.dto';
-import { Response } from 'express';
-import { SdgIndicator } from './entities/sdg-indicator.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
 @Controller()
@@ -23,28 +16,20 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 export class SdgIndicatorController {
   constructor(private readonly sdgIndicatorService: SdgIndicatorService) {}
 
+  @Version('1')
   @Get()
-  async findAll(@Query('show') show: FindAllOptions) {
-    return await this.sdgIndicatorService.findAll(show);
+  async findAllV1(@Query('show') show: FindAllOptions) {
+    return await this.sdgIndicatorService.findAllV1(show);
+  }
+
+  @Version('2')
+  @Get()
+  async findAllV2(@Query('show') show: FindAllOptions) {
+    return await this.sdgIndicatorService.findAllV2(show);
   }
 
   @Get('get/:id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.sdgIndicatorService.findOne(id);
-  }
-
-  @Patch('update')
-  async update(
-    @Res() res: Response,
-    @Body() updateSdgIndicatorDtoList: UpdateSdgIndicatorDto[],
-  ) {
-    try {
-      const result: SdgIndicator[] = await this.sdgIndicatorService.update(
-        updateSdgIndicatorDtoList,
-      );
-      return res.status(HttpStatus.OK).json(result);
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
   }
 }

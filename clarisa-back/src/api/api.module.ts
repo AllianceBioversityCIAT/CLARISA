@@ -47,7 +47,6 @@ import { GeographicScopeModule } from './geographic-scope/geographic-scope.modul
 import { HomepageClarisaCategoryModule } from './homepage-clarisa-category/homepage-clarisa-category.module';
 import { HomepageClarisaEndpointModule } from './homepage-clarisa-endpoint/homepage-clarisa-endpoint.module';
 import { HomepageClarisaCategoryEndpointModule } from './homepage-clarisa-category-endpoint/homepage-clarisa-category-endpoint.module';
-import { IntegrationModule } from 'src/shared/integration/integration.module';
 import { MisModule } from './mis/mis.module';
 import { InnovationCharacteristicModule } from './innovation-characteristic/innovation-characteristic.module';
 import { PolicyStageModule } from './policy-stage/policy-stage.module';
@@ -75,6 +74,10 @@ import { QaTokenAuthRepository } from '../auth/qa-token-auth/repositories/qa-tok
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { FundingSourceModule } from './funding-source/funding-source.module';
 import { CenterModule } from './center/center.module';
+import { EnvironmentModule } from './environment/environment.module';
+import { AppSecretModule } from './app-secret/app-secret.module';
+import { MicroserviceMonitoringTestLinkModule } from './microservice-monitoring-test-link/microservice-monitoring-test-link.module';
+import { IntegrationModule } from '../integration/integration.module';
 
 @Module({
   controllers: [ApiController],
@@ -152,6 +155,9 @@ import { CenterModule } from './center/center.module';
     PortfolioModule,
     FundingSourceModule,
     CenterModule,
+    EnvironmentModule,
+    AppSecretModule,
+    MicroserviceMonitoringTestLinkModule,
   ],
 })
 export class ApiModule {}

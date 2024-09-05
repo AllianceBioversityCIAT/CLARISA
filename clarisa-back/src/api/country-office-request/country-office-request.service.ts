@@ -79,7 +79,7 @@ export class CountryOfficeRequestService {
     });
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(
+      throw ResponseDto.buildBadResponse(
         validationErrors,
         CountryOfficeRequestService,
       );
@@ -137,7 +137,7 @@ export class CountryOfficeRequestService {
     );
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(
+      throw ResponseDto.buildBadResponse(
         validationErrors,
         CountryOfficeRequestService,
       );
@@ -164,7 +164,7 @@ export class CountryOfficeRequestService {
         newCountryOfficeRequests,
       );
 
-    return ResponseDto.createCreatedResponse(
+    return ResponseDto.buildCreatedResponse(
       response,
       CountryOfficeRequestService,
     );
@@ -192,7 +192,7 @@ export class CountryOfficeRequestService {
     });
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(
+      throw ResponseDto.buildBadResponse(
         validationErrors,
         CountryOfficeRequestService,
       );
@@ -221,7 +221,7 @@ export class CountryOfficeRequestService {
     }
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(
+      throw ResponseDto.buildBadResponse(
         validationErrors,
         CountryOfficeRequestService,
       );
@@ -269,7 +269,7 @@ export class CountryOfficeRequestService {
     ).flatMap((e) => Object.values(e.constraints).map((m) => m));
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(
+      throw ResponseDto.buildBadResponse(
         validationErrors,
         CountryOfficeRequestService,
       );
@@ -316,7 +316,7 @@ export class CountryOfficeRequestService {
     }
 
     if (validationErrors.length > 0) {
-      throw ResponseDto.createBadResponse(
+      throw ResponseDto.buildBadResponse(
         validationErrors,
         CountryOfficeRequestService,
       );
@@ -328,7 +328,7 @@ export class CountryOfficeRequestService {
         countryOfficeRequest,
       );
 
-    return ResponseDto.createCreatedResponse(
+    return ResponseDto.buildCreatedResponse(
       response,
       CountryOfficeRequestService,
     );
