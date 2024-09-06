@@ -9,22 +9,31 @@ import { PRMSApplication } from '../../shared/entities/enums/prms-applications';
 import { PhaseToc } from '../../api/phase/entities/phase-toc.entity';
 import { PhaseStatus } from '../../shared/entities/enums/phase-status';
 import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
+import { Immutable } from '../../shared/utils/deep-immutable';
+import { AxiosResponse } from 'axios';
+import { ResponseTocDto } from './dto/response.toc.dto';
 
 @Injectable()
 export class TOCCron {
   private readonly logger: Logger = new Logger(TOCCron.name);
 
   constructor(
-    private readonly api: TOCApi,
-    private readonly phaseRepository: PhaseRepository,
+    private api: Immutable<TOCApi>,
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
+    private phaseRepository: Immutable<PhaseRepository>,
   ) {}
 
   // every saturday at 10 pm
   @Cron('0 0 22 * * 6')
   public async cronTocPhasesData(): Promise<void> {
-    const phasesRequest = await firstValueFrom(this.api.getPhases());
+    const phasesRequest = (await firstValueFrom(
+      this.api.getPhases(),
+    )) as Partial<AxiosResponse<ResponseTocDto<PhaseTocDto>>> | null;
 
-    if (phasesRequest && phasesRequest.status === HttpStatus.OK) {
+    if (
+      phasesRequest &&
+      (phasesRequest.status as HttpStatus) === HttpStatus.OK
+    ) {
       this.logger.debug('Started ToC phases synchronization');
       const tocPhasesRepository = this.phaseRepository.phaseRepositories.get(
         PRMSApplication.TOC.tableName,
@@ -35,7 +44,7 @@ export class TOCCron {
       let newPhasesDb: PhaseToc[] = [];
 
       const phasesToc: PhaseTocDto[] =
-        (phasesRequest.data?.data as PhaseTocDto[]) ?? [];
+        (phasesRequest.data?.data as PhaseTocDto[] | undefined) ?? [];
       const newPhasesToc = TOCCron.getNewPhases(oldPhasesDb, phasesToc);
 
       oldPhasesDb.forEach((op) => {
@@ -56,17 +65,20 @@ export class TOCCron {
   }
 
   private static getNewPhases(
-    phasesDb: PhaseToc[],
-    phasesTOC: PhaseTocDto[],
+    phasesDb: Immutable<PhaseToc[]>,
+    phasesTOC: Immutable<PhaseTocDto[]>,
   ): PhaseTocDto[] {
     return phasesTOC.filter((toc) => !phasesDb.find((db) => db.id === toc.id));
   }
 
   private static updatePhase(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
     phase: PhaseToc,
-    tocPhases: PhaseTocDto[],
-  ): PhaseTocDto {
-    const tocPhase: PhaseTocDto = tocPhases.find((oi) => oi.id === phase.id);
+    tocPhases: Immutable<PhaseTocDto[]>,
+  ): PhaseTocDto | undefined {
+    const tocPhase: PhaseTocDto | undefined = tocPhases.find(
+      (oi) => oi.id === phase.id,
+    ) as PhaseTocDto | undefined;
 
     if (tocPhase) {
       phase.auditableFields.is_active = tocPhase.active;
@@ -83,7 +95,7 @@ export class TOCCron {
     return tocPhase;
   }
 
-  private static createNewPhase(tocPhase: PhaseTocDto): PhaseToc {
+  private static createNewPhase(tocPhase: Immutable<PhaseTocDto>): PhaseToc {
     const newPhase: PhaseToc = new PhaseToc();
 
     newPhase.id = tocPhase.id;

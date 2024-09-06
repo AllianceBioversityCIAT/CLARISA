@@ -32,7 +32,10 @@ import { CountryRepository } from '../../country/repositories/country.repository
 import { InstitutionTypeRepository } from '../../institution-type/repositories/institution-type.repository';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
-import { StringContentComparator } from '../../../shared/utils/string-content-comparator';
+import {
+  contentCompare,
+  StringContentComparator,
+} from '../../../shared/utils/string-content-comparator';
 import { ResponseDto } from '../../../shared/entities/dtos/response.dto';
 
 @Injectable()
@@ -509,10 +512,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
           );
           const incomingPRCountry = countries.find(
             (country) =>
-              StringContentComparator.contentCompare(
-                country.iso_alpha_2,
-                incomingPRCountryCode,
-              ) === 0,
+              contentCompare(country.iso_alpha_2, incomingPRCountryCode) === 0,
           );
           if (!incomingPRCountry) {
             throw new Error(
@@ -524,7 +524,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
 
           const incomingPRType = institutionTypes.find(
             (typeIntitution) =>
-              StringContentComparator.contentCompare(
+              contentCompare(
                 typeIntitution.name,
                 incomingPartnerRequest.institution_type,
               ) === 0,
@@ -540,12 +540,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
           newPartnerRequest = await manager.save(newPartnerRequest);
           newPartnerRequest.partner_request_id = newPartnerRequest.id;
 
-          if (
-            StringContentComparator.contentCompare(
-              'Accepted',
-              incomingPartnerRequest.status,
-            ) === 0
-          ) {
+          if (contentCompare('Accepted', incomingPartnerRequest.status) === 0) {
             newPartnerRequest.accepted = true;
             newPartnerRequest.accepted_by = partnerRequestBulk.accepted;
             newPartnerRequest.accepted_date = now;
@@ -557,10 +552,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
               );
             newPartnerRequest.institution_id = createdInstitution.id;
           } else if (
-            StringContentComparator.contentCompare(
-              'Rejected',
-              incomingPartnerRequest.status,
-            ) === 0
+            contentCompare('Rejected', incomingPartnerRequest.status) === 0
           ) {
             if (
               incomingPartnerRequest.justification == undefined ||
@@ -601,7 +593,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
           )
           .then((institutions) => {
             return partnerRequests.map((pr) => {
-              pr['institutionDto'] = institutions.find(
+              pr.institutionDto = institutions.find(
                 (i) => i.code === pr.institution_id,
               );
               return pr;

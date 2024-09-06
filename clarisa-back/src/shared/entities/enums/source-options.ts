@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 export class SourceOption {
   public static readonly ALL = new SourceOption(0, 'all');
   public static readonly CGIAR = new SourceOption(1, 'one-cgiar');

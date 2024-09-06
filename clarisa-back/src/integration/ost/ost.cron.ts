@@ -1,8 +1,14 @@
 import { Cron } from '@nestjs/schedule';
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { OSTApi } from './ost.api';
-import { WorkpackageOstDto } from './dto/workpackage.ost.dto';
-import { InitiativeOstDto } from './dto/initivative.ost.dto';
+import {
+  WorkpackageOstDto,
+  WorkpackageResponse,
+} from './dto/workpackage.ost.dto';
+import {
+  InitiativeOstDto,
+  InitiativeResponse,
+} from './dto/initivative.ost.dto';
 import { firstValueFrom } from 'rxjs';
 import { InitiativeStageOstDto } from './dto/initiative-stage.ost.dto';
 import { WorkpackageCountryOstDto } from './dto/workpackage-country.ost.dto';
@@ -22,13 +28,17 @@ import { WorkpackageRegion } from '../../api/workpackage/entities/workpackage-re
 import { Region } from '../../api/region/entities/region.entity';
 import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
 import { Initiative } from '../../api/initiative/entities/initiative.entity';
+import { Immutable } from '../../shared/utils/deep-immutable';
+import { AxiosResponse } from 'axios';
+import { ResponseOstDto } from './dto/response.ost.dto';
 
 @Injectable()
 export class OSTCron {
   private readonly logger: Logger = new Logger(OSTCron.name);
 
   constructor(
-    private readonly api: OSTApi,
+    private readonly api: Immutable<OSTApi>,
+    /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types */
     private readonly workpackageRepository: WorkpackageRepository,
     private readonly initiativeRepository: InitiativeRepository,
     private readonly countryRepository: CountryRepository,
@@ -36,14 +46,15 @@ export class OSTCron {
     private readonly initiativeStageRepository: InitiativeStageRepository,
     private readonly workpackageCountryRepository: WorkpackageCountryRepository,
     private readonly workpackageRegionRepository: WorkpackageRegionRepository,
+    /* eslint-enable @typescript-eslint/prefer-readonly-parameter-types */
   ) {}
 
   // every sunday at 5 am
   @Cron('0 0 5 * * 0')
-  public async cronWorkpackageRelatedData() {
-    const workpackagesRequest = await firstValueFrom(
+  public async cronWorkpackageRelatedData(): Promise<void> {
+    const workpackagesRequest = (await firstValueFrom(
       this.api.getWorkpackages(),
-    );
+    )) as Partial<AxiosResponse<ResponseOstDto<WorkpackageResponse>>> | null;
 
     if (workpackagesRequest && workpackagesRequest.status === HttpStatus.OK) {
       this.logger.debug('Started workpackage synchronization');
@@ -56,13 +67,11 @@ export class OSTCron {
       const initiativeStagesDb: InitiativeStage[] =
         await this.initiativeStageRepository.find();
 
-      await Promise.all(
-        oldWorkpackagesDb.map(async (ow) => {
-          ow.initiative_stage_object = initiativeStagesDb.find(
-            (is) => is.id === ow.submission_tool_initiative_stage_id,
-          );
-        }),
-      );
+      oldWorkpackagesDb.map((ow) => {
+        ow.initiative_stage_object = initiativeStagesDb.find(
+          (is) => is.id === ow.submission_tool_initiative_stage_id,
+        ) as InitiativeStage;
+      });
 
       const oldWorkpackageCountriesDb: WorkpackageCountry[] =
         await this.workpackageCountryRepository.find();
@@ -70,11 +79,11 @@ export class OSTCron {
       let updatedWorkpackageCountriesDb: WorkpackageCountry[] = [];
       let newWorkpackageCountriesDb: WorkpackageCountry[] = [];
 
-      await Promise.all(
-        oldWorkpackageCountriesDb.map(async (owc) => {
-          owc.country_object = countries.find((c) => c.id === owc.country_id);
-        }),
-      );
+      oldWorkpackageCountriesDb.map((owc) => {
+        owc.country_object = countries.find(
+          (c) => c.id === owc.country_id,
+        ) as Country;
+      });
 
       const oldWorkpackageRegionsDb: WorkpackageRegion[] =
         await this.workpackageRegionRepository.find();
@@ -82,11 +91,11 @@ export class OSTCron {
       let updatedWorkpackageRegionsDb: WorkpackageRegion[] = [];
       let newWorkpackageRegionsDb: WorkpackageRegion[] = [];
 
-      await Promise.all(
-        oldWorkpackageRegionsDb.map(async (owr) => {
-          owr.region_object = regions.find((r) => r.id === owr.region_id);
-        }),
-      );
+      oldWorkpackageRegionsDb.map((owr) => {
+        owr.region_object = regions.find(
+          (r) => r.id === owr.region_id,
+        ) as Region;
+      });
 
       const workpackagesOST: WorkpackageOstDto[] =
         workpackagesRequest.data?.response?.workpackages ?? [];
@@ -96,10 +105,8 @@ export class OSTCron {
       );
 
       oldWorkpackagesDb.forEach((w) => {
-        const workpackageOst: WorkpackageOstDto = OSTCron.updateWorkpackages(
-          w,
-          workpackagesOST,
-        );
+        const workpackageOst: WorkpackageOstDto | undefined =
+          OSTCron.updateWorkpackages(w, workpackagesOST);
 
         if (workpackageOst) {
           const currentWorkpackageCountries: WorkpackageCountry[] =
@@ -188,9 +195,8 @@ export class OSTCron {
       });
 
       newWorkpackages.forEach((nw) => {
-        const dbInitiativeStage: InitiativeStage = initiativeStagesDb.find(
-          (is) => is.id === nw.initvStgId,
-        );
+        const dbInitiativeStage: InitiativeStage | undefined =
+          initiativeStagesDb.find((is) => is.id === nw.initvStgId);
         if (dbInitiativeStage) {
           const newWorkpackage: Workpackage = OSTCron.createNewWorkpackage(
             nw,
@@ -292,8 +298,8 @@ export class OSTCron {
   }
 
   private static getNewWorkpackages(
-    workpackagesDb: Workpackage[],
-    workpackagesOST: WorkpackageOstDto[],
+    workpackagesDb: Immutable<Workpackage[]>,
+    workpackagesOST: Immutable<WorkpackageOstDto[]>,
   ): WorkpackageOstDto[] {
     return workpackagesOST.filter(
       (ost) =>
@@ -303,17 +309,17 @@ export class OSTCron {
             db.initiative_stage_object.stage_id === ost.stage_id &&
             db.wp_official_code === ost.wp_official_code,
         ),
-    );
+    ) as WorkpackageOstDto[];
   }
 
   private static createNewWorkpackage(
-    ostWorkpackage: WorkpackageOstDto,
-    dbInitiativeStage: InitiativeStage,
+    ostWorkpackage: Immutable<WorkpackageOstDto>,
+    dbInitiativeStage: Immutable<InitiativeStage>,
   ): Workpackage {
     const newWorkpackage: Workpackage = new Workpackage();
 
     newWorkpackage.acronym = ostWorkpackage.acronym;
-    newWorkpackage.is_global_dimension = ostWorkpackage.is_global === 1;
+    newWorkpackage.is_global_dimension = Boolean(ostWorkpackage.is_global);
     newWorkpackage.name = ostWorkpackage.name;
     newWorkpackage.pathway_content = ostWorkpackage.pathway_content;
     newWorkpackage.results = ostWorkpackage.results;
@@ -323,7 +329,7 @@ export class OSTCron {
     newWorkpackage.auditableFields = new AuditableEntity();
     newWorkpackage.auditableFields.created_at = ostWorkpackage.created_at;
     newWorkpackage.auditableFields.created_by = 3043; //clarisadmin
-    newWorkpackage.auditableFields.is_active = ostWorkpackage.active === 1;
+    newWorkpackage.auditableFields.is_active = Boolean(ostWorkpackage.active);
 
     newWorkpackage.countries = [];
     newWorkpackage.regions = [];
@@ -332,22 +338,23 @@ export class OSTCron {
   }
 
   private static updateWorkpackages(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
     workpackage: Workpackage,
-    ostWorkpackages: WorkpackageOstDto[],
-  ): WorkpackageOstDto {
-    const ostWorkpackage: WorkpackageOstDto = ostWorkpackages.find(
+    ostWorkpackages: Immutable<WorkpackageOstDto[]>,
+  ): WorkpackageOstDto | undefined {
+    const ostWorkpackage: WorkpackageOstDto | undefined = ostWorkpackages.find(
       (oi) =>
         workpackage.initiative_stage_object.initiative_id ===
           oi.initiative_id &&
         workpackage.initiative_stage_object.stage_id === oi.stage_id &&
         workpackage.wp_official_code === oi.wp_official_code,
-    );
+    ) as WorkpackageOstDto | undefined;
 
     if (ostWorkpackage) {
       workpackage.acronym = ostWorkpackage.acronym;
       workpackage.auditableFields.created_at = ostWorkpackage.created_at;
-      workpackage.auditableFields.is_active = ostWorkpackage.active === 1;
-      workpackage.is_global_dimension = ostWorkpackage.is_global === 1;
+      workpackage.auditableFields.is_active = Boolean(ostWorkpackage.active);
+      workpackage.is_global_dimension = Boolean(ostWorkpackage.is_global);
       workpackage.name = ostWorkpackage.name;
       workpackage.pathway_content = ostWorkpackage.pathway_content;
       workpackage.results = ostWorkpackage.results;
@@ -361,9 +368,9 @@ export class OSTCron {
   }
 
   private static getNewWorkpackageCountries(
-    workpackage: Workpackage,
-    workpackageCountriesDb: WorkpackageCountry[],
-    workpackageOst: WorkpackageOstDto,
+    workpackage: Immutable<Workpackage>,
+    workpackageCountriesDb: Immutable<WorkpackageCountry[]>,
+    workpackageOst: Immutable<WorkpackageOstDto>,
   ): WorkpackageCountryOstDto[] {
     return (workpackageOst.countries ?? []).filter(
       (ost) =>
@@ -376,20 +383,18 @@ export class OSTCron {
   }
 
   private static updateWorkpackageCountries(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
     workpackageCountry: WorkpackageCountry,
-    ostWorkpackage: WorkpackageOstDto,
-    ostWorkpackageCountries: WorkpackageCountryOstDto[],
-  ): WorkpackageCountryOstDto {
-    const ostWorkpackageCountry: WorkpackageCountryOstDto =
+    ostWorkpackage: Immutable<WorkpackageOstDto> | undefined,
+    ostWorkpackageCountries: Immutable<WorkpackageCountryOstDto[]>,
+  ): WorkpackageCountryOstDto | undefined {
+    const ostWorkpackageCountry: WorkpackageCountryOstDto | undefined =
       ostWorkpackageCountries.find(
         (owc) =>
           owc.country_id === workpackageCountry.country_object.iso_numeric,
       );
 
-    if (
-      !ostWorkpackageCountry ||
-      (ostWorkpackage && ostWorkpackage.active === 0)
-    ) {
+    if (!ostWorkpackageCountry || (ostWorkpackage && !ostWorkpackage.active)) {
       workpackageCountry.auditableFields.is_active = false;
     }
 
@@ -400,9 +405,9 @@ export class OSTCron {
   }
 
   private static createNewWorkpackageCountry(
-    ostWorkpackage: WorkpackageOstDto,
-    dbCountry: Country,
-    dbWorkpackage: Workpackage,
+    ostWorkpackage: Immutable<WorkpackageOstDto>,
+    dbCountry: Immutable<Country>,
+    dbWorkpackage: Immutable<Workpackage>,
   ): WorkpackageCountry {
     const newWorkpackageCountry: WorkpackageCountry = new WorkpackageCountry();
 
@@ -412,17 +417,18 @@ export class OSTCron {
     newWorkpackageCountry.auditableFields = new AuditableEntity();
     newWorkpackageCountry.auditableFields.created_at = new Date();
     newWorkpackageCountry.auditableFields.created_by = 3043; //clarisadmin
-    newWorkpackageCountry.auditableFields.is_active =
-      ostWorkpackage.active === 1;
+    newWorkpackageCountry.auditableFields.is_active = Boolean(
+      ostWorkpackage.active,
+    );
     newWorkpackageCountry.auditableFields.updated_at = new Date();
 
     return newWorkpackageCountry;
   }
 
   private static getNewWorkpackageRegions(
-    workpackage: Workpackage,
-    workpackageRegionsDb: WorkpackageRegion[],
-    workpackageOst: WorkpackageOstDto,
+    workpackage: Immutable<Workpackage>,
+    workpackageRegionsDb: Immutable<WorkpackageRegion[]>,
+    workpackageOst: Immutable<WorkpackageOstDto>,
   ): WorkpackageRegionOstDto[] {
     return (workpackageOst.regions ?? []).filter(
       (ost) =>
@@ -435,19 +441,17 @@ export class OSTCron {
   }
 
   private static updateWorkpackageRegions(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
     workpackageRegion: WorkpackageRegion,
-    ostWorkpackage: WorkpackageOstDto,
-    ostWorkpackageRegions: WorkpackageRegionOstDto[],
-  ): WorkpackageRegionOstDto {
-    const ostWorkpackageRegion: WorkpackageRegionOstDto =
+    ostWorkpackage: Immutable<WorkpackageOstDto> | undefined,
+    ostWorkpackageRegions: Immutable<WorkpackageRegionOstDto[]>,
+  ): WorkpackageRegionOstDto | undefined {
+    const ostWorkpackageRegion: WorkpackageRegionOstDto | undefined =
       ostWorkpackageRegions.find(
         (owc) => owc.region_id === workpackageRegion.region_object.id,
       );
 
-    if (
-      !ostWorkpackageRegion ||
-      (ostWorkpackage && ostWorkpackage.active === 0)
-    ) {
+    if (!ostWorkpackageRegion || (ostWorkpackage && !ostWorkpackage.active)) {
       workpackageRegion.auditableFields.is_active = false;
     }
 
@@ -458,9 +462,9 @@ export class OSTCron {
   }
 
   private static createNewWorkpackageRegion(
-    ostWorkpackage: WorkpackageOstDto,
-    dbRegion: Region,
-    dbWorkpackage: Workpackage,
+    ostWorkpackage: Immutable<WorkpackageOstDto>,
+    dbRegion: Immutable<Region>,
+    dbWorkpackage: Immutable<Workpackage>,
   ): WorkpackageRegion {
     const newWorkpackageRegion: WorkpackageRegion = new WorkpackageRegion();
 
@@ -470,8 +474,9 @@ export class OSTCron {
     newWorkpackageRegion.auditableFields = new AuditableEntity();
     newWorkpackageRegion.auditableFields.created_at = new Date();
     newWorkpackageRegion.auditableFields.created_by = 3043; //clarisadmin
-    newWorkpackageRegion.auditableFields.is_active =
-      ostWorkpackage.active === 1;
+    newWorkpackageRegion.auditableFields.is_active = Boolean(
+      ostWorkpackage.active,
+    );
     newWorkpackageRegion.auditableFields.updated_at = new Date();
 
     return newWorkpackageRegion;
@@ -479,8 +484,10 @@ export class OSTCron {
 
   // every sunday at 4 am
   @Cron('0 0 4 * * 0')
-  public async cronInitiativeRelatedData() {
-    const initiativesRequest = await firstValueFrom(this.api.getInitiatives());
+  public async cronInitiativeRelatedData(): Promise<void> {
+    const initiativesRequest = (await firstValueFrom(
+      this.api.getInitiatives(),
+    )) as Partial<AxiosResponse<ResponseOstDto<InitiativeResponse>>> | null;
 
     if (initiativesRequest && initiativesRequest.status === HttpStatus.OK) {
       this.logger.debug('Started initiative synchronization');
@@ -502,10 +509,8 @@ export class OSTCron {
       );
 
       oldInitiativesDb.forEach((i) => {
-        const initiativeOst: InitiativeOstDto = OSTCron.updateInitiative(
-          i,
-          initiativesOST,
-        );
+        const initiativeOst: InitiativeOstDto | undefined =
+          OSTCron.updateInitiative(i, initiativesOST);
 
         if (initiativeOst) {
           const currentInitiativeStages: InitiativeStage[] =
@@ -573,17 +578,17 @@ export class OSTCron {
   }
 
   private static getNewInitiatives(
-    initiativesDb: Initiative[],
-    initiativesOST: InitiativeOstDto[],
+    initiativesDb: Immutable<Initiative[]>,
+    initiativesOST: Immutable<InitiativeOstDto[]>,
   ): InitiativeOstDto[] {
     return initiativesOST.filter(
       (ost) =>
         !initiativesDb.find((db) => db.official_code === ost.official_code),
-    );
+    ) as InitiativeOstDto[];
   }
 
   private static createNewInitiative(
-    ostInitiative: InitiativeOstDto,
+    ostInitiative: Immutable<InitiativeOstDto>,
   ): Initiative {
     const newInitiative: Initiative = new Initiative();
 
@@ -595,7 +600,7 @@ export class OSTCron {
     newInitiative.auditableFields = new AuditableEntity();
     newInitiative.auditableFields.created_at = new Date();
     newInitiative.auditableFields.created_by = 3043; //clarisadmin
-    newInitiative.auditableFields.is_active = ostInitiative.active === 1;
+    newInitiative.auditableFields.is_active = Boolean(ostInitiative.active);
     newInitiative.auditableFields.updated_at = new Date();
 
     newInitiative.initiative_stage_array = [];
@@ -604,15 +609,16 @@ export class OSTCron {
   }
 
   private static updateInitiative(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
     initiative: Initiative,
-    ostInitiatives: InitiativeOstDto[],
-  ): InitiativeOstDto {
-    const ostInitiative: InitiativeOstDto = ostInitiatives.find(
+    ostInitiatives: Immutable<InitiativeOstDto[]>,
+  ): InitiativeOstDto | undefined {
+    const ostInitiative: InitiativeOstDto | undefined = ostInitiatives.find(
       (oi) => oi.official_code === initiative.official_code,
-    );
+    ) as InitiativeOstDto | undefined;
 
     if (ostInitiative) {
-      initiative.auditableFields.is_active = ostInitiative.active === 1;
+      initiative.auditableFields.is_active = Boolean(ostInitiative.active);
       initiative.name = ostInitiative.name;
       initiative.short_name = ostInitiative.acronym ?? '';
     } else {
@@ -626,8 +632,8 @@ export class OSTCron {
   }
 
   private static getNewInitiativeStatus(
-    initiativeStagesDb: InitiativeStage[],
-    initiativeOst: InitiativeOstDto,
+    initiativeStagesDb: Immutable<InitiativeStage[]>,
+    initiativeOst: Immutable<InitiativeOstDto>,
   ): InitiativeStageOstDto[] {
     return (initiativeOst.stages ?? []).filter(
       (ost) =>
@@ -640,22 +646,23 @@ export class OSTCron {
   }
 
   private static createNewInitiativeStage(
-    ostInitiativeStage: InitiativeStageOstDto,
-    ostInitiative: InitiativeOstDto,
-    dbInitiative: Initiative,
+    ostInitiativeStage: Immutable<InitiativeStageOstDto>,
+    ostInitiative: Immutable<InitiativeOstDto>,
+    dbInitiative: Immutable<Initiative>,
   ): InitiativeStage {
     const newInitiativeStage: InitiativeStage = new InitiativeStage();
 
     newInitiativeStage.id = +ostInitiativeStage.initvStgId;
     newInitiativeStage.action_area_id = ostInitiative.action_area_id
       ? +ostInitiative.action_area_id
-      : null;
+      : undefined;
     newInitiativeStage.auditableFields = new AuditableEntity();
     newInitiativeStage.auditableFields.created_at = new Date();
     newInitiativeStage.auditableFields.created_by = 3043; //clarisadmin
     newInitiativeStage.initiative_id = dbInitiative.id;
-    newInitiativeStage.auditableFields.is_active =
-      ostInitiativeStage.active === 1;
+    newInitiativeStage.auditableFields.is_active = Boolean(
+      ostInitiativeStage.active,
+    );
     newInitiativeStage.stage_id = ostInitiativeStage.stageId;
     newInitiativeStage.status = ostInitiative.status;
     newInitiativeStage.auditableFields.updated_at = new Date();
@@ -664,20 +671,23 @@ export class OSTCron {
   }
 
   private static updateInitiativeStages(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
     initiativeStage: InitiativeStage,
-    ostInitiative: InitiativeOstDto,
-    ostInitiativeStages: InitiativeStageOstDto[],
-  ): InitiativeStageOstDto {
-    const ostInitiativeStage: InitiativeStageOstDto = ostInitiativeStages.find(
-      (ois) => ois.stageId === initiativeStage.stage_id,
-    );
+    ostInitiative: Immutable<InitiativeOstDto>,
+    ostInitiativeStages: Immutable<InitiativeStageOstDto[]>,
+  ): InitiativeStageOstDto | undefined {
+    const ostInitiativeStage: InitiativeStageOstDto | undefined =
+      ostInitiativeStages.find(
+        (ois) => ois.stageId === initiativeStage.stage_id,
+      );
 
     if (ostInitiativeStage) {
       initiativeStage.action_area_id = ostInitiative.action_area_id
         ? +ostInitiative.action_area_id
-        : null;
-      initiativeStage.auditableFields.is_active =
-        ostInitiativeStage.active === 1;
+        : undefined;
+      initiativeStage.auditableFields.is_active = Boolean(
+        ostInitiativeStage.active,
+      );
       initiativeStage.status = ostInitiative.status;
     } else {
       initiativeStage.auditableFields.is_active = false;

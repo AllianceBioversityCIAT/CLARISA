@@ -14,9 +14,9 @@ export class OSTApi extends BaseApi {
   constructor(protected readonly httpService: HttpService) {
     super();
     this.httpService = httpService;
-    this.externalAppEndpoint = env.OST_URL;
-    this.user = env.OST_USER;
-    this.pass = env.OST_PASS;
+    this.externalAppEndpoint = env.OST_URL as string;
+    this.user = env.OST_USER as string;
+    this.pass = env.OST_PASS as string;
     this.logger = new Logger(OSTApi.name);
   }
 
@@ -32,7 +32,7 @@ export class OSTApi extends BaseApi {
     return this.getRequest<ResponseOstDto<InitiativeResponse>>('initiatives');
   }
 
-  getStages() {
+  getStages(): Observable<unknown> {
     return this.getRequest('initiatives/stages');
   }
 

@@ -1,6 +1,6 @@
 export class ElasticOperationDto<T> {
   constructor(
-    public operation: 'DELETE' | 'PATCH',
-    public data: T,
+    public readonly operation: 'DELETE' | 'PATCH',
+    public readonly data: T,
   ) {}
 }

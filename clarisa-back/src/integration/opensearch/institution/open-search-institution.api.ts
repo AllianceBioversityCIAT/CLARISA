@@ -16,10 +16,12 @@ import {
 } from '../dto/elastic-query.dto';
 import { ElasticResponse } from '../dto/elastic-response.dto';
 import { AxiosRequestConfig, isAxiosError } from 'axios';
-import { ArrayUtil } from '../../../shared/utils/array-util';
+import { isArrayOfType } from '../../../shared/utils/array-util';
+import { Immutable } from '../../../shared/utils/deep-immutable';
 
 @Injectable()
 export class OpenSearchInstitutionApi extends BaseApi {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
   private readonly OPENSEARCH_MAX_UPLOAD_SIZE = 1024 * 1024; // 1MB
   private readonly _bulkElasticUrl = `_bulk`;
   private readonly _config: AxiosRequestConfig = {
@@ -33,17 +35,18 @@ export class OpenSearchInstitutionApi extends BaseApi {
 
   constructor(
     protected readonly httpService: HttpService,
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
     private readonly _institutionRepository: InstitutionRepository,
   ) {
     super();
     this.httpService = httpService;
-    this.externalAppEndpoint = env.OPENSEARCH_URL;
-    this.user = env.OPENSEARCH_USER;
-    this.pass = env.OPENSEARCH_PASS;
+    this.externalAppEndpoint = env.OPENSEARCH_URL as string;
+    this.user = env.OPENSEARCH_USER as string;
+    this.pass = env.OPENSEARCH_PASS as string;
     this.logger = new Logger(OpenSearchInstitutionApi.name);
   }
 
-  public getSingleElasticOperation<T>(
+  public getSingleElasticOperation<T extends { id: number | string }>(
     documentName: string,
     operation: ElasticOperationDto<T>,
     fromBulk = false,
@@ -51,7 +54,7 @@ export class OpenSearchInstitutionApi extends BaseApi {
     const isPatch: boolean = operation.operation === 'PATCH';
     let elasticOperation = `{ "${
       isPatch ? 'create' : 'delete'
-    }" : { "_index" : "${documentName}", "_id" : "${operation.data['id']}"  } }
+    }" : { "_index" : "${documentName}", "_id" : "${operation.data.id}"  } }
     ${isPatch ? JSON.stringify(operation.data) : ''}`;
     if (!fromBulk) {
       elasticOperation = elasticOperation.concat('\n');
@@ -62,9 +65,9 @@ export class OpenSearchInstitutionApi extends BaseApi {
 
   public getBulkElasticOperationForInstitutions(
     documentName: string,
-    operations: ElasticOperationDto<InstitutionDto>[],
+    operations: Immutable<ElasticOperationDto<InstitutionDto>[]>,
   ): string[] {
-    const bulkElasticOperations = [];
+    const bulkElasticOperations: string[] = [];
     let currentBatchElasticOperations = '';
     let currentBatchElasticOperationSize = 0;
     const encoder = new TextEncoder();
@@ -91,6 +94,7 @@ export class OpenSearchInstitutionApi extends BaseApi {
         (the +1 is an additional byte for the newline character,
         required by elastic search when bulk uploading)
        */
+      /* eslint-disable @typescript-eslint/no-magic-numbers */
       if (
         currentBatchElasticOperationSize + currentEncodedOperation.length + 1 >
           this.OPENSEARCH_MAX_UPLOAD_SIZE ||
@@ -102,6 +106,7 @@ export class OpenSearchInstitutionApi extends BaseApi {
         currentBatchElasticOperations = '';
         currentBatchElasticOperationSize = 0;
       }
+      /* eslint-enable @typescript-eslint/no-magic-numbers */
 
       currentBatchElasticOperations += elasticOperation;
       currentBatchElasticOperationSize += currentEncodedOperation.length;
@@ -113,9 +118,9 @@ export class OpenSearchInstitutionApi extends BaseApi {
     return bulkElasticOperations;
   }
 
-  public getBulkElasticOperations<T>(
+  public getBulkElasticOperations<T extends { id: number | string }>(
     documentName: string,
-    operation: ElasticOperationDto<T>[],
+    operation: readonly ElasticOperationDto<T>[],
   ): string {
     let bulkElasticOperations = '';
 
@@ -134,7 +139,7 @@ export class OpenSearchInstitutionApi extends BaseApi {
 
   public getSingleElasticOperationForInstitutions(
     documentName: string,
-    operation: ElasticOperationDto<InstitutionDto>,
+    operation: Immutable<ElasticOperationDto<InstitutionDto>>,
     fromBulk = false,
   ): string {
     const isPatch: boolean = operation.operation === 'PATCH';
@@ -162,8 +167,8 @@ export class OpenSearchInstitutionApi extends BaseApi {
    * @returns {Promise<any>} A promise that resolves with the response from the OpenSearch server.
    */
   public async sendBulkOperationToOpenSearch(
-    bulkOperationsJson: string[],
-  ): Promise<any> {
+    bulkOperationsJson: readonly string[],
+  ): Promise<unknown> {
     const allRequests = bulkOperationsJson.map((op) =>
       this.postRequest(this._bulkElasticUrl, op, this._config),
     );
@@ -187,12 +192,12 @@ export class OpenSearchInstitutionApi extends BaseApi {
    */
   async findForOpenSearch(
     documentName: string,
-    ids?: number[],
+    ids?: readonly number[],
   ): Promise<string[]> {
     return this._institutionRepository
       .findInstitutions(FindAllOptions.SHOW_ALL, undefined, ids)
       .then((queryResult) => {
-        if (!queryResult.length) {
+        if (!queryResult?.length) {
           throw new Error('No data found');
         }
 
@@ -217,9 +222,9 @@ export class OpenSearchInstitutionApi extends BaseApi {
    *
    * @returns {Promise<void>} A promise that resolves when the reset operation is complete.
    */
-  async resetElasticData(): Promise<string | void> {
+  async resetElasticData(): Promise<string> {
     const now = new Date();
-    return this.findForOpenSearch(env.OPENSEARCH_DOCUMENT_NAME)
+    return this.findForOpenSearch(env.OPENSEARCH_DOCUMENT_NAME as string)
       .then((elasticData) =>
         lastValueFrom(
           this.deleteRequest(`${env.OPENSEARCH_DOCUMENT_NAME}`, this._config),
@@ -239,64 +244,70 @@ export class OpenSearchInstitutionApi extends BaseApi {
         () =>
           `The data has been reset. Took ${new Date().getTime() - now.getTime()} ms`,
       )
-      .catch((error) => {
+      .catch((error: unknown) => {
         this.logger.error(error);
+        return String(error);
       });
   }
 
   async uploadInstitutionsToOpenSearch(
-    institutions: number[] | InstitutionDto[],
-  ): Promise<void> {
-    const isNumericArray = ArrayUtil.isArrayOfType<number>(
+    institutions: Immutable<number[] | InstitutionDto[]>,
+  ): Promise<string> {
+    const isNumericArray = isArrayOfType<number>(
       institutions,
       (e) => typeof e === 'number',
     );
     const promise = isNumericArray
-      ? this.findForOpenSearch(env.OPENSEARCH_DOCUMENT_NAME, institutions)
+      ? this.findForOpenSearch(
+          env.OPENSEARCH_DOCUMENT_NAME as string,
+          institutions,
+        )
       : Promise.resolve(
           this.getBulkElasticOperationForInstitutions(
-            env.OPENSEARCH_DOCUMENT_NAME,
+            env.OPENSEARCH_DOCUMENT_NAME as string,
             institutions.map((i) => new ElasticOperationDto('PATCH', i)),
           ),
         );
 
     return promise
       .then((elasticData) => this.sendBulkOperationToOpenSearch(elasticData))
-      .then(() => {
-        this.logger.log(`The institutions have been uploaded to OpenSearch`);
-      })
-      .catch((error) => {
+      .then(() => 'The institutions have been uploaded to OpenSearch')
+      .catch((error: unknown) => {
         this.logger.error(error);
+        return String(error);
       });
   }
 
   async uploadSingleInstitutionToOpenSearch(
-    institution: number | InstitutionDto,
-  ): Promise<void> {
+    institution: Immutable<number | InstitutionDto>,
+  ): Promise<string> {
     const isInstitutionId = typeof institution === 'number';
     const promise = isInstitutionId
-      ? this.findForOpenSearch(env.OPENSEARCH_DOCUMENT_NAME, [institution])
+      ? this.findForOpenSearch(env.OPENSEARCH_DOCUMENT_NAME as string, [
+          institution,
+        ])
       : Promise.resolve([
           this.getSingleElasticOperationForInstitutions(
-            env.OPENSEARCH_DOCUMENT_NAME,
+            env.OPENSEARCH_DOCUMENT_NAME as string,
             new ElasticOperationDto('PATCH', institution),
           ),
         ]);
 
     return promise
       .then((elasticData) => this.sendBulkOperationToOpenSearch(elasticData))
-      .then(() => {
-        this.logger.log(
+      .then(
+        () =>
           `Institution with id ${isInstitutionId ? institution : institution.code} has been uploaded to OpenSearch`,
-        );
-      })
-      .catch((error) => {
+      )
+      .catch((error: unknown) => {
         this.logger.error(error);
+        return String(error);
       });
   }
 
   async search(
     query: string,
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     size: number = 20,
   ): Promise<(InstitutionDto & { score: number })[]> {
     const elasticQuery = this._getElasticQuery<InstitutionDto>(
@@ -313,15 +324,17 @@ export class OpenSearchInstitutionApi extends BaseApi {
       >(`${env.OPENSEARCH_DOCUMENT_NAME}/_search`, elasticQuery, this._config),
     )
       .then((response) => {
-        return response.data?.hits?.hits?.map((hit) => ({
+        return response.data.hits.hits.map((hit) => ({
           ...hit._source,
           score: hit._score,
         }));
       })
-      .catch((error: Error) => {
-        const data = isAxiosError(error) ? error.response?.data : error.message;
+      .catch((error: unknown) => {
+        const data: unknown = isAxiosError(error)
+          ? error.response?.data
+          : (error as Error).message;
         this.logger.error(data);
-        throw new Error(data);
+        throw new Error(String(data));
       });
   }
 
@@ -337,8 +350,8 @@ export class OpenSearchInstitutionApi extends BaseApi {
   private _getElasticQuery<T>(
     toFind: string,
     size: number,
-    fieldsToSearchOn: (keyof T)[],
-    fieldsToSortOn: TypeSort<T>[],
+    fieldsToSearchOn: readonly (keyof T)[],
+    fieldsToSortOn: readonly TypeSort<T>[],
   ): ElasticQueryDto<T> {
     const query: ElasticQueryDto<T> = {
       size,
@@ -351,7 +364,7 @@ export class OpenSearchInstitutionApi extends BaseApi {
                   {
                     multi_match: {
                       query: toFind,
-                      fields: fieldsToSearchOn as (keyof T)[], //eslint-disable-line
+                      fields: [...fieldsToSearchOn],
                       operator: 'and',
                     },
                   },
@@ -377,7 +390,8 @@ export class OpenSearchInstitutionApi extends BaseApi {
     );
 
     //icky but necessary
-    (query.query.bool.must[0] as OpenSearchQuery<T>).bool.should.push(
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    (query.query.bool?.must?.[0] as OpenSearchQuery<T>).bool?.should?.push(
       ...wildcardQueries,
     );
 

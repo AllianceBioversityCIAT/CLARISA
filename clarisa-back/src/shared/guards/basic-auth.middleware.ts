@@ -1,19 +1,15 @@
-import { Injectable, NestMiddleware, Next, Req, Res } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
+import { Injectable, NestMiddleware, Next, Req } from '@nestjs/common';
 import { AuthService } from 'src/auth/auth.service';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request } from 'express';
+import { Immutable } from '../utils/deep-immutable';
 
 @Injectable()
 export class BasicAuthMiddleware implements NestMiddleware {
-  constructor(
-    private moduleRef: ModuleRef,
-    private authService: AuthService,
-  ) {}
+  constructor(private authService: Immutable<AuthService>) {}
 
   async use(
     @Req() request: Request,
-    @Res() response: Response,
-    @Next() next: NextFunction,
+    @Next() next: Immutable<NextFunction>,
   ): Promise<void> {
     const authHeader: string = request.headers.authorization ?? '';
     const basic: boolean = authHeader.toLocaleLowerCase().includes('basic');
@@ -24,6 +20,7 @@ export class BasicAuthMiddleware implements NestMiddleware {
       const credentials: string[] = auth.split(':');
 
       await this.authService
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
         .validateUser(credentials[0], credentials[1])
         .then((u) => {
           if (u) {

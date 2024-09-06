@@ -12,9 +12,9 @@ export class TOCApi extends BaseApi {
   constructor(protected readonly httpService: HttpService) {
     super();
     this.httpService = httpService;
-    this.externalAppEndpoint = env.TOC_URL;
-    this.user = env.TOC_USER;
-    this.pass = env.TOC_PASS;
+    this.externalAppEndpoint = env.TOC_URL as string;
+    this.user = env.TOC_USER as string;
+    this.pass = env.TOC_PASS as string;
     this.logger = new Logger(TOCApi.name);
   }
 

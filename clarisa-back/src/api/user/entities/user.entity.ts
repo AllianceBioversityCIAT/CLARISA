@@ -72,7 +72,7 @@ export class User {
   source_array: Source[];
 
   //meant to be used by the guard
-  permissions: string[];
+  permissions: string[] | undefined;
 
   //auditable fields
 

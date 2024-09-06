@@ -4,12 +4,13 @@ import {
   FindOptionsWhere,
   ObjectLiteral,
   Repository,
+  getMetadataArgsStorage,
 } from 'typeorm';
 import { Phase } from '../entities/phase.entity';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { PhaseStatus } from '../../../shared/entities/enums/phase-status';
 import { PRMSApplication } from '../../../shared/entities/enums/prms-applications';
-import { getMetadataArgsStorage } from 'typeorm';
+import { Immutable } from '../../../shared/utils/deep-immutable';
 
 @Injectable()
 export class PhaseRepository {
@@ -17,16 +18,17 @@ export class PhaseRepository {
   public phaseRepositories: Map<string, Repository<ObjectLiteral & Phase>> =
     new Map();
 
-  constructor(private dataSource: DataSource) {
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
+  constructor(private readonly dataSource: Readonly<DataSource>) {
     const phaseTables: PRMSApplication[] = PRMSApplication.getAllPhaseTables();
 
     const phaseTableMetadatas = getMetadataArgsStorage().tables.filter((t) =>
-      phaseTables.find((p) => p.tableName == t.name),
+      phaseTables.find((p) => p.tableName === t.name),
     );
 
     phaseTableMetadatas.map((ptm) => {
       this.phaseRepositories.set(
-        ptm.name,
+        ptm.name as string,
         this.dataSource.getRepository(ptm.target),
       );
     });
@@ -39,7 +41,6 @@ export class PhaseRepository {
   ): Promise<Phase[]> {
     let whereClause: FindOptionsWhere<Phase> = {};
     const incomingStatus = PhaseStatus.getfromPath(status);
-    const incomingMis = PRMSApplication.getfromSimpleName(prmsApp);
 
     switch (incomingStatus) {
       case PhaseStatus.ALL:
@@ -70,34 +71,50 @@ export class PhaseRepository {
 
     let phases: Phase[] = [];
 
+    phases = await this._getPhasesByMis(prmsApp, whereClause);
+
+    return phases;
+  }
+
+  private async _getPhasesByMis(
+    prmsApp: string,
+    whereClause: Immutable<FindOptionsWhere<Phase>>,
+  ): Promise<Phase[]> {
+    const incomingMis = PRMSApplication.getfromSimpleName(prmsApp);
     switch (incomingMis) {
       case PRMSApplication.ALL:
+        const allPhases: Phase[] = [];
         for (const key of this.phaseRepositories.keys()) {
-          const currentMisPhases = (await this.phaseRepositories.get(key).find({
-            where: whereClause,
-          })) as Phase[];
-          phases = phases.concat(
-            currentMisPhases.map((cmp) => {
-              cmp.application =
-                PRMSApplication.getfromTableName(key)?.prettyName;
-              return cmp;
-            }),
-          );
+          const currentMisPhases = await this._getPhasesByKey(key, whereClause);
+          allPhases.push(...currentMisPhases);
         }
-        break;
+        return allPhases;
       case PRMSApplication.REPORTING_TOOL:
       case PRMSApplication.IPSR:
       case PRMSApplication.TOC:
       case PRMSApplication.OST:
       case PRMSApplication.RISK:
-        phases = (await this.phaseRepositories.get(incomingMis.tableName).find({
-          where: whereClause,
-        })) as Phase[];
-        break;
+        return this._getPhasesByKey(incomingMis.tableName, whereClause);
       default:
         throw Error(`The mis "${prmsApp}" was not found!`);
     }
+  }
 
-    return phases;
+  private async _getPhasesByKey(
+    key: string,
+    whereClause: Immutable<FindOptionsWhere<Phase>>,
+  ): Promise<Phase[]> {
+    const repository = this.phaseRepositories.get(key);
+    if (repository) {
+      const currentMisPhases = (await repository.find({
+        where: whereClause as FindOptionsWhere<Phase>,
+      })) as Phase[];
+      return currentMisPhases.map((cmp) => {
+        cmp.application = PRMSApplication.getfromTableName(key)
+          ?.prettyName as string;
+        return cmp;
+      });
+    }
+    return [];
   }
 }

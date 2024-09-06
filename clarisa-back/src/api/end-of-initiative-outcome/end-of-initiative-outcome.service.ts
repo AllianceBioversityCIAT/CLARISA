@@ -9,7 +9,7 @@ export class EndOfInitiativeOutcomeService {
   async findAll() {
     const response = await firstValueFrom(this.apiOst.getEndOfIniciative());
 
-    const eois = response?.data?.response?.eoi_outcome_by_initiatives ?? [];
+    const eois = response.data.response.eoi_outcome_by_initiatives ?? [];
 
     return eois;
   }

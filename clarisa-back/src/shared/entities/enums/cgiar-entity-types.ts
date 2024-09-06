@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 export class CgiarEntityTypeOption {
   public static readonly CRP = new CgiarEntityTypeOption(1, 'crps');
   public static readonly PLATFORM = new CgiarEntityTypeOption(3, 'platforms');

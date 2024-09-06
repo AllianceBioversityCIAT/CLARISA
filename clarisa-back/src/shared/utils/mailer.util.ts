@@ -9,6 +9,7 @@ import Handlebars from 'handlebars';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { Profile } from '../entities/enums/profiles';
 import { PartnerRequest } from '../../api/partner-request/entities/partner-request.entity';
+import { Immutable } from './deep-immutable';
 
 @Injectable()
 export class MailUtil {
@@ -20,7 +21,7 @@ export class MailUtil {
   }
 
   private async getTransporterInstance(): Promise<
-    nodemailer.Transporter<SMTPTransport.SentMessageInfo>
+    Immutable<nodemailer.Transporter<SMTPTransport.SentMessageInfo>>
   > {
     const isProd: boolean = env.APP_PROFILE === 'PROD';
     // create reusable transporter object using the default SMTP transport
@@ -109,7 +110,9 @@ export class MailUtil {
     }
 
     if (isReady) {
-      return transporter;
+      return transporter as Immutable<
+        nodemailer.Transporter<SMTPTransport.SentMessageInfo>
+      >;
     } else {
       throw Error(
         'We were not able to establish a connection with the mail servers',
@@ -124,7 +127,7 @@ export class MailUtil {
   }
 
   public sendNewPartnerRequestNotification(
-    partnerRequest: Readonly<PartnerRequest>,
+    partnerRequest: Immutable<PartnerRequest>,
     //appContactPointMails: string[],
   ): void {
     const isDev: boolean = Profile.getfromName(env.APP_PROFILE) === Profile.DEV;
@@ -178,22 +181,22 @@ export class MailUtil {
           subject, // Subject line
           //text: 'Hello world?', // plain text body
           html: compiledTemplate, // html body
-        }).catch((err) => {
+        }).catch((err: unknown) => {
           this.logger.error(err);
         });
       })
-      .catch((err) => {
-        this.logger.error(`The template could not be found...${err}`);
+      .catch((err: unknown) => {
+        this.logger.error(`The template could not be found...${String(err)}`);
       });
   }
 
   public sendResponseToPartnerRequest(
-    partnerRequest: PartnerRequest,
+    partnerRequest: Immutable<PartnerRequest>,
     //appContactPointMails: string[],
-  ) {
-    const isDev: boolean = Profile.getfromName(env.APP_PROFILE) == Profile.DEV;
+  ): void {
+    const isDev: boolean = Profile.getfromName(env.APP_PROFILE) === Profile.DEV;
     const isProd: boolean =
-      Profile.getfromName(env.APP_PROFILE) == Profile.PROD;
+      Profile.getfromName(env.APP_PROFILE) === Profile.PROD;
 
     const subject = `${isDev ? 'TEST' : ''} [CLARISA API - ${
       partnerRequest.mis_object.acronym
@@ -224,13 +227,13 @@ export class MailUtil {
       //bcc.push(...(appContactPointMails ?? []));
     }
 
-    this.loadUpTemplate(
+    void this.loadUpTemplate(
       '../../../assets/email-templates/responded-partner-request.hbs',
     ).then((hbsTemplate) => {
       const template = Handlebars.compile(hbsTemplate);
       const compiledTemplate: string = template(partnerRequest);
 
-      this.sendEmail({
+      void this.sendEmail({
         from: env.SUPPORT_EMAIL, // sender address
         to, // list of receivers
         cc,
@@ -242,9 +245,14 @@ export class MailUtil {
     });
   }
 
-  public async sendEmail(options: Mail.Options): Promise<any> {
+  public async sendEmail(
+    options: Immutable<Mail.Options>,
+  ): Promise<SMTPTransport.SentMessageInfo | null> {
     return this.getTransporterInstance()
-      .then((transporter) => transporter.sendMail(options))
-      .catch((err: unknown) => err);
+      .then((transporter) => transporter.sendMail(options as Mail.Options))
+      .catch((err: unknown) => {
+        this.logger.error(err);
+        return null;
+      });
   }
 }

@@ -10,11 +10,13 @@ import { InstitutionLocation } from '../entities/institution-location.entity';
 import { Institution } from '../entities/institution.entity';
 import { InstitutionLocationRepository } from './institution-location.repository';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
+import { Immutable } from '../../../shared/utils/deep-immutable';
 
 @Injectable()
 export class InstitutionRepository extends Repository<Institution> {
   constructor(
     private dataSource: DataSource,
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
     private institutionLocationRepository: InstitutionLocationRepository,
   ) {
     super(Institution, dataSource.createEntityManager());
@@ -22,9 +24,9 @@ export class InstitutionRepository extends Repository<Institution> {
 
   async findInstitutions(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    from: string = undefined,
-    institutionIds?: number[],
-  ): Promise<InstitutionDto[]> {
+    from: string | undefined = undefined,
+    institutionIds?: readonly number[],
+  ): Promise<InstitutionDto[] | undefined> {
     let whereClause: string = '';
     const whereValues: (string | number)[] = [];
 
@@ -72,14 +74,16 @@ export class InstitutionRepository extends Repository<Institution> {
       group by i.id
     `;
 
-    return await this.query(query, whereValues).catch((error) => {
-      throw Error(`Error fetching institutions: ${error}`);
+    return await (
+      this.query(query, whereValues) as Promise<InstitutionDto[]>
+    ).catch((error: unknown) => {
+      throw Error(`Error fetching institutions: ${String(error)}`);
     });
   }
 
-  async findInstitutionById(id: number): Promise<InstitutionDto> {
+  async findInstitutionById(id: number): Promise<InstitutionDto | undefined> {
     return this.findInstitutions(FindAllOptions.SHOW_ALL, undefined, [id]).then(
-      (value) => (value ? value[0] : null),
+      (value) => (value ? value.shift() : undefined),
     );
   }
 
@@ -87,7 +91,7 @@ export class InstitutionRepository extends Repository<Institution> {
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     addInstitutionRelated: boolean = false,
     institutionId?: number,
-  ) {
+  ): string {
     let whereClause: string = '';
     if (institutionId) {
       whereClause += `where i.id = ?`;
@@ -126,7 +130,7 @@ export class InstitutionRepository extends Repository<Institution> {
   async findInstitutionSourceEntries(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     institutionId?: number,
-  ): Promise<InstitutionDictionaryDto[]> {
+  ): Promise<InstitutionDictionaryDto[] | undefined> {
     const whereValues: (string | number)[] = [];
     if (institutionId) {
       whereValues.push(institutionId);
@@ -144,56 +148,68 @@ export class InstitutionRepository extends Repository<Institution> {
 
     whereValues.push(valueToPush);
 
-    return await this.query(
-      this._getQueryForInstitutionSimple(option, true),
-      whereValues,
-    ).catch((error) => {
-      throw Error(`Error fetching simple old institutions: ${error}`);
+    return await (
+      this.query(
+        this._getQueryForInstitutionSimple(option, true),
+        whereValues,
+      ) as Promise<InstitutionDictionaryDto[]>
+    ).catch((error: unknown) => {
+      throw Error(`Error fetching simple old institutions: ${String(error)}`);
     });
   }
 
   async findInstitutionSourceEntriesById(
     id: number,
-  ): Promise<InstitutionDictionaryDto> {
+  ): Promise<InstitutionDictionaryDto | undefined> {
     return this.findInstitutionSourceEntries(FindAllOptions.SHOW_ALL, id).then(
-      (value) => (value ? value[0] : null),
+      (value) => (value ? value.shift() : undefined),
     );
   }
 
   async findAllInstitutionsSimple(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     institutionId?: number,
-  ): Promise<InstitutionSimpleDto[]> {
+  ): Promise<InstitutionSimpleDto[] | undefined> {
     const whereValues: (string | number)[] = [];
 
     if (institutionId) {
       whereValues.push(institutionId);
     }
 
-    whereValues.push(
-      option === FindAllOptions.SHOW_ALL
-        ? '1,0'
-        : option === FindAllOptions.SHOW_ONLY_ACTIVE
-          ? '1'
-          : '0',
-    );
+    let valueToPush: string;
+    switch (option) {
+      case FindAllOptions.SHOW_ALL:
+        valueToPush = '1,0';
+        break;
+      case FindAllOptions.SHOW_ONLY_ACTIVE:
+        valueToPush = '1';
+        break;
+      default:
+        valueToPush = '0';
+        break;
+    }
+    whereValues.push(valueToPush);
 
-    return await this.query(
-      this._getQueryForInstitutionSimple(option),
-      whereValues,
-    ).catch((error) => {
-      throw Error(`Error fetching simple institutions: ${error}`);
+    return await (
+      this.query(
+        this._getQueryForInstitutionSimple(option),
+        whereValues,
+      ) as Promise<InstitutionSimpleDto[]>
+    ).catch((error: unknown) => {
+      throw Error(`Error fetching simple institutions: ${String(error)}`);
     });
   }
 
-  async findInstitutionSimpleById(id: number): Promise<InstitutionSimpleDto> {
+  async findInstitutionSimpleById(
+    id: number,
+  ): Promise<InstitutionSimpleDto | undefined> {
     return this.findAllInstitutionsSimple(FindAllOptions.SHOW_ALL, id).then(
-      (value) => (value ? value[0] : null),
+      (value) => (value ? value.shift() : undefined),
     );
   }
 
   async createInstitutionCountry(
-    request: CountryOfficeRequest | PartnerRequest,
+    request: Immutable<CountryOfficeRequest | PartnerRequest>,
     isHQ: boolean,
   ): Promise<InstitutionLocation> {
     const institutionLocation: InstitutionLocation = new InstitutionLocation();
@@ -209,8 +225,9 @@ export class InstitutionRepository extends Repository<Institution> {
   }
 
   async createInstitution(
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
     partnerRequest: PartnerRequest,
-  ): Promise<InstitutionDto> {
+  ): Promise<InstitutionDto | undefined> {
     let institution: Institution = new Institution();
     institution.auditableFields = new AuditableEntity();
 
@@ -235,7 +252,7 @@ export class InstitutionRepository extends Repository<Institution> {
     id_institution: number,
     isHQ: boolean,
     createBy: number,
-  ) {
+  ): Promise<InstitutionLocation> {
     const institutionLocation: InstitutionLocation = new InstitutionLocation();
     institutionLocation.auditableFields = new AuditableEntity();
 
@@ -249,9 +266,9 @@ export class InstitutionRepository extends Repository<Institution> {
 
   async createBulkInstitution(
     entityManager: EntityManager,
-    BulkInstitutions: PartnerRequest,
+    BulkInstitutions: Immutable<PartnerRequest>,
     createBy: number,
-  ) {
+  ): Promise<Institution> {
     let institution: Institution = new Institution();
     institution.auditableFields = new AuditableEntity();
 

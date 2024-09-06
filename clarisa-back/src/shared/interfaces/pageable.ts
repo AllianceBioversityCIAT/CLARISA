@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 import { IsNumber, Min, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 

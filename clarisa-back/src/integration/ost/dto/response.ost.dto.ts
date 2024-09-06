@@ -1,4 +1,4 @@
-export class ResponseOstDto<T> {
-  response: T;
+export interface ResponseOstDto<T> {
+  response?: T;
   title: string;
 }

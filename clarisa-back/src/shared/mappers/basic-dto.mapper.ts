@@ -6,33 +6,37 @@ export class BasicDtoMapper<E> {
   public classToDto(
     entity: E,
     showIsActive: boolean = false,
-    mappedFields: BasicDtoEquivalences<E> = <any>{
-      code: 'id',
-      name: 'name',
-      description: 'description',
-      is_active: 'auditableFields.is_active',
+    mappedFields: BasicDtoEquivalences<E> = {
+      code: 'id' as keyof E,
+      name: 'name' as keyof E,
+      description: 'description' as keyof E,
+      is_active: 'auditableFields.is_active' as keyof E,
     },
   ): BasicDto {
     const dto: BasicDto = new BasicDto();
     Object.keys(mappedFields).forEach((key) => {
       if (key === 'is_active' && !showIsActive) return;
-      const entityKey: string = mappedFields[key];
-      dto[key] = entityKey
-        .split('.')
-        .reduce((prev, curr) => prev && prev[curr], entity);
+      const entityKey = mappedFields[key] as string;
+      const entityProperty = entityKey.split('.');
+      let propertyValue: unknown = null;
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      while (entityProperty.length > 0) {
+        propertyValue = entity[entityProperty.shift() as string];
+      }
+      dto[key] = propertyValue;
     });
 
     return dto;
   }
 
   public classListToDtoList(
-    entities: E[],
+    entities: readonly E[],
     showIsActive: boolean = false,
-    mappedFields: BasicDtoEquivalences<E> = <any>{
-      code: 'id',
-      name: 'name',
-      description: 'description',
-      is_active: 'auditableFields.is_active',
+    mappedFields: BasicDtoEquivalences<E> = {
+      code: 'id' as keyof E,
+      name: 'name' as keyof E,
+      description: 'description' as keyof E,
+      is_active: 'auditableFields.is_active' as keyof E,
     },
   ): BasicDto[] {
     return entities.map((entity) =>

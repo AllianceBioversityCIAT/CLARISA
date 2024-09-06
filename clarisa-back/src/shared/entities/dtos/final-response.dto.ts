@@ -22,7 +22,10 @@ export class FinalResponseDto<T> {
     this.path = path;
   }
 
-  static fromResponse<T>(responseDto: ResponseDto<T>, path: string) {
+  static fromResponse<T>(
+    responseDto: ResponseDto<T>,
+    path: string,
+  ): FinalResponseDto<T> {
     return new FinalResponseDto(
       ResponseDto.getResponse(responseDto),
       ResponseDto.getMessage(responseDto),
@@ -36,7 +39,7 @@ export class FinalResponseDto<T> {
     return responseDto.response;
   }
 
-  public static getStatus(responseDto: FinalResponseDto<any>): HttpStatus {
+  public static getStatus<T>(responseDto: FinalResponseDto<T>): HttpStatus {
     return responseDto.status;
   }
 }

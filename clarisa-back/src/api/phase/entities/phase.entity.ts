@@ -4,23 +4,26 @@ import { AuditableEntity } from '../../../shared/entities/extends/auditable-enti
 
 export abstract class Phase {
   @PrimaryColumn({ type: 'varchar', nullable: false, length: 255 })
-  id: string;
+  id!: string;
 
   @Column({ type: 'text', nullable: false })
-  name: string;
+  name!: string;
 
   @Column({ type: 'int', nullable: false })
-  year: number;
+  year!: number;
 
   @Exclude({ toPlainOnly: true })
   @Column({ type: 'tinyint', width: 1, nullable: false, default: () => '1' })
-  is_open: boolean;
+  is_open!: boolean;
 
   //auditable fields
 
   @Exclude()
   @Column(() => AuditableEntity, { prefix: '' })
-  auditableFields: AuditableEntity;
+  auditableFields!: AuditableEntity;
+
+  //util field for the phases endpoint
+  application!: string;
 }
 
 export type PhaseConstructor<T extends Phase> = new () => T;

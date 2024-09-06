@@ -57,8 +57,8 @@ export class PRMSApplication {
   }
 
   public static getAllPhaseTables(): PRMSApplication[] {
-    return Object.values(PRMSApplication).filter(
-      (v) => v != PRMSApplication.ALL,
+    return (<PRMSApplication[]>Object.values(PRMSApplication)).filter(
+      (v) => v !== PRMSApplication.ALL,
     );
   }
 }

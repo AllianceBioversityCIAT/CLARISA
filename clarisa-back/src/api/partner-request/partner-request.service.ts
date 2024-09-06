@@ -357,7 +357,7 @@ export class PartnerRequestService {
       .createPartnerRequestBulk(createBulkPartner)
       .then((prs) => {
         const institutions = prs
-          .map((pr) => pr['institutionDto'] as InstitutionDto)
+          .map((pr) => pr.institutionDto as InstitutionDto)
           .filter((i) => i);
         this.openSearchApi.uploadInstitutionsToOpenSearch(institutions);
         return prs;

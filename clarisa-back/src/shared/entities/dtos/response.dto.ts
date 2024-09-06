@@ -15,17 +15,17 @@ export class ResponseDto<T> {
     return responseDto.response;
   }
 
-  public static getMessage(responseDto: ResponseDto<any>): string {
+  public static getMessage<T>(responseDto: ResponseDto<T>): string {
     return responseDto.message;
   }
 
-  public static getStatus(responseDto: ResponseDto<any>): HttpStatus {
+  public static getStatus<T>(responseDto: ResponseDto<T>): HttpStatus {
     return responseDto.status;
   }
 
   static buildCreatedResponse<T>(
     response: T,
-    serviceConstructor: new (...args: any[]) => any,
+    serviceConstructor: new (...args: unknown[]) => unknown,
   ): ResponseDto<T> {
     return ResponseDto.buildCustomResponse(
       response,
@@ -39,7 +39,7 @@ export class ResponseDto<T> {
 
   static buildBadResponse<T>(
     response: T,
-    serviceConstructor: new (...args: any[]) => any,
+    serviceConstructor: new (...args: unknown[]) => unknown,
   ): ResponseDto<T> {
     return ResponseDto.buildCustomResponse(
       response,

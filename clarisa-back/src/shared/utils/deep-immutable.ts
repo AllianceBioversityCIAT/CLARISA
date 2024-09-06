@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/array-type */
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
+// see https://github.com/microsoft/TypeScript/issues/13923#issuecomment-557509399 for reference
 /**
  * A type representing primitive values that are considered immutable.
  * This includes `undefined`, `null`, `boolean`, `string`, `number`, and `Function`.

@@ -11,9 +11,9 @@ export class RiskApi extends BaseApi {
   constructor(protected readonly httpService: HttpService) {
     super();
     this.httpService = httpService;
-    this.externalAppEndpoint = env.RISK_URL;
-    this.user = env.RISK_USER;
-    this.pass = env.RISK_PASS;
+    this.externalAppEndpoint = env.RISK_URL as string;
+    this.user = env.RISK_USER as string;
+    this.pass = env.RISK_PASS as string;
     this.logger = new Logger(RiskApi.name);
   }
 

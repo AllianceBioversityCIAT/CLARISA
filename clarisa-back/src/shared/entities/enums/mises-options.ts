@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 export class MisOption {
   public static readonly ALL = new MisOption(0, 'all');
   public static readonly CLARISA = new MisOption(1, 'clarisa');
