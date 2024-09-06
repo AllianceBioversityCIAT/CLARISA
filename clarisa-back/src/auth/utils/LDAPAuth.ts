@@ -1,51 +1,54 @@
 import { BaseAuthenticator } from './interface/BaseAuthenticator';
 import ActiveDirectory from 'activedirectory';
 import config from 'src/shared/config/config';
-import { BaseMessageDTO } from './BaseMessageDTO';
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { contentCompare } from '../../shared/utils/string-content-comparator';
+import { ADAuthError } from '../../shared/errors/ad-auth.error';
 
 @Injectable()
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 export class LDAPAuth implements BaseAuthenticator {
-  private ad = new ActiveDirectory(config.active_directory);
+  private readonly _ad: ActiveDirectory = new ActiveDirectory(
+    config.active_directory,
+  );
+  private readonly _logger: Logger = new Logger(LDAPAuth.name);
 
-  authenticate(
-    username: string,
-    password: string,
-  ): Promise<boolean | BaseMessageDTO> {
+  authenticate(username: string, password: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      this.ad.authenticate(username, password, (err, auth) => {
-        console.log({ auth });
+      this._ad.authenticate(username, password, (err, auth) => {
         if (auth) {
-          console.log('Authenticated AD!', JSON.stringify(auth));
-          resolve(auth);
+          this._logger.log('Authenticated AD!', JSON.stringify(auth));
+          resolve(true);
           return;
         }
-        if (err) {
-          console.log(`ERROR AUTH: ${JSON.stringify(err)}`);
-          const notFound: BaseMessageDTO = {
-            name: 'SERVER_NOT_FOUND',
-            description: `There was an internal server error: ${err.lde_message}`,
-            httpCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          };
-          if (err.errno == 'ENOTFOUND') {
-            notFound.name = 'SERVER_NOT_FOUND';
-            notFound.description = 'Server not found';
-          }
-          // console.log(err)
-          // console.log(typeof err)
 
-          reject(notFound);
+        let errorName: string = 'SERVER_NOT_FOUND';
+        let errorDescription: string = `There was an internal server error: ${err.lde_message}`;
+        if (err) {
+          this._logger.warn(`ERROR AUTH: ${JSON.stringify(err)}`);
+          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+          if (contentCompare('ENOTFOUND', err.errno as string) === 0) {
+            errorName = 'SERVER_NOT_FOUND';
+            errorDescription = 'Server not found';
+          }
+
+          reject(
+            new ADAuthError(err, {
+              name: errorName,
+              message: errorDescription,
+            }),
+          );
           return;
         } else {
-          console.log('Authentication failed!');
-          const err: BaseMessageDTO = {
-            name: 'INVALID_CREDENTIALS',
-            description: 'The supplied credentials are invalid',
-            httpCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          };
+          this._logger.warn(
+            `Authentication failed for username "${username}"!`,
+          );
 
-          console.log(`ERROR: ${JSON.stringify(err)}`);
-          reject(err);
+          errorName = 'INVALID_CREDENTIALS';
+          errorDescription = 'The supplied credentials are invalid';
+
+          this._logger.warn(`ERROR: ${JSON.stringify(err)}`);
+          reject(new ADAuthError(err));
           return;
         }
       });

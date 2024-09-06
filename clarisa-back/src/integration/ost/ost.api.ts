@@ -21,15 +21,15 @@ export class OSTApi extends BaseApi {
   }
 
   getWorkpackages(): Observable<
-    AxiosResponse<ResponseOstDto<WorkpackageResponse>>
+    AxiosResponse<ResponseOstDto<WorkpackageResponse>> | undefined
   > {
     return this.getRequest('previews/packages');
   }
 
   getInitiatives(): Observable<
-    AxiosResponse<ResponseOstDto<InitiativeResponse>>
+    AxiosResponse<ResponseOstDto<InitiativeResponse>> | undefined
   > {
-    return this.getRequest<ResponseOstDto<InitiativeResponse>>('initiatives');
+    return this.getRequest('initiatives');
   }
 
   getStages(): Observable<unknown> {
@@ -37,7 +37,7 @@ export class OSTApi extends BaseApi {
   }
 
   getEndOfIniciative(): Observable<
-    AxiosResponse<ResponseOstDto<InitiativeEoiResponse>>
+    AxiosResponse<ResponseOstDto<InitiativeEoiResponse>> | undefined
   > {
     return this.getRequest('stages-control/proposal/eoi/all/initiatives');
   }

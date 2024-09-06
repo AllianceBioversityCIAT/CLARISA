@@ -18,7 +18,6 @@ import { Response } from 'express';
 import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { PaginationParams } from '../../shared/interfaces/pageable';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
 
@@ -45,11 +44,6 @@ export class UserController {
   @Get('get/:id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.userService.findOne(id);
-  }
-
-  @Get('search')
-  async getUsersPagination(@Query() { offset, limit }: PaginationParams) {
-    return this.userService.getUsersPagination(offset, limit);
   }
 
   @UseGuards(JwtAuthGuard, PermissionGuard)

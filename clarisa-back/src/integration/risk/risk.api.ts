@@ -17,7 +17,7 @@ export class RiskApi extends BaseApi {
     this.logger = new Logger(RiskApi.name);
   }
 
-  getPhases(): Observable<AxiosResponse<ResponseRiskDto>> {
+  getPhases(): Observable<AxiosResponse<ResponseRiskDto> | undefined> {
     return this.getRequest('phases');
   }
 }

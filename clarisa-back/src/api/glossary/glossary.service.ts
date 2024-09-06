@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { UpdateGlossaryDto } from './dto/update-glossary.dto';
 import { FindOptionsOrder, FindOptionsWhere } from 'typeorm';
 import { Glossary } from './entities/glossary.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { GlossaryRepository } from './repositories/glossary.repository';
 @Injectable()
 export class GlossaryService {
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
   constructor(private glossaryRepository: GlossaryRepository) {}
 
   findAll(
@@ -47,26 +47,7 @@ export class GlossaryService {
     }
   }
 
-  findOne(id: number) {
+  findOne(id: number): Promise<Glossary | null> {
     return this.glossaryRepository.findOneBy({ id });
-  }
-
-  async update(updateGlossary: UpdateGlossaryDto[]): Promise<Glossary[]> {
-    return await this.glossaryRepository.save(updateGlossary);
-  }
-
-  async getRolesPagination(offset?: number, limit = 10) {
-    const [items, count] = await this.glossaryRepository.findAndCount({
-      order: {
-        id: 'ASC',
-      },
-      skip: offset,
-      take: limit,
-    });
-
-    return {
-      items,
-      count,
-    };
   }
 }

@@ -5,6 +5,7 @@ import { RoleRepository } from './repositories/role.repository';
 
 @Injectable()
 export class RoleService {
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
   constructor(private rolesRepository: RoleRepository) {}
 
   findAll(
@@ -27,22 +28,7 @@ export class RoleService {
     }
   }
 
-  findOne(id: number) {
+  findOne(id: number): Promise<Role | null> {
     return this.rolesRepository.findOneBy({ id });
-  }
-
-  async getRolesPagination(offset?: number, limit = 10) {
-    const [items, count] = await this.rolesRepository.findAndCount({
-      order: {
-        id: 'ASC',
-      },
-      skip: offset,
-      take: limit,
-    });
-
-    return {
-      items,
-      count,
-    };
   }
 }

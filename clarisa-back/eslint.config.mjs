@@ -61,7 +61,13 @@ export default [
         'warn',
         {
           //TODO check why this did not allow to limit this to only the express library
-          allow: ['Request', 'Response', 'HttpService', 'DataSource', 'EntityManager'],
+          allow: [
+            'Request',
+            'Response',
+            'HttpService',
+            'DataSource',
+            'EntityManager',
+          ],
           ignoreInferredTypes: true,
         },
       ],
@@ -97,6 +103,8 @@ export default [
           ignoreTypeIndexes: true,
         },
       ],
+      'prefer-promise-reject-errors': 'off',
+      '@typescript-eslint/prefer-promise-reject-errors': 'warn',
     },
   },
 ];

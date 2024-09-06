@@ -4,25 +4,26 @@ import { AxiosRequestConfig, AxiosResponse, isAxiosError } from 'axios';
 import { Logger } from '@nestjs/common';
 import https from 'https';
 import crypto from 'crypto';
+import { Immutable } from '../shared/utils/deep-immutable';
 
 /**
  * Abstract base class providing common HTTP request methods for interacting with external APIs.
  */
 export abstract class BaseApi {
   /** The base URL for the external application endpoint. */
-  protected externalAppEndpoint: string;
+  protected externalAppEndpoint!: string;
 
   /** The HttpService instance used to make HTTP requests. */
-  protected httpService: HttpService;
+  protected httpService!: HttpService;
 
   /** Username for authentication with the external API. */
-  protected user: string;
+  protected user!: string;
 
   /** Password for authentication with the external API. */
-  protected pass: string;
+  protected pass!: string;
 
   /** Logger instance for logging errors and other information. */
-  protected logger: Logger;
+  protected logger!: Logger;
 
   /**
    * Provides the default Axios request configuration with authentication and HTTPS agent.
@@ -46,19 +47,24 @@ export abstract class BaseApi {
    * @param returnError If true, returns the error object on failure, otherwise returns null.
    * @returns An observable that catches errors and applies a 30-second timeout.
    */
-  private handleError<T>(
-    observable: Observable<AxiosResponse<T>>,
+  private handleError<R>(
+    observable: Immutable<Observable<AxiosResponse<R>>>,
     returnError: boolean = false,
-  ): Observable<AxiosResponse<T> | null> {
+  ): Observable<AxiosResponse<R> | undefined> {
     return observable.pipe(
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       timeout(30000), // Wait for 30 seconds for the response
-      catchError((err) => {
+      catchError((err: unknown) => {
         const errorMsg = isAxiosError(err)
           ? `Axios error: ${err.message}; Axios error response: ${JSON.stringify(err.response?.data)}`
-          : `Unexpected error: ${err.message}`;
+          : `Unexpected error: ${(err as Error).message}`;
 
         this.logger.error(errorMsg);
-        return of(returnError ? err : null);
+        if (returnError) {
+          throw err;
+        }
+
+        return of();
       }),
     );
   }
@@ -72,14 +78,15 @@ export abstract class BaseApi {
    * @param config Optional Axios request configuration.
    * @returns An observable of the Axios response.
    */
-  private request<D, R>(
+  private request<R>(
     method: 'get' | 'post' | 'put' | 'patch' | 'delete',
     endpoint: string,
-    data?: D,
-    config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<R>> {
+    data?: unknown,
+    config?: Immutable<AxiosRequestConfig>,
+  ): Observable<AxiosResponse<R> | undefined> {
     const url = `${this.externalAppEndpoint}/${endpoint}`;
-    const requestConfig = config ?? this._defaultConfig;
+    const requestConfig: AxiosRequestConfig =
+      (config as AxiosRequestConfig | undefined) ?? this._defaultConfig;
 
     let requestObservable: Observable<AxiosResponse<R>>;
 
@@ -99,11 +106,12 @@ export abstract class BaseApi {
       case 'delete':
         requestObservable = this.httpService.delete<R>(url, requestConfig);
         break;
-      default:
-        throw new Error(`Unsupported HTTP method: ${method}.`);
+      //not needed, apparently
+      /*default:
+        throw new Error(`Unsupported HTTP method: ${method}.`);*/
     }
 
-    return this.handleError(requestObservable);
+    return this.handleError<R>(requestObservable);
   }
 
   /**
@@ -113,10 +121,10 @@ export abstract class BaseApi {
    * @param config Optional Axios request configuration.
    * @returns An observable of the Axios response.
    */
-  protected getRequest<T>(
+  protected getRequest<R>(
     endpoint: string,
-    config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<T>> {
+    config?: Immutable<AxiosRequestConfig>,
+  ): Observable<AxiosResponse<R> | undefined> {
     return this.request('get', endpoint, undefined, config);
   }
 
@@ -128,11 +136,11 @@ export abstract class BaseApi {
    * @param config Optional Axios request configuration.
    * @returns An observable of the Axios response.
    */
-  protected postRequest<D, R>(
+  protected postRequest<R>(
     endpoint: string,
-    data: D,
-    config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<R>> {
+    data: unknown,
+    config?: Immutable<AxiosRequestConfig>,
+  ): Observable<AxiosResponse<R> | undefined> {
     return this.request('post', endpoint, data, config);
   }
 
@@ -144,11 +152,11 @@ export abstract class BaseApi {
    * @param config Optional Axios request configuration.
    * @returns An observable of the Axios response.
    */
-  protected putRequest<D, R>(
+  protected putRequest<R>(
     endpoint: string,
-    data: D,
-    config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<R>> {
+    data: unknown,
+    config?: Immutable<AxiosRequestConfig>,
+  ): Observable<AxiosResponse<R> | undefined> {
     return this.request('put', endpoint, data, config);
   }
 
@@ -160,11 +168,11 @@ export abstract class BaseApi {
    * @param config Optional Axios request configuration.
    * @returns An observable of the Axios response.
    */
-  protected patchRequest<D, R>(
+  protected patchRequest<R>(
     endpoint: string,
-    data: D,
-    config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<R>> {
+    data: unknown,
+    config?: Immutable<AxiosRequestConfig>,
+  ): Observable<AxiosResponse<R> | undefined> {
     return this.request('patch', endpoint, data, config);
   }
 
@@ -175,10 +183,10 @@ export abstract class BaseApi {
    * @param config Optional Axios request configuration.
    * @returns An observable of the Axios response.
    */
-  protected deleteRequest<T>(
+  protected deleteRequest<R>(
     endpoint: string,
-    config?: AxiosRequestConfig,
-  ): Observable<AxiosResponse<T>> {
+    config?: Immutable<AxiosRequestConfig>,
+  ): Observable<AxiosResponse<R> | undefined> {
     return this.request('delete', endpoint, undefined, config);
   }
 }

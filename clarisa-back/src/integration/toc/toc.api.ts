@@ -18,7 +18,9 @@ export class TOCApi extends BaseApi {
     this.logger = new Logger(TOCApi.name);
   }
 
-  getPhases(): Observable<AxiosResponse<ResponseTocDto<PhaseTocDto>>> {
+  getPhases(): Observable<
+    AxiosResponse<ResponseTocDto<PhaseTocDto>> | undefined
+  > {
     return this.getRequest('phases');
   }
 }

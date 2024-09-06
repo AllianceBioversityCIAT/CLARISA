@@ -3,9 +3,11 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UserRepository } from './repositories/user.repository';
+import { Immutable } from '../../shared/utils/deep-immutable';
 
 @Injectable()
 export class UserService {
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
   constructor(private usersRepository: UserRepository) {}
 
   findAll(
@@ -28,40 +30,31 @@ export class UserService {
     }
   }
 
-  async getUsersPagination(offset?: number, limit = 10) {
-    const [items, count] = await this.usersRepository.findAndCount({
-      order: {
-        id: 'ASC',
-      },
-      skip: offset,
-      take: limit,
-    });
-
-    return {
-      items,
-      count,
-    };
-  }
-
-  async findOne(id: number): Promise<User> {
+  async findOne(id: number): Promise<User | null> {
     return await this.usersRepository.findOneBy({ id });
   }
 
-  async getUserPermissions(user: User): Promise<string[] | undefined> {
-    const permissions_result: any = await this.usersRepository.query(
+  async getUserPermissions(
+    user: Immutable<{} & { id: number | string }>,
+  ): Promise<string[] | null> {
+    const permissions_result: unknown[] = (await this.usersRepository.query(
       'call getUserPermissions(?)',
       [user.id],
-    );
+    )) as unknown[];
 
     let permissions: string[] = [];
 
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
     if (permissions_result[0]?.constructor.name === Array.name) {
-      permissions = permissions_result[0]
-        .map((rdp) => rdp.permission_route as string)
+      permissions = (
+        permissions_result[0] as ({} & { permission_route: string })[]
+      )
+        .map((rdp) => rdp.permission_route)
         .filter((p) => p);
     }
 
-    return permissions.length == 0 ? undefined : permissions;
+    return permissions.length === 0 ? null : permissions;
+    /* eslint-enable @typescript-eslint/no-magic-numbers */
   }
 
   /**
@@ -71,17 +64,20 @@ export class UserService {
    * false if it's being called from the auth module
    * @returns an user or empty, if not found.
    */
-  async findOneByEmail(email: string, isService = true): Promise<User> {
-    const user: User = await this.usersRepository.findOneBy({ email });
-    if (user) {
-      user.permissions = await this.getUserPermissions(user);
-    }
+  async findOneByEmail(email: string, isService = true): Promise<User | null> {
+    return this.usersRepository.findOneBy({ email }).then((user) => {
+      if (user) {
+        return this.getUserPermissions(user).then((permissions) => {
+          user.permissions = permissions as string[] | undefined;
+          if (isService) {
+            delete user.password;
+          }
+          return user;
+        });
+      }
 
-    if (isService) {
-      delete user.password;
-    }
-
-    return user;
+      return user;
+    });
   }
 
   /**
@@ -91,20 +87,28 @@ export class UserService {
    * false if it's being called from the auth module
    * @returns an user or empty, if not found.
    */
-  async findOneByUsername(username: string, isService = false): Promise<User> {
-    const user: User = await this.usersRepository.findOneBy({ username });
-    if (user) {
-      user.permissions = await this.getUserPermissions(user);
-    }
+  async findOneByUsername(
+    username: string,
+    isService = false,
+  ): Promise<User | null> {
+    return this.usersRepository.findOneBy({ username }).then((user) => {
+      if (user) {
+        return this.getUserPermissions(user).then((permissions) => {
+          user.permissions = permissions as string[] | undefined;
+          if (isService) {
+            delete user.password;
+          }
+          return user;
+        });
+      }
 
-    if (isService) {
-      delete user.password;
-    }
-
-    return user;
+      return user;
+    });
   }
 
-  async update(updateUserDtoList: UpdateUserDto[]): Promise<User[]> {
-    return await this.usersRepository.save(updateUserDtoList);
+  async update(updateUserDtoList: Immutable<UpdateUserDto[]>): Promise<User[]> {
+    return await this.usersRepository.save(
+      updateUserDtoList as UpdateUserDto[],
+    );
   }
 }

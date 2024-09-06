@@ -11,6 +11,7 @@ import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../../shared/guards/permission.guard';
 import { OpenSearchInstitutionApi } from './open-search-institution.api';
 import { Immutable } from '../../../shared/utils/deep-immutable';
+import { InstitutionElasticDto } from './dto/institution-elastic.dto';
 
 @Controller()
 export class OpenSearchInstitutionController {
@@ -20,7 +21,7 @@ export class OpenSearchInstitutionController {
 
   @Post('reset')
   @UseGuards(JwtAuthGuard, PermissionGuard)
-  async resetOpenSearch() {
+  async resetOpenSearch(): Promise<string> {
     return this.openSearchApi.resetElasticData();
   }
 
@@ -30,7 +31,7 @@ export class OpenSearchInstitutionController {
     @Query('query') query: string,
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     @Query('sample-size', new DefaultValuePipe(20), ParseIntPipe) size: number,
-  ) {
+  ): Promise<InstitutionElasticDto[] | undefined> {
     return this.openSearchApi.search(query, size);
   }
 }

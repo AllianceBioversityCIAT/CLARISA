@@ -34,7 +34,7 @@ export class User {
   email: string;
 
   @Column({ type: 'text', nullable: true })
-  password: string;
+  password?: string;
 
   @Column({ type: 'tinyint', nullable: false, default: () => '0' })
   is_cgiar_user: boolean;

@@ -4,37 +4,40 @@ import { ModuleRef } from '@nestjs/core';
 import { BaseAuthenticator } from './utils/interface/BaseAuthenticator';
 import { LDAPAuth } from './utils/LDAPAuth';
 import { DBAuth } from './utils/DBAuth';
-import { BaseMessageDTO } from './utils/BaseMessageDTO';
 import { UserService } from '../api/user/user.service';
 import { User } from '../api/user/entities/user.entity';
+import { Immutable } from '../shared/utils/deep-immutable';
+import { DBError } from '../shared/errors/db.error';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UserService,
-    private jwtService: JwtService,
-    private moduleRef: ModuleRef,
+    private readonly usersService: Immutable<UserService>,
+    private readonly jwtService: Immutable<JwtService>,
+    private readonly moduleRef: Immutable<ModuleRef>,
   ) {}
 
-  async validateUser(login: string, pass: string) {
-    login = login.trim().toLowerCase();
-    const user: User =
-      (await this.usersService.findOneByEmail(login, false)) ??
-      (await this.usersService.findOneByUsername(login, false));
+  async validateUser(login: string, pass: string): Promise<User | undefined> {
+    const cleanedLogin = login.trim().toLowerCase();
+    const user: User | null =
+      (await this.usersService.findOneByEmail(cleanedLogin, false)) ??
+      (await this.usersService.findOneByUsername(cleanedLogin, false));
     let authenticator: BaseAuthenticator;
-
-    // const user_Info = await user.userInfo;
-
-    // console.log({user_Info});
 
     if (user) {
       authenticator = this.moduleRef.get(
         user.is_cgiar_user ? LDAPAuth : DBAuth,
       );
-      const authResult: boolean | BaseMessageDTO = await authenticator
+      const authResult: boolean = await authenticator
         .authenticate(user.email, pass)
-        .catch((err) => {
-          throw new HttpException(err, err.httpCode);
+        .catch((err: unknown) => {
+          throw new HttpException(
+            err as Record<string, unknown>,
+            err instanceof DBError
+              ? HttpStatus.UNAUTHORIZED
+              : HttpStatus.INTERNAL_SERVER_ERROR,
+          );
         });
       if (authResult.constructor.name === Boolean.name) {
         return user;
@@ -47,7 +50,7 @@ export class AuthService {
     }
   }
 
-  async login(user: User) {
+  login(user: Immutable<User>): LoginDto {
     const payload = {
       login: user.email,
       sub: user.id,
@@ -59,7 +62,7 @@ export class AuthService {
       user: {
         username: user.username,
         name: `${user.first_name} ${user.last_name}`,
-        permissions: user.permissions,
+        permissions: [...(user.permissions ?? [])],
         email: user.email,
         id: user.id,
       },

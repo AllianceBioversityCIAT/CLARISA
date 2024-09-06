@@ -14,7 +14,7 @@ export interface Shards {
 
 export interface Hits<T> {
   total: Total;
-  max_score: any;
+  max_score: number;
   hits: Hit<T>[];
 }
 

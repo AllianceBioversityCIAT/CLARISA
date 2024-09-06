@@ -32,21 +32,6 @@ export class GlobalTargetService {
     return await this.globalTargetRepository.findOneBy({ id });
   }
 
-  async getUsersPagination(offset?: number, limit = 10) {
-    const [items, count] = await this.globalTargetRepository.findAndCount({
-      order: {
-        id: 'ASC',
-      },
-      skip: offset,
-      take: limit,
-    });
-
-    return {
-      items,
-      count,
-    };
-  }
-
   async update(
     updateUserDtoList: UpdateGlobalTargetDto[],
   ): Promise<GlobalTarget[]> {

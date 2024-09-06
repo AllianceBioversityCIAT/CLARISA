@@ -1,11 +1,11 @@
+import { MD5 } from 'crypto-js';
 import { BasePasswordEncoder } from './interface/BasePasswordEncoder';
 
-import MD5 from 'crypto-js/md5';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
-export class LegacyPasswordEncoder extends BasePasswordEncoder {
-  matches(hashedPassword: string, incomingPassword: any): boolean {
+export class LegacyPasswordEncoder implements BasePasswordEncoder {
+  matches(hashedPassword: string, incomingPassword: string): boolean {
     return hashedPassword === MD5(incomingPassword).toString();
   }
 
@@ -15,7 +15,7 @@ export class LegacyPasswordEncoder extends BasePasswordEncoder {
    * @param incomingPassword the password to encode
    * @returns a password encoded, using MD5
    */
-  encode(incomingPassword: any): string {
+  encode(incomingPassword: string): string {
     return MD5(incomingPassword).toString();
   }
 }

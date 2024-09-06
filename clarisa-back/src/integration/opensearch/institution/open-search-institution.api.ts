@@ -18,6 +18,7 @@ import { ElasticResponse } from '../dto/elastic-response.dto';
 import { AxiosRequestConfig, isAxiosError } from 'axios';
 import { isArrayOfType } from '../../../shared/utils/array-util';
 import { Immutable } from '../../../shared/utils/deep-immutable';
+import { InstitutionElasticDto } from './dto/institution-elastic.dto';
 
 @Injectable()
 export class OpenSearchInstitutionApi extends BaseApi {
@@ -309,7 +310,7 @@ export class OpenSearchInstitutionApi extends BaseApi {
     query: string,
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     size: number = 20,
-  ): Promise<(InstitutionDto & { score: number })[]> {
+  ): Promise<InstitutionElasticDto[] | undefined> {
     const elasticQuery = this._getElasticQuery<InstitutionDto>(
       query,
       size,
@@ -318,13 +319,14 @@ export class OpenSearchInstitutionApi extends BaseApi {
     );
 
     return lastValueFrom(
-      this.postRequest<
-        ElasticQueryDto<InstitutionDto>,
-        ElasticResponse<InstitutionDto>
-      >(`${env.OPENSEARCH_DOCUMENT_NAME}/_search`, elasticQuery, this._config),
+      this.postRequest<ElasticResponse<InstitutionDto>>(
+        `${env.OPENSEARCH_DOCUMENT_NAME}/_search`,
+        elasticQuery,
+        this._config,
+      ),
     )
       .then((response) => {
-        return response.data.hits.hits.map((hit) => ({
+        return response?.data.hits.hits.map((hit) => ({
           ...hit._source,
           score: hit._score,
         }));

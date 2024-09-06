@@ -1,16 +1,18 @@
 import { BasePasswordEncoder } from './interface/BasePasswordEncoder';
-import * as bcrypt from 'bcryptjs';
-import { Injectable } from '@nestjs/common';
+import { compareSync, genSaltSync, hashSync } from 'bcryptjs';
+import { Injectable, Logger } from '@nestjs/common';
 import 'dotenv/config';
 import { env } from 'process';
 
 @Injectable()
-export class BCryptPasswordEncoder extends BasePasswordEncoder {
-  public matches(hashedPassword: string, incomingPassword: any): boolean {
+export class BCryptPasswordEncoder implements BasePasswordEncoder {
+  private readonly _logger: Logger = new Logger(BCryptPasswordEncoder.name);
+  public matches(hashedPassword: string, incomingPassword: string): boolean {
     try {
-      return bcrypt.compareSync(incomingPassword, hashedPassword);
+      const result = compareSync(incomingPassword, hashedPassword);
+      return typeof result === 'boolean' ? result : false;
     } catch (error) {
-      console.log(error);
+      this._logger.log(error);
       return false;
     }
   }
@@ -20,8 +22,8 @@ export class BCryptPasswordEncoder extends BasePasswordEncoder {
    * @param incomingPassword the password to be encoded
    * @returns a password encoded, using BCrypt
    */
-  public encode(incomingPassword: any): string {
-    const salt = bcrypt.genSaltSync(Number(env.BCRYPT_SALT_ROUNDS));
-    return bcrypt.hashSync(incomingPassword, salt);
+  public encode(incomingPassword: string): string {
+    const salt = genSaltSync(Number(env.BCRYPT_SALT_ROUNDS));
+    return hashSync(incomingPassword, salt);
   }
 }

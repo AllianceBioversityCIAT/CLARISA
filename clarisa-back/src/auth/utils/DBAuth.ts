@@ -1,52 +1,49 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { User } from '../../api/user/entities/user.entity';
 import { UserService } from '../../api/user/user.service';
-import { BaseMessageDTO } from './BaseMessageDTO';
 import { BCryptPasswordEncoder } from './BCryptPasswordEncoder';
 import { BaseAuthenticator } from './interface/BaseAuthenticator';
 import { BasePasswordEncoder } from './interface/BasePasswordEncoder';
 import { LegacyPasswordEncoder } from './LegacyPasswordEncoder';
+import { Immutable } from '../../shared/utils/deep-immutable';
+import { DBError } from '../../shared/errors/db.error';
 
 @Injectable()
 export class DBAuth implements BaseAuthenticator {
-  @Inject()
-  private usersService: UserService;
+  private passwordEncoder!: BasePasswordEncoder;
 
-  private passwordEncoder: BasePasswordEncoder;
-  private readonly errorDto: BaseMessageDTO = {
-    name: 'INVALID_CREDENTIALS',
-    description: 'The supplied credentials are invalid',
-    httpCode: 401,
-  };
+  constructor(
+    private moduleRef: Immutable<ModuleRef>,
+    private userService: Immutable<UserService>,
+  ) {}
 
-  constructor(private moduleRef: ModuleRef) {}
-
-  authenticate(
-    username: string,
-    password: string,
-  ): Promise<boolean | BaseMessageDTO> {
-    return this.usersService
+  authenticate(username: string, password: string): Promise<boolean> {
+    return this.userService
       .findOneByEmail(username, false)
-      .then((user: User) => {
-        const userPass: string = user.password;
+      .then((user: Immutable<User | null>) => {
+        const userPass = user?.password;
+
+        if (!userPass) {
+          return false;
+        }
 
         this.passwordEncoder = this.moduleRef.get(
-          this.isLegacyPassword(user.password)
+          this.isLegacyPassword(userPass)
             ? LegacyPasswordEncoder
             : BCryptPasswordEncoder,
         );
 
-        if (this.passwordEncoder.matches(userPass, password)) {
-          return true;
-        } else {
-          return this.errorDto;
-        }
+        return this.passwordEncoder.matches(userPass, password);
+      })
+      .catch((err: unknown) => {
+        throw new DBError(err);
       });
   }
 
   public isLegacyPassword(incomingPassword: string): boolean {
     const newLocal = incomingPassword.split('$').length;
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     return newLocal !== 4;
   }
 }
