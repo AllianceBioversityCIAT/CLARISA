@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  Logger,
+} from '@nestjs/common';
 import { ModuleRef, Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { User } from '../../api/user/entities/user.entity';
@@ -7,7 +12,9 @@ import { IS_CLARISA_PAGE } from '../decorators/clarisa-page.decorator';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
+  private readonly _logger = new Logger(PermissionGuard.name);
   private userService: UserService;
+
   constructor(
     private reflector: Reflector,
     private moduleRef: ModuleRef,
@@ -34,7 +41,16 @@ export class PermissionGuard implements CanActivate {
           return userDb.id === 3043;
         }
 
-        return (userDb.permissions ?? []).some((p) => route.includes(p));
+        const isRoutePermitted = (userDb.permissions ?? []).some((p) =>
+          route.includes(p),
+        );
+        if (!isRoutePermitted) {
+          this._logger.error(
+            `User ${userDb.email} tried to access route ${route} without permission`,
+          );
+        }
+
+        return isRoutePermitted;
       });
   }
 }
