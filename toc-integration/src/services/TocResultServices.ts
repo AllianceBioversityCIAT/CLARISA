@@ -1,4 +1,4 @@
-import { Connection } from "typeorm";
+import { DataSource } from "typeorm";
 import { Database } from "../database/db";
 import { ValidatorTypes } from "../validators/validatorType";
 import { ErrorValidators } from "../validators/errorsValidators";
@@ -35,8 +35,8 @@ export class TocResultServices {
     version_id
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(TocResults);
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(TocResults);
       let listResultsToc = [];
       let listResultsSdg = [];
       let listResultsAction = [];
@@ -208,8 +208,8 @@ export class TocResultServices {
 
   async tocResultsIndicator(id_result: string, indicators: any, tocresults) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(TocResultsIndicators);
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(TocResultsIndicators);
 
       let listResultsIndicator = [];
       let listRegions = [];
@@ -348,8 +348,8 @@ export class TocResultServices {
   ) {
     try {
       let itemSdg = [];
-      const dbConn: Connection = await this.database.getConnection();
-      const tocResultRepo = await dbConn.getRepository(TocResultsSdgResults);
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(TocResultsSdgResults);
 
       if (this.validatorType.validatorIsArray(sdg_results)) {
         await tocResultRepo.update(
@@ -413,10 +413,11 @@ export class TocResultServices {
     tocres
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(
         TocResultsActionAreaResults
       );
+
       let actionAreaToc = [];
       if (this.validatorType.validatorIsArray(action_results)) {
         tocResultRepo.update(
@@ -469,10 +470,11 @@ export class TocResultServices {
     tocres
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(
         TocResultsImpactAreaResults
       );
+
       let impactToc = [];
       if (this.validatorType.validatorIsArray(impact_results)) {
         tocResultRepo.update(
@@ -568,9 +570,9 @@ export class TocResultServices {
     try {
       let listRegios = [];
       let listCountries = [];
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(TocResultIndicatorCountry);
-      let regionrepo = await dbConn.getRepository(TocResultIndicatorRegion);
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(TocResultIndicatorCountry);
+      const regionrepo = dataSource.getRepository(TocResultIndicatorRegion);
       if (this.validatorType.validatorIsObject(geo_scope)) {
         if (
           this.validatorType.existPropertyInObjectMul(geo_scope, [
@@ -634,8 +636,9 @@ export class TocResultServices {
 
   async saveIndicatorTarget(toc_id_indicator: string, id: number, target: any) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(TocResultIndicatorTarget);
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(TocResultIndicatorTarget);
+
       if (toc_id_indicator != null) {
         let validator = await this.validatorType.validatorIsObject(target);
         if (validator) {

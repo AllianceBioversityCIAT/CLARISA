@@ -5,11 +5,11 @@ import { TocImpactAreaResultsGlobalTargetsDto } from "../dto/tocImpactAreaResult
 import { TocImpactAreaResultsImpactAreaIndicatorsDto } from "../dto/tocImpactAreaResultsImpactAreaIndicators";
 import { TocImpactAreaResultsSdgResultsDto } from "../dto/tocImpactAreaResultsSdgResults";
 import { Database } from "../database/db";
-import { Connection } from "typeorm/connection/Connection";
 import { TocImpactAreaResults } from "../entities/tocImpactAreaResults";
 import { TocImpactAreaResultsGlobalTargets } from "../entities/tocImpactAreaResultsGlobalTargets";
 import { TocImpactAreaResultsImpactAreaIndicators } from "../entities/tocImpactAreaResultsImpactAreaIndicators";
 import { TocImpactAreaResultsSdgResults } from "../entities/tocImpactAreaResultsSdgResults";
+import { DataSource } from "typeorm";
 
 export class TocResultImpactAreaServices {
   public validatorType = new ValidatorTypes();
@@ -23,8 +23,8 @@ export class TocResultImpactAreaServices {
     phase
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let impactAreaRepo = await dbConn.getRepository(TocImpactAreaResults);
+      const dataSource: DataSource = await Database.getDataSource();
+      let impactAreaRepo = dataSource.getRepository(TocImpactAreaResults);
       let listImpactAreaResults = [];
       let listGlobalTargets = [];
       let listImpactAreaIndicators = [];
@@ -136,8 +136,8 @@ export class TocResultImpactAreaServices {
     impactAre
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let impactAreaRepo = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      let impactAreaRepo = dataSource.getRepository(
         TocImpactAreaResultsGlobalTargets
       );
       let listValidGlobalTarget = [];
@@ -189,8 +189,8 @@ export class TocResultImpactAreaServices {
     impactArea
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let impactAreaRepo = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      let impactAreaRepo = dataSource.getRepository(
         TocImpactAreaResultsImpactAreaIndicators
       );
       let listValidImpactAreaIndicators = [];
@@ -245,8 +245,8 @@ export class TocResultImpactAreaServices {
   ): Promise<any[]> {
     try {
       const listSdgImpact: any[] = [];
-      let dbConn: Connection = await this.database.getConnection();
-      let impactAreaRepo = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      let impactAreaRepo = dataSource.getRepository(
         TocImpactAreaResultsSdgResults
       );
       if (this.validatorType.validatorIsArray(sdgResults)) {
