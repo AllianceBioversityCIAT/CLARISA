@@ -4,7 +4,7 @@ import { TocActionAreaResultsDto } from "../dto/tocActionAreaResults";
 import { TocActionAreaResultsOutcomesIndicatorsDto } from "../dto/tocActionAreaResultsOutcomesIndicators";
 import { TocActionAreaResultsImpactAreaResultsDto } from "../dto/tocActionAreaResultsImpactAreaResults";
 import { Database } from "../database/db";
-import { Connection } from "typeorm";
+import { Connection, DataSource } from "typeorm";
 import { TocActionAreaResults } from "../entities/tocActionAreaResults";
 import { TocActionAreaResultsOutcomesIndicators } from "../entities/tocActionAreaResultsOutcomesIndicators";
 import { TocActionAreaResultsImpactAreaResults } from "../entities/tocActionAreaResultsImpactAreaResults";
@@ -20,8 +20,8 @@ export class ActionAreaTocServices {
     phase
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let actionAreaRepo = await dbConn.getRepository(TocActionAreaResults);
+      const dataSource: DataSource = await Database.getDataSource();
+      let actionAreaRepo = dataSource.getRepository(TocActionAreaResults);
       let listActionAreaToc = [];
       let listOutcomeIndicators = [];
       let listImpactAreaToc = [];
@@ -126,8 +126,8 @@ export class ActionAreaTocServices {
     actionarea
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let actionAreaRepo = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      let actionAreaRepo = dataSource.getRepository(
         TocActionAreaResultsOutcomesIndicators
       );
       let listOutcomesIndicators = [];
@@ -179,8 +179,8 @@ export class ActionAreaTocServices {
     actionarea
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let actionAreaRepo = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      let actionAreaRepo = dataSource.getRepository(
         TocActionAreaResultsImpactAreaResults
       );
       let listImpactAction = [];

@@ -4,7 +4,7 @@ import { CreateSdgResultsDto } from "../dto/tocSdgResults";
 import { TocSdgResultsSdgTargetsDto } from "../dto/tocSdgResultsSdgTargets";
 import { TocSdgResultsSdgIndicatorsDto } from "../dto/tocSdgResultsSdgIndicators";
 import { Database } from "../database/db";
-import { Connection } from "typeorm";
+import { DataSource } from "typeorm";
 import { TocSdgResults } from "../entities/tocSdgResults";
 import { TocSdgResultsSdgTargets } from "../entities/tocSdgResultsSdgTargets";
 import { TocSdgResultsSdgIndicators } from "../entities/tocSdgResultsSdgIndicators";
@@ -16,8 +16,8 @@ export class TocSdgsServices {
 
   async createTocSdgResults(sdgResultToc, initiative_id, phase) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let sdgRepo = await dbConn.getRepository(TocSdgResults);
+      const dataSource: DataSource = await Database.getDataSource();
+      let sdgRepo = dataSource.getRepository(TocSdgResults);
       let listValidSdgResults = [];
       let listSdgTargets = [];
       let listIndicator = [];
@@ -111,9 +111,9 @@ export class TocSdgsServices {
     sdg
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let sdgRepo = await dbConn.getRepository(TocSdgResults);
-      let sdgRepoTarget = await dbConn.getRepository(TocSdgResultsSdgTargets);
+      const dataSource: DataSource = await Database.getDataSource();
+      let sdgRepo = dataSource.getRepository(TocSdgResults);
+      let sdgRepoTarget = dataSource.getRepository(TocSdgResultsSdgTargets);
 
       let sdgTargets: any = [];
       if (this.validatorType.validatorIsArray(sdgTargetsToc)) {
@@ -165,8 +165,8 @@ export class TocSdgsServices {
   ) {
     try {
       let sdgIndicatorT: any = [];
-      let dbConn: Connection = await this.database.getConnection();
-      let sdgIndicatorRep = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      let sdgIndicatorRep = dataSource.getRepository(
         TocSdgResultsSdgIndicators
       );
       if (this.validatorType.validatorIsArray(sdgIndicatorsToc)) {
