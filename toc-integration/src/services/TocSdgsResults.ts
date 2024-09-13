@@ -51,8 +51,10 @@ export class TocSdgsServices {
             sdgResultT.is_active = true;
 
             const existingRecord = await sdgRepo.findOne({
-              toc_result_id: sdgResultT.toc_result_id,
-              phase: sdgResultT.phase,
+              where: {
+                toc_result_id: sdgResultT.toc_result_id,
+                phase: sdgResultT.phase,
+              },
             });
             if (existingRecord) {
               // Update existing record
@@ -68,8 +70,10 @@ export class TocSdgsServices {
               await sdgRepo.insert(sdgResultT);
             }
             const existingRecordSavingOrUpdate = await sdgRepo.findOne({
-              toc_result_id: sdgResultT.toc_result_id,
-              phase: sdgResultT.phase,
+              where: {
+                toc_result_id: sdgResultT.toc_result_id,
+                phase: sdgResultT.phase,
+              },
             });
             await listValidSdgResults.push(existingRecordSavingOrUpdate);
             listSdgTargets = listSdgTargets.concat(
@@ -96,7 +100,7 @@ export class TocSdgsServices {
         sdgIndicators: listIndicator,
       };
     } catch (error) {
-      console.error({error, message: "Error saving sdg results"});
+      console.error({ error, message: "Error saving sdg results" });
       throw error;
     }
   }
@@ -132,9 +136,11 @@ export class TocSdgsServices {
             relacionSdgTarget.toc_sdg_results_id = sdg.id;
 
             const existingRecordSdgTarget = await sdgRepoTarget.findOne({
-              toc_sdg_results_id: relacionSdgTarget.toc_sdg_results_id,
-              toc_sdg_results_id_toc: toc_results_id,
-              sdg_target_id: relacionSdgTarget.sdg_target_id,
+              where: {
+                toc_sdg_results_id: relacionSdgTarget.toc_sdg_results_id,
+                toc_sdg_results_id_toc: toc_results_id,
+                sdg_target_id: relacionSdgTarget.sdg_target_id,
+              },
             });
 
             if (!existingRecordSdgTarget) {
@@ -180,9 +186,11 @@ export class TocSdgsServices {
             relacionSdgIndicator.is_active = true;
             await sdgIndicatorT.push(sdgIndicatorI);
             const existingRecordSdgTarget = await sdgIndicatorRep.findOne({
-              toc_sdg_results_id: relacionSdgIndicator.toc_sdg_results_id,
-              toc_sdg_results_id_toc: toc_results_id,
-              sdg_indicator_id: relacionSdgIndicator.sdg_indicator_id,
+              where: {
+                toc_sdg_results_id: relacionSdgIndicator.toc_sdg_results_id,
+                toc_sdg_results_id_toc: toc_results_id,
+                sdg_indicator_id: relacionSdgIndicator.sdg_indicator_id,
+              },
             });
             if (!existingRecordSdgTarget) {
               // Update existing record

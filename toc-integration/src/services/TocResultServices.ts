@@ -112,8 +112,10 @@ export class TocResultServices {
             tocResult.version_id = version_id;
 
             const existingRecord = await tocResultRepo.findOne({
-              toc_result_id: tocResult.toc_result_id,
-              phase: tocResult.phase,
+              where: {
+                toc_result_id: tocResult.toc_result_id,
+                phase: tocResult.phase,
+              },
             });
 
             if (existingRecord) {
@@ -129,8 +131,10 @@ export class TocResultServices {
             }
 
             const existingRecordSaveOrUpdate = await tocResultRepo.findOne({
-              toc_result_id: tocResult.toc_result_id,
-              phase: tocResult.phase,
+              where: {
+                toc_result_id: tocResult.toc_result_id,
+                phase: tocResult.phase,
+              },
             });
 
             listResultsToc.push(existingRecordSaveOrUpdate);
@@ -281,9 +285,11 @@ export class TocResultServices {
             listResultsIndicator.push(indicator);
 
             const existingRecord = await tocResultRepo.findOne({
-              related_node_id: indicator.related_node_id,
-              toc_result_id_toc: indicator.toc_result_id_toc,
-              toc_results_id: indicator.toc_results_id,
+              where: {
+                related_node_id: indicator.related_node_id,
+                toc_result_id_toc: indicator.toc_result_id_toc,
+                toc_results_id: indicator.toc_results_id,
+              },
             });
 
             let recordTocIndicator: any;
@@ -296,14 +302,18 @@ export class TocResultServices {
                 indicator
               );
               recordTocIndicator = await tocResultRepo.findOne({
-                related_node_id: indicator.related_node_id,
-                toc_results_id: indicator.toc_results_id,
+                where: {
+                  related_node_id: indicator.related_node_id,
+                  toc_results_id: indicator.toc_results_id,
+                },
               });
             } else {
               await tocResultRepo.insert(indicator);
               recordTocIndicator = await tocResultRepo.findOne({
-                related_node_id: indicator.related_node_id,
-                toc_results_id: indicator.toc_results_id,
+                where: {
+                  related_node_id: indicator.related_node_id,
+                  toc_results_id: indicator.toc_results_id,
+                },
               });
             }
 
@@ -368,8 +378,10 @@ export class TocResultServices {
               sdgResult.toc_sdg_results_id_toc = resultSdgItem.toc_result_id;
 
               const existingRecordSdgTarget = await tocResultRepo.findOne({
-                toc_results_id: sdgResult.toc_results_id,
-                toc_sdg_results_id: sdgResult.toc_sdg_results_id,
+                where: {
+                  toc_results_id: sdgResult.toc_results_id,
+                  toc_sdg_results_id: sdgResult.toc_sdg_results_id,
+                },
               });
 
               if (!existingRecordSdgTarget) {
@@ -429,9 +441,11 @@ export class TocResultServices {
             actionResult.toc_action_area_results_id_toc =
               resultActionItem.toc_result_id;
             const existingRecordActionTarget = await tocResultRepo.findOne({
-              toc_results_id: actionResult.toc_results_id,
-              toc_action_area_results_id:
-                actionResult.toc_action_area_results_id,
+              where: {
+                toc_results_id: actionResult.toc_results_id,
+                toc_action_area_results_id:
+                  actionResult.toc_action_area_results_id,
+              },
             });
             if (!existingRecordActionTarget) {
               // Update existing record
@@ -483,9 +497,11 @@ export class TocResultServices {
             impactAreaToc.toc_impact_area_results_id_toc =
               resultImpact.toc_result_id;
             const existingRecordImpactTarget = await tocResultRepo.findOne({
-              toc_results_id: impactAreaToc.toc_results_id,
-              toc_impact_area_results_id:
-                impactAreaToc.toc_impact_area_results_id,
+              where: {
+                toc_results_id: impactAreaToc.toc_results_id,
+                toc_impact_area_results_id:
+                  impactAreaToc.toc_impact_area_results_id,
+              },
             });
             if (!existingRecordImpactTarget) {
               await tocResultRepo.insert(impactAreaToc);
@@ -570,8 +586,10 @@ export class TocResultServices {
                 geoScope.clarisa_regions_id =
                   typeof region.id == "string" ? region.id : null;
                 const geoScopeSave = await regionrepo.findOne({
-                  clarisa_regions_id: geoScope.clarisa_regions_id,
-                  toc_result_id: geoScope.toc_result_id,
+                  where: {
+                    clarisa_regions_id: geoScope.clarisa_regions_id,
+                    toc_result_id: geoScope.toc_result_id,
+                  },
                 });
                 if (!geoScopeSave) {
                   await regionrepo.save(geoScope);
@@ -594,8 +612,10 @@ export class TocResultServices {
                     ? country.country_id
                     : null;
                 const geoScopeSave = await tocResultRepo.findOne({
-                  clarisa_countries_id: geoScope.clarisa_countries_id,
-                  toc_result_id: geoScope.toc_result_id,
+                  where: {
+                    clarisa_countries_id: geoScope.clarisa_countries_id,
+                    toc_result_id: geoScope.toc_result_id,
+                  },
                 });
                 if (!geoScopeSave) {
                   await regionrepo.save(geoScope);
