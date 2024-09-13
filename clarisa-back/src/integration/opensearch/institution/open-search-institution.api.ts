@@ -351,7 +351,7 @@ export class OpenSearchInstitutionApi extends BaseApi {
                   {
                     multi_match: {
                       query: toFind,
-                      fields: fieldsToSearchOn as (keyof T)[],
+                      fields: fieldsToSearchOn as (keyof T)[], //eslint-disable-line
                       operator: 'and',
                     },
                   },

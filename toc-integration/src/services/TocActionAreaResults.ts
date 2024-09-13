@@ -65,8 +65,10 @@ export class ActionAreaTocServices {
             actionAreaDto.phase = phase;
 
             const existingRecord = await actionAreaRepo.findOne({
-              toc_result_id: actionAreaDto.toc_result_id,
-              phase: actionAreaDto.phase,
+              where: {
+                toc_result_id: actionAreaDto.toc_result_id,
+                phase: actionAreaDto.phase,
+              },
             });
             if (existingRecord) {
               // Update existing record
@@ -82,8 +84,10 @@ export class ActionAreaTocServices {
               await actionAreaRepo.insert(actionAreaDto);
             }
             const existingRecordSaveOrUpdate = await actionAreaRepo.findOne({
-              toc_result_id: actionAreaDto.toc_result_id,
-              phase: actionAreaDto.phase,
+              where: {
+                toc_result_id: actionAreaDto.toc_result_id,
+                phase: actionAreaDto.phase,
+              },
             });
 
             listActionAreaToc.push(existingRecordSaveOrUpdate);
@@ -145,12 +149,14 @@ export class ActionAreaTocServices {
             relationOutCome.toc_action_area_results_id = actionarea.id;
 
             const existingRecord = await actionAreaRepo.findOne({
-              toc_action_area_results_idtoc:
-                relationOutCome.toc_action_area_results_idtoc,
-              toc_action_area_results_id:
-                relationOutCome.toc_action_area_results_id,
-              action_areas_outcomes_indicators_id:
-                relationOutCome.action_areas_outcomes_indicators_id,
+              where: {
+                toc_action_area_results_idtoc:
+                  relationOutCome.toc_action_area_results_idtoc,
+                toc_action_area_results_id:
+                  relationOutCome.toc_action_area_results_id,
+                action_areas_outcomes_indicators_id:
+                  relationOutCome.action_areas_outcomes_indicators_id,
+              },
             });
             if (!existingRecord) {
               // Insert new record
@@ -202,10 +208,12 @@ export class ActionAreaTocServices {
               (impac) => impac.toc_result_id == impactsAction.toc_result_id
             ).id;
             const existingRecord = await actionAreaRepo.findOne({
-              toc_action_area_results_id:
-                relationImpactArea.toc_action_area_results_id,
-              toc_impact_area_results_id:
-                relationImpactArea.toc_impact_area_results_id,
+              where: {
+                toc_action_area_results_id:
+                  relationImpactArea.toc_action_area_results_id,
+                toc_impact_area_results_id:
+                  relationImpactArea.toc_impact_area_results_id,
+              },
             });
             if (!existingRecord) {
               // Insert new record
