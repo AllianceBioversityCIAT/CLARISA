@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ManageApiService } from '../../../../../../services/manage-api.service';
 import readXlsxFile from 'read-excel-file';
-import { SelectItem } from 'primeng/api';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-partner-bulk',
@@ -19,7 +19,8 @@ export class PartnerBulkComponent implements OnInit {
   displayConfirm: boolean = false;
   constructor(
     private _manageApiService: ManageApiService,
-    private formBuilder: FormBuilder
+    private formBuilder: FormBuilder,
+    private messageService: MessageService
   ) {}
 
   ngOnInit(): void {
@@ -67,24 +68,36 @@ export class PartnerBulkComponent implements OnInit {
     console.log(value);
 
     if (
-      value.externalUserEmail != undefined &&
-      value.externalUserName != undefined &&
-      value.externalUser != undefined &&
-      value.mis != undefined
+      !value.externalUserEmail ||
+      !value.externalUserName ||
+      !value.externalUser ||
+      !value.mis
     ) {
-      this.displayConfirm = true;
-      this._manageApiService
-        .postCreateBulkInstitution(value)
-        .subscribe((resp) => {
-          console.log(resp);
-          this.displayConfirm = false;
-        });
-      this.group = this.formBuilder.group({
-        externalUser: [null, Validators.required],
-        mis: [null, Validators.required],
-      });
-    } else {
       alert('There are undefined fields');
+      return;
     }
+
+    this.displayConfirm = true;
+    this._manageApiService.postCreateBulkInstitution(value).subscribe({
+      next: (resp) => {
+        console.log(resp);
+        this.displayConfirm = false;
+      },
+      error: (err) => {
+        console.error(err);
+        this.displayConfirm = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: err.error.response.message,
+          key: 'br',
+        });
+      },
+    });
+
+    this.group = this.formBuilder.group({
+      externalUser: [null, Validators.required],
+      mis: [null, Validators.required],
+    });
   }
 }
