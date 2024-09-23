@@ -1,0 +1,4 @@
+export enum EmailTemplate {
+  PARTNER_REQUEST_INCOMING,
+  PARTNER_REQUEST_RESPONSE,
+}
