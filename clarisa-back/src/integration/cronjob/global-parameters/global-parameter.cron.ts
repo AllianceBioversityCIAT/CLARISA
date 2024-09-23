@@ -20,7 +20,7 @@ export class GlobalParameterCron {
 
     const globalParameters = await this._globalParameterService.findAll();
 
-    this.cache.reset();
+    await this.cache.reset();
 
     globalParameters.forEach(async (globalParameter) => {
       await this.cache.set(globalParameter.name, globalParameter.value);
