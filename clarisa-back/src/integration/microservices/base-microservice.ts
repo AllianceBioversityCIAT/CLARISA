@@ -34,7 +34,7 @@ export class BaseMicroservice {
       });
   }
 
-  protected _send<T>(pattern: string, data: T) {
+  protected _emit<T>(pattern: string, data: T) {
     return this.client.emit(pattern, data);
   }
 }

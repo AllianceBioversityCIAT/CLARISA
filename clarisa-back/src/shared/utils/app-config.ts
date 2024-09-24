@@ -146,4 +146,8 @@ export class AppConfig {
   get bccEmailsParam() {
     return env.BCC_EMAILS_PARAM;
   }
+
+  get msMessagingQueue() {
+    return env.MS_MESSAGING_QUEUE;
+  }
 }

@@ -9,6 +9,7 @@ import { lastValueFrom } from 'rxjs';
 import { AppConfig } from '../../../shared/utils/app-config';
 import { User } from '../../../api/user/entities/user.entity';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { FileNotFoundError } from '../../../shared/errors/file-not-found.error';
 
 @Injectable()
 export class MessagingMicroservice extends BaseMicroservice {
@@ -22,11 +23,11 @@ export class MessagingMicroservice extends BaseMicroservice {
     private appConfig: AppConfig,
     @Inject(CACHE_MANAGER) private cache: Cache,
   ) {
-    super('cgiar_ms_test_mailer_queue', MessagingMicroservice.name);
+    super(appConfig.msMessagingQueue, MessagingMicroservice.name);
   }
 
   private _sendMail(data: MessageDto) {
-    return this._send('send', data);
+    return this._emit('send', data);
   }
 
   private async _getMessageMetadataForPR(
@@ -35,10 +36,14 @@ export class MessagingMicroservice extends BaseMicroservice {
     templatePath: string,
     isRejected?: boolean,
   ): Promise<MessageDto> {
-    const template = await this.handlebarsCompiler.compileTemplate(
-      templatePath,
-      partnerRequest,
-    );
+    const template = await this.handlebarsCompiler
+      .compileTemplate(templatePath, partnerRequest)
+      .catch((err) => {
+        this.logger.error(
+          `error reading template on path ${templatePath}. trace: ${err}`,
+        );
+        throw new FileNotFoundError(err);
+      });
 
     const emailMetadata = new MessageDto();
     emailMetadata.auth = {
@@ -116,11 +121,22 @@ export class MessagingMicroservice extends BaseMicroservice {
         throw new Error('Email template not found');
     }
 
-    return emailMetadata.then((metadata) =>
-      lastValueFrom(this._sendMail(metadata)).catch((err) => {
-        this.logger.error(err);
+    return emailMetadata
+      .then((metadata) =>
+        lastValueFrom(this._sendMail(metadata))
+          .then(() => this.logger.log('mail sent'))
+          .catch((err) => {
+            this.logger.error(err);
+            throw new Error(err);
+          }),
+      )
+      .catch((err) => {
+        if (err instanceof FileNotFoundError) {
+          // can't do anything
+          return;
+        }
+
         throw new Error(err);
-      }),
-    );
+      });
   }
 }
