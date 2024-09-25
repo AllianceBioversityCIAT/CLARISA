@@ -13,7 +13,6 @@ import { HttpModule } from '@nestjs/axios';
 import { OpenSearchInstitutionApi } from '../../integration/opensearch/institution/open-search-institution.api';
 import { MessagingMicroservice } from '../../integration/microservices/messaging/messaging.microservice';
 import { HandlebarsCompiler } from '../../shared/utils/handlebars-compiler';
-import { AppConfig } from '../../shared/utils/app-config';
 
 @Module({
   imports: [OpenSearchModule, HttpModule],
@@ -30,7 +29,6 @@ import { AppConfig } from '../../shared/utils/app-config';
     OpenSearchInstitutionApi,
     MessagingMicroservice,
     HandlebarsCompiler,
-    AppConfig,
   ],
   exports: [
     PartnerRequestService,
@@ -44,7 +42,6 @@ import { AppConfig } from '../../shared/utils/app-config';
     OpenSearchInstitutionApi,
     MessagingMicroservice,
     HandlebarsCompiler,
-    AppConfig,
   ],
 })
 export class PartnerRequestModule {}

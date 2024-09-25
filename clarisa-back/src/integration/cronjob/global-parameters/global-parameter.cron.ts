@@ -30,7 +30,7 @@ export class GlobalParameterCron implements OnApplicationBootstrap {
   @Cron('0 0 */7 * * *')
   public async cronRefreshGlobalParametersCache(onInit = false) {
     this.logger.log(
-      `Global parameter cache refresh ${!onInit ? '' : 'cron job '}started`,
+      `Global parameter cache refresh ${onInit ? '' : 'cron job '}started`,
     );
 
     const globalParameters = await this._globalParameterService.findAll();
@@ -42,7 +42,7 @@ export class GlobalParameterCron implements OnApplicationBootstrap {
     });
 
     this.logger.log(
-      `Global parameter cache refresh ${!onInit ? '' : 'cron job '}finished`,
+      `Global parameter cache refresh ${onInit ? '' : 'cron job '}finished`,
     );
   }
 }

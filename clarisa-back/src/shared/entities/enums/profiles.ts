@@ -1,5 +1,3 @@
-import { env } from 'process';
-
 export class Profile {
   public static readonly LOCAL = new Profile('LOCAL');
   public static readonly DEV = new Profile('DEV');
@@ -21,10 +19,6 @@ export class Profile {
 
   public get isLocal(): boolean {
     return this === Profile.LOCAL;
-  }
-
-  public static getCurrentEnv(): Profile {
-    return Profile.getfromName(env.APP_PROFILE);
   }
 
   public static isDev(name: string): boolean {

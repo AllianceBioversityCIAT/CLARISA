@@ -11,6 +11,14 @@ import { User } from '../../../api/user/entities/user.entity';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { FileNotFoundError } from '../../../shared/errors/file-not-found.error';
 
+/**
+ * MessagingMicroservice handles the sending of emails from this application.
+ * It extends the BaseMicroservice and utilizes Handlebars for email template compilation.
+ *
+ * @class MessagingMicroservice
+ * @extends {BaseMicroservice}
+ *
+ */
 @Injectable()
 export class MessagingMicroservice extends BaseMicroservice {
   private readonly NEW_PARTNER_REQUEST_TEMPLATE_PATH =
@@ -18,18 +26,39 @@ export class MessagingMicroservice extends BaseMicroservice {
   private readonly RESPONDED_PARTNER_REQUEST_TEMPLATE_PATH =
     '../../../assets/email-templates/responded-partner-request.hbs';
 
+  /**
+   * @param handlebarsCompiler - An instance of HandlebarsCompiler used for compiling templates.
+   * @param _appConfig - The application configuration object.
+   * @param cache - The cache manager instance injected via dependency injection.
+   */
   constructor(
     private handlebarsCompiler: HandlebarsCompiler,
-    private appConfig: AppConfig,
+    private _appConfig: AppConfig,
     @Inject(CACHE_MANAGER) private cache: Cache,
   ) {
-    super(appConfig.msMessagingQueue, MessagingMicroservice.name);
+    super(_appConfig.msMessagingQueue, MessagingMicroservice.name, _appConfig);
   }
 
+  /**
+   * Sends an email message by emitting a 'send' event with the provided data.
+   *
+   * @param data - The message data to be sent.
+   * @returns A promise that resolves when the message has been emitted.
+   */
   private _sendMail(data: MessageDto) {
     return this._emit('send', data);
   }
 
+  /**
+   * Generates the metadata for a message related to a Partner Request (PR).
+   *
+   * @param partnerRequest - The partner request object containing details about the request.
+   * @param subject - The subject of the email.
+   * @param templatePath - The file path to the email template.
+   * @param isRejected - Optional flag indicating if the request was rejected.
+   * @returns A promise that resolves to a MessageDto object containing the email metadata.
+   * @throws FileNotFoundError - If there is an error reading the template file.
+   */
   private async _getMessageMetadataForPR(
     partnerRequest: PartnerRequest,
     subject: string,
@@ -47,14 +76,14 @@ export class MessagingMicroservice extends BaseMicroservice {
 
     const emailMetadata = new MessageDto();
     emailMetadata.auth = {
-      username: this.appConfig.msMessagingUser,
-      password: this.appConfig.msMessagingPass,
+      username: this._appConfig.msMessagingUser,
+      password: this._appConfig.msMessagingPass,
     };
 
-    const currentEnv = Profile.getCurrentEnv();
+    const currentEnv = Profile.getfromName(this._appConfig.appProfile);
     emailMetadata.data = new ConfigMessageDto();
     emailMetadata.data.from = {
-      email: await this.cache.get(this.appConfig.supportEmailParam),
+      email: await this.cache.get(this._appConfig.supportEmailParam),
       name: 'CLARISA Support',
     };
 
@@ -65,7 +94,7 @@ export class MessagingMicroservice extends BaseMicroservice {
         partnerRequest.external_user_mail ??
         (partnerRequest.auditableFields.created_by_object as User).email,
       bcc: currentEnv.isProd
-        ? await this.cache.get(this.appConfig.bccEmailsParam)
+        ? await this.cache.get(this._appConfig.bccEmailsParam)
         : '',
       message: {
         text: template,
@@ -81,6 +110,12 @@ export class MessagingMicroservice extends BaseMicroservice {
     return emailMetadata;
   }
 
+  /**
+   * Generates the message metadata for a new partner request.
+   *
+   * @param partnerRequest - The partner request object containing details about the partner.
+   * @returns A promise that resolves to a MessageDto containing the message metadata.
+   */
   private async _getMessageMetadataForNewPR(
     partnerRequest: PartnerRequest,
   ): Promise<MessageDto> {
@@ -92,6 +127,12 @@ export class MessagingMicroservice extends BaseMicroservice {
     );
   }
 
+  /**
+   * Retrieves the message metadata for a partner request response.
+   *
+   * @param partnerRequest - The partner request object containing details about the request.
+   * @returns A promise that resolves to a MessageDto containing the message metadata.
+   */
   private async _getMessageMetadataForPRResponse(
     partnerRequest: PartnerRequest,
   ): Promise<MessageDto> {
@@ -105,6 +146,14 @@ export class MessagingMicroservice extends BaseMicroservice {
     );
   }
 
+  /**
+   * Sends an email based on the provided email template and partner request.
+   *
+   * @param emailCase - The template of the email to be sent.
+   * @param partnerRequest - The partner request data used to generate the email content.
+   * @returns A promise that resolves when the email is successfully sent.
+   * @throws Will throw an error if the email template is not found or if there is an error sending the email.
+   */
   public async sendPartnerRequestEmail(
     emailCase: EmailTemplate,
     partnerRequest: PartnerRequest,
@@ -124,7 +173,12 @@ export class MessagingMicroservice extends BaseMicroservice {
     return emailMetadata
       .then((metadata) =>
         lastValueFrom(this._sendMail(metadata))
-          .then(() => this.logger.log('mail sent'))
+          .then(() => {
+            const recipients = `TO=${metadata.data.emailBody.to}; CC=${metadata.data.emailBody.cc}; BCC=${metadata.data.emailBody.bcc}`;
+            this.logger.verbose(
+              `mail sent to "${recipients}" with subject "${metadata.data.emailBody.subject}"`,
+            );
+          })
           .catch((err) => {
             this.logger.error(err);
             throw new Error(err);
