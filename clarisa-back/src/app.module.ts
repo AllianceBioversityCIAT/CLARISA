@@ -21,6 +21,7 @@ import { ResponseFormattingInterceptor } from './shared/interceptors/response-fo
 import { ExceptionsFilter } from './shared/filters/exceptions.filter';
 import { IntegrationModule } from './integration/integration.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { GlobalModule } from './global.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     AuthModule,
     IntegrationModule,
     GuardsModule,
+    GlobalModule,
   ],
   controllers: [AppController],
   providers: [
