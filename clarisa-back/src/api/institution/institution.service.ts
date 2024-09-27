@@ -11,7 +11,7 @@ export class InstitutionService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    from: string = undefined,
+    from: number = undefined,
   ): Promise<InstitutionDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
       throw Error('?!');
