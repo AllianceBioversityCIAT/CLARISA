@@ -79,6 +79,7 @@ import { AppSecretModule } from './app-secret/app-secret.module';
 import { MicroserviceMonitoringTestLinkModule } from './microservice-monitoring-test-link/microservice-monitoring-test-link.module';
 import { IntegrationModule } from '../integration/integration.module';
 import { GlobalParameterModule } from './global-parameter/global-parameter.module';
+import { HandlebarsTemplateModule } from './handlebars-template/handlebars-template.module';
 
 @Module({
   controllers: [ApiController],
@@ -160,6 +161,7 @@ import { GlobalParameterModule } from './global-parameter/global-parameter.modul
     AppSecretModule,
     MicroserviceMonitoringTestLinkModule,
     GlobalParameterModule,
+    HandlebarsTemplateModule,
   ],
 })
 export class ApiModule {}

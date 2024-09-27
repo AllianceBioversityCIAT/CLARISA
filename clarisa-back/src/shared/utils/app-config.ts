@@ -269,4 +269,18 @@ export class AppConfig {
   get msMessagingQueue() {
     return env.MS_MESSAGING_QUEUE;
   }
+
+  /**
+   * newPrTemplateParam - The new PR template parameter.
+   */
+  get newPrTemplateParam() {
+    return env.NEW_PR_TEMPLATE_PARAM;
+  }
+
+  /**
+   * respondPrTemplateParam - The PR respond PR template parameter.
+   */
+  get respondPrTemplateParam() {
+    return env.RESPOND_PR_TEMPLATE_PARAM;
+  }
 }
