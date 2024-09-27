@@ -45,7 +45,7 @@ export class InstitutionController {
   @ApiQuery({
     name: 'from',
     required: false,
-    type: String,
+    type: Number,
     description:
       'Show institutions from a certain date (in milis). Defaults to null (shows all institutions).',
   })
