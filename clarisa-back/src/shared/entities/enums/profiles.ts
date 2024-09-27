@@ -32,4 +32,8 @@ export class Profile {
   public static isLocal(name: string): boolean {
     return Profile.getfromName(name) === Profile.LOCAL;
   }
+
+  toString(): string {
+    return this.name;
+  }
 }

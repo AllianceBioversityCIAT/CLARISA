@@ -18,9 +18,9 @@ export class OSTApi extends BaseApi {
     super(
       httpService,
       _appConfig.ostUrl,
+      OSTApi.name,
       _appConfig.ostUser,
       _appConfig.ostPass,
-      OSTApi.name,
     );
   }
 

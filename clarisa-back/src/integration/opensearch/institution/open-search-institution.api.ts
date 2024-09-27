@@ -32,9 +32,9 @@ export class OpenSearchInstitutionApi extends BaseApi {
     super(
       httpService,
       _appConfig.opensearchUrl,
+      OpenSearchInstitutionApi.name,
       _appConfig.opensearchUsername,
       _appConfig.opensearchPassword,
-      OpenSearchInstitutionApi.name,
     );
     this._config = <Readonly<AxiosRequestConfig>>{
       headers: {
