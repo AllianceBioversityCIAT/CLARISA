@@ -22,7 +22,7 @@ export class InstitutionRepository extends Repository<Institution> {
 
   async findInstitutions(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    from: string = undefined,
+    from: number = undefined,
     institutionIds?: number[],
   ): Promise<InstitutionDto[]> {
     let whereClause: string = '';
