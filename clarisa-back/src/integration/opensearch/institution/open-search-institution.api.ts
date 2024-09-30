@@ -1,7 +1,6 @@
 import { HttpService } from '@nestjs/axios';
 import { BaseApi } from '../../base-api';
-import { Injectable, Logger } from '@nestjs/common';
-import { env } from 'process';
+import { Injectable } from '@nestjs/common';
 import { ElasticOperationDto } from '../dto/elastic-operation.dto';
 import { forkJoin, lastValueFrom } from 'rxjs';
 import { InstitutionRepository } from '../../../api/institution/repositories/institution.repository';
@@ -17,30 +16,34 @@ import {
 import { ElasticResponse } from '../dto/elastic-response.dto';
 import { AxiosRequestConfig, isAxiosError } from 'axios';
 import { ArrayUtil } from '../../../shared/utils/array-util';
+import { AppConfig } from '../../../shared/utils/app-config';
 
 @Injectable()
 export class OpenSearchInstitutionApi extends BaseApi {
   private readonly OPENSEARCH_MAX_UPLOAD_SIZE = 1024 * 1024; // 1MB
   private readonly _bulkElasticUrl = `_bulk`;
-  private readonly _config: AxiosRequestConfig = {
-    headers: {
-      Authorization: `Basic ${Buffer.from(
-        `${env.OPENSEARCH_USERNAME}:${env.OPENSEARCH_PASSWORD}`,
-      ).toString('base64')}`,
-      'Content-Type': 'application/x-ndjson',
-    },
-  };
+  private _config: AxiosRequestConfig;
 
   constructor(
     protected readonly httpService: HttpService,
     private readonly _institutionRepository: InstitutionRepository,
+    private _appConfig: AppConfig,
   ) {
-    super();
-    this.httpService = httpService;
-    this.externalAppEndpoint = env.OPENSEARCH_URL;
-    this.user = env.OPENSEARCH_USER;
-    this.pass = env.OPENSEARCH_PASS;
-    this.logger = new Logger(OpenSearchInstitutionApi.name);
+    super(
+      httpService,
+      _appConfig.opensearchUrl,
+      OpenSearchInstitutionApi.name,
+      _appConfig.opensearchUsername,
+      _appConfig.opensearchPassword,
+    );
+    this._config = <Readonly<AxiosRequestConfig>>{
+      headers: {
+        Authorization: `Basic ${Buffer.from(
+          `${_appConfig.opensearchUsername}:${_appConfig.opensearchPassword}`,
+        ).toString('base64')}`,
+        'Content-Type': 'application/x-ndjson',
+      },
+    };
   }
 
   public getSingleElasticOperation<T>(
@@ -219,16 +222,19 @@ export class OpenSearchInstitutionApi extends BaseApi {
    */
   async resetElasticData(): Promise<string | void> {
     const now = new Date();
-    return this.findForOpenSearch(env.OPENSEARCH_DOCUMENT_NAME)
+    return this.findForOpenSearch(this._appConfig.opensearchDocumentName)
       .then((elasticData) =>
         lastValueFrom(
-          this.deleteRequest(`${env.OPENSEARCH_DOCUMENT_NAME}`, this._config),
+          this.deleteRequest(
+            `${this._appConfig.opensearchDocumentName}`,
+            this._config,
+          ),
         ).then(() => elasticData),
       )
       .then((elasticData) =>
         lastValueFrom(
           this.putRequest(
-            `${env.OPENSEARCH_DOCUMENT_NAME}`,
+            `${this._appConfig.opensearchDocumentName}`,
             null,
             this._config,
           ),
@@ -252,10 +258,13 @@ export class OpenSearchInstitutionApi extends BaseApi {
       (e) => typeof e === 'number',
     );
     const promise = isNumericArray
-      ? this.findForOpenSearch(env.OPENSEARCH_DOCUMENT_NAME, institutions)
+      ? this.findForOpenSearch(
+          this._appConfig.opensearchDocumentName,
+          institutions,
+        )
       : Promise.resolve(
           this.getBulkElasticOperationForInstitutions(
-            env.OPENSEARCH_DOCUMENT_NAME,
+            this._appConfig.opensearchDocumentName,
             institutions.map((i) => new ElasticOperationDto('PATCH', i)),
           ),
         );
@@ -275,10 +284,12 @@ export class OpenSearchInstitutionApi extends BaseApi {
   ): Promise<void> {
     const isInstitutionId = typeof institution === 'number';
     const promise = isInstitutionId
-      ? this.findForOpenSearch(env.OPENSEARCH_DOCUMENT_NAME, [institution])
+      ? this.findForOpenSearch(this._appConfig.opensearchDocumentName, [
+          institution,
+        ])
       : Promise.resolve([
           this.getSingleElasticOperationForInstitutions(
-            env.OPENSEARCH_DOCUMENT_NAME,
+            this._appConfig.opensearchDocumentName,
             new ElasticOperationDto('PATCH', institution),
           ),
         ]);
@@ -310,7 +321,11 @@ export class OpenSearchInstitutionApi extends BaseApi {
       this.postRequest<
         ElasticQueryDto<InstitutionDto>,
         ElasticResponse<InstitutionDto>
-      >(`${env.OPENSEARCH_DOCUMENT_NAME}/_search`, elasticQuery, this._config),
+      >(
+        `${this._appConfig.opensearchDocumentName}/_search`,
+        elasticQuery,
+        this._config,
+      ),
     )
       .then((response) => {
         return response.data?.hits?.hits?.map((hit) => ({
@@ -351,7 +366,7 @@ export class OpenSearchInstitutionApi extends BaseApi {
                   {
                     multi_match: {
                       query: toFind,
-                      fields: fieldsToSearchOn as (keyof T)[], //eslint-disable-line
+                      fields: fieldsToSearchOn as (keyof T)[],
                       operator: 'and',
                     },
                   },

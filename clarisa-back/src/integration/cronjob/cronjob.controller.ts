@@ -18,16 +18,18 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { GlobalParameterCron } from './global-parameters/global-parameter.cron';
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionGuard)
 @ApiTags('CronJobs')
 export class CronjobController {
   constructor(
-    private readonly cronOst: OSTCron,
-    private readonly cronToc: TOCCron,
-    private readonly cronReporting: ReportingCron,
-    private readonly cronRisk: RiskCron,
+    private readonly _cronOst: OSTCron,
+    private readonly _cronToc: TOCCron,
+    private readonly _cronReporting: ReportingCron,
+    private readonly _cronRisk: RiskCron,
+    private readonly _cronGlobalParam: GlobalParameterCron,
   ) {}
 
   @Get('ost/initiatives')
@@ -36,7 +38,12 @@ export class CronjobController {
   })
   @ApiBearerAuth()
   async updateAllInititatives() {
-    this.cronOst.cronInitiativeRelatedData();
+    this._cronOst.cronInitiativeRelatedData();
+  }
+
+  @Get('global-parameters/refresh')
+  async refreshGlobalParametersCache() {
+    this._cronGlobalParam.cronRefreshGlobalParametersCache();
   }
 
   @Get('ost/workpackages')
@@ -45,7 +52,7 @@ export class CronjobController {
   })
   @ApiBearerAuth()
   async updateAllWorkpackages() {
-    this.cronOst.cronWorkpackageRelatedData();
+    this._cronOst.cronWorkpackageRelatedData();
   }
 
   @Get(':mis/phases')
@@ -64,13 +71,13 @@ export class CronjobController {
     switch (misObject) {
       case PRMSApplication.IPSR:
       case PRMSApplication.REPORTING_TOOL:
-        this.cronReporting.syncPhasesDataFromApplication(misObject);
+        this._cronReporting.syncPhasesDataFromApplication(misObject);
         break;
       case PRMSApplication.TOC:
-        this.cronToc.cronTocPhasesData();
+        this._cronToc.cronTocPhasesData();
         break;
       case PRMSApplication.RISK:
-        this.cronRisk.cronRiskPhasesData();
+        this._cronRisk.cronRiskPhasesData();
         break;
       default:
         throw new HttpException(`Cannot find application ${mis}`, 404);

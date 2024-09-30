@@ -2,14 +2,17 @@ import { NestFactory } from '@nestjs/core';
 import * as bodyparser from 'body-parser';
 import { AppModule } from './app.module';
 import { dataSource } from './ormconfig';
-import { env } from 'process';
 import 'dotenv/config';
 import { VersioningType } from '@nestjs/common';
 import { versionExtractor } from './shared/interfaces/version-extractor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppConfig } from './shared/utils/app-config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  const appConfig = app.get(AppConfig);
+
   app.enableVersioning({
     type: VersioningType.CUSTOM,
     extractor: versionExtractor,
@@ -40,9 +43,9 @@ async function bootstrap() {
     .catch((err) => {
       console.error('Error during Data Source initialization', err);
     });
-  await app.listen(env.APP_PORT);
+  await app.listen(appConfig.appPort);
   console.log(
-    `Our server is running on port ${env.APP_PORT} - Please go to "http://localhost:${env.APP_PORT}/" to access the application`,
+    `Our server is running on port ${appConfig.appPort} - Please go to "http://localhost:${appConfig.appPort}/" to access the application`,
   );
 
   /*TODO now that he know how to extract all the routes in the app

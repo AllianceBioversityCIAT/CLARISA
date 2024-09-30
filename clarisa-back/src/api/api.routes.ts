@@ -72,6 +72,8 @@ import { CenterModule } from './center/center.module';
 import { EnvironmentModule } from './environment/environment.module';
 import { AppSecretModule } from './app-secret/app-secret.module';
 import { MicroserviceMonitoringTestLinkModule } from './microservice-monitoring-test-link/microservice-monitoring-test-link.module';
+import { GlobalParameterModule } from './global-parameter/global-parameter.module';
+import { HandlebarsTemplateModule } from './handlebars-template/handlebars-template.module';
 
 export const apiRoutes = [
   {
@@ -369,5 +371,13 @@ export const apiRoutes = [
   {
     path: 'monitor-test-links',
     module: MicroserviceMonitoringTestLinkModule,
+  },
+  {
+    path: 'global-parameters',
+    module: GlobalParameterModule,
+  },
+  {
+    path: 'handlebars-templates',
+    module: HandlebarsTemplateModule,
   },
 ];
