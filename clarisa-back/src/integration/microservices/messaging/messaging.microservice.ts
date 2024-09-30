@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { BaseMicroservice } from '../base-microservice';
 import { EmailTemplate } from './dto/email-cases';
 import { ConfigMessageDto, MessageDto } from './dto/message.dto';
-import { HandlebarsCompiler } from '../../../shared/utils/handlebars-compiler';
 import { PartnerRequest } from '../../../api/partner-request/entities/partner-request.entity';
 import { Profile } from '../../../shared/entities/enums/profiles';
 import { lastValueFrom } from 'rxjs';
@@ -10,6 +9,8 @@ import { AppConfig } from '../../../shared/utils/app-config';
 import { User } from '../../../api/user/entities/user.entity';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { FileNotFoundError } from '../../../shared/errors/file-not-found.error';
+import { HandlebarsTemplateService } from '../../../api/handlebars-template/handlebars-template.service';
+import { HandlebarsCompiler } from '../../../shared/utils/handlebars-compiler';
 
 /**
  * MessagingMicroservice handles the sending of emails from this application.
@@ -21,20 +22,16 @@ import { FileNotFoundError } from '../../../shared/errors/file-not-found.error';
  */
 @Injectable()
 export class MessagingMicroservice extends BaseMicroservice {
-  private readonly NEW_PARTNER_REQUEST_TEMPLATE_PATH =
-    '../../../assets/email-templates/new-partner-request.hbs';
-  private readonly RESPONDED_PARTNER_REQUEST_TEMPLATE_PATH =
-    '../../../assets/email-templates/responded-partner-request.hbs';
-
   /**
-   * @param handlebarsCompiler - An instance of HandlebarsCompiler used for compiling templates.
+   * @param _handlebarsTemplateService - The HandlebarsTemplateService to get the email templates.
    * @param _appConfig - The application configuration object.
    * @param cache - The cache manager instance injected via dependency injection.
    */
   constructor(
-    private handlebarsCompiler: HandlebarsCompiler,
     private _appConfig: AppConfig,
     @Inject(CACHE_MANAGER) private cache: Cache,
+    private _handlebarsCompiler: HandlebarsCompiler,
+    private _handlebarsTemplateService: HandlebarsTemplateService,
   ) {
     super(_appConfig.msMessagingQueue, MessagingMicroservice.name, _appConfig);
   }
@@ -65,13 +62,13 @@ export class MessagingMicroservice extends BaseMicroservice {
     templatePath: string,
     isRejected?: boolean,
   ): Promise<MessageDto> {
-    const template = await this.handlebarsCompiler
-      .compileTemplate(templatePath, partnerRequest)
-      .catch((err) => {
-        this.logger.error(
-          `error reading template on path ${templatePath}. trace: ${err}`,
+    const template = await this._handlebarsTemplateService
+      .getAndUpdateTemplate(templatePath)
+      .then((rawTemplate) => {
+        return this._handlebarsCompiler.compileTemplate(
+          rawTemplate,
+          partnerRequest,
         );
-        throw new FileNotFoundError(err);
       });
 
     const emailMetadata = new MessageDto();
@@ -97,7 +94,7 @@ export class MessagingMicroservice extends BaseMicroservice {
         ? await this.cache.get(this._appConfig.bccEmailsParam)
         : '',
       message: {
-        text: template,
+        socketFile: Buffer.from(template),
       },
     };
 
@@ -118,13 +115,10 @@ export class MessagingMicroservice extends BaseMicroservice {
    */
   private async _getMessageMetadataForNewPR(
     partnerRequest: PartnerRequest,
+    templatePath: string,
   ): Promise<MessageDto> {
     const subject = `[CLARISA API - ${partnerRequest.mis_object.acronym}] Partner verification - ${partnerRequest.partner_name}`;
-    return this._getMessageMetadataForPR(
-      partnerRequest,
-      subject,
-      this.NEW_PARTNER_REQUEST_TEMPLATE_PATH,
-    );
+    return this._getMessageMetadataForPR(partnerRequest, subject, templatePath);
   }
 
   /**
@@ -135,13 +129,14 @@ export class MessagingMicroservice extends BaseMicroservice {
    */
   private async _getMessageMetadataForPRResponse(
     partnerRequest: PartnerRequest,
+    templatePath: string,
   ): Promise<MessageDto> {
     const isRejected = !!partnerRequest.rejected_by;
     const subject = `[CLARISA API - ${partnerRequest.mis_object.acronym}] Partner verification - ${partnerRequest.partner_name}`;
     return this._getMessageMetadataForPR(
       partnerRequest,
       subject,
-      this.RESPONDED_PARTNER_REQUEST_TEMPLATE_PATH,
+      templatePath,
       isRejected,
     );
   }
@@ -161,10 +156,16 @@ export class MessagingMicroservice extends BaseMicroservice {
     let emailMetadata: Promise<MessageDto>;
     switch (emailCase) {
       case EmailTemplate.PARTNER_REQUEST_INCOMING:
-        emailMetadata = this._getMessageMetadataForNewPR(partnerRequest);
+        emailMetadata = this._getMessageMetadataForNewPR(
+          partnerRequest,
+          this._appConfig.newPrTemplateParam,
+        );
         break;
       case EmailTemplate.PARTNER_REQUEST_RESPONSE:
-        emailMetadata = this._getMessageMetadataForPRResponse(partnerRequest);
+        emailMetadata = this._getMessageMetadataForPRResponse(
+          partnerRequest,
+          this._appConfig.respondPrTemplateParam,
+        );
         break;
       default:
         throw new Error('Email template not found');

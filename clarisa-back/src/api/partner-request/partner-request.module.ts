@@ -12,10 +12,11 @@ import { OpenSearchModule } from '../../integration/opensearch/open-search.modul
 import { HttpModule } from '@nestjs/axios';
 import { OpenSearchInstitutionApi } from '../../integration/opensearch/institution/open-search-institution.api';
 import { MessagingMicroservice } from '../../integration/microservices/messaging/messaging.microservice';
+import { HandlebarsTemplateModule } from '../handlebars-template/handlebars-template.module';
 import { HandlebarsCompiler } from '../../shared/utils/handlebars-compiler';
 
 @Module({
-  imports: [OpenSearchModule, HttpModule],
+  imports: [OpenSearchModule, HttpModule, HandlebarsTemplateModule],
   controllers: [PartnerRequestController],
   providers: [
     PartnerRequestService,

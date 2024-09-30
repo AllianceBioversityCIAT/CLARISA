@@ -37,7 +37,7 @@ export class HandlebarsCompiler implements OnModuleInit {
    * @param {string} relativePath - The relative path to the template file.
    * @returns {Promise<string>} A promise that resolves to the content of the template file as a string.
    */
-  private loadUpTemplate(relativePath: string): Promise<string> {
+  private _loadUpTemplate(relativePath: string): Promise<string> {
     return fs.readFile(path.join(__dirname, relativePath), {
       encoding: 'utf-8',
     });
@@ -51,13 +51,8 @@ export class HandlebarsCompiler implements OnModuleInit {
    * @param {T} data - The data to be injected into the template.
    * @returns {Promise<string>} - A promise that resolves to the compiled template as a string.
    */
-  public async compileTemplate<T>(
-    templatePath: string,
-    data: T,
-  ): Promise<string> {
-    return this.loadUpTemplate(templatePath).then((template) => {
-      const compiledTemplate = Handlebars.compile(template);
-      return compiledTemplate(data);
-    });
+  public async compileTemplate<T>(template: string, data: T): Promise<string> {
+    const compiledTemplate = Handlebars.compile(template);
+    return compiledTemplate(data);
   }
 }
