@@ -1,4 +1,4 @@
-import { Connection } from "typeorm";
+import { DataSource } from "typeorm";
 import { Database } from "../database/db";
 import { ValidatorTypes } from "../validators/validatorType";
 import { ErrorValidators } from "../validators/errorsValidators";
@@ -25,11 +25,11 @@ export class TocServicesResults {
   InformationSaving = null;
   async queryTest() {
     let database = new Database();
-    let dbConn: Connection = await database.getConnection();
+    const dataSource: DataSource = await Database.getDataSource();
 
     try {
-      const queryRunner = dbConn.createQueryRunner();
-      let tocResultRepo = await dbConn.getRepository(TocResultsIndicators);
+      const queryRunner = dataSource.createQueryRunner();
+      let tocResultRepo = dataSource.getRepository(TocResultsIndicators);
       await queryRunner.connect();
 
       const getInitiatives = await tocResultRepo.find();
@@ -44,8 +44,8 @@ export class TocServicesResults {
 
   async entitiesTest() {
     let database = new Database();
-    let dbConn: Connection = await database.getConnection();
-    let iniciativeRepo = dbConn.getRepository(SdgTarget);
+    const dataSource: DataSource = await Database.getDataSource();
+    let iniciativeRepo = dataSource.getRepository(SdgTarget);
     try {
       let getInitiatives = await iniciativeRepo.find();
 
@@ -59,8 +59,8 @@ export class TocServicesResults {
     let tocHost = `${env.LINK_TOC}/api/toc/${idInitiativeToc}/dashboard-result`;
 
     let database = new Database();
-    let dbConn: Connection = await database.getConnection();
-    const queryRunner = await dbConn.createQueryRunner();
+    const dataSource: DataSource = await Database.getDataSource();
+    const queryRunner = dataSource.createQueryRunner();
     await queryRunner.connect();
 
     const getInitOfficialCodeQuery = `
@@ -175,7 +175,7 @@ export class TocServicesResults {
 
   async saveInDataBase() {
     let database = new Database();
-    let dbConn: Connection = await database.getConnection();
-    let sdgRepo = await dbConn.getRepository(TocSdgResults);
+    const dataSource: DataSource = await Database.getDataSource();
+    let sdgRepo = dataSource.getRepository(TocSdgResults);
   }
 }

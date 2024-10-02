@@ -6,17 +6,17 @@ import { Observable } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { ResponseReportingDto } from './dto/response.reporting.dto';
 import { PhaseReportingDto } from './dto/phases.reporting.dto';
-import { PRMSApplication } from '../../entities/enums/prms-applications';
+import { PRMSApplication } from '../../shared/entities/enums/prms-applications';
 
 @Injectable()
-export class ApiReporting extends BaseApi {
+export class ReportingApi extends BaseApi {
   constructor(protected readonly httpService: HttpService) {
     super();
     this.httpService = httpService;
     this.externalAppEndpoint = env.REPORTING_URL;
     this.user = env.REPORTING_USER;
     this.pass = env.REPORTING_PASS;
-    this.logger = new Logger(BaseApi.name);
+    this.logger = new Logger(ReportingApi.name);
   }
 
   getPhases(

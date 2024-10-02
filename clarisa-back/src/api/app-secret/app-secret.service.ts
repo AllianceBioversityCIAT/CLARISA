@@ -109,7 +109,7 @@ export class AppSecretService {
         }),
       )
       .then((appSecret) => {
-        return ResponseDto.createCreatedResponse(
+        return ResponseDto.buildCreatedResponse(
           this._appSecretMapper.classToDto({ ...appSecret, secret }),
           AppSecretService,
         );
@@ -144,7 +144,7 @@ export class AppSecretService {
 
     delete appSecret.secret;
 
-    return ResponseDto.createOkResponse(
+    return ResponseDto.buildOkResponse(
       this._appSecretMapper.classToDto(appSecret),
     );
   }

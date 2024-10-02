@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { ApiGeoNames } from '../../shared/integration/ost/api.geonames';
 import { firstValueFrom, map } from 'rxjs';
+import { ApiGeoNames } from '../../integration/geonames/geonames.api';
 
 @Injectable()
 export class SecondOrderAdministrativeDivisionService {
