@@ -2417,11 +2417,6 @@ button.close span {
 .inner-wrapper .sidebar .unordered-list ul {
   margin: 0 0 30px 0;
 }
-.inner-wrapper .sidebar .unordered-list ul li a:hover,
-.inner-wrapper .sidebar .unordered-list ul li a:focus {
-  color: #333;
-  text-decoration: none;
-}
 .inner-wrapper.single-post .unordered-list ul li {
   list-style: none;
   float: none;
@@ -2459,6 +2454,8 @@ button.close span {
 }
 .inner-wrapper .sidebar .unordered-list ul li a:hover,
 .inner-wrapper .sidebar .unordered-list ul li a:focus {
+  color: #333;
+  text-decoration: none;
   -webkit-transform: translateX(10px);
   -moz-transform: translateX(10px);
   -ms-transform: translateX(10px);
