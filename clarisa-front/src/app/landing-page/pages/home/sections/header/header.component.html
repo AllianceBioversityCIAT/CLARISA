@@ -5,9 +5,7 @@
     data-interval="4000"
     id="bs-carousel"
   >
-    <!-- Overlay -->
     <div class="overlay"></div>
-    <!-- Wrapper for slides -->
     <div class="carousel-inner">
       <div class="item slides active">
         <div class="slide-1">
@@ -19,40 +17,26 @@
         </div>
 
         <div class="hero">
-          <h1>
+          <h1 class="hero--title">
             CLARISA
-            <span
-              >A web service supporting information management within One CGIAR
+            <span>
+              A web service supporting information management within One CGIAR
             </span>
           </h1>
-          <p></p>
+
           <button
-            class="btn btn-hero animated3"
+            class="btn btn-hero animated3 hero--button"
             routerLink="/landing-page/contact-us"
-            style="
-              background-color: white;
-              color: #7ab800;
-              border-radius: 20px;
-              font-size: 18px;
-              font-weight: 700;
-            "
           >
             Contact us
           </button>
-          <a href="/landing-page/api-services"
-            ><button
-              class="btn btn-hero animated3"
-              style="
-                background-color: white;
-                color: #7ab800;
-                border-radius: 20px;
-                font-size: 18px;
-                font-weight: 700;
-              "
-            >
-              Services
-            </button></a
+
+          <button
+            class="btn btn-hero animated3 hero--button"
+            routerLink="/landing-page/api-services"
           >
+            Services
+          </button>
         </div>
       </div>
     </div>

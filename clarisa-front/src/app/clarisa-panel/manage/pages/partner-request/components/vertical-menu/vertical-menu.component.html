@@ -2,20 +2,7 @@
   <div class="app-sidebar__overlay" data-bs-toggle="sidebar"></div>
   <div class="app-sidebar" style="background-color: #f0f0f0; overflow: scroll">
     <div class="side-header">
-      <a class="header-brand1" href="index.html">
-        <img src="" class="header-brand-img desktop-logo" alt="logo" />
-        <img src="" class="header-brand-img toggle-logo" alt="logo" />
-        <img
-          src="../assets/images/CGIAR_Fondo_verde.png"
-          class="header-brand-img light-logo"
-          alt="logo"
-          style="
-            margin-top: 20px;
-            width: 120px;
-            height: 120px;
-            border-radius: 0 0 10px 10px;
-          "
-        />
+      <a class="header-brand1" routerLink="/landing-page/home">
         <img
           src="../assets/images/CGIAR_Fondo_verde.png"
           style="
@@ -28,8 +15,8 @@
           alt="logo"
         />
       </a>
-      <!-- LOGO -->
     </div>
+
     <div class="main-sidemenu" style="background-color: #f0f0f0">
       <div class="slide-left disabled" id="slide-left">
         <svg
@@ -49,13 +36,13 @@
         <li class="sub-category">
           <h3>Categories</h3>
         </li>
+
         <li class="slide">
-          <a #homeLinks class="side-menu__item" data-bs-toggle="slide"
-            ><span class="side-menu__label">Institutions</span></a
-          >
+          <a #homeLinks class="side-menu__item" data-bs-toggle="slide">
+            <span class="side-menu__label">Institutions</span>
+          </a>
         </li>
       </ul>
     </div>
   </div>
-  <!--/APP-SIDEBAR-->
 </div>

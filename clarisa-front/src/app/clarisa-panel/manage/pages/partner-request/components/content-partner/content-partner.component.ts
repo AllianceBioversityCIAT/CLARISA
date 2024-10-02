@@ -9,15 +9,16 @@ import { ManageApiService } from '../../../../services/manage-api.service';
 })
 export class ContentPartnerComponent implements OnInit {
   informationParnertRequest: any;
-  constructor(private _manageApiService: ManageApiService) {}
   p: number = 1;
   miStorage: any;
   statusProcess:boolean;
   menssageConfirmProcess: string;
+  
+  constructor(private _manageApiService: ManageApiService) {}
+  
   ngOnInit(): void {
     this.miStorage = window.localStorage.getItem('user');
     
-
     this.miStorage = JSON.parse(this.miStorage);
     this._manageApiService.getAllPartnerRequest().subscribe((resp) => {
       this.informationParnertRequest = resp;
@@ -33,7 +34,6 @@ export class ContentPartnerComponent implements OnInit {
    else{
     this.informationParnertRequest[value.id] = value.partnerInfoNew;
    }
-    
   }
 
   indexList(page:number, num: number){
