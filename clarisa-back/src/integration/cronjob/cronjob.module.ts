@@ -20,6 +20,9 @@ import { ReportingCron } from '../reporting/reporting.cron';
 import { ReportingApi } from '../reporting/reporting.api';
 import { RiskCron } from '../risk/risk.cron';
 import { RiskApi } from '../risk/risk.api';
+import { GlobalParameterService } from '../../api/global-parameter/global-parameter.service';
+import { GlobalParameterRepository } from '../../api/global-parameter/repositories/global-parameter.repository';
+import { GlobalParameterCron } from './global-parameters/global-parameter.cron';
 
 @Module({
   imports: [HttpModule],
@@ -43,6 +46,9 @@ import { RiskApi } from '../risk/risk.api';
     ReportingApi,
     RiskCron,
     RiskApi,
+    GlobalParameterCron,
+    GlobalParameterService,
+    GlobalParameterRepository,
   ],
   controllers: [CronjobController],
 })

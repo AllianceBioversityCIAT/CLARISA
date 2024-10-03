@@ -9,20 +9,21 @@ import crypto from 'crypto';
  * Abstract base class providing common HTTP request methods for interacting with external APIs.
  */
 export abstract class BaseApi {
-  /** The base URL for the external application endpoint. */
-  protected externalAppEndpoint: string;
-
-  /** The HttpService instance used to make HTTP requests. */
-  protected httpService: HttpService;
-
-  /** Username for authentication with the external API. */
-  protected user: string;
-
-  /** Password for authentication with the external API. */
-  protected pass: string;
-
-  /** Logger instance for logging errors and other information. */
+  /**
+   * @protected
+   * @property {Logger} logger - An instance of the Logger class used for logging messages and errors.
+   */
   protected logger: Logger;
+
+  constructor(
+    protected httpService: HttpService,
+    protected externalAppEndpoint: string,
+    private loggerContext: string,
+    protected user?: string,
+    protected pass?: string,
+  ) {
+    this.logger = new Logger(loggerContext);
+  }
 
   /**
    * Provides the default Axios request configuration with authentication and HTTPS agent.

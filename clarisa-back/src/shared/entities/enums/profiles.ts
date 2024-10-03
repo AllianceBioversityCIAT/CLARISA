@@ -8,4 +8,32 @@ export class Profile {
   public static getfromName(name: string): Profile | undefined {
     return (Object.values(this) as Profile[]).find((p) => p.name === name);
   }
+
+  public get isDev(): boolean {
+    return this === Profile.DEV;
+  }
+
+  public get isProd(): boolean {
+    return this === Profile.PROD;
+  }
+
+  public get isLocal(): boolean {
+    return this === Profile.LOCAL;
+  }
+
+  public static isDev(name: string): boolean {
+    return Profile.getfromName(name) === Profile.DEV;
+  }
+
+  public static isProd(name: string): boolean {
+    return Profile.getfromName(name) === Profile.PROD;
+  }
+
+  public static isLocal(name: string): boolean {
+    return Profile.getfromName(name) === Profile.LOCAL;
+  }
+
+  toString(): string {
+    return this.name;
+  }
 }

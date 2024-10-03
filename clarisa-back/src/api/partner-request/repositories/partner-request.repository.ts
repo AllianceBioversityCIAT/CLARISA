@@ -11,7 +11,6 @@ import { RespondRequestDto } from '../../../shared/entities/dtos/respond-request
 import { MisOption } from '../../../shared/entities/enums/mises-options';
 import { PartnerStatus } from '../../../shared/entities/enums/partner-status';
 import { RegionTypeEnum } from '../../../shared/entities/enums/region-types';
-import { MailUtil } from '../../../shared/utils/mailer.util';
 import { CountryDto } from '../../country/dto/country.dto';
 import { Country } from '../../country/entities/country.entity';
 import { InstitutionTypeDto } from '../../institution-type/dto/institution-type.dto';
@@ -34,6 +33,8 @@ import { FindAllOptions } from '../../../shared/entities/enums/find-all-options'
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
 import { StringContentComparator } from '../../../shared/utils/string-content-comparator';
 import { ResponseDto } from '../../../shared/entities/dtos/response.dto';
+import { MessagingMicroservice } from '../../../integration/microservices/messaging/messaging.microservice';
+import { EmailTemplate } from '../../../integration/microservices/messaging/dto/email-cases';
 
 @Injectable()
 export class PartnerRequestRepository extends Repository<PartnerRequest> {
@@ -64,9 +65,9 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
   constructor(
     private dataSource: DataSource,
     private institutionRepository: InstitutionRepository,
-    private mailUtil: MailUtil,
     private countryRepository: CountryRepository,
     private institutionType: InstitutionTypeRepository,
+    private messageMicroservice: MessagingMicroservice,
   ) {
     super(PartnerRequest, dataSource.createEntityManager());
   }
@@ -311,8 +312,10 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
       where: { id: partialPartnerRequest.id },
       relations: this.partnerRelations,
     });
-    const informationEmail: any = await partialPartnerRequest;
-    this.mailUtil.sendNewPartnerRequestNotification(informationEmail);
+    this.messageMicroservice.sendPartnerRequestEmail(
+      EmailTemplate.PARTNER_REQUEST_INCOMING,
+      partialPartnerRequest,
+    );
 
     return this.fillOutPartnerRequestDto(partialPartnerRequest);
   }
@@ -342,7 +345,10 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
       ? partialPartnerRequest.accepted_by
       : partialPartnerRequest.rejected_by;
 
-    this.mailUtil.sendResponseToPartnerRequest(partialPartnerRequest);
+    this.messageMicroservice.sendPartnerRequestEmail(
+      EmailTemplate.PARTNER_REQUEST_RESPONSE,
+      partialPartnerRequest,
+    );
 
     if (accepted) {
       const newInstitution = await this.institutionRepository.createInstitution(
