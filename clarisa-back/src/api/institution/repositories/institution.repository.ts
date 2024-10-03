@@ -34,11 +34,11 @@ export class InstitutionRepository extends Repository<Institution> {
     }
 
     if (institutionIds) {
-      whereClause += `${whereClause ? 'and' : 'where'} i.id in (?)`;
+      whereClause += `${whereClause ? ' and' : 'where'} i.id in (?)`;
       whereValues.push(institutionIds.join(','));
     }
 
-    whereClause += `${whereClause ? 'and' : 'where'} i.is_active in (?)`;
+    whereClause += `${whereClause ? ' and' : 'where'} i.is_active in (?)`;
     let valueToPush: string;
 
     if (option === FindAllOptions.SHOW_ALL) {
@@ -93,7 +93,7 @@ export class InstitutionRepository extends Repository<Institution> {
       whereClause += `where i.id = ?`;
     }
 
-    whereClause += `${whereClause ? 'and' : 'where'} i.is_active in (?)`;
+    whereClause += `${whereClause ? ' and' : 'where'} i.is_active in (?)`;
 
     return `
       select i.id as code, i.acronym, c.name as hqLocation, c.iso_alpha_2 as hqLocationISOalpha2,
