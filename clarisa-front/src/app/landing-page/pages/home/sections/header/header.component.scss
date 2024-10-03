@@ -1,0 +1,12 @@
+.hero {
+  &--title {
+    margin-bottom: 2rem !important;
+  }
+
+  &--button {
+    background-color: white;
+    color: #7ab800;
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
