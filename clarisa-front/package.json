@@ -19,7 +19,7 @@
     "@angular/forms": "^14.0.0",
     "@angular/platform-browser": "^14.0.0",
     "@angular/platform-browser-dynamic": "^14.0.0",
-    "@angular/router": "^14.0.0",
+    "@angular/router": "^14.3.0",
     "@coreui/angular": "^4.2.3",
     "@types/file-saver": "^2.0.5",
     "file-saver": "^2.0.5",
