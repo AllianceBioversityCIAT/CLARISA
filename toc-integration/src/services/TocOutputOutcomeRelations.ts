@@ -14,6 +14,7 @@ export class TocOutputOutcomeRelationService {
     phase: string,
     idInitiative: string
   ) {
+    console.info({ message: "Saving relations output outcomes" });
     const dataSource: DataSource = await Database.getDataSource();
     let outcomeOutputRelations = await dataSource.getRepository(
       TocOutputOutcomeRelation
