@@ -35,6 +35,7 @@ export class TocResultServices {
     version_id
   ) {
     try {
+      console.info({ message: "Saving toc results" });
       const dataSource: DataSource = await Database.getDataSource();
       const tocResultRepo = dataSource.getRepository(TocResults);
       let listResultsToc = [];
@@ -54,6 +55,7 @@ export class TocResultServices {
         );
 
         for (let tocResultItem of toc_results) {
+          console.log("🚀 ~ TocResultServices ~ tocResultItem:", tocResultItem);
           if (
             this.validatorType.existPropertyInObjectMul(tocResultItem, [
               "toc_result_id",
@@ -202,7 +204,7 @@ export class TocResultServices {
         indicatorRegions: listRegionIndicator,
       };
     } catch (error) {
-      throw error;
+      throw new Error(`Error saving toc results: ${error}`);
     }
   }
 
@@ -336,7 +338,7 @@ export class TocResultServices {
       }
       return { listResultsIndicator, listRegions, listCountries };
     } catch (error) {
-      throw error;
+      throw new Error(`Error saving toc results indicators: ${error}`);
     }
   }
 
@@ -401,8 +403,7 @@ export class TocResultServices {
       }
       return itemSdg;
     } catch (error) {
-      // Consider logging the error or handling it more appropriately
-      throw error;
+      throw new Error(`Error saving toc results sdg: ${error}`);
     }
   }
 
@@ -459,7 +460,7 @@ export class TocResultServices {
 
       return actionAreaToc;
     } catch (error) {
-      throw error;
+      throw new Error(`Error saving toc results action: ${error}`);
     }
   }
 
@@ -515,7 +516,7 @@ export class TocResultServices {
 
       return impactToc;
     } catch (error) {
-      throw error;
+      throw new Error(`Error saving toc results impact: ${error}`);
     }
   }
 
@@ -562,7 +563,7 @@ export class TocResultServices {
       }
       return { listRegios, listCountries };
     } catch (error) {
-      throw error;
+      throw new Error(`Error saving toc results geo scope: ${error}`);
     }
   }
 
@@ -630,7 +631,7 @@ export class TocResultServices {
       }
       return { listRegios, listCountries };
     } catch (error) {
-      throw error;
+      throw new Error(`Error saving toc results geo scope: ${error}`);
     }
   }
 
@@ -651,10 +652,26 @@ export class TocResultServices {
             let targetIndicator = new TocResultIndicatorTargetDTO();
             targetIndicator.id_indicator = id;
             targetIndicator.toc_result_indicator_id = toc_id_indicator;
-            targetIndicator.target_value =
-              typeof target.value == "string" ? target.value : null;
-            targetIndicator.target_date =
-              typeof target.date == "string" ? target.date : null;
+
+            if (typeof target.value === "number" && !isNaN(target.value)) {
+              targetIndicator.target_value = target.value;
+            } else if (
+              typeof target.value === "string" &&
+              target.value.trim() !== ""
+            ) {
+              targetIndicator.target_value = target.value.trim();
+            } else {
+              targetIndicator.target_value = null;
+            }
+
+            if (typeof target.date === "string" && target.date.trim() !== "") {
+              targetIndicator.target_date = target.date.trim();
+            } else {
+              targetIndicator.target_date = null;
+            }
+
+            targetIndicator.number_target = null;
+
             await tocResultRepo.delete({
               toc_result_indicator_id: toc_id_indicator,
             });
@@ -676,12 +693,31 @@ export class TocResultServices {
               let targetIndicator = new TocResultIndicatorTargetDTO();
               targetIndicator.id_indicator = id;
               targetIndicator.toc_result_indicator_id = toc_id_indicator;
-              targetIndicator.target_value =
-                typeof targetItem.value == "string" ? targetItem.value : null;
-              targetIndicator.target_date =
-                typeof targetItem.date == "string" ? targetItem.date : null;
+
+              if (
+                typeof targetItem.value === "number" &&
+                !isNaN(targetItem.value)
+              ) {
+                targetIndicator.target_value = targetItem.value;
+              } else if (
+                typeof targetItem.value === "string" &&
+                targetItem.value.trim() !== ""
+              ) {
+                targetIndicator.target_value = targetItem.value.trim();
+              } else {
+                targetIndicator.target_value = null;
+              }
+
+              if (
+                typeof targetItem.date === "string" &&
+                targetItem.date.trim() !== ""
+              ) {
+                targetIndicator.target_date = targetItem.date.trim();
+              } else {
+                targetIndicator.target_date = null;
+              }
               targetIndicator.number_target = targetNumber;
-              targetNumber = targetNumber + 1;
+              targetNumber += 1;
               await tocResultRepo.insert(targetIndicator);
             }
           }
@@ -690,7 +726,8 @@ export class TocResultServices {
 
       return true;
     } catch (error) {
-      throw error;
+      console.error("Error in saveIndicatorTarget:", error);
+      throw new Error(`Error saving toc results target: ${error}`);
     }
   }
 }
