@@ -23,6 +23,7 @@ export class TocResultImpactAreaServices {
     phase
   ) {
     try {
+      console.info({ message: "Saving impact area" });
       const dataSource: DataSource = await Database.getDataSource();
       let impactAreaRepo = dataSource.getRepository(TocImpactAreaResults);
       let listImpactAreaResults = [];

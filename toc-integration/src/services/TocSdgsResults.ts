@@ -16,6 +16,7 @@ export class TocSdgsServices {
 
   async createTocSdgResults(sdgResultToc, initiative_id, phase) {
     try {
+      console.info({ message: "Saving sdg results" });
       const dataSource: DataSource = await Database.getDataSource();
       let sdgRepo = dataSource.getRepository(TocSdgResults);
       let listValidSdgResults = [];

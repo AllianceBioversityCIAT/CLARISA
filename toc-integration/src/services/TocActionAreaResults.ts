@@ -20,6 +20,7 @@ export class ActionAreaTocServices {
     phase
   ) {
     try {
+      console.info({ message: "Saving action area" });
       const dataSource: DataSource = await Database.getDataSource();
       let actionAreaRepo = dataSource.getRepository(TocActionAreaResults);
       let listActionAreaToc = [];
