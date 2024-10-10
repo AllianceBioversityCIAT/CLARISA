@@ -1,4 +1,4 @@
-import { Connection } from "typeorm";
+import { DataSource } from "typeorm";
 import { Database } from "../database/db";
 import { ValidatorTypes } from "../validators/validatorType";
 import { ErrorValidators } from "../validators/errorsValidators";
@@ -35,8 +35,9 @@ export class TocResultServices {
     version_id
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(TocResults);
+      console.info({ message: "Saving toc results" });
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(TocResults);
       let listResultsToc = [];
       let listResultsSdg = [];
       let listResultsAction = [];
@@ -54,6 +55,7 @@ export class TocResultServices {
         );
 
         for (let tocResultItem of toc_results) {
+          console.log("🚀 ~ TocResultServices ~ tocResultItem:", tocResultItem);
           if (
             this.validatorType.existPropertyInObjectMul(tocResultItem, [
               "toc_result_id",
@@ -112,8 +114,10 @@ export class TocResultServices {
             tocResult.version_id = version_id;
 
             const existingRecord = await tocResultRepo.findOne({
-              toc_result_id: tocResult.toc_result_id,
-              phase: tocResult.phase,
+              where: {
+                toc_result_id: tocResult.toc_result_id,
+                phase: tocResult.phase,
+              },
             });
 
             if (existingRecord) {
@@ -129,8 +133,10 @@ export class TocResultServices {
             }
 
             const existingRecordSaveOrUpdate = await tocResultRepo.findOne({
-              toc_result_id: tocResult.toc_result_id,
-              phase: tocResult.phase,
+              where: {
+                toc_result_id: tocResult.toc_result_id,
+                phase: tocResult.phase,
+              },
             });
 
             listResultsToc.push(existingRecordSaveOrUpdate);
@@ -198,14 +204,14 @@ export class TocResultServices {
         indicatorRegions: listRegionIndicator,
       };
     } catch (error) {
-      throw error;
+      throw new Error(`Error saving toc results: ${error}`);
     }
   }
 
   async tocResultsIndicator(id_result: string, indicators: any, tocresults) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(TocResultsIndicators);
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(TocResultsIndicators);
 
       let listResultsIndicator = [];
       let listRegions = [];
@@ -281,9 +287,11 @@ export class TocResultServices {
             listResultsIndicator.push(indicator);
 
             const existingRecord = await tocResultRepo.findOne({
-              related_node_id: indicator.related_node_id,
-              toc_result_id_toc: indicator.toc_result_id_toc,
-              toc_results_id: indicator.toc_results_id,
+              where: {
+                related_node_id: indicator.related_node_id,
+                toc_result_id_toc: indicator.toc_result_id_toc,
+                toc_results_id: indicator.toc_results_id,
+              },
             });
 
             let recordTocIndicator: any;
@@ -296,14 +304,18 @@ export class TocResultServices {
                 indicator
               );
               recordTocIndicator = await tocResultRepo.findOne({
-                related_node_id: indicator.related_node_id,
-                toc_results_id: indicator.toc_results_id,
+                where: {
+                  related_node_id: indicator.related_node_id,
+                  toc_results_id: indicator.toc_results_id,
+                },
               });
             } else {
               await tocResultRepo.insert(indicator);
               recordTocIndicator = await tocResultRepo.findOne({
-                related_node_id: indicator.related_node_id,
-                toc_results_id: indicator.toc_results_id,
+                where: {
+                  related_node_id: indicator.related_node_id,
+                  toc_results_id: indicator.toc_results_id,
+                },
               });
             }
 
@@ -326,7 +338,7 @@ export class TocResultServices {
       }
       return { listResultsIndicator, listRegions, listCountries };
     } catch (error) {
-      throw error;
+      throw new Error(`Error saving toc results indicators: ${error}`);
     }
   }
 
@@ -338,8 +350,8 @@ export class TocResultServices {
   ) {
     try {
       let itemSdg = [];
-      const dbConn: Connection = await this.database.getConnection();
-      const tocResultRepo = await dbConn.getRepository(TocResultsSdgResults);
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(TocResultsSdgResults);
 
       if (this.validatorType.validatorIsArray(sdg_results)) {
         await tocResultRepo.update(
@@ -368,8 +380,10 @@ export class TocResultServices {
               sdgResult.toc_sdg_results_id_toc = resultSdgItem.toc_result_id;
 
               const existingRecordSdgTarget = await tocResultRepo.findOne({
-                toc_results_id: sdgResult.toc_results_id,
-                toc_sdg_results_id: sdgResult.toc_sdg_results_id,
+                where: {
+                  toc_results_id: sdgResult.toc_results_id,
+                  toc_sdg_results_id: sdgResult.toc_sdg_results_id,
+                },
               });
 
               if (!existingRecordSdgTarget) {
@@ -389,8 +403,7 @@ export class TocResultServices {
       }
       return itemSdg;
     } catch (error) {
-      // Consider logging the error or handling it more appropriately
-      throw error;
+      throw new Error(`Error saving toc results sdg: ${error}`);
     }
   }
 
@@ -401,10 +414,11 @@ export class TocResultServices {
     tocres
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(
         TocResultsActionAreaResults
       );
+
       let actionAreaToc = [];
       if (this.validatorType.validatorIsArray(action_results)) {
         tocResultRepo.update(
@@ -429,9 +443,11 @@ export class TocResultServices {
             actionResult.toc_action_area_results_id_toc =
               resultActionItem.toc_result_id;
             const existingRecordActionTarget = await tocResultRepo.findOne({
-              toc_results_id: actionResult.toc_results_id,
-              toc_action_area_results_id:
-                actionResult.toc_action_area_results_id,
+              where: {
+                toc_results_id: actionResult.toc_results_id,
+                toc_action_area_results_id:
+                  actionResult.toc_action_area_results_id,
+              },
             });
             if (!existingRecordActionTarget) {
               // Update existing record
@@ -444,7 +460,7 @@ export class TocResultServices {
 
       return actionAreaToc;
     } catch (error) {
-      throw error;
+      throw new Error(`Error saving toc results action: ${error}`);
     }
   }
 
@@ -455,10 +471,11 @@ export class TocResultServices {
     tocres
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(
         TocResultsImpactAreaResults
       );
+
       let impactToc = [];
       if (this.validatorType.validatorIsArray(impact_results)) {
         tocResultRepo.update(
@@ -483,9 +500,11 @@ export class TocResultServices {
             impactAreaToc.toc_impact_area_results_id_toc =
               resultImpact.toc_result_id;
             const existingRecordImpactTarget = await tocResultRepo.findOne({
-              toc_results_id: impactAreaToc.toc_results_id,
-              toc_impact_area_results_id:
-                impactAreaToc.toc_impact_area_results_id,
+              where: {
+                toc_results_id: impactAreaToc.toc_results_id,
+                toc_impact_area_results_id:
+                  impactAreaToc.toc_impact_area_results_id,
+              },
             });
             if (!existingRecordImpactTarget) {
               await tocResultRepo.insert(impactAreaToc);
@@ -497,7 +516,7 @@ export class TocResultServices {
 
       return impactToc;
     } catch (error) {
-      throw error;
+      throw new Error(`Error saving toc results impact: ${error}`);
     }
   }
 
@@ -544,7 +563,7 @@ export class TocResultServices {
       }
       return { listRegios, listCountries };
     } catch (error) {
-      throw error;
+      throw new Error(`Error saving toc results geo scope: ${error}`);
     }
   }
 
@@ -552,9 +571,9 @@ export class TocResultServices {
     try {
       let listRegios = [];
       let listCountries = [];
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(TocResultIndicatorCountry);
-      let regionrepo = await dbConn.getRepository(TocResultIndicatorRegion);
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(TocResultIndicatorCountry);
+      const regionrepo = dataSource.getRepository(TocResultIndicatorRegion);
       if (this.validatorType.validatorIsObject(geo_scope)) {
         if (
           this.validatorType.existPropertyInObjectMul(geo_scope, [
@@ -570,8 +589,10 @@ export class TocResultServices {
                 geoScope.clarisa_regions_id =
                   typeof region.id == "string" ? region.id : null;
                 const geoScopeSave = await regionrepo.findOne({
-                  clarisa_regions_id: geoScope.clarisa_regions_id,
-                  toc_result_id: geoScope.toc_result_id,
+                  where: {
+                    clarisa_regions_id: geoScope.clarisa_regions_id,
+                    toc_result_id: geoScope.toc_result_id,
+                  },
                 });
                 if (!geoScopeSave) {
                   await regionrepo.save(geoScope);
@@ -594,8 +615,10 @@ export class TocResultServices {
                     ? country.country_id
                     : null;
                 const geoScopeSave = await tocResultRepo.findOne({
-                  clarisa_countries_id: geoScope.clarisa_countries_id,
-                  toc_result_id: geoScope.toc_result_id,
+                  where: {
+                    clarisa_countries_id: geoScope.clarisa_countries_id,
+                    toc_result_id: geoScope.toc_result_id,
+                  },
                 });
                 if (!geoScopeSave) {
                   await regionrepo.save(geoScope);
@@ -608,14 +631,15 @@ export class TocResultServices {
       }
       return { listRegios, listCountries };
     } catch (error) {
-      throw error;
+      throw new Error(`Error saving toc results geo scope: ${error}`);
     }
   }
 
   async saveIndicatorTarget(toc_id_indicator: string, id: number, target: any) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let tocResultRepo = await dbConn.getRepository(TocResultIndicatorTarget);
+      const dataSource: DataSource = await Database.getDataSource();
+      const tocResultRepo = dataSource.getRepository(TocResultIndicatorTarget);
+
       if (toc_id_indicator != null) {
         let validator = await this.validatorType.validatorIsObject(target);
         if (validator) {
@@ -628,10 +652,26 @@ export class TocResultServices {
             let targetIndicator = new TocResultIndicatorTargetDTO();
             targetIndicator.id_indicator = id;
             targetIndicator.toc_result_indicator_id = toc_id_indicator;
-            targetIndicator.target_value =
-              typeof target.value == "string" ? target.value : null;
-            targetIndicator.target_date =
-              typeof target.date == "string" ? target.date : null;
+
+            if (typeof target.value === "number" && !isNaN(target.value)) {
+              targetIndicator.target_value = target.value;
+            } else if (
+              typeof target.value === "string" &&
+              target.value.trim() !== ""
+            ) {
+              targetIndicator.target_value = target.value.trim();
+            } else {
+              targetIndicator.target_value = null;
+            }
+
+            if (typeof target.date === "string" && target.date.trim() !== "") {
+              targetIndicator.target_date = target.date.trim();
+            } else {
+              targetIndicator.target_date = null;
+            }
+
+            targetIndicator.number_target = null;
+
             await tocResultRepo.delete({
               toc_result_indicator_id: toc_id_indicator,
             });
@@ -653,12 +693,31 @@ export class TocResultServices {
               let targetIndicator = new TocResultIndicatorTargetDTO();
               targetIndicator.id_indicator = id;
               targetIndicator.toc_result_indicator_id = toc_id_indicator;
-              targetIndicator.target_value =
-                typeof targetItem.value == "string" ? targetItem.value : null;
-              targetIndicator.target_date =
-                typeof targetItem.date == "string" ? targetItem.date : null;
+
+              if (
+                typeof targetItem.value === "number" &&
+                !isNaN(targetItem.value)
+              ) {
+                targetIndicator.target_value = targetItem.value;
+              } else if (
+                typeof targetItem.value === "string" &&
+                targetItem.value.trim() !== ""
+              ) {
+                targetIndicator.target_value = targetItem.value.trim();
+              } else {
+                targetIndicator.target_value = null;
+              }
+
+              if (
+                typeof targetItem.date === "string" &&
+                targetItem.date.trim() !== ""
+              ) {
+                targetIndicator.target_date = targetItem.date.trim();
+              } else {
+                targetIndicator.target_date = null;
+              }
               targetIndicator.number_target = targetNumber;
-              targetNumber = targetNumber + 1;
+              targetNumber += 1;
               await tocResultRepo.insert(targetIndicator);
             }
           }
@@ -667,7 +726,8 @@ export class TocResultServices {
 
       return true;
     } catch (error) {
-      throw error;
+      console.error("Error in saveIndicatorTarget:", error);
+      throw new Error(`Error saving toc results target: ${error}`);
     }
   }
 }

@@ -7,14 +7,7 @@ import { NavigationBarComponent } from './components/navigation-bar/navigation-b
 import { FooterComponent } from './components/footer/footer.component';
 
 @NgModule({
-  declarations: [
-    LandingPageComponent,
-    NavigationBarComponent,
-    FooterComponent,
-  ],
-  imports: [
-    CommonModule,
-    LandingPageRoutingModule
-  ]
+  declarations: [LandingPageComponent, NavigationBarComponent, FooterComponent],
+  imports: [CommonModule, LandingPageRoutingModule],
 })
-export class LandingPageModule { }
+export class LandingPageModule {}

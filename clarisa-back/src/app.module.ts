@@ -20,6 +20,8 @@ import { RequestLoggingInterceptor } from './shared/interceptors/request-logging
 import { ResponseFormattingInterceptor } from './shared/interceptors/response-formatting.interceptor';
 import { ExceptionsFilter } from './shared/filters/exceptions.filter';
 import { IntegrationModule } from './integration/integration.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { GlobalModule } from './global.module';
 
 @Module({
   imports: [
@@ -31,10 +33,16 @@ import { IntegrationModule } from './integration/integration.module';
     ScheduleModule.forRoot(),
     RouterModule.register(routes),
     TypeOrmModule.forFeature([User]),
+    CacheModule.register({
+      ttl: 8 * 60 * 60 * 1000, // 8 hours
+      max: 100,
+      isGlobal: true,
+    }),
     ApiModule,
     AuthModule,
     IntegrationModule,
     GuardsModule,
+    GlobalModule,
   ],
   controllers: [AppController],
   providers: [

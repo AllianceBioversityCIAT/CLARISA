@@ -1,4 +1,4 @@
-import { Connection } from "typeorm";
+import { DataSource } from "typeorm";
 import { Database } from "../database/db";
 import { ErrorValidators } from "../validators/errorsValidators";
 import { ValidatorTypes } from "../validators/validatorType";
@@ -9,15 +9,24 @@ export class TocOutputOutcomeRelationService {
   public errorMessage = new ErrorValidators();
   public database = new Database();
 
-  async saveRelationsOutputOutcomes(relations: any, phase: string, idInitiative: string) {
-    let dbConn: Connection = await this.database.getConnection();
-    let outcomeOutputRelations = await dbConn.getRepository(
+  async saveRelationsOutputOutcomes(
+    relations: any,
+    phase: string,
+    idInitiative: string
+  ) {
+    console.info({ message: "Saving relations output outcomes" });
+    const dataSource: DataSource = await Database.getDataSource();
+    let outcomeOutputRelations = await dataSource.getRepository(
       TocOutputOutcomeRelation
     );
     let listOutcomeOutputRelations = [];
     try {
       const relationExists = await outcomeOutputRelations.find({
-        where: { id_toc_initiative: idInitiative, is_active: true, phase_id: phase },
+        where: {
+          id_toc_initiative: idInitiative,
+          is_active: true,
+          phase_id: phase,
+        },
       });
 
       if (this.validatorType.validatorIsArray(relationExists)) {
@@ -49,7 +58,7 @@ export class TocOutputOutcomeRelationService {
       console.error(errorObj);
       throw errorObj;
     } finally {
-      dbConn.close();
+      dataSource.destroy();
     }
   }
 }

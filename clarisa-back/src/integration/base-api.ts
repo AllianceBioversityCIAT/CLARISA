@@ -1,8 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Observable, catchError, of, timeout } from 'rxjs';
-import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AxiosRequestConfig, AxiosResponse, isAxiosError } from 'axios';
 import { Logger } from '@nestjs/common';
-import axios from 'axios';
 import https from 'https';
 import crypto from 'crypto';
 
@@ -10,20 +9,21 @@ import crypto from 'crypto';
  * Abstract base class providing common HTTP request methods for interacting with external APIs.
  */
 export abstract class BaseApi {
-  /** The base URL for the external application endpoint. */
-  protected externalAppEndpoint: string;
-
-  /** The HttpService instance used to make HTTP requests. */
-  protected httpService: HttpService;
-
-  /** Username for authentication with the external API. */
-  protected user: string;
-
-  /** Password for authentication with the external API. */
-  protected pass: string;
-
-  /** Logger instance for logging errors and other information. */
+  /**
+   * @protected
+   * @property {Logger} logger - An instance of the Logger class used for logging messages and errors.
+   */
   protected logger: Logger;
+
+  constructor(
+    protected httpService: HttpService,
+    protected externalAppEndpoint: string,
+    private loggerContext: string,
+    protected user?: string,
+    protected pass?: string,
+  ) {
+    this.logger = new Logger(loggerContext);
+  }
 
   /**
    * Provides the default Axios request configuration with authentication and HTTPS agent.
@@ -54,7 +54,7 @@ export abstract class BaseApi {
     return observable.pipe(
       timeout(30000), // Wait for 30 seconds for the response
       catchError((err) => {
-        const errorMsg = axios.isAxiosError(err)
+        const errorMsg = isAxiosError(err)
           ? `Axios error: ${err.message}; Axios error response: ${JSON.stringify(err.response?.data)}`
           : `Unexpected error: ${err.message}`;
 
@@ -101,7 +101,7 @@ export abstract class BaseApi {
         requestObservable = this.httpService.delete<R>(url, requestConfig);
         break;
       default:
-        throw new Error(`Unsupported HTTP method: ${method}`);
+        throw new Error(`Unsupported HTTP method: ${method}.`);
     }
 
     return this.handleError(requestObservable);
