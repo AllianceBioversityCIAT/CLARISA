@@ -34,8 +34,9 @@ export class InstitutionRepository extends Repository<Institution> {
     }
 
     if (institutionIds) {
-      whereClause += `${whereClause ? ' and' : 'where'} i.id in (?)`;
-      whereValues.push(institutionIds.join(','));
+      const idPlaceholders = institutionIds.map(() => '?').join(', ');
+      whereClause += `${whereClause ? ' and' : 'where'} i.id in (${idPlaceholders})`;
+      whereValues.push(...institutionIds);
     }
 
     whereClause += `${whereClause ? ' and' : 'where'} i.is_active in (?)`;
@@ -72,7 +73,7 @@ export class InstitutionRepository extends Repository<Institution> {
       group by i.id
     `;
 
-    return await this.query(query, whereValues).catch((error) => {
+    return this.query(query, whereValues).catch((error) => {
       throw Error(`Error fetching institutions: ${error}`);
     });
   }
@@ -144,7 +145,7 @@ export class InstitutionRepository extends Repository<Institution> {
 
     whereValues.push(valueToPush);
 
-    return await this.query(
+    return this.query(
       this._getQueryForInstitutionSimple(option, true),
       whereValues,
     ).catch((error) => {
@@ -178,7 +179,7 @@ export class InstitutionRepository extends Repository<Institution> {
           : '0',
     );
 
-    return await this.query(
+    return this.query(
       this._getQueryForInstitutionSimple(option),
       whereValues,
     ).catch((error) => {

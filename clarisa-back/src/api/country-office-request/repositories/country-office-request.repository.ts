@@ -1,12 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  DataSource,
-  FindOptionsWhere,
-  IsNull,
-  Repository,
-  Not,
-  FindOptionsRelations,
-} from 'typeorm';
+import { DataSource, Repository, FindOptionsRelations } from 'typeorm';
 import { CountryOfficeRequestDto } from '../dto/country-office-request.dto';
 import { CreateCountryOfficeRequestDto } from '../dto/create-country-office-request.dto';
 import { RespondRequestDto } from '../../../shared/entities/dtos/respond-request.dto';
@@ -25,6 +18,8 @@ import { Region } from '../../region/entities/region.entity';
 import { MisOption } from '../../../shared/entities/enums/mises-options';
 import { PartnerStatus } from '../../../shared/entities/enums/partner-status';
 import { RegionTypeEnum } from '../../../shared/entities/enums/region-types';
+import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
+import { EntityNotFoundError } from '../../../shared/errors/entity-not-found.error';
 @Injectable()
 export class CountryOfficeRequestRepository extends Repository<CountryOfficeRequest> {
   private readonly requestRelations: FindOptionsRelations<CountryOfficeRequest> =
@@ -60,19 +55,27 @@ export class CountryOfficeRequestRepository extends Repository<CountryOfficeRequ
   async findCountryOfficeRequestById(
     id: number,
   ): Promise<CountryOfficeRequestDto> {
-    return this.findOne({
-      where: { id },
-      relations: this.requestRelations,
-    }).then((pr) => this.fillOutCountryOfficeRequestDto(pr));
+    return this.findCountryOfficeRequests(
+      PartnerStatus.ALL.path,
+      MisOption.ALL.path,
+      [id],
+    ).then((value) => {
+      if (value.length === 0) {
+        throw new EntityNotFoundError(CountryOfficeRequest.name, id);
+      }
+
+      return value[0];
+    });
   }
 
-  async findAllCountryOfficeRequests(
+  async findCountryOfficeRequests(
     status: string = PartnerStatus.PENDING.path,
     mis: string = MisOption.ALL.path,
+    requestIds?: number[],
   ): Promise<CountryOfficeRequestDto[]> {
-    const countryOfficeRequestDtos: CountryOfficeRequestDto[] = [];
-    let whereClause: FindOptionsWhere<CountryOfficeRequest> = {};
     const incomingMis = MisOption.getfromPath(mis);
+    let whereClause: string = '';
+    const whereValues: (string | number)[] = [];
 
     switch (mis) {
       case MisOption.ALL.path:
@@ -86,10 +89,11 @@ export class CountryOfficeRequestRepository extends Repository<CountryOfficeRequ
       case MisOption.MEL.path:
       case MisOption.OST.path:
       case MisOption.TOC.path:
-        whereClause = {
-          ...whereClause,
-          mis_id: incomingMis.mis_id,
-        };
+      case MisOption.PRMS.path:
+      case MisOption.MARLO.path:
+      case MisOption.PIPELINE.path:
+        whereClause = 'where mis_id = ?';
+        whereValues.push(incomingMis.mis_id);
         break;
       default:
         throw Error('?!');
@@ -100,37 +104,74 @@ export class CountryOfficeRequestRepository extends Repository<CountryOfficeRequ
         //do nothing. we will be showing everything, so no condition is needed;
         break;
       case PartnerStatus.PENDING.path:
-        whereClause = {
-          accepted_by: IsNull(),
-          rejected_by: IsNull(),
-        };
+        whereClause = `${!whereClause ? 'where' : ' and'} accepted_by is null and rejected_by is null`;
         break;
       case PartnerStatus.ACCEPTED.path:
       case PartnerStatus.REJECTED.path:
-        whereClause = {
-          accepted_by:
-            status === PartnerStatus.ACCEPTED.path ? Not(IsNull()) : IsNull(),
-          rejected_by:
-            status === PartnerStatus.REJECTED.path ? Not(IsNull()) : IsNull(),
-        };
+        whereClause = `${!whereClause ? 'where' : ' and'} accepted_by is ${status === PartnerStatus.ACCEPTED.path ? 'not null' : 'null'} and rejected_by is ${status === PartnerStatus.REJECTED.path ? 'not null' : 'null'}`;
         break;
     }
 
-    const countryOfficeRequest: CountryOfficeRequest[] = await this.find({
-      where: whereClause,
-      relations: this.requestRelations,
-    });
+    if (requestIds) {
+      const idPlaceholders = requestIds.map(() => '?').join(', ');
+      whereClause = `${!whereClause ? 'where' : ' and'} cor.id in (${idPlaceholders})`;
+      whereValues.push(...requestIds);
+    }
 
-    await Promise.all(
-      countryOfficeRequest.map(async (cof) => {
-        const countryOfficeRequestDto: CountryOfficeRequestDto =
-          this.fillOutCountryOfficeRequestDto(cof);
+    const query: string = `
+      select cor.id, (
+        case 
+          when cor.accepted_by is null and cor.rejected_by is null then 'Pending'
+          when cor.accepted_by is not null then 'Accepted'
+          when cor.rejected_by is not null then 'Rejected'
+          else 'Unknown'
+        end
+      ) as requestStatus,
+      cor.reject_justification as rejectJustification, cor.request_source as requestSource,
+      cor.external_user_mail as externalUserMail, cor.external_user_name as externalUserName,
+      cor.external_user_comments as externalUserComments, json_object(
+        "code", c.id,
+        "isoAlpha2", c.iso_alpha_2,
+        "isoAlpha3", c.iso_alpha_3,
+        "name", c.name,
+        "regionDTO", (
+          select json_object(
+            "name", r.name,
+            "um49Code", r.iso_numeric
+          )
+          from country_regions cr
+          right join regions r on r.region_type_id = 1 
+            and r.id = cr.region_id and r.is_active
+          where cr.country_id = c.id and cr.is_active
+        )
+      ) as countryDTO, json_object("code", cor.institution_id) as institutionDTO
+      from country_office_requests cor
+      left join countries c on cor.country_id = c.id
+      ${whereClause}
+    `;
 
-        countryOfficeRequestDtos.push(countryOfficeRequestDto);
-      }),
+    return await this.query(query, whereValues).then(
+      (cors: CountryOfficeRequestDto[]) => {
+        if (cors.length === 0) {
+          return [];
+        }
+
+        return this.institutionRepository
+          .findInstitutions(
+            FindAllOptions.SHOW_ONLY_ACTIVE,
+            undefined,
+            cors.map((c) => c.institutionDTO.code),
+          )
+          .then((insts) => {
+            return cors.map((cor) => {
+              cor.institutionDTO = insts.find(
+                (i) => i.code === cor.institutionDTO.code,
+              );
+              return cor;
+            });
+          });
+      },
     );
-
-    return countryOfficeRequestDtos;
   }
 
   private fillOutCountryOfficeRequestDto(cof: CountryOfficeRequest) {
