@@ -41,9 +41,6 @@ export class PermissionGuard implements CanActivate {
           return userDb.id === 3043;
         }
 
-        /*FIXME in case there is a route that starts the same that another route, 
-          the guard will not work properly. E.g. /users and /users/permissions
-        */
         const isRoutePermitted = (userDb.permissions ?? []).some((p) =>
           route.includes(p),
         );

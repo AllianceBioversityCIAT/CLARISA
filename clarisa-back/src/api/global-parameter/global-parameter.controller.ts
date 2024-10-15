@@ -1,8 +1,10 @@
 import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { GlobalParameterService } from './global-parameter.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 @Controller()
+@ApiExcludeController()
 export class GlobalParameterController {
   constructor(
     private readonly _globalParameterService: GlobalParameterService,

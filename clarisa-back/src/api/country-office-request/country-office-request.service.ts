@@ -20,6 +20,7 @@ import { UserData } from '../../shared/interfaces/user-data';
 import { MisRepository } from '../mis/repositories/mis.repository';
 import { UserRepository } from '../user/repositories/user.repository';
 import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
 
 @Injectable()
 export class CountryOfficeRequestService {
@@ -36,14 +37,22 @@ export class CountryOfficeRequestService {
     mis: string = MisOption.ALL.path,
   ): Promise<CountryOfficeRequestDto[]> {
     if (!PartnerStatus.getfromPath(status)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this.countryOfficeRequestRepository.target.toString(),
+        'status',
+        status,
+      );
     }
 
     if (!MisOption.getfromPath(mis)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this.countryOfficeRequestRepository.target.toString(),
+        'mis',
+        mis,
+      );
     }
 
-    return this.countryOfficeRequestRepository.findAllCountryOfficeRequests(
+    return this.countryOfficeRequestRepository.findCountryOfficeRequests(
       status,
       mis,
     );
