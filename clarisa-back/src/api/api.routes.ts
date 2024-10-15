@@ -74,6 +74,7 @@ import { AppSecretModule } from './app-secret/app-secret.module';
 import { MicroserviceMonitoringTestLinkModule } from './microservice-monitoring-test-link/microservice-monitoring-test-link.module';
 import { GlobalParameterModule } from './global-parameter/global-parameter.module';
 import { HandlebarsTemplateModule } from './handlebars-template/handlebars-template.module';
+import { LeverModule } from './lever/lever.module';
 
 export const apiRoutes = [
   {
@@ -379,5 +380,9 @@ export const apiRoutes = [
   {
     path: 'handlebars-templates',
     module: HandlebarsTemplateModule,
+  },
+  {
+    path: 'alliance-levers',
+    module: LeverModule,
   },
 ];
