@@ -80,6 +80,7 @@ import { MicroserviceMonitoringTestLinkModule } from './microservice-monitoring-
 import { IntegrationModule } from '../integration/integration.module';
 import { GlobalParameterModule } from './global-parameter/global-parameter.module';
 import { HandlebarsTemplateModule } from './handlebars-template/handlebars-template.module';
+import { LeverModule } from './lever/lever.module';
 
 @Module({
   controllers: [ApiController],
@@ -162,6 +163,7 @@ import { HandlebarsTemplateModule } from './handlebars-template/handlebars-templ
     MicroserviceMonitoringTestLinkModule,
     GlobalParameterModule,
     HandlebarsTemplateModule,
+    LeverModule,
   ],
 })
 export class ApiModule {}
