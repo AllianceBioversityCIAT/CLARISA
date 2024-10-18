@@ -29,7 +29,7 @@ export class InstitutionRepository extends Repository<Institution> {
     const whereValues: (string | number)[] = [];
 
     if (from) {
-      whereClause += `where i.created_at >= ?`;
+      whereClause += `where i.updated_at >= FROM_UNIXTIME(? / 1000, '%Y-%m-%d %H:%i:%s.%f')`;
       whereValues.push(from);
     }
 
