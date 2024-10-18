@@ -4,6 +4,8 @@ import { SubnationalScope } from '../entities/subnational-scope.entity';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { SubnationalScopeDto } from '../dto/subnational-scope.dto';
 import { SubnationalQueryParameters } from '../dto/subnational-query-parameters.dro';
+import { BadParamsError } from '../../../shared/errors/bad-params.error';
+import { EntityNotFoundError } from '../../../shared/errors/entity-not-found.error';
 
 @Injectable()
 export class SubnationalScopeRepository extends Repository<SubnationalScope> {
@@ -33,7 +35,7 @@ export class SubnationalScopeRepository extends Repository<SubnationalScope> {
         };
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(this.target.toString(), 'option', option);
     }
 
     const query: string = `select getSubnationalScopeData(?) as subnational_scope_data;`;
@@ -64,6 +66,10 @@ export class SubnationalScopeRepository extends Repository<SubnationalScope> {
     )?.[0];
     subnationalScopeDtos = rawResponse?.subnational_scope_data;
 
-    return subnationalScopeDtos[0] ?? null;
+    if (subnationalScopeDtos?.length != 1) {
+      throw new EntityNotFoundError(this.target.toString(), subnationalId);
+    }
+
+    return subnationalScopeDtos[0];
   }
 }

@@ -20,6 +20,7 @@ import { PartnerStatus } from '../../../shared/entities/enums/partner-status';
 import { RegionTypeEnum } from '../../../shared/entities/enums/region-types';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { EntityNotFoundError } from '../../../shared/errors/entity-not-found.error';
+import { BadParamsError } from '../../../shared/errors/bad-params.error';
 @Injectable()
 export class CountryOfficeRequestRepository extends Repository<CountryOfficeRequest> {
   private readonly requestRelations: FindOptionsRelations<CountryOfficeRequest> =
@@ -96,7 +97,7 @@ export class CountryOfficeRequestRepository extends Repository<CountryOfficeRequ
         whereValues.push(incomingMis.mis_id);
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(this.target.toString(), 'mis', mis);
     }
 
     switch (status) {

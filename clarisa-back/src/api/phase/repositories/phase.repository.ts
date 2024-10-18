@@ -10,6 +10,7 @@ import { FindAllOptions } from '../../../shared/entities/enums/find-all-options'
 import { PhaseStatus } from '../../../shared/entities/enums/phase-status';
 import { PRMSApplication } from '../../../shared/entities/enums/prms-applications';
 import { getMetadataArgsStorage } from 'typeorm';
+import { BadParamsError } from '../../../shared/errors/bad-params.error';
 
 @Injectable()
 export class PhaseRepository {
@@ -95,7 +96,7 @@ export class PhaseRepository {
         })) as Phase[];
         break;
       default:
-        throw Error(`The mis "${prmsApp}" was not found!`);
+        throw new BadParamsError('Phases', 'prmsApp', prmsApp);
     }
 
     return phases;

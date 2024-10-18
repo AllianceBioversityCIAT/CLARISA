@@ -6,6 +6,7 @@ import { PhaseStatus } from '../../shared/entities/enums/phase-status';
 import { PhaseDto } from './dto/phase.dto';
 import { PhaseMapper } from './mappers/phase.mapper';
 import { PRMSApplication } from '../../shared/entities/enums/prms-applications';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
 
 @Injectable()
 export class PhaseService {
@@ -19,7 +20,7 @@ export class PhaseService {
     status: string = PhaseStatus.SHOW_ONLY_OPEN.path,
   ): Promise<PhaseDto[]> {
     if (!PhaseStatus.getfromPath(status)) {
-      throw Error('?!');
+      throw new BadParamsError('Phases', 'status', status);
     }
 
     const phases: Phase[] = await this._phaseRepository.findAllPhases(
@@ -37,11 +38,11 @@ export class PhaseService {
     status: string = PhaseStatus.SHOW_ONLY_OPEN.path,
   ): Promise<PhaseDto[]> {
     if (!PhaseStatus.getfromPath(status)) {
-      throw Error('?!');
+      throw new BadParamsError('Phases', 'status', status);
     }
 
     if (!PRMSApplication.getfromSimpleName(application)) {
-      throw Error('?!');
+      throw new BadParamsError('Phases', 'application', application);
     }
 
     const phases: Phase[] = await this._phaseRepository.findAllPhases(

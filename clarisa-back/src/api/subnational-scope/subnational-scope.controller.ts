@@ -22,7 +22,9 @@ import {
 @UseInterceptors(ClassSerializerInterceptor)
 @ApiTags('Subnational Scopes')
 export class SubnationalScopeController {
-  constructor(private readonly studyTypeService: SubnationalScopeService) {}
+  constructor(
+    private readonly subnationalScopeService: SubnationalScopeService,
+  ) {}
 
   @Get()
   @ApiQuery({
@@ -55,7 +57,7 @@ export class SubnationalScopeController {
     @Query('country-id') country_id: number,
     @Query('country-iso2') country_iso_alpha_2: string,
   ) {
-    return await this.studyTypeService.findAll(
+    return await this.subnationalScopeService.findAll(
       show,
       country_id,
       country_iso_alpha_2,
@@ -74,6 +76,6 @@ export class SubnationalScopeController {
     summary: 'Get a subnational scope by id',
   })
   async findOne(@Param('id', ParseIntPipe) id: number) {
-    return await this.studyTypeService.findOne(id);
+    return await this.subnationalScopeService.findOne(id);
   }
 }

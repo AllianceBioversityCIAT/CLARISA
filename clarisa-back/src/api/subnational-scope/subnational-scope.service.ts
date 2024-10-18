@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { SubnationalScopeRepository } from './repositories/subnational-scope.repository';
 import { SubnationalScopeDto } from './dto/subnational-scope.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
 
 @Injectable()
 export class SubnationalScopeService {
@@ -15,7 +16,11 @@ export class SubnationalScopeService {
     country_iso_alpha_2?: string,
   ): Promise<SubnationalScopeDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this.subnationalScopesRepository.target.toString(),
+        'option',
+        option,
+      );
     }
 
     return this.subnationalScopesRepository.findSubnationalScope(
