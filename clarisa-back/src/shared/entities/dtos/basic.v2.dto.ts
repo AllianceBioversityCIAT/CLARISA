@@ -1,5 +1,4 @@
-import { OmitType } from '@nestjs/mapped-types';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { BasicDtoV1 } from './basic.v1.dto';
 
 export class BasicDtoV2 extends OmitType(BasicDtoV1, ['id'] as const) {
