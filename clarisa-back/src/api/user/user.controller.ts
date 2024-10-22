@@ -19,11 +19,11 @@ import { Response } from 'express';
 import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { PaginationParams } from '../../shared/interfaces/pageable';
+import { PaginationParamsDto } from '../../shared/entities/dtos/pagination-params.dto';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
 import { ApiExcludeController } from '@nestjs/swagger';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import { GetUserData } from '../../shared/decorators/user-data.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 
@@ -36,7 +36,7 @@ export class UserController {
   @Post('create')
   @UseGuards(JwtAuthGuard, PermissionGuard)
   create(
-    @GetUserData() userData: UserData,
+    @GetUserData() userData: UserDataDto,
     @Body() createUserDto: CreateUserDto,
   ) {
     return this._userService.create(userData, createUserDto);
@@ -63,7 +63,7 @@ export class UserController {
   }
 
   @Get('search')
-  async getUsersPagination(@Query() { offset, limit }: PaginationParams) {
+  async getUsersPagination(@Query() { offset, limit }: PaginationParamsDto) {
     return this._userService.getUsersPagination(offset, limit);
   }
 

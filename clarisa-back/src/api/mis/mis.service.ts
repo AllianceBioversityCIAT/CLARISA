@@ -4,7 +4,7 @@ import { Mis } from './entities/mis.entity';
 import { MisRepository } from './repositories/mis.repository';
 import { MisDto } from './dto/mis.dto';
 import { CreateMisDto } from './dto/create-mis.dto';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import { EnvironmentService } from '../environment/environment.service';
 import { UserService } from '../user/user.service';
 import { ResponseDto } from '../../shared/entities/dtos/response.dto';
@@ -32,7 +32,7 @@ export class MisService {
     },
   };
 
-  async create(createMisDto: CreateMisDto, userData: UserData) {
+  async create(createMisDto: CreateMisDto, userData: UserDataDto) {
     if (!createMisDto) {
       throw new Error('Missing required data');
     } else if (!createMisDto.acronym) {

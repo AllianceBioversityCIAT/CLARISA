@@ -16,7 +16,7 @@ import { CountryOfficeRequestRepository } from './repositories/country-office-re
 import { ResponseDto } from '../../shared/entities/dtos/response.dto';
 import { MisOption } from '../../shared/entities/enums/mises-options';
 import { PartnerStatus } from '../../shared/entities/enums/partner-status';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import { MisRepository } from '../mis/repositories/mis.repository';
 import { UserRepository } from '../user/repositories/user.repository';
 import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
@@ -64,7 +64,7 @@ export class CountryOfficeRequestService {
 
   async createCountryOfficeRequest(
     incomingCountryOfficeRequest: CreateCountryOfficeRequestDto,
-    userData: UserData & { mis: string },
+    userData: UserDataDto & { mis: string },
   ): Promise<ResponseDto<CountryOfficeRequestDto[]>> {
     incomingCountryOfficeRequest.userId = userData.userId;
     incomingCountryOfficeRequest.externalUserMail =
@@ -181,7 +181,7 @@ export class CountryOfficeRequestService {
 
   async respondCountryOfficeRequest(
     respondCountryOfficeRequestDto: RespondRequestDto,
-    userData: UserData,
+    userData: UserDataDto,
   ): Promise<CountryOfficeRequestDto> {
     respondCountryOfficeRequestDto.userId = userData.userId;
     respondCountryOfficeRequestDto.externalUserMail =
@@ -256,7 +256,7 @@ export class CountryOfficeRequestService {
 
   async updateCountryOfficeRequest(
     updateCountryOfficeRequest: UpdateCountryOfficeRequestDto,
-    userData: UserData,
+    userData: UserDataDto,
   ): Promise<ResponseDto<CountryOfficeRequestDto>> {
     updateCountryOfficeRequest = plainToInstance(
       UpdateCountryOfficeRequestDto,

@@ -16,7 +16,7 @@ import { RespondRequestDto } from '../../shared/entities/dtos/respond-request.dt
 import { ResponseDto } from '../../shared/entities/dtos/response.dto';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import { CreatePartnerRequestDto } from './dto/create-partner-request.dto';
 import { PartnerRequestDto } from './dto/partner-request.dto';
 import { UpdatePartnerRequestDto } from './dto/update-partner-request.dto';
@@ -176,11 +176,11 @@ export class PartnerRequestController {
   })
   @ApiBearerAuth()
   async createPartnerRequest(
-    @GetUserData() userData: UserData,
+    @GetUserData() userData: UserDataDto,
     @Body() newPartnerRequest: CreatePartnerRequestDto,
     @Query('mis') mis: string,
   ): Promise<ResponseDto<PartnerRequestDto>> {
-    const userDataMis: UserData & { mis: string } = {
+    const userDataMis: UserDataDto & { mis: string } = {
       ...userData,
       mis,
     };
@@ -232,7 +232,7 @@ export class PartnerRequestController {
   })
   @ApiBearerAuth()
   async respondPartnerRequest(
-    @GetUserData() userData: UserData,
+    @GetUserData() userData: UserDataDto,
     @Body() respondPartnerRequestDto: RespondRequestDto,
   ): Promise<PartnerRequestDto> {
     return this.partnerRequestService.respondPartnerRequest(
@@ -273,7 +273,7 @@ export class PartnerRequestController {
   })
   @ApiBearerAuth()
   async updatePartnerRequest(
-    @GetUserData() userData: UserData,
+    @GetUserData() userData: UserDataDto,
     @Body() updatePartnerRequest: UpdatePartnerRequestDto,
   ): Promise<ResponseDto<PartnerRequestDto>> {
     return this.partnerRequestService.updatePartnerRequest(

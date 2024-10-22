@@ -13,7 +13,7 @@ import { CreateAppSecretDto } from './dto/create-app-secret.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import { GetUserData } from '../../shared/decorators/user-data.decorator';
 import { ValidateAppSecretDto } from './dto/validate-app-secret.dto';
 import {
@@ -44,7 +44,7 @@ export class AppSecretController {
   })
   @ApiBearerAuth()
   create(
-    @GetUserData() userData: UserData,
+    @GetUserData() userData: UserDataDto,
     @Body() createAppSecretDto: CreateAppSecretDto,
   ) {
     return this.appSecretService.create(createAppSecretDto, userData);

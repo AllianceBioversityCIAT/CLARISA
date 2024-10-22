@@ -25,7 +25,7 @@ import { MisDto } from './dto/mis.dto';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
 import { GetUserData } from '../../shared/decorators/user-data.decorator';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import { CreateMisDto } from './dto/create-mis.dto';
 import { SimpleMisDto } from './dto/simple-mis.dto';
 
@@ -59,7 +59,7 @@ export class MisController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, PermissionGuard)
   create(
-    @GetUserData() userData: UserData,
+    @GetUserData() userData: UserDataDto,
     @Body() createMisDto: CreateMisDto,
   ) {
     return this._misService.create(createMisDto, userData);

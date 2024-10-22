@@ -9,7 +9,7 @@ import { AppSecret } from './entities/app-secret.entity';
 import { AppSecretDto } from './dto/app-secret.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { BCryptPasswordEncoder } from '../../auth/utils/BCryptPasswordEncoder';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import { FindManyOptions } from 'typeorm';
 import { ValidateAppSecretDto } from './dto/validate-app-secret.dto';
 import * as crypto from 'crypto';
@@ -34,7 +34,7 @@ export class AppSecretService {
     },
   };
 
-  async create(createAppSecretDto: CreateAppSecretDto, userData: UserData) {
+  async create(createAppSecretDto: CreateAppSecretDto, userData: UserDataDto) {
     if (
       !createAppSecretDto ||
       !createAppSecretDto.sender_mis ||

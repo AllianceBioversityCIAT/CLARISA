@@ -4,13 +4,13 @@ import { User } from './entities/user.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UserRepository } from './repositories/user.repository';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 
 @Injectable()
 export class UserService {
   constructor(private usersRepository: UserRepository) {}
 
-  create(userData: UserData, createUserDto: CreateUserDto) {
+  create(userData: UserDataDto, createUserDto: CreateUserDto) {
     if (!createUserDto) {
       throw new Error('Missing required data');
     } else if (!createUserDto.email) {

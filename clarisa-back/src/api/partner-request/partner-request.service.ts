@@ -5,7 +5,7 @@ import { RespondRequestDto } from '../../shared/entities/dtos/respond-request.dt
 import { ResponseDto } from '../../shared/entities/dtos/response.dto';
 import { MisOption } from '../../shared/entities/enums/mises-options';
 import { PartnerStatus } from '../../shared/entities/enums/partner-status';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import { CountryRepository } from '../country/repositories/country.repository';
 import { User } from '../user/entities/user.entity';
 import { CreatePartnerRequestDto } from './dto/create-partner-request.dto';
@@ -59,7 +59,7 @@ export class PartnerRequestService {
 
   async createPartnerRequest(
     incomingPartnerRequest: CreatePartnerRequestDto,
-    userData: UserData & { mis: string },
+    userData: UserDataDto & { mis: string },
   ): Promise<ResponseDto<PartnerRequestDto>> {
     incomingPartnerRequest.userId = userData.userId;
     incomingPartnerRequest.externalUserMail =
@@ -161,7 +161,7 @@ export class PartnerRequestService {
 
   async respondPartnerRequest(
     respondPartnerRequestDto: RespondRequestDto,
-    userData: UserData,
+    userData: UserDataDto,
   ): Promise<PartnerRequestDto> {
     respondPartnerRequestDto.userId = userData.userId;
     respondPartnerRequestDto.externalUserMail =
@@ -250,7 +250,7 @@ export class PartnerRequestService {
 
   async updatePartnerRequest(
     updatePartnerRequest: UpdatePartnerRequestDto,
-    userData: UserData,
+    userData: UserDataDto,
   ): Promise<ResponseDto<PartnerRequestDto>> {
     updatePartnerRequest = plainToInstance(
       UpdatePartnerRequestDto,
