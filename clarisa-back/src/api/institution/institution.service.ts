@@ -11,6 +11,8 @@ export class InstitutionService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    offset: number,
+    limit: number,
     from: number = undefined,
   ): Promise<InstitutionDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
@@ -19,19 +21,32 @@ export class InstitutionService {
 
     if (from != null && Number.isNaN(from)) {
       throw Error('?!');
-    } else {
-      return this.institutionRepository.findInstitutions(option, from);
     }
+
+    return this.institutionRepository.findInstitutions(
+      option,
+      from,
+      undefined,
+      offset,
+      limit,
+    );
   }
 
   async findAllSimple(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    offset: number,
+    limit: number,
   ): Promise<InstitutionSimpleDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
       throw Error('?!');
     }
 
-    return this.institutionRepository.findAllInstitutionsSimple(option);
+    return this.institutionRepository.findAllInstitutionsSimple(
+      option,
+      undefined,
+      offset,
+      limit,
+    );
   }
 
   async findOne(id: number): Promise<InstitutionDto> {

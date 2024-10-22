@@ -4,4 +4,6 @@ export interface SubnationalQueryParameters {
   country_iso2?: string;
   subnational_id?: number;
   subnational_code?: string;
+  offset?: bigint;
+  limit?: bigint;
 }

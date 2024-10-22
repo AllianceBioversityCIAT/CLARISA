@@ -14,12 +14,19 @@ export class InstitutionDictionaryService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    offset: number,
+    limit: number,
   ): Promise<InstitutionDictionaryDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
       throw Error('?!');
     }
 
-    return this.institutionRepository.findInstitutionSourceEntries(option);
+    return this.institutionRepository.findInstitutionSourceEntries(
+      option,
+      undefined,
+      offset,
+      limit,
+    );
   }
 
   async findOne(id: number): Promise<InstitutionDictionaryDto> {

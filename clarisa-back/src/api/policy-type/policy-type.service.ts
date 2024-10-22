@@ -69,8 +69,8 @@ export class PolicyTypeService {
         id,
         auditableFields: { is_active: true },
       })
-      .catch((e) => {
-        throw new EntityNotFoundError(PolicyType.name, id, e);
+      .catch((_e) => {
+        throw new EntityNotFoundError(PolicyType.name, id);
       });
   }
 

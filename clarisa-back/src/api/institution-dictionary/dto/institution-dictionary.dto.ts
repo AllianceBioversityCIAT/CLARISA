@@ -1,13 +1,12 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { InstitutionSimpleDto } from '../../institution/dto/institution-simple.dto';
 import { InstitutionSourceDto } from './institution-source.dto';
 
-export class InstitutionDictionaryDto {
-  code: number;
-  name: string;
-  acronym: string;
-  websiteLink: string;
-  institutionTypeId: number;
-  institutionType: string;
-  hqLocation: string;
-  hqLocationISOalpha2: string;
+export class InstitutionDictionaryDto extends InstitutionSimpleDto {
+  @ApiProperty({
+    description:
+      'The list of institutions related to this one in other systems',
+    type: [InstitutionSourceDto],
+  })
   institutionRelatedList: InstitutionSourceDto[];
 }

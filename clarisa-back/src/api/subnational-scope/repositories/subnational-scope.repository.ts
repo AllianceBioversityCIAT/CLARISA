@@ -3,9 +3,10 @@ import { DataSource, Repository } from 'typeorm';
 import { SubnationalScope } from '../entities/subnational-scope.entity';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { SubnationalScopeDto } from '../dto/subnational-scope.dto';
-import { SubnationalQueryParameters } from '../dto/subnational-query-parameters.dro';
+import { SubnationalQueryParameters } from '../dto/subnational-query-parameters.dto';
 import { BadParamsError } from '../../../shared/errors/bad-params.error';
 import { EntityNotFoundError } from '../../../shared/errors/entity-not-found.error';
+import { bigintSerializer } from '../../../shared/mappers/bigint-serializer';
 
 @Injectable()
 export class SubnationalScopeRepository extends Repository<SubnationalScope> {
@@ -17,11 +18,16 @@ export class SubnationalScopeRepository extends Repository<SubnationalScope> {
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     countryId?: number,
     countryIsoAlpha2?: string,
+    offset?: number,
+    limit?: number,
   ): Promise<SubnationalScopeDto[]> {
     let subnationalScopeDtos: SubnationalScopeDto[] = [];
     let queryParams: SubnationalQueryParameters = {
       country_id: countryId,
       country_iso2: countryIsoAlpha2,
+      offset: BigInt(offset ?? 0),
+      // 18446744073709551615 is the maximum value for a bigint in MySQL
+      limit: BigInt(limit ?? '18446744073709551615'),
     };
 
     switch (option) {
@@ -41,7 +47,7 @@ export class SubnationalScopeRepository extends Repository<SubnationalScope> {
     const query: string = `select getSubnationalScopeData(?) as subnational_scope_data;`;
 
     const rawResponse = (
-      await this.query(query, [JSON.stringify(queryParams)])
+      await this.query(query, [JSON.stringify(queryParams, bigintSerializer)])
     )[0];
     subnationalScopeDtos = rawResponse?.subnational_scope_data;
 

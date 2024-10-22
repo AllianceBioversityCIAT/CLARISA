@@ -14,6 +14,8 @@ export class SubnationalScopeService {
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     country_id?: number,
     country_iso_alpha_2?: string,
+    offset?: number,
+    limit?: number,
   ): Promise<SubnationalScopeDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
       throw new BadParamsError(
@@ -27,6 +29,8 @@ export class SubnationalScopeService {
       option,
       country_id,
       country_iso_alpha_2,
+      offset,
+      limit,
     );
   }
 
