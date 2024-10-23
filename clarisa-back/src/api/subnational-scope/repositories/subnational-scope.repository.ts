@@ -5,7 +5,7 @@ import { FindAllOptions } from '../../../shared/entities/enums/find-all-options'
 import { SubnationalScopeDto } from '../dto/subnational-scope.dto';
 import { SubnationalQueryParameters } from '../dto/subnational-query-parameters.dto';
 import { BadParamsError } from '../../../shared/errors/bad-params.error';
-import { EntityNotFoundError } from '../../../shared/errors/entity-not-found.error';
+import { ClarisaEntityNotFoundError } from '../../../shared/errors/clarisa-entity-not-found.error';
 import { bigintSerializer } from '../../../shared/mappers/bigint-serializer';
 
 @Injectable()
@@ -73,7 +73,10 @@ export class SubnationalScopeRepository extends Repository<SubnationalScope> {
     subnationalScopeDtos = rawResponse?.subnational_scope_data;
 
     if (subnationalScopeDtos?.length != 1) {
-      throw new EntityNotFoundError(this.target.toString(), subnationalId);
+      throw new ClarisaEntityNotFoundError(
+        this.target.toString(),
+        subnationalId,
+      );
     }
 
     return subnationalScopeDtos[0];

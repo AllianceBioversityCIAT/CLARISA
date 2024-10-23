@@ -21,6 +21,7 @@ import { MisRepository } from '../mis/repositories/mis.repository';
 import { UserRepository } from '../user/repositories/user.repository';
 import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
 import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class CountryOfficeRequestService {
@@ -34,7 +35,7 @@ export class CountryOfficeRequestService {
 
   async findAll(
     status: string = PartnerStatus.PENDING.path,
-    mis: string = MisOption.ALL.path,
+    source: string = MisOption.ALL.path,
   ): Promise<CountryOfficeRequestDto[]> {
     if (!PartnerStatus.getfromPath(status)) {
       throw new BadParamsError(
@@ -44,22 +45,33 @@ export class CountryOfficeRequestService {
       );
     }
 
-    if (!MisOption.getfromPath(mis)) {
+    if (!MisOption.getfromPath(source)) {
       throw new BadParamsError(
         this.countryOfficeRequestRepository.target.toString(),
-        'mis',
-        mis,
+        'source',
+        source,
       );
     }
 
     return this.countryOfficeRequestRepository.findCountryOfficeRequests(
       status,
-      mis,
+      source,
     );
   }
 
   async findOne(id: number): Promise<CountryOfficeRequestDto> {
-    return this.countryOfficeRequestRepository.findCountryOfficeRequestById(id);
+    return this.countryOfficeRequestRepository
+      .findCountryOfficeRequestById(id)
+      .then((countryOfficeRequest) => {
+        if (!countryOfficeRequest) {
+          throw new ClarisaEntityNotFoundError(
+            this.countryOfficeRequestRepository.target.toString(),
+            id,
+          );
+        }
+
+        return countryOfficeRequest;
+      });
   }
 
   async createCountryOfficeRequest(

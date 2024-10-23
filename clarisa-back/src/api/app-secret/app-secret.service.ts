@@ -161,6 +161,7 @@ export class AppSecretService {
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
         appSecrets = await this._appSecretRepository.find({
+          ...this._where,
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
@@ -176,9 +177,12 @@ export class AppSecretService {
   }
 
   async findOne(id: number): Promise<AppSecretDto> {
-    const appSecret: AppSecret = await this._appSecretRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
+    const appSecret: AppSecret = await this._appSecretRepository.findOne({
+      ...this._where,
+      where: {
+        id,
+        auditableFields: { is_active: true },
+      },
     });
 
     return appSecret ? this._appSecretMapper.classToDto(appSecret) : null;

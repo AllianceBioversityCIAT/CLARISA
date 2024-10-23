@@ -6,7 +6,7 @@ import { UpdatePolicyTypeDto } from './dto/update-policy-type.dto';
 import { PolicyType } from './entities/policy-type.entity';
 import { PolicyTypeRepository } from './repositories/policy-type.repository';
 import { PolicyTypeDto } from './dto/policy-type.dto';
-import { EntityNotFoundError } from '../../shared/errors/entity-not-found.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 import { BadParamsError } from '../../shared/errors/bad-params.error';
 
 @Injectable()
@@ -69,8 +69,11 @@ export class PolicyTypeService {
         id,
         auditableFields: { is_active: true },
       })
-      .catch((_e) => {
-        throw new EntityNotFoundError(PolicyType.name, id);
+      .catch(() => {
+        throw new ClarisaEntityNotFoundError(
+          this.policyTypesRepository.target.toString(),
+          id,
+        );
       });
   }
 

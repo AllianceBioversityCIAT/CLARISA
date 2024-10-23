@@ -19,8 +19,7 @@ import { MisOption } from '../../../shared/entities/enums/mises-options';
 import { PartnerStatus } from '../../../shared/entities/enums/partner-status';
 import { RegionTypeEnum } from '../../../shared/entities/enums/region-types';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
-import { EntityNotFoundError } from '../../../shared/errors/entity-not-found.error';
-import { BadParamsError } from '../../../shared/errors/bad-params.error';
+
 @Injectable()
 export class CountryOfficeRequestRepository extends Repository<CountryOfficeRequest> {
   private readonly requestRelations: FindOptionsRelations<CountryOfficeRequest> =
@@ -60,13 +59,7 @@ export class CountryOfficeRequestRepository extends Repository<CountryOfficeRequ
       PartnerStatus.ALL.path,
       MisOption.ALL.path,
       [id],
-    ).then((value) => {
-      if (value.length === 0) {
-        throw new EntityNotFoundError(CountryOfficeRequest.name, id);
-      }
-
-      return value[0];
-    });
+    ).then((value) => (value.length === 0 ? null : value[0]));
   }
 
   async findCountryOfficeRequests(
@@ -96,8 +89,6 @@ export class CountryOfficeRequestRepository extends Repository<CountryOfficeRequ
         whereClause = 'where mis_id = ?';
         whereValues.push(incomingMis.mis_id);
         break;
-      default:
-        throw new BadParamsError(this.target.toString(), 'mis', mis);
     }
 
     switch (status) {
@@ -105,17 +96,17 @@ export class CountryOfficeRequestRepository extends Repository<CountryOfficeRequ
         //do nothing. we will be showing everything, so no condition is needed;
         break;
       case PartnerStatus.PENDING.path:
-        whereClause = `${!whereClause ? 'where' : ' and'} accepted_by is null and rejected_by is null`;
+        whereClause += `${!whereClause ? 'where' : ' and'} accepted_by is null and rejected_by is null`;
         break;
       case PartnerStatus.ACCEPTED.path:
       case PartnerStatus.REJECTED.path:
-        whereClause = `${!whereClause ? 'where' : ' and'} accepted_by is ${status === PartnerStatus.ACCEPTED.path ? 'not null' : 'null'} and rejected_by is ${status === PartnerStatus.REJECTED.path ? 'not null' : 'null'}`;
+        whereClause += `${!whereClause ? 'where' : ' and'} accepted_by is ${status === PartnerStatus.ACCEPTED.path ? 'not null' : 'null'} and rejected_by is ${status === PartnerStatus.REJECTED.path ? 'not null' : 'null'}`;
         break;
     }
 
     if (requestIds) {
       const idPlaceholders = requestIds.map(() => '?').join(', ');
-      whereClause = `${!whereClause ? 'where' : ' and'} cor.id in (${idPlaceholders})`;
+      whereClause += `${!whereClause ? 'where' : ' and'} cor.id in (${idPlaceholders})`;
       whereValues.push(...requestIds);
     }
 
