@@ -11,10 +11,12 @@ export class ActionAreaOutcomeIndicatorRepository extends Repository<ActionAreaO
     super(ActionAreaOutcomeIndicator, dataSource.createEntityManager());
   }
 
-  async findActionAreaOutcomes(
+  async findActionAreaOutcomeIndicators(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<ActionAreaOutcomeDto[]> {
-    return this.createQueryBuilder('aaoi')
+    isAao: boolean = true,
+    aaoiId?: number,
+  ): Promise<ActionAreaOutcomeDto[] | ActionAreaOutcomeIndicatorDto[]> {
+    const querybuilder = this.createQueryBuilder('aaoi')
       .leftJoinAndSelect(
         'aaoi.action_area_outcome_object',
         'aao',
@@ -26,70 +28,26 @@ export class ActionAreaOutcomeIndicatorRepository extends Repository<ActionAreaO
       .leftJoinAndSelect('aaoi.outcome_indicator_object', 'oi')
       .where(
         option === FindAllOptions.SHOW_ALL
-          ? undefined
+          ? '1=1'
           : `aaoi.is_active = ${option === FindAllOptions.SHOW_ONLY_ACTIVE}`,
       )
+      .andWhere(isAao ? '1=1' : aaoiId ? `aaoi.id = ${aaoiId}` : '1=1')
       .orderBy('aaoi.id')
       .select([
-        'aaoi.id as id',
+        `aaoi.id AS ${isAao ? 'id' : 'actionAreaOutcomeIndicatorId'}`,
         'aa.id AS actionAreaId',
         'aa.name AS actionAreaName',
         'aao.id AS outcomeId',
         'aao.smo_code AS outcomeSMOcode',
         'aao.outcome_statement AS outcomeStatement',
         'oi.id AS outcomeIndicatorId',
-        'oi.smo_code AS outcomeIndicatorSMOcode',
+        `oi.smo_code AS ${isAao ? 'outcomeIndicatorSMOcode' : 'outcomeIndicatorsSMOcode'}`,
         'oi.outcome_indicator_statement AS outcomeIndicatorStatement',
       ])
       .getRawMany();
-  }
 
-  async actionAreaOutcomeIndicatorByAll(): Promise<
-    ActionAreaOutcomeIndicatorDto[]
-  > {
-    const impactAreaIndicatorsQuery = `
-      SELECT aai.id as 'actionAreaOutcomeIndicatorId', aa.id AS 'actionAreaId', aa.name AS 'actionAreaName', aao.id AS 'outcomeId', 
-        aao.smo_code AS 'outcomeSMOcode', aao.outcome_statement AS 'outcomeStatement', 
-          oi.id AS 'outcomeIndicatorId', oi.smo_code AS 'outcomeIndicatorsSMOcode', oi.outcome_indicator_statement AS 'outcomeIndicatorStatement'
-        FROM action_area_outcome_indicators aai
-      LEFT JOIN action_area_outcomes aao 
-        ON aai.action_area_outcome_id = aao.id
-      LEFT JOIN  action_areas aa
-        ON aai.action_area_id = aa.id
-      LEFT JOIN outcome_indicators oi
-        ON  aai.outcome_indicator_id = oi.id;
-            `;
-
-    const ImpactAreaIndicatorsbyImpactArea: ActionAreaOutcomeIndicatorDto[] =
-      await this.query(impactAreaIndicatorsQuery);
-
-    return ImpactAreaIndicatorsbyImpactArea;
-  }
-
-  async actionAreaOutcomeIndicatorByAllIsActive(
-    option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<ActionAreaOutcomeIndicatorDto[]> {
-    let isActiveOption = true;
-    if (option == 'inactive') isActiveOption = false;
-
-    const impactAreaIndicatorsQuery = `
-    SELECT aai.id as 'actionAreaOutcomeIndicatorId', aa.id AS 'actionAreaId', aa.name AS 'actionAreaName', aao.id AS 'outcomeId', 
-        aao.smo_code AS 'outcomeSMOcode', aao.outcome_statement AS 'outcomeStatement', 
-          oi.id AS 'outcomeIndicatorId', oi.smo_code AS 'outcomeIndicatorsSMOcode',
-                          oi.outcome_indicator_statement AS 'outcomeIndicatorStatement'
-        FROM action_area_outcome_indicators aai
-      LEFT JOIN action_area_outcomes aao 
-        ON aai.action_area_outcome_id = aao.id
-      LEFT JOIN  action_areas aa
-        ON aai.action_area_id = aa.id
-      LEFT JOIN outcome_indicators oi
-        ON  aai.outcome_indicator_id = oi.id
-        WHERE aai.is_active = ${isActiveOption}
-            `;
-
-    const ImpactAreaIndicatorsbyImpactArea: ActionAreaOutcomeIndicatorDto[] =
-      await this.query(impactAreaIndicatorsQuery);
-
-    return ImpactAreaIndicatorsbyImpactArea;
+    return isAao
+      ? (querybuilder as Promise<ActionAreaOutcomeDto[]>)
+      : (querybuilder as Promise<ActionAreaOutcomeIndicatorDto[]>);
   }
 }

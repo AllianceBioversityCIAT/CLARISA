@@ -26,9 +26,9 @@ export class ActionAreaOutcomeService {
       );
     }
 
-    return this._actionAreaOutcomeIndicatorRepository.findActionAreaOutcomes(
+    return this._actionAreaOutcomeIndicatorRepository.findActionAreaOutcomeIndicators(
       option,
-    );
+    ) as Promise<ActionAreaOutcomeDto[]>;
   }
 
   async findOne(id: number): Promise<OneActionAreaOutcomeDto> {
