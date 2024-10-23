@@ -27,14 +27,12 @@ export class AccountRepository extends Repository<Account> {
         break;
     }
 
-    const accounts: Account[] = await this.find({
+    return this.find({
       where: whereClause,
       relations: {
         account_type: true,
         parent: true,
       },
     });
-
-    return accounts;
   }
 }

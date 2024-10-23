@@ -25,7 +25,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { ActionAreaOutcomeIndicatorRequestDto } from './dto/action-area-outcome-indicator-request.dto';
+import { ActionAreaOutcomeIndicatorDto } from './dto/action-area-outcome-indicator.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
@@ -43,7 +43,7 @@ export class ActionAreaOutcomeIndicatorController {
     description:
       'Show active, inactive or all action area outcome indicators. Defaults to active',
   })
-  @ApiOkResponse({ type: [ActionAreaOutcomeIndicatorRequestDto] })
+  @ApiOkResponse({ type: [ActionAreaOutcomeIndicatorDto] })
   @ApiOperation({
     summary:
       'Get all action area outcome indicators, optionally filtered by status',

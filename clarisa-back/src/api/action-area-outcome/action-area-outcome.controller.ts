@@ -9,8 +9,6 @@ import {
   Res,
   HttpStatus,
   HttpException,
-  UseInterceptors,
-  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
@@ -26,9 +24,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ActionAreaOutcomeDto } from './dto/action-area-outcome.dto';
+import { OneActionAreaOutcomeDto } from './dto/one-action-area-outcome.dto';
 
 @Controller()
-@UseInterceptors(ClassSerializerInterceptor)
 @ApiTags('Action Area Outcomes')
 export class ActionAreaOutcomeController {
   constructor(
@@ -46,6 +44,9 @@ export class ActionAreaOutcomeController {
   @ApiOkResponse({ type: [ActionAreaOutcomeDto] })
   @ApiOperation({
     summary: 'Get all action area outcomes, optionally filtered by status',
+    deprecated: true,
+    description:
+      "This endpoint a this point pretty much returns the same data and structure as '/api/action-area-outcome-indicators'. In the future, this is not going to happen anymore, so if you are relying in this data structure, please change your code to use '/api/action-area-outcome-indicators' instead.",
   })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.actionAreaOutcomeService.findAll(show);
@@ -58,7 +59,7 @@ export class ActionAreaOutcomeController {
     required: true,
     description: 'The id of the action area outcome',
   })
-  @ApiOkResponse({ type: ActionAreaOutcome })
+  @ApiOkResponse({ type: OneActionAreaOutcomeDto })
   @ApiOperation({
     summary: 'Get an action area outcome by id',
   })

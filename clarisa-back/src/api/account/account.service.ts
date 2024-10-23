@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { AccountDto } from './dto/account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
-import { Account } from './entities/account.entity';
 import { AccountMapper } from './mappers/account.mapper';
 import { AccountRepository } from './repositories/account.repository';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class AccountService {
@@ -17,31 +18,41 @@ export class AccountService {
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<AccountDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._accountRepository.target.toString(),
+        'option',
+        option,
+      );
     }
 
-    const accounts: Account[] =
-      await this._accountRepository.findAllAccounts(option);
-    const accountDtos: AccountDto[] = accounts.map((a) =>
-      this._accountMapper.classToDto(a),
-    );
-
-    return accountDtos.sort((a, b) => a.code - b.code);
+    return this._accountRepository
+      .findAllAccounts(option)
+      .then((accounts) =>
+        this._accountMapper
+          .classListToDtoList(accounts)
+          .sort((a, b) => a.code - b.code),
+      );
   }
 
   async findOne(id: number): Promise<AccountDto> {
-    const result: Account = await this._accountRepository.findOne({
-      where: {
-        id,
-        auditableFields: { is_active: true },
-      },
-      relations: {
-        parent: true,
-        account_type: true,
-      },
-    });
-
-    return this._accountMapper.classToDto(result);
+    return this._accountRepository
+      .findOneOrFail({
+        where: {
+          id,
+          auditableFields: { is_active: true },
+        },
+        relations: {
+          parent: true,
+          account_type: true,
+        },
+      })
+      .then((account) => this._accountMapper.classToDto(account))
+      .catch(() => {
+        throw new ClarisaEntityNotFoundError(
+          this._accountRepository.target.toString(),
+          id,
+        );
+      });
   }
 
   async update(updateInitiativeDto: UpdateAccountDto[]) {
