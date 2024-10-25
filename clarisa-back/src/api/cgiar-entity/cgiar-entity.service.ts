@@ -9,6 +9,8 @@ import { CgiarEntityDtoV1 } from './dto/cgiar-entity.v1.dto';
 import { CgiarEntityDtoV2 } from './dto/cgiar-entity.v2.dto';
 import { CenterService } from '../center/center.service';
 import { CenterDtoV1 } from '../center/dto/center.v1.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class CgiarEntityService {
@@ -37,7 +39,11 @@ export class CgiarEntityService {
     type?: string,
   ): Promise<CgiarEntityDtoV1[]> {
     if (type && !CgiarEntityTypeOption.getfromPath(type)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._cgiarEntityRepository.target.toString(),
+        'type',
+        type,
+      );
     }
 
     const typeOption: CgiarEntityTypeOption =
@@ -75,7 +81,11 @@ export class CgiarEntityService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._cgiarEntityRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._cgiarEntityMapper.classListToDtoV1List(result).concat(centers);
@@ -99,7 +109,14 @@ export class CgiarEntityService {
       auditableFields: { is_active: true },
     });
 
-    return result ? this._cgiarEntityMapper.classToDtoV1(result) : null;
+    if (result) {
+      return this._cgiarEntityMapper.classToDtoV1(result);
+    }
+
+    throw ClarisaEntityNotFoundError.forId(
+      this._cgiarEntityRepository.target.toString(),
+      id,
+    );
   }
 
   async findAllV2(
@@ -126,7 +143,11 @@ export class CgiarEntityService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._cgiarEntityRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._cgiarEntityMapper.classListToDtoV2List(
@@ -136,11 +157,17 @@ export class CgiarEntityService {
   }
 
   async findOneV2(id: number): Promise<CgiarEntityDtoV2> {
-    const result = await this._cgiarEntityRepository.findOne({
-      where: { id },
-      relations: this._findOptionsV2.relations,
-    });
-
-    return this._cgiarEntityMapper.classToDtoV2(result, true);
+    return this._cgiarEntityRepository
+      .findOneOrFail({
+        where: { id },
+        relations: this._findOptionsV2.relations,
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._cgiarEntityRepository.target.toString(),
+          id,
+        );
+      })
+      .then((entity) => this._cgiarEntityMapper.classToDtoV2(entity));
   }
 }

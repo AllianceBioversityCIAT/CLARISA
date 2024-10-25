@@ -3,6 +3,7 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { SubnationalScopeRepository } from './repositories/subnational-scope.repository';
 import { SubnationalScopeDto } from './dto/subnational-scope.dto';
 import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class SubnationalScopeService {
@@ -35,6 +36,13 @@ export class SubnationalScopeService {
   }
 
   async findOne(id: number): Promise<SubnationalScopeDto> {
-    return await this.subnationalScopesRepository.findOneSubnationalScope(id);
+    return this.subnationalScopesRepository
+      .findOneSubnationalScope(id)
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this.subnationalScopesRepository.target.toString(),
+          id,
+        );
+      });
   }
 }

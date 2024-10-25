@@ -8,9 +8,9 @@ import { lastValueFrom } from 'rxjs';
 import { AppConfig } from '../../../shared/utils/app-config';
 import { User } from '../../../api/user/entities/user.entity';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { FileNotFoundError } from '../../../shared/errors/file-not-found.error';
 import { HandlebarsTemplateService } from '../../../api/handlebars-template/handlebars-template.service';
 import { HandlebarsCompiler } from '../../../shared/utils/handlebars-compiler';
+import { BadParamsError } from '../../../shared/errors/bad-params.error';
 
 /**
  * MessagingMicroservice handles the sending of emails from this application.
@@ -186,7 +186,7 @@ export class MessagingMicroservice extends BaseMicroservice {
           }),
       )
       .catch((err) => {
-        if (err instanceof FileNotFoundError) {
+        if (err instanceof BadParamsError) {
           // can't do anything
           return;
         }

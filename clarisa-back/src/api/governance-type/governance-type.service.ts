@@ -3,20 +3,22 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UpdateGovernanceTypeDto } from './dto/update-governance-type.dto';
 import { GovernanceType } from './entities/governance-type.entity';
 import { GovernanceTypeRepository } from './repositories/governance-type.repository';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class GovernanceTypeService {
-  constructor(private governanceTypesRepository: GovernanceTypeRepository) {}
+  constructor(private _governanceTypesRepository: GovernanceTypeRepository) {}
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<GovernanceType[]> {
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return await this.governanceTypesRepository.find();
+        return await this._governanceTypesRepository.find();
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return await this.governanceTypesRepository.find({
+        return await this._governanceTypesRepository.find({
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
@@ -24,18 +26,29 @@ export class GovernanceTypeService {
           },
         });
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._governanceTypesRepository.target.toString(),
+          'option',
+          option,
+        );
     }
   }
 
   async findOne(id: number): Promise<GovernanceType> {
-    return await this.governanceTypesRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+    return this._governanceTypesRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._governanceTypesRepository.target.toString(),
+          id,
+        );
+      });
   }
 
   async update(updateGovernanceTypeDto: UpdateGovernanceTypeDto[]) {
-    return await this.governanceTypesRepository.save(updateGovernanceTypeDto);
+    return await this._governanceTypesRepository.save(updateGovernanceTypeDto);
   }
 }

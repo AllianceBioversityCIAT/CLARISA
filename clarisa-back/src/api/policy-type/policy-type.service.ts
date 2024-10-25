@@ -70,7 +70,7 @@ export class PolicyTypeService {
         auditableFields: { is_active: true },
       })
       .catch(() => {
-        throw new ClarisaEntityNotFoundError(
+        throw ClarisaEntityNotFoundError.forId(
           this.policyTypesRepository.target.toString(),
           id,
         );

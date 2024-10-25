@@ -4,11 +4,13 @@ import { InnovationCharacteristic } from './entities/innovation-characteristic.e
 import { InnovationCharacteristicRepository } from './repositories/innovation-characteristic.repository';
 import { InnovationCharacteristicDto } from './dto/innovation-characteristic.dto';
 import { FindOptionsSelect } from 'typeorm';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class InnovationCharacteristicService {
   constructor(
-    private innovationCharacteristicsRepository: InnovationCharacteristicRepository,
+    private _innovationCharacteristicsRepository: InnovationCharacteristicRepository,
   ) {}
   private readonly _select: FindOptionsSelect<InnovationCharacteristic> = {
     id: true,
@@ -22,12 +24,12 @@ export class InnovationCharacteristicService {
   ): Promise<InnovationCharacteristicDto[]> {
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return await this.innovationCharacteristicsRepository.find({
+        return await this._innovationCharacteristicsRepository.find({
           select: this._select,
         });
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return await this.innovationCharacteristicsRepository.find({
+        return await this._innovationCharacteristicsRepository.find({
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
@@ -36,14 +38,25 @@ export class InnovationCharacteristicService {
           select: this._select,
         });
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._innovationCharacteristicsRepository.target.toString(),
+          'option',
+          option,
+        );
     }
   }
 
   async findOne(id: number): Promise<InnovationCharacteristicDto> {
-    return await this.innovationCharacteristicsRepository.findOne({
-      where: { id, auditableFields: { is_active: true } },
-      select: this._select,
-    });
+    return await this._innovationCharacteristicsRepository
+      .findOneOrFail({
+        where: { id, auditableFields: { is_active: true } },
+        select: this._select,
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._innovationCharacteristicsRepository.target.toString(),
+          id,
+        );
+      });
   }
 }

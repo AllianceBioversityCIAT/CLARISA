@@ -4,6 +4,8 @@ import { Geoposition } from './entities/geoposition.entity';
 import { GeopositionRepository } from './repositories/geoposition.repository';
 import { FindOptionsSelect } from 'typeorm';
 import { GeopositionDto } from './dto/geoposition.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class GeopositionService {
@@ -33,14 +35,25 @@ export class GeopositionService {
           select: this._select,
         });
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._geopositionsRepository.target.toString(),
+          'option',
+          option,
+        );
     }
   }
 
   async findOne(id: number): Promise<GeopositionDto> {
-    return await this._geopositionsRepository.findOne({
-      where: { id, auditableFields: { is_active: true } },
-      select: this._select,
-    });
+    return await this._geopositionsRepository
+      .findOneOrFail({
+        where: { id, auditableFields: { is_active: true } },
+        select: this._select,
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._geopositionsRepository.target.toString(),
+          id,
+        );
+      });
   }
 }

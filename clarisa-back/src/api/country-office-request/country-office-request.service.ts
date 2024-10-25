@@ -26,11 +26,11 @@ import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-n
 @Injectable()
 export class CountryOfficeRequestService {
   constructor(
-    private countryOfficeRequestRepository: CountryOfficeRequestRepository,
-    private institutionRepository: InstitutionRepository,
-    private misRepository: MisRepository,
-    private countryRepository: CountryRepository,
-    private userRepository: UserRepository,
+    private _countryOfficeRequestRepository: CountryOfficeRequestRepository,
+    private _institutionRepository: InstitutionRepository,
+    private _misRepository: MisRepository,
+    private _countryRepository: CountryRepository,
+    private _userRepository: UserRepository,
   ) {}
 
   async findAll(
@@ -39,7 +39,7 @@ export class CountryOfficeRequestService {
   ): Promise<CountryOfficeRequestDto[]> {
     if (!PartnerStatus.getfromPath(status)) {
       throw new BadParamsError(
-        this.countryOfficeRequestRepository.target.toString(),
+        this._countryOfficeRequestRepository.target.toString(),
         'status',
         status,
       );
@@ -47,25 +47,25 @@ export class CountryOfficeRequestService {
 
     if (!MisOption.getfromPath(source)) {
       throw new BadParamsError(
-        this.countryOfficeRequestRepository.target.toString(),
+        this._countryOfficeRequestRepository.target.toString(),
         'source',
         source,
       );
     }
 
-    return this.countryOfficeRequestRepository.findCountryOfficeRequests(
+    return this._countryOfficeRequestRepository.findCountryOfficeRequests(
       status,
       source,
     );
   }
 
   async findOne(id: number): Promise<CountryOfficeRequestDto> {
-    return this.countryOfficeRequestRepository
+    return this._countryOfficeRequestRepository
       .findCountryOfficeRequestById(id)
       .then((countryOfficeRequest) => {
         if (!countryOfficeRequest) {
-          throw new ClarisaEntityNotFoundError(
-            this.countryOfficeRequestRepository.target.toString(),
+          throw ClarisaEntityNotFoundError.forId(
+            this._countryOfficeRequestRepository.target.toString(),
             id,
           );
         }
@@ -107,17 +107,16 @@ export class CountryOfficeRequestService {
     }
 
     //Comprehensive validations
-    const institution: Institution = await this.institutionRepository.findOneBy(
-      {
+    const institution: Institution =
+      await this._institutionRepository.findOneBy({
         id: incomingCountryOfficeRequest.institutionCode,
-      },
-    );
+      });
 
-    const mis: Mis = await this.misRepository.findOneBy({
+    const mis: Mis = await this._misRepository.findOneBy({
       acronym: incomingCountryOfficeRequest.misAcronym,
     });
 
-    const createdBy: User = await this.userRepository.findOneBy({
+    const createdBy: User = await this._userRepository.findOneBy({
       id: incomingCountryOfficeRequest.userId,
     });
 
@@ -142,7 +141,7 @@ export class CountryOfficeRequestService {
     const countries: Country[] = await Promise.all(
       (incomingCountryOfficeRequest.countryIso ?? ([] as string[])).flatMap(
         async (c: string) => {
-          const country: Country = await this.countryRepository.findOneBy({
+          const country: Country = await this._countryRepository.findOneBy({
             iso_alpha_2: c,
           });
 
@@ -180,7 +179,7 @@ export class CountryOfficeRequestService {
     );
 
     const response: CountryOfficeRequestDto[] =
-      await this.countryOfficeRequestRepository.createCountryOfficeRequest(
+      await this._countryOfficeRequestRepository.createCountryOfficeRequest(
         incomingCountryOfficeRequest,
         newCountryOfficeRequests,
       );
@@ -221,11 +220,11 @@ export class CountryOfficeRequestService {
 
     //Comprehensive validations
     const countryOfficeRequest: CountryOfficeRequest =
-      await this.countryOfficeRequestRepository.findOneBy({
+      await this._countryOfficeRequestRepository.findOneBy({
         id: respondCountryOfficeRequestDto.requestId,
       });
 
-    const user: User = await this.userRepository.findOneBy({
+    const user: User = await this._userRepository.findOneBy({
       id: respondCountryOfficeRequestDto.userId,
     });
 
@@ -260,7 +259,7 @@ export class CountryOfficeRequestService {
         respondCountryOfficeRequestDto.rejectJustification;
     }
 
-    return this.countryOfficeRequestRepository.respondCountryOfficeRequest(
+    return this._countryOfficeRequestRepository.respondCountryOfficeRequest(
       countryOfficeRequest,
       respondCountryOfficeRequestDto,
     );
@@ -298,17 +297,17 @@ export class CountryOfficeRequestService {
 
     //Comprehensive validations
     const countryOfficeRequest: CountryOfficeRequest =
-      await this.countryOfficeRequestRepository.findOneBy({
+      await this._countryOfficeRequestRepository.findOneBy({
         id: updateCountryOfficeRequest.id,
       });
 
     countryOfficeRequest.auditableFields.updated_by_object =
-      await this.userRepository.findOneBy({
+      await this._userRepository.findOneBy({
         id: updateCountryOfficeRequest.userId,
       });
 
     countryOfficeRequest.country_object =
-      await this.countryRepository.findOneBy({
+      await this._countryRepository.findOneBy({
         id: updateCountryOfficeRequest.userId,
       });
 
@@ -344,7 +343,7 @@ export class CountryOfficeRequestService {
     }
 
     const response: CountryOfficeRequestDto =
-      await this.countryOfficeRequestRepository.updateCountryOfficeRequest(
+      await this._countryOfficeRequestRepository.updateCountryOfficeRequest(
         updateCountryOfficeRequest,
         countryOfficeRequest,
       );

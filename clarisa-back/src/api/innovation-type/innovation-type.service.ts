@@ -7,6 +7,8 @@ import { InnovationType } from './entities/innovation-type.entity';
 import { InnovationTypeRepository } from './repositories/innovation-type.repository';
 import { InnovationTypeDto } from './dto/innovation-type.dto';
 import { InnovationTypeMapper } from './mappers/innovation-type.mapper';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class InnovationTypeService {
@@ -42,7 +44,11 @@ export class InnovationTypeService {
         };
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._innovationTypesRepository.target.toString(),
+          'type',
+          type,
+        );
     }
 
     switch (option) {
@@ -66,22 +72,31 @@ export class InnovationTypeService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._innovationTypesRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._innovationTypeMapper.classListToDtoList(innovationTypes);
   }
 
   async findOne(id: number): Promise<InnovationTypeDto> {
-    const innovationType: InnovationType =
-      await this._innovationTypesRepository.findOneBy({
+    return this._innovationTypesRepository
+      .findOneByOrFail({
         id,
         auditableFields: { is_active: true },
-      });
-
-    return innovationType
-      ? this._innovationTypeMapper.classToDto(innovationType, true)
-      : null;
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._innovationTypesRepository.target.toString(),
+          id,
+        );
+      })
+      .then((innovationType) =>
+        this._innovationTypeMapper.classToDto(innovationType, true),
+      );
   }
 
   async update(updateInnovationTypeDto: UpdateInnovationTypeDto[]) {

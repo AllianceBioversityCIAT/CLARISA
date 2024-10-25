@@ -7,6 +7,8 @@ import { GeographicScope } from './entities/geographic-scope.entity';
 import { GeographicScopeRepository } from './repositories/geographic-scope.repository';
 import { GeographicScopeDto } from './dto/geographic-scope.dto';
 import { GeographicScopeMapper } from './mappers/geographic-scope.mapper';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class GeographicScopeService {
@@ -46,7 +48,11 @@ export class GeographicScopeService {
         };
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._geographicScopesRepository.target.toString(),
+          'type',
+          type,
+        );
     }
 
     switch (option) {
@@ -70,22 +76,31 @@ export class GeographicScopeService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._geographicScopesRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._geographicScopesMapper.classListToDtoList(geographicScopes);
   }
 
   async findOne(id: number): Promise<GeographicScopeDto> {
-    const geographicScope: GeographicScope =
-      await this._geographicScopesRepository.findOne({
+    return this._geographicScopesRepository
+      .findOneOrFail({
         where: { id, auditableFields: { is_active: true } },
         select: this._select,
-      });
-
-    return geographicScope
-      ? this._geographicScopesMapper.classToDto(geographicScope)
-      : null;
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._geographicScopesRepository.target.toString(),
+          id,
+        );
+      })
+      .then((geographicScope) =>
+        this._geographicScopesMapper.classToDto(geographicScope),
+      );
   }
 
   async update(updateGeographicScopeDto: UpdateGeographicScopeDto[]) {

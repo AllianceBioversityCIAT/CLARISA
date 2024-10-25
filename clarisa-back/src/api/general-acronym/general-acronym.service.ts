@@ -6,6 +6,8 @@ import { GeneralAcronymRepository } from './repositories/general-acronym.reposit
 import { GeneralAcronymMapper } from './mappers/general-acronym.mapper';
 import { GeneralAcronymDto } from './dto/general-acronym.dto';
 import { FindOptionsSelect } from 'typeorm';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class GeneralAcronymService {
@@ -41,22 +43,31 @@ export class GeneralAcronymService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._generalAcronimRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._generalAcronimMapper.classListToDtoList(generalAcronyms);
   }
 
   async findOne(id: number): Promise<GeneralAcronymDto> {
-    const generalAcronym: GeneralAcronym =
-      await this._generalAcronimRepository.findOne({
+    return this._generalAcronimRepository
+      .findOneOrFail({
         where: { id, auditableFields: { is_active: true } },
         select: this._select,
-      });
-
-    return generalAcronym
-      ? this._generalAcronimMapper.classToDto(generalAcronym)
-      : null;
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._generalAcronimRepository.target.toString(),
+          id,
+        );
+      })
+      .then((generalAcronym) =>
+        this._generalAcronimMapper.classToDto(generalAcronym),
+      );
   }
 
   async update(

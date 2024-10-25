@@ -4,10 +4,12 @@ import { InstitutionSimpleDto } from './dto/institution-simple.dto';
 import { InstitutionDto } from './dto/institution.dto';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
 import { InstitutionRepository } from './repositories/institution.repository';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class InstitutionService {
-  constructor(private institutionRepository: InstitutionRepository) {}
+  constructor(private _institutionRepository: InstitutionRepository) {}
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
@@ -16,14 +18,22 @@ export class InstitutionService {
     from: number = undefined,
   ): Promise<InstitutionDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._institutionRepository.target.toString(),
+        'option',
+        option,
+      );
     }
 
     if (from != null && Number.isNaN(from)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._institutionRepository.target.toString(),
+        'from',
+        from,
+      );
     }
 
-    return this.institutionRepository.findInstitutions(
+    return this._institutionRepository.findInstitutions(
       option,
       from,
       undefined,
@@ -38,10 +48,14 @@ export class InstitutionService {
     limit: number,
   ): Promise<InstitutionSimpleDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._institutionRepository.target.toString(),
+        'option',
+        option,
+      );
     }
 
-    return this.institutionRepository.findAllInstitutionsSimple(
+    return this._institutionRepository.findAllInstitutionsSimple(
       option,
       undefined,
       offset,
@@ -50,14 +64,26 @@ export class InstitutionService {
   }
 
   async findOne(id: number): Promise<InstitutionDto> {
-    return this.institutionRepository.findInstitutionById(id);
+    return this._institutionRepository.findInstitutionById(id).catch(() => {
+      throw ClarisaEntityNotFoundError.forId(
+        this._institutionRepository.target.toString(),
+        id,
+      );
+    });
   }
 
   async findOneSimple(id: number): Promise<InstitutionSimpleDto> {
-    return this.institutionRepository.findInstitutionSimpleById(id);
+    return this._institutionRepository
+      .findInstitutionSimpleById(id)
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._institutionRepository.target.toString(),
+          id,
+        );
+      });
   }
 
   async update(updateInitiativeDto: UpdateInstitutionDto[]) {
-    return await this.institutionRepository.save(updateInitiativeDto);
+    return await this._institutionRepository.save(updateInitiativeDto);
   }
 }

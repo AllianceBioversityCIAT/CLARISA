@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { LeverRepository } from './repositories/lever.repository';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { Lever } from './entities/lever.entity';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class LeverService {
@@ -24,16 +26,27 @@ export class LeverService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._leversRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return response;
   }
 
   async findOne(id: number): Promise<Lever> {
-    return await this._leversRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+    return this._leversRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._leversRepository.target.toString(),
+          id,
+        );
+      });
   }
 }

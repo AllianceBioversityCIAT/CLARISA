@@ -6,6 +6,8 @@ import { DepthDescriptionRepository } from './repositories/depth-description.rep
 import { DepthDescriptionMapper } from './mappers/depth-description.mapper';
 import { FindOptionsSelect } from 'typeorm';
 import { DepthDescriptionDto } from './dto/depth-description.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class DepthDescriptionService {
@@ -41,22 +43,31 @@ export class DepthDescriptionService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._depthDescriptionRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._depthDescriptionMapper.classListToDtoList(result);
   }
 
   async findOne(id: number): Promise<DepthDescriptionDto> {
-    const depthDescription: DepthDescription =
-      await this._depthDescriptionRepository.findOne({
+    return this._depthDescriptionRepository
+      .findOneOrFail({
         where: { id, auditableFields: { is_active: true } },
         select: this._select,
-      });
-
-    return depthDescription
-      ? this._depthDescriptionMapper.classToDto(depthDescription)
-      : null;
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._depthDescriptionRepository.target.toString(),
+          id,
+        );
+      })
+      .then((depthDescription) =>
+        this._depthDescriptionMapper.classToDto(depthDescription),
+      );
   }
 
   async update(updateDepthDescriptionDto: UpdateDepthDescriptionDto[]) {

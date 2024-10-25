@@ -93,7 +93,13 @@ export class InstitutionRepository extends Repository<Institution> {
 
   async findInstitutionById(id: number): Promise<InstitutionDto> {
     return this.findInstitutions(FindAllOptions.SHOW_ALL, undefined, [id]).then(
-      (value) => (value ? value[0] : null),
+      (value) => {
+        if (!value?.length) {
+          throw Error();
+        }
+
+        return value[0];
+      },
     );
   }
 
@@ -196,7 +202,13 @@ export class InstitutionRepository extends Repository<Institution> {
     id: number,
   ): Promise<InstitutionDictionaryDto> {
     return this.findInstitutionSourceEntries(FindAllOptions.SHOW_ALL, id).then(
-      (value) => (value ? value[0] : null),
+      (value) => {
+        if (!value?.length) {
+          throw Error();
+        }
+
+        return value[0];
+      },
     );
   }
 
@@ -243,7 +255,13 @@ export class InstitutionRepository extends Repository<Institution> {
 
   async findInstitutionSimpleById(id: number): Promise<InstitutionSimpleDto> {
     return this.findAllInstitutionsSimple(FindAllOptions.SHOW_ALL, id).then(
-      (value) => (value ? value[0] : null),
+      (value) => {
+        if (!value?.length) {
+          throw Error();
+        }
+
+        return value[0];
+      },
     );
   }
 
