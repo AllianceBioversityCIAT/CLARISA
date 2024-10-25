@@ -52,7 +52,7 @@ export class BusinessCategoryService {
         select: this._select,
       })
       .catch(() => {
-        throw new ClarisaEntityNotFoundError(
+        throw ClarisaEntityNotFoundError.forId(
           this._businessCategoriesRepository.target.toString(),
           id,
         );

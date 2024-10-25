@@ -48,7 +48,7 @@ export class AccountService {
       })
       .then((account) => this._accountMapper.classToDto(account))
       .catch(() => {
-        throw new ClarisaEntityNotFoundError(
+        throw ClarisaEntityNotFoundError.forId(
           this._accountRepository.target.toString(),
           id,
         );

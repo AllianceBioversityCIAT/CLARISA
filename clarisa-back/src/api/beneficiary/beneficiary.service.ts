@@ -50,7 +50,7 @@ export class BeneficiaryService {
         select: this._select,
       })
       .catch(() => {
-        throw new ClarisaEntityNotFoundError(
+        throw ClarisaEntityNotFoundError.forId(
           this._beneficiaryRepository.target.toString(),
           id,
         );

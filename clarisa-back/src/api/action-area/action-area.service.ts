@@ -42,7 +42,7 @@ export class ActionAreaService {
         auditableFields: { is_active: true },
       })
       .catch(() => {
-        throw new ClarisaEntityNotFoundError(
+        throw ClarisaEntityNotFoundError.forId(
           this._actionAreaRepository.target.toString(),
           id,
         );

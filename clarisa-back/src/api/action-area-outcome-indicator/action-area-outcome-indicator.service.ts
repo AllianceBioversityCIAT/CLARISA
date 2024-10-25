@@ -38,7 +38,7 @@ export class ActionAreaOutcomeIndicatorService {
       ) as Promise<ActionAreaOutcomeIndicatorDto[]>
     ).then((actionAreaOutcomeIndicator) => {
       if (actionAreaOutcomeIndicator?.length === 0) {
-        throw new ClarisaEntityNotFoundError(
+        throw ClarisaEntityNotFoundError.forId(
           this._actionAreaOutcomeIndicatorRepository.target.toString(),
           id,
         );

@@ -15,6 +15,7 @@ import { ValidateAppSecretDto } from './dto/validate-app-secret.dto';
 import * as crypto from 'crypto';
 import { BadParamsError } from '../../shared/errors/bad-params.error';
 import { ExistingEntityError } from '../../shared/errors/existing-entity-error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class AppSecretService {
@@ -220,14 +221,20 @@ export class AppSecretService {
   }
 
   async findOne(id: number): Promise<AppSecretDto> {
-    const appSecret: AppSecret = await this._appSecretRepository.findOne({
-      ...this._where,
-      where: {
-        id,
-        auditableFields: { is_active: true },
-      },
-    });
-
-    return appSecret ? this._appSecretMapper.classToDto(appSecret) : null;
+    return this._appSecretRepository
+      .findOneOrFail({
+        ...this._where,
+        where: {
+          id,
+          auditableFields: { is_active: true },
+        },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._appSecretRepository.target.toString(),
+          id,
+        );
+      })
+      .then((appSecret) => this._appSecretMapper.classToDto(appSecret));
   }
 }

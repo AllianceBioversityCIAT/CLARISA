@@ -36,7 +36,7 @@ export class ActionAreaOutcomeService {
       .findActionAreaOutcomeById(id)
       .then((actionAreaOutcome) => {
         if (!actionAreaOutcome) {
-          throw new ClarisaEntityNotFoundError(
+          throw ClarisaEntityNotFoundError.forId(
             this._actionAreaOutcomeIndicatorRepository.target.toString(),
             id,
           );

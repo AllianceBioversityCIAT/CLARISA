@@ -48,7 +48,7 @@ export class BiParameterService {
         auditableFields: { is_active: true },
       })
       .catch(() => {
-        throw new ClarisaEntityNotFoundError(
+        throw ClarisaEntityNotFoundError.forId(
           this._biParametersRepository.target.toString(),
           id,
         );
