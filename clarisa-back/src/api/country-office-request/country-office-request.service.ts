@@ -62,15 +62,11 @@ export class CountryOfficeRequestService {
   async findOne(id: number): Promise<CountryOfficeRequestDto> {
     return this._countryOfficeRequestRepository
       .findCountryOfficeRequestById(id)
-      .then((countryOfficeRequest) => {
-        if (!countryOfficeRequest) {
-          throw ClarisaEntityNotFoundError.forId(
-            this._countryOfficeRequestRepository.target.toString(),
-            id,
-          );
-        }
-
-        return countryOfficeRequest;
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._countryOfficeRequestRepository.target.toString(),
+          id,
+        );
       });
   }
 
