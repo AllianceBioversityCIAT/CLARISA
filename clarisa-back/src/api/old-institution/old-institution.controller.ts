@@ -25,7 +25,7 @@ export class OldInstitutionController {
   @Get()
   async findAll(
     @Query('show') show: FindAllOptions,
-    @Query('from') from: string = undefined,
+    @Query('from', new ParseIntPipe({ optional: true })) from?,
   ) {
     return await this.oldInstitutionService.findAll(show, from);
   }
