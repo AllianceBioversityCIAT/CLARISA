@@ -10,7 +10,8 @@ import { catchError, tap } from 'rxjs/operators';
 
 @Injectable()
 export class RequestLoggingInterceptor implements NestInterceptor {
-  private readonly _logger: Logger = new Logger('RequestLoggingInterceptor');
+  private readonly _logger: Logger = new Logger(RequestLoggingInterceptor.name);
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const ipAddress =

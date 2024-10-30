@@ -1,8 +1,10 @@
-import { BaseMessageDTO } from '../BaseMessageDTO';
+import { Logger } from '@nestjs/common';
 
-export interface BaseAuthenticator {
-  authenticate(
-    username: string,
-    password: string,
-  ): Promise<boolean | BaseMessageDTO>;
+export abstract class BaseAuthenticator {
+  protected _logger: Logger;
+  constructor(className: string) {
+    this._logger = new Logger(className);
+  }
+
+  abstract authenticate(username: string, password: string): Promise<boolean>;
 }

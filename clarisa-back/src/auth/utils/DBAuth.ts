@@ -7,9 +7,10 @@ import { BCryptPasswordEncoder } from './BCryptPasswordEncoder';
 import { BaseAuthenticator } from './interface/BaseAuthenticator';
 import { BasePasswordEncoder } from './interface/BasePasswordEncoder';
 import { LegacyPasswordEncoder } from './LegacyPasswordEncoder';
+import { UnauthorizedError } from '../../shared/errors/unauthorized.error';
 
 @Injectable()
-export class DBAuth implements BaseAuthenticator {
+export class DBAuth extends BaseAuthenticator {
   @Inject()
   private usersService: UserService;
 
@@ -17,17 +18,20 @@ export class DBAuth implements BaseAuthenticator {
   private readonly errorDto: BaseMessageDTO = {
     name: 'INVALID_CREDENTIALS',
     description: 'The supplied credentials are invalid',
-    httpCode: 401,
   };
 
-  constructor(private moduleRef: ModuleRef) {}
+  constructor(private moduleRef: ModuleRef) {
+    super(DBAuth.name);
+  }
 
-  authenticate(
-    username: string,
-    password: string,
-  ): Promise<boolean | BaseMessageDTO> {
+  async authenticate(username: string, password: string): Promise<boolean> {
+    this._logger.verbose(`Trying DB login of user: ${username}`);
     return this.usersService
       .findOneByEmail(username, false)
+      .catch((err) => {
+        this._logger.error(err);
+        throw new UnauthorizedError(this.errorDto.description, this.errorDto);
+      })
       .then((user: User) => {
         const userPass: string = user.password;
 
@@ -40,13 +44,13 @@ export class DBAuth implements BaseAuthenticator {
         if (this.passwordEncoder.matches(userPass, password)) {
           return true;
         } else {
-          return this.errorDto;
+          throw new UnauthorizedError(this.errorDto.description, this.errorDto);
         }
       });
   }
 
   public isLegacyPassword(incomingPassword: string): boolean {
-    const newLocal = incomingPassword.split('$').length;
-    return newLocal !== 4;
+    const splitCount = incomingPassword.split('$').length;
+    return splitCount !== 4;
   }
 }
