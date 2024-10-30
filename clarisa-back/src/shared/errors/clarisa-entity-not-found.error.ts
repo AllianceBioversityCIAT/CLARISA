@@ -3,20 +3,6 @@ import { BaseHttpError } from './base-http-error';
 import { classNameCleaner } from '../utils/class-name-cleaner';
 
 export class ClarisaEntityNotFoundError<T> extends BaseHttpError<T> {
-  /*private constructor(
-    entityClass: string,
-    paramValue: number | string | { [key: string]: number | string }[],
-    paramName: string = 'id',
-    additionalData?: T,
-  ) {
-    super(
-      `A(n) ${classNameCleaner(entityClass)} with ${paramName} = "${paramValue}" could not be found`,
-      HttpStatus.NOT_FOUND,
-    );
-    this.name = 'EntityNotFoundError';
-    this.additionalData = additionalData;
-  }*/
-
   private constructor(message: string, additionalData?: T) {
     super(message, HttpStatus.NOT_FOUND, additionalData);
     this.name = 'EntityNotFoundError';

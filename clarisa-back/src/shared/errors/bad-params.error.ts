@@ -12,8 +12,8 @@ export class BadParamsError<T> extends BaseHttpError<T> {
     super(
       `A bad parameter was provided when finding ${classNameCleaner(entityClass)}: ${param} = ${value}`,
       HttpStatus.BAD_REQUEST,
+      additionalData,
     );
     this.name = 'BadParamsError';
-    this.additionalData = additionalData;
   }
 }

@@ -7,7 +7,6 @@ import { DBAuth } from './utils/DBAuth';
 import { UserService } from '../api/user/user.service';
 import { User } from '../api/user/entities/user.entity';
 import { LoginResponseDto } from './dto/login-response.dto';
-import { UnauthorizedError } from '../shared/errors/unauthorized.error';
 import { BaseHttpError } from '../shared/errors/base-http-error';
 import { ResponseDto } from '../shared/entities/dtos/response.dto';
 

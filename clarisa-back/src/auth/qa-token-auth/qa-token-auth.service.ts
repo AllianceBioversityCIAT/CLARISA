@@ -5,65 +5,39 @@ import { QaTokenAuthRepository } from './repositories/qa-token-auth.repository';
 import { TokenQaDto } from '../../integration/qa/dto/token-qa.dto';
 import { QaApi } from '../../integration/qa/qa.api';
 import { lastValueFrom } from 'rxjs';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
+import { isEmail } from '../../shared/utils/emil-validator';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { InternalServerError } from '../../shared/errors/internal-server-error';
 
 @Injectable()
 export class QaTokenAuthService {
   constructor(
     private qaService: QaApi,
-    private qaTokenAuthRepository: QaTokenAuthRepository,
+    private _qaTokenAuthRepository: QaTokenAuthRepository,
   ) {}
 
   async findAll() {
-    return this.qaTokenAuthRepository.find();
+    return this._qaTokenAuthRepository.find();
   }
 
   async findOne(id: number) {
-    return this.qaTokenAuthRepository.findOneBy({
-      id,
-    });
-  }
-
-  isEmail(email: string) {
-    const checkEmail =
-      /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
-    if (checkEmail.test(email)) {
-      return true;
-    } else {
-      return false;
-    }
+    return this._qaTokenAuthRepository
+      .findOneByOrFail({
+        id,
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._qaTokenAuthRepository.target.toString(),
+          id,
+        );
+      });
   }
 
   async create(createQaTokenDto: CreateQaTokenAuthDto): Promise<QaTokenAuth> {
-    //basic validations
-    if (
-      createQaTokenDto.name == '' ||
-      createQaTokenDto.appUser == '' ||
-      createQaTokenDto.email == '' ||
-      createQaTokenDto.misAcronym == '' ||
-      createQaTokenDto.username == ''
-    ) {
-      throw {
-        Error: 'All fields are required',
-        ErrorNumber: '400 Bad request',
-      };
-    }
-    if (this.isEmail(createQaTokenDto.email) == false) {
-      throw {
-        Error: 'The email is not valid',
-        ErrorNumber: '400 Bad request',
-      };
-    }
-    if (
-      createQaTokenDto.misAcronym.toLowerCase() == 'prms' &&
-      createQaTokenDto.official_code == ''
-    ) {
-      throw {
-        Error: 'The official code is required',
-        ErrorNumber: '400 Bad request',
-      };
-    }
+    this._validateOnCreation(createQaTokenDto);
 
-    let qaTokenId: number = await this.qaTokenAuthRepository.query(
+    let qaTokenId: number = await this._qaTokenAuthRepository.query(
       `SELECT getQAToken(?,?,?,?,?,?)`,
       [
         createQaTokenDto.name,
@@ -76,22 +50,97 @@ export class QaTokenAuthService {
     );
     qaTokenId = qaTokenId[0][Object.keys(qaTokenId[0])[0]];
 
-    const returnToken = await this.qaTokenAuthRepository.findOne({
-      where: { id: qaTokenId },
-    });
+    return this.findOne(qaTokenId)
+      .catch(() => {
+        throw new InternalServerError('A QA token could not be created.');
+      })
+      .then((qaToken) => {
+        const bodyRequestQa: TokenQaDto = {
+          token: qaToken.token,
+          expiration_date: qaToken.expiration_date.toString(),
+          crp_id: qaToken.official_code,
+          username: qaToken.username,
+          email: qaToken.email,
+          name: qaToken.name,
+          app_user: `${qaToken.app_user}`,
+        };
 
-    const bodyRequestQa: TokenQaDto = {
-      token: returnToken.token,
-      expiration_date: returnToken.expiration_date.toString(),
-      crp_id: returnToken.official_code,
-      username: returnToken.username,
-      email: returnToken.email,
-      name: returnToken.name,
-      app_user: `${returnToken.app_user}`,
-    };
+        return lastValueFrom(this.qaService.postQaToken(bodyRequestQa)).then(
+          () => {
+            return qaToken;
+          },
+        );
+      });
+  }
 
-    await lastValueFrom(this.qaService.postQaToken(bodyRequestQa));
+  private _validateOnCreation(createQaTokenDto: CreateQaTokenAuthDto) {
+    if (!createQaTokenDto) {
+      throw new BadParamsError(
+        this._qaTokenAuthRepository.target.toString(),
+        'createQaTokenDto',
+        createQaTokenDto,
+      );
+    }
 
-    return returnToken;
+    if (!createQaTokenDto.name || createQaTokenDto.name == '') {
+      throw new BadParamsError(
+        this._qaTokenAuthRepository.target.toString(),
+        'createQaTokenDto.name',
+        createQaTokenDto,
+      );
+    }
+
+    if (!createQaTokenDto.username || createQaTokenDto.username == '') {
+      throw new BadParamsError(
+        this._qaTokenAuthRepository.target.toString(),
+        'createQaTokenDto.username',
+        createQaTokenDto,
+      );
+    }
+
+    if (!createQaTokenDto.email || createQaTokenDto.email == '') {
+      throw new BadParamsError(
+        this._qaTokenAuthRepository.target.toString(),
+        'createQaTokenDto.email',
+        createQaTokenDto,
+      );
+    }
+
+    if (!createQaTokenDto.misAcronym || createQaTokenDto.misAcronym == '') {
+      throw new BadParamsError(
+        this._qaTokenAuthRepository.target.toString(),
+        'createQaTokenDto.misAcronym',
+        createQaTokenDto,
+      );
+    }
+
+    if (!createQaTokenDto.appUser || createQaTokenDto.appUser == '') {
+      throw new BadParamsError(
+        this._qaTokenAuthRepository.target.toString(),
+        'createQaTokenDto.appUser',
+        createQaTokenDto,
+      );
+    }
+
+    if (!isEmail(createQaTokenDto.email)) {
+      throw new BadParamsError(
+        this._qaTokenAuthRepository.target.toString(),
+        'createQaTokenDto.email',
+        createQaTokenDto.email,
+        'The email is not valid',
+      );
+    }
+
+    if (
+      createQaTokenDto.misAcronym.toLowerCase() == 'prms' &&
+      createQaTokenDto.official_code == ''
+    ) {
+      throw new BadParamsError(
+        this._qaTokenAuthRepository.target.toString(),
+        'createQaTokenDto.official_code',
+        createQaTokenDto.official_code,
+        'The official code is required',
+      );
+    }
   }
 }

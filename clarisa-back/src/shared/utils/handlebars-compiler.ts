@@ -47,7 +47,7 @@ export class HandlebarsCompiler implements OnModuleInit {
    * Compiles a Handlebars template with the provided data.
    *
    * @template T - The type of the data to be used in the template.
-   * @param {string} templatePath - The relative path to the Handlebars template file.
+   * @param {string} template - The Handlebars template itself.
    * @param {T} data - The data to be injected into the template.
    * @returns {Promise<string>} - A promise that resolves to the compiled template as a string.
    */

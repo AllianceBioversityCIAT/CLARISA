@@ -11,6 +11,7 @@ import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { HandlebarsTemplateService } from '../../../api/handlebars-template/handlebars-template.service';
 import { HandlebarsCompiler } from '../../../shared/utils/handlebars-compiler';
 import { BadParamsError } from '../../../shared/errors/bad-params.error';
+import { InternalServerError } from '../../../shared/errors/internal-server-error';
 
 /**
  * MessagingMicroservice handles the sending of emails from this application.
@@ -191,7 +192,7 @@ export class MessagingMicroservice extends BaseMicroservice {
           return;
         }
 
-        throw new Error(err);
+        throw new InternalServerError('Error sending email', err);
       });
   }
 }

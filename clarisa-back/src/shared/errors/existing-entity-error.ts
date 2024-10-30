@@ -7,8 +7,8 @@ export class ExistingEntityError<T> extends BaseHttpError<T> {
     super(
       `A(n) ${classNameCleaner(entityClass)} with the same data already exists`,
       HttpStatus.CONFLICT,
+      additionalData,
     );
     this.name = 'BadParamsError';
-    this.additionalData = additionalData;
   }
 }

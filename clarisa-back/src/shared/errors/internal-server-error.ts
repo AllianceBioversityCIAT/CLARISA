@@ -7,8 +7,8 @@ export class InternalServerError<T> extends BaseHttpError<T> {
     super(
       `${message} Please contact us and let us know about this error message`,
       HttpStatus.INTERNAL_SERVER_ERROR,
+      additionalData,
     );
     this.name = 'InternalServerError';
-    this.additionalData = additionalData;
   }
 }
