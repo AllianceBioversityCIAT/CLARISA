@@ -5,6 +5,8 @@ import { SdgRepository } from './repositories/sdg.repository';
 import { SdgMapper } from './mappers/sdg.mapper';
 import { SdgV1Dto } from './dto/sdg.v1.dto';
 import { SdgV2Dto } from './dto/sdg.v2.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class SdgService {
@@ -13,17 +15,19 @@ export class SdgService {
     private readonly _sdgMapper: SdgMapper,
   ) {}
 
-  private async _findAll(
+  private async _findAll<Dto>(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    mapper: (sdgs: Sdg[]) => Dto[],
   ) {
-    let response: Sdg[];
+    let sdgs: Sdg[];
+
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        response = await this._sdgsRepository.find();
+        sdgs = await this._sdgsRepository.find();
         break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        response = await this._sdgsRepository.find({
+        sdgs = await this._sdgsRepository.find({
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
@@ -32,36 +36,44 @@ export class SdgService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._sdgsRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
-    return response;
+    return mapper(sdgs);
   }
 
-  private async _findOne(id: number) {
-    return await this._sdgsRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  private async _findOne<Dto>(id: number, mapper: (sdgs: Sdg) => Dto) {
+    return this._sdgsRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._sdgsRepository.target.toString(),
+          id,
+        );
+      })
+      .then((sdg) => mapper(sdg));
   }
 
   async findAllV1(option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE) {
-    const sdgs = await this._findAll(option);
-    return this._sdgMapper.classListToDtoV1List(sdgs);
+    return this._findAll(option, this._sdgMapper.classListToDtoV1List);
   }
 
   async findAllV2(option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE) {
-    const sdgs = await this._findAll(option);
-    return this._sdgMapper.classListToDtoV2List(sdgs);
+    return this._findAll(option, this._sdgMapper.classListToDtoV2List);
   }
 
   async findOneV1(id: number): Promise<SdgV1Dto> {
-    const sdg = await this._findOne(id);
-    return sdg ? this._sdgMapper.classToDtoV1(sdg) : null;
+    return this._findOne(id, this._sdgMapper.classToDtoV1);
   }
 
   async findOneV2(id: number): Promise<SdgV2Dto> {
-    const sdg = await this._findOne(id);
-    return sdg ? this._sdgMapper.classToDtoV2(sdg) : null;
+    return this._findOne(id, this._sdgMapper.classToDtoV2);
   }
 }

@@ -20,7 +20,7 @@ export class PhaseService {
     status: string = PhaseStatus.SHOW_ONLY_OPEN.path,
   ): Promise<PhaseDto[]> {
     if (!PhaseStatus.getfromPath(status)) {
-      throw new BadParamsError('Phases', 'status', status);
+      throw new BadParamsError('Phase', 'status', status);
     }
 
     const phases: Phase[] = await this._phaseRepository.findAllPhases(
@@ -38,11 +38,15 @@ export class PhaseService {
     status: string = PhaseStatus.SHOW_ONLY_OPEN.path,
   ): Promise<PhaseDto[]> {
     if (!PhaseStatus.getfromPath(status)) {
-      throw new BadParamsError('Phases', 'status', status);
+      throw new BadParamsError('Phase', 'status', status);
     }
 
     if (!PRMSApplication.getfromSimpleName(application)) {
-      throw new BadParamsError('Phases', 'application', application);
+      throw new BadParamsError('Phase', 'application', application);
+    }
+
+    if (!Object.values<string>(FindAllOptions).includes(show)) {
+      throw new BadParamsError('Phase', 'show', show);
     }
 
     const phases: Phase[] = await this._phaseRepository.findAllPhases(

@@ -10,7 +10,6 @@ import { FindAllOptions } from '../../../shared/entities/enums/find-all-options'
 import { PhaseStatus } from '../../../shared/entities/enums/phase-status';
 import { PRMSApplication } from '../../../shared/entities/enums/prms-applications';
 import { getMetadataArgsStorage } from 'typeorm';
-import { BadParamsError } from '../../../shared/errors/bad-params.error';
 
 @Injectable()
 export class PhaseRepository {
@@ -95,8 +94,6 @@ export class PhaseRepository {
           where: whereClause,
         })) as Phase[];
         break;
-      default:
-        throw new BadParamsError('Phases', 'prmsApp', prmsApp);
     }
 
     return phases;

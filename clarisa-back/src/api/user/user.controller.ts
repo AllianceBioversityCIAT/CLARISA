@@ -30,6 +30,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 @ApiExcludeController()
+//TODO determine if all routes need to be protected by JwtAuthGuard and PermissionGuard
 export class UserController {
   constructor(private readonly _userService: UserService) {}
 

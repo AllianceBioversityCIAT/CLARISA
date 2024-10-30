@@ -4,6 +4,8 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { Portfolio } from './entities/portfolio.entity';
 import { PortfolioMapper } from './mappers/portfolio.mapper';
 import { PortfolioDto } from './dto/portfolio.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class PortfolioService {
@@ -34,18 +36,28 @@ export class PortfolioService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._portfolioRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._portfolioMapper.classListToDtoList(portfolios, showIsActive);
   }
 
   async findOne(id: number): Promise<PortfolioDto> {
-    const portfolio: Portfolio = await this._portfolioRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
-
-    return portfolio ? this._portfolioMapper.classToDto(portfolio, true) : null;
+    return this._portfolioRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._portfolioRepository.target.toString(),
+          id,
+        );
+      })
+      .then((portfolio) => this._portfolioMapper.classToDto(portfolio));
   }
 }

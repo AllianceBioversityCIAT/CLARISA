@@ -71,7 +71,7 @@ export class SubnationalScopeRepository extends Repository<SubnationalScope> {
     )?.[0];
     subnationalScopeDtos = rawResponse?.subnational_scope_data;
 
-    if (subnationalScopeDtos?.length) {
+    if (!subnationalScopeDtos?.length) {
       throw Error();
     }
 

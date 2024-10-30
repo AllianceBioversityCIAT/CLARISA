@@ -8,7 +8,7 @@ export class FirstOrderAdministrativeDivisionService {
   constructor(private readonly geoNames: ApiGeoNames) {}
 
   async findIsoAlpha2(isoAlpha2: string) {
-    return await firstValueFrom(
+    return firstValueFrom(
       this.geoNames.getFirstOrder(isoAlpha2).pipe(map((resp) => resp.data)),
     ).catch((err) => {
       throw new InternalServerError(
