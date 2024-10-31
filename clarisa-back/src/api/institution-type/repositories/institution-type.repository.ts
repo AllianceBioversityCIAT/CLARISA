@@ -5,6 +5,7 @@ import { SourceOption } from '../../../shared/entities/enums/source-options';
 import { InstitutionTypeFromParentDto } from '../dto/institution-type-from-parent.dto';
 import { InstitutionTypeDto } from '../dto/institution-type.dto';
 import { InstitutionType } from '../entities/institution-type.entity';
+import { BaseInstitutionTypeDto } from '../dto/base-institution-type.dto';
 
 @Injectable()
 // TODO check if it is possible to do this by using queries or querybuider
@@ -79,12 +80,12 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
       }
 
       if (it.parent_object) {
-        newInstitutionType.parent = new InstitutionTypeDto();
+        newInstitutionType.parent = new BaseInstitutionTypeDto();
         newInstitutionType.parent.code = it.parent_object.id;
         newInstitutionType.parent.name = it.parent_object.name;
 
         if (it.parent_object.parent_object) {
-          newInstitutionType.parent.parent = new InstitutionTypeDto();
+          newInstitutionType.parent.parent = new BaseInstitutionTypeDto();
           newInstitutionType.parent.parent.code =
             it.parent_object.parent_object.id;
           newInstitutionType.parent.parent.name =

@@ -67,8 +67,8 @@ export class AppSecretService {
     }
 
     const existingAppSecret = await this._appSecretRepository.findOneBy({
-      sender_mis_id: senderMis.id,
-      receiver_mis_id: receiverMis.id,
+      sender_mis_id: Number(senderMis.id),
+      receiver_mis_id: Number(receiverMis.id),
     });
 
     if (existingAppSecret) {
@@ -82,8 +82,8 @@ export class AppSecretService {
     const generatedUuid = crypto.randomUUID();
 
     const appSecret = this._appSecretRepository.create({
-      sender_mis_id: senderMis.id,
-      receiver_mis_id: receiverMis.id,
+      sender_mis_id: Number(senderMis.id),
+      receiver_mis_id: Number(receiverMis.id),
       relation_uuid: generatedUuid,
       secret: this._bcryptPasswordEncoder.encode(secret),
       auditableFields: {

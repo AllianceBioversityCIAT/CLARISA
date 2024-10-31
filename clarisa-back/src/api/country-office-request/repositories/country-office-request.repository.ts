@@ -218,7 +218,7 @@ export class CountryOfficeRequestRepository extends Repository<CountryOfficeRequ
     countryOfficeRequest.auditableFields.updated_by =
       countryOfficeRequest.auditableFields.updated_by_object.id;
     countryOfficeRequest.auditableFields.modification_justification =
-      updateCountryOfficeRequest.modification_justification;
+      updateCountryOfficeRequest.modificationJustification;
 
     countryOfficeRequest = await this.save(countryOfficeRequest);
 

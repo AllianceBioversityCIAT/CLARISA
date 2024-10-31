@@ -27,7 +27,6 @@ import { PermissionGuard } from '../../shared/guards/permission.guard';
 import { GetUserData } from '../../shared/decorators/user-data.decorator';
 import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import { CreateMisDto } from './dto/create-mis.dto';
-import { SimpleMisDto } from './dto/simple-mis.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
@@ -52,7 +51,7 @@ export class MisController {
       },
     },
   })
-  @ApiOkResponse({ type: [SimpleMisDto] })
+  @ApiOkResponse({ type: [MisDto] })
   @ApiOperation({
     summary: 'Create a new MIS based on the provided data',
   })

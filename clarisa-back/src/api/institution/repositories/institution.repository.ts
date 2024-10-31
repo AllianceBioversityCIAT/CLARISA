@@ -188,7 +188,7 @@ export class InstitutionRepository extends Repository<Institution> {
       this._getQueryForInstitutionSimple(
         option,
         true,
-        undefined,
+        institutionId,
         offset,
         limit,
       ),
