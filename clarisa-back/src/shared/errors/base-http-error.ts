@@ -7,6 +7,6 @@ export class BaseHttpError<T> extends Error {
     public additionalData?: T,
   ) {
     super(message);
-    this.name = 'FileNotFoundError';
+    this.name = 'BaseHttpError';
   }
 }

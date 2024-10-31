@@ -3,17 +3,15 @@ import {
   DataSource,
   FindOptionsRelations,
   FindOptionsWhere,
-  MoreThanOrEqual,
+  Raw,
   Repository,
 } from 'typeorm';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { InstitutionTypeDto } from '../../institution-type/dto/institution-type.dto';
-import { InstitutionTypeRepository } from '../../institution-type/repositories/institution-type.repository';
 import { InstitutionCountryDto } from '../../institution/dto/institution-country.dto';
 import { InstitutionSimpleDto } from '../../institution/dto/institution-simple.dto';
 import { InstitutionDto } from '../../institution/dto/institution.dto';
 import { InstitutionLocation } from '../../institution/entities/institution-location.entity';
-import { InstitutionLocationRepository } from '../../institution/repositories/institution-location.repository';
 import { OldInstitution } from '../entities/old-institution.entity';
 
 @Injectable()
@@ -26,17 +24,14 @@ export class OldInstitutionRepository extends Repository<OldInstitution> {
       },
     };
 
-  constructor(
-    private dataSource: DataSource,
-    private institutionLocationRepository: InstitutionLocationRepository,
-    private institutionTypeRepository: InstitutionTypeRepository,
-  ) {
+  constructor(private dataSource: DataSource) {
     super(OldInstitution, dataSource.createEntityManager());
   }
 
-  async findAllInstitutions(
+  async findInstitutions(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    from: string = undefined,
+    id?: number,
+    from: number = undefined,
   ): Promise<InstitutionDto[]> {
     const institutionDtos: InstitutionDto[] = [];
     let whereClause: FindOptionsWhere<OldInstitution> = {};
@@ -58,7 +53,19 @@ export class OldInstitutionRepository extends Repository<OldInstitution> {
     if (from) {
       whereClause = {
         ...whereClause,
-        auditableFields: { updated_at: MoreThanOrEqual(new Date(+from)) },
+        auditableFields: {
+          updated_at: Raw(
+            (alias) =>
+              `${alias} >= FROM_UNIXTIME(${from} / 1000, '%Y-%m-%d %H:%i:%s.%f')`,
+          ),
+        },
+      };
+    }
+
+    if (id) {
+      whereClause = {
+        ...whereClause,
+        id,
       };
     }
 
@@ -67,17 +74,26 @@ export class OldInstitutionRepository extends Repository<OldInstitution> {
       relations: this.institutionRelations,
     });
 
-    await Promise.all(
-      institutions.map(async (i) => {
-        const institutionDto: InstitutionDto = this.fillOutInstitutionInfo(
-          i,
-          option === FindAllOptions.SHOW_ALL,
-        );
-        institutionDtos.push(institutionDto);
-      }),
-    );
+    institutions.map((i) => {
+      const institutionDto: InstitutionDto = this.fillOutInstitutionInfo(
+        i,
+        option === FindAllOptions.SHOW_ALL,
+      );
+
+      institutionDtos.push(institutionDto);
+    });
 
     return institutionDtos;
+  }
+
+  async findInstitutionById(id: number): Promise<InstitutionDto> {
+    return this.findInstitutions(FindAllOptions.SHOW_ALL, id).then((oi) => {
+      if (!oi?.length) {
+        throw Error();
+      }
+
+      return oi[0];
+    });
   }
 
   async findAllInstitutionsSimple(

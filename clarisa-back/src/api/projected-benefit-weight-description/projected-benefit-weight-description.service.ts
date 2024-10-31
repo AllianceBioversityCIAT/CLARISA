@@ -5,6 +5,8 @@ import { ProjectedBenefitWeightDescription } from './entities/projected-benefit-
 import { ProjectedBenefitWeightDescriptionRepository } from './repositories/projected-benefit-weight-description.repository';
 import { ProjectedBenefitWeightDescriptionDto } from './dto/projected-benefit-weight-description.dto';
 import { ProjectedBenefitWeightDescriptionMapper } from './mappers/projected-benefit-weight-description.mapper';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class ProjectedBenefitWeightDescriptionService {
@@ -34,7 +36,11 @@ export class ProjectedBenefitWeightDescriptionService {
           });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._projectedBenefitWeightDescriptionRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._projectedBenefitWeightDescriptionMapper.classListToDtoList(
@@ -43,17 +49,22 @@ export class ProjectedBenefitWeightDescriptionService {
   }
 
   async findOne(id: number): Promise<ProjectedBenefitWeightDescriptionDto> {
-    const weightDescription: ProjectedBenefitWeightDescription =
-      await this._projectedBenefitWeightDescriptionRepository.findOneBy({
+    return this._projectedBenefitWeightDescriptionRepository
+      .findOneByOrFail({
         id,
         auditableFields: { is_active: true },
-      });
-
-    return weightDescription
-      ? this._projectedBenefitWeightDescriptionMapper.classToDto(
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._projectedBenefitWeightDescriptionRepository.target.toString(),
+          id,
+        );
+      })
+      .then((weightDescription) =>
+        this._projectedBenefitWeightDescriptionMapper.classToDto(
           weightDescription,
-        )
-      : null;
+        ),
+      );
   }
 
   async update(

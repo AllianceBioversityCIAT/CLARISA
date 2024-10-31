@@ -16,7 +16,6 @@ import { InstitutionService } from './institution.service';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
 import { Response } from 'express';
 import { Institution } from './entities/institution.entity';
-import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
@@ -27,6 +26,8 @@ import {
 } from '@nestjs/swagger';
 import { InstitutionDto } from './dto/institution.dto';
 import { InstitutionSimpleDto } from './dto/institution-simple.dto';
+import { InstitutionFindAllParams } from './dto/institution-find-all-params.dto';
+import { BaseParamsDto } from '../../shared/entities/dtos/base-params.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
@@ -36,47 +37,38 @@ export class InstitutionController {
 
   @Get()
   @ApiQuery({
-    name: 'show',
-    enum: FindAllOptions,
-    required: false,
-    description:
-      'Show active, inactive or all institutions. Defaults to active.',
-  })
-  @ApiQuery({
-    name: 'from',
-    required: false,
-    type: Number,
-    description:
-      'Show institutions from a certain date (in milis). Defaults to null (shows all institutions).',
+    type: InstitutionFindAllParams,
   })
   @ApiOkResponse({ type: [InstitutionDto] })
   @ApiOperation({
     summary:
-      'Get all institutions, optionally filtered by status and date of creation',
+      'Get all institutions, optionally filtered by status, date of creation, offset and limit. These last two parameters, despite being required in Swagger (due to performance reasons), are optional otherwise.',
   })
   async findAll(
-    @Query('show') show: FindAllOptions,
+    @Query('show') show,
+    @Query('offset', new ParseIntPipe({ optional: true })) offset?,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?,
     @Query('from', new ParseIntPipe({ optional: true }))
-    from?: number,
+    from?,
   ) {
-    return await this.institutionService.findAll(show, from);
+    return await this.institutionService.findAll(show, offset, limit, from);
   }
 
   @Get('simple')
   @ApiQuery({
-    name: 'show',
-    enum: FindAllOptions,
-    required: false,
-    description:
-      'Show active, inactive or all institutions. Defaults to active.',
+    type: BaseParamsDto,
   })
   @ApiOkResponse({ type: [InstitutionSimpleDto] })
   @ApiOperation({
     summary:
-      'Get all institutions with flattened data, optionally filtered by status',
+      'Get all institutions with flattened data, optionally filtered by status, offset and limit. These last two parameters, despite being required in Swagger (due to performance reasons), are optional otherwise.',
   })
-  async findAllSimple(@Query('show') show: FindAllOptions) {
-    return await this.institutionService.findAllSimple(show);
+  async findAllSimple(
+    @Query('show') show,
+    @Query('offset', new ParseIntPipe({ optional: true })) offset?,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?,
+  ) {
+    return await this.institutionService.findAllSimple(show, offset, limit);
   }
 
   @Get('get/:id')

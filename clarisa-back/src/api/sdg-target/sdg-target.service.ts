@@ -6,6 +6,8 @@ import { SdgTargetMapper } from './mappers/sdg-target.mapper';
 import { SdgTargetV1Dto } from './dto/sdg-target.v1.dto';
 import { SdgTargetV2Dto } from './dto/sdg-target.v2.dto';
 import { SdgTargetIpsrDto } from './dto/sdg-target-ipsr.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class SdgTargetService {
@@ -14,59 +16,67 @@ export class SdgTargetService {
     private readonly _sdgTargetMapper: SdgTargetMapper,
   ) {}
 
-  private async _findAll(
+  private async _findAll<Dto>(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<SdgTarget[]> {
+    mapper: (sdgs: SdgTarget[]) => Dto[],
+  ) {
+    let sdgTargets: SdgTarget[] = [];
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return this._sdgTargetsRepository.find();
+        sdgTargets = await this._sdgTargetsRepository.find();
+        break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return this._sdgTargetsRepository.find({
+        sdgTargets = await this._sdgTargetsRepository.find({
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
             },
           },
         });
+        break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._sdgTargetsRepository.target.toString(),
+          'option',
+          option,
+        );
     }
+
+    return mapper(sdgTargets);
   }
 
-  private async _findOne(id: number): Promise<SdgTarget> {
-    return await this._sdgTargetsRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  private async _findOne<Dto>(id: number, mapper: (sdgs: SdgTarget) => Dto) {
+    return this._sdgTargetsRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._sdgTargetsRepository.target.toString(),
+          id,
+        );
+      })
+      .then((sdgTarget) => mapper(sdgTarget));
   }
 
-  async findAllV1(
-    option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<SdgTargetV1Dto[]> {
-    const result: SdgTarget[] = await this._findAll(option);
-
-    return this._sdgTargetMapper.classListToDtoV1List(result);
+  async findAllV1(option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE) {
+    return this._findAll(option, this._sdgTargetMapper.classListToDtoV1List);
   }
 
   async findAllV2(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<SdgTargetV2Dto[]> {
-    const result: SdgTarget[] = await this._findAll(option);
-
-    return this._sdgTargetMapper.classListToDtoV2List(result);
+    return this._findAll(option, this._sdgTargetMapper.classListToDtoV2List);
   }
 
   async findOneV1(id: number): Promise<SdgTargetV1Dto> {
-    const sdgTarget = await this._findOne(id);
-
-    return sdgTarget ? this._sdgTargetMapper.classToDtoV1(sdgTarget) : null;
+    return this._findOne(id, this._sdgTargetMapper.classToDtoV1);
   }
 
   async findOneV2(id: number): Promise<SdgTargetV2Dto> {
-    const sdgTarget = await this._findOne(id);
-
-    return sdgTarget ? this._sdgTargetMapper.classToDtoV2(sdgTarget) : null;
+    return this._findOne(id, this._sdgTargetMapper.classToDtoV2);
   }
 
   findAllForIpsr(

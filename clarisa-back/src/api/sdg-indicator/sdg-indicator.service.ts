@@ -6,6 +6,8 @@ import { FindManyOptions } from 'typeorm';
 import { SdgIndicatorMapper } from './mappers/sdg-indicator.mapper';
 import { SdgIndicatorV1Dto } from './dto/sdg-indicator.v1.dto';
 import { SdgIndicatorV2Dto } from './dto/sdg-indicator.v2.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class SdgIndicatorService {
@@ -18,59 +20,71 @@ export class SdgIndicatorService {
     private readonly _sdgIndicatorMapper: SdgIndicatorMapper,
   ) {}
 
-  private async _findAll(
+  private async _findAll<Dto>(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<SdgIndicator[]> {
+    mapper: (sdgs: SdgIndicator[]) => Dto[],
+  ) {
+    let sdgIndicators: SdgIndicator[] = [];
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return this._sdgIndicatorRepository.find(this._findClause);
+        sdgIndicators = await this._sdgIndicatorRepository.find(
+          this._findClause,
+        );
+        break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return this._sdgIndicatorRepository.find({
+        sdgIndicators = await this._sdgIndicatorRepository.find({
           ...this._findClause,
-          ...{
-            where: {
-              auditableFields: {
-                is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
-              },
+          where: {
+            auditableFields: {
+              is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
             },
           },
         });
+        break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._sdgIndicatorRepository.target.toString(),
+          'option',
+          option,
+        );
     }
+
+    return mapper(sdgIndicators);
   }
 
-  private async _findOne(id: number): Promise<SdgIndicator> {
-    return await this._sdgIndicatorRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  private async _findOne<Dto>(id: number, mapper: (sdgs: SdgIndicator) => Dto) {
+    return this._sdgIndicatorRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._sdgIndicatorRepository.target.toString(),
+          id,
+        );
+      })
+      .then((sdg) => mapper(sdg));
   }
 
   async findAllV1(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<SdgIndicatorV1Dto[]> {
-    const result: SdgIndicator[] = await this._findAll(option);
-
-    return this._sdgIndicatorMapper.classListToDtoV1List(result);
+    return this._findAll(option, this._sdgIndicatorMapper.classListToDtoV1List);
   }
 
   async findAllV2(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<SdgIndicatorV2Dto[]> {
-    const result: SdgIndicator[] = await this._findAll(option);
-
-    return this._sdgIndicatorMapper.classListToDtoV2List(result);
+    return this._findAll(option, this._sdgIndicatorMapper.classListToDtoV2List);
   }
 
   async findOneV1(id: number): Promise<SdgIndicatorV1Dto> {
-    const result: SdgIndicator = await this._findOne(id);
-    return result ? this._sdgIndicatorMapper.classToDtoV1(result) : null;
+    return this._findOne(id, this._sdgIndicatorMapper.classToDtoV1);
   }
 
   async findOneV2(id: number): Promise<SdgIndicatorV2Dto> {
-    const result: SdgIndicator = await this._findOne(id);
-    return result ? this._sdgIndicatorMapper.classToDtoV2(result) : null;
+    return this._findOne(id, this._sdgIndicatorMapper.classToDtoV2);
   }
 }

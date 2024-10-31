@@ -1,7 +1,6 @@
-import { OmitType } from '@nestjs/mapped-types';
 import { IsNotEmpty, Min } from 'class-validator';
 import { CreateCountryOfficeRequestDto } from './create-country-office-request.dto';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 
 export class UpdateCountryOfficeRequestDto extends OmitType(
   CreateCountryOfficeRequestDto,

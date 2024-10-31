@@ -6,10 +6,12 @@ import { UpdatePolicyStageDto } from './dto/update-policy-stage.dto';
 import { PolicyStage } from './entities/policy-stage.entity';
 import { PolicyStageRepository } from './repositories/policy-stage.repository';
 import { PolicyStageDto } from './dto/policy-stage.dto';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
 
 @Injectable()
 export class PolicyStageService {
-  constructor(private policyStagesRepository: PolicyStageRepository) {}
+  constructor(private _policyStagesRepository: PolicyStageRepository) {}
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
@@ -30,12 +32,16 @@ export class PolicyStageService {
         };
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._policyStagesRepository.target.toString(),
+          'type',
+          type,
+        );
     }
 
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return await this.policyStagesRepository.find({
+        return await this._policyStagesRepository.find({
           where: whereClause,
         });
       case FindAllOptions.SHOW_ONLY_ACTIVE:
@@ -46,22 +52,33 @@ export class PolicyStageService {
             is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
           },
         };
-        return await this.policyStagesRepository.find({
+        return await this._policyStagesRepository.find({
           where: whereClause,
         });
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._policyStagesRepository.target.toString(),
+          'option',
+          option,
+        );
     }
   }
 
   async findOne(id: number): Promise<PolicyStageDto> {
-    return await this.policyStagesRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+    return await this._policyStagesRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._policyStagesRepository.target.toString(),
+          id,
+        );
+      });
   }
 
   async update(updatePolicyStageDto: UpdatePolicyStageDto[]) {
-    return await this.policyStagesRepository.save(updatePolicyStageDto);
+    return await this._policyStagesRepository.save(updatePolicyStageDto);
   }
 }

@@ -5,9 +5,11 @@ import { Glossary } from './entities/glossary.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { GlossaryRepository } from './repositories/glossary.repository';
 import { GlossaryDto } from './dto/glossary.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 @Injectable()
 export class GlossaryService {
-  constructor(private glossaryRepository: GlossaryRepository) {}
+  constructor(private _glossaryRepository: GlossaryRepository) {}
   private readonly _select: FindOptionsSelect<Glossary> = {
     term: true,
     definition: true,
@@ -31,7 +33,7 @@ export class GlossaryService {
 
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return this.glossaryRepository.find({
+        return this._glossaryRepository.find({
           where: whereClause,
           order: orderClause,
         });
@@ -43,29 +45,40 @@ export class GlossaryService {
             is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
           },
         };
-        return this.glossaryRepository.find({
+        return this._glossaryRepository.find({
           where: whereClause,
           order: orderClause,
           select: this._select,
         });
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._glossaryRepository.target.toString(),
+          'option',
+          option,
+        );
     }
   }
 
   findOne(id: number) {
-    return this.glossaryRepository.findOne({
-      where: { id },
-      select: this._select,
-    });
+    return this._glossaryRepository
+      .findOneOrFail({
+        where: { id },
+        select: this._select,
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._glossaryRepository.target.toString(),
+          id,
+        );
+      });
   }
 
   async update(updateGlossary: UpdateGlossaryDto[]): Promise<Glossary[]> {
-    return await this.glossaryRepository.save(updateGlossary);
+    return await this._glossaryRepository.save(updateGlossary);
   }
 
-  async getRolesPagination(offset?: number, limit = 10) {
-    const [items, count] = await this.glossaryRepository.findAndCount({
+  async getWithPagination(offset?: number, limit = 10) {
+    const [items, count] = await this._glossaryRepository.findAndCount({
       order: {
         id: 'ASC',
       },

@@ -5,7 +5,7 @@ import { RespondRequestDto } from '../../shared/entities/dtos/respond-request.dt
 import { ResponseDto } from '../../shared/entities/dtos/response.dto';
 import { MisOption } from '../../shared/entities/enums/mises-options';
 import { PartnerStatus } from '../../shared/entities/enums/partner-status';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import { CountryRepository } from '../country/repositories/country.repository';
 import { User } from '../user/entities/user.entity';
 import { CreatePartnerRequestDto } from './dto/create-partner-request.dto';
@@ -21,16 +21,18 @@ import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.
 import { InstitutionDto } from '../institution/dto/institution.dto';
 import { OpenSearchInstitutionApi } from '../../integration/opensearch/institution/open-search-institution.api';
 import { BulkPartnerRequestDto } from './dto/create-partner-dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class PartnerRequestService {
   constructor(
-    private partnerRequestRepository: PartnerRequestRepository,
-    private institutionTypeRepository: InstitutionTypeRepository,
-    private misRepository: MisRepository,
-    private countryRepository: CountryRepository,
-    private userRepository: UserRepository,
-    private openSearchApi: OpenSearchInstitutionApi,
+    private _partnerRequestRepository: PartnerRequestRepository,
+    private _institutionTypeRepository: InstitutionTypeRepository,
+    private _misRepository: MisRepository,
+    private _countryRepository: CountryRepository,
+    private _userRepository: UserRepository,
+    private _openSearchApi: OpenSearchInstitutionApi,
   ) {}
 
   async findAll(
@@ -39,14 +41,30 @@ export class PartnerRequestService {
     show: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<PartnerRequestDto[]> {
     if (!PartnerStatus.getfromPath(status)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._partnerRequestRepository.target.toString(),
+        'status',
+        status,
+      );
     }
 
     if (!MisOption.getfromPath(mis)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._partnerRequestRepository.target.toString(),
+        'mis',
+        mis,
+      );
     }
 
-    return this.partnerRequestRepository.findAllPartnerRequests(
+    if (!Object.values<string>(FindAllOptions).includes(show)) {
+      throw new BadParamsError(
+        this._partnerRequestRepository.target.toString(),
+        'show',
+        show,
+      );
+    }
+
+    return this._partnerRequestRepository.findPartnerRequests(
       status,
       mis,
       show,
@@ -54,12 +72,19 @@ export class PartnerRequestService {
   }
 
   async findOne(id: number): Promise<PartnerRequestDto> {
-    return this.partnerRequestRepository.findPartnerRequestById(id);
+    return this._partnerRequestRepository
+      .findPartnerRequestById(id)
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._partnerRequestRepository.target.toString(),
+          id,
+        );
+      });
   }
 
   async createPartnerRequest(
     incomingPartnerRequest: CreatePartnerRequestDto,
-    userData: UserData & { mis: string },
+    userData: UserDataDto & { mis: string },
   ): Promise<ResponseDto<PartnerRequestDto>> {
     incomingPartnerRequest.userId = userData.userId;
     incomingPartnerRequest.externalUserMail =
@@ -93,21 +118,21 @@ export class PartnerRequestService {
     const newPartnerRequest: PartnerRequest = new PartnerRequest();
     newPartnerRequest.auditableFields = new AuditableEntity();
     newPartnerRequest.institution_type_object =
-      await this.institutionTypeRepository.findOne({
+      await this._institutionTypeRepository.findOne({
         where: { id: incomingPartnerRequest.institutionTypeCode },
         relations: { children: true },
       });
 
-    newPartnerRequest.country_object = await this.countryRepository.findOneBy({
+    newPartnerRequest.country_object = await this._countryRepository.findOneBy({
       iso_alpha_2: incomingPartnerRequest.hqCountryIso,
     });
 
-    newPartnerRequest.mis_object = await this.misRepository.findOneBy({
+    newPartnerRequest.mis_object = await this._misRepository.findOneBy({
       acronym: incomingPartnerRequest.misAcronym,
     });
 
     newPartnerRequest.auditableFields.created_by_object =
-      await this.userRepository.findOneBy({
+      await this._userRepository.findOneBy({
         id: incomingPartnerRequest.userId,
       });
 
@@ -151,7 +176,7 @@ export class PartnerRequestService {
     }
 
     const response: PartnerRequestDto =
-      await this.partnerRequestRepository.createPartnerRequest(
+      await this._partnerRequestRepository.createPartnerRequest(
         incomingPartnerRequest,
         newPartnerRequest,
       );
@@ -161,7 +186,7 @@ export class PartnerRequestService {
 
   async respondPartnerRequest(
     respondPartnerRequestDto: RespondRequestDto,
-    userData: UserData,
+    userData: UserDataDto,
   ): Promise<PartnerRequestDto> {
     respondPartnerRequestDto.userId = userData.userId;
     respondPartnerRequestDto.externalUserMail =
@@ -189,12 +214,12 @@ export class PartnerRequestService {
 
     //Comprehensive validations
     const partnerRequest: PartnerRequest =
-      await this.partnerRequestRepository.findOne({
+      await this._partnerRequestRepository.findOne({
         where: { id: respondPartnerRequestDto.requestId },
         relations: { mis_object: true },
       });
 
-    const user: User = await this.userRepository.findOneBy({
+    const user: User = await this._userRepository.findOneBy({
       id: respondPartnerRequestDto.userId,
     });
 
@@ -235,11 +260,11 @@ export class PartnerRequestService {
         respondPartnerRequestDto.rejectJustification;
     }
 
-    return this.partnerRequestRepository
+    return this._partnerRequestRepository
       .respondPartnerRequest(partnerRequest, respondPartnerRequestDto)
       .then((pr) => {
         if (respondPartnerRequestDto.accept && pr.institutionDTO) {
-          this.openSearchApi.uploadSingleInstitutionToOpenSearch(
+          this._openSearchApi.uploadSingleInstitutionToOpenSearch(
             pr.institutionDTO,
           );
         }
@@ -250,7 +275,7 @@ export class PartnerRequestService {
 
   async updatePartnerRequest(
     updatePartnerRequest: UpdatePartnerRequestDto,
-    userData: UserData,
+    userData: UserDataDto,
   ): Promise<ResponseDto<PartnerRequestDto>> {
     updatePartnerRequest = plainToInstance(
       UpdatePartnerRequestDto,
@@ -280,21 +305,21 @@ export class PartnerRequestService {
 
     //Comprehensive validations
     const partnerRequest: PartnerRequest =
-      await this.partnerRequestRepository.findOneBy({
+      await this._partnerRequestRepository.findOneBy({
         id: updatePartnerRequest.id,
       });
 
     partnerRequest.auditableFields.updated_by_object =
-      await this.userRepository.findOneBy({
+      await this._userRepository.findOneBy({
         id: updatePartnerRequest.userId,
       });
 
-    partnerRequest.country_object = await this.countryRepository.findOneBy({
+    partnerRequest.country_object = await this._countryRepository.findOneBy({
       iso_alpha_2: updatePartnerRequest.hqCountryIso,
     });
 
     partnerRequest.institution_type_object =
-      await this.institutionTypeRepository.findOneBy({
+      await this._institutionTypeRepository.findOneBy({
         id: updatePartnerRequest.institutionTypeCode,
       });
 
@@ -336,7 +361,7 @@ export class PartnerRequestService {
     }
 
     const response: PartnerRequestDto =
-      await this.partnerRequestRepository.updatePartnerRequest(
+      await this._partnerRequestRepository.updatePartnerRequest(
         updatePartnerRequest,
         partnerRequest,
       );
@@ -346,20 +371,24 @@ export class PartnerRequestService {
 
   async statisticsPartnerRequest(mis: string = MisOption.ALL.path) {
     if (!MisOption.getfromPath(mis)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._partnerRequestRepository.target.toString(),
+        'mis',
+        mis,
+      );
     }
 
-    return this.partnerRequestRepository.statisticsPartner(mis);
+    return this._partnerRequestRepository.partnerStatistics(mis);
   }
 
   async createBulk(createBulkPartner: BulkPartnerRequestDto) {
-    return await this.partnerRequestRepository
+    return this._partnerRequestRepository
       .createPartnerRequestBulk(createBulkPartner)
       .then((prs) => {
         const institutions = prs
           .map((pr) => pr['institutionDto'] as InstitutionDto)
           .filter((i) => i);
-        this.openSearchApi.uploadInstitutionsToOpenSearch(institutions);
+        this._openSearchApi.uploadInstitutionsToOpenSearch(institutions);
         return prs;
       });
   }

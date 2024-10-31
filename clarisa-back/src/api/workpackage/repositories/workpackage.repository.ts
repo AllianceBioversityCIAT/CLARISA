@@ -78,4 +78,18 @@ export class WorkpackageRepository extends Repository<Workpackage> {
 
     return this.query(workpackageQuery) as Promise<WorkpackageDto[]>;
   }
+
+  async findWorkpackageById(workpackageId: number): Promise<WorkpackageDto> {
+    return this.findWorkpackages(
+      FindAllOptions.SHOW_ONLY_ACTIVE,
+      FindAllOptions.SHOW_ONLY_ACTIVE,
+      workpackageId,
+    ).then((workpackages) => {
+      if (!workpackages?.length) {
+        throw Error();
+      }
+
+      return workpackages[0];
+    });
+  }
 }

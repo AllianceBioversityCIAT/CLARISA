@@ -94,4 +94,18 @@ export class RegionRepository extends Repository<Region> {
 
     return regionDtos;
   }
+
+  async findRegionById(regionId: number): Promise<RegionDto> {
+    return this.findRegions(
+      undefined,
+      FindAllOptions.SHOW_ONLY_ACTIVE,
+      regionId,
+    ).then((regions) => {
+      if (!regions?.length) {
+        throw new Error();
+      }
+
+      return regions[0];
+    });
+  }
 }

@@ -67,4 +67,19 @@ export class ProjectedBenefitRepository extends Repository<ProjectedBenefit> {
 
     return this.query(query) as Promise<ProjectedBenefitDto[]>;
   }
+
+  async findProjectedBenefitById(
+    projectedBenefitId: number,
+  ): Promise<ProjectedBenefitDto> {
+    return this.findProjectedBenefits(
+      FindAllOptions.SHOW_ONLY_ACTIVE,
+      projectedBenefitId,
+    ).then((projectedBenefits) => {
+      if (!projectedBenefits?.length) {
+        throw Error();
+      }
+
+      return projectedBenefits[0];
+    });
+  }
 }

@@ -34,4 +34,8 @@ export class AccountMapper {
 
     return parentAccountDto;
   }
+
+  public classListToDtoList(accounts: Account[]): AccountDto[] {
+    return accounts.map((a) => this.classToDto(a));
+  }
 }

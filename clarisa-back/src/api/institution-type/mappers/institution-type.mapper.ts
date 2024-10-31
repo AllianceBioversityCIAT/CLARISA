@@ -14,4 +14,12 @@ export class InstitutionTypeMapper {
 
     return institutionTypeDto;
   }
+
+  classListToSimpleDtoList(
+    institutionTypes: InstitutionType[],
+  ): InstitutionTypeDto[] {
+    return institutionTypes.map((institutionType) =>
+      this.classToSimpleDto(institutionType),
+    );
+  }
 }

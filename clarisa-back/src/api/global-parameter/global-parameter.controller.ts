@@ -11,12 +11,12 @@ export class GlobalParameterController {
   ) {}
 
   @Get()
-  async findAll(@Query('show') show: FindAllOptions) {
-    return await this._globalParameterService.findAll(show);
+  findAll(@Query('show') show: FindAllOptions) {
+    return this._globalParameterService.findAll(show);
   }
 
   @Get('get/:id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return await this._globalParameterService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this._globalParameterService.findOne(id);
   }
 }

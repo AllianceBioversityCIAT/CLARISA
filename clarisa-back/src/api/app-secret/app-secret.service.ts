@@ -9,10 +9,13 @@ import { AppSecret } from './entities/app-secret.entity';
 import { AppSecretDto } from './dto/app-secret.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { BCryptPasswordEncoder } from '../../auth/utils/BCryptPasswordEncoder';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import { FindManyOptions } from 'typeorm';
 import { ValidateAppSecretDto } from './dto/validate-app-secret.dto';
 import * as crypto from 'crypto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ExistingEntityError } from '../../shared/errors/existing-entity-error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class AppSecretService {
@@ -34,34 +37,18 @@ export class AppSecretService {
     },
   };
 
-  async create(createAppSecretDto: CreateAppSecretDto, userData: UserData) {
-    if (
-      !createAppSecretDto ||
-      !createAppSecretDto.sender_mis ||
-      !createAppSecretDto.receiver_mis
-    ) {
-      throw new Error('Missing required data');
-    } else if (!createAppSecretDto.sender_mis.acronym) {
-      throw new Error('Missing sender MIS acronym');
-    } else if (!createAppSecretDto.sender_mis.environment) {
-      throw new Error('Missing sender MIS environment');
-    } else if (!createAppSecretDto.receiver_mis.acronym) {
-      throw new Error('Missing receiver MIS acronym');
-    } else if (!createAppSecretDto.receiver_mis.environment) {
-      throw new Error('Missing receiver MIS environment');
-    } else if (
-      createAppSecretDto.receiver_mis.acronym ==
-      createAppSecretDto.sender_mis.acronym
-    ) {
-      throw new Error('Sender and receiver MIS acronyms cannot be the same');
-    }
+  async create(createAppSecretDto: CreateAppSecretDto, userData: UserDataDto) {
+    this._validateOnCreation(createAppSecretDto);
 
     const senderMis = await this._misService.findOneByAcronymAndEnvironment(
       createAppSecretDto.sender_mis.acronym,
       createAppSecretDto.sender_mis.environment,
     );
     if (!senderMis) {
-      throw new Error(
+      throw new BadParamsError(
+        this._appSecretRepository.target.toString(),
+        'createAppSecretDto.sender_mis',
+        createAppSecretDto.sender_mis,
         `Sender MIS with acronym "${createAppSecretDto.sender_mis.acronym}" and environment "${createAppSecretDto.sender_mis.environment}" not found`,
       );
     }
@@ -71,7 +58,10 @@ export class AppSecretService {
       createAppSecretDto.receiver_mis.environment,
     );
     if (!receiverMis) {
-      throw new Error(
+      throw new BadParamsError(
+        this._appSecretRepository.target.toString(),
+        'createAppSecretDto.receiver_mis',
+        createAppSecretDto.receiver_mis,
         `Receiver MIS with acronym "${createAppSecretDto.receiver_mis.acronym}" and environment "${createAppSecretDto.receiver_mis.environment}" not found`,
       );
     }
@@ -82,8 +72,9 @@ export class AppSecretService {
     });
 
     if (existingAppSecret) {
-      throw new Error(
-        `AppSecret already exists between sender MIS "${senderMis.acronym}" and receiver MIS "${receiverMis.acronym} with ID "${existingAppSecret.id}"`,
+      throw new ExistingEntityError(
+        this._appSecretRepository.target.toString(),
+        `A secret already exists between sender MIS "${senderMis.acronym}" and receiver MIS "${receiverMis.acronym}" with ID "${existingAppSecret.id}"`,
       );
     }
 
@@ -114,6 +105,59 @@ export class AppSecretService {
           AppSecretService,
         );
       });
+  }
+
+  private _validateOnCreation(createAppSecretDto: CreateAppSecretDto) {
+    if (
+      !createAppSecretDto ||
+      !createAppSecretDto.sender_mis ||
+      !createAppSecretDto.receiver_mis
+    ) {
+      throw new BadParamsError(
+        this._appSecretRepository.target.toString(),
+        'createAppSecretDto',
+        createAppSecretDto,
+        'Missing required data',
+      );
+    } else if (!createAppSecretDto.sender_mis.acronym) {
+      throw new BadParamsError(
+        this._appSecretRepository.target.toString(),
+        'createAppSecretDto.sender_mis.acronym',
+        createAppSecretDto.sender_mis.acronym,
+        'Missing sender MIS acronym',
+      );
+    } else if (!createAppSecretDto.sender_mis.environment) {
+      throw new BadParamsError(
+        this._appSecretRepository.target.toString(),
+        'createAppSecretDto.sender_mis.environment',
+        createAppSecretDto.sender_mis.environment,
+        'Missing sender MIS environment',
+      );
+    } else if (!createAppSecretDto.receiver_mis.acronym) {
+      throw new BadParamsError(
+        this._appSecretRepository.target.toString(),
+        'createAppSecretDto.receiver_mis.acronym',
+        createAppSecretDto.receiver_mis.acronym,
+        'Missing receiver MIS acronym',
+      );
+    } else if (!createAppSecretDto.receiver_mis.environment) {
+      throw new BadParamsError(
+        this._appSecretRepository.target.toString(),
+        'createAppSecretDto.receiver_mis.environment',
+        createAppSecretDto.receiver_mis.environment,
+        'Missing receiver MIS environment',
+      );
+    } else if (
+      createAppSecretDto.receiver_mis.acronym ==
+      createAppSecretDto.sender_mis.acronym
+    ) {
+      throw new BadParamsError(
+        this._appSecretRepository.target.toString(),
+        'createAppSecretDto.receiver_mis.environment and createAppSecretDto.sender_mis.environment',
+        createAppSecretDto.receiver_mis.environment,
+        'Sender and receiver MIS cannot be the same',
+      );
+    }
   }
 
   async validateAppSecret(appSecretDto: ValidateAppSecretDto) {
@@ -161,6 +205,7 @@ export class AppSecretService {
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
         appSecrets = await this._appSecretRepository.find({
+          ...this._where,
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
@@ -176,11 +221,20 @@ export class AppSecretService {
   }
 
   async findOne(id: number): Promise<AppSecretDto> {
-    const appSecret: AppSecret = await this._appSecretRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
-
-    return appSecret ? this._appSecretMapper.classToDto(appSecret) : null;
+    return this._appSecretRepository
+      .findOneOrFail({
+        ...this._where,
+        where: {
+          id,
+          auditableFields: { is_active: true },
+        },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._appSecretRepository.target.toString(),
+          id,
+        );
+      })
+      .then((appSecret) => this._appSecretMapper.classToDto(appSecret));
   }
 }

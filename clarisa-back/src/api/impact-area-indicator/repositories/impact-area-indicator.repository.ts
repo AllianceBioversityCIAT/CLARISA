@@ -21,7 +21,11 @@ export class ImpactAreaIndicatorRepository extends Repository<ImpactAreaIndicato
       FindAllOptions.SHOW_ONLY_ACTIVE,
       id,
     ).then((ias) => {
-      return ias.length === 1 ? ias[0] : null;
+      if (!ias?.length) {
+        throw Error();
+      }
+
+      return ias[0];
     });
   }
 

@@ -5,6 +5,8 @@ import { ProjectedBenefitProbability } from './entities/projected-benefit-probab
 import { ProjectedBenefitProbabilityRepository } from './repositories/projected-benefit-probability.repository';
 import { ProjectedBenefitProbabilityMapper } from './mappers/projected-benefit-probability.mapper';
 import { ProjectedBenefitProbabilityDto } from './dto/projected-benefit-probability.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class ProjectedBenefitProbabilityService {
@@ -35,7 +37,11 @@ export class ProjectedBenefitProbabilityService {
         );
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._projectedBenefitProbabilitysRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._projectedBenefitProbabilityMapper.classListToDtoList(
@@ -44,15 +50,20 @@ export class ProjectedBenefitProbabilityService {
   }
 
   async findOne(id: number): Promise<ProjectedBenefitProbabilityDto> {
-    const probability: ProjectedBenefitProbability =
-      await this._projectedBenefitProbabilitysRepository.findOneBy({
+    return this._projectedBenefitProbabilitysRepository
+      .findOneByOrFail({
         id,
         auditableFields: { is_active: true },
-      });
-
-    return probability
-      ? this._projectedBenefitProbabilityMapper.classToDto(probability)
-      : null;
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._projectedBenefitProbabilitysRepository.target.toString(),
+          id,
+        );
+      })
+      .then((probability) =>
+        this._projectedBenefitProbabilityMapper.classToDto(probability),
+      );
   }
 
   async update(

@@ -6,6 +6,8 @@ import { GlobalTargetRepository } from './repositories/global-target.repository'
 import { FindManyOptions } from 'typeorm';
 import { GlobalTargetMapper } from './mappers/global-target.mapper';
 import { GlobalTargetDto } from './dto/global-target.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class GlobalTargetService {
@@ -49,25 +51,34 @@ export class GlobalTargetService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._globalTargetRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._globalTargetMapper.classListToDtoList(globalTargets);
   }
 
   async findOne(id: number): Promise<GlobalTargetDto> {
-    const globalTarget: GlobalTarget =
-      await this._globalTargetRepository.findOne({
+    return this._globalTargetRepository
+      .findOneOrFail({
         where: { id },
         ...this._findClause,
-      });
-
-    return globalTarget
-      ? this._globalTargetMapper.classToDto(globalTarget)
-      : null;
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._globalTargetRepository.target.toString(),
+          id,
+        );
+      })
+      .then((globalTarget) =>
+        this._globalTargetMapper.classToDto(globalTarget),
+      );
   }
 
-  async getUsersPagination(offset?: number, limit = 10) {
+  async getWithPagination(offset?: number, limit = 10) {
     const [items, count] = await this._globalTargetRepository.findAndCount({
       order: {
         id: 'ASC',

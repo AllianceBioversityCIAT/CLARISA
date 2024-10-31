@@ -20,7 +20,7 @@ import { GetUserData } from '../../shared/decorators/user-data.decorator';
 import { ResponseDto } from '../../shared/entities/dtos/response.dto';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -114,11 +114,11 @@ export class CountryOfficeRequestController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, PermissionGuard)
   async createCountryOfficeRequests(
-    @GetUserData() userData: UserData,
+    @GetUserData() userData: UserDataDto,
     @Body() newCountryOfficeRequest: CreateCountryOfficeRequestDto,
     @Query('mis') mis: string,
   ): Promise<ResponseDto<CountryOfficeRequestDto[]>> {
-    const userDataMis: UserData & { mis: string } = {
+    const userDataMis: UserDataDto & { mis: string } = {
       ...userData,
       mis,
     };
@@ -167,7 +167,7 @@ export class CountryOfficeRequestController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, PermissionGuard)
   async respondCountryOfficeRequest(
-    @GetUserData() userData: UserData,
+    @GetUserData() userData: UserDataDto,
     @Body() respondCountryOfficeRequestDto: RespondRequestDto,
   ): Promise<CountryOfficeRequestDto> {
     return this.countryOfficeRequestService.respondCountryOfficeRequest(
@@ -204,7 +204,7 @@ export class CountryOfficeRequestController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, PermissionGuard)
   async updateCountryOfficeRequest(
-    @GetUserData() userData: UserData,
+    @GetUserData() userData: UserDataDto,
     @Body() updateCountryOfficeRequest: UpdateCountryOfficeRequestDto,
   ): Promise<ResponseDto<CountryOfficeRequestDto>> {
     return this.countryOfficeRequestService.updateCountryOfficeRequest(

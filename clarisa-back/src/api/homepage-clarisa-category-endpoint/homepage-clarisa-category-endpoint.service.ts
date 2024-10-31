@@ -5,10 +5,10 @@ import { HomepageClarisaCategoryEndpointRepository } from './repositories/homepa
 @Injectable()
 export class HomepageClarisaCategoryEndpointService {
   constructor(
-    private homepageClarisaCategoryEndpointRepository: HomepageClarisaCategoryEndpointRepository,
+    private _homepageClarisaCategoryEndpointRepository: HomepageClarisaCategoryEndpointRepository,
   ) {}
 
   async findAll(): Promise<CategoryEndpointDto[]> {
-    return this.homepageClarisaCategoryEndpointRepository.getCategoryEndpoints();
+    return this._homepageClarisaCategoryEndpointRepository.getCategoryEndpoints();
   }
 }

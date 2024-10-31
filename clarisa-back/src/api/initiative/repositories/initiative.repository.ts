@@ -19,7 +19,11 @@ export class InitiativeRepository extends Repository<Initiative> {
   public findOneInitiativeById(id: number): Promise<InitiativeDto> {
     return this._findInitiatives(FindAllOptions.SHOW_ONLY_ACTIVE, id).then(
       (initiatives) => {
-        return initiatives.length === 1 ? initiatives[0] : null;
+        if (!initiatives?.length) {
+          throw Error();
+        }
+
+        return initiatives[0];
       },
     );
   }
@@ -32,7 +36,11 @@ export class InitiativeRepository extends Repository<Initiative> {
       null,
       initiativeCode,
     ).then((initiatives) => {
-      return initiatives.length === 1 ? initiatives[0] : null;
+      if (!initiatives?.length) {
+        throw Error();
+      }
+
+      return initiatives[0];
     });
   }
 

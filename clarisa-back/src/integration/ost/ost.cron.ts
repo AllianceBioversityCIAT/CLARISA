@@ -47,6 +47,7 @@ export class OSTCron {
 
     if (workpackagesRequest && workpackagesRequest.status === HttpStatus.OK) {
       this.logger.debug('Started workpackage synchronization');
+
       const oldWorkpackagesDb: Workpackage[] =
         await this.workpackageRepository.find();
 
@@ -56,13 +57,11 @@ export class OSTCron {
       const initiativeStagesDb: InitiativeStage[] =
         await this.initiativeStageRepository.find();
 
-      await Promise.all(
-        oldWorkpackagesDb.map(async (ow) => {
-          ow.initiative_stage_object = initiativeStagesDb.find(
-            (is) => is.id === ow.submission_tool_initiative_stage_id,
-          );
-        }),
-      );
+      oldWorkpackagesDb.map((ow) => {
+        ow.initiative_stage_object = initiativeStagesDb.find(
+          (is) => is.id === ow.submission_tool_initiative_stage_id,
+        );
+      });
 
       const oldWorkpackageCountriesDb: WorkpackageCountry[] =
         await this.workpackageCountryRepository.find();
@@ -70,11 +69,9 @@ export class OSTCron {
       let updatedWorkpackageCountriesDb: WorkpackageCountry[] = [];
       let newWorkpackageCountriesDb: WorkpackageCountry[] = [];
 
-      await Promise.all(
-        oldWorkpackageCountriesDb.map(async (owc) => {
-          owc.country_object = countries.find((c) => c.id === owc.country_id);
-        }),
-      );
+      oldWorkpackageCountriesDb.map((owc) => {
+        owc.country_object = countries.find((c) => c.id === owc.country_id);
+      });
 
       const oldWorkpackageRegionsDb: WorkpackageRegion[] =
         await this.workpackageRegionRepository.find();
@@ -82,11 +79,9 @@ export class OSTCron {
       let updatedWorkpackageRegionsDb: WorkpackageRegion[] = [];
       let newWorkpackageRegionsDb: WorkpackageRegion[] = [];
 
-      await Promise.all(
-        oldWorkpackageRegionsDb.map(async (owr) => {
-          owr.region_object = regions.find((r) => r.id === owr.region_id);
-        }),
-      );
+      oldWorkpackageRegionsDb.map((owr) => {
+        owr.region_object = regions.find((r) => r.id === owr.region_id);
+      });
 
       const workpackagesOST: WorkpackageOstDto[] =
         workpackagesRequest.data?.response?.workpackages ?? [];
@@ -484,6 +479,7 @@ export class OSTCron {
 
     if (initiativesRequest && initiativesRequest.status === HttpStatus.OK) {
       this.logger.debug('Started initiative synchronization');
+
       const oldInitiativesDb: Initiative[] =
         await this.initiativeRepository.find();
       let updatedInitiativesDb: Initiative[] = [];

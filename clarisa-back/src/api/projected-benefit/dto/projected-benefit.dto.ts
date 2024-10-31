@@ -1,8 +1,7 @@
-import { OmitType } from '@nestjs/mapped-types';
 import { DepthDescriptionDto } from '../../depth-description/dto/depth-description.dto';
 import { ImpactAreaIndicatorDto } from '../../impact-area-indicator/dto/impact-area-indicator.dto';
 import { ProjectedBenefitWeightingDtoV1 } from '../../projected-benefit-weighting/dto/projected-benefit-weighting.v1.dto';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 
 export class ProjectedBenefitDto extends OmitType(ImpactAreaIndicatorDto, [
   'indicatorId',

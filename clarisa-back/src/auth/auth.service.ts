@@ -1,13 +1,14 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ModuleRef } from '@nestjs/core';
 import { BaseAuthenticator } from './utils/interface/BaseAuthenticator';
 import { LDAPAuth } from './utils/LDAPAuth';
 import { DBAuth } from './utils/DBAuth';
-import { BaseMessageDTO } from './utils/BaseMessageDTO';
 import { UserService } from '../api/user/user.service';
 import { User } from '../api/user/entities/user.entity';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { BaseHttpError } from '../shared/errors/base-http-error';
+import { ResponseDto } from '../shared/entities/dtos/response.dto';
 
 @Injectable()
 export class AuthService {
@@ -21,29 +22,36 @@ export class AuthService {
     login = login.trim().toLowerCase();
     const user: User = await this.usersService
       .findOneByEmail(login, false)
-      .then((u) => {
-        return u ?? this.usersService.findOneByUsername(login, false);
+      .catch(() => {
+        return this.usersService
+          .findOneByUsername(login, false)
+          .catch((error) => {
+            throw ResponseDto.buildCustomResponse(
+              error.additionalData,
+              error.message,
+              error.status,
+            );
+          });
       });
-    let authenticator: BaseAuthenticator;
 
-    if (user) {
-      authenticator = this.moduleRef.get(
-        user.is_cgiar_user ? LDAPAuth : DBAuth,
-      );
-      const authResult: boolean | BaseMessageDTO = await authenticator
-        .authenticate(user.email, pass)
-        .catch((err) => {
-          throw new HttpException(err, err.httpCode);
-        });
-      if (authResult.constructor.name === Boolean.name) {
+    const authenticator: BaseAuthenticator = this.moduleRef.get(
+      user.is_cgiar_user ? LDAPAuth : DBAuth,
+    );
+
+    return authenticator
+      .authenticate(user.email, pass)
+      .catch((error) => {
+        if (error instanceof BaseHttpError) {
+          throw ResponseDto.buildCustomResponse(
+            error.additionalData,
+            error.message,
+            error.status,
+          );
+        }
+      })
+      .then(() => {
         return user;
-      }
-    } else {
-      throw new HttpException(
-        'Invalid credentials. Please check the provided login data and try again.',
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
+      });
   }
 
   async login(user: User): Promise<LoginResponseDto> {

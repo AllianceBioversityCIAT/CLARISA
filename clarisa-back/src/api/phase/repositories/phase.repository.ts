@@ -94,8 +94,6 @@ export class PhaseRepository {
           where: whereClause,
         })) as Phase[];
         break;
-      default:
-        throw Error(`The mis "${prmsApp}" was not found!`);
     }
 
     return phases;

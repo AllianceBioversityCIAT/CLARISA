@@ -5,6 +5,8 @@ import { TechnologyDevelopmentStage } from './entities/technology-development-st
 import { TechnologyDevelopmentStageRepository } from './repositories/technology-development-stage.repository';
 import { TechnologyDevelopmentStageMapper } from './mappers/technology-development-stage.mapper';
 import { TechnologyDevelopmentStageDto } from './dto/technology-development-stage.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class TechnologyDevelopmentStageService {
@@ -34,7 +36,11 @@ export class TechnologyDevelopmentStageService {
           });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._technologyDevelopmentStagesRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._technologyDevelopmentStageMapper.classListToDtoList(
@@ -43,17 +49,22 @@ export class TechnologyDevelopmentStageService {
   }
 
   async findOne(id: number): Promise<TechnologyDevelopmentStageDto> {
-    const technologyDevelopmentStage: TechnologyDevelopmentStage =
-      await this._technologyDevelopmentStagesRepository.findOneBy({
+    return this._technologyDevelopmentStagesRepository
+      .findOneByOrFail({
         id,
         auditableFields: { is_active: true },
-      });
-
-    return technologyDevelopmentStage
-      ? this._technologyDevelopmentStageMapper.classToDto(
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._technologyDevelopmentStagesRepository.target.toString(),
+          id,
+        );
+      })
+      .then((technologyDevelopmentStage) =>
+        this._technologyDevelopmentStageMapper.classToDto(
           technologyDevelopmentStage,
-        )
-      : null;
+        ),
+      );
   }
 
   async update(

@@ -4,9 +4,9 @@ import { AppModule } from './app.module';
 import { dataSource } from './ormconfig';
 import 'dotenv/config';
 import { VersioningType } from '@nestjs/common';
-import { versionExtractor } from './shared/interfaces/version-extractor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppConfig } from './shared/utils/app-config';
+import { versionExtractor } from './shared/interceptors/version-extractor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

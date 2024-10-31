@@ -54,8 +54,8 @@ export class WorkpackageController {
       'Get all workpackages, optionally filtered by workpackage status, and initiative status',
   })
   async findAll(
-    @Query('workpackages') showWorkpackages: FindAllOptions,
-    @Query('initiatives') showInitiatives: FindAllOptions,
+    @Query('showWorkpackages') showWorkpackages: FindAllOptions,
+    @Query('showInitiatives') showInitiatives: FindAllOptions,
   ) {
     return await this.workpackageService.findAll(
       showWorkpackages,

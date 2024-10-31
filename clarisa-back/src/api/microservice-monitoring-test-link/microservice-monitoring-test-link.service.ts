@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { MicroserviceMonitoringTestLinkRepository } from './repositories/microservice-monitoring-test-link.repository';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { MicroserviceMonitoringTestLinkDto } from './dto/microservice-monitoring-test-link.dto';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
 
 @Injectable()
 export class MicroserviceMonitoringTestLinkService {
@@ -24,14 +26,25 @@ export class MicroserviceMonitoringTestLinkService {
           },
         });
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._microserviceMonitoringTestLinkRepository.target.toString(),
+          'option',
+          option,
+        );
     }
   }
 
   async findOne(id: number): Promise<MicroserviceMonitoringTestLinkDto> {
-    return await this._microserviceMonitoringTestLinkRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+    return this._microserviceMonitoringTestLinkRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._microserviceMonitoringTestLinkRepository.target.toString(),
+          id,
+        );
+      });
   }
 }

@@ -6,6 +6,9 @@ import { CgiarEntityTypeRepository } from '../cgiar-entity-type/repositories/cgi
 import { CenterMapper } from './mappers/center.mapper';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { CenterDtoV1 } from './dto/center.v1.dto';
+import { InternalServerError } from '../../shared/errors/internal-server-error';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class CenterService {
@@ -31,7 +34,7 @@ export class CenterService {
     });
 
     if (!type) {
-      throw Error('Center type not found?!');
+      throw new InternalServerError('Center type not found.');
     }
 
     switch (option) {
@@ -52,7 +55,11 @@ export class CenterService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._centerRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     result.forEach((center) => {
@@ -68,7 +75,7 @@ export class CenterService {
     });
 
     if (!type) {
-      throw Error('Center type not found?!');
+      throw new InternalServerError('Center type not found.');
     }
 
     const result = await this._centerRepository.findOneBy({
@@ -81,6 +88,9 @@ export class CenterService {
       return this._centerMapper.classToDtoV1(result);
     }
 
-    return null;
+    throw ClarisaEntityNotFoundError.forId(
+      this._centerRepository.target.toString(),
+      id,
+    );
   }
 }

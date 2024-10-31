@@ -2,7 +2,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { HandlebarsTemplateRepository } from './repositories/handlebars-template.repository';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { FileNotFoundError } from '../../shared/errors/file-not-found.error';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class HandlebarsTemplateService {
@@ -26,26 +27,45 @@ export class HandlebarsTemplateService {
           },
         });
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._handlebarsTemplateRepository.target.toString(),
+          'option',
+          option,
+        );
     }
   }
 
   findOneById(id: number) {
-    return this._handlebarsTemplateRepository.findOne({
-      where: {
-        id,
-        auditableFields: { is_active: true },
-      },
-    });
+    return this._handlebarsTemplateRepository
+      .findOneOrFail({
+        where: {
+          id,
+          auditableFields: { is_active: true },
+        },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._handlebarsTemplateRepository.target.toString(),
+          id,
+        );
+      });
   }
 
   findOneByName(name: string) {
-    return this._handlebarsTemplateRepository.findOne({
-      where: {
-        name,
-        auditableFields: { is_active: true },
-      },
-    });
+    return this._handlebarsTemplateRepository
+      .findOneOrFail({
+        where: {
+          name,
+          auditableFields: { is_active: true },
+        },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forSingleParam(
+          this._handlebarsTemplateRepository.target.toString(),
+          'name',
+          name,
+        );
+      });
   }
 
   async getAndUpdateTemplate(templatePath: string): Promise<string> {
@@ -59,7 +79,11 @@ export class HandlebarsTemplateService {
         if (!hbt) {
           const errorMessage = `error reading template on path ${templatePath}.`;
           this._logger.error(errorMessage);
-          throw new FileNotFoundError(errorMessage);
+          throw new BadParamsError(
+            this._handlebarsTemplateRepository.target.toString(),
+            'templatePath',
+            templatePath,
+          );
         }
 
         return this._cache.set(templatePath, hbt.template).then(() => {
