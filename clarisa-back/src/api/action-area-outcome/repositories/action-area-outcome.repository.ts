@@ -16,9 +16,9 @@ export class ActionAreaOutcomeRepository extends Repository<ActionAreaOutcome> {
       .where('aao.id = :id', { id })
       .select([
         'aao.id as id',
-        'aao.smo_code as smoCode',
-        'aao.outcome_statement as outcomeStatement',
-        'aao.auditableFields.is_active as isActive',
+        'aao.smo_code as smo_code',
+        'aao.outcome_statement as outcome_statement',
+        'aao.auditableFields.is_active as is_active',
       ])
       .getRawOne();
   }

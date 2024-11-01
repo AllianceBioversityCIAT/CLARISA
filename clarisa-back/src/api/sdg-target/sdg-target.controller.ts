@@ -38,7 +38,7 @@ export class SdgTargetController {
   })
   @ApiOkResponse({ type: [SdgTargetV1Dto] })
   @ApiOperation({
-    summary: 'Get all SDG Targets (legacy), optionally filtered by status',
+    summary: 'Get all SDG Targets, optionally filtered by status',
   })
   async findAllV1(@Query('show') show: FindAllOptions) {
     return await this.sdgTargetService.findAllV1(show);

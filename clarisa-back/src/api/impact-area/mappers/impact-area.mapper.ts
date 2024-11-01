@@ -11,6 +11,7 @@ export class ImpactAreaMapper {
     impactAreaDto.name = impactArea.name;
     impactAreaDto.icon = impactArea.icon;
     impactAreaDto.color = impactArea.color;
+    impactAreaDto.financialCode = impactArea.financial_code;
 
     return impactAreaDto;
   }
