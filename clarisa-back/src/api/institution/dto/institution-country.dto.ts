@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { RegionDto } from '../../region/dto/region.dto';
+import { UnRegionDto } from '../../region/dto/un-region.dto';
 
 export class InstitutionCountryDto {
   @ApiProperty({
@@ -29,8 +29,8 @@ export class InstitutionCountryDto {
 
   @ApiProperty({
     description: 'The region of the country linked to the institution',
-    type: RegionDto,
+    type: UnRegionDto,
     default: null,
   })
-  regionDTO: RegionDto = null;
+  regionDTO: UnRegionDto = null;
 }

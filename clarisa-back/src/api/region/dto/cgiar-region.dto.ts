@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { SimpleCountryDto } from '../../country/dto/simple-country.dto';
-import { ParentRegionDto } from './parent-region.dto';
 
-export class RegionDto {
+export class CgiarRegionDto {
   @ApiProperty({
     description: 'The id of the region',
     type: Number,
@@ -21,19 +20,6 @@ export class RegionDto {
     type: String,
   })
   acronym: string;
-
-  @ApiProperty({
-    description: 'The UN M49 code of the region',
-    type: Number,
-  })
-  um49Code: number;
-
-  @ApiProperty({
-    description: 'The parent of the region',
-    type: ParentRegionDto,
-    nullable: true,
-  })
-  parentRegion: ParentRegionDto;
 
   @ApiProperty({
     description: 'The countries in the region',

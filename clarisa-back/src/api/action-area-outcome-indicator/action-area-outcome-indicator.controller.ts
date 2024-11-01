@@ -59,7 +59,7 @@ export class ActionAreaOutcomeIndicatorController {
     required: true,
     description: 'The id of the action area outcome indicator',
   })
-  @ApiOkResponse({ type: ActionAreaOutcomeIndicator })
+  @ApiOkResponse({ type: ActionAreaOutcomeIndicatorDto })
   @ApiOperation({
     summary: 'Get an action area outcome indicator by id',
   })

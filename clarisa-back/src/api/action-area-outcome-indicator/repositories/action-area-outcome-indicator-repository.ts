@@ -50,4 +50,22 @@ export class ActionAreaOutcomeIndicatorRepository extends Repository<ActionAreaO
       ? (querybuilder as Promise<ActionAreaOutcomeDto[]>)
       : (querybuilder as Promise<ActionAreaOutcomeIndicatorDto[]>);
   }
+
+  async findActionAreaOutcomeIndicatorById(
+    id: number,
+  ): Promise<ActionAreaOutcomeIndicatorDto> {
+    return (
+      this.findActionAreaOutcomeIndicators(
+        FindAllOptions.SHOW_ALL,
+        false,
+        id,
+      ) as Promise<ActionAreaOutcomeIndicatorDto[]>
+    ).then((aaois) => {
+      if (!aaois?.length) {
+        throw Error();
+      }
+
+      return aaois[0];
+    });
+  }
 }

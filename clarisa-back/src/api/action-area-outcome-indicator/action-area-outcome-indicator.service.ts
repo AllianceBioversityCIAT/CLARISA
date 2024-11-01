@@ -30,22 +30,14 @@ export class ActionAreaOutcomeIndicatorService {
   }
 
   async findOne(id: number): Promise<ActionAreaOutcomeIndicatorDto> {
-    return (
-      this._actionAreaOutcomeIndicatorRepository.findActionAreaOutcomeIndicators(
-        FindAllOptions.SHOW_ALL,
-        false,
-        id,
-      ) as Promise<ActionAreaOutcomeIndicatorDto[]>
-    ).then((actionAreaOutcomeIndicator) => {
-      if (actionAreaOutcomeIndicator?.length === 0) {
+    return this._actionAreaOutcomeIndicatorRepository
+      .findActionAreaOutcomeIndicatorById(id)
+      .catch(() => {
         throw ClarisaEntityNotFoundError.forId(
           this._actionAreaOutcomeIndicatorRepository.target.toString(),
           id,
         );
-      }
-
-      return actionAreaOutcomeIndicator[0];
-    });
+      });
   }
 
   async update(

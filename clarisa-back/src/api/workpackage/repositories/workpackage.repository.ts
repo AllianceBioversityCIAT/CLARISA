@@ -24,7 +24,7 @@ export class WorkpackageRepository extends Repository<Workpackage> {
       case FindAllOptions.SHOW_ONLY_INACTIVE:
         where = `where stwp.is_active = ${
           showWorkpackages === FindAllOptions.SHOW_ONLY_ACTIVE ? 1 : 0
-        } `;
+        }`;
         break;
     }
 
@@ -34,14 +34,14 @@ export class WorkpackageRepository extends Repository<Workpackage> {
         break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        where += `${where ? 'and' : 'where'} stis.is_active = ${
+        where += `${where ? ' and' : 'where'} stis.is_active = ${
           showInitiatives === FindAllOptions.SHOW_ONLY_ACTIVE ? 1 : 0
         }`;
         break;
     }
 
     if (workpackageId) {
-      where += `${where ? 'and' : 'where'} stwp.id = ${workpackageId}`;
+      where += `${where ? ' and' : 'where'} stwp.id = ${workpackageId}`;
     }
 
     const workpackageQuery = `

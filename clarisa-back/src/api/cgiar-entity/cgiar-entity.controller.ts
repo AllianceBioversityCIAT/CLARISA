@@ -45,7 +45,8 @@ export class CgiarEntityController {
   })
   @ApiOkResponse({ type: [CgiarEntityDtoV1] })
   @ApiOperation({
-    summary: 'Get all CGIAR entities, optionally filtered by status and type',
+    summary:
+      'Get all CGIAR entities, optionally filtered by status and type (Legacy)',
   })
   async findAllV1(
     @Query('show') show: FindAllOptions,

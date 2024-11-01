@@ -177,7 +177,7 @@ export class MisService {
       .catch(() => {
         throw ClarisaEntityNotFoundError.forMultipleParams(
           this._misRepository.target.toString(),
-          [{ acronym }, { environment }],
+          { acronym, environment },
         );
       })
       .then((mis) => this._misMapper.classToDto(mis));
