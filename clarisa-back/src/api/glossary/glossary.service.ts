@@ -11,6 +11,7 @@ import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-n
 export class GlossaryService {
   constructor(private _glossaryRepository: GlossaryRepository) {}
   private readonly _select: FindOptionsSelect<Glossary> = {
+    id: true,
     term: true,
     definition: true,
   };
@@ -36,6 +37,7 @@ export class GlossaryService {
         return this._glossaryRepository.find({
           where: whereClause,
           order: orderClause,
+          select: this._select,
         });
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
@@ -62,7 +64,7 @@ export class GlossaryService {
   findOne(id: number) {
     return this._glossaryRepository
       .findOneOrFail({
-        where: { id },
+        where: { id, auditableFields: { is_active: true } },
         select: this._select,
       })
       .catch(() => {

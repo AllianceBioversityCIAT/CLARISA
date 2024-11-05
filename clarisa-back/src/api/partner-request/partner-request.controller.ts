@@ -85,15 +85,15 @@ export class PartnerRequestController {
 
   @Get('all/:mis')
   @ApiQuery({
-    name: 'show',
-    enum: FindAllOptions,
+    name: 'status',
+    enum: PartnerStatus.getAsEnumLikeObject(),
     required: false,
     description:
-      'Show active, inactive or all partner requests. Defaults to active.',
+      'Show only partner requests with a specific status. Defaults to pending.',
   })
   @ApiParam({
     name: 'mis',
-    type: String,
+    enum: MisOption.getAsEnumLikeObject(),
     required: true,
     description:
       'The acronym of the MIS to filter the partner requests. Defaults to all.',
@@ -101,7 +101,7 @@ export class PartnerRequestController {
   @ApiOkResponse({ type: [PartnerRequestDto] })
   @ApiOperation({
     summary:
-      'Get all partner requests from a specific MIS, optionally filtered by status and source',
+      'Get all active partner requests from a specific MIS, optionally filtered by status and mis',
   })
   async findAllMis(@Query('status') status: string, @Param('mis') mis: string) {
     return await this.partnerRequestService.findAll(status, mis);
@@ -165,7 +165,7 @@ export class PartnerRequestController {
     },
   })
   @ApiQuery({
-    name: 'source',
+    name: 'mis',
     enum: MisOption.getAsEnumLikeObject(),
     required: false,
     description: `The MIS to link this new request to. If it's not provided, the MIS will be taken from the request's body (misAcronym).`,

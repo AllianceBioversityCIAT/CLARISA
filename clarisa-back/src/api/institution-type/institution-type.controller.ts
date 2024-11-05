@@ -28,6 +28,7 @@ import {
 import { InstitutionTypeDto } from './dto/institution-type.dto';
 import { SourceOption } from '../../shared/entities/enums/source-options';
 import { InstitutionTypeFromParentDto } from './dto/institution-type-from-parent.dto';
+import { SimpleInstitutionTypeDto } from './dto/simple-institution-type.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
@@ -79,7 +80,7 @@ export class InstitutionTypeController {
     description:
       'Show only institution types from a specific source. Defaults to all.',
   })
-  @ApiOkResponse({ type: [InstitutionTypeDto] })
+  @ApiOkResponse({ type: [SimpleInstitutionTypeDto] })
   @ApiOperation({
     summary:
       'Get all institution types with flattened data, optionally filtered by status and source',

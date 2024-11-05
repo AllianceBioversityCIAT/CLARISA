@@ -14,4 +14,10 @@ export class MisDto extends OmitType(BasicDtoV1, ['description'] as const) {
     type: Number,
   })
   main_contact_point_id: number;
+
+  @ApiProperty({
+    description: 'The acronym of the environment',
+    type: String,
+  })
+  environment: string;
 }

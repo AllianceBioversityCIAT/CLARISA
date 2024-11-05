@@ -13,13 +13,13 @@ export class AppSecretMapper {
     appSecretDto.client_id = appSecret.relation_uuid;
 
     if (appSecret.sender_mis_object) {
-      appSecretDto.sender_mis = this._misMapper.classToSimpleDto(
+      appSecretDto.sender_mis = this._misMapper.classToDto(
         appSecret.sender_mis_object,
       );
     }
 
     if (appSecret.receiver_mis_object) {
-      appSecretDto.receiver_mis = this._misMapper.classToSimpleDto(
+      appSecretDto.receiver_mis = this._misMapper.classToDto(
         appSecret.receiver_mis_object,
       );
     }

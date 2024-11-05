@@ -26,7 +26,8 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { RegionDto } from './dto/region.dto';
+import { UnRegionDto } from './dto/un-region.dto';
+import { CgiarRegionDto } from './dto/cgiar-region.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
@@ -41,12 +42,15 @@ export class RegionController {
     required: false,
     description: 'Show active, inactive or all regions. Defaults to active.',
   })
-  @ApiOkResponse({ type: [RegionDto] })
+  @ApiOkResponse({ type: [UnRegionDto] })
   @ApiOperation({
     summary: 'Get all UN regions, optionally filtered by status',
   })
   async findAllUNRegions(@Query('show') show: FindAllOptions) {
-    return await this.regionService.findAll(RegionTypeEnum.UN_REGION, show);
+    return this.regionService.findRegions(
+      RegionTypeEnum.UN_REGION,
+      show,
+    ) as Promise<UnRegionDto[]>;
   }
 
   @Get('one-cgiar-regions')
@@ -56,12 +60,15 @@ export class RegionController {
     required: false,
     description: 'Show active, inactive or all regions. Defaults to active.',
   })
-  @ApiOkResponse({ type: [RegionDto] })
+  @ApiOkResponse({ type: [CgiarRegionDto] })
   @ApiOperation({
     summary: 'Get all One CGIAR regions, optionally filtered by status',
   })
   async findAllCGIARRegions(@Query('show') show: FindAllOptions) {
-    return await this.regionService.findAll(RegionTypeEnum.CGIAR_REGION, show);
+    return this.regionService.findRegions(
+      RegionTypeEnum.CGIAR_REGION,
+      show,
+    ) as Promise<CgiarRegionDto[]>;
   }
 
   @Get('get/:id')
@@ -71,12 +78,24 @@ export class RegionController {
     required: true,
     description: 'The id of the region',
   })
-  @ApiOkResponse({ type: [RegionDto] })
-  @ApiOperation({
-    summary: 'Get a region by id',
+  @ApiQuery({
+    name: 'type',
+    enum: RegionTypeEnum.getAsEnumLikeObject(),
+    required: true,
+    description: 'The type of the region',
   })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return await this.regionService.findOne(id);
+  @ApiOkResponse({ type: CgiarRegionDto })
+  @ApiOperation({
+    summary: 'Get a region by id and type',
+  })
+  async findOneByIdAndType(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('type') type: string,
+  ) {
+    return this.regionService.findRegionByIdAndType(
+      id,
+      type,
+    ) as Promise<CgiarRegionDto>;
   }
 
   @Patch('update')

@@ -62,21 +62,33 @@ export class SdgTargetService {
   }
 
   async findAllV1(option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE) {
-    return this._findAll(option, this._sdgTargetMapper.classListToDtoV1List);
+    const boundMapper = this._sdgTargetMapper.classListToDtoV1List.bind(
+      this._sdgTargetMapper,
+    );
+    return this._findAll(option, boundMapper);
   }
 
   async findAllV2(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<SdgTargetV2Dto[]> {
-    return this._findAll(option, this._sdgTargetMapper.classListToDtoV2List);
+    const boundMapper = this._sdgTargetMapper.classListToDtoV2List.bind(
+      this._sdgTargetMapper,
+    );
+    return this._findAll(option, boundMapper);
   }
 
   async findOneV1(id: number): Promise<SdgTargetV1Dto> {
-    return this._findOne(id, this._sdgTargetMapper.classToDtoV1);
+    const boundMapper = this._sdgTargetMapper.classToDtoV1.bind(
+      this._sdgTargetMapper,
+    );
+    return this._findOne(id, boundMapper);
   }
 
   async findOneV2(id: number): Promise<SdgTargetV2Dto> {
-    return this._findOne(id, this._sdgTargetMapper.classToDtoV2);
+    const boundMapper = this._sdgTargetMapper.classToDtoV2.bind(
+      this._sdgTargetMapper,
+    );
+    return this._findOne(id, boundMapper);
   }
 
   findAllForIpsr(

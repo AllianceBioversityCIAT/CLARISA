@@ -193,7 +193,7 @@ export class CountryOfficeRequestController {
           externalUserComments:
             'You can find the information about the offices in the following link: www.example.com',
           id: 1,
-          modification_justification:
+          modificationJustification:
             'The country linked to the request was wrong',
           countryIso: 'SZ',
         },

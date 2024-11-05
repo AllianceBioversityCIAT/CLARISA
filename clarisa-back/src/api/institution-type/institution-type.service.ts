@@ -10,6 +10,7 @@ import { InstitutionTypeMapper } from './mappers/institution-type.mapper';
 import { InstitutionTypeRepository } from './repositories/institution-type.repository';
 import { BadParamsError } from '../../shared/errors/bad-params.error';
 import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
+import { SimpleInstitutionTypeDto } from './dto/simple-institution-type.dto';
 
 @Injectable()
 export class InstitutionTypeService {
@@ -73,7 +74,7 @@ export class InstitutionTypeService {
   async findAllSimple(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     type: string = SourceOption.ONE_CGIAR.path,
-  ): Promise<InstitutionTypeDto[]> {
+  ): Promise<SimpleInstitutionTypeDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
       throw new BadParamsError(
         this._institutionTypesRepository.target.toString(),

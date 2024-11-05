@@ -16,11 +16,11 @@ export class UnitRepository extends Repository<Unit> {
   ): Promise<UnitDto[]> {
     let whereClause: string = '';
     if (option !== FindAllOptions.SHOW_ALL) {
-      whereClause = `where is_active = ${option === FindAllOptions.SHOW_ONLY_ACTIVE}`;
+      whereClause = `where u.is_active = ${option === FindAllOptions.SHOW_ONLY_ACTIVE}`;
     }
 
     if (unitId) {
-      whereClause += `${whereClause ? ' and' : 'where'} id = ${unitId}`;
+      whereClause += `${whereClause ? ' and' : 'where'} u.id = ${unitId}`;
     }
 
     const query = `

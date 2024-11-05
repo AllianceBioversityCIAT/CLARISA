@@ -20,7 +20,7 @@ export class UpdateCountryOfficeRequestDto extends OmitType(
     type: String,
   })
   @IsNotEmpty()
-  modification_justification: string;
+  modificationJustification: string;
 
   @ApiProperty({
     description: 'The new country ISO Alpha-2 of the country office request',

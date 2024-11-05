@@ -50,11 +50,13 @@ export class InitiativeRepository extends Repository<Initiative> {
     initiativeCode?: string,
   ) {
     let whereCondition = '';
+
     if (initiativeId) {
       whereCondition = `where sti.id = ${initiativeId}`;
     } else if (initiativeCode) {
       whereCondition = `where sti.official_code like '%${initiativeCode}%'`;
     }
+
     if (option !== FindAllOptions.SHOW_ALL) {
       if (whereCondition) {
         whereCondition += ` and stis.is_active = ${option === FindAllOptions.SHOW_ONLY_ACTIVE}`;

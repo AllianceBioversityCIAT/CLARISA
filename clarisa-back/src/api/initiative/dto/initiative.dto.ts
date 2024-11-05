@@ -1,63 +1,78 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { StageDto } from './stage.dto';
 
 export class InitiativeDto {
-  /**
-   * The initiative id
-   */
+  @ApiProperty({
+    description: 'The id of the initiative',
+    minimum: 1,
+    type: Number,
+  })
   id: number;
 
-  /**
-   * The initiative name
-   */
+  @ApiProperty({
+    description: 'The initiative name',
+    type: String,
+  })
   name: string;
 
-  /**
-   * The initiative short name
-   */
+  @ApiProperty({
+    description: 'The initiative short name',
+    type: String,
+  })
   short_name: string;
 
-  /**
-   * The initiative official code (smo_code?)
-   */
+  @ApiProperty({
+    description: 'The initiative official code',
+    type: String,
+  })
   official_code: string;
 
-  /**
-   * The initiative status (is active?)
-   */
+  @ApiProperty({
+    description: 'Is the initiative active?',
+    type: Boolean,
+  })
   active: number;
 
-  /**
-   * The initiative status (Approved, Submitted, On hold, Editing, etc)
-   */
+  @ApiProperty({
+    description: 'The initiative status',
+    type: String,
+    examples: ['Approved', 'Submitted', 'On hold', 'Editing'],
+  })
   status: string;
 
-  /**
-   * The initiative <b>current</b> stage id
-   */
+  @ApiProperty({
+    description: 'The initiative current stage id',
+    type: Number,
+  })
   stageId: number;
 
-  /**
-   * The initiative <b>current</b> stage description
-   */
+  @ApiProperty({
+    description: 'The initiative current stage description',
+    type: String,
+  })
   description: string;
 
-  /**
-   * The initiative action area id
-   */
+  @ApiProperty({
+    description: 'The initiative action area id',
+    type: Number,
+  })
   action_area_id: number;
 
-  /**
-   * The initiative action area description
-   */
+  @ApiProperty({
+    description: 'The initiative action area description',
+    type: String,
+  })
   action_area_description: string;
 
-  /**
-   * All initiative stages
-   */
+  @ApiProperty({
+    description: 'All initiative stages',
+    type: [StageDto],
+  })
   stages: StageDto[];
 
-  /**
-   * The initiative type id
-   */
+  @ApiProperty({
+    description: 'The initiative type id',
+    type: Number,
+  })
   type_id: number;
 }

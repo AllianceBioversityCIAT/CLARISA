@@ -42,6 +42,10 @@ export class CronjobController {
   }
 
   @Get('global-parameters/refresh')
+  @ApiOperation({
+    summary: 'Update all global parameters cache',
+  })
+  @ApiBearerAuth()
   async refreshGlobalParametersCache() {
     this._cronGlobalParam.cronRefreshGlobalParametersCache();
   }

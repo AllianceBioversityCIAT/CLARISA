@@ -85,17 +85,9 @@ export class MisService {
 
     return this._misRepository
       .save(mis)
-      .then((mis) =>
-        this._misRepository.findOne({
-          where: { id: mis.id },
-          ...this._where,
-        }),
-      )
+      .then((mis) => this.findOne(mis.id))
       .then((mis) => {
-        return ResponseDto.buildCreatedResponse(
-          this._misMapper.classToSimpleDto(mis),
-          MisService,
-        );
+        return ResponseDto.buildCreatedResponse(mis, MisService);
       });
   }
 
@@ -141,12 +133,15 @@ export class MisService {
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<MisDto[]> {
+    let mises: Mis[] = [];
+
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return await this._misRepository.find(this._where);
+        mises = await this._misRepository.find(this._where);
+        break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return await this._misRepository.find({
+        mises = await this._misRepository.find({
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
@@ -154,6 +149,7 @@ export class MisService {
           },
           ...this._where,
         });
+        break;
       default:
         throw new BadParamsError(
           this._misRepository.target.toString(),
@@ -161,12 +157,14 @@ export class MisService {
           option,
         );
     }
+
+    return this._misMapper.classListToDtoList(mises);
   }
 
   async findOneByAcronymAndEnvironment(
     acronym: string,
     environment: string,
-  ): Promise<Mis> {
+  ): Promise<MisDto> {
     return this._misRepository
       .findOneOrFail({
         where: {
@@ -179,18 +177,27 @@ export class MisService {
       .catch(() => {
         throw ClarisaEntityNotFoundError.forMultipleParams(
           this._misRepository.target.toString(),
-          [{ acronym }, { environment }],
+          { acronym, environment },
         );
-      });
+      })
+      .then((mis) => this._misMapper.classToDto(mis));
   }
 
-  async findOne(id: number): Promise<Mis> {
-    return await this._misRepository.findOne({
-      where: {
-        id,
-        auditableFields: { is_active: true },
-      },
-      ...this._where,
-    });
+  async findOne(id: number): Promise<MisDto> {
+    return await this._misRepository
+      .findOneOrFail({
+        where: {
+          id,
+          auditableFields: { is_active: true },
+        },
+        ...this._where,
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._misRepository.target.toString(),
+          id,
+        );
+      })
+      .then((mis) => this._misMapper.classToDto(mis));
   }
 }

@@ -1,18 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SimpleMisDto } from '../../mis/dto/simple-mis.dto';
+import { CreateAppSecretMisDto } from './create-app-secret-mis.dto';
 
 export class CreateAppSecretDto {
   @ApiProperty({
     description: 'The sender MIS',
-    type: SimpleMisDto,
+    type: CreateAppSecretMisDto,
     required: true,
   })
-  sender_mis: SimpleMisDto;
+  sender_mis: CreateAppSecretMisDto;
 
   @ApiProperty({
     description: 'The receiver MIS',
-    type: SimpleMisDto,
+    type: CreateAppSecretMisDto,
     required: true,
   })
-  receiver_mis: SimpleMisDto;
+  receiver_mis: CreateAppSecretMisDto;
 }

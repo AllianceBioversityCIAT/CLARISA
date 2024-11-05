@@ -15,7 +15,7 @@ export class ClarisaEntityNotFoundError<T> extends BaseHttpError<T> {
     additionalData?: T,
   ) {
     return new ClarisaEntityNotFoundError(
-      `A(n) ${classNameCleaner(entityClass)} with ${paramName} = "${paramValue}" could not be found`,
+      `A(n) ${classNameCleaner(entityClass)} with "${paramName} = ${paramValue}" could not be found`,
       additionalData,
     );
   }
@@ -35,14 +35,14 @@ export class ClarisaEntityNotFoundError<T> extends BaseHttpError<T> {
 
   public static forMultipleParams<T>(
     entityClass: string,
-    params: { [key: string]: number | string }[],
+    params: { [key: string]: number | string },
     additionalData?: T,
   ) {
     const paramsString = Object.entries(params)
-      .map(([key, value]) => `${key} = "${value}"`)
+      .map(([key, value]) => `"${key} = ${value}"`)
       .join(', ');
     return new ClarisaEntityNotFoundError(
-      `A(n) ${classNameCleaner(entityClass)} with params => "${paramsString}" could not be found`,
+      `A(n) ${classNameCleaner(entityClass)} with params => "${paramsString}" <= could not be found`,
       additionalData,
     );
   }

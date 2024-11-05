@@ -35,14 +35,14 @@ export class WorkpackageController {
 
   @Get()
   @ApiQuery({
-    name: 'workpackages',
+    name: 'showWorkpackages',
     enum: FindAllOptions,
     required: false,
     description:
       'Show active, inactive or all workpackages. Defaults to active.',
   })
   @ApiQuery({
-    name: 'initiatives',
+    name: 'showInitiatives',
     enum: FindAllOptions,
     required: false,
     description:
@@ -68,7 +68,7 @@ export class WorkpackageController {
     name: 'id',
     type: Number,
     required: true,
-    description: 'The id of the beneficiary',
+    description: 'The id of the workpackage',
   })
   @ApiOkResponse({ type: [WorkpackageDto] })
   @ApiOperation({

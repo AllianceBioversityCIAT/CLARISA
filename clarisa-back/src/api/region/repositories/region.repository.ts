@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { RegionTypeEnum } from '../../../shared/entities/enums/region-types';
-import { SimpleCountryDto } from '../../country/dto/simple-country.dto';
-import { ParentRegionDto } from '../dto/parent-region.dto';
-import { RegionDto } from '../dto/region.dto';
+import { UnRegionDto } from '../dto/un-region.dto';
 import { Region } from '../entities/region.entity';
+import { CgiarRegionDto } from '../dto/cgiar-region.dto';
 
 @Injectable()
 export class RegionRepository extends Repository<Region> {
@@ -13,96 +12,93 @@ export class RegionRepository extends Repository<Region> {
     super(Region, dataSource.createEntityManager());
   }
 
-  async findRegions(
+  private _getQueryForRegionType(
     regionType: RegionTypeEnum,
-    option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    option: FindAllOptions,
     regionId?: number,
-  ): Promise<RegionDto[]> {
-    let whereClause: FindOptionsWhere<Region> = {
-      region_type_id: regionId ? undefined : regionType,
-    };
-    switch (option) {
-      case FindAllOptions.SHOW_ONLY_ACTIVE:
-      case FindAllOptions.SHOW_ONLY_INACTIVE:
-        whereClause = {
-          ...whereClause,
-          auditableFields: {
-            is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
-          },
-        };
-    }
-    const regions: Region[] = await this.find({
-      where: whereClause,
-      relations: {
-        parent_object: true,
-        country_region_array: {
-          country_object: true,
-        },
-        region_type_object: true,
-      },
-    });
-    const regionDtos: RegionDto[] = [];
+  ) {
+    let where: string = `where r.is_active and r.region_type_id = ?`;
 
-    if (regionId && regions.length === 1) {
-      if (regions[0].region_type_id in RegionTypeEnum) {
-        regionType = regions[0].region_type_id;
-      } else {
-        throw new Error('Region type not found');
-      }
+    if (option !== FindAllOptions.SHOW_ALL) {
+      where += ` and r.is_active = ?`;
     }
 
-    await Promise.all(
-      regions.map(async (r) => {
-        //TODO extract this to a mapper
-        const regionDto: RegionDto = new RegionDto();
-        let parentRegionDto: ParentRegionDto = null;
-
-        if (regionType === RegionTypeEnum.UN_REGION) {
-          regionDto.um49Code = r.iso_numeric;
-        } else if (regionType === RegionTypeEnum.CGIAR_REGION) {
-          regionDto.code = r.iso_numeric;
+    switch (regionType) {
+      case RegionTypeEnum.UN_REGION:
+        if (regionId) {
+          where += ` and r.iso_numeric = ?`;
         }
 
-        regionDto.name = r.name;
-        if (regionType !== RegionTypeEnum.UN_REGION) {
-          regionDto.acronym = r.acronym;
+        return `
+          select r.iso_numeric as um49Code, r.name,
+            if(r.parent_id is null, null, json_object(
+              "um49Code", parent.iso_numeric,
+              "name", parent.name
+            )) as parentRegion
+          from regions r
+          left join regions parent on r.parent_id = parent.id
+          ${where}
+        `;
+      case RegionTypeEnum.CGIAR_REGION:
+        if (regionId) {
+          where += ` and r.id = ?`;
         }
 
-        if (r.parent_object) {
-          parentRegionDto = new ParentRegionDto();
-          parentRegionDto.name = r.parent_object.name;
-          parentRegionDto.um49Code = r.parent_object.iso_numeric;
-          regionDto.parentRegion = parentRegionDto;
-        }
-
-        if (regionType === RegionTypeEnum.CGIAR_REGION) {
-          regionDto.countries = r.country_region_array.map((c) => {
-            const countryDto: SimpleCountryDto = new SimpleCountryDto();
-
-            countryDto.code = c.country_object.iso_numeric;
-            countryDto.isoAlpha2 = c.country_object.iso_alpha_2;
-            countryDto.isoAlpha3 = c.country_object.iso_alpha_3;
-            countryDto.name = c.country_object.name;
-
-            return countryDto;
-          });
-        }
-
-        regionDtos.push(regionDto);
-      }),
-    );
-
-    return regionDtos;
+        return `
+          select r.id as code, r.name, r.acronym, json_arrayagg(json_object(
+            "code", c.iso_numeric,
+            "isoAlpha2", c.iso_alpha_2,
+            "isoAlpha3", c.iso_alpha_3,
+            "name", c.name
+          )) as countries
+          from regions r
+          left join country_regions cr on cr.region_id = r.id and cr.is_active
+          left join countries c on cr.country_id = c.id and c.is_active
+          ${where}
+          group by r.id, r.name, r.acronym
+        `;
+    }
   }
 
-  async findRegionById(regionId: number): Promise<RegionDto> {
-    return this.findRegions(
-      undefined,
-      FindAllOptions.SHOW_ONLY_ACTIVE,
-      regionId,
+  async findRegions(
+    regionType: string | RegionTypeEnum,
+    option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+  ): Promise<(UnRegionDto | CgiarRegionDto)[]> {
+    const selectedRegionType =
+      typeof regionType === 'string'
+        ? RegionTypeEnum.getfromName(regionType)
+        : regionType;
+    const whereValues: (number | boolean)[] = [selectedRegionType.id];
+
+    if (option !== FindAllOptions.SHOW_ALL) {
+      whereValues.push(option === FindAllOptions.SHOW_ONLY_ACTIVE);
+    }
+
+    return this.query(
+      this._getQueryForRegionType(selectedRegionType, option),
+      whereValues,
+    );
+  }
+
+  async findRegionByIdAndType(
+    regionId: number,
+    regionType: string | RegionTypeEnum,
+  ): Promise<UnRegionDto | CgiarRegionDto> {
+    const selectedRegionType =
+      typeof regionType === 'string'
+        ? RegionTypeEnum.getfromName(regionType)
+        : regionType;
+
+    return this.query(
+      this._getQueryForRegionType(
+        selectedRegionType,
+        FindAllOptions.SHOW_ONLY_ACTIVE,
+        regionId,
+      ),
+      [selectedRegionType.id, true, regionId],
     ).then((regions) => {
       if (!regions?.length) {
-        throw new Error();
+        throw Error();
       }
 
       return regions[0];

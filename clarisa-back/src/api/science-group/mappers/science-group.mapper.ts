@@ -10,9 +10,9 @@ export class ScienceGroupMapper {
     scienceGroupDto.code = scienceGroup.id;
     scienceGroupDto.description = scienceGroup.description;
     scienceGroupDto.financialCode = scienceGroup.financial_code;
-    scienceGroupDto.parent = scienceGroup.parent_id
-      ? this.classToDto(scienceGroup.parent)
-      : null;
+    if (scienceGroup.parent_id) {
+      scienceGroupDto.parent = this.classToDto(scienceGroup.parent);
+    }
 
     return scienceGroupDto;
   }
