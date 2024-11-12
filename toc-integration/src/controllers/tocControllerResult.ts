@@ -17,7 +17,7 @@ export class tocController {
     }
   }
 
-  async getToc(req: Request, res: Response) {
+  async getToc(_req: Request, res: Response) {
     try {
       let servicesInformation = new TocServicesResults();
 
@@ -30,7 +30,7 @@ export class tocController {
     }
   }
 
-  async getHelloWorld(req: Request, res: Response) {
+  async getHelloWorld(_req: Request, res: Response) {
     try {
       res.status(200).json({ message: "Welcome to the ToC Integration 🍦" });
     } catch (error) {
@@ -40,7 +40,7 @@ export class tocController {
     }
   }
 
-  async getTest(req: Request, res: Response) {
+  async getTest(_req: Request, res: Response) {
     try {
       let servicesInformation = new TocServicesResults();
 
