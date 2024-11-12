@@ -10,7 +10,7 @@ export class Database {
   private static dataSource: DataSource;
 
   public static async getDataSource(): Promise<DataSource> {
-    if (this.dataSource && this.dataSource.isInitialized) {
+    if (this.dataSource?.isInitialized) {
       console.log(`Database.getDataSource() - using existing data source...`);
       return this.dataSource;
     } else {
