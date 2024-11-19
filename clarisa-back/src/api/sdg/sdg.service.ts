@@ -62,11 +62,17 @@ export class SdgService {
   }
 
   async findAllV1(option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE) {
-    return this._findAll(option, this._sdgMapper.classListToDtoV1List);
+    const boundMapper = this._sdgMapper.classListToDtoV1List.bind(
+      this._sdgMapper,
+    );
+    return this._findAll(option, boundMapper);
   }
 
   async findAllV2(option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE) {
-    return this._findAll(option, this._sdgMapper.classListToDtoV2List);
+    const boundMapper = this._sdgMapper.classListToDtoV2List.bind(
+      this._sdgMapper,
+    );
+    return this._findAll(option, boundMapper);
   }
 
   async findOneV1(id: number): Promise<SdgV1Dto> {
