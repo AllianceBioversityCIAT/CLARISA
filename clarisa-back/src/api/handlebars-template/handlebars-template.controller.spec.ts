@@ -11,7 +11,9 @@ describe('HandlebarsTemplateController', () => {
       providers: [HandlebarsTemplateService],
     }).compile();
 
-    controller = module.get<HandlebarsTemplateController>(HandlebarsTemplateController);
+    controller = module.get<HandlebarsTemplateController>(
+      HandlebarsTemplateController,
+    );
   });
 
   it('should be defined', () => {
