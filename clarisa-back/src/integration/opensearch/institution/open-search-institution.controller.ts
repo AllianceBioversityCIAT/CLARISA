@@ -27,6 +27,11 @@ export class OpenSearchInstitutionController {
     @Query('query') query: string,
     @Query('sample-size', new DefaultValuePipe(20), ParseIntPipe) size: number,
   ) {
-    return this.openSearchApi.search(query, size);
+    return this.openSearchApi.search(
+      query,
+      ['name', 'acronym'],
+      [{ code: { order: 'asc' } }],
+      size,
+    );
   }
 }

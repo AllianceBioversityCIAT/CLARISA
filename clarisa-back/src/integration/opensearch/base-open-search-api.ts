@@ -31,6 +31,7 @@ export abstract class BaseOpenSearchApi<
     protected readonly httpService: HttpService,
     protected readonly _mainRepo: Repo,
     protected readonly _appConfig: AppConfig,
+    customPrimaryKey?: string,
   ) {
     super(
       httpService,
@@ -47,10 +48,38 @@ export abstract class BaseOpenSearchApi<
         'Content-Type': 'application/x-ndjson',
       },
     };
-    this._primaryKey = this._mainRepo.metadata.primaryColumns[0]
-      .propertyName as keyof Entity;
+    if (customPrimaryKey) {
+      this._primaryKey = customPrimaryKey as keyof Entity;
+    } else {
+      this._primaryKey = this._mainRepo.metadata.primaryColumns[0]
+        .propertyName as keyof Entity;
+    }
     this._index = `${this._appConfig.opensearchDocumentName}_${this._mainRepo.metadata.tableName}`;
-    console.log(this._index);
+  }
+
+  async uploadSingleToOpenSearch(
+    data: number | OpenSearchEntity,
+  ): Promise<void> {
+    const isInstitutionId = typeof data === 'number';
+    const promise = isInstitutionId
+      ? this.findForOpenSearch(this._appConfig.opensearchDocumentName, [data])
+      : Promise.resolve([
+          this.getSingleElasticOperation(
+            this._index,
+            new ElasticOperationDto('PATCH', data),
+          ),
+        ]);
+
+    return promise
+      .then((elasticData) => this.sendBulkOperationToOpenSearch(elasticData))
+      .then(() => {
+        this.logger.log(
+          `Institution with id ${isInstitutionId ? data : data[this._primaryKey as string]} has been uploaded to OpenSearch`,
+        );
+      })
+      .catch((error) => {
+        this.logger.error(error);
+      });
   }
 
   async uploadInstitutionsToOpenSearch(

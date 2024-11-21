@@ -239,9 +239,7 @@ export class PartnerRequestService {
       .respondPartnerRequest(partnerRequest, respondPartnerRequestDto)
       .then((pr) => {
         if (respondPartnerRequestDto.accept && pr.institutionDTO) {
-          this.openSearchApi.uploadSingleInstitutionToOpenSearch(
-            pr.institutionDTO,
-          );
+          this.openSearchApi.uploadSingleToOpenSearch(pr.institutionDTO);
         }
 
         return pr;
