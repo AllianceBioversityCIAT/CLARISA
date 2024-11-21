@@ -6,9 +6,14 @@ import { SimpleRegionDto } from '../../region/dto/simple-region.dto';
 import { Region } from '../../region/entities/region.entity';
 import { CountryDto } from '../dto/country.dto';
 import { Country } from '../entities/country.entity';
+import { ElasticFindEntity } from '../../../integration/opensearch/dto/elastic-find-entity.dto';
+import { OpenSearchCountryDto } from '../../../integration/opensearch/country/dto/open-search-country.dto';
 
 @Injectable()
-export class CountryRepository extends Repository<Country> {
+export class CountryRepository
+  extends Repository<Country>
+  implements ElasticFindEntity<OpenSearchCountryDto>
+{
   private readonly _findCriteria: FindManyOptions<Country> = {
     relations: {
       geoposition_object: true,
@@ -16,6 +21,44 @@ export class CountryRepository extends Repository<Country> {
   };
   constructor(private dataSource: DataSource) {
     super(Country, dataSource.createEntityManager());
+  }
+
+  async findDataForOpenSearch(
+    option: FindAllOptions,
+    ids?: number[],
+  ): Promise<OpenSearchCountryDto[]> {
+    const queryBuilder = this.createQueryBuilder('country') // Alias de Country
+      .select([
+        'country.id',
+        'country.name',
+        'country.iso_alpha_2',
+        'country.iso_alpha_3',
+        'country.iso_numeric',
+        'country.geoposition_id',
+      ])
+      .leftJoin('country.subnational_scope_array', 'subnational')
+      .addSelect([
+        'subnational.id',
+        'subnational.code',
+        'subnational.name',
+        'subnational.local_name',
+        'subnational.romanization_system_name',
+        'subnational.country_id',
+        'subnational.iso_language_id',
+        'subnational.iso_subnational_category_id',
+      ]);
+
+    if (option !== FindAllOptions.SHOW_ALL) {
+      queryBuilder.andWhere('country.auditableFields.is_active = :isActive', {
+        isActive: option === FindAllOptions.SHOW_ONLY_ACTIVE,
+      });
+    }
+
+    if (ids && ids.length > 0) {
+      queryBuilder.andWhere('country.id IN (:...ids)', { ids });
+    }
+
+    return queryBuilder.getMany() as unknown as Promise<OpenSearchCountryDto[]>;
   }
 
   async findAllCountries(option: FindAllOptions): Promise<CountryDto[]> {
