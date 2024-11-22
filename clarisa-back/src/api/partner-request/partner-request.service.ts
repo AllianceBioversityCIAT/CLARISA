@@ -30,7 +30,7 @@ export class PartnerRequestService {
     private misRepository: MisRepository,
     private countryRepository: CountryRepository,
     private userRepository: UserRepository,
-    private openSearchApi: OpenSearchInstitutionApi,
+    private _openSearchApi: OpenSearchInstitutionApi,
   ) {}
 
   async findAll(
@@ -239,7 +239,7 @@ export class PartnerRequestService {
       .respondPartnerRequest(partnerRequest, respondPartnerRequestDto)
       .then((pr) => {
         if (respondPartnerRequestDto.accept && pr.institutionDTO) {
-          this.openSearchApi.uploadSingleToOpenSearch(pr.institutionDTO);
+          this._openSearchApi.uploadSingleToOpenSearch(pr.institutionDTO);
         }
 
         return pr;
@@ -357,7 +357,7 @@ export class PartnerRequestService {
         const institutions = prs
           .map((pr) => pr['institutionDto'] as InstitutionDto)
           .filter((i) => i);
-        this.openSearchApi.uploadToOpenSearch(institutions);
+        this._openSearchApi.uploadToOpenSearch(institutions);
         return prs;
       });
   }
