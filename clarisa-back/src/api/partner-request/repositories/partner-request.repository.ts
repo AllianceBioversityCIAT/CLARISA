@@ -157,11 +157,16 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
     });
   }
 
-  async findPartnerRequestById(id: number): Promise<PartnerRequestDto> {
+  async findPartnerRequestById(
+    id: number,
+    forAcceptedPr: boolean = false,
+  ): Promise<PartnerRequestDto> {
     return this.findPartnerRequests(
       PartnerStatus.ALL.path,
       MisOption.ALL.path,
-      FindAllOptions.SHOW_ONLY_ACTIVE,
+      forAcceptedPr
+        ? FindAllOptions.SHOW_ONLY_INACTIVE
+        : FindAllOptions.SHOW_ALL,
       [id],
     ).then((res) => {
       if (res?.length === 0) {
@@ -222,12 +227,14 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
     partialPartnerRequest.auditableFields.is_active = true;
     partialPartnerRequest = await this.save(partialPartnerRequest);
 
-    return this.findPartnerRequestById(partialPartnerRequest.id).finally(() => {
-      this.messageMicroservice.sendPartnerRequestEmail(
-        EmailTemplate.PARTNER_REQUEST_INCOMING,
-        partialPartnerRequest,
-      );
-    });
+    return this.findPartnerRequestById(partialPartnerRequest.id, true).finally(
+      () => {
+        this.messageMicroservice.sendPartnerRequestEmail(
+          EmailTemplate.PARTNER_REQUEST_INCOMING,
+          partialPartnerRequest,
+        );
+      },
+    );
   }
 
   async respondPartnerRequest(
@@ -264,12 +271,14 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
 
     partialPartnerRequest = await this.save(partialPartnerRequest);
 
-    return this.findPartnerRequestById(partialPartnerRequest.id).finally(() => {
-      this.messageMicroservice.sendPartnerRequestEmail(
-        EmailTemplate.PARTNER_REQUEST_RESPONSE,
-        partialPartnerRequest,
-      );
-    });
+    return this.findPartnerRequestById(partialPartnerRequest.id, true).finally(
+      () => {
+        this.messageMicroservice.sendPartnerRequestEmail(
+          EmailTemplate.PARTNER_REQUEST_RESPONSE,
+          partialPartnerRequest,
+        );
+      },
+    );
   }
 
   async updatePartnerRequest(
