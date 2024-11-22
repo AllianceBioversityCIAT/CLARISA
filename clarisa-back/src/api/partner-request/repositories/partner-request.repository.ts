@@ -166,7 +166,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
       MisOption.ALL.path,
       forAcceptedPr
         ? FindAllOptions.SHOW_ONLY_INACTIVE
-        : FindAllOptions.SHOW_ALL,
+        : FindAllOptions.SHOW_ONLY_ACTIVE,
       [id],
     ).then((res) => {
       if (res?.length === 0) {
