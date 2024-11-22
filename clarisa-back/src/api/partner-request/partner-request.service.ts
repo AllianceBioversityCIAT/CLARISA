@@ -264,9 +264,7 @@ export class PartnerRequestService {
       .respondPartnerRequest(partnerRequest, respondPartnerRequestDto)
       .then((pr) => {
         if (respondPartnerRequestDto.accept && pr.institutionDTO) {
-          this._openSearchApi.uploadSingleInstitutionToOpenSearch(
-            pr.institutionDTO,
-          );
+          this._openSearchApi.uploadSingleToOpenSearch(pr.institutionDTO);
         }
 
         return pr;
@@ -388,7 +386,7 @@ export class PartnerRequestService {
         const institutions = prs
           .map((pr) => pr['institutionDto'] as InstitutionDto)
           .filter((i) => i);
-        this._openSearchApi.uploadInstitutionsToOpenSearch(institutions);
+        this._openSearchApi.uploadToOpenSearch(institutions);
         return prs;
       });
   }

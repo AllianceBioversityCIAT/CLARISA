@@ -31,6 +31,7 @@ export abstract class BaseOpenSearchApi<
     protected readonly httpService: HttpService,
     protected readonly _mainRepo: Repo,
     protected readonly _appConfig: AppConfig,
+    customPrimaryKey?: string,
   ) {
     super(
       httpService,
@@ -47,15 +48,45 @@ export abstract class BaseOpenSearchApi<
         'Content-Type': 'application/x-ndjson',
       },
     };
-    this._primaryKey = this._mainRepo.metadata.primaryColumns[0]
-      .propertyName as keyof Entity;
+    if (customPrimaryKey) {
+      this._primaryKey = customPrimaryKey as keyof Entity;
+    } else {
+      this._primaryKey = this._mainRepo.metadata.primaryColumns[0]
+        .propertyName as keyof Entity;
+    }
     this._index = `${this._appConfig.opensearchDocumentName}_${this._mainRepo.metadata.tableName}`;
-    console.log(this._index);
   }
 
-  async uploadInstitutionsToOpenSearch(
-    data: number[] | OpenSearchEntity[],
+  get tableName(): string {
+    return this._mainRepo.metadata.tableName.replace(/_/g, ' ');
+  }
+
+  async uploadSingleToOpenSearch(
+    data: number | OpenSearchEntity,
   ): Promise<void> {
+    const isId = typeof data === 'number';
+    const promise = isId
+      ? this.findForOpenSearch(this._appConfig.opensearchDocumentName, [data])
+      : Promise.resolve([
+          this.getSingleElasticOperation(
+            this._index,
+            new ElasticOperationDto('PATCH', data),
+          ),
+        ]);
+
+    return promise
+      .then((elasticData) => this.sendBulkOperationToOpenSearch(elasticData))
+      .then(() => {
+        this.logger.log(
+          `${this.tableName} with id ${isId ? data : data[this._primaryKey as string]} has been uploaded to OpenSearch`,
+        );
+      })
+      .catch((error) => {
+        this.logger.error(error);
+      });
+  }
+
+  async uploadToOpenSearch(data: number[] | OpenSearchEntity[]): Promise<void> {
     const isNumericArray = ArrayUtil.isArrayOfType<number>(
       data,
       (e) => typeof e === 'number',
@@ -63,7 +94,7 @@ export abstract class BaseOpenSearchApi<
     const promise = isNumericArray
       ? this.findForOpenSearch(this._index, data)
       : Promise.resolve(
-          this.getBulkElasticOperationForInstitutions(
+          this.getBulkElasticOperation(
             this._index,
             data.map((i) => new ElasticOperationDto('PATCH', i)),
           ),
@@ -72,7 +103,9 @@ export abstract class BaseOpenSearchApi<
     return promise
       .then((elasticData) => this.sendBulkOperationToOpenSearch(elasticData))
       .then(() => {
-        this.logger.log(`The institutions have been uploaded to OpenSearch`);
+        this.logger.log(
+          `The ${this.tableName} have been uploaded to OpenSearch`,
+        );
       })
       .catch((error) => {
         this.logger.error(error);
@@ -122,7 +155,7 @@ export abstract class BaseOpenSearchApi<
    * Resets the data in the OpenSearch index specified by `env.OPENSEARCH_DOCUMENT_NAME`.
    *
    * This function performs the following steps:
-   * 1. Fetches all institutions from the system.
+   * 1. Fetches all data from the system.
    * 2. Deletes the existing OpenSearch index.
    * 3. Recreates the index.
    * 4. Sends the previously retrieved data back to the newly created index.
@@ -152,7 +185,7 @@ export abstract class BaseOpenSearchApi<
       });
   }
 
-  public getBulkElasticOperationForInstitutions(
+  public getBulkElasticOperation(
     documentName: string,
     operations: ElasticOperationDto<OpenSearchEntity>[],
   ): string[] {
@@ -206,16 +239,16 @@ export abstract class BaseOpenSearchApi<
   }
 
   /**
-   * Retrieves data from the institution repository and formats it for OpenSearch.
+   * Retrieves data from the repository and formats it for OpenSearch.
    *
    * This function performs the following steps:
-   * 1. Queries the institution repository for institutions based on the provided options.
+   * 1. Queries the repository for based on the provided options.
    * 2. Throws an error if no data is found.
    * 3. Maps the query results to an array of ElasticOperationDto objects.
    * 4. Converts the array of ElasticOperationDto objects to a bulk OpenSearch operation JSON format.
    *
    * @param {string} documentName - The name of the OpenSearch document.
-   * @param {number} [ids] - An optional ID array to filter the institutions.
+   * @param {number} [ids] - An optional ID array to filter the data.
    * @returns {Promise<string[]>} A promise that resolves to an array of JSON strings representing the bulk OpenSearch operations.
    * @throws {Error} If no data is found in the repository.
    */
@@ -233,8 +266,10 @@ export abstract class BaseOpenSearchApi<
         const operations: ElasticOperationDto<OpenSearchEntity>[] =
           queryResult.map((r) => new ElasticOperationDto('PATCH', r));
 
-        const elasticJson: string[] =
-          this.getBulkElasticOperationForInstitutions(documentName, operations);
+        const elasticJson: string[] = this.getBulkElasticOperation(
+          documentName,
+          operations,
+        );
 
         return elasticJson;
       });

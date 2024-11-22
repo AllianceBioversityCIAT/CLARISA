@@ -24,7 +24,7 @@ export class CountryRepository
     option: FindAllOptions,
     ids?: number[],
   ): Promise<OpenSearchCountryDto[]> {
-    const queryBuilder = this.createQueryBuilder('country') // Alias de Country
+    const queryBuilder = this.createQueryBuilder('country')
       .select([
         'country.id',
         'country.name',
