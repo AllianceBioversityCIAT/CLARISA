@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import Routes from "./routes";
+import Routes from "./routes/main.routes";
 import "reflect-metadata";
 import morgan from "morgan";
 
