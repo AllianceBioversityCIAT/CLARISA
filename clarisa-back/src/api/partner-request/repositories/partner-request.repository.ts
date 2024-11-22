@@ -227,14 +227,12 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
     partialPartnerRequest.auditableFields.is_active = true;
     partialPartnerRequest = await this.save(partialPartnerRequest);
 
-    return this.findPartnerRequestById(partialPartnerRequest.id, true).finally(
-      () => {
-        this.messageMicroservice.sendPartnerRequestEmail(
-          EmailTemplate.PARTNER_REQUEST_INCOMING,
-          partialPartnerRequest,
-        );
-      },
-    );
+    return this.findPartnerRequestById(partialPartnerRequest.id).finally(() => {
+      this.messageMicroservice.sendPartnerRequestEmail(
+        EmailTemplate.PARTNER_REQUEST_INCOMING,
+        partialPartnerRequest,
+      );
+    });
   }
 
   async respondPartnerRequest(
