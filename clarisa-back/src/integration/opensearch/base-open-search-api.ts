@@ -71,6 +71,7 @@ export abstract class BaseOpenSearchApi<
           this.getSingleElasticOperation(
             this._index,
             new ElasticOperationDto('PATCH', data),
+            true,
           ),
         ]);
 
