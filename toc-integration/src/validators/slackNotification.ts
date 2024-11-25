@@ -1,14 +1,18 @@
 import axios from "axios";
 import { env } from "process";
 
-export function sendSlackNotification(emoji: string, initOfficialCode: string, message: string) {
+export function sendSlackNotification(
+  emoji: string,
+  initOfficialCode: string,
+  message: string
+) {
   const slackWebhookUrl = env.SLACK_WEBHOOK_URL;
 
   axios
     .post(slackWebhookUrl, {
       text: `${emoji} :toc: ${env.TOC_ENV}: (${initOfficialCode}) *${message}.*`,
     })
-    .then((response) => {
+    .then((_response) => {
       console.log("Notification sent to Slack successfully");
     })
     .catch((error) => {

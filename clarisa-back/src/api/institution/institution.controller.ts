@@ -26,7 +26,8 @@ export class InstitutionController {
   @Get()
   async findAll(
     @Query('show') show: FindAllOptions,
-    @Query('from') from: string = undefined,
+    @Query('from', new ParseIntPipe({ optional: true }))
+    from?: number,
   ) {
     return await this.institutionService.findAll(show, from);
   }
@@ -39,6 +40,11 @@ export class InstitutionController {
   @Get('get/:id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.institutionService.findOne(id);
+  }
+
+  @Get('simple/:id')
+  async findOneSimple(@Param('id', ParseIntPipe) id: number) {
+    return await this.institutionService.findOneSimple(id);
   }
 
   @Patch('update')

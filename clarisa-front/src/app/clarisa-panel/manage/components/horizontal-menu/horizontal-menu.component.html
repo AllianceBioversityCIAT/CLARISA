@@ -9,12 +9,8 @@
         href="javascript:void(0)"
         style="color: #7ab800"
       ></a>
-      <!-- sidebar-toggle-->
-
-      <!-- LOGO -->
 
       <div class="d-flex order-lg-2 ms-auto header-right-icons">
-        <!-- SEARCH -->
         <button
           class="navbar-toggler navresponsive-toggler d-lg-none ms-auto"
           type="button"
@@ -30,21 +26,23 @@
             style="color: #7ab800"
           ></span>
         </button>
+
         <div class="navbar navbar-collapse responsive-navbar p-0">
           <div class="collapse navbar-collapse" id="navbarSupportedContent-4">
             <div class="d-flex order-lg-2" style="background-color: white">
               <div class="d-flex country">
                 <a class="nav-link icon text-center" routerLink="/landing-page">
-                  <i class="fe fe-home"></i
-                  ><span class="fs-16 ms-2 d-none d-xl-block">Home</span>
+                  <i class="fe fe-home"></i>
+                  <span class="fs-16 ms-2 d-none d-xl-block">Home</span>
                 </a>
               </div>
 
               <div class="dropdown d-flex notifications">
                 <a class="nav-link icon text-center" data-bs-toggle="dropdown">
-                  <i class="fa fa-area-chart"></i
-                  ><span class="fs-16 ms-2 d-none d-xl-block">Dashboards</span>
+                  <i class="fa fa-area-chart"></i>
+                  <span class="fs-16 ms-2 d-none d-xl-block">Dashboards</span>
                 </a>
+
                 <div
                   class="dropdown-menu dropdown-menu-end dropdown-menu-arrow"
                 >
@@ -52,7 +50,8 @@
 
                   <a
                     class="dropdown-item"
-                    routerLink="/landing-page/dashboards"
+                    href="/landing-page/dashboards"
+                    ref="noopener"
                   >
                     Introduction
                   </a>
@@ -67,8 +66,8 @@
 
               <div class="dropdown d-flex notifications">
                 <a class="nav-link icon text-center" data-bs-toggle="dropdown">
-                  <i class="fa fa-globe"></i
-                  ><span class="fs-16 ms-2 d-none d-xl-block">Services</span>
+                  <i class="fa fa-globe"></i>
+                  <span class="fs-16 ms-2 d-none d-xl-block">Services</span>
                 </a>
                 <div
                   class="dropdown-menu dropdown-menu-end dropdown-menu-arrow"
@@ -81,18 +80,21 @@
                   >
                     Introduction
                   </a>
+
                   <a
                     class="dropdown-item"
                     routerLink="/clarisa-panel/documentation/One_CGIAR_Control_List"
                   >
                     One CGIAR Control Lists
                   </a>
+
                   <a
                     class="dropdown-item"
                     routerLink="/clarisa-panel/documentation/One_CGIAR_Operation"
                   >
                     One CGIAR Operation
                   </a>
+
                   <a
                     class="dropdown-item"
                     routerLink="/clarisa-panel/manage/partner-request"
@@ -115,6 +117,7 @@
                   <a class="dropdown-item" routerLink="/landing-page/faq">
                     FAQ
                   </a>
+
                   <a
                     class="dropdown-item"
                     routerLink="/landing-page/contact-us"
@@ -128,14 +131,12 @@
                 <a
                   class="nav-link icon text-center"
                   routerLink="/landing-page/login"
-                  (click)="onClick()"
+                  (click)="onLogOut()"
                 >
-                  <i class="fa fa-sign-out"></i
-                  ><span class="fs-16 ms-2 d-none d-xl-block">Logout</span>
+                  <i class="fa fa-sign-out"></i>
+                  <span class="fs-16 ms-2 d-none d-xl-block">Logout</span>
                 </a>
               </div>
-              <!-- MESSAGE-BOX -->
-              <!-- SIDE-MENU -->
             </div>
           </div>
         </div>
@@ -143,4 +144,3 @@
     </div>
   </div>
 </div>
-<!-- /app-Header -->

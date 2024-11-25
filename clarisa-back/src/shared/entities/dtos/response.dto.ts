@@ -23,11 +23,11 @@ export class ResponseDto<T> {
     return responseDto.status;
   }
 
-  static createCreatedResponse<T>(
+  static buildCreatedResponse<T>(
     response: T,
     serviceConstructor: new (...args: any[]) => any,
   ): ResponseDto<T> {
-    return ResponseDto.createCustomResponse(
+    return ResponseDto.buildCustomResponse(
       response,
       `${serviceConstructor.name.replace(
         'Service',
@@ -37,11 +37,11 @@ export class ResponseDto<T> {
     );
   }
 
-  static createBadResponse<T>(
+  static buildBadResponse<T>(
     response: T,
     serviceConstructor: new (...args: any[]) => any,
   ): ResponseDto<T> {
-    return ResponseDto.createCustomResponse(
+    return ResponseDto.buildCustomResponse(
       response,
       `${serviceConstructor.name.replace(
         'Service',
@@ -51,15 +51,15 @@ export class ResponseDto<T> {
     );
   }
 
-  static createOkResponse<T>(response: T, message?: string): ResponseDto<T> {
-    return ResponseDto.createCustomResponse(
+  static buildOkResponse<T>(response: T, message?: string): ResponseDto<T> {
+    return ResponseDto.buildCustomResponse(
       response,
       message || 'Success',
       HttpStatus.OK,
     );
   }
 
-  static createCustomResponse<T>(
+  static buildCustomResponse<T>(
     response: T,
     message: string,
     status: HttpStatus,

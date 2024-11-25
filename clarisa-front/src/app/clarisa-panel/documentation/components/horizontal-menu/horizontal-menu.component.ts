@@ -1,18 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-horizontal-menu',
   templateUrl: './horizontal-menu.component.html',
   styleUrls: ['./horizontal-menu.component.scss'],
 })
-export class HorizontalMenuComponent implements OnInit {
-  constructor() {}
-
-  ngOnInit(): void {}
-
-  reload() {
-    setTimeout(() => {
-      window.location.reload();
-    }, 0);
-  }
-}
+export class HorizontalMenuComponent {}

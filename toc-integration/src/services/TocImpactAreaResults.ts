@@ -5,11 +5,11 @@ import { TocImpactAreaResultsGlobalTargetsDto } from "../dto/tocImpactAreaResult
 import { TocImpactAreaResultsImpactAreaIndicatorsDto } from "../dto/tocImpactAreaResultsImpactAreaIndicators";
 import { TocImpactAreaResultsSdgResultsDto } from "../dto/tocImpactAreaResultsSdgResults";
 import { Database } from "../database/db";
-import { Connection } from "typeorm/connection/Connection";
 import { TocImpactAreaResults } from "../entities/tocImpactAreaResults";
 import { TocImpactAreaResultsGlobalTargets } from "../entities/tocImpactAreaResultsGlobalTargets";
 import { TocImpactAreaResultsImpactAreaIndicators } from "../entities/tocImpactAreaResultsImpactAreaIndicators";
 import { TocImpactAreaResultsSdgResults } from "../entities/tocImpactAreaResultsSdgResults";
+import { DataSource } from "typeorm";
 
 export class TocResultImpactAreaServices {
   public validatorType = new ValidatorTypes();
@@ -23,8 +23,9 @@ export class TocResultImpactAreaServices {
     phase
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let impactAreaRepo = await dbConn.getRepository(TocImpactAreaResults);
+      console.info({ message: "Saving impact area" });
+      const dataSource: DataSource = await Database.getDataSource();
+      let impactAreaRepo = dataSource.getRepository(TocImpactAreaResults);
       let listImpactAreaResults = [];
       let listGlobalTargets = [];
       let listImpactAreaIndicators = [];
@@ -65,8 +66,10 @@ export class TocResultImpactAreaServices {
             impactAreadto.phase = phase;
 
             const existingRecord = await impactAreaRepo.findOne({
-              toc_result_id: impactAreadto.toc_result_id,
-              phase: impactAreadto.phase,
+              where: {
+                toc_result_id: impactAreadto.toc_result_id,
+                phase: impactAreadto.phase,
+              },
             });
             if (existingRecord) {
               // Update existing record
@@ -82,8 +85,10 @@ export class TocResultImpactAreaServices {
               await impactAreaRepo.insert(impactAreadto);
             }
             const existingRecordSaveOrUpdate = await impactAreaRepo.findOne({
-              toc_result_id: impactAreadto.toc_result_id,
-              phase: impactAreadto.phase,
+              where: {
+                toc_result_id: impactAreadto.toc_result_id,
+                phase: impactAreadto.phase,
+              },
             });
 
             listImpactAreaResults.push(existingRecordSaveOrUpdate);
@@ -132,8 +137,8 @@ export class TocResultImpactAreaServices {
     impactAre
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let impactAreaRepo = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      let impactAreaRepo = dataSource.getRepository(
         TocImpactAreaResultsGlobalTargets
       );
       let listValidGlobalTarget = [];
@@ -157,11 +162,13 @@ export class TocResultImpactAreaServices {
             relationGlobalTarget.is_active = true;
             relationGlobalTarget.toc_impact_area_results_id = impactAre.id;
             const existingRecordSdgTarget = await impactAreaRepo.findOne({
-              toc_impact_area_results_id:
-                relationGlobalTarget.toc_impact_area_results_id,
-              toc_impact_area_results_id_toc:
-                relationGlobalTarget.toc_impact_area_results_id_toc,
-              global_targets_id: relationGlobalTarget.global_targets_id,
+              where: {
+                toc_impact_area_results_id:
+                  relationGlobalTarget.toc_impact_area_results_id,
+                toc_impact_area_results_id_toc:
+                  relationGlobalTarget.toc_impact_area_results_id_toc,
+                global_targets_id: relationGlobalTarget.global_targets_id,
+              },
             });
             if (!existingRecordSdgTarget) {
               // Update existing record
@@ -183,8 +190,8 @@ export class TocResultImpactAreaServices {
     impactArea
   ) {
     try {
-      let dbConn: Connection = await this.database.getConnection();
-      let impactAreaRepo = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      let impactAreaRepo = dataSource.getRepository(
         TocImpactAreaResultsImpactAreaIndicators
       );
       let listValidImpactAreaIndicators = [];
@@ -207,12 +214,14 @@ export class TocResultImpactAreaServices {
             relationImpactIndicator.is_active = true;
             relationImpactIndicator.toc_impact_area_results_id = impactArea.id;
             const existingRecordSdgTarget = await impactAreaRepo.findOne({
-              toc_impact_area_results_id:
-                relationImpactIndicator.toc_impact_area_results_id,
-              toc_impact_area_results_id_toc:
-                relationImpactIndicator.toc_impact_area_results_id_toc,
-              impact_areas_indicators_id:
-                relationImpactIndicator.impact_areas_indicators_id,
+              where: {
+                toc_impact_area_results_id:
+                  relationImpactIndicator.toc_impact_area_results_id,
+                toc_impact_area_results_id_toc:
+                  relationImpactIndicator.toc_impact_area_results_id_toc,
+                impact_areas_indicators_id:
+                  relationImpactIndicator.impact_areas_indicators_id,
+              },
             });
             if (!existingRecordSdgTarget) {
               // Update existing record
@@ -237,8 +246,8 @@ export class TocResultImpactAreaServices {
   ): Promise<any[]> {
     try {
       const listSdgImpact: any[] = [];
-      let dbConn: Connection = await this.database.getConnection();
-      let impactAreaRepo = await dbConn.getRepository(
+      const dataSource: DataSource = await Database.getDataSource();
+      let impactAreaRepo = dataSource.getRepository(
         TocImpactAreaResultsSdgResults
       );
       if (this.validatorType.validatorIsArray(sdgResults)) {
@@ -259,9 +268,11 @@ export class TocResultImpactAreaServices {
               (sdgResult) => sdgResult.toc_result_id === sdg.toc_result_id
             ).id;
             const existingRecordSdgTarget = await impactAreaRepo.findOne({
-              toc_impact_area_results_id:
-                relationSdg.toc_impact_area_results_id,
-              toc_sdg_results_id: relationSdg.toc_sdg_results_id,
+              where: {
+                toc_impact_area_results_id:
+                  relationSdg.toc_impact_area_results_id,
+                toc_sdg_results_id: relationSdg.toc_sdg_results_id,
+              },
             });
             if (!existingRecordSdgTarget) {
               // Update existing record

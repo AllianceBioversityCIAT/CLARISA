@@ -141,8 +141,8 @@ export class CountryOfficeRequestRepository extends Repository<CountryOfficeRequ
     const status: boolean | undefined = cof.accepted_by
       ? true
       : cof.rejected_by
-      ? false
-      : undefined;
+        ? false
+        : undefined;
     countryOfficeRequestDto.requestStatus = this.getRequestStatus(status);
     countryOfficeRequestDto.requestJustification = cof.reject_justification;
     countryOfficeRequestDto.requestSource = cof.request_source;
