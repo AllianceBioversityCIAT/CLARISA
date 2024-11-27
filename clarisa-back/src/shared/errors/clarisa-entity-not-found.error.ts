@@ -8,6 +8,10 @@ export class ClarisaEntityNotFoundError<T> extends BaseHttpError<T> {
     this.name = 'EntityNotFoundError';
   }
 
+  static get messageRegex(): RegExp {
+    return /A\(n\) (\w+) with (params => )?\"([^\"]+)\"( <=)? could not be found/;
+  }
+
   public static forSingleParam<T>(
     entityClass: string,
     paramName: string,
@@ -42,7 +46,7 @@ export class ClarisaEntityNotFoundError<T> extends BaseHttpError<T> {
       .map(([key, value]) => `"${key} = ${value}"`)
       .join(', ');
     return new ClarisaEntityNotFoundError(
-      `A(n) ${classNameCleaner(entityClass)} with params => "${paramsString}" <= could not be found`,
+      `<A(n) ${classNameCleaner(entityClass)} with params => "${paramsString}" <= could not be found>`,
       additionalData,
     );
   }
