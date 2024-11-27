@@ -1,66 +1,154 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AccountService } from './account.service';
+import { AccountRepository } from './repositories/account.repository';
+import { AccountMapper } from './mappers/account.mapper';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
+import { Account } from './entities/account.entity';
 import { AccountDto } from './dto/account.dto';
-import { OrmConfigTestModule } from '../../shared/config/ormconfig.test.module';
-import { AccountTypeModule } from '../account-type/account-type.module';
-import { AccountModule } from './account.module';
 
 describe('AccountService', () => {
   let service: AccountService;
+  let repository: AccountRepository;
+  let mapper: AccountMapper;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [OrmConfigTestModule, AccountTypeModule, AccountModule],
-      providers: [],
+      providers: [
+        AccountService,
+        {
+          provide: AccountRepository,
+          useValue: {
+            findAllAccounts: jest.fn(),
+            findOneOrFail: jest.fn(),
+            save: jest.fn(),
+            target: { toString: () => 'Account' },
+          },
+        },
+        {
+          provide: AccountMapper,
+          useValue: {
+            classListToDtoList: jest.fn(),
+            classToDto: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<AccountService>(AccountService);
-  }, 10000);
+    repository = module.get<AccountRepository>(AccountRepository);
+    mapper = module.get<AccountMapper>(AccountMapper);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
 
   describe('findAll', () => {
-    it('should fail if the option parameter cannot be found on enum', () => {
-      // Arrange
-      const options: FindAllOptions = 999 as unknown as FindAllOptions;
-
-      // Act
-      const result = service.findAll(options);
-
-      // Assert
-      expect(result).rejects.toThrow('?!');
+    it('should throw BadParamsError if option is invalid', async () => {
+      await expect(
+        service.findAll('INVALID_OPTION' as FindAllOptions),
+      ).rejects.toThrow(BadParamsError);
     });
 
-    it('should return an array of AccountDto', async () => {
-      // Arrange
-      const options: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE;
+    it('should return sorted account DTOs', async () => {
+      const accounts: Account[] = [
+        {
+          id: 2,
+          financial_code: 'code2',
+          description: 'desc2',
+          account_type_id: 2,
+          parent_id: 2,
+          account_type: null,
+          parent: null,
+          children: [],
+          auditableFields: null,
+        },
+        {
+          id: 1,
+          financial_code: 'code1',
+          description: 'desc1',
+          account_type_id: 1,
+          parent_id: 1,
+          account_type: null,
+          parent: null,
+          children: [],
+          auditableFields: null,
+        },
+      ];
 
-      // Act
-      const result: AccountDto[] = await service.findAll(options);
+      const accountDtos: AccountDto[] = [
+        {
+          code: 1,
+          description: 'desc1',
+          financialCode: 'code1',
+          accountType: null,
+          parent: null,
+        },
+        {
+          code: 2,
+          description: 'desc2',
+          financialCode: 'code2',
+          accountType: null,
+          parent: null,
+        },
+      ];
 
-      // Assert
-      expect(result).toBeDefined();
-      expect(result).toBeInstanceOf(Array);
-      if (result.length) {
-        expect(result[0]).toBeInstanceOf(AccountDto);
-        expect(result[0].code).toBeDefined();
-        expect(result[0].code).toBe('1');
-      }
+      jest.spyOn(repository, 'findAllAccounts').mockResolvedValue(accounts);
+      jest.spyOn(mapper, 'classListToDtoList').mockReturnValue(accountDtos);
+
+      const result = await service.findAll();
+      expect(result).toEqual(accountDtos);
     });
   });
 
   describe('findOne', () => {
-    it('should return an AccountDto', async () => {
-      // Arrange
-      const id: number = 1;
+    it('should return account DTO if found', async () => {
+      const account: Account = {
+        id: 2,
+        financial_code: 'code2',
+        description: 'desc2',
+        account_type_id: 2,
+        parent_id: 2,
+        account_type: null,
+        parent: null,
+        children: [],
+        auditableFields: null,
+      };
 
-      // Act
-      const result: AccountDto = await service.findOne(id);
+      const accountDto: AccountDto = {
+        code: 1,
+        description: 'desc1',
+        financialCode: 'code1',
+        accountType: null,
+        parent: null,
+      };
 
-      // Assert
-      expect(result).toBeDefined();
-      expect(result).toBeInstanceOf(AccountDto);
-      expect(result.code).toBeDefined();
-      expect(result.code).toBe(`${id}`);
+      jest.spyOn(repository, 'findOneOrFail').mockResolvedValue(account);
+      jest.spyOn(mapper, 'classToDto').mockReturnValue(accountDto);
+
+      const result = await service.findOne(1);
+      expect(result).toEqual(accountDto);
+    });
+
+    it('should throw ClarisaEntityNotFoundError if account not found', async () => {
+      jest.spyOn(repository, 'findOneOrFail').mockRejectedValue(new Error());
+
+      await expect(service.findOne(1)).rejects.toThrow(
+        ClarisaEntityNotFoundError.messageRegex,
+      );
+    });
+  });
+
+  describe('update', () => {
+    it('should save and return updated accounts', async () => {
+      const updateDto = [{ id: 1 }];
+      const savedAccounts = [{ id: 1 }];
+      jest.spyOn(repository, 'save').mockResolvedValue(savedAccounts as any);
+
+      const result = await service.update(updateDto);
+      expect(result).toEqual(savedAccounts);
     });
   });
 });
