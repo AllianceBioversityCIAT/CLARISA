@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { UnitDto } from '../dto/unit.dto';
 import { Unit } from '../entities/unit.entity';
@@ -10,66 +10,54 @@ export class UnitRepository extends Repository<Unit> {
     super(Unit, dataSource.createEntityManager());
   }
 
-  async findAllUnits(
+  async findUnits(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    unitId?: number,
   ): Promise<UnitDto[]> {
-    let whereClause: FindOptionsWhere<Unit> = {};
-    const unitDtos: UnitDto[] = [];
-    switch (option) {
-      case FindAllOptions.SHOW_ALL:
-        //do nothing. we will be showing everything, so no condition is needed;
-        break;
-      case FindAllOptions.SHOW_ONLY_ACTIVE:
-      case FindAllOptions.SHOW_ONLY_INACTIVE:
-        whereClause = {
-          auditableFields: {
-            is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
-          },
-        };
-        break;
+    let whereClause: string = '';
+    if (option !== FindAllOptions.SHOW_ALL) {
+      whereClause = `where u.is_active = ${option === FindAllOptions.SHOW_ONLY_ACTIVE}`;
     }
 
-    const units: Unit[] = await this.find({
-      where: whereClause,
+    if (unitId) {
+      whereClause += `${whereClause ? ' and' : 'where'} u.id = ${unitId}`;
+    }
+
+    const query = `
+      select u.id as code, u.description, u.financial_code as financialCode,
+        if(u.parent_id is null, null, json_object(
+          "code", u_parent.id,
+          "description", u_parent.description
+        )) as parent,
+        if(u.science_group_id is null, null, json_object(
+          "code", sg.id,
+          "description", sg.description
+        )) as scienceGroup,
+        if(u.unit_type_id is null, null, json_object(
+          "code", ut.id,
+          "acronym", ut.acronym,
+          "description", ut.description
+        )) as unitType
+      from units u
+      left join units u_parent on u.parent_id = u_parent.id
+      left join science_groups sg on u.science_group_id = sg.id
+      left join unit_types ut on u.unit_type_id = ut.id
+      ${whereClause}
+      order by u.id 
+    `;
+
+    return this.dataSource.query(query).catch((error) => {
+      throw Error(`Error while fetching units: ${error}`);
     });
+  }
 
-    await Promise.all(
-      units.map(async (u) => {
-        const unitDto: UnitDto = new UnitDto();
-        unitDto.code = u.id;
-        unitDto.description = u.description;
-        unitDto.financialCode = u.financial_code;
-        unitDto.parent = u.parent_id
-          ? await this.createQueryBuilder('u')
-              .select('u.id', 'code')
-              .addSelect('u.description', 'description')
-              .where('u.id = :unitId', { unitId: u.parent_id })
-              .getRawOne()
-          : null;
+  async findUnitById(id: number): Promise<UnitDto> {
+    return this.findUnits(FindAllOptions.SHOW_ALL, id).then((units) => {
+      if (!units?.length) {
+        throw Error();
+      }
 
-        unitDto.scienceGroup = u.science_group_id
-          ? await this.createQueryBuilder('u')
-              .select('sc.id', 'code')
-              .addSelect('u.description', 'description')
-              .leftJoin('u.science_group', 'sc')
-              .where('u.id = :unitId', { unitId: u.id })
-              .getRawOne()
-          : null;
-
-        unitDto.unitType = u.unit_type_id
-          ? await this.createQueryBuilder('u')
-              .select('ut.id', 'code')
-              .addSelect('ut.acronym', 'acronym')
-              .addSelect('ut.description', 'description')
-              .leftJoin('u.unit_type', 'ut')
-              .where('u.id = :unitId', { unitId: u.id })
-              .getRawOne()
-          : null;
-
-        unitDtos.push(unitDto);
-      }),
-    );
-
-    return unitDtos.sort((a, b) => a.code - b.code);
+      return units[0];
+    });
   }
 }

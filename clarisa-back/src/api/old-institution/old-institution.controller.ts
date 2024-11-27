@@ -15,15 +15,17 @@ import { UpdateOldInstitutionDto } from './dto/update-old-institution.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { OldInstitution } from './entities/old-institution.entity';
 import { Response } from 'express';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 @Controller()
+@ApiExcludeController()
 export class OldInstitutionController {
   constructor(private readonly oldInstitutionService: OldInstitutionService) {}
 
   @Get()
   async findAll(
     @Query('show') show: FindAllOptions,
-    @Query('from') from: string = undefined,
+    @Query('from', new ParseIntPipe({ optional: true })) from?,
   ) {
     return await this.oldInstitutionService.findAll(show, from);
   }

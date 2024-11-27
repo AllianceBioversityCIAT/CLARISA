@@ -1,8 +1,18 @@
-export class InstitutionTypeDto {
-  code: number;
-  name: string;
+import { ApiProperty } from '@nestjs/swagger';
+import { BaseInstitutionTypeDto } from './base-institution-type.dto';
+
+export class InstitutionTypeDto extends BaseInstitutionTypeDto {
+  @ApiProperty({
+    description: 'The description of the institution type',
+    type: String,
+    nullable: true,
+  })
   description?: string;
-  parent?: InstitutionTypeDto;
+
+  @ApiProperty({
+    description: 'Is this institution type legacy?',
+    type: Boolean,
+    nullable: true,
+  })
   legacy?: boolean;
-  id_parent?: number;
 }

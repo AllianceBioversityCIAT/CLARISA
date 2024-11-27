@@ -9,6 +9,7 @@ import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ResponseDto } from '../entities/dtos/response.dto';
 import { FinalResponseDto } from '../entities/dtos/final-response.dto';
+import { BaseHttpError } from '../errors/base-http-error';
 
 @Injectable()
 export class ResponseFormattingInterceptor<T>
@@ -27,6 +28,19 @@ export class ResponseFormattingInterceptor<T>
         );
       }),*/
       catchError((error) => {
+        if (error instanceof BaseHttpError) {
+          return throwError(() =>
+            FinalResponseDto.fromResponse(
+              ResponseDto.buildCustomResponse(
+                error.additionalData,
+                error.message,
+                error.status,
+              ),
+              context.switchToHttp().getRequest().url,
+            ),
+          );
+        }
+
         const status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
         const message = error.message || 'Internal server error';
         const errorDto = ResponseDto.buildCustomResponse(

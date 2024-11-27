@@ -4,21 +4,53 @@ import {
   Param,
   ClassSerializerInterceptor,
   UseInterceptors,
+  Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { LanguageService } from './language.service';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { LanguageDto } from './dto/language.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiTags('Languages')
 export class LanguageController {
   constructor(private readonly languageService: LanguageService) {}
 
   @Get()
-  findAll() {
-    return this.languageService.findAll();
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: 'Show active, inactive or all languages. Defaults to active.',
+  })
+  @ApiOkResponse({ type: [LanguageDto] })
+  @ApiOperation({
+    summary: 'Get all languages, optionally filtered by status',
+  })
+  async findAll(@Query('show') show: FindAllOptions) {
+    return this.languageService.findAll(show);
   }
 
   @Get('get/:id')
-  findOne(@Param('id') id: string) {
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    required: true,
+    description: 'The id of the language',
+  })
+  @ApiOkResponse({ type: [LanguageDto] })
+  @ApiOperation({
+    summary: 'Get a language by id',
+  })
+  async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.languageService.findOne(+id);
   }
 }

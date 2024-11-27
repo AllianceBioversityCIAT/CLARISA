@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CronjobController } from './cronjob.controller';
 import { OSTCron } from '../ost/ost.cron';
 import { OSTApi } from '../ost/ost.api';
 import { ApiGeoNames } from '../geonames/geonames.api';
@@ -20,6 +19,7 @@ import { ReportingCron } from '../reporting/reporting.cron';
 import { ReportingApi } from '../reporting/reporting.api';
 import { RiskCron } from '../risk/risk.cron';
 import { RiskApi } from '../risk/risk.api';
+import { CronjobController } from './cronjob.controller';
 import { GlobalParameterService } from '../../api/global-parameter/global-parameter.service';
 import { GlobalParameterRepository } from '../../api/global-parameter/repositories/global-parameter.repository';
 import { GlobalParameterCron } from './global-parameters/global-parameter.cron';

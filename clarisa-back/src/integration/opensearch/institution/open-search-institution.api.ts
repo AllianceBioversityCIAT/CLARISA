@@ -17,6 +17,7 @@ import { ElasticResponse } from '../dto/elastic-response.dto';
 import { AxiosRequestConfig, isAxiosError } from 'axios';
 import { ArrayUtil } from '../../../shared/utils/array-util';
 import { AppConfig } from '../../../shared/utils/app-config';
+import { InternalServerError } from '../../../shared/errors/internal-server-error';
 
 @Injectable()
 export class OpenSearchInstitutionApi extends BaseApi {
@@ -336,7 +337,10 @@ export class OpenSearchInstitutionApi extends BaseApi {
       .catch((error: Error) => {
         const data = isAxiosError(error) ? error.response?.data : error.message;
         this.logger.error(data);
-        throw new Error(data);
+        throw new InternalServerError(
+          'An error occurred while searching for institutions',
+          data,
+        );
       });
   }
 

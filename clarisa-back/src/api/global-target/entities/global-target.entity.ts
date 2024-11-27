@@ -1,4 +1,4 @@
-import { Exclude, Expose, Transform } from 'class-transformer';
+import { Exclude, Expose } from 'class-transformer';
 import {
   Entity,
   Column,
@@ -18,23 +18,17 @@ export class GlobalTarget {
   @Column({ type: 'varchar', length: 20, nullable: true })
   smo_code: string;
 
-  @Expose({ name: 'target' })
   @Column({ type: 'text', nullable: true })
   global_target: string;
 
   //relations
-  @Expose({ name: 'impactAreaId' })
   @Column({ type: 'bigint', nullable: true })
   impact_area_id: number;
 
   //object_relations
-  @Expose({ name: 'impactAreaName' })
-  @Transform(({ value }) => {
-    return value.name;
-  })
-  @ManyToOne(() => ImpactArea, { eager: true })
+  @ManyToOne(() => ImpactArea, (ia) => ia.global_target_array)
   @JoinColumn({ name: 'impact_area_id' })
-  impact_area_name: ImpactArea;
+  impact_area_object: ImpactArea;
 
   //auditable fields
 

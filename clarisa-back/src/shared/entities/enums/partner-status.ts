@@ -20,4 +20,13 @@ export class PartnerStatus {
       (p) => p.name === name,
     );
   }
+
+  public static getAsEnumLikeObject(): { [key: string]: string } {
+    const enumeration: { [key: string]: string } = {};
+    (Object.values(this) as PartnerStatus[]).forEach((ps) => {
+      enumeration[ps.name.toUpperCase()] = ps.path;
+    });
+
+    return enumeration;
+  }
 }

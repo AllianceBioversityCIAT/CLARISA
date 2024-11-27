@@ -4,9 +4,11 @@ import { CgiarEntityTypeOption } from '../../shared/entities/enums/cgiar-entity-
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { CgiarEntityType } from './entities/cgiar-entity-type.entity';
 import { CgiarEntityTypeRepository } from './repositories/cgiar-entity-type.repository';
-import { BasicDtoV2 } from '../../shared/entities/dtos/basic-dto.v2';
+import { BasicDtoV2 } from '../../shared/entities/dtos/basic.v2.dto';
 import { CgiarEntityTypeMapper } from './mappers/cgiar-entity-type.mapper';
 import { CgiarEntityTypeDtoV2 } from './dto/cgiar-entity-type.v2.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class CgiarEntityTypeService {
@@ -60,7 +62,11 @@ export class CgiarEntityTypeService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._cgiarEntityTypeRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._cgiarEntityTypeMapper.classListToDtoV1List(
@@ -70,12 +76,18 @@ export class CgiarEntityTypeService {
   }
 
   async findOneV1(id: number): Promise<BasicDtoV2> {
-    const result = await this._cgiarEntityTypeRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
-
-    return this._cgiarEntityTypeMapper.classToDtoV1(result);
+    return this._cgiarEntityTypeRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._cgiarEntityTypeRepository.target.toString(),
+          id,
+        );
+      })
+      .then((type) => this._cgiarEntityTypeMapper.classToDtoV1(type));
   }
 
   async findAllV2(
@@ -102,7 +114,11 @@ export class CgiarEntityTypeService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._cgiarEntityTypeRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._cgiarEntityTypeMapper.classListToDtoV2List(
@@ -112,11 +128,17 @@ export class CgiarEntityTypeService {
   }
 
   async findOneV2(id: number): Promise<CgiarEntityTypeDtoV2> {
-    const result = await this._cgiarEntityTypeRepository.findOne({
-      where: { id },
-      relations: this._findOptions.relations,
-    });
-
-    return this._cgiarEntityTypeMapper.classToDtoV2(result, true);
+    return this._cgiarEntityTypeRepository
+      .findOne({
+        where: { id },
+        relations: this._findOptions.relations,
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._cgiarEntityTypeRepository.target.toString(),
+          id,
+        );
+      })
+      .then((type) => this._cgiarEntityTypeMapper.classToDtoV2(type, true));
   }
 }

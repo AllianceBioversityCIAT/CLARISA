@@ -27,10 +27,6 @@ export class AccountTypeRepository extends Repository<AccountType> {
         break;
     }
 
-    const accountTypes: AccountType[] = await this.find({
-      where: whereClause,
-    });
-
-    return accountTypes;
+    return this.find({ where: whereClause });
   }
 }

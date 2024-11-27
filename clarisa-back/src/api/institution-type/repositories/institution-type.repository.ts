@@ -5,16 +5,19 @@ import { SourceOption } from '../../../shared/entities/enums/source-options';
 import { InstitutionTypeFromParentDto } from '../dto/institution-type-from-parent.dto';
 import { InstitutionTypeDto } from '../dto/institution-type.dto';
 import { InstitutionType } from '../entities/institution-type.entity';
+import { BaseInstitutionTypeDto } from '../dto/base-institution-type.dto';
 
 @Injectable()
+// TODO check if it is possible to do this by using queries or querybuider
 export class InstitutionTypeRepository extends Repository<InstitutionType> {
   constructor(private dataSource: DataSource) {
     super(InstitutionType, dataSource.createEntityManager());
   }
 
-  async findAllTypesFromChildrenToParent(
+  async findTypesFromChildrenToParent(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
+    type: string = SourceOption.ONE_CGIAR.path,
+    id?: number,
   ): Promise<InstitutionTypeDto[]> {
     let institutionTypeDtos: InstitutionTypeDto[] = [];
     let whereClause: FindOptionsWhere<InstitutionType> = {};
@@ -33,19 +36,25 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
         };
         break;
     }
+
     switch (type) {
       case SourceOption.ALL.path:
         // do nothing. no extra conditions needed
         break;
-      case SourceOption.CGIAR.path:
+      case SourceOption.ONE_CGIAR.path:
       case SourceOption.LEGACY.path:
         whereClause = {
           ...whereClause,
           source_id: incomingType.source_id,
         };
         break;
-      default:
-        throw Error('?!');
+    }
+
+    if (id) {
+      whereClause = {
+        ...whereClause,
+        id: id,
+      };
     }
 
     const institutionTypes: InstitutionType[] = (
@@ -60,41 +69,39 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
       })
     ).filter((it) => it.children?.length === 0);
 
-    institutionTypeDtos = await Promise.all(
-      institutionTypes.map(async (it) => {
-        const newInstitutionType = new InstitutionTypeDto();
-        newInstitutionType.code = it.id;
-        newInstitutionType.name = it.name;
-        newInstitutionType.description = it.description;
+    institutionTypeDtos = institutionTypes.map((it) => {
+      const newInstitutionType = new InstitutionTypeDto();
+      newInstitutionType.code = it.id;
+      newInstitutionType.name = it.name;
+      newInstitutionType.description = it.description;
 
-        if (incomingType == SourceOption.ALL) {
-          newInstitutionType.legacy = it.source_id === 2;
+      if (incomingType == SourceOption.ALL) {
+        newInstitutionType.legacy = it.source_id === 2;
+      }
+
+      if (it.parent_object) {
+        newInstitutionType.parent = new BaseInstitutionTypeDto();
+        newInstitutionType.parent.code = it.parent_object.id;
+        newInstitutionType.parent.name = it.parent_object.name;
+
+        if (it.parent_object.parent_object) {
+          newInstitutionType.parent.parent = new BaseInstitutionTypeDto();
+          newInstitutionType.parent.parent.code =
+            it.parent_object.parent_object.id;
+          newInstitutionType.parent.parent.name =
+            it.parent_object.parent_object.name;
         }
+      }
 
-        if (it.parent_object) {
-          newInstitutionType.parent = new InstitutionTypeDto();
-          newInstitutionType.parent.code = it.parent_object.id;
-          newInstitutionType.parent.name = it.parent_object.name;
-
-          if (it.parent_object.parent_object) {
-            newInstitutionType.parent.parent = new InstitutionTypeDto();
-            newInstitutionType.parent.parent.code =
-              it.parent_object.parent_object.id;
-            newInstitutionType.parent.parent.name =
-              it.parent_object.parent_object.name;
-          }
-        }
-
-        return newInstitutionType;
-      }),
-    );
+      return newInstitutionType;
+    });
 
     return institutionTypeDtos;
   }
 
   async findAllTypesFromParentToChildren(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
+    type: string = SourceOption.ONE_CGIAR.path,
   ): Promise<InstitutionTypeFromParentDto[]> {
     let institutionTypeDtos: InstitutionTypeFromParentDto[] = [];
     let whereClause: FindOptionsWhere<InstitutionType> = {};
@@ -117,15 +124,13 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
       case SourceOption.ALL.path:
         // do nothing. no extra conditions needed
         break;
-      case SourceOption.CGIAR.path:
+      case SourceOption.ONE_CGIAR.path:
       case SourceOption.LEGACY.path:
         whereClause = {
           ...whereClause,
           source_id: incomingType.source_id,
         };
         break;
-      default:
-        throw Error('?!');
     }
 
     const institutionTypes: InstitutionType[] = (
@@ -140,20 +145,18 @@ export class InstitutionTypeRepository extends Repository<InstitutionType> {
       })
     ).filter((it) => !it.parent_object);
 
-    institutionTypeDtos = await Promise.all(
-      institutionTypes.map(async (it) => {
-        const newInstitutionType = new InstitutionTypeFromParentDto();
-        newInstitutionType.code = `${it.id}`;
-        newInstitutionType.name = it.name;
-        newInstitutionType.description = it.description;
+    institutionTypeDtos = institutionTypes.map((it) => {
+      const newInstitutionType = new InstitutionTypeFromParentDto();
+      newInstitutionType.code = `${it.id}`;
+      newInstitutionType.name = it.name;
+      newInstitutionType.description = it.description;
 
-        if (it.children?.length > 0) {
-          newInstitutionType.children = this.fillChildren(it);
-        }
+      if (it.children?.length > 0) {
+        newInstitutionType.children = this.fillChildren(it);
+      }
 
-        return newInstitutionType;
-      }),
-    );
+      return newInstitutionType;
+    });
 
     return institutionTypeDtos;
   }

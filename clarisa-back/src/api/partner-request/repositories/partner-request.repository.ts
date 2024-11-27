@@ -1,67 +1,28 @@
 import { Injectable } from '@nestjs/common';
-import {
-  DataSource,
-  FindOptionsRelations,
-  FindOptionsWhere,
-  IsNull,
-  Not,
-  Repository,
-} from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { RespondRequestDto } from '../../../shared/entities/dtos/respond-request.dto';
 import { MisOption } from '../../../shared/entities/enums/mises-options';
 import { PartnerStatus } from '../../../shared/entities/enums/partner-status';
-import { RegionTypeEnum } from '../../../shared/entities/enums/region-types';
-import { CountryDto } from '../../country/dto/country.dto';
 import { Country } from '../../country/entities/country.entity';
-import { InstitutionTypeDto } from '../../institution-type/dto/institution-type.dto';
-import { InstitutionCountryDto } from '../../institution/dto/institution-country.dto';
-import { InstitutionDto } from '../../institution/dto/institution.dto';
-import { Institution } from '../../institution/entities/institution.entity';
 import { InstitutionRepository } from '../../institution/repositories/institution.repository';
-import { ParentRegionDto } from '../../region/dto/parent-region.dto';
-import { SimpleRegionDto } from '../../region/dto/simple-region.dto';
-import { Region } from '../../region/entities/region.entity';
 import { CreatePartnerRequestDto } from '../dto/create-partner-request.dto';
 import { PartnerRequestDto } from '../dto/partner-request.dto';
 import { UpdatePartnerRequestDto } from '../dto/update-partner-request.dto';
 import { PartnerRequest } from '../entities/partner-request.entity';
-import { BulkPartnerRequestDto } from '../dto/create-partner-dto';
 import { InstitutionType } from '../../institution-type/entities/institution-type.entity';
 import { CountryRepository } from '../../country/repositories/country.repository';
 import { InstitutionTypeRepository } from '../../institution-type/repositories/institution-type.repository';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
+import { PartnerStatsDto } from '../dto/partner-stats.dto';
 import { StringContentComparator } from '../../../shared/utils/string-content-comparator';
 import { ResponseDto } from '../../../shared/entities/dtos/response.dto';
+import { BulkPartnerRequestDto } from '../dto/create-partner-dto';
 import { MessagingMicroservice } from '../../../integration/microservices/messaging/messaging.microservice';
 import { EmailTemplate } from '../../../integration/microservices/messaging/dto/email-cases';
 
 @Injectable()
 export class PartnerRequestRepository extends Repository<PartnerRequest> {
-  private readonly partnerRelations: FindOptionsRelations<PartnerRequest> = {
-    country_object: {
-      country_region_array: {
-        region_object: {
-          parent_object: true,
-        },
-      },
-    },
-    mis_object: true,
-    institution_type_object: true,
-    institution_object: {
-      institution_type_object: true,
-      institution_locations: {
-        country_object: {
-          country_region_array: {
-            region_object: {
-              parent_object: true,
-            },
-          },
-        },
-      },
-    },
-  };
-
   constructor(
     private dataSource: DataSource,
     private institutionRepository: InstitutionRepository,
@@ -72,24 +33,16 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
     super(PartnerRequest, dataSource.createEntityManager());
   }
 
-  async findPartnerRequestById(id: number): Promise<PartnerRequestDto> {
-    return this.findOne({
-      where: { id },
-      relations: this.partnerRelations,
-    }).then((pr) => this.fillOutPartnerRequestDto(pr));
-  }
-
-  async findAllPartnerRequests(
+  async findPartnerRequests(
     status: string = PartnerStatus.PENDING.path,
     mis: string = MisOption.ALL.path,
     show: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    requestIds?: number[],
   ): Promise<PartnerRequestDto[]> {
-    const partnerRequestDtos: PartnerRequestDto[] = [];
-    let whereClause: FindOptionsWhere<PartnerRequest> = {
-      partner_request_id: Not(IsNull()),
-    };
     const incomingMis = MisOption.getfromPath(mis);
-    const incomingStatus = PartnerStatus.getfromPath(status);
+
+    let whereClause: string = 'where pr.partner_request_id is not null';
+    const whereValues: (string | number)[] = [];
 
     switch (mis) {
       case MisOption.ALL.path:
@@ -106,173 +59,137 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
       case MisOption.PRMS.path:
       case MisOption.MARLO.path:
       case MisOption.PIPELINE.path:
-        whereClause = {
-          ...whereClause,
-          mis_id: incomingMis.mis_id,
-        };
+        whereClause = ' and pr.mis_id = ?';
+        whereValues.push(incomingMis.mis_id);
         break;
-      default:
-        throw Error('?!');
     }
 
     switch (status) {
       case PartnerStatus.ALL.path:
-        //do nothing. we will be showing everything, so no condition is needed;
+        //do nothing. we will be showing everything, so no condition is needed
         break;
       case PartnerStatus.PENDING.path:
-        whereClause = {
-          ...whereClause,
-          accepted: IsNull(),
-        };
+        whereClause += ' and pr.accepted_by is null and pr.rejected_by is null';
         break;
       case PartnerStatus.ACCEPTED.path:
       case PartnerStatus.REJECTED.path:
-        whereClause = {
-          ...whereClause,
-          accepted: incomingStatus === PartnerStatus.ACCEPTED,
-        };
+        whereClause += ` and (pr.accepted_by is ${status === PartnerStatus.ACCEPTED.path ? 'not null' : 'null'} and pr.rejected_by is ${status === PartnerStatus.REJECTED.path ? 'not null' : 'null'})`;
         break;
     }
 
     switch (show) {
       case FindAllOptions.SHOW_ALL:
+        ///do nothing. we will be showing everything, so no condition is needed
         break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        whereClause = {
-          ...whereClause,
-          auditableFields: {
-            is_active: show === FindAllOptions.SHOW_ONLY_ACTIVE,
-          },
-        };
+        whereClause += ` and pr.is_active = ${show === FindAllOptions.SHOW_ONLY_ACTIVE}`;
     }
 
-    const partnerRequest: PartnerRequest[] = await this.find({
-      where: whereClause,
-      relations: this.partnerRelations,
-    });
-
-    await Promise.all(
-      partnerRequest.map(async (pr) => {
-        const partnerRequestDto: PartnerRequestDto =
-          this.fillOutPartnerRequestDto(pr);
-
-        partnerRequestDtos.push(partnerRequestDto);
-      }),
-    );
-
-    return partnerRequestDtos;
-  }
-
-  private fillOutPartnerRequestDto(pr: PartnerRequest) {
-    const partnerRequestDto: PartnerRequestDto = new PartnerRequestDto();
-
-    partnerRequestDto.id = pr.id;
-    partnerRequestDto.partnerName = pr.partner_name;
-    partnerRequestDto.acronym = pr.acronym;
-    partnerRequestDto.webPage = pr.web_page;
-    partnerRequestDto.mis = pr.mis_object.acronym;
-    partnerRequestDto.requestStatus = this.getRequestStatus(pr.accepted);
-    partnerRequestDto.requestJustification = pr.reject_justification;
-    partnerRequestDto.requestSource = pr.request_source;
-    partnerRequestDto.externalUserMail = pr.external_user_mail;
-    partnerRequestDto.externalUserName = pr.external_user_name;
-    partnerRequestDto.externalUserComments = pr.external_user_comments;
-    partnerRequestDto.category_1 = pr.category_1;
-    partnerRequestDto.category_2 = pr.category_2;
-    partnerRequestDto.created_at = pr.auditableFields.created_at;
-    partnerRequestDto.countryDTO = this.fillOutCountryInfo(pr.country_object);
-
-    partnerRequestDto.institutionTypeDTO = new InstitutionTypeDto();
-    partnerRequestDto.institutionTypeDTO.code = pr.institution_type_object.id;
-    partnerRequestDto.institutionTypeDTO.name = pr.institution_type_object.name;
-    partnerRequestDto.institutionTypeDTO.id_parent =
-      pr.institution_type_object.parent_id;
-    if (pr.institution_id) {
-      partnerRequestDto.institutionDTO = this.fillOutInstitutionInfo(
-        pr.institution_object,
-      );
-    }
-    return partnerRequestDto;
-  }
-
-  private getRequestStatus(accepted: boolean | undefined): string {
-    // this did not work for some odd reason in TS; in JS it works just fine
-    //return (accepted === undefined ? 'Pending' : (accepted ? 'Accepted', 'Rejected'));
-    if (accepted == undefined) {
-      return PartnerStatus.PENDING.name;
+    if (requestIds) {
+      const idPlaceholders = requestIds.map(() => '?').join(', ');
+      whereClause += ` and pr.id in (${idPlaceholders})`;
+      whereValues.push(...requestIds);
     }
 
-    return accepted ? PartnerStatus.ACCEPTED.name : PartnerStatus.REJECTED.name;
-  }
+    const query = `
+      select pr.id, pr.partner_name as partnerName, pr.acronym, pr.web_page as webPage,
+        m.acronym as mis, (
+          case 
+            when pr.accepted_by is null and pr.rejected_by is null then 'Pending'
+                when pr.accepted_by is not null then 'Accepted'
+                when pr.rejected_by is not null then 'Rejected'
+                else 'Unknown'
+          end
+        ) as requestStatus,
+        pr.reject_justification as requestJustification, pr.request_source as requestSource,
+        pr.external_user_mail as externalUserMail, pr.external_user_name as externalUserName,
+        pr.external_user_comments as externalUserComments, pr.category_1, pr.category_2, 
+        pr.created_at as created_at, 
+        json_object(
+          "code", c.id,
+            "isoAlpha2", c.iso_alpha_2,
+            "isoAlpha3", c.iso_alpha_3,
+            "name", c.name,
+            "regionDTO", (
+            select json_object(
+              "name", r.name,
+              "um49Code", r.iso_numeric
+            )
+            from country_regions cr
+            right join regions r on r.region_type_id = 1 
+              and r.id = cr.region_id and r.is_active
+            where cr.country_id = c.id and cr.is_active
+          )
+        ) as countryDTO,
+        json_object(
+          "code", it.id,
+          "name", it.name,
+          "id_parent", it.parent_id
+        ) as institutionTypeDTO,
+        json_object("code", pr.institution_id) as institutionDTO
+      from partner_requests pr
+      left join mises m on pr.mis_id = m.id
+      left join countries c on pr.country_id = c.id
+      left join institution_types it on pr.institution_type_id = it.id
+      ${whereClause}
+    `;
 
-  private fillOutCountryInfo(country: Country): CountryDto {
-    const countryDto = new CountryDto();
-
-    countryDto.code = country.id;
-    countryDto.isoAlpha2 = country.iso_alpha_2;
-    countryDto.isoAlpha3 = country.iso_alpha_3;
-    countryDto.name = country.name;
-
-    countryDto.regionDTO = this.fillOutRegionInfo(
-      country.country_region_array.map((cr) => cr.region_object),
-    );
-
-    return countryDto;
-  }
-
-  private fillOutRegionInfo(regions: Region[]): SimpleRegionDto {
-    let regionDto = null;
-    const region: Region = regions.find(
-      (r) => r.region_type_id === RegionTypeEnum.CGIAR_REGION,
-    );
-
-    if (region) {
-      regionDto = new SimpleRegionDto();
-
-      regionDto.name = region.name;
-      regionDto.um49Code = region.iso_numeric;
-
-      if (regionDto.parentRegion) {
-        regionDto.parentRegion = new ParentRegionDto();
-        regionDto.parentRegion.name = region.parent_object.name;
-        regionDto.parentRegion.um49Code = region.parent_object.iso_numeric;
+    return this.query(query, whereValues).then((pr: PartnerRequestDto[]) => {
+      if (pr.length === 0) {
+        return [];
       }
-    }
 
-    return regionDto;
+      return this.institutionRepository
+        .findInstitutions(
+          FindAllOptions.SHOW_ONLY_ACTIVE,
+          undefined,
+          pr.map((c) => c.institutionDTO.code ?? 0),
+        )
+        .then((insts) => {
+          return pr.map((cor) => {
+            cor.institutionDTO = insts.find(
+              (i) => i.code === cor.institutionDTO.code,
+            );
+            return cor;
+          });
+        });
+    });
   }
 
-  private fillOutInstitutionInfo(institution: Institution): InstitutionDto {
-    const institutionDto: InstitutionDto = new InstitutionDto();
+  async findPartnerRequestById(
+    id: number,
+    forAcceptedPr: boolean = false,
+  ): Promise<PartnerRequestDto> {
+    return this.findPartnerRequests(
+      PartnerStatus.ALL.path,
+      MisOption.ALL.path,
+      forAcceptedPr
+        ? FindAllOptions.SHOW_ONLY_INACTIVE
+        : FindAllOptions.SHOW_ONLY_ACTIVE,
+      [id],
+    ).then((res) => {
+      if (res?.length === 0) {
+        throw Error();
+      }
 
-    institutionDto.code = institution.id;
-    institutionDto.name = institution.name;
-    institutionDto.acronym = institution.acronym;
-    institutionDto.websiteLink = institution.website_link;
-    institutionDto.added = institution.auditableFields.created_at;
+      return res[0];
+    });
+  }
 
-    institutionDto.countryOfficeDTO = institution.institution_locations.map(
-      (il) => {
-        const countryDto: InstitutionCountryDto = new InstitutionCountryDto();
+  async partnerStatistics(mis: string = MisOption.ALL.path) {
+    const query = `
+      select 
+        count(pr.id) as total,
+        sum(case when pr.accepted = 0 then 1 else 0 end) as rejected,
+        sum(case when pr.accepted = 1 then 1 else 0 end) as accepted,
+        sum(case when pr.accepted is null then 1 else 0 end) as pending
+      from partner_requests pr
+      where pr.partner_request_id is not null
+      ${mis !== MisOption.ALL.path ? `and pr.mis_id = '${mis}'` : ''}
+    `;
 
-        countryDto.code = il.country_object.id;
-        countryDto.isHeadquarter = il.is_headquater;
-        countryDto.isoAlpha2 = il.country_object.iso_alpha_2;
-        countryDto.name = il.country_object.name;
-        countryDto.regionDTO = null;
-
-        return countryDto;
-      },
-    );
-
-    institutionDto.institutionType = new InstitutionTypeDto();
-    institutionDto.institutionType.code =
-      institution.institution_type_object.id;
-    institutionDto.institutionType.name =
-      institution.institution_type_object.name;
-
-    return institutionDto;
+    return this.query(query) as Promise<PartnerStatsDto>;
   }
 
   async createPartnerRequest(
@@ -304,20 +221,18 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
 
     partialPartnerRequest.auditableFields.is_active = false;
     partialPartnerRequest = await this.save(partialPartnerRequest);
+
     partialPartnerRequest.partner_request_id = partialPartnerRequest.id;
     delete partialPartnerRequest.id;
     partialPartnerRequest.auditableFields.is_active = true;
     partialPartnerRequest = await this.save(partialPartnerRequest);
-    partialPartnerRequest = await this.findOne({
-      where: { id: partialPartnerRequest.id },
-      relations: this.partnerRelations,
-    });
-    this.messageMicroservice.sendPartnerRequestEmail(
-      EmailTemplate.PARTNER_REQUEST_INCOMING,
-      partialPartnerRequest,
-    );
 
-    return this.fillOutPartnerRequestDto(partialPartnerRequest);
+    return this.findPartnerRequestById(partialPartnerRequest.id).finally(() => {
+      this.messageMicroservice.sendPartnerRequestEmail(
+        EmailTemplate.PARTNER_REQUEST_INCOMING,
+        partialPartnerRequest,
+      );
+    });
   }
 
   async respondPartnerRequest(
@@ -345,24 +260,23 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
       ? partialPartnerRequest.accepted_by
       : partialPartnerRequest.rejected_by;
 
-    this.messageMicroservice.sendPartnerRequestEmail(
-      EmailTemplate.PARTNER_REQUEST_RESPONSE,
-      partialPartnerRequest,
-    );
-
     if (accepted) {
       const newInstitution = await this.institutionRepository.createInstitution(
         partialPartnerRequest,
       );
       partialPartnerRequest.institution_id = newInstitution.code;
     }
-    partialPartnerRequest = await this.save(partialPartnerRequest);
-    partialPartnerRequest = await this.findOne({
-      where: { id: partialPartnerRequest.id },
-      relations: this.partnerRelations,
-    });
 
-    return this.fillOutPartnerRequestDto(partialPartnerRequest);
+    partialPartnerRequest = await this.save(partialPartnerRequest);
+
+    return this.findPartnerRequestById(partialPartnerRequest.id, true).finally(
+      () => {
+        this.messageMicroservice.sendPartnerRequestEmail(
+          EmailTemplate.PARTNER_REQUEST_RESPONSE,
+          partialPartnerRequest,
+        );
+      },
+    );
   }
 
   async updatePartnerRequest(
@@ -372,6 +286,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
     if (partnerRequest.partner_request_id == null) {
       partnerRequest.auditableFields.is_active = false;
       await this.save(partnerRequest);
+
       partnerRequest.partner_request_id = partnerRequest.id;
       delete partnerRequest.id;
     }
@@ -392,79 +307,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
 
     partnerRequest = await this.save(partnerRequest);
 
-    partnerRequest = await this.findOne({
-      where: { id: partnerRequest.id },
-      relations: this.partnerRelations,
-    });
-
-    return this.fillOutPartnerRequestDto(partnerRequest);
-  }
-
-  async statisticsPartner(mis: string = MisOption.ALL.path) {
-    let whereClause: FindOptionsWhere<PartnerRequest> = {};
-    let whereClauseRejected: FindOptionsWhere<PartnerRequest> = {};
-    let whereClausePending: FindOptionsWhere<PartnerRequest> = {};
-    const incomingMis = MisOption.getfromPath(mis);
-    switch (mis) {
-      case MisOption.ALL.path:
-        // do nothing. no extra conditions needed
-        break;
-      case MisOption.AICCRA.path:
-      case MisOption.CGSPACE.path:
-      case MisOption.CLARISA.path:
-      case MisOption.ECONTRACTS.path:
-      case MisOption.FORESIGHT.path:
-      case MisOption.MEL.path:
-      case MisOption.OST.path:
-      case MisOption.TOC.path:
-      case MisOption.PRMS.path:
-      case MisOption.MARLO.path:
-      case MisOption.PIPELINE.path:
-        whereClause = {
-          ...whereClause,
-          mis_id: incomingMis.mis_id,
-        };
-        break;
-      default:
-        throw Error('?!');
-    }
-
-    const partnerRequest: PartnerRequest[] = await this.find({
-      where: whereClause,
-    });
-
-    whereClauseRejected = {
-      ...whereClause,
-      accepted: false,
-    };
-    whereClausePending = {
-      ...whereClause,
-      auditableFields: { is_active: true },
-    };
-    whereClause = {
-      ...whereClause,
-      accepted: true,
-    };
-
-    const partnerRequestAccepted: PartnerRequest[] = await this.find({
-      where: whereClause,
-    });
-
-    const partnerRequestRejected: PartnerRequest[] = await this.find({
-      where: whereClauseRejected,
-    });
-
-    const partnerRequestPending: PartnerRequest[] = await this.find({
-      where: whereClausePending,
-    });
-    const stadisticsPartner = {
-      Total: partnerRequest.length,
-      Accepted: partnerRequestAccepted.length,
-      Rejected: partnerRequestRejected.length,
-      Pending: partnerRequestPending.length,
-    };
-
-    return stadisticsPartner;
+    return this.findPartnerRequestById(partnerRequest.id);
   }
 
   async createPartnerRequestBulk(partnerRequestBulk: BulkPartnerRequestDto) {
@@ -479,12 +322,15 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
 
     return this.dataSource
       .transaction(async (manager) => {
-        for (const incomingPartnerRequest of partnerRequestBulk.listPartnerRequest) {
+        for (let i = 0; i < partnerRequestBulk.listPartnerRequest.length; i++) {
+          const incomingPartnerRequest =
+            partnerRequestBulk.listPartnerRequest[i];
+
           if (
             incomingPartnerRequest.name == undefined ||
             incomingPartnerRequest.name.trim() == ''
           ) {
-            throw new Error(`Name is required for partner request`);
+            throw new Error(`Name is required for partner request[${i}]`);
           }
 
           newPartnerRequest = new PartnerRequest();

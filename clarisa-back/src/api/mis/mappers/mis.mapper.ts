@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { Mis } from '../entities/mis.entity';
-import { SimpleMisDto } from '../dto/simple-mis.dto';
 import { BasicDtoMapper } from '../../../shared/mappers/basic-dto.mapper';
+import { MisDto } from '../dto/mis.dto';
 
 @Injectable()
 export class MisMapper {
   constructor(private readonly _basicMDtoMapper: BasicDtoMapper<Mis>) {}
 
-  public classToSimpleDto(mis: Mis): SimpleMisDto {
-    const simpleMisDto: SimpleMisDto = new SimpleMisDto();
+  public classToDto(mis: Mis): MisDto {
+    const simpleMisDto: MisDto = new MisDto();
 
-    Object.assign(simpleMisDto, this._basicMDtoMapper.classToDto(mis, false));
+    Object.assign(simpleMisDto, this._basicMDtoMapper.classToDtoV1(mis, false));
 
     simpleMisDto.acronym = mis.acronym;
 
@@ -21,7 +21,7 @@ export class MisMapper {
     return simpleMisDto;
   }
 
-  public classListToSimpleDtoList(miss: Mis[]): SimpleMisDto[] {
-    return miss.map((mis) => this.classToSimpleDto(mis));
+  public classListToDtoList(miss: Mis[]): MisDto[] {
+    return miss.map((mis) => this.classToDto(mis));
   }
 }

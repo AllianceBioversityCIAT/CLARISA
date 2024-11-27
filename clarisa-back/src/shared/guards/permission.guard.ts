@@ -33,24 +33,27 @@ export class PermissionGuard implements CanActivate {
     const userPayload = request.user;
     const route = request.originalUrl as string;
 
-    return this.userService
-      .findOneByEmail(userPayload.email)
-      .then((userDb: User) => {
-        if (isClarisaPage) {
-          //TODO extract this magic constant
-          return userDb.id === 3043;
-        }
+    return (
+      this.userService
+        //TODO this now throws an error, check what happens when not caught
+        .findOneByEmail(userPayload.email)
+        .then((userDb: User) => {
+          if (isClarisaPage) {
+            //TODO extract this magic constant
+            return userDb.id === 3043;
+          }
 
-        const isRoutePermitted = (userDb.permissions ?? []).some((p) =>
-          route.includes(p),
-        );
-        if (!isRoutePermitted) {
-          this._logger.error(
-            `User ${userDb.email} tried to access route ${route} without permission`,
+          const isRoutePermitted = (userDb.permissions ?? []).some((p) =>
+            route.includes(p),
           );
-        }
+          if (!isRoutePermitted) {
+            this._logger.error(
+              `User ${userDb.email} tried to access route ${route} without permission`,
+            );
+          }
 
-        return isRoutePermitted;
-      });
+          return isRoutePermitted;
+        })
+    );
   }
 }

@@ -3,44 +3,74 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UpdateTechnologyDevelopmentStageDto } from './dto/update-technology-development-stage.dto';
 import { TechnologyDevelopmentStage } from './entities/technology-development-stage.entity';
 import { TechnologyDevelopmentStageRepository } from './repositories/technology-development-stage.repository';
+import { TechnologyDevelopmentStageMapper } from './mappers/technology-development-stage.mapper';
+import { TechnologyDevelopmentStageDto } from './dto/technology-development-stage.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class TechnologyDevelopmentStageService {
   constructor(
-    private technologyDevelopmentStagesRepository: TechnologyDevelopmentStageRepository,
+    private _technologyDevelopmentStagesRepository: TechnologyDevelopmentStageRepository,
+    private _technologyDevelopmentStageMapper: TechnologyDevelopmentStageMapper,
   ) {}
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<TechnologyDevelopmentStage[]> {
+  ): Promise<TechnologyDevelopmentStageDto[]> {
+    let technologyDevelopmentStages: TechnologyDevelopmentStage[] = [];
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return await this.technologyDevelopmentStagesRepository.find();
+        technologyDevelopmentStages =
+          await this._technologyDevelopmentStagesRepository.find();
+        break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return await this.technologyDevelopmentStagesRepository.find({
-          where: {
-            auditableFields: {
-              is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
+        technologyDevelopmentStages =
+          await this._technologyDevelopmentStagesRepository.find({
+            where: {
+              auditableFields: {
+                is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
+              },
             },
-          },
-        });
+          });
+        break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._technologyDevelopmentStagesRepository.target.toString(),
+          'option',
+          option,
+        );
     }
+
+    return this._technologyDevelopmentStageMapper.classListToDtoList(
+      technologyDevelopmentStages,
+    );
   }
 
-  async findOne(id: number): Promise<TechnologyDevelopmentStage> {
-    return await this.technologyDevelopmentStagesRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  async findOne(id: number): Promise<TechnologyDevelopmentStageDto> {
+    return this._technologyDevelopmentStagesRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._technologyDevelopmentStagesRepository.target.toString(),
+          id,
+        );
+      })
+      .then((technologyDevelopmentStage) =>
+        this._technologyDevelopmentStageMapper.classToDto(
+          technologyDevelopmentStage,
+        ),
+      );
   }
 
   async update(
     updateTechnologyDevelopmentStageDto: UpdateTechnologyDevelopmentStageDto[],
   ) {
-    return await this.technologyDevelopmentStagesRepository.save(
+    return await this._technologyDevelopmentStagesRepository.save(
       updateTechnologyDevelopmentStageDto,
     );
   }

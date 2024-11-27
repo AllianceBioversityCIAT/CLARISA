@@ -18,23 +18,55 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { AccountTypeService } from './account-type.service';
 import { UpdateAccountTypeDto } from './dto/update-account-type.dto';
 import { AccountType } from './entities/account-type.entity';
+import {
+  ApiExcludeEndpoint,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { AccountTypeDto } from './dto/account-type.dto';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiTags('Account Types')
 export class AccountTypeController {
   constructor(private readonly accountTypeService: AccountTypeService) {}
 
   @Get()
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description:
+      'Show active, inactive or all account types. Defaults to active.',
+  })
+  @ApiOkResponse({ type: [AccountTypeDto] })
+  @ApiOperation({
+    summary: 'Get all account types, optionally filtered by status',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.accountTypeService.findAll(show);
   }
 
   @Get('get/:id')
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    required: true,
+    description: 'The id of the account type',
+  })
+  @ApiOkResponse({ type: [AccountTypeDto] })
+  @ApiOperation({
+    summary: 'Get an account type by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.accountTypeService.findOne(id);
   }
 
   @Patch('update')
+  @ApiExcludeEndpoint()
   async update(
     @Res() res: Response,
     @Body() updateUserDtoList: UpdateAccountTypeDto[],

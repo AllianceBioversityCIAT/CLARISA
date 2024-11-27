@@ -12,4 +12,8 @@ export class AccountTypeMapper {
 
     return accountTypeDto;
   }
+
+  classListToDtoList(accountTypes: AccountType[]): AccountTypeDto[] {
+    return accountTypes.map((accountType) => this.classToDto(accountType));
+  }
 }

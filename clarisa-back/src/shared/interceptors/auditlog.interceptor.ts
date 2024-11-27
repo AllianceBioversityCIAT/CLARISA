@@ -12,7 +12,7 @@ export class AuditlogInterceptor implements NestInterceptor {
     context: ExecutionContext,
     next: CallHandler<any>,
   ): Observable<any> | Promise<Observable<any>> {
-    //TODO implement the logig ONLY for PATCH requests
+    //TODO implement the logging ONLY for PATCH requests
     console.log('before...');
 
     const before = Date.now();

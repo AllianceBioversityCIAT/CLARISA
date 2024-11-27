@@ -10,14 +10,44 @@ import {
 } from '@nestjs/common';
 import { CgiarEntityService } from './cgiar-entity.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { CgiarEntityDtoV1 } from './dto/cgiar-entity.v1.dto';
+import { CgiarEntityDtoV2 } from './dto/cgiar-entity.v2.dto';
+import { CgiarEntityTypeOption } from '../../shared/entities/enums/cgiar-entity-types';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiTags('CGIAR Entities')
 export class CgiarEntityController {
   constructor(private readonly cgiarEntityService: CgiarEntityService) {}
 
   @Version('1')
   @Get()
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description:
+      'Show active, inactive or all CGIAR entities. Defaults to active.',
+  })
+  @ApiQuery({
+    name: 'type',
+    enum: CgiarEntityTypeOption.getAsEnumLikeObject(),
+    required: false,
+    description:
+      'Show CGIAR entities of a specific type. Defaults to all types.',
+  })
+  @ApiOkResponse({ type: [CgiarEntityDtoV1] })
+  @ApiOperation({
+    summary:
+      'Get all CGIAR entities, optionally filtered by status and type (Legacy)',
+  })
   async findAllV1(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
@@ -27,18 +57,49 @@ export class CgiarEntityController {
 
   @Version('1')
   @Get('get/:id')
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    required: true,
+    description: 'The id of the CGIAR entity',
+  })
+  @ApiOkResponse({ type: [CgiarEntityDtoV1] })
+  @ApiOperation({
+    summary: 'Get a CGIAR entity by id',
+  })
   async findOneV1(@Param('id', ParseIntPipe) id: number) {
     return await this.cgiarEntityService.findOneV1(id);
   }
 
   @Version('2')
   @Get()
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description:
+      'Show active, inactive or all CGIAR entities. Defaults to active.',
+  })
+  @ApiOkResponse({ type: [CgiarEntityDtoV2] })
+  @ApiOperation({
+    summary: 'Get all CGIAR entities, optionally filtered by status',
+  })
   async findAllV2(@Query('show') show: FindAllOptions) {
     return await this.cgiarEntityService.findAllV2(show);
   }
 
   @Version('2')
   @Get('get/:id')
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    required: true,
+    description: 'The id of the CGIAR entity',
+  })
+  @ApiOkResponse({ type: [CgiarEntityDtoV2] })
+  @ApiOperation({
+    summary: 'Get a CGIAR entity by id',
+  })
   async findOneV2(@Param('id', ParseIntPipe) id: number) {
     return await this.cgiarEntityService.findOneV2(id);
   }

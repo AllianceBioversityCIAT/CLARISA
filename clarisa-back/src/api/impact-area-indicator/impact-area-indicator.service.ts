@@ -1,37 +1,46 @@
 import { Injectable } from '@nestjs/common';
 import { UpdateImpactAreaIndicatorDto } from './dto/update-impact-area-indicator.dto';
-import { ImpactAreaIndicator } from './entities/impact-area-indicator.entity';
 import { ImpactAreaIndicatorDto } from './dto/impact-area-indicator.dto';
 import { ImpactAreaIndicatorRepository } from './repositories/impact-area-indicator.repository';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class ImpactAreaIndicatorService {
   constructor(
-    private impactAreaIndicatorRepository: ImpactAreaIndicatorRepository,
+    private _impactAreaIndicatorRepository: ImpactAreaIndicatorRepository,
   ) {}
 
-  async findAll(
+  findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<ImpactAreaIndicatorDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._impactAreaIndicatorRepository.target.toString(),
+        'option',
+        option,
+      );
     }
 
-    return this.impactAreaIndicatorRepository.findAllImpactAreaIndicators(
+    return this._impactAreaIndicatorRepository.findAllImpactAreaIndicators(
       option,
     );
   }
 
-  async findOne(id: number): Promise<ImpactAreaIndicator> {
-    return await this.impactAreaIndicatorRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  findOne(id: number): Promise<ImpactAreaIndicatorDto> {
+    return this._impactAreaIndicatorRepository
+      .findOneImpactAreaById(id)
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._impactAreaIndicatorRepository.target.toString(),
+          id,
+        );
+      });
   }
 
   async update(updateImpactaAreaIndicator: UpdateImpactAreaIndicatorDto[]) {
-    return await this.impactAreaIndicatorRepository.save(
+    return await this._impactAreaIndicatorRepository.save(
       updateImpactaAreaIndicator,
     );
   }

@@ -2,13 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { Mis } from './entities/mis.entity';
 import { MisRepository } from './repositories/mis.repository';
+import { MisDto } from './dto/mis.dto';
 import { CreateMisDto } from './dto/create-mis.dto';
-import { UserData } from '../../shared/interfaces/user-data';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
 import { EnvironmentService } from '../environment/environment.service';
 import { UserService } from '../user/user.service';
 import { ResponseDto } from '../../shared/entities/dtos/response.dto';
 import { FindManyOptions, Like } from 'typeorm';
 import { MisMapper } from './mappers/mis.mapper';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ExistingEntityError } from '../../shared/errors/existing-entity-error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class MisService {
@@ -20,29 +24,28 @@ export class MisService {
   ) {}
 
   private readonly _where: FindManyOptions<Mis> = {
+    select: {
+      id: true,
+      name: true,
+      acronym: true,
+      main_contact_point_id: true,
+    },
     relations: {
       environment_object: true,
     },
   };
 
-  async create(createMisDto: CreateMisDto, userData: UserData) {
-    if (!createMisDto) {
-      throw new Error('Missing required data');
-    } else if (!createMisDto.acronym) {
-      throw new Error('Missing MIS acronym');
-    } else if (!createMisDto.contact_point_id) {
-      throw new Error('Missing MIS contact point');
-    } else if (!createMisDto.environment) {
-      throw new Error('Missing MIS environment');
-    } else if (!createMisDto.name) {
-      throw new Error('Missing MIS name');
-    }
+  async create(createMisDto: CreateMisDto, userData: UserDataDto) {
+    this.validateOnCreation(createMisDto);
 
     const contactPoint = await this._userService.findOne(
       createMisDto.contact_point_id,
     );
     if (!contactPoint) {
-      throw new Error(
+      throw new BadParamsError(
+        this._misRepository.target.toString(),
+        'createMisDto.contact_point_id',
+        createMisDto.contact_point_id,
         `User with ID "${createMisDto.contact_point_id}" not found`,
       );
     }
@@ -51,7 +54,10 @@ export class MisService {
       createMisDto.environment,
     );
     if (!environment) {
-      throw new Error(
+      throw new BadParamsError(
+        this._misRepository.target.toString(),
+        'createMisDto.environment',
+        createMisDto.environment,
         `Environment with acronym "${createMisDto.environment}" not found`,
       );
     }
@@ -59,9 +65,16 @@ export class MisService {
     const existingMis = await this.findOneByAcronymAndEnvironment(
       createMisDto.acronym,
       environment.acronym,
-    );
+    ).catch((e) => {
+      if (e instanceof ClarisaEntityNotFoundError) {
+        return null;
+      }
+
+      throw e;
+    });
     if (existingMis) {
-      throw new Error(
+      throw new ExistingEntityError(
+        this._misRepository.target.toString(),
         `MIS with acronym "${createMisDto.acronym}" and environment "${createMisDto.environment}" already exists`,
       );
     }
@@ -78,29 +91,63 @@ export class MisService {
 
     return this._misRepository
       .save(mis)
-      .then((mis) =>
-        this._misRepository.findOne({
-          where: { id: mis.id },
-          ...this._where,
-        }),
-      )
+      .then((mis) => this.findOne(mis.id))
       .then((mis) => {
-        return ResponseDto.buildCreatedResponse(
-          this._misMapper.classToSimpleDto(mis),
-          MisService,
-        );
+        return ResponseDto.buildCreatedResponse(mis, MisService);
       });
+  }
+
+  private validateOnCreation(createMisDto: CreateMisDto) {
+    if (!createMisDto) {
+      throw new BadParamsError(
+        this._misRepository.target.toString(),
+        'createMisDto',
+        createMisDto,
+        'Missing required data',
+      );
+    } else if (!createMisDto.acronym) {
+      throw new BadParamsError(
+        this._misRepository.target.toString(),
+        'createMisDto.acronym',
+        createMisDto.acronym,
+        'Missing MIS acronym',
+      );
+    } else if (!createMisDto.contact_point_id) {
+      throw new BadParamsError(
+        this._misRepository.target.toString(),
+        'createMisDto.contact_point_id',
+        createMisDto.contact_point_id,
+        'Missing MIS contact point',
+      );
+    } else if (!createMisDto.environment) {
+      throw new BadParamsError(
+        this._misRepository.target.toString(),
+        'createMisDto.environment',
+        createMisDto.environment,
+        'Missing MIS environment',
+      );
+    } else if (!createMisDto.name) {
+      throw new BadParamsError(
+        this._misRepository.target.toString(),
+        'createMisDto.name',
+        createMisDto.name,
+        'Missing MIS name',
+      );
+    }
   }
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<Mis[]> {
+  ): Promise<MisDto[]> {
+    let mises: Mis[] = [];
+
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return await this._misRepository.find(this._where);
+        mises = await this._misRepository.find(this._where);
+        break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return await this._misRepository.find({
+        mises = await this._misRepository.find({
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
@@ -108,32 +155,55 @@ export class MisService {
           },
           ...this._where,
         });
+        break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._misRepository.target.toString(),
+          'option',
+          option,
+        );
     }
+
+    return this._misMapper.classListToDtoList(mises);
   }
 
   async findOneByAcronymAndEnvironment(
     acronym: string,
     environment: string,
-  ): Promise<Mis> {
-    return await this._misRepository.findOne({
-      where: {
-        acronym,
-        environment_object: { acronym: Like(environment) },
-        auditableFields: { is_active: true },
-      },
-      ...this._where,
-    });
+  ): Promise<MisDto> {
+    return this._misRepository
+      .findOneOrFail({
+        where: {
+          acronym,
+          environment_object: { acronym: Like(environment) },
+          auditableFields: { is_active: true },
+        },
+        ...this._where,
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forMultipleParams(
+          this._misRepository.target.toString(),
+          { acronym, environment },
+        );
+      })
+      .then((mis) => this._misMapper.classToDto(mis));
   }
 
-  async findOne(id: number): Promise<Mis> {
-    return await this._misRepository.findOne({
-      where: {
-        id,
-        auditableFields: { is_active: true },
-      },
-      ...this._where,
-    });
+  async findOne(id: number): Promise<MisDto> {
+    return await this._misRepository
+      .findOneOrFail({
+        where: {
+          id,
+          auditableFields: { is_active: true },
+        },
+        ...this._where,
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._misRepository.target.toString(),
+          id,
+        );
+      })
+      .then((mis) => this._misMapper.classToDto(mis));
   }
 }

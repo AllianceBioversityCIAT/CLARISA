@@ -1,7 +1,9 @@
 import { Controller, Get, Param } from '@nestjs/common';
 import { SecondOrderAdministrativeDivisionService } from './second-order-administrative-division.service';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 @Controller()
+@ApiExcludeController()
 export class SecondOrderAdministrativeDivisionController {
   constructor(
     private readonly secondOrderAdministrativeDivisionService: SecondOrderAdministrativeDivisionService,

@@ -1,22 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UpdateTechnicalFieldDto } from './dto/update-technical-field.dto';
-import { TechnicalField } from './entities/technical-field.entity';
 import { TechnicalFieldRepository } from './repositories/technical-field.repository';
+import { BasicDtoV1 } from '../../shared/entities/dtos/basic.v1.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class TechnicalFieldService {
-  constructor(private technicalFieldsRepository: TechnicalFieldRepository) {}
+  constructor(private _technicalFieldsRepository: TechnicalFieldRepository) {}
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<TechnicalField[]> {
+  ): Promise<BasicDtoV1[]> {
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return await this.technicalFieldsRepository.find();
+        return this._technicalFieldsRepository.find();
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return await this.technicalFieldsRepository.find({
+        return this._technicalFieldsRepository.find({
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
@@ -24,18 +26,29 @@ export class TechnicalFieldService {
           },
         });
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._technicalFieldsRepository.target.toString(),
+          'option',
+          option,
+        );
     }
   }
 
-  async findOne(id: number): Promise<TechnicalField> {
-    return await this.technicalFieldsRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  async findOne(id: number): Promise<BasicDtoV1> {
+    return this._technicalFieldsRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._technicalFieldsRepository.target.toString(),
+          id,
+        );
+      });
   }
 
   async update(updateTechnicalFieldDto: UpdateTechnicalFieldDto[]) {
-    return await this.technicalFieldsRepository.save(updateTechnicalFieldDto);
+    return await this._technicalFieldsRepository.save(updateTechnicalFieldDto);
   }
 }

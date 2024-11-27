@@ -15,8 +15,10 @@ import { QaTokenAuthService } from '../auth/qa-token-auth/qa-token-auth.service'
 import { CreateQaTokenAuthDto } from '../auth/qa-token-auth/dto/create-qa-token-auth.dto';
 import { format } from 'url';
 import { Response } from 'express';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 @Controller()
+@ApiExcludeController()
 export class ApiController {
   constructor(
     private qaTokenAuthService: QaTokenAuthService,

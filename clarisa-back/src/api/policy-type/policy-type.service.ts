@@ -5,6 +5,9 @@ import { SourceOption } from '../../shared/entities/enums/source-options';
 import { UpdatePolicyTypeDto } from './dto/update-policy-type.dto';
 import { PolicyType } from './entities/policy-type.entity';
 import { PolicyTypeRepository } from './repositories/policy-type.repository';
+import { PolicyTypeDto } from './dto/policy-type.dto';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
 
 @Injectable()
 export class PolicyTypeService {
@@ -12,8 +15,8 @@ export class PolicyTypeService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
-  ): Promise<PolicyType[]> {
+    type: string = SourceOption.ONE_CGIAR.path,
+  ): Promise<PolicyTypeDto[]> {
     let whereClause: FindOptionsWhere<PolicyType> = {};
     const incomingType = SourceOption.getfromPath(type);
 
@@ -21,14 +24,18 @@ export class PolicyTypeService {
       case SourceOption.ALL.path:
         // do nothing. no extra conditions needed
         break;
-      case SourceOption.CGIAR.path:
+      case SourceOption.ONE_CGIAR.path:
         whereClause = {
           ...whereClause,
           source_id: incomingType.source_id,
         };
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this.policyTypesRepository.target.toString(),
+          'type',
+          type,
+        );
     }
 
     switch (option) {
@@ -48,15 +55,26 @@ export class PolicyTypeService {
           where: whereClause,
         });
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this.policyTypesRepository.target.toString(),
+          'option',
+          option,
+        );
     }
   }
 
-  async findOne(id: number): Promise<PolicyType> {
-    return await this.policyTypesRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  async findOne(id: number): Promise<PolicyTypeDto> {
+    return await this.policyTypesRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this.policyTypesRepository.target.toString(),
+          id,
+        );
+      });
   }
 
   async update(updatePolicyTypeDto: UpdatePolicyTypeDto[]) {

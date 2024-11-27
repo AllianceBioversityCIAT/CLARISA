@@ -4,6 +4,8 @@ import { FundingSourceMapper } from './mappers/funding-source.mapper';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { FundingSource } from './entities/funding-source.entity';
 import { FundingSourceDto } from './dto/funding-source.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class FundingSourceService {
@@ -34,7 +36,11 @@ export class FundingSourceService {
         });
         break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._fundingSourceRepository.target.toString(),
+          'option',
+          option,
+        );
     }
 
     return this._fundingSourceMapper.classListToDtoList(
@@ -44,14 +50,19 @@ export class FundingSourceService {
   }
 
   async findOne(id: number): Promise<FundingSourceDto> {
-    const fundingSource: FundingSource =
-      await this._fundingSourceRepository.findOneBy({
+    return this._fundingSourceRepository
+      .findOneByOrFail({
         id,
         auditableFields: { is_active: true },
-      });
-
-    return fundingSource
-      ? this._fundingSourceMapper.classToDto(fundingSource, true)
-      : null;
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._fundingSourceRepository.target.toString(),
+          id,
+        );
+      })
+      .then((fundingSource) =>
+        this._fundingSourceMapper.classToDto(fundingSource, true),
+      );
   }
 }

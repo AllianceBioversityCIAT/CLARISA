@@ -1,4 +1,3 @@
-import { Exclude } from 'class-transformer';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
 
@@ -12,7 +11,6 @@ export class Beneficiary {
 
   //auditable fields
 
-  @Exclude()
   @Column(() => AuditableEntity, { prefix: '' })
   auditableFields: AuditableEntity;
 }

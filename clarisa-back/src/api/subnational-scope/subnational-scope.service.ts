@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { SubnationalScopeRepository } from './repositories/subnational-scope.repository';
 import { SubnationalScopeDto } from './dto/subnational-scope.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class SubnationalScopeService {
@@ -13,19 +15,34 @@ export class SubnationalScopeService {
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     country_id?: number,
     country_iso_alpha_2?: string,
+    offset?: number,
+    limit?: number,
   ): Promise<SubnationalScopeDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this.subnationalScopesRepository.target.toString(),
+        'option',
+        option,
+      );
     }
 
     return this.subnationalScopesRepository.findSubnationalScope(
       option,
       country_id,
       country_iso_alpha_2,
+      offset,
+      limit,
     );
   }
 
   async findOne(id: number): Promise<SubnationalScopeDto> {
-    return await this.subnationalScopesRepository.findOneSubnationalScope(id);
+    return this.subnationalScopesRepository
+      .findOneSubnationalScope(id)
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this.subnationalScopesRepository.target.toString(),
+          id,
+        );
+      });
   }
 }

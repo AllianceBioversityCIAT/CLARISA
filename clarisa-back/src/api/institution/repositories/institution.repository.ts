@@ -24,18 +24,22 @@ export class InstitutionRepository extends Repository<Institution> {
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     from: number = undefined,
     institutionIds?: number[],
+    offset?: number,
+    limit?: number,
   ): Promise<InstitutionDto[]> {
     let whereClause: string = '';
-    const whereValues: (string | number)[] = [];
+    let limitClause: string = '';
+    const params: (string | number)[] = [];
 
     if (from) {
       whereClause += `where i.updated_at >= FROM_UNIXTIME(? / 1000, '%Y-%m-%d %H:%i:%s.%f')`;
-      whereValues.push(from);
+      params.push(from);
     }
 
     if (institutionIds) {
-      whereClause += `${whereClause ? ' and' : 'where'} i.id in (?)`;
-      whereValues.push(institutionIds.join(','));
+      const idPlaceholders = institutionIds.map(() => '?').join(', ');
+      whereClause += `${whereClause ? ' and' : 'where'} i.id in (${idPlaceholders})`;
+      params.push(...institutionIds);
     }
 
     whereClause += `${whereClause ? ' and' : 'where'} i.is_active in (?)`;
@@ -49,7 +53,16 @@ export class InstitutionRepository extends Repository<Institution> {
       valueToPush = '0';
     }
 
-    whereValues.push(valueToPush);
+    params.push(valueToPush);
+
+    if (limit != null) {
+      limitClause += ` limit ?`;
+      params.push(limit);
+      if (offset != null) {
+        limitClause += ` offset ?`;
+        params.push(offset);
+      }
+    }
 
     const query: string = `
       select i.id code, i.name, i.acronym, i.website_link websiteLink,
@@ -70,16 +83,23 @@ export class InstitutionRepository extends Repository<Institution> {
       left join institution_types it on i.institution_type_id = it.id
       ${whereClause}
       group by i.id
+      ${limitClause}
     `;
 
-    return await this.query(query, whereValues).catch((error) => {
+    return this.query(query, params).catch((error) => {
       throw Error(`Error fetching institutions: ${error}`);
     });
   }
 
   async findInstitutionById(id: number): Promise<InstitutionDto> {
     return this.findInstitutions(FindAllOptions.SHOW_ALL, undefined, [id]).then(
-      (value) => (value ? value[0] : null),
+      (value) => {
+        if (!value?.length) {
+          throw Error();
+        }
+
+        return value[0];
+      },
     );
   }
 
@@ -87,13 +107,23 @@ export class InstitutionRepository extends Repository<Institution> {
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     addInstitutionRelated: boolean = false,
     institutionId?: number,
+    offset?: number,
+    limit?: number,
   ) {
     let whereClause: string = '';
+    let limitClause: string = '';
     if (institutionId) {
       whereClause += `where i.id = ?`;
     }
 
     whereClause += `${whereClause ? ' and' : 'where'} i.is_active in (?)`;
+
+    if (limit != null) {
+      limitClause += ` limit ?`;
+      if (offset != null) {
+        limitClause += ` offset ?`;
+      }
+    }
 
     return `
       select i.id as code, i.acronym, c.name as hqLocation, c.iso_alpha_2 as hqLocationISOalpha2,
@@ -120,12 +150,15 @@ export class InstitutionRepository extends Repository<Institution> {
         left join countries c on il.country_id = c.id
         left join institution_types it on i.institution_type_id = it.id
         ${whereClause}
+        ${limitClause}
     `;
   }
 
   async findInstitutionSourceEntries(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     institutionId?: number,
+    offset?: number,
+    limit?: number,
   ): Promise<InstitutionDictionaryDto[]> {
     const whereValues: (string | number)[] = [];
     if (institutionId) {
@@ -144,8 +177,21 @@ export class InstitutionRepository extends Repository<Institution> {
 
     whereValues.push(valueToPush);
 
-    return await this.query(
-      this._getQueryForInstitutionSimple(option, true),
+    if (limit != null) {
+      whereValues.push(limit);
+      if (offset != null) {
+        whereValues.push(offset);
+      }
+    }
+
+    return this.query(
+      this._getQueryForInstitutionSimple(
+        option,
+        true,
+        institutionId,
+        offset,
+        limit,
+      ),
       whereValues,
     ).catch((error) => {
       throw Error(`Error fetching simple old institutions: ${error}`);
@@ -156,13 +202,21 @@ export class InstitutionRepository extends Repository<Institution> {
     id: number,
   ): Promise<InstitutionDictionaryDto> {
     return this.findInstitutionSourceEntries(FindAllOptions.SHOW_ALL, id).then(
-      (value) => (value ? value[0] : null),
+      (value) => {
+        if (!value?.length) {
+          throw Error();
+        }
+
+        return value[0];
+      },
     );
   }
 
   async findAllInstitutionsSimple(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     institutionId?: number,
+    offset?: number,
+    limit?: number,
   ): Promise<InstitutionSimpleDto[]> {
     const whereValues: (string | number)[] = [];
 
@@ -178,8 +232,21 @@ export class InstitutionRepository extends Repository<Institution> {
           : '0',
     );
 
-    return await this.query(
-      this._getQueryForInstitutionSimple(option),
+    if (limit != null) {
+      whereValues.push(limit);
+      if (offset != null) {
+        whereValues.push(offset);
+      }
+    }
+
+    return this.query(
+      this._getQueryForInstitutionSimple(
+        option,
+        false,
+        institutionId,
+        offset,
+        limit,
+      ),
       whereValues,
     ).catch((error) => {
       throw Error(`Error fetching simple institutions: ${error}`);
@@ -188,7 +255,13 @@ export class InstitutionRepository extends Repository<Institution> {
 
   async findInstitutionSimpleById(id: number): Promise<InstitutionSimpleDto> {
     return this.findAllInstitutionsSimple(FindAllOptions.SHOW_ALL, id).then(
-      (value) => (value ? value[0] : null),
+      (value) => {
+        if (!value?.length) {
+          throw Error();
+        }
+
+        return value[0];
+      },
     );
   }
 

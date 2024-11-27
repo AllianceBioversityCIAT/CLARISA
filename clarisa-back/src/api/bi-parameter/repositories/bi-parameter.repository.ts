@@ -10,13 +10,14 @@ export class BiParameterRepository extends Repository<BiParameter> {
   }
 
   async getFindAllInformation() {
-    const parametersBi: BiParameter[] = await this.find();
-    const parametersUnitsBi: ParametersBiUnit = new ParametersBiUnit();
+    return this.find().then((biParams) => {
+      const parametersUnitsBi: ParametersBiUnit = new ParametersBiUnit();
 
-    await parametersBi.map((resp) => {
-      parametersUnitsBi[resp.parameter_name] = resp.parameter_value;
+      biParams.map((resp) => {
+        parametersUnitsBi[resp.parameter_name] = resp.parameter_value;
+      });
+
+      return parametersUnitsBi;
     });
-
-    return parametersUnitsBi;
   }
 }

@@ -17,11 +17,13 @@ import { UpdateHomepageClarisaCategoryDto } from './dto/update-homepage-clarisa-
 import { Response } from 'express';
 import { HomepageClarisaCategory } from './entities/homepage-clarisa-category.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 //@ClarisaPageOnly()
 //@UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiExcludeController()
 export class HomepageClarisaCategoryController {
   constructor(
     private readonly homepageClarisaCategoryService: HomepageClarisaCategoryService,

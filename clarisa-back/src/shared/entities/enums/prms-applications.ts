@@ -61,4 +61,14 @@ export class PRMSApplication {
       (v) => v != PRMSApplication.ALL,
     );
   }
+
+  public static getAsEnumLikeObject(): { [key: string]: string } {
+    const enumeration: { [key: string]: string } = {};
+    (Object.values(this) as PRMSApplication[]).forEach((mo) => {
+      const key = mo.simpleName.toUpperCase().replace(/ /g, '_');
+      enumeration[key] = mo.simpleName;
+    });
+
+    return enumeration;
+  }
 }

@@ -17,13 +17,42 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UpdatePolicyTypeDto } from '../policy-type/dto/update-policy-type.dto';
 import { PolicyType } from '../policy-type/entities/policy-type.entity';
 import { Response } from 'express';
+import {
+  ApiExcludeEndpoint,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { PolicyTypeDto } from './dto/policy-type.dto';
+import { SourceOption } from '../../shared/entities/enums/source-options';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiTags('Policy Types')
 export class PolicyTypeController {
   constructor(private readonly policyTypeService: PolicyTypeService) {}
 
   @Get()
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description:
+      'Show active, inactive or all policy types. Defaults to active.',
+  })
+  @ApiQuery({
+    name: 'type',
+    enum: SourceOption.getAsEnumLikeObject(),
+    required: false,
+    description:
+      'Show only policy types from a specific source. Defaults to all.',
+  })
+  @ApiOkResponse({ type: [PolicyTypeDto] })
+  @ApiOperation({
+    summary: 'Get all policy types, optionally filtered by status and type',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
@@ -32,11 +61,22 @@ export class PolicyTypeController {
   }
 
   @Get('get/:id')
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    required: true,
+    description: 'The id of the policy type',
+  })
+  @ApiOkResponse({ type: [PolicyTypeDto] })
+  @ApiOperation({
+    summary: 'Get a policy type by id',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.policyTypeService.findOne(id);
   }
 
   @Patch('update')
+  @ApiExcludeEndpoint()
   async update(
     @Res() res: Response,
     @Body() updatePolicyTypeDtoList: UpdatePolicyTypeDto[],

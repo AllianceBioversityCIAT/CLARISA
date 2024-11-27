@@ -3,42 +3,89 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UpdateGlobalTargetDto } from './dto/update-global-target.dto';
 import { GlobalTarget } from './entities/global-target.entity';
 import { GlobalTargetRepository } from './repositories/global-target.repository';
+import { FindManyOptions } from 'typeorm';
+import { GlobalTargetMapper } from './mappers/global-target.mapper';
+import { GlobalTargetDto } from './dto/global-target.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class GlobalTargetService {
-  constructor(private globalTargetRepository: GlobalTargetRepository) {}
+  constructor(
+    private _globalTargetRepository: GlobalTargetRepository,
+    private _globalTargetMapper: GlobalTargetMapper,
+  ) {}
+  private readonly _findClause: FindManyOptions<GlobalTarget> = {
+    select: {
+      id: true,
+      smo_code: true,
+      global_target: true,
+      impact_area_object: {
+        id: true,
+        name: true,
+      },
+    },
+    relations: { impact_area_object: true },
+  };
 
-  findAll(
+  async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<GlobalTarget[]> {
+  ): Promise<GlobalTargetDto[]> {
+    let globalTargets: GlobalTarget[] = [];
+
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return this.globalTargetRepository.find();
+        globalTargets = await this._globalTargetRepository.find(
+          this._findClause,
+        );
+        break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return this.globalTargetRepository.find({
+        globalTargets = await this._globalTargetRepository.find({
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
             },
           },
+          ...this._findClause,
         });
+        break;
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._globalTargetRepository.target.toString(),
+          'option',
+          option,
+        );
     }
+
+    return this._globalTargetMapper.classListToDtoList(globalTargets);
   }
 
-  async findOne(id: number): Promise<GlobalTarget> {
-    return await this.globalTargetRepository.findOneBy({ id });
+  async findOne(id: number): Promise<GlobalTargetDto> {
+    return this._globalTargetRepository
+      .findOneOrFail({
+        where: { id },
+        ...this._findClause,
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._globalTargetRepository.target.toString(),
+          id,
+        );
+      })
+      .then((globalTarget) =>
+        this._globalTargetMapper.classToDto(globalTarget),
+      );
   }
 
-  async getUsersPagination(offset?: number, limit = 10) {
-    const [items, count] = await this.globalTargetRepository.findAndCount({
+  async getWithPagination(offset?: number, limit = 10) {
+    const [items, count] = await this._globalTargetRepository.findAndCount({
       order: {
         id: 'ASC',
       },
       skip: offset,
       take: limit,
+      ...this._findClause,
     });
 
     return {
@@ -50,6 +97,6 @@ export class GlobalTargetService {
   async update(
     updateUserDtoList: UpdateGlobalTargetDto[],
   ): Promise<GlobalTarget[]> {
-    return await this.globalTargetRepository.save(updateUserDtoList);
+    return await this._globalTargetRepository.save(updateUserDtoList);
   }
 }

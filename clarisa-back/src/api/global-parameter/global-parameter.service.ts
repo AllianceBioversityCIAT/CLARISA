@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { GlobalParameterRepository } from './repositories/global-parameter.repository';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class GlobalParameterService {
@@ -20,16 +22,27 @@ export class GlobalParameterService {
           },
         });
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._globalParameterRepository.target.toString(),
+          'option',
+          option,
+        );
     }
   }
 
   findOne(id: number) {
-    return this._globalParameterRepository.findOne({
-      where: {
-        id,
-        auditableFields: { is_active: true },
-      },
-    });
+    return this._globalParameterRepository
+      .findOneOrFail({
+        where: {
+          id,
+          auditableFields: { is_active: true },
+        },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._globalParameterRepository.target.toString(),
+          id,
+        );
+      });
   }
 }

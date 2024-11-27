@@ -17,11 +17,13 @@ import { UpdateHomepageClarisaEndpointDto } from './dto/update-homepage-clarisa-
 import { HomepageClarisaEndpoint } from './entities/homepage-clarisa-endpoint.entity';
 import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 //@ClarisaPageOnly()
 //@UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
+@ApiExcludeController()
 export class HomepageClarisaEndpointController {
   constructor(
     private readonly homepageClarisaEndpointService: HomepageClarisaEndpointService,

@@ -15,7 +15,7 @@ export class EnvironmentMapper {
 
     Object.assign(
       environmentDto,
-      this._basicEMapper.classToDto(environment, showIsActive),
+      this._basicEMapper.classToDtoV2(environment, showIsActive),
     );
 
     environmentDto.acronym = environment.acronym;

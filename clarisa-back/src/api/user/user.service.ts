@@ -3,20 +3,35 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UserRepository } from './repositories/user.repository';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UserDataDto } from '../../shared/entities/dtos/user-data.dto';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 
 @Injectable()
 export class UserService {
-  constructor(private usersRepository: UserRepository) {}
+  constructor(private _usersRepository: UserRepository) {}
+
+  create(userData: UserDataDto, createUserDto: CreateUserDto) {
+    if (!createUserDto) {
+      throw new Error('Missing required data');
+    } else if (!createUserDto.email) {
+      throw new Error('Missing user email');
+    } else if (!createUserDto.roles || createUserDto.roles.length == 0) {
+      throw new Error('Missing user roles');
+    }
+    // TODO: implement the rest of the method
+  }
 
   findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<User[]> {
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        return this.usersRepository.find();
+        return this._usersRepository.find();
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        return this.usersRepository.find({
+        return this._usersRepository.find({
           where: {
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
@@ -24,12 +39,16 @@ export class UserService {
           },
         });
       default:
-        throw Error('?!');
+        throw new BadParamsError(
+          this._usersRepository.target.toString(),
+          'option',
+          option,
+        );
     }
   }
 
   async getUsersPagination(offset?: number, limit = 10) {
-    const [items, count] = await this.usersRepository.findAndCount({
+    const [items, count] = await this._usersRepository.findAndCount({
       order: {
         id: 'ASC',
       },
@@ -44,24 +63,28 @@ export class UserService {
   }
 
   async findOne(id: number): Promise<User> {
-    return await this.usersRepository.findOneBy({ id });
+    return this._usersRepository
+      .findOneByOrFail({
+        id,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forId(
+          this._usersRepository.target.toString(),
+          id,
+        );
+      });
   }
 
   async getUserPermissions(user: User): Promise<string[] | undefined> {
-    const permissions_result: any = await this.usersRepository.query(
-      'call getUserPermissions(?)',
-      [user.id],
-    );
+    const [permissions_result]: [{ permission_route: string }[], any] =
+      await this._usersRepository.query('call getUserPermissions(?)', [
+        user.id,
+      ]);
 
-    let permissions: string[] = [];
-
-    if (permissions_result[0]?.constructor.name === Array.name) {
-      permissions = permissions_result[0]
-        .map((rdp) => rdp.permission_route as string)
-        .filter((p) => p);
-    }
-
-    return permissions.length == 0 ? undefined : permissions;
+    return (permissions_result ?? [])
+      .map((rdp) => rdp.permission_route)
+      .filter((p) => p);
   }
 
   /**
@@ -72,16 +95,29 @@ export class UserService {
    * @returns an user or empty, if not found.
    */
   async findOneByEmail(email: string, isService = true): Promise<User> {
-    const user: User = await this.usersRepository.findOneBy({ email });
-    if (user) {
-      user.permissions = await this.getUserPermissions(user);
-    }
+    return this._usersRepository
+      .findOneByOrFail({
+        email,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forSingleParam(
+          this._usersRepository.target.toString(),
+          'email',
+          email,
+        );
+      })
+      .then((user) => {
+        return this.getUserPermissions(user).then((permissions) => {
+          user.permissions = permissions;
 
-    if (isService) {
-      delete user.password;
-    }
+          if (isService) {
+            delete user.password;
+          }
 
-    return user;
+          return user;
+        });
+      });
   }
 
   /**
@@ -91,20 +127,33 @@ export class UserService {
    * false if it's being called from the auth module
    * @returns an user or empty, if not found.
    */
-  async findOneByUsername(username: string, isService = false): Promise<User> {
-    const user: User = await this.usersRepository.findOneBy({ username });
-    if (user) {
-      user.permissions = await this.getUserPermissions(user);
-    }
+  async findOneByUsername(username: string, isService = true): Promise<User> {
+    return this._usersRepository
+      .findOneByOrFail({
+        username,
+        auditableFields: { is_active: true },
+      })
+      .catch(() => {
+        throw ClarisaEntityNotFoundError.forSingleParam(
+          this._usersRepository.target.toString(),
+          'username',
+          username,
+        );
+      })
+      .then((user) => {
+        return this.getUserPermissions(user).then((permissions) => {
+          user.permissions = permissions;
 
-    if (isService) {
-      delete user.password;
-    }
+          if (isService) {
+            delete user.password;
+          }
 
-    return user;
+          return user;
+        });
+      });
   }
 
   async update(updateUserDtoList: UpdateUserDto[]): Promise<User[]> {
-    return await this.usersRepository.save(updateUserDtoList);
+    return await this._usersRepository.save(updateUserDtoList);
   }
 }

@@ -8,6 +8,9 @@ import { UpdateInstitutionTypeDto } from './dto/update-institution-type.dto';
 import { InstitutionType } from './entities/institution-type.entity';
 import { InstitutionTypeMapper } from './mappers/institution-type.mapper';
 import { InstitutionTypeRepository } from './repositories/institution-type.repository';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
+import { SimpleInstitutionTypeDto } from './dto/simple-institution-type.dto';
 
 @Injectable()
 export class InstitutionTypeService {
@@ -18,17 +21,25 @@ export class InstitutionTypeService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
+    type: string = SourceOption.ONE_CGIAR.path,
   ): Promise<InstitutionTypeDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._institutionTypesRepository.target.toString(),
+        'option',
+        option,
+      );
     }
 
     if (!SourceOption.getfromPath(type)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._institutionTypesRepository.target.toString(),
+        'type',
+        type,
+      );
     }
 
-    return this._institutionTypesRepository.findAllTypesFromChildrenToParent(
+    return this._institutionTypesRepository.findTypesFromChildrenToParent(
       option,
       type,
     );
@@ -36,14 +47,22 @@ export class InstitutionTypeService {
 
   async findAllFromParentToChildren(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
+    type: string = SourceOption.ONE_CGIAR.path,
   ): Promise<InstitutionTypeFromParentDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._institutionTypesRepository.target.toString(),
+        'option',
+        option,
+      );
     }
 
     if (!SourceOption.getfromPath(type)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._institutionTypesRepository.target.toString(),
+        'type',
+        type,
+      );
     }
 
     return this._institutionTypesRepository.findAllTypesFromParentToChildren(
@@ -54,14 +73,22 @@ export class InstitutionTypeService {
 
   async findAllSimple(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-    type: string = SourceOption.CGIAR.path,
-  ): Promise<InstitutionTypeDto[]> {
+    type: string = SourceOption.ONE_CGIAR.path,
+  ): Promise<SimpleInstitutionTypeDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._institutionTypesRepository.target.toString(),
+        'option',
+        option,
+      );
     }
 
     if (!SourceOption.getfromPath(type)) {
-      throw Error('?!');
+      throw new BadParamsError(
+        this._institutionTypesRepository.target.toString(),
+        'type',
+        type,
+      );
     }
 
     let whereClause: FindOptionsWhere<InstitutionType> = {};
@@ -84,32 +111,41 @@ export class InstitutionTypeService {
       case SourceOption.ALL.path:
         // do nothing. no extra conditions needed
         break;
-      case SourceOption.CGIAR.path:
+      case SourceOption.ONE_CGIAR.path:
       case SourceOption.LEGACY.path:
         whereClause = {
           ...whereClause,
           source_id: incomingType.source_id,
         };
         break;
-      default:
-        throw Error('?!');
     }
 
-    const institutionTypes: InstitutionType[] =
-      await this._institutionTypesRepository.find({
+    return this._institutionTypesRepository
+      .find({
         where: whereClause,
-      });
-
-    return institutionTypes.map((it) =>
-      this._institutionTypeMapper.classToSimpleDto(it),
-    );
+      })
+      .then((institutionTypes) =>
+        this._institutionTypeMapper.classListToSimpleDtoList(institutionTypes),
+      );
   }
 
-  async findOne(id: number): Promise<InstitutionType> {
-    return await this._institutionTypesRepository.findOneBy({
-      id,
-      auditableFields: { is_active: true },
-    });
+  async findOne(id: number): Promise<InstitutionTypeDto> {
+    return this._institutionTypesRepository
+      .findTypesFromChildrenToParent(
+        FindAllOptions.SHOW_ONLY_ACTIVE,
+        SourceOption.ONE_CGIAR.path,
+        id,
+      )
+      .then((result) => {
+        if (!result?.length) {
+          throw ClarisaEntityNotFoundError.forId(
+            this._institutionTypesRepository.target.toString(),
+            id,
+          );
+        }
+
+        return result[0];
+      });
   }
 
   async update(updateInstitutionTypeDto: UpdateInstitutionTypeDto[]) {
