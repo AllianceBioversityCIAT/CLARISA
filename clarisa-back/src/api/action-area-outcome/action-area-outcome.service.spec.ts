@@ -1,71 +1,132 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { OrmConfigTestModule } from '../../shared/config/ormconfig.test.module';
 import { ActionAreaOutcomeService } from './action-area-outcome.service';
-import { ActionAreaOutcomeModule } from './action-area-outcome.module';
+import { ActionAreaOutcomeRepository } from './repositories/action-area-outcome.repository';
+import { ActionAreaOutcomeIndicatorRepository } from '../action-area-outcome-indicator/repositories/action-area-outcome-indicator-repository';
+import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 import { ActionAreaOutcomeDto } from './dto/action-area-outcome.dto';
-import { ActionAreaOutcome } from './entities/action-area-outcome.entity';
-import { ActionAreaOutcomeIndicatorModule } from '../action-area-outcome-indicator/action-area-outcome-indicator.module';
+import { OneActionAreaOutcomeDto } from './dto/one-action-area-outcome.dto';
 
 describe('ActionAreaOutcomeService', () => {
   let service: ActionAreaOutcomeService;
+  let actionAreaOutcomeRepository: ActionAreaOutcomeRepository;
+  let actionAreaOutcomeIndicatorRepository: ActionAreaOutcomeIndicatorRepository;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        OrmConfigTestModule,
-        ActionAreaOutcomeModule,
-        ActionAreaOutcomeIndicatorModule,
+      providers: [
+        ActionAreaOutcomeService,
+        {
+          provide: ActionAreaOutcomeRepository,
+          useValue: {
+            findActionAreaOutcomeById: jest.fn(),
+            save: jest.fn(),
+            target: { toString: () => 'ActionAreaOutcome' },
+          },
+        },
+        {
+          provide: ActionAreaOutcomeIndicatorRepository,
+          useValue: {
+            findActionAreaOutcomeIndicators: jest.fn(),
+            target: { toString: () => 'ActionAreaOutcomeIndicator' },
+          },
+        },
       ],
-      providers: [],
     }).compile();
 
     service = module.get<ActionAreaOutcomeService>(ActionAreaOutcomeService);
-  }, 10000);
+    actionAreaOutcomeRepository = module.get<ActionAreaOutcomeRepository>(
+      ActionAreaOutcomeRepository,
+    );
+    actionAreaOutcomeIndicatorRepository =
+      module.get<ActionAreaOutcomeIndicatorRepository>(
+        ActionAreaOutcomeIndicatorRepository,
+      );
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
 
   describe('findAll', () => {
-    it('should fail if the option parameter cannot be found on enum', () => {
-      // Arrange
-      const options: FindAllOptions = 999 as unknown as FindAllOptions;
+    it('should return an array of ActionAreaOutcomeDto', async () => {
+      const result: ActionAreaOutcomeDto[] = [
+        {
+          id: 1,
+          actionAreaId: 1,
+          outcomeIndicatorSMOcode: '',
+          actionAreaName: '',
+          outcomeId: 0,
+          outcomeSMOcode: '',
+          outcomeStatement: '',
+          outcomeIndicatorId: 0,
+          outcomeIndicatorStatement: '',
+        },
+        {
+          id: 2,
+          actionAreaId: 2,
+          outcomeIndicatorSMOcode: '',
+          actionAreaName: '',
+          outcomeId: 0,
+          outcomeSMOcode: '',
+          outcomeStatement: '',
+          outcomeIndicatorId: 0,
+          outcomeIndicatorStatement: '',
+        },
+      ];
 
-      // Act
-      const result = service.findAll(options);
+      jest
+        .spyOn(
+          actionAreaOutcomeIndicatorRepository,
+          'findActionAreaOutcomeIndicators',
+        )
+        .mockResolvedValue(result);
 
-      // Assert
-      expect(result).rejects.toThrow('?!');
+      expect(await service.findAll()).toBe(result);
     });
 
-    it('should return an array of ActionAreaOutcomeDto', async () => {
-      // Arrange
-      const options: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE;
-
-      // Act
-      const result: ActionAreaOutcomeDto[] = await service.findAll(options);
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result).toBeInstanceOf(Array);
-      if (result.length) {
-        expect(result[0]).toBeInstanceOf(ActionAreaOutcomeDto);
-        expect(result[0].id).toBeDefined();
-        expect(result[0].id).toBe('1');
-      }
+    it('should throw BadParamsError if option is invalid', async () => {
+      await expect(
+        service.findAll('INVALID_OPTION' as FindAllOptions),
+      ).rejects.toThrow(BadParamsError);
     });
   });
 
   describe('findOne', () => {
-    it('should return an ActionAreaOutcome', async () => {
-      // Arrange
-      const id: number = 1;
+    it('should return an ActionAreaOutcomeDto', async () => {
+      const result: OneActionAreaOutcomeDto = {
+        id: 1,
+        smo_code: '',
+        outcome_statement: '',
+      };
 
-      // Act
-      const result: ActionAreaOutcome = await service.findOne(id);
+      jest
+        .spyOn(actionAreaOutcomeRepository, 'findActionAreaOutcomeById')
+        .mockResolvedValue(result);
 
-      // Assert
-      expect(result).toBeDefined();
-      expect(result).toBeInstanceOf(ActionAreaOutcomeDto);
-      expect(result.id).toBeDefined();
-      expect(result.id).toBe(`${id}`);
+      expect(await service.findOne(1)).toBe(result);
+    });
+
+    it('should throw ClarisaEntityNotFoundError if outcome not found', async () => {
+      jest
+        .spyOn(actionAreaOutcomeRepository, 'findActionAreaOutcomeById')
+        .mockResolvedValue(null);
+
+      await expect(service.findOne(1)).rejects.toThrow(
+        ClarisaEntityNotFoundError.messageRegex,
+      );
+    });
+  });
+
+  describe('update', () => {
+    it('should update and return the updated ActionAreaOutcomeDto', async () => {
+      const updateDto = [{ id: 1, name: 'Updated Outcome' }];
+      jest
+        .spyOn(actionAreaOutcomeRepository, 'save')
+        .mockResolvedValue(updateDto as any);
+
+      expect(await service.update(updateDto)).toBe(updateDto);
     });
   });
 });

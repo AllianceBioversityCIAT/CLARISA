@@ -4,7 +4,6 @@ import { ActionAreaRepository } from './repositories/action-area.repository';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { BadParamsError } from '../../shared/errors/bad-params.error';
 import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
-import { ActionAreaDto } from './dto/action-area.dto';
 import { ActionArea } from './entities/action-area.entity';
 
 describe('ActionAreaService', () => {
@@ -21,6 +20,7 @@ describe('ActionAreaService', () => {
             find: jest.fn(),
             findOneByOrFail: jest.fn(),
             save: jest.fn(),
+            target: { toString: () => 'ActionArea' },
           },
         },
       ],
@@ -106,9 +106,50 @@ describe('ActionAreaService', () => {
       );
     });
 
+    it('should return only active action areas when option is null or non-present', async () => {
+      const result: ActionArea[] = [
+        {
+          id: 1,
+          name: 'Action Area 1',
+          description: 'desc1',
+          icon: '',
+          color: '',
+          smo_code: '',
+          action_area_outcome_indicators: [],
+          initiative_stage_array: [],
+          auditableFields: null,
+        },
+      ];
+
+      jest.spyOn(repository, 'find').mockResolvedValue(result);
+
+      expect(await service.findAll()).toBe(result);
+    });
+
     it('should return only inactive action areas when option is SHOW_ONLY_INACTIVE', async () => {
-      const result = [{ id: 1 }];
-      jest.spyOn(repository, 'find').mockResolvedValue(result as any);
+      const result: ActionArea[] = [
+        {
+          id: 2,
+          name: 'Action Area 2',
+          description: 'desc2',
+          icon: '',
+          color: '',
+          smo_code: '',
+          action_area_outcome_indicators: [],
+          initiative_stage_array: [],
+          auditableFields: {
+            is_active: false,
+            created_at: undefined,
+            updated_at: undefined,
+            created_by: 0,
+            updated_by: 0,
+            modification_justification: '',
+            created_by_object: undefined,
+            updated_by_object: undefined,
+          },
+        },
+      ];
+      jest.spyOn(repository, 'find').mockResolvedValue(result);
       expect(await service.findAll(FindAllOptions.SHOW_ONLY_INACTIVE)).toBe(
         result,
       );
@@ -133,7 +174,7 @@ describe('ActionAreaService', () => {
     it('should throw ClarisaEntityNotFoundError if action area not found', async () => {
       jest.spyOn(repository, 'findOneByOrFail').mockRejectedValue(new Error());
       await expect(service.findOne(1)).rejects.toThrow(
-        ClarisaEntityNotFoundError,
+        ClarisaEntityNotFoundError.messageRegex,
       );
     });
   });
