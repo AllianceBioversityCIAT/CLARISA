@@ -1,64 +1,149 @@
-import { Test } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { ActionAreaService } from './action-area.service';
+import { ActionAreaRepository } from './repositories/action-area.repository';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
-import { ActionAreaModule } from './action-area.module';
-import { OrmConfigTestModule } from '../../shared/config/ormconfig.test.module';
+import { BadParamsError } from '../../shared/errors/bad-params.error';
+import { ClarisaEntityNotFoundError } from '../../shared/errors/clarisa-entity-not-found.error';
 import { ActionAreaDto } from './dto/action-area.dto';
+import { ActionArea } from './entities/action-area.entity';
 
 describe('ActionAreaService', () => {
   let service: ActionAreaService;
+  let repository: ActionAreaRepository;
 
   beforeEach(async () => {
-    const moduleRef = await Test.createTestingModule({
-      providers: [OrmConfigTestModule, ActionAreaModule],
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ActionAreaService,
+        {
+          provide: ActionAreaRepository,
+          useValue: {
+            find: jest.fn(),
+            findOneByOrFail: jest.fn(),
+            save: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
-    service = moduleRef.get<ActionAreaService>(ActionAreaService);
+    service = module.get<ActionAreaService>(ActionAreaService);
+    repository = module.get<ActionAreaRepository>(ActionAreaRepository);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
   });
 
   describe('findAll', () => {
-    it('should fail if the option parameter cannot be found on enum', () => {
-      // Arrange
-      const options: FindAllOptions = 999 as unknown as FindAllOptions;
+    it('should return all action areas when option is SHOW_ALL', async () => {
+      const result: ActionArea[] = [
+        {
+          id: 1,
+          name: 'Action Area 1',
+          description: 'desc1',
+          icon: '',
+          color: '',
+          smo_code: '',
+          action_area_outcome_indicators: [],
+          initiative_stage_array: [],
+          auditableFields: {
+            is_active: true,
+            created_at: undefined,
+            updated_at: undefined,
+            created_by: 0,
+            updated_by: 0,
+            modification_justification: '',
+            created_by_object: undefined,
+            updated_by_object: undefined,
+          },
+        },
+        {
+          id: 2,
+          name: 'Action Area 2',
+          description: 'desc2',
+          icon: '',
+          color: '',
+          smo_code: '',
+          action_area_outcome_indicators: [],
+          initiative_stage_array: [],
+          auditableFields: {
+            is_active: false,
+            created_at: undefined,
+            updated_at: undefined,
+            created_by: 0,
+            updated_by: 0,
+            modification_justification: '',
+            created_by_object: undefined,
+            updated_by_object: undefined,
+          },
+        },
+      ];
 
-      // Act
-      const result = service.findAll(options);
+      jest.spyOn(repository, 'find').mockResolvedValue(result);
 
-      // Assert
-      expect(result).rejects.toThrow('?!');
+      expect(await service.findAll(FindAllOptions.SHOW_ALL)).toBe(result);
     });
 
-    it('should return an array of ActionAreaDto', async () => {
-      // Arrange
-      const options: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE;
+    it('should return only active action areas when option is SHOW_ONLY_ACTIVE', async () => {
+      const result: ActionArea[] = [
+        {
+          id: 1,
+          name: 'Action Area 1',
+          description: 'desc1',
+          icon: '',
+          color: '',
+          smo_code: '',
+          action_area_outcome_indicators: [],
+          initiative_stage_array: [],
+          auditableFields: null,
+        },
+      ];
 
-      // Act
-      const result: ActionAreaDto[] = await service.findAll(options);
+      jest.spyOn(repository, 'find').mockResolvedValue(result);
 
-      // Assert
-      expect(result).toBeDefined();
-      expect(result).toBeInstanceOf(Array);
-      if (result.length) {
-        expect(result[0]).toBeInstanceOf(ActionAreaDto);
-        expect(result[0].id).toBeDefined();
-        expect(result[0].id).toBe('1');
-      }
+      expect(await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE)).toBe(
+        result,
+      );
+    });
+
+    it('should return only inactive action areas when option is SHOW_ONLY_INACTIVE', async () => {
+      const result = [{ id: 1 }];
+      jest.spyOn(repository, 'find').mockResolvedValue(result as any);
+      expect(await service.findAll(FindAllOptions.SHOW_ONLY_INACTIVE)).toBe(
+        result,
+      );
+    });
+
+    it('should throw BadParamsError for invalid option', async () => {
+      await expect(service.findAll('INVALID_OPTION' as any)).rejects.toThrow(
+        BadParamsError,
+      );
     });
   });
 
   describe('findOne', () => {
-    it('should return an ActionAreaDto', async () => {
-      // Arrange
-      const id: number = 1;
+    it('should return an action area by id', async () => {
+      const result = { id: 1 };
+      jest
+        .spyOn(repository, 'findOneByOrFail')
+        .mockResolvedValue(result as any);
+      expect(await service.findOne(1)).toBe(result);
+    });
 
-      // Act
-      const result: ActionAreaDto = await service.findOne(id);
+    it('should throw ClarisaEntityNotFoundError if action area not found', async () => {
+      jest.spyOn(repository, 'findOneByOrFail').mockRejectedValue(new Error());
+      await expect(service.findOne(1)).rejects.toThrow(
+        ClarisaEntityNotFoundError,
+      );
+    });
+  });
 
-      // Assert
-      expect(result).toBeDefined();
-      expect(result).toBeInstanceOf(ActionAreaDto);
-      expect(result.id).toBeDefined();
-      expect(result.id).toBe(`${id}`);
+  describe('update', () => {
+    it('should update action areas', async () => {
+      const updateDtoList = [{ id: 1 }];
+      const result = [{ id: 1 }];
+      jest.spyOn(repository, 'save').mockResolvedValue(result as any);
+      expect(await service.update(updateDtoList as any)).toBe(result);
     });
   });
 });
