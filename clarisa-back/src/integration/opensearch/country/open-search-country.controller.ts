@@ -9,11 +9,11 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../../shared/guards/permission.guard';
-import { OpenSearchInstitutionApi } from './open-search-institution.api';
+import { OpenSearchCountryApi } from './open-search-country.api';
 
 @Controller()
-export class OpenSearchInstitutionController {
-  constructor(private readonly openSearchApi: OpenSearchInstitutionApi) {}
+export class OpenSearchCountryController {
+  constructor(private readonly openSearchApi: OpenSearchCountryApi) {}
 
   @Post('reset')
   @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -29,8 +29,12 @@ export class OpenSearchInstitutionController {
   ) {
     return this.openSearchApi.search(
       query,
-      ['name', 'acronym'],
-      [{ code: { order: 'asc' } }],
+      ['name', 'iso_alpha_2'],
+      [
+        {
+          id: { order: 'asc' },
+        },
+      ],
       size,
     );
   }
