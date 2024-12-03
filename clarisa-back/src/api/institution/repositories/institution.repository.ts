@@ -10,14 +10,25 @@ import { InstitutionLocation } from '../entities/institution-location.entity';
 import { Institution } from '../entities/institution.entity';
 import { InstitutionLocationRepository } from './institution-location.repository';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
+import { ElasticFindEntity } from '../../../integration/opensearch/dto/elastic-find-entity.dto';
 
 @Injectable()
-export class InstitutionRepository extends Repository<Institution> {
+export class InstitutionRepository
+  extends Repository<Institution>
+  implements ElasticFindEntity<InstitutionDto>
+{
   constructor(
     private dataSource: DataSource,
     private institutionLocationRepository: InstitutionLocationRepository,
   ) {
     super(Institution, dataSource.createEntityManager());
+  }
+
+  async findDataForOpenSearch(
+    option: FindAllOptions,
+    ids?: number[],
+  ): Promise<InstitutionDto[]> {
+    return this.findInstitutions(option, undefined, ids);
   }
 
   async findInstitutions(
