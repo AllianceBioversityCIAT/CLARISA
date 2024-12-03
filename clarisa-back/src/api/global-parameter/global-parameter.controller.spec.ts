@@ -11,7 +11,9 @@ describe('GlobalParameterController', () => {
       providers: [GlobalParameterService],
     }).compile();
 
-    controller = module.get<GlobalParameterController>(GlobalParameterController);
+    controller = module.get<GlobalParameterController>(
+      GlobalParameterController,
+    );
   });
 
   it('should be defined', () => {
