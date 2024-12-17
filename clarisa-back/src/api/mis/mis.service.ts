@@ -59,7 +59,13 @@ export class MisService {
     const existingMis = await this.findOneByAcronymAndEnvironment(
       createMisDto.acronym,
       environment.acronym,
-    );
+    ).catch((e) => {
+      if (e instanceof ClarisaEntityNotFoundError) {
+        return null;
+      }
+
+      throw e;
+    });
     if (existingMis) {
       throw new Error(
         `MIS with acronym "${createMisDto.acronym}" and environment "${createMisDto.environment}" already exists`,
