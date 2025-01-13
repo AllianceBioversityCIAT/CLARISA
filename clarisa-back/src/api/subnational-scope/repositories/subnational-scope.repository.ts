@@ -4,11 +4,38 @@ import { SubnationalScope } from '../entities/subnational-scope.entity';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { SubnationalScopeDto } from '../dto/subnational-scope.dto';
 import { SubnationalQueryParameters } from '../dto/subnational-query-parameters.dro';
+import { ElasticFindEntity } from '../../../integration/opensearch/dto/elastic-find-entity.dto';
+import { OpenSearchSubnationalDto } from '../../../integration/opensearch/subnational/dto/open-search-subnational.dto';
 
 @Injectable()
-export class SubnationalScopeRepository extends Repository<SubnationalScope> {
+export class SubnationalScopeRepository
+  extends Repository<SubnationalScope>
+  implements ElasticFindEntity<OpenSearchSubnationalDto>
+{
   constructor(private dataSource: DataSource) {
     super(SubnationalScope, dataSource.createEntityManager());
+  }
+
+  findDataForOpenSearch(
+    option: FindAllOptions,
+    ids?: number[],
+  ): Promise<OpenSearchSubnationalDto[]> {
+    const query = `select 
+                  	iss.id,
+                  	iss.code,
+                  	iss.name,
+                  	iss.local_name,
+                  	iss.romanization_system_name,
+                  	c.iso_alpha_2,
+                  	iss.iso_language_id
+                  from iso_subnational_scope iss 
+                  	inner join countries c on iss.country_id = c.id 
+                  where 1 = 1 
+                  	${option !== FindAllOptions.SHOW_ALL ? 'and iss.is_active = true' : ''}
+                    ${ids && ids.length > 0 ? `and iss.id IN (${ids.join(',')})` : ''}
+                  `;
+
+    return this.query(query);
   }
 
   async findSubnationalScope(
