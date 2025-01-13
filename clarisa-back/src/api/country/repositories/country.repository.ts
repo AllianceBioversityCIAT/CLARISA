@@ -24,26 +24,14 @@ export class CountryRepository
     option: FindAllOptions,
     ids?: number[],
   ): Promise<OpenSearchCountryDto[]> {
-    const queryBuilder = this.createQueryBuilder('country')
-      .select([
-        'country.id',
-        'country.name',
-        'country.iso_alpha_2',
-        'country.iso_alpha_3',
-        'country.iso_numeric',
-        'country.geoposition_id',
-      ])
-      .leftJoin('country.subnational_scope_array', 'subnational')
-      .addSelect([
-        'subnational.id',
-        'subnational.code',
-        'subnational.name',
-        'subnational.local_name',
-        'subnational.romanization_system_name',
-        'subnational.country_id',
-        'subnational.iso_language_id',
-        'subnational.iso_subnational_category_id',
-      ]);
+    const queryBuilder = this.createQueryBuilder('country').select([
+      'country.id',
+      'country.name',
+      'country.iso_alpha_2',
+      'country.iso_alpha_3',
+      'country.iso_numeric',
+      'country.geoposition_id',
+    ]);
 
     if (option !== FindAllOptions.SHOW_ALL) {
       queryBuilder.andWhere('country.auditableFields.is_active = :isActive', {

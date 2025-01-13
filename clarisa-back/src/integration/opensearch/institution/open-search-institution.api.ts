@@ -17,6 +17,12 @@ export class OpenSearchInstitutionApi extends BaseOpenSearchApi<
     institutionRepository: InstitutionRepository,
     appConfig: AppConfig,
   ) {
-    super(httpService, institutionRepository, appConfig, 'code');
+    super(
+      httpService,
+      institutionRepository,
+      appConfig,
+      'code',
+      InstitutionDto,
+    );
   }
 }
