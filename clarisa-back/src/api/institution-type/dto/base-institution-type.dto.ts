@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { OpenSearchProperty } from '../../../integration/opensearch/decorators/opensearch-property.decorator';
 
 export class BaseInstitutionTypeDto {
   @ApiProperty({
@@ -6,12 +7,14 @@ export class BaseInstitutionTypeDto {
     type: Number,
     minimum: 1,
   })
+  @OpenSearchProperty({ type: 'integer' })
   code: number;
 
   @ApiProperty({
     description: 'The name of the institution type',
     type: String,
   })
+  @OpenSearchProperty({ type: 'text' })
   name: string;
 
   @ApiProperty({
@@ -19,5 +22,6 @@ export class BaseInstitutionTypeDto {
     type: () => BaseInstitutionTypeDto,
     nullable: true,
   })
+  @OpenSearchProperty({ type: 'object', nestedType: BaseInstitutionTypeDto })
   parent?: BaseInstitutionTypeDto;
 }
