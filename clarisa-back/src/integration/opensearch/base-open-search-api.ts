@@ -6,6 +6,7 @@ import {
   ElasticQueryDto,
   OpenSearchOperator,
   OpenSearchQuery,
+  OpenSearchTerms,
   OpenSearchWildcard,
   TypeSort,
 } from './dto/elastic-query.dto';
@@ -16,6 +17,11 @@ import { ElasticFindEntity } from './dto/elastic-find-entity.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { ElasticOperationDto } from './dto/elastic-operation.dto';
 import { ArrayUtil } from '../../shared/utils/array-util';
+import {
+  OpenSearchMetadataName,
+  OpenSearchPropertyOptions,
+} from './decorators/opensearch-property.decorator';
+import { SchemaOpenSearch } from './types/opensearch-schema';
 
 export abstract class BaseOpenSearchApi<
   Entity,
@@ -32,6 +38,7 @@ export abstract class BaseOpenSearchApi<
     protected readonly _mainRepo: Repo,
     protected readonly _appConfig: AppConfig,
     customPrimaryKey?: string,
+    private readonly _openSearchEntity?: new () => OpenSearchEntity,
   ) {
     super(
       httpService,
@@ -66,7 +73,7 @@ export abstract class BaseOpenSearchApi<
   ): Promise<void> {
     const isId = typeof data === 'number';
     const promise = isId
-      ? this.findForOpenSearch(this._appConfig.opensearchDocumentName, [data])
+      ? this.findForOpenSearch(this._index, [data])
       : Promise.resolve([
           this.getSingleElasticOperation(
             this._index,
@@ -165,6 +172,8 @@ export abstract class BaseOpenSearchApi<
    */
   async resetElasticData(): Promise<string | void> {
     const now = new Date();
+    const opensearchSchema =
+      this._openSearchEntity != undefined ? this._getMappingForSchema() : null;
     return this.findForOpenSearch(this._index)
       .then((elasticData) =>
         lastValueFrom(this.deleteRequest(`${this._index}`, this._config)).then(
@@ -173,7 +182,7 @@ export abstract class BaseOpenSearchApi<
       )
       .then((elasticData) =>
         lastValueFrom(
-          this.putRequest(`${this._index}`, null, this._config),
+          this.putRequest(`${this._index}`, opensearchSchema, this._config),
         ).then(() => elasticData),
       )
       .then((elasticData) => this.sendBulkOperationToOpenSearch(elasticData))
@@ -276,17 +285,76 @@ export abstract class BaseOpenSearchApi<
       });
   }
 
+  private _getMappingForSchema() {
+    const properties: {
+      propertyKey: string;
+      options: OpenSearchPropertyOptions;
+    }[] =
+      Reflect.getMetadata(OpenSearchMetadataName, this._openSearchEntity) || [];
+    const schema: SchemaOpenSearch<OpenSearchEntity> = {
+      mappings: {
+        dynamic: true,
+        properties: {},
+      },
+    };
+
+    for (const { propertyKey, options } of properties) {
+      if (options?.type) {
+        const propertyType = {
+          type: options.type,
+        };
+        if (options.nestedType) {
+          propertyType['properties'] = this._iterateProperties(
+            options.nestedType,
+          );
+        }
+        schema.mappings.properties[propertyKey] = propertyType;
+      }
+    }
+
+    return schema;
+  }
+
+  private _iterateProperties(opensearchObject?: new () => unknown) {
+    const properties: {
+      propertyKey: string;
+      options: OpenSearchPropertyOptions;
+    }[] = Reflect.getMetadata(OpenSearchMetadataName, opensearchObject) || [];
+    const schema = {};
+    for (const { propertyKey, options } of properties) {
+      if (options?.type) {
+        const propertyType = {
+          type: options.type,
+        };
+        if (
+          options.nestedType &&
+          opensearchObject.name !== options.nestedType.name
+        ) {
+          propertyType['properties'] = this._iterateProperties(
+            options.nestedType,
+          );
+        }
+        schema[propertyKey] = propertyType;
+      }
+    }
+    return schema;
+  }
+
   async search(
     query: string,
     fieldsToSearchOn: (keyof OpenSearchEntity)[],
     fieldsToSortOn: TypeSort<OpenSearchEntity>[],
     size: number = 20,
+    filter?: string,
+    fieldToFilterOn?: keyof OpenSearchEntity,
   ): Promise<(OpenSearchEntity & { score: number })[]> {
     const elasticQuery = this._getElasticQuery<OpenSearchEntity>(
       query,
       size,
       fieldsToSearchOn,
       fieldsToSortOn,
+      filter,
+      fieldToFilterOn,
     );
 
     return lastValueFrom(
@@ -322,6 +390,8 @@ export abstract class BaseOpenSearchApi<
     size: number,
     fieldsToSearchOn: (keyof T)[],
     fieldsToSortOn: TypeSort<T>[],
+    toFilter?: string,
+    fieldToFilterOn?: keyof T,
   ): ElasticQueryDto<T> {
     const query: ElasticQueryDto<T> = {
       size,
@@ -347,6 +417,16 @@ export abstract class BaseOpenSearchApi<
       sort: [{ _score: { order: 'desc' } }, ...fieldsToSortOn],
     };
     const individualKeywords = toFind.split(/\s+/);
+
+    if (toFilter && fieldToFilterOn) {
+      query.query.bool.filter = [
+        {
+          term: {
+            [fieldToFilterOn]: toFilter,
+          } as OpenSearchTerms<T>,
+        },
+      ];
+    }
 
     const wildcardQueries = fieldsToSearchOn.flatMap((field) =>
       individualKeywords.map((keyword) => {
