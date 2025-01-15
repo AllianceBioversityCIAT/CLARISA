@@ -73,7 +73,7 @@ export abstract class BaseOpenSearchApi<
   ): Promise<void> {
     const isId = typeof data === 'number';
     const promise = isId
-      ? this.findForOpenSearch(this._appConfig.opensearchDocumentName, [data])
+      ? this.findForOpenSearch(this._index, [data])
       : Promise.resolve([
           this.getSingleElasticOperation(
             this._index,
