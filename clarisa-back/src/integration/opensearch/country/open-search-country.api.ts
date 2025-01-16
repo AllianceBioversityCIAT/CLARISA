@@ -17,6 +17,12 @@ export class OpenSearchCountryApi extends BaseOpenSearchApi<
     countryRepository: CountryRepository,
     appConfig: AppConfig,
   ) {
-    super(httpService, countryRepository, appConfig);
+    super(
+      httpService,
+      countryRepository,
+      appConfig,
+      undefined,
+      OpenSearchCountryDto,
+    );
   }
 }

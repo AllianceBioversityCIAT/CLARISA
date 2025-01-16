@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { BaseInstitutionTypeDto } from './base-institution-type.dto';
+import { OpenSearchProperty } from '../../../integration/opensearch/decorators/opensearch-property.decorator';
 
 export class InstitutionTypeDto extends BaseInstitutionTypeDto {
   @ApiProperty({
@@ -7,6 +8,7 @@ export class InstitutionTypeDto extends BaseInstitutionTypeDto {
     type: String,
     nullable: true,
   })
+  @OpenSearchProperty({ type: 'text' })
   description?: string;
 
   @ApiProperty({
@@ -14,5 +16,6 @@ export class InstitutionTypeDto extends BaseInstitutionTypeDto {
     type: Boolean,
     nullable: true,
   })
+  @OpenSearchProperty({ type: 'integer' })
   legacy?: boolean;
 }
