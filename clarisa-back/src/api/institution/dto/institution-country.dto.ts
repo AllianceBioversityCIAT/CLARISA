@@ -1,6 +1,6 @@
-import { OpenSearchProperty } from '../../../integration/opensearch/decorators/opensearch-property.decorator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UnRegionDto } from '../../region/dto/un-region.dto';
+import { OpenSearchProperty } from '../../../integration/opensearch/decorators/opensearch-property.decorator';
 
 export class InstitutionCountryDto {
   @OpenSearchProperty({ type: 'integer' })

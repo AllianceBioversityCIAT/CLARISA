@@ -1,6 +1,5 @@
-import { OpenSearchProperty } from '../../../integration/opensearch/decorators/opensearch-property.decorator';
-
 import { ApiProperty } from '@nestjs/swagger';
+import { OpenSearchProperty } from '../../../integration/opensearch/decorators/opensearch-property.decorator';
 
 export class SimpleCountryDto {
   @OpenSearchProperty({ type: 'integer' })

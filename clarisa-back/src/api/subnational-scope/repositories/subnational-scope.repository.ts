@@ -3,11 +3,11 @@ import { DataSource, Repository } from 'typeorm';
 import { SubnationalScope } from '../entities/subnational-scope.entity';
 import { FindAllOptions } from '../../../shared/entities/enums/find-all-options';
 import { SubnationalScopeDto } from '../dto/subnational-scope.dto';
-import { SubnationalQueryParameters } from '../dto/subnational-query-parameters.dto';
 import { BadParamsError } from '../../../shared/errors/bad-params.error';
 import { bigintSerializer } from '../../../shared/mappers/bigint-serializer';
 import { ElasticFindEntity } from '../../../integration/opensearch/dto/elastic-find-entity.dto';
 import { OpenSearchSubnationalDto } from '../../../integration/opensearch/subnational/dto/open-search-subnational.dto';
+import { SubnationalQueryParameters } from '../dto/subnational-query-parameters.dto';
 
 @Injectable()
 export class SubnationalScopeRepository
