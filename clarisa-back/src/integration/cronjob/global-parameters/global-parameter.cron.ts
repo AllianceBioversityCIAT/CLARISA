@@ -35,7 +35,7 @@ export class GlobalParameterCron implements OnApplicationBootstrap {
 
     const globalParameters = await this._globalParameterService.findAll();
 
-    await this.cache.reset();
+    await this.cache.clear();
 
     globalParameters.forEach(async (globalParameter) => {
       await this.cache.set(globalParameter.name, globalParameter.value);
