@@ -27,7 +27,6 @@ import { GlobalModule } from './global.module';
   imports: [
     TypeOrmModule.forRoot({
       ...dataSource.options,
-      keepConnectionAlive: true,
       autoLoadEntities: true,
     }),
     ScheduleModule.forRoot(),
