@@ -38,7 +38,7 @@ export class OpenSearchSubnationalController {
       ],
       size,
       isoAlpha2,
-      'iso_alpha_2',
+      'country_iso_alpha_2',
     );
   }
 }

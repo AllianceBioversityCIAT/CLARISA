@@ -18,24 +18,12 @@ export class SubnationalScopeRepository
 
   findDataForOpenSearch(
     option: FindAllOptions,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     ids?: number[],
   ): Promise<OpenSearchSubnationalDto[]> {
-    const query = `select 
-                  	iss.id,
-                  	iss.code,
-                  	iss.name,
-                  	iss.local_name,
-                  	iss.romanization_system_name,
-                  	c.iso_alpha_2,
-                  	iss.iso_language_id
-                  from iso_subnational_scope iss 
-                  	inner join countries c on iss.country_id = c.id 
-                  where 1 = 1 
-                  	${option !== FindAllOptions.SHOW_ALL ? 'and iss.is_active = true' : ''}
-                    ${ids && ids.length > 0 ? `and iss.id IN (${ids.join(',')})` : ''}
-                  `;
-
-    return this.query(query);
+    return this.findSubnationalScope(option) as unknown as Promise<
+      OpenSearchSubnationalDto[]
+    >;
   }
 
   async findSubnationalScope(
