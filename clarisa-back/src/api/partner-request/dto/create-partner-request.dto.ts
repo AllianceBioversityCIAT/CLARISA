@@ -100,4 +100,6 @@ export class CreatePartnerRequestDto {
     required: false,
   })
   category_2?: string;
+
+  platformUrl?: string;
 }

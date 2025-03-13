@@ -218,6 +218,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
 
     partialPartnerRequest.category_1 = incomingPartnerRequest.category_1;
     partialPartnerRequest.category_2 = incomingPartnerRequest.category_2;
+    partialPartnerRequest.platform_url = incomingPartnerRequest.platformUrl;
 
     partialPartnerRequest.auditableFields.is_active = false;
     partialPartnerRequest = await this.save(partialPartnerRequest);
