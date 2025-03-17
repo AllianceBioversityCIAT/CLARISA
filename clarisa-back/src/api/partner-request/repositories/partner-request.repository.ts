@@ -271,6 +271,10 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
 
     partialPartnerRequest = await this.save(partialPartnerRequest);
 
+    partialPartnerRequest['misAcronym'] =
+      partialPartnerRequest.mis_object.acronym;
+    partialPartnerRequest['platformUrl'] = partialPartnerRequest.platform_url;
+
     return this.findPartnerRequestById(partialPartnerRequest.id, true).finally(
       () => {
         this.messageMicroservice.sendPartnerRequestEmail(
