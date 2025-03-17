@@ -102,6 +102,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
                 else 'Unknown'
           end
         ) as requestStatus,
+        m.acronym as misAcronym, pr.platform_url as platformUrl,
         pr.reject_justification as requestJustification, pr.request_source as requestSource,
         pr.external_user_mail as externalUserMail, pr.external_user_name as externalUserName,
         pr.external_user_comments as externalUserComments, pr.category_1, pr.category_2, 
