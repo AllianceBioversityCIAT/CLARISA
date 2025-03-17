@@ -346,9 +346,14 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
       ? partialPartnerRequest.accepted_by
       : partialPartnerRequest.rejected_by;
 
+    const emailPartener = { ...partialPartnerRequest };
+
+    emailPartener['platformUrl'] = emailPartener.platform_url;
+    emailPartener['misAcronym'] = emailPartener.mis_object.acronym;
+
     this.messageMicroservice.sendPartnerRequestEmail(
       EmailTemplate.PARTNER_REQUEST_RESPONSE,
-      partialPartnerRequest,
+      emailPartener,
     );
 
     if (accepted) {
