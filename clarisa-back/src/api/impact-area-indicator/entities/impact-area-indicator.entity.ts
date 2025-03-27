@@ -4,10 +4,12 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
 import { ImpactArea } from '../../impact-area/entities/impact-area.entity';
+import { Portfolio } from '../../portfolio/entities/portfolio.entity';
 
 @Entity('impact_area_indicators')
 export class ImpactAreaIndicator {
@@ -37,11 +39,31 @@ export class ImpactAreaIndicator {
   @Column({ type: 'bigint', nullable: true })
   impact_areas_id: number;
 
+  @Column({ type: 'bigint', nullable: true })
+  portfolio_id: number;
+
+  @Column({ type: 'bigint', nullable: true })
+  parent_id: number;
+
+  @Column({ type: 'bigint', nullable: true })
+  level: number;
+
   //object relations
 
   @ManyToOne(() => ImpactArea, (ia) => ia.impact_area_indicators)
   @JoinColumn({ name: 'impact_areas_id' })
   impact_area_object: ImpactArea;
+
+  @ManyToOne(() => ImpactAreaIndicator, (iai) => iai.children)
+  @JoinColumn({ name: 'parent_id' })
+  parent: ImpactAreaIndicator;
+
+  @OneToMany(() => ImpactAreaIndicator, (iai) => iai.parent)
+  children: ImpactAreaIndicator[];
+
+  @ManyToOne(() => Portfolio, (p) => p.impact_area_indicators)
+  @JoinColumn({ name: 'portfolio_id' })
+  portfolio: Portfolio;
 
   //auditable fields
 

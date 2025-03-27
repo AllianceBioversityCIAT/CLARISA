@@ -13,6 +13,7 @@ export class ImpactAreaIndicatorService {
 
   async findAll(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    version?: number,
   ): Promise<ImpactAreaIndicatorDto[]> {
     if (!Object.values<string>(FindAllOptions).includes(option)) {
       throw Error('?!');
@@ -20,6 +21,7 @@ export class ImpactAreaIndicatorService {
 
     return this.impactAreaIndicatorRepository.findAllImpactAreaIndicators(
       option,
+      version,
     );
   }
 
