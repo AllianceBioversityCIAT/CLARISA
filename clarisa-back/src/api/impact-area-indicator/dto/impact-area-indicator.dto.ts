@@ -14,4 +14,5 @@ export class ImpactAreaIndicatorDto {
   parentId?: number;
   parent?: Partial<ImpactAreaIndicatorDto>;
   level?: number;
+  smoCode?: string;
 }

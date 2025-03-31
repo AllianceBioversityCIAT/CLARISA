@@ -60,6 +60,7 @@ export class ImpactAreaIndicatorRepository extends Repository<ImpactAreaIndicato
         impactAreaIndicatorDto.targetUnit = iai.target_unit;
         impactAreaIndicatorDto.targetYear = iai.target_year;
         impactAreaIndicatorDto.value = iai.target_value;
+        impactAreaIndicatorDto.smoCode = iai?.smo_code;
 
         if (version == 2) {
           impactAreaIndicatorDto.portfolioId = iai.portfolio_id;
@@ -67,16 +68,16 @@ export class ImpactAreaIndicatorRepository extends Repository<ImpactAreaIndicato
           impactAreaIndicatorDto.level = iai.level;
           impactAreaIndicatorDto.portfolio = iai.portfolio
             ? {
-                id: iai.portfolio.id,
-                name: iai.portfolio.name,
+                id: iai?.portfolio?.id,
+                name: iai?.portfolio?.name,
               }
             : null;
           impactAreaIndicatorDto.parent = iai.parent
             ? {
-                impactAreaId: iai.parent.impact_areas_id,
-                impactAreaName: iai.parent.impact_area_object.name,
-                indicatorId: iai.parent.id,
-                indicatorStatement: iai.parent.indicator_statement,
+                impactAreaId: iai?.parent?.impact_areas_id,
+                impactAreaName: iai?.parent?.impact_area_object.name,
+                indicatorId: iai?.parent?.id,
+                indicatorStatement: iai?.parent?.indicator_statement,
               }
             : null;
         }
