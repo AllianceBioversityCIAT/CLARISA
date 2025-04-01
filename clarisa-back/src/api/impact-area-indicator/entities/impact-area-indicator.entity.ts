@@ -16,7 +16,7 @@ export class ImpactAreaIndicator {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
   indicator_statement: string;
 
   @Column({ type: 'int', nullable: true })
