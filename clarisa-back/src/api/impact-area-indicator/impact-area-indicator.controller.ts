@@ -29,8 +29,13 @@ export class ImpactAreaIndicatorController {
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('version') version: string,
+    @Query('portfolio') portfolio: string,
   ) {
-    return await this.impactAreaIndicatorService.findAll(show, +version);
+    return await this.impactAreaIndicatorService.findAll(
+      show,
+      +version,
+      +portfolio,
+    );
   }
 
   @Get('get/:id')
