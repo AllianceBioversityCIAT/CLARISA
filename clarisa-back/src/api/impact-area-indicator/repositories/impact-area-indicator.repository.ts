@@ -12,6 +12,7 @@ export class ImpactAreaIndicatorRepository extends Repository<ImpactAreaIndicato
   async findAllImpactAreaIndicators(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     version?: number,
+    portfolioId?: number,
   ): Promise<ImpactAreaIndicatorDto[]> {
     const impactAreaIndicatorDtos: ImpactAreaIndicatorDto[] = [];
     let whereClause: FindOptionsWhere<ImpactAreaIndicator> = {};
@@ -32,6 +33,10 @@ export class ImpactAreaIndicatorRepository extends Repository<ImpactAreaIndicato
           },
         };
         break;
+    }
+
+    if (portfolioId && version === 2) {
+      whereClause.portfolio_id = portfolioId;
     }
 
     const impactAreaIndicators: ImpactAreaIndicator[] = await this.find({
