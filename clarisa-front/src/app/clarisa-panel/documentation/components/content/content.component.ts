@@ -101,6 +101,7 @@ export class ContentComponent implements OnInit, OnChanges {
       this.findColumns.push(i[1]);
     }
 
+
     return this.arrayColumns;
   }
 
@@ -176,13 +177,15 @@ export class ContentComponent implements OnInit, OnChanges {
   columnsTable(listaAux) {
     let endpointJsonOnes = listaAux;
     let columns = [];
+
     for (let i in endpointJsonOnes) {
+      const order = endpointJsonOnes[i].order ?? columns.length;  // Use array length as fallback if order is null
       if (
         endpointJsonOnes[i].show_in_table &&
         endpointJsonOnes[i].object_type != 'object' &&
         endpointJsonOnes[i].object_type != 'list'
       ) {
-        columns[endpointJsonOnes[i].order] = [
+        columns[order] = [
           endpointJsonOnes[i].column_name,
           i,
           endpointJsonOnes[i].object_type,
@@ -190,7 +193,7 @@ export class ContentComponent implements OnInit, OnChanges {
       }
       if (endpointJsonOnes[i].object_type == 'object') {
         if (endpointJsonOnes[i].show_in_table) {
-          columns[endpointJsonOnes[i].order] = [
+          columns[order] = [
             endpointJsonOnes[i].column_name,
             i,
             endpointJsonOnes[i].object_type,
@@ -200,7 +203,7 @@ export class ContentComponent implements OnInit, OnChanges {
       }
       if (endpointJsonOnes[i].object_type == 'list') {
         if (endpointJsonOnes[i].show_in_table) {
-          columns[endpointJsonOnes[i].order] = [
+          columns[order] = [
             endpointJsonOnes[i].column_name,
             i,
             endpointJsonOnes[i].object_type,
@@ -209,7 +212,7 @@ export class ContentComponent implements OnInit, OnChanges {
         }
       }
     }
-    return columns;
+    return columns.filter(Boolean); // Remove any undefined/null entries
   }
 
   exportPdf() {
