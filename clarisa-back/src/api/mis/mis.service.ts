@@ -32,6 +32,7 @@ export class MisService {
     },
     relations: {
       environment_object: true,
+      mis_auth: true,
     },
   };
 

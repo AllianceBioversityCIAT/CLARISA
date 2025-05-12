@@ -5,6 +5,7 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
@@ -14,6 +15,7 @@ import { UserMis } from '../../user/entities/user-mis.entity';
 import { User } from '../../user/entities/user.entity';
 import { Environment } from '../../environment/entities/environment.entity';
 import { AppSecret } from '../../app-secret/entities/app-secret.entity';
+import { MisAuth } from './mises-auth.entity';
 
 @Entity('mises')
 export class Mis {
@@ -57,6 +59,9 @@ export class Mis {
 
   @OneToMany(() => UserMis, (um) => um.mis_object)
   user_mis_array: UserMis[];
+
+  @OneToOne(() => MisAuth, (ma) => ma.mis_object)
+  mis_auth: MisAuth;
 
   //auditable fields
 
