@@ -22,6 +22,7 @@ export class MisService {
   private readonly _where: FindManyOptions<Mis> = {
     relations: {
       environment_object: true,
+      mis_auth: true,
     },
   };
 
