@@ -32,7 +32,6 @@ export class MisService {
     },
     relations: {
       environment_object: true,
-      mis_auth: true,
     },
   };
 
@@ -205,5 +204,17 @@ export class MisService {
         );
       })
       .then((mis) => this._misMapper.classToDto(mis));
+  }
+
+  async findMetadataById(id: number): Promise<Mis> {
+    return await this._misRepository.findOne({
+      where: {
+        id,
+        auditableFields: { is_active: true },
+      },
+      relations: {
+        mis_auth: true,
+      },
+    });
   }
 }

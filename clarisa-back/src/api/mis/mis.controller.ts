@@ -93,4 +93,10 @@ export class MisController {
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this._misService.findOne(id);
   }
+
+  @Get('get-metadata/:id')
+  @UseGuards(JwtAuthGuard)
+  async findMetadataById(@Param('id', ParseIntPipe) id: number) {
+    return await this._misService.findMetadataById(id);
+  }
 }
