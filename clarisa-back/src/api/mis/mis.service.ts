@@ -22,7 +22,6 @@ export class MisService {
   private readonly _where: FindManyOptions<Mis> = {
     relations: {
       environment_object: true,
-      mis_auth: true,
     },
   };
 
@@ -135,6 +134,18 @@ export class MisService {
         auditableFields: { is_active: true },
       },
       ...this._where,
+    });
+  }
+
+  async findMetadataById(id: number): Promise<Mis> {
+    return await this._misRepository.findOne({
+      where: {
+        id,
+        auditableFields: { is_active: true },
+      },
+      relations: {
+        mis_auth: true,
+      },
     });
   }
 }
