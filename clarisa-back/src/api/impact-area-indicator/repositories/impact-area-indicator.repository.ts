@@ -11,6 +11,8 @@ export class ImpactAreaIndicatorRepository extends Repository<ImpactAreaIndicato
   }
   async findAllImpactAreaIndicators(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    version?: number,
+    portfolioId?: number,
   ): Promise<ImpactAreaIndicatorDto[]> {
     const impactAreaIndicatorDtos: ImpactAreaIndicatorDto[] = [];
     let whereClause: FindOptionsWhere<ImpactAreaIndicator> = {};
@@ -33,10 +35,16 @@ export class ImpactAreaIndicatorRepository extends Repository<ImpactAreaIndicato
         break;
     }
 
+    if (portfolioId && version === 2) {
+      whereClause.portfolio_id = portfolioId;
+    }
+
     const impactAreaIndicators: ImpactAreaIndicator[] = await this.find({
       where: whereClause,
       relations: {
         impact_area_object: true,
+        parent: true,
+        portfolio: true,
       },
     });
 
@@ -57,6 +65,27 @@ export class ImpactAreaIndicatorRepository extends Repository<ImpactAreaIndicato
         impactAreaIndicatorDto.targetUnit = iai.target_unit;
         impactAreaIndicatorDto.targetYear = iai.target_year;
         impactAreaIndicatorDto.value = iai.target_value;
+
+        if (version == 2) {
+          impactAreaIndicatorDto.smoCode = iai?.smo_code;
+          impactAreaIndicatorDto.portfolioId = iai.portfolio_id;
+          impactAreaIndicatorDto.parentId = iai.parent_id;
+          impactAreaIndicatorDto.level = iai.level;
+          impactAreaIndicatorDto.portfolio = iai.portfolio
+            ? {
+                id: iai?.portfolio?.id,
+                name: iai?.portfolio?.name,
+              }
+            : null;
+          impactAreaIndicatorDto.parent = iai.parent
+            ? {
+                impactAreaId: iai?.parent?.impact_areas_id,
+                impactAreaName: iai?.parent?.impact_area_object?.name,
+                indicatorId: iai?.parent?.id,
+                indicatorStatement: iai?.parent?.indicator_statement,
+              }
+            : null;
+        }
 
         impactAreaIndicatorDtos.push(impactAreaIndicatorDto);
       }),
