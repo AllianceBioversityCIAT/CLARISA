@@ -32,4 +32,6 @@ export class CreatePartnerRequestDto {
   category_1?: string;
 
   category_2?: string;
+
+  platformUrl?: string;
 }
