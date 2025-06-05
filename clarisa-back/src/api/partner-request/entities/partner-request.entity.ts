@@ -64,6 +64,9 @@ export class PartnerRequest {
   @Column({ type: 'text', nullable: true })
   category_2: string;
 
+  @Column({ type: 'text', nullable: true })
+  platform_url: string;
+
   //relations
 
   @Column({ type: 'bigint', nullable: true })
