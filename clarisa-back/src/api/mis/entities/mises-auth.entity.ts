@@ -12,7 +12,7 @@ export class MisAuth {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
-  @Column({ type: 'number', nullable: false })
+  @Column({ type: 'bigint', nullable: false })
   mis_id: number;
 
   @OneToOne(() => Mis, (m) => m.mis_auth)
