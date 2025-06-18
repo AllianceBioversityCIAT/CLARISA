@@ -46,6 +46,7 @@ export class AssessmentDto {
 export class AssociatedTechnologyDto {
   result_code: number;
   title: string;
+  innovation_type?: string;
 }
 
 export class InvestmentDto {
@@ -83,8 +84,7 @@ export class InnovationBaseDto {
   intellectual_property: string[] | string;
   where_has_the_technology: GeographicDto;
   sdg: SdgDto[] | string[];
-  gender_assessment: AssessmentDto;
-  climate_adaptability: AssessmentDto;
+  dac_score: DacScoreDto[];
   cost: CostDto;
 }
 
@@ -117,6 +117,12 @@ export class InnovationResponseDto {
     | InnovationDevelopmentDto
     | InnovationUseDto
     | InnovationPackageDto;
+}
+
+export class DacScoreDto {
+  name: string;
+  description: string | null;
+  evidence_links: string[];
 }
 
 export type InnovationData =
