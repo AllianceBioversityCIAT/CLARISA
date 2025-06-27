@@ -283,4 +283,39 @@ export class AppConfig {
   get respondPrTemplateParam() {
     return env.RESPOND_PR_TEMPLATE_PARAM;
   }
+
+  /**
+   * reportingDbHost - The host address for the reporting database connection.
+   */
+  get reportingDbHost() {
+    return env.REPORTING_DB_HOST;
+  }
+
+  /**
+   * reportingDbPort - The port number for the reporting database connection.
+   */
+  get reportingDbPort() {
+    return env.REPORTING_DB_PORT;
+  }
+
+  /**
+   * reportingDbName - The name of the reporting database.
+   */
+  get reportingDbName() {
+    return env.REPORTING_DB_NAME;
+  }
+
+  /**
+   * reportingDbUser - The username for the reporting database connection.
+   */
+  get reportingDbUser() {
+    return env.REPORTING_DB_USER;
+  }
+
+  /**
+   * reportingDbPass - The password for the reporting database connection.
+   */
+  get reportingDbPass() {
+    return env.REPORTING_DB_PASS;
+  }
 }
