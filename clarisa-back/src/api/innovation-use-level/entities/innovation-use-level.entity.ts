@@ -10,6 +10,12 @@ export class InnovationUseLevel {
   @Column({ type: 'text', nullable: true })
   name: string;
 
+  @Column({ type: 'int', nullable: true })
+  level: number;
+
+  @Column({ type: 'text', nullable: true })
+  definition: string;
+
   //auditable fields
 
   @Exclude()
