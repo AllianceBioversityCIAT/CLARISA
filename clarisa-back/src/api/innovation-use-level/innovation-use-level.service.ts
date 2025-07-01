@@ -16,6 +16,8 @@ export class InnovationUseLevelService {
   private readonly _select: FindOptionsSelect<InnovationUseLevel> = {
     id: true,
     name: true,
+    level: true,
+    definition: true,
   };
 
   async findAll(
