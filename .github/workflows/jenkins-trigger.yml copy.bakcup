@@ -1,0 +1,47 @@
+name: Trigger Jenkins Job (Testing)
+
+on:
+  push:
+    branches:
+      - "dev" # Solo push a rama dev
+  pull_request:
+    branches:
+      - "dev" # Solo PRs hacia dev
+  workflow_dispatch: # También manual
+
+jobs:
+  trigger-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Obtener y disparar BACKEND
+      - name: Get branch name and build Backend Jenkins URL
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          JENKINS_BACKEND_URL="https://automation.prms.cgiar.org/job/prms-clarisa-dev-server-docker/build"
+          echo "Backend Jenkins URL: $JENKINS_BACKEND_URL"
+          echo "JENKINS_BACKEND_URL=${JENKINS_BACKEND_URL}" >> $GITHUB_ENV
+
+      - name: Trigger Backend Jenkins Job
+        run: |
+          curl -X POST ${{ env.JENKINS_BACKEND_URL }} --user ${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }}
+        env:
+          JENKINS_BACKEND_URL: ${{ env.JENKINS_BACKEND_URL }}
+          JENKINS_USERNAME: ${{ secrets.JENKINS_USERNAME }}
+          JENKINS_API_TOKEN: ${{ secrets.JENKINS_API_TOKEN }}
+
+      # Obtener y disparar FRONTEND
+      - name: Get branch name and build Frontend Jenkins URL
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          JENKINS_FRONTEND_URL="https://automation.prms.cgiar.org/job/prms-clarisa-dev-client-docker/build"
+          echo "Frontend Jenkins URL: $JENKINS_FRONTEND_URL"
+          echo "JENKINS_FRONTEND_URL=${JENKINS_FRONTEND_URL}" >> $GITHUB_ENV
+
+      - name: Trigger Frontend Jenkins Job
+        run: |
+          curl -X POST ${{ env.JENKINS_FRONTEND_URL }} --user ${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }}
+        env:
+          JENKINS_FRONTEND_URL: ${{ env.JENKINS_FRONTEND_URL }}
+          JENKINS_USERNAME: ${{ secrets.JENKINS_USERNAME }}
+          JENKINS_API_TOKEN: ${{ secrets.JENKINS_API_TOKEN }}
