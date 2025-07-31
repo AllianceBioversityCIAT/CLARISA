@@ -35,12 +35,6 @@ export class ContentComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     this.loading = true;
     this.urlClarisa = environment.apiUrl;
-    console.clear();
-    const { nameEndpoint } = this.urlParams;
-    console.log(this.urlParams);
-    console.log(this.informationEndpoint);
-    this.showDynamicTableFilters = nameEndpoint === 'CGIAR_entities';
-    console.log(this.showDynamicTableFilters);
   }
 
   ngOnChanges() {
@@ -66,7 +60,13 @@ export class ContentComponent implements OnInit, OnChanges {
     });
   }
 
+  validateShowDynamicTableFilters() {
+    this.showDynamicTableFilters = this.urlParams.nameEndpoint === 'CGIAR_entities';
+  }
+
   private handleThreeUrlParams() {
+    this.validateShowDynamicTableFilters();
+
     let variableAux = this._servicesUrl.paramsUrl.namesubcategory.split('_').join(' ');
     let variableAuxi = this._servicesUrl.paramsUrl.nameEndpoint.split('_').join(' ');
     this.information.subcategories.find((x: any) => {
