@@ -37,6 +37,8 @@ export class ContentComponent implements OnInit, OnChanges {
     this.urlClarisa = environment.apiUrl;
     console.clear();
     const { nameEndpoint } = this.urlParams;
+    console.log(this.urlParams);
+    console.log(this.informationEndpoint);
     this.showDynamicTableFilters = nameEndpoint === 'CGIAR_entities';
     console.log(this.showDynamicTableFilters);
   }
@@ -83,6 +85,7 @@ export class ContentComponent implements OnInit, OnChanges {
     });
     this._manageApiService.getAnyEndpoint(this.informationPrint.route).subscribe(resp => {
       this.informationEndpoint = resp;
+      console.log(resp);
       this.loading = false;
     });
   }

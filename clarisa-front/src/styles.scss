@@ -2,7 +2,32 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
-html *:not(.fa, .fe, .pi, pre, code){
-    font-family: "Poppins", sans-serif !important;
+html *:not(.fa, .fe, .pi, pre, code) {
+  font-family: 'Poppins', sans-serif !important;
 }
 
+.custom_table {
+  border-radius: 10px;
+  overflow: hidden;
+  .p-datatable-thead {
+    tr,
+    ¿ {
+      th {
+        background-color: #00a63e !important;
+        color: white !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+      }
+    }
+  }
+  tbody {
+    tr {
+      td {
+        font-size: 13px !important;
+      }
+    }
+  }
+  .p-datatable-tbody {
+    background-color: #1e1e1e !important;
+  }
+}
