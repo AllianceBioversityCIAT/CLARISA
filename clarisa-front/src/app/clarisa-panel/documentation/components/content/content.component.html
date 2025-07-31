@@ -240,7 +240,9 @@
     [style]="{ width: '75vw', overflow: 'scroll' }"
     [contentStyle]="{ height: '800px' }">
     <ng-container *ngIf="showDynamicTableFilters">
-      <app-dynamic-table-filters></app-dynamic-table-filters>
+      <ng-container *ngIf="informationEndpoint.length">
+        <app-dynamic-table-filters [dataList]="informationEndpoint"></app-dynamic-table-filters>
+      </ng-container>
     </ng-container>
     <ng-container *ngIf="!showDynamicTableFilters">
       <p-table

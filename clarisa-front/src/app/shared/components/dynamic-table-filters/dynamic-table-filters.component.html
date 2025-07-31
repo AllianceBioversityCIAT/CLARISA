@@ -1,1 +1,22 @@
-<p>dynamic-table-filters works!</p>
+<div class="custom_table">
+  <p-table [value]="this.dataList" [tableStyle]="{ width: '100%' }" [styleClass]="'p-datatable-sm'">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Code</th>
+        <th>Name</th>
+        <th>Acronym</th>
+        <th>Portfolio</th>
+        <th>CGIAR Entity Type</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-product>
+      <tr>
+        <td>{{ product.code }}</td>
+        <td>{{ product.acronym }}</td>
+        <td>{{ product.category }}</td>
+        <td>{{ product.quantity }}</td>
+        <td>{{ product.cgiar_entity_type }}</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

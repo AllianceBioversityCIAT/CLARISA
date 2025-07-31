@@ -10,26 +10,17 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { GeneralInterceptorService } from './shared/interceptors/auth-interceptor.service';
 import { TawkToModule } from './shared/components/tawk-to/tawk-to.module';
 import { NgxPaginationModule } from 'ngx-pagination';
-import { DynamicTableFiltersComponent } from './shared/components/dynamic-table-filters/dynamic-table-filters.component';
 
 @NgModule({
-  declarations: [AppComponent, DynamicTableFiltersComponent],
-  imports: [
-    BrowserModule,
-    BrowserAnimationsModule,
-    AppRoutingModule,
-    HttpClientModule,
-    RouterEventsModule,
-    TawkToModule,
-    NgxPaginationModule,
-  ],
+  declarations: [AppComponent],
+  imports: [BrowserModule, BrowserAnimationsModule, AppRoutingModule, HttpClientModule, RouterEventsModule, TawkToModule, NgxPaginationModule],
   providers: [
     {
       provide: HTTP_INTERCEPTORS,
       useClass: GeneralInterceptorService,
-      multi: true,
-    },
+      multi: true
+    }
   ],
-  bootstrap: [AppComponent],
+  bootstrap: [AppComponent]
 })
 export class AppModule {}
