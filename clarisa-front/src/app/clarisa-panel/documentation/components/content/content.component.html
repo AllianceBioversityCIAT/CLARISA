@@ -239,6 +239,7 @@
     [(visible)]="dialogVisible"
     [style]="{ width: '75vw', overflow: 'scroll' }"
     [contentStyle]="{ height: '800px' }">
+    <app-dynamic-table-filters></app-dynamic-table-filters>
     <p-table
       #dt1
       [columns]="iniciativeEndInformation()"
