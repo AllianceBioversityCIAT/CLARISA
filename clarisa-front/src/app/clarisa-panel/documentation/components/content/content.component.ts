@@ -10,7 +10,7 @@ import { UrlParamsService } from 'src/app/clarisa-panel/services/url-params.serv
 @Component({
   selector: 'app-content',
   templateUrl: './content.component.html',
-  styleUrls: ['./content.component.scss'],
+  styleUrls: ['./content.component.scss']
 })
 export class ContentComponent implements OnInit, OnChanges {
   @Input() information: any = [];
@@ -36,6 +36,8 @@ export class ContentComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     this.loading = true;
     this.urlClarisa = environment.apiUrl;
+    console.log(this.information);
+    console.log(this.urlParams);
   }
 
   ngOnChanges() {
@@ -54,9 +56,7 @@ export class ContentComponent implements OnInit, OnChanges {
   }
 
   private handleTwoUrlParams() {
-    let variableAux = this._servicesUrl.paramsUrl.namesubcategory
-      .split('_')
-      .join(' ');
+    let variableAux = this._servicesUrl.paramsUrl.namesubcategory.split('_').join(' ');
     this.information.subcategories.find((x: any) => {
       if (variableAux != undefined) {
         if (x.name == variableAux) {
@@ -69,12 +69,8 @@ export class ContentComponent implements OnInit, OnChanges {
   }
 
   private handleThreeUrlParams() {
-    let variableAux = this._servicesUrl.paramsUrl.namesubcategory
-      .split('_')
-      .join(' ');
-    let variableAuxi = this._servicesUrl.paramsUrl.nameEndpoint
-      .split('_')
-      .join(' ');
+    let variableAux = this._servicesUrl.paramsUrl.namesubcategory.split('_').join(' ');
+    let variableAuxi = this._servicesUrl.paramsUrl.nameEndpoint.split('_').join(' ');
     this.information.subcategories.find((x: any) => {
       if (variableAux != undefined) {
         if (x.name == variableAux) {
@@ -89,27 +85,22 @@ export class ContentComponent implements OnInit, OnChanges {
         }
       }
     });
-    this._manageApiService
-      .getAnyEndpoint(this.informationPrint.route)
-      .subscribe((resp) => {
-        this.informationEndpoint = resp;
-        console.log(resp);
-        this.testInterfaceConversion();
-        this.loading = false;
-      });
+    this._manageApiService.getAnyEndpoint(this.informationPrint.route).subscribe(resp => {
+      this.informationEndpoint = resp;
+      this.loading = false;
+    });
   }
 
   iniciativeEndInformation() {
     let auxVariable = this.informationPrint.response_json;
     this.arrayColumns = this.columnsTable(auxVariable.properties);
 
-    this.arrayColumns = this.arrayColumns.filter((x) => x);
+    this.arrayColumns = this.arrayColumns.filter(x => x);
 
     this.findColumns = [];
     for (let i of this.arrayColumns) {
       this.findColumns.push(i[1]);
     }
-
 
     return this.arrayColumns;
   }
@@ -122,13 +113,10 @@ export class ContentComponent implements OnInit, OnChanges {
 
     // Si no, generamos la estructura de interfaz a partir de la información del endpoint
     let auxVariable = this.informationPrint.response_json;
-    this.responseJsonPrint = this.jsonResponse(
-      auxVariable.properties,
-      auxVariable.object_type
-    );
+    this.responseJsonPrint = this.jsonResponse(auxVariable.properties, auxVariable.object_type);
 
-    console.log(JSON.stringify(this.responseJsonPrint, null, 4))
-    console.log(this.interfaceStructure)
+    console.log(JSON.stringify(this.responseJsonPrint, null, 4));
+    console.log(this.interfaceStructure);
     return JSON.stringify(this.responseJsonPrint, null, 4);
   }
 
@@ -160,16 +148,10 @@ export class ContentComponent implements OnInit, OnChanges {
       responseJson[0][i] = auxList[i].type;
     }
     if (auxList[i].object_type == 'object') {
-      responseJson[0][i] = this.jsonResponse(
-        auxList[i].properties,
-        auxList[i].object_type
-      );
+      responseJson[0][i] = this.jsonResponse(auxList[i].properties, auxList[i].object_type);
     }
     if (auxList[i].object_type == 'list') {
-      responseJson[0][i] = this.jsonResponse(
-        auxList[i].properties,
-        auxList[i].object_type
-      );
+      responseJson[0][i] = this.jsonResponse(auxList[i].properties, auxList[i].object_type);
     }
   }
 
@@ -178,16 +160,10 @@ export class ContentComponent implements OnInit, OnChanges {
       responseJson[i] = auxList[i].type;
     }
     if (auxList[i].object_type == 'object') {
-      responseJson[i] = this.jsonResponse(
-        auxList[i].properties,
-        auxList[i].object_type
-      );
+      responseJson[i] = this.jsonResponse(auxList[i].properties, auxList[i].object_type);
     }
     if (auxList[i].object_type == 'list') {
-      responseJson[0][i] = this.jsonResponse(
-        auxList[i].properties,
-        auxList[i].object_type
-      );
+      responseJson[0][i] = this.jsonResponse(auxList[i].properties, auxList[i].object_type);
     }
   }
 
@@ -196,36 +172,17 @@ export class ContentComponent implements OnInit, OnChanges {
     let columns = [];
 
     for (let i in endpointJsonOnes) {
-      const order = endpointJsonOnes[i].order ?? columns.length;  // Use array length as fallback if order is null
-      if (
-        endpointJsonOnes[i].show_in_table &&
-        endpointJsonOnes[i].object_type != 'object' &&
-        endpointJsonOnes[i].object_type != 'list'
-      ) {
-        columns[order] = [
-          endpointJsonOnes[i].column_name,
-          i,
-          endpointJsonOnes[i].object_type,
-        ];
+      if (endpointJsonOnes[i].show_in_table && endpointJsonOnes[i].object_type != 'object' && endpointJsonOnes[i].object_type != 'list') {
+        columns[endpointJsonOnes[i].order] = [endpointJsonOnes[i].column_name, i, endpointJsonOnes[i].object_type];
       }
       if (endpointJsonOnes[i].object_type == 'object') {
         if (endpointJsonOnes[i].show_in_table) {
-          columns[order] = [
-            endpointJsonOnes[i].column_name,
-            i,
-            endpointJsonOnes[i].object_type,
-            this.columnsTable(endpointJsonOnes[i].properties),
-          ];
+          columns[order] = [endpointJsonOnes[i].column_name, i, endpointJsonOnes[i].object_type, this.columnsTable(endpointJsonOnes[i].properties)];
         }
       }
       if (endpointJsonOnes[i].object_type == 'list') {
         if (endpointJsonOnes[i].show_in_table) {
-          columns[order] = [
-            endpointJsonOnes[i].column_name,
-            i,
-            endpointJsonOnes[i].object_type,
-            this.columnsTable(endpointJsonOnes[i].properties),
-          ];
+          columns[order] = [endpointJsonOnes[i].column_name, i, endpointJsonOnes[i].object_type, this.columnsTable(endpointJsonOnes[i].properties)];
         }
       }
     }
@@ -236,7 +193,7 @@ export class ContentComponent implements OnInit, OnChanges {
     let d = new Date();
     let columns = [];
     let information = [];
-    this.arrayColumns.forEach((x) => {
+    this.arrayColumns.forEach(x => {
       columns.push(x[0]);
     });
     for (let k of this.exportInformation()) {
@@ -246,30 +203,22 @@ export class ContentComponent implements OnInit, OnChanges {
     autoTable(doc, {
       head: [columns],
       body: information,
-      didDrawPage: (dataArg) => {
+      didDrawPage: dataArg => {
         doc.text(this.informationPrint.name, dataArg.settings.margin.left, 10);
-      },
+      }
     });
     doc.save(
-      'CLARISA_' +
-        this.informationPrint.name +
-        '_' +
-        d.getFullYear() +
-        (d.getMonth() + 1) +
-        d.getDate() +
-        d.getHours() +
-        d.getMinutes() +
-        '.pdf'
+      'CLARISA_' + this.informationPrint.name + '_' + d.getFullYear() + (d.getMonth() + 1) + d.getDate() + d.getHours() + d.getMinutes() + '.pdf'
     );
   }
 
   exportExcel() {
-    import('xlsx').then((xlsx) => {
+    import('xlsx').then(xlsx => {
       const worksheet = xlsx.utils.json_to_sheet(this.exportInformation());
       const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
       const excelBuffer: any = xlsx.write(workbook, {
         bookType: 'xlsx',
-        type: 'array',
+        type: 'array'
       });
       this.saveAsExcelFile(excelBuffer, 'CLARISA_');
     });
@@ -277,11 +226,10 @@ export class ContentComponent implements OnInit, OnChanges {
 
   saveAsExcelFile(buffer: any, fileName: string): void {
     let d = new Date();
-    let EXCEL_TYPE =
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+    let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
     let EXCEL_EXTENSION = '.xlsx';
     const data: Blob = new Blob([buffer], {
-      type: EXCEL_TYPE,
+      type: EXCEL_TYPE
     });
     FileSaver.saveAs(
       data,
@@ -481,7 +429,7 @@ export class ContentComponent implements OnInit, OnChanges {
   /**
    * Example method to test the interface conversion with current endpoint data
    */
-      testInterfaceConversion(): void {
+  testInterfaceConversion(): void {
     if (this.informationEndpoint && this.informationEndpoint.length > 0) {
       const interfaceStructure = this.convertArrayToInterface(this.informationEndpoint);
       const interfaceString = this.generateInterfaceString(this.informationEndpoint, 'EndpointDataInterface');
@@ -500,10 +448,7 @@ export class ContentComponent implements OnInit, OnChanges {
   private generateFallbackFormattedJson(): void {
     if (this.informationPrint?.response_json) {
       let auxVariable = this.informationPrint.response_json;
-      this.responseJsonPrint = this.jsonResponse(
-        auxVariable.properties,
-        auxVariable.object_type
-      );
+      this.responseJsonPrint = this.jsonResponse(auxVariable.properties, auxVariable.object_type);
       this.formattedInterfaceJson = JSON.stringify(this.responseJsonPrint, null, 4);
     }
   }
