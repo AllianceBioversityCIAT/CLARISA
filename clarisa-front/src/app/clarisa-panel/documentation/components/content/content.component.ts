@@ -26,8 +26,7 @@ export class ContentComponent implements OnInit, OnChanges {
   rows = 10;
   loading: boolean = true;
   urlClarisa: string;
-  interfaceStructure: any;
-  formattedInterfaceJson: string = '';
+  showDynamicTableFilters: boolean = false;
   constructor(
     private _manageApiService: EndpointsInformationService,
     public _servicesUrl: UrlParamsService
@@ -36,8 +35,10 @@ export class ContentComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     this.loading = true;
     this.urlClarisa = environment.apiUrl;
-    console.log(this.information);
-    console.log(this.urlParams);
+    console.clear();
+    const { nameEndpoint } = this.urlParams;
+    this.showDynamicTableFilters = nameEndpoint === 'CGIAR_entities';
+    console.log(this.showDynamicTableFilters);
   }
 
   ngOnChanges() {

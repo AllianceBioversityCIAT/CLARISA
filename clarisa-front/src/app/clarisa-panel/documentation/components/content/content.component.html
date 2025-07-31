@@ -239,117 +239,124 @@
     [(visible)]="dialogVisible"
     [style]="{ width: '75vw', overflow: 'scroll' }"
     [contentStyle]="{ height: '800px' }">
-    <app-dynamic-table-filters></app-dynamic-table-filters>
-    <p-table
-      #dt1
-      [columns]="iniciativeEndInformation()"
-      [value]="informationEndpoint"
-      responsiveLayout="scroll"
-      [paginator]="true"
-      [rows]="8"
-      [showCurrentPageReport]="true"
-      [rowsPerPageOptions]="[8, 15, 30]"
-      [globalFilterFields]="findColumns"
-      paginatorDropdownAppendTo="body"
-      style="height: 100%"
-      styleClass="p-datatable-gridlines"
-      [loading]="loading">
-      <ng-template pTemplate="caption" [ngStyle]="{ 'background-color': 'red' }">
-        <div class="flex" style="display: flex; flex-direction: row">
-          <div style="width: 50%">
-            <span class="p-input-icon-left ml-auto">
-              <i class="pi pi-search"></i>
+    <ng-container *ngIf="showDynamicTableFilters">
+      <app-dynamic-table-filters></app-dynamic-table-filters>
+    </ng-container>
+    <ng-container *ngIf="!showDynamicTableFilters">
+      <p-table
+        #dt1
+        [columns]="iniciativeEndInformation()"
+        [value]="informationEndpoint"
+        responsiveLayout="scroll"
+        [paginator]="true"
+        [rows]="8"
+        [showCurrentPageReport]="true"
+        [rowsPerPageOptions]="[8, 15, 30]"
+        [globalFilterFields]="findColumns"
+        paginatorDropdownAppendTo="body"
+        style="height: 100%"
+        styleClass="p-datatable-gridlines"
+        [loading]="loading">
+        <ng-template pTemplate="caption" [ngStyle]="{ 'background-color': 'red' }">
+          <div class="flex" style="display: flex; flex-direction: row">
+            <div style="width: 50%">
+              <span class="p-input-icon-left ml-auto">
+                <i class="pi pi-search"></i>
 
-              <input
-                pInputText
-                type="text"
-                (input)="dt1.filterGlobal($any($event.target).value, 'contains')"
-                style="border-radius: 50px; width: 470px"
-                placeholder="Search" />
-            </span>
-          </div>
-          <div style="width: 50%; display: flex; flex-direction: row; justify-content: flex-end">
-            <button
-              type="button"
-              pButton
-              pRipple
-              (click)="exportExcel()"
-              class="p-button-success mr-2"
-              pTooltip="Excel"
-              tooltipPosition="bottom"
-              style="margin-left: 20px">
-              <i class="pi pi-file-excel" style="font-size: 1.5rem"></i>
-            </button>
-          </div>
-        </div>
-      </ng-template>
-      <ng-template pTemplate="header" let-columns>
-        <tr>
-          <th *ngFor="let col of columns" pSortableColumn="{{ col[1] }}" style="font-size: 15px; background-color: #739600; color: white" scope="col">
-            >
-            {{ col[0] }}
-            <p-sortIcon field="{{ col[1] }}"></p-sortIcon>
-          </th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-rowData let-columns="columns">
-        <tr>
-          <td *ngFor="let cols of columns" style="font-size: 15px">
-            <span [ngSwitch]="cols[2]">
-              <span *ngSwitchCase="'field'">
-                <span *ngIf="rowData[cols[1]]" [innerHTML]="rowData[cols[1]]"> </span>
-                <span *ngIf="!rowData[cols[1]]"> </span>
+                <input
+                  pInputText
+                  type="text"
+                  (input)="dt1.filterGlobal($any($event.target).value, 'contains')"
+                  style="border-radius: 50px; width: 470px"
+                  placeholder="Search" />
               </span>
-              <span *ngSwitchCase="'object'">
-                <span *ngFor="let i of cols[3]">
-                  <span *ngIf="rowData[cols[1]] != null && i[0] != '' && i[0] != null"> {{ i[0] }} : {{ rowData[cols[1]][i[1]] }} </span>
-                  <span *ngIf="rowData[cols[1]] == null && i[0] != '' && i[0] != null"> {{ i[0] }} : </span>
-                  <span *ngIf="(rowData[cols[1]] != null && i[0] == '') || i[0] == null">
-                    {{ rowData[cols[1]][i[1]] }}
+            </div>
+            <div style="width: 50%; display: flex; flex-direction: row; justify-content: flex-end">
+              <button
+                type="button"
+                pButton
+                pRipple
+                (click)="exportExcel()"
+                class="p-button-success mr-2"
+                pTooltip="Excel"
+                tooltipPosition="bottom"
+                style="margin-left: 20px">
+                <i class="pi pi-file-excel" style="font-size: 1.5rem"></i>
+              </button>
+            </div>
+          </div>
+        </ng-template>
+        <ng-template pTemplate="header" let-columns>
+          <tr>
+            <th
+              *ngFor="let col of columns"
+              pSortableColumn="{{ col[1] }}"
+              style="font-size: 15px; background-color: #739600; color: white"
+              scope="col">
+              >
+              {{ col[0] }}
+              <p-sortIcon field="{{ col[1] }}"></p-sortIcon>
+            </th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-rowData let-columns="columns">
+          <tr>
+            <td *ngFor="let cols of columns" style="font-size: 15px">
+              <span [ngSwitch]="cols[2]">
+                <span *ngSwitchCase="'field'">
+                  <span *ngIf="rowData[cols[1]]" [innerHTML]="rowData[cols[1]]"> </span>
+                  <span *ngIf="!rowData[cols[1]]"> </span>
+                </span>
+                <span *ngSwitchCase="'object'">
+                  <span *ngFor="let i of cols[3]">
+                    <span *ngIf="rowData[cols[1]] != null && i[0] != '' && i[0] != null"> {{ i[0] }} : {{ rowData[cols[1]][i[1]] }} </span>
+                    <span *ngIf="rowData[cols[1]] == null && i[0] != '' && i[0] != null"> {{ i[0] }} : </span>
+                    <span *ngIf="(rowData[cols[1]] != null && i[0] == '') || i[0] == null">
+                      {{ rowData[cols[1]][i[1]] }}
+                    </span>
                   </span>
                 </span>
-              </span>
-              <span *ngSwitchCase="'list'">
-                <span *ngIf="cols[3].length == 1">
-                  <span *ngFor="let i of cols[3]">
-                    <span *ngIf="rowData[cols[1]] != null">
-                      <span *ngIf="cols[0] != 'Office Location'">
-                        <span *ngFor="let k of rowData[cols[1]]"> {{ k[i[1]] }}, </span>
+                <span *ngSwitchCase="'list'">
+                  <span *ngIf="cols[3].length == 1">
+                    <span *ngFor="let i of cols[3]">
+                      <span *ngIf="rowData[cols[1]] != null">
+                        <span *ngIf="cols[0] != 'Office Location'">
+                          <span *ngFor="let k of rowData[cols[1]]"> {{ k[i[1]] }}, </span>
+                        </span>
+                        <span *ngIf="cols[0] == 'Office Location'">
+                          <span *ngFor="let k of rowData[cols[1]]; let j = index">
+                            <span *ngIf="k['isHeadquarter'] == true"> <b>Headquarter: </b>{{ k[i[1]] }} <br /> </span>
+                            <span *ngIf="k['isHeadquarter'] != true">
+                              <span *ngIf="j == 1"><b>Other: </b></span>{{ k[i[1]] }},
+                            </span>
+                          </span>
+                        </span>
                       </span>
-                      <span *ngIf="cols[0] == 'Office Location'">
-                        <span *ngFor="let k of rowData[cols[1]]; let j = index">
-                          <span *ngIf="k['isHeadquarter'] == true"> <b>Headquarter: </b>{{ k[i[1]] }} <br /> </span>
-                          <span *ngIf="k['isHeadquarter'] != true">
-                            <span *ngIf="j == 1"><b>Other: </b></span>{{ k[i[1]] }},
+                      <span *ngIf="rowData[cols[1]] == null"> </span>
+                    </span>
+                  </span>
+                  <span *ngIf="cols[3].length != 1">
+                    <span *ngIf="rowData[cols[1]] != null">
+                      <span *ngFor="let i of rowData[cols[1]]">
+                        <span *ngFor="let k of cols[3]">
+                          <span *ngIf="k[0] != null && k[0] != ''">
+                            <span style="font-weight: 800">{{ k[0] }}</span>
+                            : {{ i[k[1]] }} <br />
+                          </span>
+                          <span *ngIf="k[0] == null || k[0] == ''">
+                            {{ i[k[1]] }}
                           </span>
                         </span>
                       </span>
                     </span>
-                    <span *ngIf="rowData[cols[1]] == null"> </span>
-                  </span>
-                </span>
-                <span *ngIf="cols[3].length != 1">
-                  <span *ngIf="rowData[cols[1]] != null">
-                    <span *ngFor="let i of rowData[cols[1]]">
-                      <span *ngFor="let k of cols[3]">
-                        <span *ngIf="k[0] != null && k[0] != ''">
-                          <span style="font-weight: 800">{{ k[0] }}</span>
-                          : {{ i[k[1]] }} <br />
-                        </span>
-                        <span *ngIf="k[0] == null || k[0] == ''">
-                          {{ i[k[1]] }}
-                        </span>
-                      </span>
-                    </span>
                   </span>
                 </span>
               </span>
-            </span>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </ng-container>
     <ng-template pTemplate="footer">
       <button type="button" pButton pRipple icon="pi pi-times" (click)="closeDialog()" label="Close" class="p-button-text"></button>
     </ng-template>
