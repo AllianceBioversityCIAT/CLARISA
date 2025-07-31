@@ -143,4 +143,32 @@ export class CgiarEntityService {
 
     return this._cgiarEntityMapper.classToDtoV2(result, true);
   }
+
+  async getGlobalUnitsHierarchy(): Promise<any[]> {
+    const parents = await this._cgiarEntityRepository.find({
+      where: { level: 1 },
+      relations: ['children'],
+      order: {
+        name: 'ASC',
+        children: {
+          name: 'ASC',
+        },
+      },
+    });
+
+    return parents.map((parent) => ({
+      id: parent.id,
+      name: parent.name,
+      smo_code: parent.smo_code,
+      level: parent.level,
+      portfolio_id: parent.portfolio_id,
+      children: parent.children.map((child) => ({
+        id: child.id,
+        name: child.name,
+        smo_code: child.smo_code,
+        level: child.level,
+        portfolio_id: child.portfolio_id,
+      })),
+    }));
+  }
 }
