@@ -88,6 +88,11 @@ export class CgiarEntityController {
     return await this.cgiarEntityService.findAllV2(show);
   }
 
+  @Get('entities')
+  async getHierarchy(): Promise<any[]> {
+    return this.cgiarEntityService.getGlobalUnitsHierarchy();
+  }
+
   @Version('2')
   @Get('get/:id')
   @ApiParam({
