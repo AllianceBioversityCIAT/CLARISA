@@ -108,4 +108,23 @@ export class CgiarEntityController {
   async findOneV2(@Param('id', ParseIntPipe) id: number) {
     return await this.cgiarEntityService.findOneV2(id);
   }
+
+  @Version('2')
+  @Get('by-portfolio')
+  async findByPortfolioV2(
+    @Query('portfolioId') portfolioIds: number[],
+    @Query('show') show: FindAllOptions,
+  ) {
+    const ids = Array.isArray(portfolioIds)
+      ? portfolioIds.map(Number)
+      : String(portfolioIds)
+          .split(',')
+          .map((id) => Number(id.trim()))
+          .filter((id) => !isNaN(id));
+
+    const results = await Promise.all(
+      ids.map((id) => this.cgiarEntityService.findByPortfolioV2(id, show)),
+    );
+    return results.flat();
+  }
 }
