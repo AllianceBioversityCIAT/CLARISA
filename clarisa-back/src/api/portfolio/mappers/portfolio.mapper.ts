@@ -14,6 +14,7 @@ export class PortfolioMapper {
     portfolioDto.name = portfolio.name;
     portfolioDto.start_date = portfolio.start_date?.getFullYear();
     portfolioDto.end_date = portfolio.end_date?.getFullYear();
+    portfolioDto.acronym = portfolio.acronym;
     if (showIsActive) {
       portfolioDto.is_active = portfolio.auditableFields?.is_active;
     }
