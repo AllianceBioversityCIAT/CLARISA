@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FindManyOptions, FindOptionsOrder } from 'typeorm';
+import { FindManyOptions, FindOptionsOrder, In } from 'typeorm';
 import { CgiarEntityTypeOption } from '../../shared/entities/enums/cgiar-entity-types';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { CgiarEntity } from './entities/cgiar-entity.entity';
@@ -142,5 +142,43 @@ export class CgiarEntityService {
     });
 
     return this._cgiarEntityMapper.classToDtoV2(result, true);
+  }
+
+  async findByPortfolioV2(
+    portfolioId: number,
+    option: FindAllOptions = FindAllOptions.SHOW_ALL,
+  ): Promise<CgiarEntityDtoV2[]> {
+    let cgiarEntities: CgiarEntity[] = [];
+    let showIsActive = true;
+
+    switch (option) {
+      case FindAllOptions.SHOW_ALL:
+        cgiarEntities = await this._cgiarEntityRepository.find({
+          relations: this._findOptionsV2.relations,
+          where: { portfolio_object: In([portfolioId]), level: 1 },
+        });
+        break;
+      case FindAllOptions.SHOW_ONLY_ACTIVE:
+      case FindAllOptions.SHOW_ONLY_INACTIVE:
+        showIsActive = option !== FindAllOptions.SHOW_ONLY_ACTIVE;
+        cgiarEntities = await this._cgiarEntityRepository.find({
+          relations: this._findOptionsV2.relations,
+          where: {
+            portfolio_object: In([portfolioId]),
+            level: 1,
+            auditableFields: {
+              is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
+            },
+          },
+        });
+        break;
+      default:
+        throw Error('?!');
+    }
+
+    return this._cgiarEntityMapper.classListToDtoV2List(
+      cgiarEntities,
+      showIsActive,
+    );
   }
 }
