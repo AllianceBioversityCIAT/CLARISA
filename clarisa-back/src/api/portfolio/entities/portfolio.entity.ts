@@ -18,6 +18,9 @@ export class Portfolio {
   @Column({ type: 'timestamp', nullable: true })
   end_date: Date;
 
+  @Column({ type: 'text', nullable: true })
+  acronym: string;
+
   //object relations
   @OneToMany(() => CgiarEntityType, (cet) => cet.portfolio_object)
   cgiar_entity_type_array: CgiarEntityType[];
