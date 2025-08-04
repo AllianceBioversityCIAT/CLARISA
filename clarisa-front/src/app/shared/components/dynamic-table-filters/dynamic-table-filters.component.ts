@@ -1,5 +1,8 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { EntityFiltersService } from './entity-filters.service';
+import { EntitiesTableInterface } from './interfaces/entities-table.interface';
+import { GetPortfoliosInterface } from './interfaces/get-portfolios.interface';
+import { GetEntityTypeInterface } from './interfaces/get-entity-type.interface';
 
 @Component({
   selector: 'app-dynamic-table-filters',
@@ -7,9 +10,10 @@ import { EntityFiltersService } from './entity-filters.service';
   styleUrls: ['./dynamic-table-filters.component.scss']
 })
 export class DynamicTableFiltersComponent implements OnInit {
-  @Input() dataList: any;
-  selectedEntityType: any;
-  selectedPortfolio: any;
+  @Input() dataList: EntitiesTableInterface[] = [];
+  selectedEntityType: number | null = null;
+  selectedPortfolio: number | null = null;
+  searchText: string = '';
   expandedRowKeys: { [s: string]: boolean } = {};
 
   constructor(public _entityFiltersService: EntityFiltersService) {}
@@ -18,10 +22,28 @@ export class DynamicTableFiltersComponent implements OnInit {
     console.log('DataList:', this.dataList);
   }
   onChangeEntityType(event: any) {
-    console.log(event);
+    this.selectedEntityType = event?.value || null;
+    console.log('Selected Entity Type:', this.selectedEntityType);
   }
+
   onChangePortfolio(event: any) {
-    console.log(event);
+    this.selectedPortfolio = event?.value || null;
+    console.log('Selected Portfolio:', this.selectedPortfolio);
+  }
+
+  onSearchChange(searchValue: string) {
+    this.searchText = searchValue;
+    console.log('Search Text:', this.searchText);
+  }
+
+  /**
+   * Clears all applied filters and resets the component state
+   * Maintains parent-child relationships in the data structure
+   */
+  clearFilters() {
+    this.selectedEntityType = null;
+    this.selectedPortfolio = null;
+    this.searchText = '';
   }
 
   toggleRow(product: any) {
