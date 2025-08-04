@@ -9,7 +9,6 @@ import { CgiarEntityDtoV1 } from './dto/cgiar-entity.v1.dto';
 import { CgiarEntityDtoV2 } from './dto/cgiar-entity.v2.dto';
 import { CenterService } from '../center/center.service';
 import { CenterDtoV1 } from '../center/dto/center.v1.dto';
-import { Portfolio } from '../portfolio/entities/portfolio.entity';
 
 @Injectable()
 export class CgiarEntityService {
