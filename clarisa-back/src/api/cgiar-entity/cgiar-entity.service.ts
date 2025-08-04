@@ -165,13 +165,14 @@ export class CgiarEntityService {
       name: parent.name,
       smo_code: parent.smo_code,
       level: parent.level,
-      portfolio_id: parent.portfolio_id,
+      portfolio: parent.portfolio_object?.name || null,
       cgiar_entity_type: parent.cgiar_entity_type_object
         ? {
             code: parent.cgiar_entity_type_object.id,
             name: parent.cgiar_entity_type_object.name,
           }
         : null,
+      acronym: parent.acronym,
       children: parent.children.map((child) => ({
         id: child.id,
         code: child.smo_code,
