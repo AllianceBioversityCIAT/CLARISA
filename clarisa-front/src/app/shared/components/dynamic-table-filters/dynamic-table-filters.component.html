@@ -48,12 +48,12 @@
             [attr.aria-expanded]="expanded">
             <i [ngClass]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
           </button>
-          {{ product.smo_code }}
+          <strong>{{ product.smo_code }}</strong>
         </td>
         <td>{{ product.name }}</td>
-        <td>{{ product.category }}</td>
-        <td>{{ product.quantity }}</td>
-        <td>{{ product.cgiar_entity_type }}</td>
+        <td>{{ product.acronym }}</td>
+        <td>{{ product.portfolio }}</td>
+        <td>{{ product.cgiar_entity_type?.name }}</td>
       </tr>
     </ng-template>
     <ng-template pTemplate="rowexpansion" let-product>
@@ -71,12 +71,12 @@
               <ng-template pTemplate="body" let-child>
                 <tr>
                   <td>
-                    <div style="padding-left: 34px">{{ child.code }}</div>
+                    <strong style="padding-left: 34px">{{ child.code }}</strong>
                   </td>
                   <td>{{ child.name }}</td>
                   <td>{{ child.acronym }}</td>
                   <td>{{ child.portfolio }}</td>
-                  <td>{{ child.cgiar_entity_type }}</td>
+                  <td><strong>Code:</strong> {{ child.cgiar_entity_type?.code }} - <strong>Name:</strong> {{ child.cgiar_entity_type?.name }}</td>
                 </tr>
               </ng-template>
             </p-table>
