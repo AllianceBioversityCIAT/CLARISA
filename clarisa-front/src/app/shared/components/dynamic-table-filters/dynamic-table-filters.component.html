@@ -2,7 +2,7 @@
   <input
     type="text"
     pInputText
-    placeholder="Search by name, code, acronym or entity type"
+    placeholder="Search by name, code, acronym, entity type or portfolio"
     [(ngModel)]="searchText"
     (input)="onSearchChange($any($event.target).value)" />
   <p-dropdown
@@ -28,6 +28,7 @@
     (click)="clearFilters()"
     label="Clear Filters"
     icon="pi pi-times"></button>
+
   <div class="export_button">
     <i class="pi pi-download"></i>
     Export

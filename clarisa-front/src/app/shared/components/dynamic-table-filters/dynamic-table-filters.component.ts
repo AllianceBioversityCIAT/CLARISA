@@ -11,29 +11,30 @@ import { GetEntityTypeInterface } from './interfaces/get-entity-type.interface';
 })
 export class DynamicTableFiltersComponent implements OnInit {
   @Input() dataList: EntitiesTableInterface[] = [];
-  selectedEntityType: number | null = null;
-  selectedPortfolio: number | null = null;
-  searchText: string = '';
+
+  // Filters - using IDs for API compatibility
+  selectedEntityType: string | null = null; // Filters by cgiar_entity_type.name
+  selectedPortfolio: number | null = null; // Filters by portfolio_id
+  searchText: string = ''; // Searches in name, code, acronym, entity_type, portfolio (both parent and children)
+
+  // Expansion state for hierarchical table
   expandedRowKeys: { [s: string]: boolean } = {};
 
   constructor(public _entityFiltersService: EntityFiltersService) {}
 
   ngOnInit(): void {
-    console.log('DataList:', this.dataList);
+    // Component initialized
   }
   onChangeEntityType(event: any) {
     this.selectedEntityType = event?.value || null;
-    console.log('Selected Entity Type:', this.selectedEntityType);
   }
 
   onChangePortfolio(event: any) {
     this.selectedPortfolio = event?.value || null;
-    console.log('Selected Portfolio:', this.selectedPortfolio);
   }
 
   onSearchChange(searchValue: string) {
     this.searchText = searchValue;
-    console.log('Search Text:', this.searchText);
   }
 
   /**
@@ -47,17 +48,10 @@ export class DynamicTableFiltersComponent implements OnInit {
   }
 
   toggleRow(product: any) {
-    console.log('Toggling row for product:', product);
-    console.log('Current expandedRowKeys:', this.expandedRowKeys);
-
     if (this.expandedRowKeys[product.smo_code]) {
       delete this.expandedRowKeys[product.smo_code];
-      console.log('Collapsing row');
     } else {
       this.expandedRowKeys[product.smo_code] = true;
-      console.log('Expanding row');
     }
-
-    console.log('Updated expandedRowKeys:', this.expandedRowKeys);
   }
 }

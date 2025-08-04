@@ -3,11 +3,12 @@ export interface EntitiesTableInterface {
   name: string;
   smo_code: string;
   level: number;
-  portfolio: null;
   portfolio_id: number;
+  portfolio: string;
   cgiar_entity_type: Cgiarentitytype;
   acronym: null | string;
   children: Child[];
+  full_text: string;
 }
 
 interface Child {
@@ -15,6 +16,7 @@ interface Child {
   code: string;
   name: string;
   acronym: null;
+  portfolio_id: number;
   portfolio: string;
   cgiar_entity_type: Cgiarentitytype;
 }
