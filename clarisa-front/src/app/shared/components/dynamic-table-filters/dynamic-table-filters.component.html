@@ -52,7 +52,9 @@
         </td>
         <td>{{ product.name }}</td>
         <td>{{ product.acronym }}</td>
-        <td>{{ product.portfolio }}</td>
+        <td>
+          <span *ngIf="product.portfolio" class="portfolio-chip">{{ product.portfolio }}</span>
+        </td>
         <td>{{ product.cgiar_entity_type?.name }}</td>
       </tr>
     </ng-template>
@@ -75,7 +77,9 @@
                   </td>
                   <td>{{ child.name }}</td>
                   <td>{{ child.acronym }}</td>
-                  <td>{{ child.portfolio }}</td>
+                  <td>
+                    <span *ngIf="child.portfolio" class="portfolio-chip">{{ child.portfolio }}</span>
+                  </td>
                   <td><strong>Code:</strong> {{ child.cgiar_entity_type?.code }} - <strong>Name:</strong> {{ child.cgiar_entity_type?.name }}</td>
                 </tr>
               </ng-template>
