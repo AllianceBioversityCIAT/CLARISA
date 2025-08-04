@@ -40,9 +40,6 @@ export class ContentComponent implements OnInit, OnChanges {
   ngOnChanges() {
     this.loading = true;
     this.informationEndpoint = [];
-    // Clear previous data when route changes
-    this.interfaceStructure = null;
-    this.formattedInterfaceJson = '';
 
     if (Object.keys(this.urlParams).length == 2) {
       this.handleTwoUrlParams();
@@ -58,8 +55,6 @@ export class ContentComponent implements OnInit, OnChanges {
       if (variableAux != undefined) {
         if (x.name == variableAux) {
           this.informationPrint = x;
-          // Generate fallback formatted JSON for subcategories
-          this.generateFallbackFormattedJson();
         }
       }
     });
@@ -110,17 +105,9 @@ export class ContentComponent implements OnInit, OnChanges {
   }
 
   returnResponseJson() {
-    // Si ya tenemos la estructura de interfaz, la mostramos
-    if (this.interfaceStructure) {
-      return JSON.stringify(this.interfaceStructure, null, 4);
-    }
-
-    // Si no, generamos la estructura de interfaz a partir de la información del endpoint
     let auxVariable = this.informationPrint.response_json;
     this.responseJsonPrint = this.jsonResponse(auxVariable.properties, auxVariable.object_type);
 
-    console.log(JSON.stringify(this.responseJsonPrint, null, 4));
-    console.log(this.interfaceStructure);
     return JSON.stringify(this.responseJsonPrint, null, 4);
   }
 
@@ -174,23 +161,32 @@ export class ContentComponent implements OnInit, OnChanges {
   columnsTable(listaAux) {
     let endpointJsonOnes = listaAux;
     let columns = [];
-
     for (let i in endpointJsonOnes) {
       if (endpointJsonOnes[i].show_in_table && endpointJsonOnes[i].object_type != 'object' && endpointJsonOnes[i].object_type != 'list') {
         columns[endpointJsonOnes[i].order] = [endpointJsonOnes[i].column_name, i, endpointJsonOnes[i].object_type];
       }
       if (endpointJsonOnes[i].object_type == 'object') {
         if (endpointJsonOnes[i].show_in_table) {
-          columns[order] = [endpointJsonOnes[i].column_name, i, endpointJsonOnes[i].object_type, this.columnsTable(endpointJsonOnes[i].properties)];
+          columns[endpointJsonOnes[i].order] = [
+            endpointJsonOnes[i].column_name,
+            i,
+            endpointJsonOnes[i].object_type,
+            this.columnsTable(endpointJsonOnes[i].properties)
+          ];
         }
       }
       if (endpointJsonOnes[i].object_type == 'list') {
         if (endpointJsonOnes[i].show_in_table) {
-          columns[order] = [endpointJsonOnes[i].column_name, i, endpointJsonOnes[i].object_type, this.columnsTable(endpointJsonOnes[i].properties)];
+          columns[endpointJsonOnes[i].order] = [
+            endpointJsonOnes[i].column_name,
+            i,
+            endpointJsonOnes[i].object_type,
+            this.columnsTable(endpointJsonOnes[i].properties)
+          ];
         }
       }
     }
-    return columns.filter(Boolean); // Remove any undefined/null entries
+    return columns;
   }
 
   exportPdf() {
@@ -329,131 +325,5 @@ export class ContentComponent implements OnInit, OnChanges {
 
   closeDialog() {
     this.dialogVisible = false;
-  }
-
-  /**
-   * Converts an array of objects to a TypeScript interface structure
-   * @param data - Array of objects to analyze
-   * @returns Object representing the interface structure with property types
-   */
-  convertArrayToInterface(data: any[]): any {
-    if (!data || data.length === 0) {
-      return {};
-    }
-
-    const interfaceStructure: any = {};
-
-    // Analyze the first few objects to determine types (using up to 5 objects for better type inference)
-    const sampleSize = Math.min(data.length, 5);
-
-    for (let i = 0; i < sampleSize; i++) {
-      const obj = data[i];
-      if (obj && typeof obj === 'object') {
-        Object.keys(obj).forEach(key => {
-          const value = obj[key];
-          const detectedType = this.detectTypeScriptType(value);
-
-          // If we haven't seen this property before, set its type
-          if (!interfaceStructure[key]) {
-            interfaceStructure[key] = detectedType;
-          }
-          // If we've seen it before but with a different type, make it a union type
-          else if (interfaceStructure[key] !== detectedType && !interfaceStructure[key].includes('|')) {
-            interfaceStructure[key] = `${interfaceStructure[key]} | ${detectedType}`;
-          }
-        });
-      }
-    }
-
-    return interfaceStructure;
-  }
-
-  /**
-   * Detects the TypeScript type for a given value
-   * @param value - The value to analyze
-   * @returns String representing the TypeScript type
-   */
-  private detectTypeScriptType(value: any): string {
-    if (value === null) {
-      return 'null';
-    }
-
-    if (value === undefined) {
-      return 'undefined';
-    }
-
-    const jsType = typeof value;
-
-    switch (jsType) {
-      case 'string':
-        return 'string';
-      case 'number':
-        return 'number';
-      case 'boolean':
-        return 'boolean';
-      case 'object':
-        if (Array.isArray(value)) {
-          if (value.length === 0) {
-            return 'any[]';
-          }
-          // Analyze array elements to determine array type
-          const elementType = this.detectTypeScriptType(value[0]);
-          return `${elementType}[]`;
-        } else {
-          // For nested objects, return 'object' or could be expanded to analyze nested structure
-          return 'object';
-        }
-      case 'function':
-        return 'Function';
-      default:
-        return 'any';
-    }
-  }
-
-  /**
-   * Generates a formatted string representation of the interface
-   * @param data - Array of objects to convert
-   * @param interfaceName - Optional name for the interface
-   * @returns Formatted string representing the TypeScript interface
-   */
-  generateInterfaceString(data: any[], interfaceName: string = 'DataInterface'): string {
-    const interfaceStructure = this.convertArrayToInterface(data);
-
-    let interfaceString = `export interface ${interfaceName} {\n`;
-
-    Object.keys(interfaceStructure).forEach(key => {
-      interfaceString += `  ${key}: ${interfaceStructure[key]};\n`;
-    });
-
-    interfaceString += '}';
-
-    return interfaceString;
-  }
-
-  /**
-   * Example method to test the interface conversion with current endpoint data
-   */
-  testInterfaceConversion(): void {
-    if (this.informationEndpoint && this.informationEndpoint.length > 0) {
-      const interfaceStructure = this.convertArrayToInterface(this.informationEndpoint);
-      const interfaceString = this.generateInterfaceString(this.informationEndpoint, 'EndpointDataInterface');
-
-      console.log('Interface Structure:', interfaceStructure);
-      this.interfaceStructure = interfaceStructure;
-      // Format JSON for template display
-      this.formattedInterfaceJson = JSON.stringify(interfaceStructure, null, 4);
-      console.log('Interface String:', interfaceString);
-    }
-  }
-
-  /**
-   * Generates fallback formatted JSON when there's no endpoint data
-   */
-  private generateFallbackFormattedJson(): void {
-    if (this.informationPrint?.response_json) {
-      let auxVariable = this.informationPrint.response_json;
-      this.responseJsonPrint = this.jsonResponse(auxVariable.properties, auxVariable.object_type);
-      this.formattedInterfaceJson = JSON.stringify(this.responseJsonPrint, null, 4);
-    }
   }
 }
