@@ -1,19 +1,33 @@
 <div class="filters_container">
-  <input type="text" pInputText placeholder="Search" />
+  <input
+    type="text"
+    pInputText
+    placeholder="Search by name, code, acronym or entity type"
+    [(ngModel)]="searchText"
+    (input)="onSearchChange($any($event.target).value)" />
   <p-dropdown
     [options]="this._entityFiltersService.cgiarEntityTypology"
     [(ngModel)]="selectedEntityType"
     optionLabel="name"
     (onChange)="onChangeEntityType($event)"
     optionValue="code"
-    placeholder="Select a entity type"></p-dropdown>
+    placeholder="Select a entity type"
+    [showClear]="true"></p-dropdown>
   <p-dropdown
     [options]="this._entityFiltersService.portfolios"
     [(ngModel)]="selectedPortfolio"
     optionLabel="name"
     (onChange)="onChangePortfolio($event)"
     optionValue="code"
-    placeholder="Select a portfolio"></p-dropdown>
+    placeholder="Select a portfolio"
+    [showClear]="true"></p-dropdown>
+  <button
+    type="button"
+    pButton
+    class="p-button-outlined p-button-sm clear-filters-btn"
+    (click)="clearFilters()"
+    label="Clear Filters"
+    icon="pi pi-times"></button>
   <div class="export_button">
     <i class="pi pi-download"></i>
     Export
@@ -23,7 +37,7 @@
 <div class="custom_table">
   <p-table
     #dt
-    [value]="this.dataList"
+    [value]="this.dataList | hierarchicalFilter: searchText : selectedPortfolio : selectedEntityType"
     [tableStyle]="{ width: '100%' }"
     [styleClass]="'p-datatable-sm'"
     [expandedRowKeys]="expandedRowKeys"
@@ -31,7 +45,7 @@
     <ng-template pTemplate="header">
       <tr>
         <th style="width: 120px">Code</th>
-        <th style="width: auto">Name</th>
+        <th>Name</th>
         <th>Acronym</th>
         <th>Portfolio</th>
         <th>CGIAR Entity Type</th>
@@ -39,7 +53,7 @@
     </ng-template>
     <ng-template pTemplate="body" let-product let-expanded="expanded">
       <tr>
-        <td>
+        <td style="width: 120px">
           <button
             type="button"
             pRipple
@@ -72,7 +86,7 @@
               [styleClass]="'p-datatable-sm nested-table'">
               <ng-template pTemplate="body" let-child>
                 <tr>
-                  <td>
+                  <td style="width: 120px">
                     <strong style="padding-left: 34px">{{ child.code }}</strong>
                   </td>
                   <td>{{ child.name }}</td>

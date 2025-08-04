@@ -4,7 +4,8 @@ export interface EntitiesTableInterface {
   smo_code: string;
   level: number;
   portfolio: null;
-  cgiar_entity_type: null;
+  portfolio_id: number;
+  cgiar_entity_type: Cgiarentitytype;
   acronym: null | string;
   children: Child[];
 }

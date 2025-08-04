@@ -1,10 +1,14 @@
 .filters_container {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
+  grid-template-columns: 2fr 1fr 1fr auto auto;
   gap: 10px;
   align-items: center;
   justify-content: start;
   margin-bottom: 10px;
+
+  .clear-filters-btn {
+    height: 2.5rem;
+  }
 }
 
 .custom_table {
