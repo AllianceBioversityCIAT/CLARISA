@@ -182,9 +182,15 @@ export class CgiarEntityService {
         'children.cgiar_entity_type_object',
       ],
       order: {
-        name: 'ASC',
+        portfolio_object: {
+          start_date: 'DESC',
+        },
+        smo_code: 'ASC',
         children: {
-          name: 'ASC',
+          portfolio_object: {
+            start_date: 'DESC',
+          },
+          smo_code: 'ASC',
         },
       },
     });
