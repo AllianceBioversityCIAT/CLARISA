@@ -61,7 +61,7 @@ export class ContentComponent implements OnInit, OnChanges {
   }
 
   validateShowDynamicTableFilters() {
-    this.showDynamicTableFilters = this.urlParams.nameEndpoint === 'CGIAR_entities';
+    this.showDynamicTableFilters = this.urlParams.nameEndpoint === 'CGIAR_entities_groups';
   }
 
   private handleThreeUrlParams() {
