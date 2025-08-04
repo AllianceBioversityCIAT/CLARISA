@@ -148,6 +148,8 @@ export class CgiarEntityService {
     const parents = await this._cgiarEntityRepository.find({
       where: { level: 1 },
       relations: [
+        'portfolio_object',
+        'cgiar_entity_type_object',
         'children',
         'children.portfolio_object',
         'children.cgiar_entity_type_object',
