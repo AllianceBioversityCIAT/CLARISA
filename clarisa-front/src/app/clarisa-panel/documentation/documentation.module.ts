@@ -18,7 +18,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { DropdownModule } from 'primeng/dropdown';
 import { DynamicTableFiltersComponent } from '../../shared/components/dynamic-table-filters/dynamic-table-filters.component';
-
+import { FormsModule } from '@angular/forms';
 @NgModule({
   declarations: [DocumentationComponent, VerticalMenuComponent, HorizontalMenuComponent, ContentComponent, DynamicTableFiltersComponent],
   imports: [
@@ -34,7 +34,8 @@ import { DynamicTableFiltersComponent } from '../../shared/components/dynamic-ta
     ButtonModule,
     ToastModule,
     InputTextModule,
-    ProgressBarModule
+    ProgressBarModule,
+    FormsModule
   ]
 })
 export class DocumentationModule {}

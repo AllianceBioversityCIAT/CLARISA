@@ -31,3 +31,36 @@ html *:not(.fa, .fe, .pi, pre, code) {
     background-color: #1e1e1e !important;
   }
 }
+
+.filters_container {
+  .p-dropdown {
+    width: 100%;
+  }
+  .p-inputtext {
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+  }
+  .p-button {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+  .export_button {
+    background-color: #00a63e !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 5px !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    font-weight: 600 !important;
+    i {
+      font-size: 15px !important;
+    }
+    &:hover {
+      background-color: #008000 !important;
+    }
+  }
+}
