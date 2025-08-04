@@ -16,35 +16,6 @@ export class DynamicTableFiltersComponent implements OnInit {
 
   ngOnInit(): void {
     console.log('DataList:', this.dataList);
-    console.log('ExpandedRowKeys:', this.expandedRowKeys);
-
-    // Datos de ejemplo para testing si no hay dataList
-    if (!this.dataList || this.dataList.length === 0) {
-      this.dataList = [
-        {
-          smo_code: 'CGR001',
-          name: 'CGIAR Research Program Example 1',
-          category: 'CRP1',
-          quantity: 'Global',
-          cgiar_entity_type: 'Research Program'
-        },
-        {
-          smo_code: 'CGR002',
-          name: 'CGIAR Research Program Example 2',
-          category: 'CRP2',
-          quantity: 'Regional',
-          cgiar_entity_type: 'Platform'
-        },
-        {
-          smo_code: 'CGR003',
-          name: 'CGIAR Research Program Example 3',
-          category: 'CRP3',
-          quantity: 'National',
-          cgiar_entity_type: 'Center'
-        }
-      ];
-      console.log('Using dummy data:', this.dataList);
-    }
   }
   onChangeEntityType(event: any) {
     console.log(event);

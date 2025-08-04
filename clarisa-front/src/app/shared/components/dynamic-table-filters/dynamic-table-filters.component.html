@@ -57,26 +57,30 @@
       </tr>
     </ng-template>
     <ng-template pTemplate="rowexpansion" let-product>
-      <p-table [value]="product.children" [tableStyle]="{ width: '100%' }" [styleClass]="'p-datatable-sm'">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Code</th>
-            <th>Name</th>
-            <th>Acronym</th>
-            <th>Portfolio</th>
-            <th>CGIAR Entity Type</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-product>
-          <tr>
-            <td>{{ product.code }}</td>
-            <td>{{ product.name }}</td>
-            <td>{{ product.acronym }}</td>
-            <td>{{ product.portfolio }}</td>
-            <td>{{ product.cgiar_entity_type }}</td>
-          </tr>
-        </ng-template>
-      </p-table>
+      <tr>
+        <td colspan="5" class="expanded-row">
+          <div class="expanded-content">
+            <div *ngIf="!product.children || product.children.length === 0" class="no-children">
+              <p><strong>No hay elementos hijos disponibles para mostrar</strong></p>
+            </div>
+            <p-table
+              *ngIf="product.children && product.children.length > 0"
+              [value]="product.children"
+              [tableStyle]="{ width: '100%', 'min-width': '100%' }"
+              [styleClass]="'p-datatable-sm nested-table'">
+              <ng-template pTemplate="body" let-child>
+                <tr>
+                  <td>{{ child.code }}</td>
+                  <td>{{ child.name }}</td>
+                  <td>{{ child.acronym }}</td>
+                  <td>{{ child.portfolio }}</td>
+                  <td>{{ child.cgiar_entity_type }}</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </td>
+      </tr>
     </ng-template>
   </p-table>
 </div>

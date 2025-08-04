@@ -34,33 +34,50 @@
   }
 }
 
-.expanded-content {
-  padding: 1rem;
-  background-color: #f8f9fa;
+.expanded-row {
+  padding: 0 !important;
+}
 
-  h5 {
-    margin-bottom: 1rem;
-    color: #495057;
-    font-weight: 600;
+.expanded-content {
+  padding: 0;
+  background-color: transparent;
+  width: 100%;
+
+  .nested-table {
+    width: 100% !important;
+
+    .p-datatable-table {
+      width: 100% !important;
+      table-layout: fixed;
+    }
+
+    .p-datatable-thead {
+      display: none !important;
+    }
+
+    .p-datatable-tbody > tr > td {
+      background-color: #f8f9fa;
+      border-left: 1px solid #e9ecef;
+      border-right: 1px solid #e9ecef;
+      border-bottom: 1px solid #e9ecef;
+      padding: 0.5rem !important;
+      text-align: left;
+      word-wrap: break-word;
+    }
+
+    .p-datatable-tbody > tr:hover {
+      background-color: #e3f2fd;
+    }
   }
 
-  .dummy-table {
-    width: 100%;
-    border-collapse: collapse;
+  .no-children {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+    font-style: italic;
 
-    td {
-      padding: 0.5rem;
-      border: none;
-
-      &:nth-child(odd) {
-        font-weight: 500;
-        color: #6c757d;
-        width: 120px;
-      }
-
-      &:nth-child(even) {
-        color: #212529;
-      }
+    p {
+      margin: 0;
     }
   }
 }
