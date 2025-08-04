@@ -16,4 +16,10 @@ export class DynamicTableFiltersComponent implements OnInit {
   ngOnInit(): void {
     console.log(this.dataList);
   }
+  onChangeEntityType(event: any) {
+    console.log(event);
+  }
+  onChangePortfolio(event: any) {
+    console.log(event);
+  }
 }
