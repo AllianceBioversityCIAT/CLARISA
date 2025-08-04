@@ -4,11 +4,13 @@
     [options]="this._entityFiltersService.cgiarEntityTypology"
     [(ngModel)]="selectedEntityType"
     optionLabel="name"
+    optionValue="code"
     placeholder="Select a entity type"></p-dropdown>
   <p-dropdown
     [options]="this._entityFiltersService.portfolios"
     [(ngModel)]="selectedPortfolio"
     optionLabel="name"
+    optionValue="code"
     placeholder="Select a portfolio"></p-dropdown>
   <div class="export_button">
     <i class="pi pi-download"></i>
