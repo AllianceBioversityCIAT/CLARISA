@@ -75,6 +75,7 @@ export class CgiarEntityMapper {
       ),
     );
 
+    cgiarEntityDtoV2.id = cgiarEntity.id;
     cgiarEntityDtoV2.acronym = cgiarEntity.acronym;
     cgiarEntityDtoV2.short_name = cgiarEntity.short_name;
     cgiarEntityDtoV2.acronym = cgiarEntity.acronym;

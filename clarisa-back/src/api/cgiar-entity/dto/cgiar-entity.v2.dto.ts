@@ -2,6 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { BasicDtoV2 } from '../../../shared/entities/dtos/basic.v2.dto';
 
 export class CgiarEntityDtoV2 extends BasicDtoV2 {
+  id: number;
+
   @ApiProperty({
     description: 'The short name of the CGIAR entity',
     type: String,

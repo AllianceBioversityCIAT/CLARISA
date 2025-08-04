@@ -13,11 +13,5 @@ export class PortfolioDto extends BasicDtoV2 {
     type: Date,
   })
   end_date: number;
-
-  @ApiProperty({
-    description: 'The acronym of the portfolio',
-    type: String,
-    required: false,
-  })
   acronym?: string;
 }
