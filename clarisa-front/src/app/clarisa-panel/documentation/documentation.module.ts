@@ -17,6 +17,7 @@ import { ToastModule } from 'primeng/toast';
 import { InputTextModule } from 'primeng/inputtext';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { DropdownModule } from 'primeng/dropdown';
+import { RippleModule } from 'primeng/ripple';
 import { DynamicTableFiltersComponent } from '../../shared/components/dynamic-table-filters/dynamic-table-filters.component';
 import { FormsModule } from '@angular/forms';
 @NgModule({
@@ -35,6 +36,7 @@ import { FormsModule } from '@angular/forms';
     ToastModule,
     InputTextModule,
     ProgressBarModule,
+    RippleModule,
     FormsModule
   ]
 })
