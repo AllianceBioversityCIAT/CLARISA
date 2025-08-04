@@ -174,7 +174,11 @@ export class CgiarEntityService {
   async getGlobalUnitsHierarchy(): Promise<any[]> {
     const parents = await this._cgiarEntityRepository.find({
       where: { level: 1 },
-      relations: ['children'],
+      relations: [
+        'children',
+        'children.portfolio_object',
+        'children.cgiar_entity_type_object',
+      ],
       order: {
         name: 'ASC',
         children: {
@@ -191,10 +195,16 @@ export class CgiarEntityService {
       portfolio_id: parent.portfolio_id,
       children: parent.children.map((child) => ({
         id: child.id,
+        code: child.smo_code,
         name: child.name,
-        smo_code: child.smo_code,
-        level: child.level,
-        portfolio_id: child.portfolio_id,
+        acronym: child.acronym,
+        portfolio: child.portfolio_object?.name || null,
+        cgiar_entity_type: child.cgiar_entity_type_object
+          ? {
+              code: child.cgiar_entity_type_object.id,
+              name: child.cgiar_entity_type_object.name,
+            }
+          : null,
       })),
     }));
   }
