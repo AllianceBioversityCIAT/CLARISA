@@ -56,6 +56,7 @@
       <tr>
         <td style="width: 120px">
           <button
+            *ngIf="product.children && product.children.length > 0"
             type="button"
             pRipple
             class="p-button-text p-button-rounded p-button-plain expand-btn"
@@ -70,7 +71,7 @@
         <td>
           <span *ngIf="product.portfolio" class="portfolio-chip">{{ product.portfolio }}</span>
         </td>
-        <td>{{ product.cgiar_entity_type?.name }}</td>
+        <td><strong>Code:</strong> {{ product.cgiar_entity_type?.code }} - <strong>Name:</strong> {{ product.cgiar_entity_type?.name }}</td>
       </tr>
     </ng-template>
     <ng-template pTemplate="rowexpansion" let-product>
