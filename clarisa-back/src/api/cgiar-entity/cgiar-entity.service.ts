@@ -194,6 +194,7 @@ export class CgiarEntityService {
       name: parent.name,
       smo_code: parent.smo_code,
       level: parent.level,
+      portfolio_id: parent.portfolio_id,
       portfolio: parent.portfolio_object?.name || null,
       cgiar_entity_type: parent.cgiar_entity_type_object
         ? {
@@ -207,6 +208,7 @@ export class CgiarEntityService {
         code: child.smo_code,
         name: child.name,
         acronym: child.acronym,
+        portfolio_id: child.portfolio_id,
         portfolio: child.portfolio_object?.name || null,
         cgiar_entity_type: child.cgiar_entity_type_object
           ? {
