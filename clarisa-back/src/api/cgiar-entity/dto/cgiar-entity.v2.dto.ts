@@ -1,6 +1,7 @@
 import { BasicDto } from '../../../shared/entities/dtos/basic-dto';
 
 export class CgiarEntityDtoV2 extends BasicDto {
+  id: number;
   short_name: string;
   acronym: string;
   entity_type: BasicDto;
