@@ -4,7 +4,7 @@ import { environment } from 'src/environments/environment';
 import { Observable } from 'rxjs';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class ManageApiService {
   urlApi = environment.apiUrl;
@@ -27,17 +27,11 @@ export class ManageApiService {
   }
 
   postNewRequestIntitution(bodyRequest): Observable<any> {
-    return this.http.post(
-      `${this.urlApi}api/partner-requests/create`,
-      bodyRequest
-    );
+    return this.http.post(`${this.urlApi}api/partner-requests/create`, bodyRequest);
   }
 
   postAceptedOrRejectRequest(bodyRequest): Observable<any> {
-    return this.http.post(
-      `${this.urlApi}api/partner-requests/respond`,
-      bodyRequest
-    );
+    return this.http.post(`${this.urlApi}api/partner-requests/respond`, bodyRequest);
   }
 
   getByIdTypeInstitution(id) {
@@ -45,18 +39,20 @@ export class ManageApiService {
   }
 
   patchPartnerRequest(bodyRequest): Observable<any> {
-    return this.http.patch(
-      `${this.urlApi}api/partner-requests/update`,
-      bodyRequest
-    );
+    return this.http.patch(`${this.urlApi}api/partner-requests/update`, bodyRequest);
   }
   postCreateBulkInstitution(bodyRequest) {
-    return this.http.post(
-      `${this.urlApi}api/partner-requests/create-bulk`,
-      bodyRequest
-    );
+    return this.http.post(`${this.urlApi}api/partner-requests/create-bulk`, bodyRequest);
   }
   getAllMis() {
     return this.http.get(`${this.urlApi}api/mises`);
+  }
+
+  getAllPortfolios() {
+    return this.http.get(`${this.urlApi}api/portfolios?show=all`);
+  }
+
+  getAllCgiarEntityTypology() {
+    return this.http.get(`${this.urlApi}api/cgiar-entity-typology`);
   }
 }
