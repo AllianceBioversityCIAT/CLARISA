@@ -6,3 +6,61 @@
   justify-content: start;
   margin-bottom: 10px;
 }
+
+.custom_table {
+  .expand-btn {
+    background: none !important;
+    border: none !important;
+    padding: 0.25rem !important;
+    margin-right: 0.5rem;
+    color: #6c757d !important;
+    cursor: pointer;
+    width: auto !important;
+    height: auto !important;
+
+    &:hover {
+      color: #007bff !important;
+      background: none !important;
+    }
+
+    &:focus {
+      box-shadow: none !important;
+      background: none !important;
+    }
+
+    i {
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.expanded-content {
+  padding: 1rem;
+  background-color: #f8f9fa;
+
+  h5 {
+    margin-bottom: 1rem;
+    color: #495057;
+    font-weight: 600;
+  }
+
+  .dummy-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    td {
+      padding: 0.5rem;
+      border: none;
+
+      &:nth-child(odd) {
+        font-weight: 500;
+        color: #6c757d;
+        width: 120px;
+      }
+
+      &:nth-child(even) {
+        color: #212529;
+      }
+    }
+  }
+}

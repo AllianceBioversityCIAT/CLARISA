@@ -21,7 +21,13 @@
 </div>
 
 <div class="custom_table">
-  <p-table [value]="this.dataList" [tableStyle]="{ width: '100%' }" [styleClass]="'p-datatable-sm'">
+  <p-table
+    #dt
+    [value]="this.dataList"
+    [tableStyle]="{ width: '100%' }"
+    [styleClass]="'p-datatable-sm'"
+    [expandedRowKeys]="expandedRowKeys"
+    dataKey="smo_code">
     <ng-template pTemplate="header">
       <tr>
         <th>Code</th>
@@ -31,14 +37,46 @@
         <th>CGIAR Entity Type</th>
       </tr>
     </ng-template>
-    <ng-template pTemplate="body" let-product>
+    <ng-template pTemplate="body" let-product let-expanded="expanded">
       <tr>
-        <td>{{ product.smo_code }}</td>
+        <td>
+          <button
+            type="button"
+            pRipple
+            class="p-button-text p-button-rounded p-button-plain expand-btn"
+            (click)="toggleRow(product)"
+            [attr.aria-expanded]="expanded">
+            <i [ngClass]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
+          </button>
+          {{ product.smo_code }}
+        </td>
         <td>{{ product.name }}</td>
         <td>{{ product.category }}</td>
         <td>{{ product.quantity }}</td>
         <td>{{ product.cgiar_entity_type }}</td>
       </tr>
+    </ng-template>
+    <ng-template pTemplate="rowexpansion" let-product>
+      <p-table [value]="product.children" [tableStyle]="{ width: '100%' }" [styleClass]="'p-datatable-sm'">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Acronym</th>
+            <th>Portfolio</th>
+            <th>CGIAR Entity Type</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-product>
+          <tr>
+            <td>{{ product.code }}</td>
+            <td>{{ product.name }}</td>
+            <td>{{ product.acronym }}</td>
+            <td>{{ product.portfolio }}</td>
+            <td>{{ product.cgiar_entity_type }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
     </ng-template>
   </p-table>
 </div>
