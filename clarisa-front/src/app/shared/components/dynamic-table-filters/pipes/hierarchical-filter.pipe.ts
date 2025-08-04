@@ -27,15 +27,20 @@ export class HierarchicalFilterPipe implements PipeTransform {
     selectedEntityType: string | null
   ): EntitiesTableInterface[] {
     if (!searchText) return list;
-    list = list.filter((item: EntitiesTableInterface) => {
-      const parentFullText = item.acronym + item.smo_code + item.name;
-      // item.children = item.children.filter((child: Child) => {
-      //   const childFullText = child.acronym + child.code + child.name;
-      //   return childFullText.toLowerCase().includes(searchText.toLowerCase());
-      // });
-      return parentFullText.toLowerCase().includes(searchText.toLowerCase());
+    let auxList = JSON.parse(JSON.stringify(list));
+    auxList.map((item: EntitiesTableInterface) => {
+      item.children = item.children.filter((child: Child) => {
+        const childFullText = child.acronym + child.code + child.name;
+        return childFullText.toLowerCase().includes(searchText.toLowerCase());
+      });
     });
-    console.log(list);
-    return list;
+
+    auxList = auxList.filter((item: EntitiesTableInterface) => {
+      const parentFullText = item.acronym + item.smo_code + item.name;
+      return parentFullText.toLowerCase().includes(searchText.toLowerCase()) || item.children.length;
+    });
+
+    console.log(auxList);
+    return auxList;
   }
 }
