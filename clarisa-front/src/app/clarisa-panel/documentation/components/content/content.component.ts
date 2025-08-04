@@ -85,7 +85,6 @@ export class ContentComponent implements OnInit, OnChanges {
     });
     this._manageApiService.getAnyEndpoint(this.informationPrint.route).subscribe(resp => {
       this.informationEndpoint = resp;
-      console.log(resp);
       this.loading = false;
     });
   }

@@ -15,14 +15,12 @@ export class EntityFiltersService {
   }
   getPortfolios() {
     this._apiService.getAllPortfolios().subscribe((resp: any) => {
-      console.log(resp);
       this.portfolios = resp;
     });
   }
 
   getCgiarEntityTypology() {
     this._apiService.getAllCgiarEntityTypology().subscribe((resp: any) => {
-      console.log(resp);
       this.cgiarEntityTypology = resp;
     });
   }

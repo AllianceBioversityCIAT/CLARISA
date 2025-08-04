@@ -26,8 +26,6 @@ export class HierarchicalFilterPipe implements PipeTransform {
     selectedPortfolio: number | null,
     selectedEntityType: number | null
   ): EntitiesTableInterface[] {
-    console.log(selectedPortfolio);
-
     let auxList = JSON.parse(JSON.stringify(list));
     if (searchText) {
       // auxList.map((item: EntitiesTableInterface) => {
@@ -39,7 +37,7 @@ export class HierarchicalFilterPipe implements PipeTransform {
 
       auxList = auxList.filter((item: EntitiesTableInterface) => {
         const parentFullText = item.acronym + item.smo_code + item.name;
-        return this.textMatch(searchText, parentFullText) || item.children.length;
+        return this.textMatch(searchText, parentFullText);
       });
     }
 
@@ -60,7 +58,6 @@ export class HierarchicalFilterPipe implements PipeTransform {
       });
     }
 
-    console.log(auxList);
     return auxList;
   }
 
