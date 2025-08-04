@@ -1,4 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { EntityFiltersService } from './entity-filters.service';
 
 @Component({
   selector: 'app-dynamic-table-filters',
@@ -10,16 +11,9 @@ export class DynamicTableFiltersComponent implements OnInit {
   selectedEntityType: any;
   selectedPortfolio: any;
 
-  constructor() {}
+  constructor(public _entityFiltersService: EntityFiltersService) {}
 
   ngOnInit(): void {
     console.log(this.dataList);
   }
-
-  // getData() {
-  //   this._manageApiService.getAnyEndpoint(this.informationPrint.route).subscribe(resp => {
-  //     this.informationEndpoint = resp;
-  //     this.loading = false;
-  //   });
-  // }
 }
