@@ -28,26 +28,37 @@ export class HierarchicalFilterPipe implements PipeTransform {
   ): EntitiesTableInterface[] {
     console.log(selectedPortfolio);
 
-    if (!searchText && !selectedPortfolio && !selectedEntityType) return list;
     let auxList = JSON.parse(JSON.stringify(list));
-    auxList.map((item: EntitiesTableInterface) => {
-      item.children = item.children.filter((child: Child) => {
-        const childFullText = child.acronym + child.code + child.name;
-        return (
-          this.textMatch(searchText, childFullText) || child.portfolio_id == selectedPortfolio || child.cgiar_entity_type.code == selectedEntityType
-        );
-      });
-    });
+    if (searchText) {
+      // auxList.map((item: EntitiesTableInterface) => {
+      //   item.children = item.children.filter((child: Child) => {
+      //     const childFullText = child.acronym + child.code + child.name;
+      //     return this.textMatch(searchText, childFullText);
+      //   });
+      // });
 
-    auxList = auxList.filter((item: EntitiesTableInterface) => {
-      const parentFullText = item.acronym + item.smo_code + item.name;
-      return (
-        this.textMatch(searchText, parentFullText) ||
-        item.children.length ||
-        item.portfolio_id == selectedPortfolio ||
-        item.cgiar_entity_type.code == selectedEntityType
-      );
-    });
+      auxList = auxList.filter((item: EntitiesTableInterface) => {
+        const parentFullText = item.acronym + item.smo_code + item.name;
+        return this.textMatch(searchText, parentFullText) || item.children.length;
+      });
+    }
+
+    if (selectedPortfolio) {
+      auxList = auxList.filter((item: EntitiesTableInterface) => {
+        return item.portfolio_id == selectedPortfolio;
+      });
+    }
+
+    if (selectedEntityType) {
+      // auxList.map((item: EntitiesTableInterface) => {
+      //   item.children = item.children.filter((child: Child) => {
+      //     return child.cgiar_entity_type.code == selectedEntityType;
+      //   });
+      // });
+      auxList = auxList.filter((item: EntitiesTableInterface) => {
+        return item.cgiar_entity_type.code == selectedEntityType;
+      });
+    }
 
     console.log(auxList);
     return auxList;
