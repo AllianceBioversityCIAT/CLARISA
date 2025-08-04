@@ -64,7 +64,7 @@
             [attr.aria-expanded]="expanded">
             <i [ngClass]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
           </button>
-          <strong>{{ product.smo_code }}</strong>
+          <strong [style.padding-left.px]="!product.children.length ? 34 : 0">{{ product.smo_code }}</strong>
         </td>
         <td>{{ product.name }}</td>
         <td>{{ product.acronym }}</td>
