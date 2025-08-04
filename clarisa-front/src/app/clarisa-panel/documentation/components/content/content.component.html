@@ -237,7 +237,7 @@
     [maximizable]="true"
     appendTo="body"
     [(visible)]="dialogVisible"
-    [style]="{ width: '75vw', overflow: 'scroll' }"
+    [style]="{ width: showDynamicTableFilters ? '97vw' : '75vw', height: showDynamicTableFilters ? '100vh' : '75vh', overflow: 'scroll' }"
     [contentStyle]="{ height: '800px' }">
     <ng-container *ngIf="showDynamicTableFilters">
       <ng-container *ngIf="informationEndpoint.length">
