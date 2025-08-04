@@ -9,6 +9,7 @@ import { CgiarEntityDtoV1 } from './dto/cgiar-entity.v1.dto';
 import { CgiarEntityDtoV2 } from './dto/cgiar-entity.v2.dto';
 import { CenterService } from '../center/center.service';
 import { CenterDtoV1 } from '../center/dto/center.v1.dto';
+import { Portfolio } from '../portfolio/entities/portfolio.entity';
 
 @Injectable()
 export class CgiarEntityService {
@@ -167,6 +168,7 @@ export class CgiarEntityService {
       name: parent.name,
       smo_code: parent.smo_code,
       level: parent.level,
+      portfolio_id: parent.portfolio_id,
       portfolio: parent.portfolio_object?.name || null,
       cgiar_entity_type: parent.cgiar_entity_type_object
         ? {
@@ -180,6 +182,7 @@ export class CgiarEntityService {
         code: child.smo_code,
         name: child.name,
         acronym: child.acronym,
+        portfolio_id: child.portfolio_id,
         portfolio: child.portfolio_object?.name || null,
         cgiar_entity_type: child.cgiar_entity_type_object
           ? {
