@@ -13,7 +13,7 @@ export class DynamicTableFiltersComponent implements OnInit {
   @Input() dataList: EntitiesTableInterface[] = [];
 
   // Filters - using IDs for API compatibility
-  selectedEntityType: string | null = null; // Filters by cgiar_entity_type.name
+  selectedEntityType: number | null = null; // Filters by cgiar_entity_type.name
   selectedPortfolio: number | null = null; // Filters by portfolio_id
   searchText: string = ''; // Searches in name, code, acronym, entity_type, portfolio (both parent and children)
 

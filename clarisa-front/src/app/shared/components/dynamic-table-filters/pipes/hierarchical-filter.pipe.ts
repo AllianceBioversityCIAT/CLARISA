@@ -24,23 +24,37 @@ export class HierarchicalFilterPipe implements PipeTransform {
     list: EntitiesTableInterface[],
     searchText: string,
     selectedPortfolio: number | null,
-    selectedEntityType: string | null
+    selectedEntityType: number | null
   ): EntitiesTableInterface[] {
-    if (!searchText) return list;
+    console.log(selectedPortfolio);
+
+    if (!searchText && !selectedPortfolio && !selectedEntityType) return list;
     let auxList = JSON.parse(JSON.stringify(list));
     auxList.map((item: EntitiesTableInterface) => {
       item.children = item.children.filter((child: Child) => {
         const childFullText = child.acronym + child.code + child.name;
-        return childFullText.toLowerCase().includes(searchText.toLowerCase());
+        return (
+          this.textMatch(searchText, childFullText) || child.portfolio_id == selectedPortfolio || child.cgiar_entity_type.code == selectedEntityType
+        );
       });
     });
 
     auxList = auxList.filter((item: EntitiesTableInterface) => {
       const parentFullText = item.acronym + item.smo_code + item.name;
-      return parentFullText.toLowerCase().includes(searchText.toLowerCase()) || item.children.length;
+      return (
+        this.textMatch(searchText, parentFullText) ||
+        item.children.length ||
+        item.portfolio_id == selectedPortfolio ||
+        item.cgiar_entity_type.code == selectedEntityType
+      );
     });
 
     console.log(auxList);
     return auxList;
+  }
+
+  textMatch(searchText: string, text: string) {
+    if (!searchText) return false;
+    return text.toLowerCase().includes(searchText.toLowerCase());
   }
 }
