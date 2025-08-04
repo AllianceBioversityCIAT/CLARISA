@@ -7,6 +7,8 @@ import { Component, Input, OnInit } from '@angular/core';
 })
 export class DynamicTableFiltersComponent implements OnInit {
   @Input() dataList: any;
+  selectedEntityType: any;
+  selectedPortfolio: any;
 
   constructor() {}
 

@@ -1,3 +1,13 @@
+<div class="filters_container">
+  <input type="text" pInputText placeholder="Search" />
+  <p-dropdown [options]="[]" [(ngModel)]="selectedEntityType" optionLabel="name" placeholder="Select a entity type"></p-dropdown>
+  <p-dropdown [options]="[]" [(ngModel)]="selectedPortfolio" optionLabel="name" placeholder="Select a portfolio"></p-dropdown>
+  <div class="export_button">
+    <i class="pi pi-download"></i>
+    Export
+  </div>
+</div>
+
 <div class="custom_table">
   <p-table [value]="this.dataList" [tableStyle]="{ width: '100%' }" [styleClass]="'p-datatable-sm'">
     <ng-template pTemplate="header">
