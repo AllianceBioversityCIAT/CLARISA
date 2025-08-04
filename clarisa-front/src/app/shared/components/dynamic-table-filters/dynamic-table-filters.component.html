@@ -70,7 +70,9 @@
               [styleClass]="'p-datatable-sm nested-table'">
               <ng-template pTemplate="body" let-child>
                 <tr>
-                  <td>{{ child.code }}</td>
+                  <td>
+                    <div style="padding-left: 34px">{{ child.code }}</div>
+                  </td>
                   <td>{{ child.name }}</td>
                   <td>{{ child.acronym }}</td>
                   <td>{{ child.portfolio }}</td>
