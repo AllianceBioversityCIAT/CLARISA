@@ -1,9 +1,10 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import { EntityFiltersService } from './entity-filters.service';
 import { EntitiesTableInterface } from './interfaces/entities-table.interface';
 import { GetPortfoliosInterface } from './interfaces/get-portfolios.interface';
 import { GetEntityTypeInterface } from './interfaces/get-entity-type.interface';
 import * as FileSaver from 'file-saver';
+import { Table } from 'primeng/table';
 
 @Component({
   selector: 'app-dynamic-table-filters',
@@ -17,6 +18,8 @@ export class DynamicTableFiltersComponent implements OnInit {
   selectedEntityType: number | null = null; // Filters by cgiar_entity_type.name
   selectedPortfolio: number | null = null; // Filters by portfolio_id
   searchText: string = ''; // Searches in name, code, acronym, entity_type, portfolio (both parent and children)
+  @ViewChild('dt') dt!: Table;
+
 
   // Expansion state for hierarchical table
   expandedRowKeys: { [s: string]: boolean } = {};
@@ -28,14 +31,19 @@ export class DynamicTableFiltersComponent implements OnInit {
   }
   onChangeEntityType(event: any) {
     this.selectedEntityType = event?.value || null;
+    this.dt?.reset();
   }
 
   onChangePortfolio(event: any) {
     this.selectedPortfolio = event?.value || null;
+    this.dt?.reset();
+
   }
 
+
   onSearchChange(searchValue: string) {
-    this.searchText = searchValue;
+     this.searchText = searchValue;
+     this.dt?.reset();
   }
 
   /**
@@ -46,6 +54,7 @@ export class DynamicTableFiltersComponent implements OnInit {
     this.selectedEntityType = null;
     this.selectedPortfolio = null;
     this.searchText = '';
+    this.dt?.reset();
   }
 
   toggleRow(product: any) {
