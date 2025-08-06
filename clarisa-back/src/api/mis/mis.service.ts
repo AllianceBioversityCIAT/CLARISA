@@ -136,4 +136,16 @@ export class MisService {
       ...this._where,
     });
   }
+
+  async findMetadataById(id: number): Promise<Mis> {
+    return await this._misRepository.findOne({
+      where: {
+        id,
+        auditableFields: { is_active: true },
+      },
+      relations: {
+        mis_auth: true,
+      },
+    });
+  }
 }

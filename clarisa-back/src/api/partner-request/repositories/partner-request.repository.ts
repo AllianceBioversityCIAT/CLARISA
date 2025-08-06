@@ -301,6 +301,7 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
 
     partialPartnerRequest.category_1 = incomingPartnerRequest.category_1;
     partialPartnerRequest.category_2 = incomingPartnerRequest.category_2;
+    partialPartnerRequest.platform_url = incomingPartnerRequest.platformUrl;
 
     partialPartnerRequest.auditableFields.is_active = false;
     partialPartnerRequest = await this.save(partialPartnerRequest);
@@ -345,9 +346,14 @@ export class PartnerRequestRepository extends Repository<PartnerRequest> {
       ? partialPartnerRequest.accepted_by
       : partialPartnerRequest.rejected_by;
 
+    const emailPartener = { ...partialPartnerRequest };
+
+    emailPartener['platformUrl'] = emailPartener.platform_url;
+    emailPartener['misAcronym'] = emailPartener.mis_object.acronym;
+
     this.messageMicroservice.sendPartnerRequestEmail(
       EmailTemplate.PARTNER_REQUEST_RESPONSE,
-      partialPartnerRequest,
+      emailPartener,
     );
 
     if (accepted) {
