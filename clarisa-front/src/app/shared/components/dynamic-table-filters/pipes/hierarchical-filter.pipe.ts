@@ -36,7 +36,7 @@ export class HierarchicalFilterPipe implements PipeTransform {
       // });
 
       auxList = auxList.filter((item: EntitiesTableInterface) => {
-        const parentFullText = item.acronym + item.smo_code + item.name;
+        const parentFullText = item.acronym + item.smo_code + item.name + item.portfolio;
         return this.textMatch(searchText, parentFullText);
       });
     }
