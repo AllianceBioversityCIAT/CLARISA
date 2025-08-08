@@ -143,4 +143,59 @@ export class CgiarEntityService {
 
     return this._cgiarEntityMapper.classToDtoV2(result, true);
   }
+
+  async getGlobalUnitsHierarchy(): Promise<any[]> {
+    const parents = await this._cgiarEntityRepository.find({
+      where: { level: 1 },
+      relations: [
+        'portfolio_object',
+        'cgiar_entity_type_object',
+        'children',
+        'children.portfolio_object',
+        'children.cgiar_entity_type_object',
+      ],
+      order: {
+        portfolio_object: {
+          start_date: 'DESC',
+        },
+        smo_code: 'ASC',
+        children: {
+          portfolio_object: {
+            start_date: 'DESC',
+          },
+          smo_code: 'ASC',
+        },
+      },
+    });
+
+    return parents.map((parent) => ({
+      id: parent.id,
+      name: parent.name,
+      smo_code: parent.smo_code,
+      level: parent.level,
+      portfolio_id: parent.portfolio_id,
+      portfolio: parent.portfolio_object?.name || null,
+      cgiar_entity_type: parent.cgiar_entity_type_object
+        ? {
+            code: parent.cgiar_entity_type_object.id,
+            name: parent.cgiar_entity_type_object.name,
+          }
+        : null,
+      acronym: parent.acronym,
+      children: parent.children.map((child) => ({
+        id: child.id,
+        code: child.smo_code,
+        name: child.name,
+        acronym: child.acronym,
+        portfolio_id: child.portfolio_id,
+        portfolio: child.portfolio_object?.name || null,
+        cgiar_entity_type: child.cgiar_entity_type_object
+          ? {
+              code: child.cgiar_entity_type_object.id,
+              name: child.cgiar_entity_type_object.name,
+            }
+          : null,
+      })),
+    }));
+  }
 }
