@@ -58,11 +58,11 @@
     *ngIf="(this.dataList | hierarchicalFilter: searchText : selectedPortfolio : selectedEntityType).length > 0">
     <ng-template pTemplate="header">
       <tr>
-        <th style="width: 120px">Code</th>
-        <th>Name</th>
-        <th>Acronym</th>
-        <th>Portfolio</th>
-        <th>CGIAR Entity Type</th>
+        <th id="code" style="width: 120px">Code</th>
+        <th id="name">Name</th>
+        <th id="acronym">Acronym</th>
+        <th id="portfolio">Portfolio</th>
+        <th id="cgiar_entity_type">CGIAR Entity Type</th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-product let-expanded="expanded">
