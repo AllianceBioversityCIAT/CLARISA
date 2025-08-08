@@ -28,13 +28,6 @@ export class HierarchicalFilterPipe implements PipeTransform {
   ): EntitiesTableInterface[] {
     let auxList = JSON.parse(JSON.stringify(list));
     if (searchText) {
-      // auxList.map((item: EntitiesTableInterface) => {
-      //   item.children = item.children.filter((child: Child) => {
-      //     const childFullText = child.acronym + child.code + child.name;
-      //     return this.textMatch(searchText, childFullText);
-      //   });
-      // });
-
       auxList = auxList.filter((item: EntitiesTableInterface) => {
         const parentFullText = item.acronym + item.smo_code + item.name + item.portfolio;
         return this.textMatch(searchText, parentFullText);
@@ -48,11 +41,6 @@ export class HierarchicalFilterPipe implements PipeTransform {
     }
 
     if (selectedEntityType) {
-      // auxList.map((item: EntitiesTableInterface) => {
-      //   item.children = item.children.filter((child: Child) => {
-      //     return child.cgiar_entity_type.code == selectedEntityType;
-      //   });
-      // });
       auxList = auxList.filter((item: EntitiesTableInterface) => {
         return item.cgiar_entity_type.code == selectedEntityType;
       });

@@ -1,8 +1,6 @@
 import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import { EntityFiltersService } from './entity-filters.service';
 import { EntitiesTableInterface } from './interfaces/entities-table.interface';
-import { GetPortfoliosInterface } from './interfaces/get-portfolios.interface';
-import { GetEntityTypeInterface } from './interfaces/get-entity-type.interface';
 import * as FileSaver from 'file-saver';
 import { Table } from 'primeng/table';
 
@@ -113,9 +111,9 @@ export class DynamicTableFiltersComponent implements OnInit {
         Code: parent.smo_code,
         Name: parent.name,
         Acronym: parent.acronym || 'N/A',
-        Portfolio: parent.portfolio || 'N/A',
-        'Entity Type Code': parent.cgiar_entity_type?.code || 'N/A',
-        'Entity Type Name': parent.cgiar_entity_type?.name || 'N/A',
+        Portfolio: parent?.portfolio ?? 'N/A',
+        'Entity Type Code': parent?.cgiar_entity_type?.code ?? 'N/A',
+        'Entity Type Name': parent?.cgiar_entity_type?.name ?? 'N/A',
         Level: parent.level
       });
 
@@ -126,10 +124,10 @@ export class DynamicTableFiltersComponent implements OnInit {
             Type: 'Child',
             Code: child.code,
             Name: child.name,
-            Acronym: child.acronym || 'N/A',
-            Portfolio: child.portfolio || 'N/A',
-            'Entity Type Code': child.cgiar_entity_type?.code || 'N/A',
-            'Entity Type Name': child.cgiar_entity_type?.name || 'N/A',
+            Acronym: child?.acronym ?? 'N/A',
+            Portfolio: child?.portfolio ?? 'N/A',
+            'Entity Type Code': child?.cgiar_entity_type?.code ?? 'N/A',
+            'Entity Type Name': child?.cgiar_entity_type?.name ?? 'N/A',
             Level: 'Child of ' + parent.smo_code
           });
         });
