@@ -2,7 +2,65 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
-html *:not(.fa, .fe, .pi, pre, code){
-    font-family: "Poppins", sans-serif !important;
+html *:not(.fa, .fe, .pi, pre, code) {
+  font-family: 'Poppins', sans-serif !important;
 }
 
+.custom_table {
+  border-radius: 10px;
+  overflow: hidden;
+  .p-datatable-thead {
+    tr,
+    ¿ {
+      th {
+        background-color: #00a63e !important;
+        color: white !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+      }
+    }
+  }
+  tbody {
+    tr {
+      td {
+        font-size: 13px !important;
+      }
+    }
+  }
+  .p-datatable-tbody {
+    background-color: #1e1e1e !important;
+  }
+}
+
+.filters_container {
+  .p-dropdown {
+    width: 100%;
+  }
+  .p-inputtext {
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+  }
+  .p-button {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+  .export_button {
+    background-color: #00a63e !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 5px !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    font-weight: 600 !important;
+    i {
+      font-size: 15px !important;
+    }
+    &:hover {
+      background-color: #008000 !important;
+    }
+  }
+}

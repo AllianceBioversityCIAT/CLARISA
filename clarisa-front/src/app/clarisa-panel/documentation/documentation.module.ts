@@ -17,18 +17,22 @@ import { ToastModule } from 'primeng/toast';
 import { InputTextModule } from 'primeng/inputtext';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { DropdownModule } from 'primeng/dropdown';
-
+import { RippleModule } from 'primeng/ripple';
+import { DynamicTableFiltersComponent } from '../../shared/components/dynamic-table-filters/dynamic-table-filters.component';
+import { HierarchicalFilterPipe } from '../../shared/components/dynamic-table-filters/pipes/hierarchical-filter.pipe';
+import { FormsModule } from '@angular/forms';
 @NgModule({
   declarations: [
     DocumentationComponent,
     VerticalMenuComponent,
     HorizontalMenuComponent,
     ContentComponent,
+    DynamicTableFiltersComponent,
+    HierarchicalFilterPipe
   ],
   imports: [
     CommonModule,
     DocumentationRoutingModule,
-
     TableModule,
     CalendarModule,
     SliderModule,
@@ -40,6 +44,8 @@ import { DropdownModule } from 'primeng/dropdown';
     ToastModule,
     InputTextModule,
     ProgressBarModule,
-  ],
+    RippleModule,
+    FormsModule
+  ]
 })
 export class DocumentationModule {}
