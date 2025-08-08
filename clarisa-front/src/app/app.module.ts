@@ -13,22 +13,14 @@ import { NgxPaginationModule } from 'ngx-pagination';
 
 @NgModule({
   declarations: [AppComponent],
-  imports: [
-    BrowserModule,
-    BrowserAnimationsModule,
-    AppRoutingModule,
-    HttpClientModule,
-    RouterEventsModule,
-    TawkToModule,
-    NgxPaginationModule,
-  ],
+  imports: [BrowserModule, BrowserAnimationsModule, AppRoutingModule, HttpClientModule, RouterEventsModule, TawkToModule, NgxPaginationModule],
   providers: [
     {
       provide: HTTP_INTERCEPTORS,
       useClass: GeneralInterceptorService,
-      multi: true,
-    },
+      multi: true
+    }
   ],
-  bootstrap: [AppComponent],
+  bootstrap: [AppComponent]
 })
 export class AppModule {}

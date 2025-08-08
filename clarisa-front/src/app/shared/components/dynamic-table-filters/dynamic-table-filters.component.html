@@ -1,0 +1,121 @@
+<div class="filters_container">
+  <input
+    type="text"
+    pInputText
+    placeholder="Search by name, code, acronym, entity type or portfolio"
+    [(ngModel)]="searchText"
+    (input)="onSearchChange($any($event.target).value)" />
+  <p-dropdown
+    [options]="this._entityFiltersService.cgiarEntityTypology"
+    [(ngModel)]="selectedEntityType"
+    optionLabel="name"
+    (onChange)="onChangeEntityType($event)"
+    optionValue="code"
+    placeholder="Select a entity type"
+    [showClear]="true"></p-dropdown>
+  <p-dropdown
+    [options]="this._entityFiltersService.portfolios"
+    [(ngModel)]="selectedPortfolio"
+    optionLabel="name"
+    (onChange)="onChangePortfolio($event)"
+    optionValue="code"
+    placeholder="Select a portfolio"
+    [showClear]="true"></p-dropdown>
+  <button
+    type="button"
+    pButton
+    class="p-button-outlined p-button-sm clear-filters-btn"
+    (click)="clearFilters()"
+    label="Clear Filters"
+    icon="pi pi-times"></button>
+
+  <button type="button" pButton class="p-button-success export_button" (click)="exportExcel()" pTooltip="Export to Excel" tooltipPosition="bottom">
+    <i class="pi pi-file-excel"></i>
+    Export
+  </button>
+</div>
+
+<div class="custom_table">
+  <!-- Mensaje cuando no hay coincidencias -->
+  <div *ngIf="(this.dataList | hierarchicalFilter: searchText : selectedPortfolio : selectedEntityType).length === 0" class="no-results-message">
+    <p><i class="pi pi-info-circle"></i> No results found with the applied filters.</p>
+  </div>
+
+  <p-table
+    #dt
+    [value]="this.dataList | hierarchicalFilter: searchText : selectedPortfolio : selectedEntityType"
+    [tableStyle]="{ width: '100%' }"
+    [styleClass]="'p-datatable-sm'"
+    [expandedRowKeys]="expandedRowKeys"
+    dataKey="smo_code"
+    [paginator]="true"
+    [rows]="10"
+    [rowsPerPageOptions]="[10, 20, 50, 100]"
+    [showCurrentPageReport]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+    [showJumpToPageDropdown]="true"
+    [showPageLinks]="true"
+    *ngIf="(this.dataList | hierarchicalFilter: searchText : selectedPortfolio : selectedEntityType).length > 0">
+    <ng-template pTemplate="header">
+      <tr>
+        <th id="code" style="width: 120px">Code</th>
+        <th id="name">Name</th>
+        <th id="acronym">Acronym</th>
+        <th id="portfolio">Portfolio</th>
+        <th id="cgiar_entity_type">CGIAR Entity Type</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-product let-expanded="expanded">
+      <tr>
+        <td style="width: 120px">
+          <button
+            *ngIf="product.children && product.children.length > 0"
+            type="button"
+            pRipple
+            class="p-button-text p-button-rounded p-button-plain expand-btn"
+            (click)="toggleRow(product)"
+            [attr.aria-expanded]="expanded">
+            <i [ngClass]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
+          </button>
+          <strong [style.padding-left.px]="!product.children.length ? 34 : 0">{{ product.smo_code }}</strong>
+        </td>
+        <td>{{ product.name }}</td>
+        <td>{{ product.acronym }}</td>
+        <td>
+          <span *ngIf="product.portfolio" class="portfolio-chip">{{ product.portfolio }}</span>
+        </td>
+        <td><strong>Code:</strong> {{ product.cgiar_entity_type?.code }} - <strong>Name:</strong> {{ product.cgiar_entity_type?.name }}</td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="rowexpansion" let-product>
+      <tr>
+        <td colspan="5" class="expanded-row">
+          <div class="expanded-content">
+            <div *ngIf="!product.children || product.children.length === 0" class="no-children">
+              <p><strong>No hay elementos hijos disponibles para mostrar</strong></p>
+            </div>
+            <p-table
+              *ngIf="product.children && product.children.length > 0"
+              [value]="product.children"
+              [tableStyle]="{ width: '100%', 'min-width': '100%' }"
+              [styleClass]="'p-datatable-sm nested-table'">
+              <ng-template pTemplate="body" let-child>
+                <tr>
+                  <td style="width: 120px">
+                    <strong style="padding-left: 34px">{{ child.code }}</strong>
+                  </td>
+                  <td>{{ child.name }}</td>
+                  <td>{{ child.acronym }}</td>
+                  <td>
+                    <span *ngIf="child.portfolio" class="portfolio-chip">{{ child.portfolio }}</span>
+                  </td>
+                  <td><strong>Code:</strong> {{ child.cgiar_entity_type?.code }} - <strong>Name:</strong> {{ child.cgiar_entity_type?.name }}</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
