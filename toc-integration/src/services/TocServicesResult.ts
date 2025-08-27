@@ -23,6 +23,7 @@ export class TocServicesResults {
   public resultsToc = new TocResultServices();
   public outputOutcomeRelations = new TocOutputOutcomeRelationService();
   InformationSaving = null;
+
   async queryTest() {
     let database = new Database();
     const dataSource: DataSource = await Database.getDataSource();
@@ -170,6 +171,69 @@ export class TocServicesResults {
         "A problem occurred while synchronizing with ToC"
       );
       throw new Error(error);
+    }
+  }
+
+  async spSplitInformation(spId: string) {
+    try {
+      const tocHost = `${env.LINK_TOC}/api/toc/${spId}`;
+
+      const response = await axios({
+        method: "get",
+        url: tocHost,
+        timeout: 20000,
+      });
+
+      if (
+        this.validatorType.existPropertyInObjectMul(response.data, [
+          "data",
+          "relations",
+        ])
+      ) {
+        const { data, phase, original_id } = response.data || {};
+        if (!this.validatorType.validatorIsArray(data)) {
+          throw new Error("The property data must be an array");
+        }
+        const meta = {
+          phase:
+            typeof phase === "string" || typeof phase === "number"
+              ? String(phase)
+              : null,
+          original_id:
+            typeof original_id === "string" || typeof original_id === "number"
+              ? String(original_id)
+              : spId,
+        };
+
+        const sdgV2 = await this.tocSdgResults.createTocSdgResultsV2(
+          data,
+          meta
+        );
+
+        this.InformationSaving = {
+          ...sdgV2,
+        };
+      } else {
+        throw new Error(
+          "The properties (data or relations) are not in the object"
+        );
+      }
+
+      await this.saveInDataBase();
+      sendSlackNotification(
+        ":check1:",
+        spId,
+        "Synchronization with the new ToC Integration was successful"
+      );
+      return this.InformationSaving;
+    } catch (error) {
+      sendSlackNotification(
+        ":alert:",
+        spId,
+        "A problem occurred while synchronizing with the new ToC Integration",
+        error
+      );
+      throw new Error(error as any);
     }
   }
 

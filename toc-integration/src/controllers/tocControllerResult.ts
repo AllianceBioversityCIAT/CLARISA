@@ -17,6 +17,17 @@ export class tocController {
     }
   }
 
+  async bulkSpTocResultDashboard(req: Request, res: Response) {
+    const spIds = await req.body.spId;
+    try {
+      let servicesInformation = new TocServicesResults();
+      const data = await servicesInformation.spSplitInformation(spIds);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json(error);
+    }
+  }
+
   async getToc(_req: Request, res: Response) {
     try {
       let servicesInformation = new TocServicesResults();
