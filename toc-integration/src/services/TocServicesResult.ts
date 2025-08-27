@@ -175,6 +175,12 @@ export class TocServicesResults {
   }
 
   async spSplitInformation(spId: string) {
+    const startedAt = Date.now();
+    let metaForNotif: { phase: string | null; original_id: string | null } = {
+      phase: null,
+      original_id: spId,
+    };
+
     try {
       const tocHost = `${env.LINK_TOC}/api/toc/${spId}`;
 
@@ -204,6 +210,7 @@ export class TocServicesResults {
               ? String(original_id)
               : spId,
         };
+        metaForNotif = meta;
 
         const sdgV2 = await this.tocSdgResults.createTocSdgResultsV2(
           data,
@@ -213,24 +220,47 @@ export class TocServicesResults {
         this.InformationSaving = {
           ...sdgV2,
         };
+
+        await this.saveInDataBase();
+
+        const counts = {
+          sdgResults: sdgV2?.sdgResults?.length ?? 0,
+          sdgTargets: sdgV2?.sdgTargets?.length ?? 0,
+          sdgIndicators: sdgV2?.sdgIndicators?.length ?? 0,
+        };
+        const durationMs = Date.now() - startedAt;
+
+        sendSlackNotification(
+          ":check1:",
+          spId,
+          `*Synchronization with the new ToC Integration was successful*\nTime=${durationMs}ms\nSDGs Results=${
+            counts.sdgResults
+          } | SDGs Targets=${counts.sdgTargets} | SDGs Indicators=${
+            counts.sdgIndicators
+          }\nPhase=${metaForNotif.phase ?? "null"}\nEntity ID=${
+            metaForNotif.original_id ?? "null"
+          }`
+        );
+
+        return {
+          ...this.InformationSaving,
+          meta: metaForNotif,
+          counts,
+          durationMs,
+        };
       } else {
         throw new Error(
           "The properties (data or relations) are not in the object"
         );
       }
-
-      await this.saveInDataBase();
-      sendSlackNotification(
-        ":check1:",
-        spId,
-        "Synchronization with the new ToC Integration was successful"
-      );
-      return this.InformationSaving;
     } catch (error) {
+      const durationMs = Date.now() - startedAt;
       sendSlackNotification(
         ":alert:",
         spId,
-        "A problem occurred while synchronizing with the new ToC Integration",
+        `*A problem occurred while synchronizing with the new ToC Integration*\nTime=${durationMs}ms\nPhase=${
+          metaForNotif.phase ?? "null"
+        }\nEntity ID=${metaForNotif.original_id ?? "null"}`,
         error
       );
       throw new Error(error as any);

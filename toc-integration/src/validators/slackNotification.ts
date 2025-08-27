@@ -31,7 +31,7 @@ export function sendSlackNotification(
   const errorPart = err
     ? `\n*Error:* ${truncateWords(errorToString(err), 100)}`
     : "";
-  const text = `${emoji} :toc: *${env.TOC_ENV}: (${initOfficialCode})* *${message}.*${errorPart}`;
+  const text = `${emoji} :toc: *${env.TOC_ENV}: (${initOfficialCode})* ${message}. ${errorPart}`;
 
   axios
     .post(slackWebhookUrl, { text })
