@@ -230,7 +230,12 @@ export class TocServicesResults {
 
         const workPackagesV2 = await this.workPackages.saveWorkPackagesV2(data);
 
-        const resultsV2 = await this.resultsToc.saveTocResultsV2(data, meta);
+        const resultsV2 = await this.resultsToc.saveTocResultsV2(
+          data,
+          meta,
+          sdgV2.sdgResults,
+          impactAreasV2.listImpactAreaResults
+        );
 
         this.InformationSaving = {
           ...sdgV2,
