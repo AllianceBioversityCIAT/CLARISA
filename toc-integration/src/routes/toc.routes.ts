@@ -7,6 +7,9 @@ const TocResultDashboard = new tocController();
 // get information toc result dashboard
 router.post("/toc", TocResultDashboard.getTocResultDashboard);
 
+// * New Portfolio Route
+router.post("/toc/sp", TocResultDashboard.bulkSpTocResultDashboard)
+
 // Get test
 router.get("/tocs", TocResultDashboard.getToc);
 
