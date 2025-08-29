@@ -72,7 +72,6 @@ export class TocResultImpactAreaServices {
               },
             });
             if (existingRecord) {
-              // Update existing record
               await impactAreaRepo.update(
                 {
                   toc_result_id: impactAreadto.toc_result_id,
@@ -81,7 +80,6 @@ export class TocResultImpactAreaServices {
                 impactAreadto
               );
             } else {
-              // Insert new record
               await impactAreaRepo.insert(impactAreadto);
             }
             const existingRecordSaveOrUpdate = await impactAreaRepo.findOne({
@@ -171,7 +169,6 @@ export class TocResultImpactAreaServices {
               },
             });
             if (!existingRecordSdgTarget) {
-              // Update existing record
               await impactAreaRepo.insert(relationGlobalTarget);
             }
             listValidGlobalTarget.push(relationGlobalTarget);
@@ -224,7 +221,6 @@ export class TocResultImpactAreaServices {
               },
             });
             if (!existingRecordSdgTarget) {
-              // Update existing record
               await impactAreaRepo.insert(relationImpactIndicator);
             }
 
@@ -275,7 +271,6 @@ export class TocResultImpactAreaServices {
               },
             });
             if (!existingRecordSdgTarget) {
-              // Update existing record
               await impactAreaRepo.insert(relationSdg);
             }
             listSdgImpact.push(relationSdg);
@@ -286,5 +281,204 @@ export class TocResultImpactAreaServices {
     } catch (error) {
       throw error;
     }
+  }
+
+  async saveImpactAreaTocResultV2(
+    data: any[],
+    meta: { phase: string | null; original_id: string | null }
+  ) {
+    try {
+      const dataSource: DataSource = await Database.getDataSource();
+      const impactAreaRepo = dataSource.getRepository(TocImpactAreaResults);
+
+      const listImpactAreaResults: TocImpactAreaResults[] = [];
+      const listGlobalTargets: TocImpactAreaResultsGlobalTargets[] = [];
+      const listImpactAreaIndicators: TocImpactAreaResultsImpactAreaIndicators[] =
+        [];
+
+      if (!this.validatorType.validatorIsArray(data)) {
+        return {
+          listImpactAreaResults,
+          globalTargets: listGlobalTargets,
+          impactAreaIndicators: listImpactAreaIndicators,
+        };
+      }
+
+      const impactAreaItems = data.filter(
+        (item) =>
+          item &&
+          (item.category === "IA" ||
+            item.category === "ia" ||
+            item.category === 3)
+      );
+
+      for (const item of impactAreaItems) {
+        const toc_result_id =
+          typeof item?.id === "string" || typeof item?.id === "number"
+            ? String(item.id)
+            : null;
+
+        const impact_area_id =
+          typeof item?.type?.id === "number" ? item.type.id : null;
+
+        const outcome_statement =
+          typeof item?.type?.description === "string"
+            ? item.type.description
+            : null;
+
+        const impactAreadto = new TocImpactAreaResultsDto();
+        impactAreadto.toc_result_id = toc_result_id;
+        impactAreadto.impact_area_id = impact_area_id;
+        impactAreadto.outcome_statement = outcome_statement;
+        impactAreadto.phase = meta?.phase ?? null;
+        impactAreadto.id_toc_initiative = meta?.original_id ?? null;
+        impactAreadto.is_active = true;
+
+        if (!impactAreadto.toc_result_id) {
+          continue;
+        }
+
+        const existing = await impactAreaRepo.findOne({
+          where: {
+            toc_result_id: impactAreadto.toc_result_id,
+            phase: impactAreadto.phase,
+          },
+        });
+
+        if (existing) {
+          await impactAreaRepo.update(
+            {
+              toc_result_id: impactAreadto.toc_result_id,
+              phase: impactAreadto.phase,
+            },
+            impactAreadto
+          );
+        } else {
+          await impactAreaRepo.insert(impactAreadto);
+        }
+
+        const saved = await impactAreaRepo.findOne({
+          where: {
+            toc_result_id: impactAreadto.toc_result_id,
+            phase: impactAreadto.phase,
+          },
+        });
+
+        if (!saved) continue;
+
+        listImpactAreaResults.push(saved);
+
+        const globalTargets = Array.isArray(item?.global_target)
+          ? item.global_target
+          : [];
+        const savedGlobalTargets = await this.saveGlobalTargetsTocResultV2(
+          globalTargets,
+          item.id,
+          saved
+        );
+        listGlobalTargets.push(...savedGlobalTargets);
+
+        const indicators = Array.isArray(item?.indicators)
+          ? item.indicators
+          : [];
+        const savedIndicators = await this.saveImpactAreaIndicatorsTocResultV2(
+          indicators,
+          item.id,
+          saved
+        );
+        listImpactAreaIndicators.push(...savedIndicators);
+      }
+
+      return {
+        listImpactAreaResults,
+        globalTargets: listGlobalTargets,
+        impactAreaIndicators: listImpactAreaIndicators,
+      };
+    } catch (error) {
+      console.error({ error, message: "Error saving impact area V2" });
+      throw error;
+    }
+  }
+
+  private async saveGlobalTargetsTocResultV2(
+    globalTargets: any[],
+    itemId: string | number,
+    impactAreaRow: TocImpactAreaResults
+  ) {
+    const dataSource: DataSource = await Database.getDataSource();
+    const repo = dataSource.getRepository(TocImpactAreaResultsGlobalTargets);
+    const list: TocImpactAreaResultsGlobalTargets[] = [];
+
+    for (const gt of globalTargets) {
+      const global_targets_id =
+        typeof gt?.targetId === "number" ? gt.targetId : null;
+      if (!global_targets_id) continue;
+
+      const dto = new TocImpactAreaResultsGlobalTargetsDto();
+      dto.toc_impact_area_results_id_toc =
+        typeof itemId === "string" || typeof itemId === "number"
+          ? String(itemId)
+          : null;
+      dto.global_targets_id = global_targets_id;
+      dto.is_active = true;
+      dto.toc_impact_area_results_id = impactAreaRow.id;
+
+      const exists = await repo.findOne({
+        where: {
+          toc_impact_area_results_id: dto.toc_impact_area_results_id,
+          toc_impact_area_results_id_toc: dto.toc_impact_area_results_id_toc,
+          global_targets_id: dto.global_targets_id,
+        },
+      });
+      if (!exists) {
+        await repo.insert(dto);
+      }
+
+      list.push(dto);
+    }
+
+    return list;
+  }
+
+  private async saveImpactAreaIndicatorsTocResultV2(
+    indicators: any[],
+    itemId: string | number,
+    impactAreaRow: TocImpactAreaResults
+  ) {
+    const dataSource: DataSource = await Database.getDataSource();
+    const repo = dataSource.getRepository(
+      TocImpactAreaResultsImpactAreaIndicators
+    );
+    const list: TocImpactAreaResultsImpactAreaIndicators[] = [];
+
+    for (const ind of indicators) {
+      const impact_areas_indicators_id =
+        typeof ind?.indicatorId === "number" ? ind.indicatorId : null;
+      if (!impact_areas_indicators_id) continue;
+
+      const dto = new TocImpactAreaResultsImpactAreaIndicatorsDto();
+      dto.toc_impact_area_results_id_toc =
+        typeof itemId === "string" || typeof itemId === "number"
+          ? String(itemId)
+          : null;
+      dto.impact_areas_indicators_id = impact_areas_indicators_id;
+      dto.is_active = true;
+      dto.toc_impact_area_results_id = impactAreaRow.id;
+
+      const exists = await repo.findOne({
+        where: {
+          toc_impact_area_results_id: dto.toc_impact_area_results_id,
+          toc_impact_area_results_id_toc: dto.toc_impact_area_results_id_toc,
+          impact_areas_indicators_id: dto.impact_areas_indicators_id,
+        },
+      });
+      if (!exists) {
+        await repo.insert(dto);
+      }
+
+      list.push(dto);
+    }
+
+    return list;
   }
 }

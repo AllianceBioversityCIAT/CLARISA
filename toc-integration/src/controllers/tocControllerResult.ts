@@ -17,6 +17,11 @@ export class tocController {
     }
   }
 
+  /**
+   * @param req
+   * @param res
+   * New ToC Integration dashboard
+   */
   async bulkSpTocResultDashboard(req: Request, res: Response) {
     const spIds = await req.body.spId;
     try {
