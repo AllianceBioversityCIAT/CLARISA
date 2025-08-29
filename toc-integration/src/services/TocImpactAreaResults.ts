@@ -288,6 +288,7 @@ export class TocResultImpactAreaServices {
     meta: { phase: string | null; original_id: string | null }
   ) {
     try {
+      console.info({ message: "Saving impact area ToC results V2" });
       const dataSource: DataSource = await Database.getDataSource();
       const impactAreaRepo = dataSource.getRepository(TocImpactAreaResults);
 
