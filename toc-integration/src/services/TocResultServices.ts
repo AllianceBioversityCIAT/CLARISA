@@ -961,7 +961,10 @@ export class TocResultServices {
           regions: ind?.region ?? ind?.regions ?? [],
           country: ind?.country ?? ind?.countries ?? [],
         };
-        const geoRes = await this.saveIndicatorGeoScope(String(ind.id), geo);
+        const geoRes = await this.saveIndicatorGeoScopeV2(String(ind.id), {
+          region: Array.isArray(ind?.region) ? ind.region : [],
+          country: Array.isArray(ind?.country) ? ind.country : [],
+        });
         listRegions.push(...geoRes.listRegios);
         listCountries.push(...geoRes.listCountries);
 
@@ -977,6 +980,82 @@ export class TocResultServices {
       return { listResultsIndicator, listRegions, listCountries };
     } catch (error) {
       throw new Error(`Error saving toc results indicators V2: ${error}`);
+    }
+  }
+
+  async saveIndicatorGeoScopeV2(
+    indicatorId: string,
+    geo: { region?: any[]; country?: any[] }
+  ) {
+    try {
+      console.info({ message: "Saving indicator geo scope V2" });
+      const dataSource: DataSource = await Database.getDataSource();
+      const regionRepo = dataSource.getRepository(TocResultIndicatorRegion);
+      const countryRepo = dataSource.getRepository(TocResultIndicatorCountry);
+
+      let listRegios: TocResultIndicatorRegionDto[] = [];
+      let listCountries: TocResultIndicatorCountryDto[] = [];
+
+      await regionRepo.delete({ toc_result_id: indicatorId as any });
+      await countryRepo.delete({ toc_result_id: indicatorId as any });
+
+      const regions = Array.isArray(geo?.region) ? geo.region : [];
+      const seenRegions = new Set<number>();
+      for (const r of regions) {
+        const um49 =
+          typeof r?.um49Code === "number"
+            ? r.um49Code
+            : typeof r?.code === "number"
+            ? r.code
+            : typeof r?.id === "number"
+            ? r.id
+            : null;
+        if (um49 == null || seenRegions.has(um49)) continue;
+        seenRegions.add(um49);
+
+        const row = new TocResultIndicatorRegionDto();
+        row.toc_result_id = indicatorId;
+        row.clarisa_regions_id = um49;
+
+        const exists = await regionRepo.findOne({
+          where: {
+            toc_result_id: row.toc_result_id as any,
+            clarisa_regions_id: row.clarisa_regions_id as any,
+          },
+        });
+        if (!exists) await regionRepo.save(row);
+        listRegios.push(row);
+      }
+
+      const countries = Array.isArray(geo?.country) ? geo.country : [];
+      const seenCountries = new Set<number>();
+      for (const c of countries) {
+        const code =
+          typeof c?.code === "number"
+            ? c.code
+            : typeof c?.country_id === "number"
+            ? c.country_id
+            : null;
+        if (code == null || seenCountries.has(code)) continue;
+        seenCountries.add(code);
+
+        const row = new TocResultIndicatorCountryDto();
+        row.toc_result_id = indicatorId;
+        row.clarisa_countries_id = code;
+
+        const exists = await countryRepo.findOne({
+          where: {
+            toc_result_id: row.toc_result_id as any,
+            clarisa_countries_id: row.clarisa_countries_id as any,
+          },
+        });
+        if (!exists) await countryRepo.save(row);
+        listCountries.push(row);
+      }
+
+      return { listRegios, listCountries };
+    } catch (error) {
+      throw new Error(`Error saving indicator geo scope V2: ${error}`);
     }
   }
 
