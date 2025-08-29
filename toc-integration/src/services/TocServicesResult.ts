@@ -12,6 +12,7 @@ import { ActionAreaTocServices } from "./TocActionAreaResults";
 import { TocResultServices } from "./TocResultServices";
 import { TocOutputOutcomeRelationService } from "./TocOutputOutcomeRelations";
 import { sendSlackNotification } from "../validators/slackNotification";
+import { ToCWorkPackagesService } from "./ToCWorkPackages";
 import { env } from "process";
 
 export class TocServicesResults {
@@ -22,6 +23,7 @@ export class TocServicesResults {
   public actionAreaToc = new ActionAreaTocServices();
   public resultsToc = new TocResultServices();
   public outputOutcomeRelations = new TocOutputOutcomeRelationService();
+  public workPackages = new ToCWorkPackagesService();
   InformationSaving = null;
 
   async queryTest() {
@@ -220,9 +222,12 @@ export class TocServicesResults {
         const impactAreasV2 =
           await this.tocImpactAreas.saveImpactAreaTocResultV2(data, meta);
 
+        const workPackagesV2 = await this.workPackages.saveWorkPackagesV2(data);
+
         this.InformationSaving = {
           ...sdgV2,
           ...impactAreasV2,
+          ...workPackagesV2,
         };
 
         await this.saveInDataBase();
@@ -235,6 +240,7 @@ export class TocServicesResults {
           impactAreaGlobalTargets: impactAreasV2?.globalTargets?.length ?? 0,
           impactAreaIndicators:
             impactAreasV2?.impactAreaIndicators?.length ?? 0,
+          workPackages: workPackagesV2?.workPackages?.length ?? 0,
         };
         const durationMs = Date.now() - startedAt;
 
@@ -247,9 +253,11 @@ export class TocServicesResults {
             counts.sdgIndicators
           }\nImpact Areas=${counts.impactAreas} | IA Global Targets=${
             counts.impactAreaGlobalTargets
-          } | IA Indicators=${counts.impactAreaIndicators}\nPhase=${
-            metaForNotif.phase ?? "null"
-          }\nEntity ID=${metaForNotif.original_id ?? "null"}`
+          } | IA Indicators=${counts.impactAreaIndicators}\nWPs (AOW)=${
+            counts.workPackages
+          }\nPhase=${metaForNotif.phase ?? "null"}\nEntity ID=${
+            metaForNotif.original_id ?? "null"
+          }`
         );
 
         return {
