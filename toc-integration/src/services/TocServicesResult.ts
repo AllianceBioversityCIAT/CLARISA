@@ -217,8 +217,12 @@ export class TocServicesResults {
           meta
         );
 
+        const impactAreasV2 =
+          await this.tocImpactAreas.saveImpactAreaTocResultV2(data, meta);
+
         this.InformationSaving = {
           ...sdgV2,
+          ...impactAreasV2,
         };
 
         await this.saveInDataBase();
@@ -227,6 +231,10 @@ export class TocServicesResults {
           sdgResults: sdgV2?.sdgResults?.length ?? 0,
           sdgTargets: sdgV2?.sdgTargets?.length ?? 0,
           sdgIndicators: sdgV2?.sdgIndicators?.length ?? 0,
+          impactAreas: impactAreasV2?.listImpactAreaResults?.length ?? 0,
+          impactAreaGlobalTargets: impactAreasV2?.globalTargets?.length ?? 0,
+          impactAreaIndicators:
+            impactAreasV2?.impactAreaIndicators?.length ?? 0,
         };
         const durationMs = Date.now() - startedAt;
 
@@ -237,9 +245,11 @@ export class TocServicesResults {
             counts.sdgResults
           } | SDGs Targets=${counts.sdgTargets} | SDGs Indicators=${
             counts.sdgIndicators
-          }\nPhase=${metaForNotif.phase ?? "null"}\nEntity ID=${
-            metaForNotif.original_id ?? "null"
-          }`
+          }\nImpact Areas=${counts.impactAreas} | IA Global Targets=${
+            counts.impactAreaGlobalTargets
+          } | IA Indicators=${counts.impactAreaIndicators}\nPhase=${
+            metaForNotif.phase ?? "null"
+          }\nEntity ID=${metaForNotif.original_id ?? "null"}`
         );
 
         return {
