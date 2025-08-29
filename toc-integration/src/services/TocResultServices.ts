@@ -739,12 +739,22 @@ export class TocResultServices {
     }
   ) {
     try {
+      console.info({ message: "Saving ToC results V2" });
       const dataSource: DataSource = await Database.getDataSource();
       const repo = dataSource.getRepository(TocResults);
       const listResultsToc: TocResults[] = [];
 
+      let listResultsIndicator: TocResultsIndicators[] = [];
+      let listRegions: any[] = [];
+      let listCountries: any[] = [];
+
       if (!this.validatorType.validatorIsArray(data)) {
-        return { listResultsToc };
+        return {
+          listResultsToc,
+          listResultsIndicator,
+          listRegions,
+          listCountries,
+        };
       }
 
       const allowed = new Set(["OUTCOME", "OUTPUT", "EOI"]);
@@ -810,12 +820,215 @@ export class TocResultServices {
             phase: record.phase as any,
           },
         });
-        if (saved) listResultsToc.push(saved);
+        if (!saved) continue;
+        listResultsToc.push(saved);
+
+        const indicatorsArray = Array.isArray(item?.indicators)
+          ? item.indicators
+          : [];
+        const indRes = await this.tocResultsIndicatorV2(
+          String(item.id),
+          indicatorsArray,
+          saved
+        );
+        listResultsIndicator.push(...indRes.listResultsIndicator);
+        listRegions.push(...indRes.listRegions);
+        listCountries.push(...indRes.listCountries);
       }
 
-      return { listResultsToc };
+      return {
+        listResultsToc,
+        listResultsIndicator,
+        listRegions,
+        listCountries,
+      };
     } catch (error) {
       throw new Error(`Error saving toc results V2: ${error}`);
+    }
+  }
+
+  async tocResultsIndicatorV2(
+    id_result: string,
+    indicators: any[],
+    tocResultRow: TocResults
+  ) {
+    try {
+      console.info({ message: "Saving ToC results indicators V2" });
+      const dataSource: DataSource = await Database.getDataSource();
+      const indicatorRepo = dataSource.getRepository(TocResultsIndicators);
+
+      let listResultsIndicator: TocResultsIndicators[] = [];
+      let listRegions: any[] = [];
+      let listCountries: any[] = [];
+
+      if (!this.validatorType.validatorIsArray(indicators)) {
+        return { listResultsIndicator, listRegions, listCountries };
+      }
+
+      await indicatorRepo.update(
+        { toc_results_id: tocResultRow.id },
+        { is_active: false }
+      );
+
+      for (const ind of indicators) {
+        if (!ind || (typeof ind.id !== "string" && typeof ind.id !== "number"))
+          continue;
+
+        const baselineRaw = Array.isArray(ind?.baseline)
+          ? ind.baseline[0]
+          : ind?.baseline;
+        const baselineValue =
+          baselineRaw && baselineRaw.value != null
+            ? String(baselineRaw.value)
+            : null;
+        const baselineDate =
+          typeof baselineRaw?.name === "string"
+            ? baselineRaw.name
+            : typeof baselineRaw?.date === "string"
+            ? baselineRaw.date
+            : null;
+
+        const dto = new TocResultsIndicatorsDto();
+        dto.toc_result_indicator_id =
+          typeof ind.id === "string" || typeof ind.id === "number"
+            ? String(ind.id)
+            : null;
+        dto.toc_results_id = tocResultRow.id;
+        dto.indicator_description =
+          typeof ind?.description === "string" ? ind.description : null;
+        dto.unit_messurament =
+          typeof ind?.unit_of_measurement === "string"
+            ? ind.unit_of_measurement
+            : null;
+        dto.baseline_value = baselineValue;
+        dto.baseline_date = baselineDate;
+
+        dto.data_colletion_source =
+          typeof ind?.data_collection_source === "string"
+            ? ind.data_collection_source
+            : null;
+        dto.data_collection_method =
+          typeof ind?.data_collection_method === "string"
+            ? ind.data_collection_method
+            : null;
+        dto.frequency_data_collection =
+          typeof ind?.data_collection_frequency === "string"
+            ? ind.data_collection_frequency
+            : null;
+        dto.type_value =
+          typeof ind?.type?.value === "string" ? ind.type.value : null;
+        dto.type_name =
+          typeof ind?.type?.name === "string" ? ind.type.name : null;
+        dto.location = typeof ind?.location === "string" ? ind.location : null;
+        dto.is_active = true;
+        dto.toc_result_id_toc = id_result;
+        dto.main = typeof ind?.main === "boolean" ? ind.main : null;
+        dto.create_date =
+          typeof ind?.creation_date === "string" ? ind.creation_date : null;
+        dto.related_node_id =
+          typeof ind?.related_node_id === "string"
+            ? ind.related_node_id
+            : String(ind.id);
+
+        const exists = await indicatorRepo.findOne({
+          where: {
+            related_node_id: dto.related_node_id,
+            toc_results_id: dto.toc_results_id,
+          },
+        });
+
+        if (exists) {
+          await indicatorRepo.update(
+            {
+              related_node_id: dto.related_node_id,
+              toc_results_id: dto.toc_results_id,
+            },
+            dto
+          );
+        } else {
+          await indicatorRepo.insert(dto);
+        }
+
+        const saved = await indicatorRepo.findOne({
+          where: {
+            related_node_id: dto.related_node_id,
+            toc_results_id: dto.toc_results_id,
+          },
+        });
+        if (saved) listResultsIndicator.push(saved);
+
+        const geo = {
+          regions: ind?.region ?? ind?.regions ?? [],
+          country: ind?.country ?? ind?.countries ?? [],
+        };
+        const geoRes = await this.saveIndicatorGeoScope(String(ind.id), geo);
+        listRegions.push(...geoRes.listRegios);
+        listCountries.push(...geoRes.listCountries);
+
+        if (saved && ind?.target != null) {
+          await this.saveIndicatorTargetV2(
+            saved.id,
+            saved.toc_result_indicator_id,
+            ind.target
+          );
+        }
+      }
+
+      return { listResultsIndicator, listRegions, listCountries };
+    } catch (error) {
+      throw new Error(`Error saving toc results indicators V2: ${error}`);
+    }
+  }
+
+  async saveIndicatorTargetV2(
+    id_indicator: number,
+    toc_result_indicator_id: string,
+    target: any
+  ) {
+    console.info({ message: "Saving indicator targets V2" });
+    try {
+      const dataSource: DataSource = await Database.getDataSource();
+      const repo = dataSource.getRepository(TocResultIndicatorTarget);
+
+      if (!id_indicator || !toc_result_indicator_id) return true;
+
+      const targets: any[] = Array.isArray(target)
+        ? target
+        : target && typeof target === "object"
+        ? [target]
+        : [];
+
+      await repo.delete({ toc_result_indicator_id });
+
+      let number = 1;
+      for (const t of targets) {
+        if (!t) continue;
+
+        const row = repo.create({
+          id_indicator,
+          toc_result_indicator_id,
+          number_target: number++,
+          target_value:
+            typeof t.value === "number" && !Number.isNaN(t.value)
+              ? t.value
+              : typeof t.value === "string" &&
+                t.value.trim() !== "" &&
+                !Number.isNaN(Number(t.value))
+              ? Number(t.value)
+              : null,
+          target_date:
+            typeof t.date === "string" && t.date.trim() !== ""
+              ? t.date.trim()
+              : null,
+        });
+
+        await repo.insert(row);
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error in saveIndicatorTargetV2:", error);
+      throw new Error(`Error saving indicator targets V2: ${error}`);
     }
   }
 }

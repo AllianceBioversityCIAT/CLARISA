@@ -210,6 +210,7 @@ export class TocSdgsServices {
     items: any[],
     meta: { phase: string | null; original_id: string | null }
   ) {
+    console.info({ message: "Creating ToC SDG Results V2" });
     const dataSource: DataSource = await Database.getDataSource();
     const sdgRepo = dataSource.getRepository(TocSdgResults);
 

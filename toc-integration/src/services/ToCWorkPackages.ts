@@ -7,6 +7,7 @@ export class ToCWorkPackagesService {
   private validator = new ValidatorTypes();
 
   async saveWorkPackagesV2(data: any[]) {
+    console.info({ message: "Creating ToC Work Packages V2" });
     const dataSource: DataSource = await Database.getDataSource();
     const repo = dataSource.getRepository(TocWorkPackages);
     const workPackages: TocWorkPackages[] = [];
