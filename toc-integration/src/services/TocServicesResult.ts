@@ -271,7 +271,6 @@ export class TocServicesResults {
         );
 
         return {
-          ...this.InformationSaving,
           meta: metaForNotif,
           counts,
           durationMs,
