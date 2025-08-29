@@ -198,7 +198,7 @@ export class TocServicesResults {
           "relations",
         ])
       ) {
-        const { data, phase, original_id } = response.data || {};
+        const { data, phase, original_id, version_id } = response.data || {};
         if (!this.validatorType.validatorIsArray(data)) {
           throw new Error("The property data must be an array");
         }
@@ -211,6 +211,11 @@ export class TocServicesResults {
             typeof original_id === "string" || typeof original_id === "number"
               ? String(original_id)
               : spId,
+          version_id:
+            typeof response.data.version_id === "string" ||
+            typeof response.data.version_id === "number"
+              ? String(version_id)
+              : null,
         };
         metaForNotif = meta;
 
@@ -224,10 +229,13 @@ export class TocServicesResults {
 
         const workPackagesV2 = await this.workPackages.saveWorkPackagesV2(data);
 
+        const resultsV2 = await this.resultsToc.saveTocResultsV2(data, meta);
+
         this.InformationSaving = {
           ...sdgV2,
           ...impactAreasV2,
           ...workPackagesV2,
+          ...resultsV2,
         };
 
         await this.saveInDataBase();
@@ -241,6 +249,7 @@ export class TocServicesResults {
           impactAreaIndicators:
             impactAreasV2?.impactAreaIndicators?.length ?? 0,
           workPackages: workPackagesV2?.workPackages?.length ?? 0,
+          results: resultsV2?.listResultsToc?.length ?? 0,
         };
         const durationMs = Date.now() - startedAt;
 
@@ -253,9 +262,10 @@ export class TocServicesResults {
             counts.sdgIndicators
           }\nImpact Areas=${counts.impactAreas} | IA Global Targets=${
             counts.impactAreaGlobalTargets
-          } | IA Indicators=${counts.impactAreaIndicators}\nWPs (AOW)=${
-            counts.workPackages
-          }\nPhase=${metaForNotif.phase ?? "null"}\nEntity ID=${
+          } | IA Indicators=${counts.impactAreaIndicators}
+          \nWPs (AOW)=${counts.workPackages}
+          \nResults=${counts.results}
+          \nPhase=${metaForNotif.phase ?? "null"}\nEntity ID=${
             metaForNotif.original_id ?? "null"
           }`
         );

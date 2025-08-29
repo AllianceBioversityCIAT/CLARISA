@@ -450,7 +450,6 @@ export class TocResultServices {
               },
             });
             if (!existingRecordActionTarget) {
-              // Update existing record
               await tocResultRepo.insert(actionResult);
             }
             actionAreaToc.push(actionResult);
@@ -728,6 +727,95 @@ export class TocResultServices {
     } catch (error) {
       console.error("Error in saveIndicatorTarget:", error);
       throw new Error(`Error saving toc results target: ${error}`);
+    }
+  }
+
+  async saveTocResultsV2(
+    data: any[],
+    meta: {
+      phase: string | null;
+      original_id: string | null;
+      version_id?: string | null;
+    }
+  ) {
+    try {
+      const dataSource: DataSource = await Database.getDataSource();
+      const repo = dataSource.getRepository(TocResults);
+      const listResultsToc: TocResults[] = [];
+
+      if (!this.validatorType.validatorIsArray(data)) {
+        return { listResultsToc };
+      }
+
+      const allowed = new Set(["OUTCOME", "OUTPUT", "EOI"]);
+      const items = data.filter((it) => {
+        const cat =
+          typeof it?.category === "string" ? it.category.toUpperCase() : null;
+        return cat && allowed.has(cat);
+      });
+
+      for (const item of items) {
+        const toc_result_id =
+          typeof item?.id === "string" || typeof item?.id === "number"
+            ? String(item.id)
+            : null;
+        if (!toc_result_id) continue;
+
+        const record: Partial<TocResults> = {
+          toc_result_id,
+          related_node_id:
+            typeof item?.related_node_id === "string"
+              ? item.related_node_id
+              : null,
+          result_title: typeof item?.title === "string" ? item.title : null,
+          result_description:
+            typeof item?.description === "string" ? item.description : null,
+          category:
+            typeof item?.category === "string"
+              ? item.category.toUpperCase()
+              : null,
+          wp_id:
+            typeof item?.group === "string" || typeof item?.group === "number"
+              ? String(item.group)
+              : null,
+
+          id_toc_initiative:
+            typeof meta?.original_id === "string" ? meta.original_id : null,
+          phase: typeof meta?.phase === "string" ? meta.phase : null,
+          version_id:
+            typeof meta?.version_id === "string" ? meta.version_id : null,
+          is_global: true,
+          is_active: true,
+        };
+
+        const existing = await repo.findOne({
+          where: {
+            toc_result_id: record.toc_result_id,
+            phase: record.phase as any,
+          },
+        });
+
+        if (existing) {
+          await repo.update(
+            { toc_result_id: record.toc_result_id!, phase: record.phase! },
+            record
+          );
+        } else {
+          await repo.insert(record);
+        }
+
+        const saved = await repo.findOne({
+          where: {
+            toc_result_id: record.toc_result_id,
+            phase: record.phase as any,
+          },
+        });
+        if (saved) listResultsToc.push(saved);
+      }
+
+      return { listResultsToc };
+    } catch (error) {
+      throw new Error(`Error saving toc results V2: ${error}`);
     }
   }
 }
