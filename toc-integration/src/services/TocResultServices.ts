@@ -21,6 +21,7 @@ import { TocResultIndicatorCountryDto } from "../dto/tocIndicatorCountry";
 import { TocResultIndicatorTargetDTO } from "../dto/tocIndicatorTarget";
 import { TocResultIndicatorTarget } from "../entities/tocIndicatorTarget";
 import { TocResultProject } from "../entities/tocResultsProjects";
+import { TocResultPartners } from "../entities/tocResultsPartners";
 
 export class TocResultServices {
   public validatorType = new ValidatorTypes();
@@ -837,6 +838,13 @@ export class TocResultServices {
           await this.saveResultProjectsV2(String(item.id), projectsArray);
         }
 
+        const partnersArray = Array.isArray(item?.partners)
+          ? item.partners
+          : [];
+        if (partnersArray.length) {
+          await this.saveResultPartnersV2(String(item.id), partnersArray);
+        }
+
         const indicatorsArray = Array.isArray(item?.indicators)
           ? item.indicators
           : [];
@@ -1158,5 +1166,40 @@ export class TocResultServices {
       saved.push(row);
     }
     return saved;
+  }
+
+  async saveResultPartnersV2(toc_result_id_toc: string, partners: any[]) {
+    try {
+      console.info({ message: "Saving result Partners V2" });
+      const dataSource: DataSource = await Database.getDataSource();
+      const partnerRepo = dataSource.getRepository(TocResultPartners);
+
+      if (!Array.isArray(partners) || !toc_result_id_toc) return [];
+
+      await partnerRepo.delete({ toc_result_id_toc });
+
+      const saved: TocResultPartners[] = [];
+      for (const p of partners) {
+        if (!p) continue;
+
+        const row = partnerRepo.create({
+          toc_result_id_toc,
+          toc_id: typeof p?.toc_id === "string" ? p.toc_id : null,
+          name: typeof p?.name === "string" ? p.name : null,
+          acronym: typeof p?.acronym === "string" ? p.acronym : null,
+          code: typeof p?.code === "number" ? p.code : null,
+          website_link:
+            typeof p?.websiteLink === "string" ? p.websiteLink : null,
+          added: typeof p?.added === "string" ? p.added : null,
+          add_source: typeof p?.add_source === "string" ? p.add_source : null,
+        });
+
+        await partnerRepo.insert(row);
+        saved.push(row);
+      }
+      return saved;
+    } catch (error) {
+      throw new Error(`Error saving result partners V2: ${error}`);
+    }
   }
 }
