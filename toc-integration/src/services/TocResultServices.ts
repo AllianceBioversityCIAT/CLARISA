@@ -20,6 +20,8 @@ import { TocResultIndicatorRegionDto } from "../dto/tocIndicatorRegion";
 import { TocResultIndicatorCountryDto } from "../dto/tocIndicatorCountry";
 import { TocResultIndicatorTargetDTO } from "../dto/tocIndicatorTarget";
 import { TocResultIndicatorTarget } from "../entities/tocIndicatorTarget";
+import { TocResultProject } from "../entities/tocResultsProjects";
+
 export class TocResultServices {
   public validatorType = new ValidatorTypes();
   public errorMessage = new ErrorValidators();
@@ -55,7 +57,6 @@ export class TocResultServices {
         );
 
         for (let tocResultItem of toc_results) {
-          console.log("🚀 ~ TocResultServices ~ tocResultItem:", tocResultItem);
           if (
             this.validatorType.existPropertyInObjectMul(tocResultItem, [
               "toc_result_id",
@@ -765,6 +766,12 @@ export class TocResultServices {
       });
 
       for (const item of items) {
+        console.info({
+          message: "Processing ToC result",
+          itemId: item?.title,
+          category: item?.category,
+        });
+
         const toc_result_id =
           typeof item?.id === "string" || typeof item?.id === "number"
             ? String(item.id)
@@ -823,6 +830,13 @@ export class TocResultServices {
         if (!saved) continue;
         listResultsToc.push(saved);
 
+        const projectsArray = Array.isArray(item?.projects)
+          ? item.projects
+          : [];
+        if (projectsArray.length) {
+          await this.saveResultProjectsV2(String(item.id), projectsArray);
+        }
+
         const indicatorsArray = Array.isArray(item?.indicators)
           ? item.indicators
           : [];
@@ -843,7 +857,7 @@ export class TocResultServices {
         listCountries,
       };
     } catch (error) {
-      throw new Error(`Error saving toc results V2: ${error}`);
+      throw new Error(`Error saving ToC results V2: ${error}`);
     }
   }
 
@@ -1109,5 +1123,40 @@ export class TocResultServices {
       console.error("Error in saveIndicatorTargetV2:", error);
       throw new Error(`Error saving indicator targets V2: ${error}`);
     }
+  }
+
+  async saveResultProjectsV2(toc_result_id_toc: string, projects: any[]) {
+    console.info({ message: "Saving result Projects Bilateral" });
+    const dataSource: DataSource = await Database.getDataSource();
+    const projectRepo = dataSource.getRepository(TocResultProject);
+
+    if (!Array.isArray(projects) || !toc_result_id_toc) return [];
+
+    await projectRepo.delete({ toc_result_id_toc });
+
+    const saved: TocResultProject[] = [];
+    for (const p of projects) {
+      const project_id =
+        typeof p?.id === "string" || typeof p?.id === "number"
+          ? String(p.id)
+          : null;
+      if (!project_id) continue;
+
+      const row = projectRepo.create({
+        toc_result_id_toc,
+        project_id,
+        name: typeof p?.name === "string" ? p.name : null,
+        project_summary:
+          typeof p?.project_summary === "string" ? p.project_summary : null,
+        creation_date:
+          typeof p?.creation_date === "string" ? p.creation_date : null,
+        start_date: typeof p?.start_date === "string" ? p.start_date : null,
+        end_date: typeof p?.end_date === "string" ? p.end_date : null,
+      });
+
+      await projectRepo.insert(row);
+      saved.push(row);
+    }
+    return saved;
   }
 }

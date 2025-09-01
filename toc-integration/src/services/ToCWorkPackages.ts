@@ -20,6 +20,10 @@ export class ToCWorkPackagesService {
 
     for (const item of items) {
       const ost = item?.ost_wp || {};
+      console.info({
+        message: "Processing work package",
+        acronym: ost?.acronym,
+      });
 
       const row = repo.create({
         id:

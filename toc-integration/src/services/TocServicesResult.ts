@@ -178,6 +178,7 @@ export class TocServicesResults {
 
   async spSplitInformation(spId: string) {
     const startedAt = Date.now();
+    console.info({ message: "Start splitting information", spId });
     let metaForNotif: { phase: string | null; original_id: string | null } = {
       phase: null,
       original_id: spId,
@@ -270,6 +271,7 @@ export class TocServicesResults {
           }`
         );
 
+        console.info({ message: "Finished saving ToC results" });
         return {
           meta: metaForNotif,
           counts,

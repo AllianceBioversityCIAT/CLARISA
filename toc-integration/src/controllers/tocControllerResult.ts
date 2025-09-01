@@ -27,6 +27,7 @@ export class tocController {
     try {
       let servicesInformation = new TocServicesResults();
       const data = await servicesInformation.spSplitInformation(spIds);
+      res.json({ response: data });
     } catch (error) {
       console.error(error);
       return res.status(500).json(error);
