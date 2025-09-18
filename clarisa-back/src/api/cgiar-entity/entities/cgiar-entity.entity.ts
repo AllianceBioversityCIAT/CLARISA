@@ -11,6 +11,7 @@ import { AuditableEntity } from '../../../shared/entities/extends/auditable-enti
 import { CgiarEntityType } from '../../cgiar-entity-type/entities/cgiar-entity-type.entity';
 import { Institution } from '../../institution/entities/institution.entity';
 import { Portfolio } from '../../portfolio/entities/portfolio.entity';
+import { ProjectMapping } from '../../project/entity/project-mapping.entity';
 
 @Entity('global_units')
 export class CgiarEntity {
@@ -75,6 +76,9 @@ export class CgiarEntity {
   @ManyToOne(() => Portfolio, (p) => p.cgiar_entity_array)
   @JoinColumn({ name: 'portfolio_id' })
   portfolio_object: Portfolio;
+
+  @OneToMany(() => ProjectMapping, (pm) => pm.global_unit_object)
+  project_mappings_array: ProjectMapping[];
 
   //auditable fields
 

@@ -19,6 +19,7 @@ import { SubnationalScope } from '../../subnational-scope/entities/subnational-s
 import { CountryLanguage } from './country-language.entity';
 import { CountryName } from './country-name.entity';
 import { SubnationalCategory } from '../../subnational-scope/entities/subnational-category.entity';
+import { ProjectCountry } from '../../project/entity/project-country.entity';
 
 @Entity('countries')
 export class Country {
@@ -77,6 +78,9 @@ export class Country {
 
   @OneToMany(() => SubnationalCategory, (sc) => sc.country_object)
   subnational_category_array: SubnationalCategory[];
+
+  @OneToMany(() => ProjectCountry, (pc) => pc.country_object)
+  project_countries_array: ProjectCountry[];
 
   //auditable fields
 
