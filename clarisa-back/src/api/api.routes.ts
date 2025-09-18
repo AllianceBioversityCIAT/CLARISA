@@ -75,6 +75,7 @@ import { MicroserviceMonitoringTestLinkModule } from './microservice-monitoring-
 import { GlobalParameterModule } from './global-parameter/global-parameter.module';
 import { HandlebarsTemplateModule } from './handlebars-template/handlebars-template.module';
 import { LeverModule } from './lever/lever.module';
+import { ProjectModule } from './project/project.module';
 
 export const apiRoutes = [
   {
@@ -384,5 +385,9 @@ export const apiRoutes = [
   {
     path: 'alliance-levers',
     module: LeverModule,
+  },
+  {
+    path: 'projects',
+    module: ProjectModule,
   },
 ];
