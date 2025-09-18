@@ -1,5 +1,14 @@
+
 #################### BASE STAGE ####################
+# Alternativa: usar imagen Ubuntu si Alpine da problemas
+# FROM node:20.13.1 AS base
 FROM node:20.13.1-alpine AS base
+
+# Para Alpine: instalar dependencias necesarias para compilar bcrypt
+RUN apk add --no-cache python3 make g++
+
+# Para Ubuntu (si cambias la imagen base):
+# RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY package*.json ./
