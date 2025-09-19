@@ -870,6 +870,7 @@ export class TocResultServices {
           ? item.sdgs
           : [];
         const sdgRel = await this.saveTocResultsSdgV2(
+          String(item.id),
           sdgNested,
           globalSdgResults,
           saved
