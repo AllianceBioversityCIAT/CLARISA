@@ -44,8 +44,8 @@ describe('ProjectController', () => {
   it('should call service on findByGlobalUnit', async () => {
     projectServiceMock.findByGlobalUnit.mockResolvedValueOnce([]);
 
-    await controller.findByGlobalUnit(1);
+    await controller.findByGlobalUnit('SP01');
 
-    expect(service.findByGlobalUnit).toHaveBeenCalledWith(1);
+    expect(service.findByGlobalUnit).toHaveBeenCalledWith('SP01');
   });
 });

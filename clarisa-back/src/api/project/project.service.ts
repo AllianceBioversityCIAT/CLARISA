@@ -15,11 +15,13 @@ export class ProjectService {
     return this.projectRepository.findAllWithRelations();
   }
 
-  async findByGlobalUnit(globalUnitId: number): Promise<ProjectMapping[]> {
-    if (!Number.isInteger(globalUnitId) || globalUnitId <= 0) {
-      throw new BadRequestException('globalUnitId must be a positive integer');
+  async findByGlobalUnit(officialCode: string): Promise<ProjectMapping[]> {
+    const sanitizedCode = officialCode?.trim();
+
+    if (!sanitizedCode) {
+      throw new BadRequestException('officialCode must be a non-empty string');
     }
 
-    return this.projectMappingRepository.findFullByGlobalUnit(globalUnitId);
+    return this.projectMappingRepository.findFullByGlobalUnit(sanitizedCode);
   }
 }

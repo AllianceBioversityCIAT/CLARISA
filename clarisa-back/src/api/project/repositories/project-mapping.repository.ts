@@ -8,13 +8,15 @@ export class ProjectMappingRepository extends Repository<ProjectMapping> {
     super(ProjectMapping, dataSource.createEntityManager());
   }
 
-  async findFullByGlobalUnit(globalUnitId: number): Promise<ProjectMapping[]> {
+  async findFullByGlobalUnit(officialCode: string): Promise<ProjectMapping[]> {
     return this.find({
       where: {
-        global_unit_id: globalUnitId,
         auditableFields: { is_active: true },
         project_object: {
           auditableFields: { is_active: true },
+        },
+        global_unit_object: {
+          smo_code: officialCode,
         },
       },
       relations: {

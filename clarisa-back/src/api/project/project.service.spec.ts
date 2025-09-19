@@ -47,23 +47,33 @@ describe('ProjectService', () => {
     expect(result).toEqual([]);
   });
 
-  it('should throw for non positive global unit ids', async () => {
-    await expect(service.findByGlobalUnit(0)).rejects.toBeInstanceOf(
+  it('should throw for empty or blank official codes', async () => {
+    await expect(service.findByGlobalUnit('')).rejects.toBeInstanceOf(
       BadRequestException,
     );
-    await expect(service.findByGlobalUnit(-1)).rejects.toBeInstanceOf(
+    await expect(service.findByGlobalUnit('   ')).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
 
-  it('should delegate to repository when id is valid', async () => {
+  it('should delegate to repository when official code is valid', async () => {
     projectMappingRepositoryMock.findFullByGlobalUnit.mockResolvedValueOnce([]);
 
-    const result = await service.findByGlobalUnit(5);
+    const result = await service.findByGlobalUnit('SP01');
 
-    expect(projectMappingRepositoryMock.findFullByGlobalUnit).toHaveBeenCalledWith(
-      5,
-    );
+    expect(
+      projectMappingRepositoryMock.findFullByGlobalUnit,
+    ).toHaveBeenCalledWith('SP01');
     expect(result).toEqual([]);
+  });
+
+  it('should trim the official code before delegating', async () => {
+    projectMappingRepositoryMock.findFullByGlobalUnit.mockResolvedValueOnce([]);
+
+    await service.findByGlobalUnit('  SP01  ');
+
+    expect(
+      projectMappingRepositoryMock.findFullByGlobalUnit,
+    ).toHaveBeenCalledWith('SP01');
   });
 });

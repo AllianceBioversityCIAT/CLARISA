@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Param,
-  ParseIntPipe,
   UseInterceptors,
   ClassSerializerInterceptor,
 } from '@nestjs/common';
@@ -18,10 +17,8 @@ export class ProjectController {
     return this.projectService.findAll();
   }
 
-  @Get('by-global-unit/:globalUnitId')
-  async findByGlobalUnit(
-    @Param('globalUnitId', ParseIntPipe) globalUnitId: number,
-  ) {
-    return this.projectService.findByGlobalUnit(globalUnitId);
+  @Get('by-global-unit/:officialCode')
+  async findByGlobalUnit(@Param('officialCode') officialCode: string) {
+    return this.projectService.findByGlobalUnit(officialCode);
   }
 }
