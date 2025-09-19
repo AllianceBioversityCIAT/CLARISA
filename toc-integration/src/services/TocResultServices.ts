@@ -856,6 +856,32 @@ export class TocResultServices {
         listResultsIndicator.push(...indRes.listResultsIndicator);
         listRegions.push(...indRes.listRegions);
         listCountries.push(...indRes.listCountries);
+
+        const sdgNested = Array.isArray(item?.sdg_results)
+          ? item.sdg_results
+          : item?.sdgs && Array.isArray(item.sdgs)
+          ? item.sdgs
+          : [];
+        const sdgRel = await this.saveTocResultsSdgV2(
+          String(item.id),
+          sdgNested,
+          globalSdgResults,
+          saved
+        );
+        listResultsSdg.push(...sdgRel);
+
+        const impactNested = Array.isArray(item?.impact_area_results)
+          ? item.impact_area_results
+          : item?.impact_areas && Array.isArray(item.impact_areas)
+          ? item.impact_areas
+          : [];
+        const impactRel = await this.saveTocResultsImpactV2(
+          String(item.id),
+          impactNested,
+          globalImpactAreaResults,
+          saved
+        );
+        listResultsImpact.push(...impactRel);
       }
 
       return {
