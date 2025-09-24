@@ -9,6 +9,7 @@ import { CenterRepository } from '../center/repositories/center.repository';
 import { CenterService } from '../center/center.service';
 import { CgiarEntityTypeRepository } from '../cgiar-entity-type/repositories/cgiar-entity-type.repository';
 import { CenterMapper } from '../center/mappers/center.mapper';
+import { GlobalUnitLineageRepository } from './repositories/global-unit-lineage.repository';
 
 @Module({
   controllers: [CgiarEntityController],
@@ -22,6 +23,7 @@ import { CenterMapper } from '../center/mappers/center.mapper';
     CenterRepository,
     CenterMapper,
     CenterService,
+    GlobalUnitLineageRepository,
   ],
 })
 export class CgiarEntityModule {}

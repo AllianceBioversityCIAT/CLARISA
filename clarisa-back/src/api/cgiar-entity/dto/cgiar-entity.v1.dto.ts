@@ -5,4 +5,5 @@ export class CgiarEntityDtoV1 extends BasicDto {
   financial_code: string;
   institutionId: number;
   cgiarEntityTypeDTO: BasicDto;
+  year?: number;
 }

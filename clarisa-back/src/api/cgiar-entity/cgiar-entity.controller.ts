@@ -1,13 +1,15 @@
 import {
+  ClassSerializerInterceptor,
   Controller,
   Get,
   Param,
-  Query,
   ParseIntPipe,
+  Query,
+  Res,
   UseInterceptors,
-  ClassSerializerInterceptor,
   Version,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { CgiarEntityService } from './cgiar-entity.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
@@ -35,6 +37,43 @@ export class CgiarEntityController {
   @Get()
   async findAllV2(@Query('show') show: FindAllOptions) {
     return await this.cgiarEntityService.findAllV2(show);
+  }
+
+  @Get('aows')
+  async findAoWs(
+    @Res({ passthrough: true }) res: Response,
+    @Query('year', ParseIntPipe) year: number,
+    @Query('latest') latest?: string,
+  ) {
+    const latestFlag = this.parseBooleanQuery(latest);
+    const result = await this.cgiarEntityService.findAoWsByYear(year, {
+      latest: latestFlag,
+    });
+
+    if (latestFlag && result.latestYear !== undefined) {
+      res.setHeader('X-Data-Recency', `latest-year=${result.latestYear}`);
+    }
+
+    return result.items;
+  }
+
+  @Get('sps')
+  async findStrategicPrograms(
+    @Res({ passthrough: true }) res: Response,
+    @Query('year', ParseIntPipe) year: number,
+    @Query('latest') latest?: string,
+  ) {
+    const latestFlag = this.parseBooleanQuery(latest);
+    const result = await this.cgiarEntityService.findStrategicProgramsByYear(
+      year,
+      { latest: latestFlag },
+    );
+
+    if (latestFlag && result.latestYear !== undefined) {
+      res.setHeader('X-Data-Recency', `latest-year=${result.latestYear}`);
+    }
+
+    return result.items;
   }
 
   @Get('groups')
@@ -65,5 +104,19 @@ export class CgiarEntityController {
       ids.map((id) => this.cgiarEntityService.findByPortfolioV2(id, show)),
     );
     return results.flat();
+  }
+
+  private parseBooleanQuery(value?: string): boolean {
+    if (value === undefined || value === null) {
+      return false;
+    }
+
+    const normalized = String(value).trim().toLowerCase();
+
+    if (!normalized) {
+      return false;
+    }
+
+    return ['true', '1', 'yes', 'y'].includes(normalized);
   }
 }
