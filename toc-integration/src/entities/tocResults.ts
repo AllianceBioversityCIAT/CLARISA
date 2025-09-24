@@ -54,4 +54,12 @@ export class TocResults {
     nullable: true,
   })
   related_node_id: string | null;
+
+  @Column({
+    name: "official_code",
+    type: "varchar",
+    length: 50,
+    nullable: true,
+  })
+  official_code: string | null;
 }

@@ -739,6 +739,7 @@ export class TocResultServices {
       phase: string | null;
       original_id: string | null;
       version_id?: string | null;
+      official_code: string | null;
     },
     globalSdgResults: TocSdgResults[] = [],
     globalImpactAreaResults: any[] = []
@@ -809,6 +810,7 @@ export class TocResultServices {
           phase: typeof meta?.phase === "string" ? meta.phase : null,
           version_id:
             typeof meta?.version_id === "string" ? meta.version_id : null,
+          official_code: meta?.official_code ?? null,
           is_global: true,
           is_active: true,
         };
@@ -852,8 +854,8 @@ export class TocResultServices {
           await this.saveResultPartnersV2(String(item.id), partnersArray);
         }
 
-        const indicatorsArray = Array.isArray(item?.indicators)
-          ? item.indicators
+        const indicatorsArray = Array.isArray(item?.quantitative_indicators)
+          ? item.quantitative_indicators
           : [];
         const indRes = await this.tocResultsIndicatorV2(
           String(item.id),
