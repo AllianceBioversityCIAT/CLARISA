@@ -11,7 +11,7 @@ export enum GlobalUnitLineageRelationType {
   MERGE = 'MERGE',
   SPLIT = 'SPLIT',
   SUCCESSOR = 'SUCCESSOR',
-  RENAME = 'RENAME',
+  RENAME = 'NEW',
 }
 
 @Entity('global_unit_lineage')
@@ -19,7 +19,7 @@ export class GlobalUnitLineage {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
-  @Column({ type: 'bigint', nullable: false })
+  @Column({ type: 'bigint', nullable: true })
   from_global_unit_id: number;
 
   @Column({ type: 'bigint', nullable: false })

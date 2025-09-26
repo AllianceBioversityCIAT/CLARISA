@@ -5,11 +5,9 @@ import {
   Param,
   ParseIntPipe,
   Query,
-  Res,
   UseInterceptors,
   Version,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { CgiarEntityService } from './cgiar-entity.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
@@ -35,45 +33,17 @@ export class CgiarEntityController {
 
   @Version('2')
   @Get()
-  async findAllV2(@Query('show') show: FindAllOptions) {
-    return await this.cgiarEntityService.findAllV2(show);
-  }
-
-  @Get('aows')
-  async findAoWs(
-    @Res({ passthrough: true }) res: Response,
-    @Query('year', ParseIntPipe) year: number,
-    @Query('latest') latest?: string,
+  async findAllV2(
+    @Query('show') show: FindAllOptions,
+    @Query('type') type?: string,
+    @Query('portfolioId') portfolioId?: string,
+    @Query('year') year?: string,
   ) {
-    const latestFlag = this.parseBooleanQuery(latest);
-    const result = await this.cgiarEntityService.findAoWsByYear(year, {
-      latest: latestFlag,
+    return await this.cgiarEntityService.findAllV2(show, {
+      type,
+      portfolioId: this.parseOptionalNumber(portfolioId),
+      year: this.parseOptionalNumber(year),
     });
-
-    if (latestFlag && result.latestYear !== undefined) {
-      res.setHeader('X-Data-Recency', `latest-year=${result.latestYear}`);
-    }
-
-    return result.items;
-  }
-
-  @Get('sps')
-  async findStrategicPrograms(
-    @Res({ passthrough: true }) res: Response,
-    @Query('year', ParseIntPipe) year: number,
-    @Query('latest') latest?: string,
-  ) {
-    const latestFlag = this.parseBooleanQuery(latest);
-    const result = await this.cgiarEntityService.findStrategicProgramsByYear(
-      year,
-      { latest: latestFlag },
-    );
-
-    if (latestFlag && result.latestYear !== undefined) {
-      res.setHeader('X-Data-Recency', `latest-year=${result.latestYear}`);
-    }
-
-    return result.items;
   }
 
   @Get('groups')
@@ -105,18 +75,12 @@ export class CgiarEntityController {
     );
     return results.flat();
   }
-
-  private parseBooleanQuery(value?: string): boolean {
-    if (value === undefined || value === null) {
-      return false;
+  private parseOptionalNumber(value?: string): number | undefined {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
     }
 
-    const normalized = String(value).trim().toLowerCase();
-
-    if (!normalized) {
-      return false;
-    }
-
-    return ['true', '1', 'yes', 'y'].includes(normalized);
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
   }
 }

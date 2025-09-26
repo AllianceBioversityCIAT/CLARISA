@@ -10,7 +10,10 @@ import {
 import { CgiarEntityDtoV2 } from '../dto/cgiar-entity.v2.dto';
 import { Portfolio } from '../../portfolio/entities/portfolio.entity';
 import { GlobalUnitLineage } from '../entities/global-unit-lineage.entity';
-import { GlobalUnitLineageDto } from '../dto/global-unit-lineage.dto';
+import {
+  GlobalUnitLineageDto,
+  GlobalUnitLineageUnitDto,
+} from '../dto/global-unit-lineage.dto';
 
 @Injectable()
 export class CgiarEntityMapper {
@@ -31,29 +34,49 @@ export class CgiarEntityMapper {
     includeTo: boolean,
   ): GlobalUnitLineageDto {
     const lineageDto = new GlobalUnitLineageDto();
-    lineageDto.id = lineage.id;
     lineageDto.relation_type = lineage.relation_type;
     lineageDto.note = lineage.note;
-    lineageDto.from_global_unit_id = lineage.from_global_unit_id;
-    lineageDto.to_global_unit_id = lineage.to_global_unit_id;
 
-    if (includeFrom && lineage.from_global_unit) {
-      lineageDto.from = this._basicCEDtoMapper.classToDto(
+    if (includeFrom) {
+      lineageDto.from_global_unit_id = this.buildLineageUnit(
         lineage.from_global_unit,
-        false,
-        this._mappedBasicFields,
       );
     }
 
-    if (includeTo && lineage.to_global_unit) {
-      lineageDto.to = this._basicCEDtoMapper.classToDto(
+    if (includeTo) {
+      lineageDto.to_global_unit_id = this.buildLineageUnit(
         lineage.to_global_unit,
-        false,
-        this._mappedBasicFields,
       );
     }
 
     return lineageDto;
+  }
+
+  private buildLineageUnit(
+    entity?: CgiarEntity,
+  ): GlobalUnitLineageUnitDto | undefined {
+    if (!entity) {
+      return undefined;
+    }
+
+    const unit = new GlobalUnitLineageUnitDto();
+    unit.code = entity.smo_code;
+    unit.name = entity.name;
+    unit.compose_code = this.composeCode(entity);
+    unit.year = entity.year;
+
+    return unit;
+  }
+
+  private composeCode(entity?: CgiarEntity): string | undefined {
+    if (!entity?.smo_code) {
+      return undefined;
+    }
+
+    const childCode = entity.smo_code;
+    const parentCode = entity.parent_object?.smo_code;
+
+    return parentCode ? `${parentCode}-${childCode}` : childCode;
   }
   public classToDtoV1(
     cgiarEntity: CgiarEntity,
@@ -97,6 +120,7 @@ export class CgiarEntityMapper {
   public classToDtoV2(
     cgiarEntity: CgiarEntity,
     showIsActive: boolean = false,
+    includeId: boolean = false,
   ): CgiarEntityDtoV2 {
     const cgiarEntityDtoV2: CgiarEntityDtoV2 = new CgiarEntityDtoV2();
 
@@ -109,11 +133,17 @@ export class CgiarEntityMapper {
       ),
     );
 
-    cgiarEntityDtoV2.id = cgiarEntity.id;
-    cgiarEntityDtoV2.acronym = cgiarEntity.acronym;
+    if (includeId) {
+      cgiarEntityDtoV2.id = cgiarEntity.id;
+    }
+    const composeCode = this.composeCode(cgiarEntity);
+    if (composeCode) {
+      cgiarEntityDtoV2.compose_code = composeCode;
+    }
+
+    cgiarEntityDtoV2.year = cgiarEntity.year;
     cgiarEntityDtoV2.short_name = cgiarEntity.short_name;
     cgiarEntityDtoV2.acronym = cgiarEntity.acronym;
-    cgiarEntityDtoV2.year = cgiarEntity.year;
     cgiarEntityDtoV2.start_date = cgiarEntity.start_date
       ? DateTime.fromJSDate(cgiarEntity.start_date).toFormat('yyyy-MM-dd')
       : null;
@@ -160,9 +190,10 @@ export class CgiarEntityMapper {
   public classListToDtoV2List(
     cgiarEntities: CgiarEntity[],
     showIsActive: boolean = false,
+    includeId: boolean = false,
   ): CgiarEntityDtoV2[] {
     return cgiarEntities.map((cgiarEntity) =>
-      this.classToDtoV2(cgiarEntity, showIsActive),
+      this.classToDtoV2(cgiarEntity, showIsActive, includeId),
     );
   }
 }

@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { FindManyOptions, FindOptionsOrder, In } from 'typeorm';
 import { CgiarEntityTypeOption } from '../../shared/entities/enums/cgiar-entity-types';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
@@ -13,9 +9,6 @@ import { CgiarEntityDtoV1 } from './dto/cgiar-entity.v1.dto';
 import { CgiarEntityDtoV2 } from './dto/cgiar-entity.v2.dto';
 import { CenterService } from '../center/center.service';
 import { CenterDtoV1 } from '../center/dto/center.v1.dto';
-import { CgiarEntityTypeRepository } from '../cgiar-entity-type/repositories/cgiar-entity-type.repository';
-
-type VersionedGlobalUnitSlug = 'aows' | 'sps';
 
 @Injectable()
 export class CgiarEntityService {
@@ -31,28 +24,15 @@ export class CgiarEntityService {
       cgiar_entity_type_object: true,
       portfolio_object: true,
       outgoing_lineages: {
-        to_global_unit: true,
+        to_global_unit: {
+          parent_object: true,
+        },
       },
       incoming_lineages: {
-        from_global_unit: true,
+        from_global_unit: {
+          parent_object: true,
+        },
       },
-    },
-  };
-
-  private readonly versionedSlugConfig: Record<
-    VersionedGlobalUnitSlug,
-    {
-      prefixes: string[];
-      names: string[];
-    }
-  > = {
-    aows: {
-      prefixes: ['AoW', 'AOW'],
-      names: ['Area of Work', 'Areas of Work'],
-    },
-    sps: {
-      prefixes: ['SP'],
-      names: ['Strategic Program', 'Strategic Programme', 'Strategic Programs'],
     },
   };
 
@@ -60,7 +40,6 @@ export class CgiarEntityService {
     private readonly _cgiarEntityRepository: CgiarEntityRepository,
     private readonly _centerService: CenterService,
     private readonly _cgiarEntityMapper: CgiarEntityMapper,
-    private readonly _cgiarEntityTypeRepository: CgiarEntityTypeRepository,
   ) {}
 
   async findAllV1(
@@ -135,35 +114,94 @@ export class CgiarEntityService {
 
   async findAllV2(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    filters?: { type?: string; portfolioId?: number; year?: number },
   ): Promise<CgiarEntityDtoV2[]> {
-    let cgiarEntities: CgiarEntity[] = [];
+    const qb = this._cgiarEntityRepository
+      .createQueryBuilder('gu')
+      .leftJoinAndSelect('gu.parent_object', 'parent')
+      .leftJoinAndSelect('gu.cgiar_entity_type_object', 'type')
+      .leftJoinAndSelect('gu.portfolio_object', 'portfolio')
+      .leftJoinAndSelect('gu.outgoing_lineages', 'outgoing_lineage')
+      .leftJoinAndSelect(
+        'outgoing_lineage.to_global_unit',
+        'outgoing_lineage_to',
+      )
+      .leftJoinAndSelect(
+        'outgoing_lineage_to.parent_object',
+        'outgoing_lineage_to_parent',
+      )
+      .leftJoinAndSelect('gu.incoming_lineages', 'incoming_lineage')
+      .leftJoinAndSelect(
+        'incoming_lineage.from_global_unit',
+        'incoming_lineage_from',
+      )
+      .leftJoinAndSelect(
+        'incoming_lineage_from.parent_object',
+        'incoming_lineage_from_parent',
+      );
+
     let showIsActive = true;
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        cgiarEntities = await this._cgiarEntityRepository.find(
-          this._findOptionsV2,
-        );
         break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
         showIsActive = option !== FindAllOptions.SHOW_ONLY_ACTIVE;
-        cgiarEntities = await this._cgiarEntityRepository.find({
-          relations: this._findOptionsV2.relations,
-          where: {
-            auditableFields: {
-              is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
-            },
-          },
+        qb.andWhere('gu.is_active = :isActive', {
+          isActive: option === FindAllOptions.SHOW_ONLY_ACTIVE,
         });
         break;
       default:
         throw Error('?!');
     }
 
+    const levelFilter = [1, 2];
+    qb.andWhere('gu.level IN (:...levels)', { levels: levelFilter });
+
+    const portfolioFilter =
+      filters?.portfolioId !== undefined ? filters.portfolioId : 3;
+    qb.andWhere('gu.portfolio_id = :portfolioId', {
+      portfolioId: portfolioFilter,
+    });
+
+    const typeId = this.resolveTypeFilter(filters?.type);
+    if (typeId) {
+      qb.andWhere('gu.global_unit_type_id = :typeId', { typeId });
+    }
+
+    if (filters?.year !== undefined && filters.year !== null) {
+      qb.andWhere('gu.year = :year', { year: filters.year });
+    }
+
+    qb.orderBy('gu.id', 'ASC');
+
+    const entities = await qb.getMany();
+
     return this._cgiarEntityMapper.classListToDtoV2List(
-      cgiarEntities,
+      entities,
       showIsActive,
+      false,
     );
+  }
+
+  private resolveTypeFilter(type?: string): number | undefined {
+    if (!type) {
+      return undefined;
+    }
+
+    const trimmed = type.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    const numeric = Number(trimmed);
+    if (Number.isFinite(numeric)) {
+      return numeric;
+    }
+
+    const option = CgiarEntityTypeOption.getfromPath(trimmed.toLowerCase());
+
+    return option?.entity_type_id;
   }
 
   async findOneV2(id: number): Promise<CgiarEntityDtoV2> {
@@ -210,154 +248,8 @@ export class CgiarEntityService {
     return this._cgiarEntityMapper.classListToDtoV2List(
       cgiarEntities,
       showIsActive,
+      true,
     );
-  }
-
-  async findAoWsByYear(
-    year: number,
-    options?: { latest?: boolean },
-  ): Promise<{ items: CgiarEntityDtoV2[]; latestYear?: number }> {
-    return this.findVersionedEntitiesBySlug('aows', year, options);
-  }
-
-  async findStrategicProgramsByYear(
-    year: number,
-    options?: { latest?: boolean },
-  ): Promise<{ items: CgiarEntityDtoV2[]; latestYear?: number }> {
-    return this.findVersionedEntitiesBySlug('sps', year, options);
-  }
-
-  private ensureValidYear(year: number): void {
-    if (!Number.isInteger(year) || year < 1900 || year > 9999) {
-      throw new BadRequestException('Year must be a valid four-digit number');
-    }
-  }
-
-  private async resolveVersionedTypeIds(
-    slug: VersionedGlobalUnitSlug,
-  ): Promise<number[]> {
-    const config = this.versionedSlugConfig[slug];
-    const staticOption = CgiarEntityTypeOption.getfromPath(slug);
-
-    const candidateIds = new Set<number>();
-
-    if (staticOption) {
-      candidateIds.add(staticOption.entity_type_id);
-    }
-
-    if (config) {
-      const prefixes = Array.from(
-        new Set((config.prefixes || []).map((prefix) => prefix.toLowerCase())),
-      );
-      const names = Array.from(
-        new Set((config.names || []).map((name) => name.toLowerCase())),
-      );
-
-      if (prefixes.length || names.length) {
-        const qb = this._cgiarEntityTypeRepository
-          .createQueryBuilder('gut')
-          .where('0 = 1');
-
-        if (prefixes.length) {
-          qb.orWhere('LOWER(gut.prefix) IN (:...prefixes)', { prefixes });
-        }
-
-        if (names.length) {
-          qb.orWhere('LOWER(gut.name) IN (:...names)', { names });
-        }
-
-        const matches = await qb.getMany();
-        matches.forEach((match) => candidateIds.add(match.id));
-      }
-    }
-
-    return Array.from(candidateIds);
-  }
-
-  private async findVersionedEntitiesBySlug(
-    slug: VersionedGlobalUnitSlug,
-    year: number,
-    options?: { latest?: boolean },
-  ): Promise<{ items: CgiarEntityDtoV2[]; latestYear?: number }> {
-    if (year === undefined || year === null) {
-      throw new BadRequestException(
-        'Year is required for versioned global units',
-      );
-    }
-
-    this.ensureValidYear(year);
-
-    const typeIds = await this.resolveVersionedTypeIds(slug);
-
-    if (!typeIds.length) {
-      throw new NotFoundException(
-        `Global unit types for slug "${slug}" are not configured`,
-      );
-    }
-
-    const latest = options?.latest ?? false;
-
-    const qb = this._cgiarEntityRepository
-      .createQueryBuilder('gu')
-      .leftJoinAndSelect('gu.parent_object', 'parent')
-      .leftJoinAndSelect('gu.cgiar_entity_type_object', 'type')
-      .leftJoinAndSelect('gu.portfolio_object', 'portfolio')
-      .leftJoinAndSelect('gu.outgoing_lineages', 'outgoing_lineage')
-      .leftJoinAndSelect(
-        'outgoing_lineage.to_global_unit',
-        'outgoing_lineage_to',
-      )
-      .leftJoinAndSelect('gu.incoming_lineages', 'incoming_lineage')
-      .leftJoinAndSelect(
-        'incoming_lineage.from_global_unit',
-        'incoming_lineage_from',
-      )
-      .where('gu.global_unit_type_id IN (:...typeIds)', { typeIds })
-      .andWhere('gu.is_active = :isActive', { isActive: true })
-      .orderBy('gu.smo_code', 'ASC');
-
-    if (latest) {
-      const latestPerCodeSubQuery = qb
-        .subQuery()
-        .select('latest.smo_code', 'smo_code')
-        .addSelect('MAX(latest.year)', 'max_year')
-        .from(CgiarEntity, 'latest')
-        .where('latest.global_unit_type_id IN (:...typeIds)')
-        .andWhere('latest.year IS NOT NULL')
-        .andWhere('latest.is_active = :isActive')
-        .groupBy('latest.smo_code')
-        .getQuery();
-
-      qb.innerJoin(
-        latestPerCodeSubQuery,
-        'latest_per_code',
-        'latest_per_code.smo_code = gu.smo_code AND latest_per_code.max_year = gu.year',
-      )
-        .andWhere('gu.year IS NOT NULL')
-        .addOrderBy('gu.year', 'DESC');
-
-      const entities = await qb.getMany();
-      const items = this._cgiarEntityMapper.classListToDtoV2List(entities);
-
-      const latestYear = entities.reduce<number | undefined>((acc, entity) => {
-        if (entity.year === null || entity.year === undefined) {
-          return acc;
-        }
-        if (acc === undefined || entity.year > acc) {
-          return entity.year;
-        }
-        return acc;
-      }, undefined);
-
-      return { items, latestYear };
-    }
-
-    qb.andWhere('gu.year = :year', { year }).addOrderBy('gu.name', 'ASC');
-
-    const entities = await qb.getMany();
-    const items = this._cgiarEntityMapper.classListToDtoV2List(entities);
-
-    return { items };
   }
 
   async getGlobalUnitsHierarchy(): Promise<any[]> {
