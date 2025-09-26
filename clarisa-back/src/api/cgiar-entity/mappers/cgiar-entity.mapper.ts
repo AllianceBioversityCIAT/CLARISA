@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DateTime } from 'luxon';
 import { CgiarEntity } from '../entities/cgiar-entity.entity';
 import { CgiarEntityDtoV1 } from '../dto/cgiar-entity.v1.dto';
 import { CgiarEntityTypeMapper } from '../../cgiar-entity-type/mappers/cgiar-entity-type.mapper';
@@ -8,7 +9,11 @@ import {
 } from '../../../shared/mappers/basic-dto.mapper';
 import { CgiarEntityDtoV2 } from '../dto/cgiar-entity.v2.dto';
 import { Portfolio } from '../../portfolio/entities/portfolio.entity';
-import { DateTime } from 'luxon';
+import { GlobalUnitLineage } from '../entities/global-unit-lineage.entity';
+import {
+  GlobalUnitLineageDto,
+  GlobalUnitLineageUnitDto,
+} from '../dto/global-unit-lineage.dto';
 
 @Injectable()
 export class CgiarEntityMapper {
@@ -22,6 +27,57 @@ export class CgiarEntityMapper {
     private readonly _basicCEDtoMapper: BasicDtoMapper<CgiarEntity>,
     private readonly _basicPDtoMapper: BasicDtoMapper<Portfolio>,
   ) {}
+
+  private mapLineage(
+    lineage: GlobalUnitLineage,
+    includeFrom: boolean,
+    includeTo: boolean,
+  ): GlobalUnitLineageDto {
+    const lineageDto = new GlobalUnitLineageDto();
+    lineageDto.relation_type = lineage.relation_type;
+    lineageDto.note = lineage.note;
+
+    if (includeFrom) {
+      lineageDto.from_global_unit_id = this.buildLineageUnit(
+        lineage.from_global_unit,
+      );
+    }
+
+    if (includeTo) {
+      lineageDto.to_global_unit_id = this.buildLineageUnit(
+        lineage.to_global_unit,
+      );
+    }
+
+    return lineageDto;
+  }
+
+  private buildLineageUnit(
+    entity?: CgiarEntity,
+  ): GlobalUnitLineageUnitDto | undefined {
+    if (!entity) {
+      return undefined;
+    }
+
+    const unit = new GlobalUnitLineageUnitDto();
+    unit.code = entity.smo_code;
+    unit.name = entity.name;
+    unit.compose_code = this.composeCode(entity);
+    unit.year = entity.year;
+
+    return unit;
+  }
+
+  private composeCode(entity?: CgiarEntity): string | undefined {
+    if (!entity?.smo_code) {
+      return undefined;
+    }
+
+    const childCode = entity.smo_code;
+    const parentCode = entity.parent_object?.smo_code;
+
+    return parentCode ? `${parentCode}-${childCode}` : childCode;
+  }
   public classToDtoV1(
     cgiarEntity: CgiarEntity,
     showIsActive: boolean = false,
@@ -40,6 +96,7 @@ export class CgiarEntityMapper {
     cgiarEntityDtoV1.acronym = cgiarEntity.acronym;
     cgiarEntityDtoV1.financial_code = cgiarEntity.financial_code;
     cgiarEntityDtoV1.institutionId = cgiarEntity.institution_id;
+    cgiarEntityDtoV1.year = cgiarEntity.year;
 
     if (cgiarEntity.cgiar_entity_type_object) {
       cgiarEntityDtoV1.cgiarEntityTypeDTO =
@@ -63,6 +120,7 @@ export class CgiarEntityMapper {
   public classToDtoV2(
     cgiarEntity: CgiarEntity,
     showIsActive: boolean = false,
+    includeId: boolean = false,
   ): CgiarEntityDtoV2 {
     const cgiarEntityDtoV2: CgiarEntityDtoV2 = new CgiarEntityDtoV2();
 
@@ -75,8 +133,15 @@ export class CgiarEntityMapper {
       ),
     );
 
-    cgiarEntityDtoV2.id = cgiarEntity.id;
-    cgiarEntityDtoV2.acronym = cgiarEntity.acronym;
+    if (includeId) {
+      cgiarEntityDtoV2.id = cgiarEntity.id;
+    }
+    const composeCode = this.composeCode(cgiarEntity);
+    if (composeCode) {
+      cgiarEntityDtoV2.compose_code = composeCode;
+    }
+
+    cgiarEntityDtoV2.year = cgiarEntity.year;
     cgiarEntityDtoV2.short_name = cgiarEntity.short_name;
     cgiarEntityDtoV2.acronym = cgiarEntity.acronym;
     cgiarEntityDtoV2.start_date = cgiarEntity.start_date
@@ -107,15 +172,28 @@ export class CgiarEntityMapper {
       );
     }
 
+    if (cgiarEntity.outgoing_lineages?.length) {
+      cgiarEntityDtoV2.outgoing_lineages = cgiarEntity.outgoing_lineages.map(
+        (lineage) => this.mapLineage(lineage, true, true),
+      );
+    }
+
+    if (cgiarEntity.incoming_lineages?.length) {
+      cgiarEntityDtoV2.incoming_lineages = cgiarEntity.incoming_lineages.map(
+        (lineage) => this.mapLineage(lineage, true, true),
+      );
+    }
+
     return cgiarEntityDtoV2;
   }
 
   public classListToDtoV2List(
     cgiarEntities: CgiarEntity[],
     showIsActive: boolean = false,
+    includeId: boolean = false,
   ): CgiarEntityDtoV2[] {
     return cgiarEntities.map((cgiarEntity) =>
-      this.classToDtoV2(cgiarEntity, showIsActive),
+      this.classToDtoV2(cgiarEntity, showIsActive, includeId),
     );
   }
 }
