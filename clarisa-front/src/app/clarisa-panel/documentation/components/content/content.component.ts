@@ -47,6 +47,8 @@ export class ContentComponent implements OnInit, OnChanges {
     if (Object.keys(this.urlParams).length == 3) {
       this.handleThreeUrlParams();
     }
+
+    this.showDialog()
   }
 
   private handleTwoUrlParams() {
