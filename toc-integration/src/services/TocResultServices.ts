@@ -20,6 +20,10 @@ import { TocResultIndicatorRegionDto } from "../dto/tocIndicatorRegion";
 import { TocResultIndicatorCountryDto } from "../dto/tocIndicatorCountry";
 import { TocResultIndicatorTargetDTO } from "../dto/tocIndicatorTarget";
 import { TocResultIndicatorTarget } from "../entities/tocIndicatorTarget";
+import { TocResultProject } from "../entities/tocResultsProjects";
+import { TocResultPartners } from "../entities/tocResultsPartners";
+import { TocSdgResults } from "../entities/tocSdgResults";
+
 export class TocResultServices {
   public validatorType = new ValidatorTypes();
   public errorMessage = new ErrorValidators();
@@ -55,7 +59,6 @@ export class TocResultServices {
         );
 
         for (let tocResultItem of toc_results) {
-          console.log("🚀 ~ TocResultServices ~ tocResultItem:", tocResultItem);
           if (
             this.validatorType.existPropertyInObjectMul(tocResultItem, [
               "toc_result_id",
@@ -450,7 +453,6 @@ export class TocResultServices {
               },
             });
             if (!existingRecordActionTarget) {
-              // Update existing record
               await tocResultRepo.insert(actionResult);
             }
             actionAreaToc.push(actionResult);
@@ -728,6 +730,665 @@ export class TocResultServices {
     } catch (error) {
       console.error("Error in saveIndicatorTarget:", error);
       throw new Error(`Error saving toc results target: ${error}`);
+    }
+  }
+
+  async saveTocResultsV2(
+    data: any[],
+    meta: {
+      phase: string | null;
+      original_id: string | null;
+      version_id?: string | null;
+      official_code: string | null;
+    },
+    globalSdgResults: TocSdgResults[] = [],
+    globalImpactAreaResults: any[] = []
+  ) {
+    try {
+      console.info({ message: "Saving ToC results V2" });
+      const dataSource: DataSource = await Database.getDataSource();
+      const repo = dataSource.getRepository(TocResults);
+      const listResultsToc: TocResults[] = [];
+
+      let listResultsIndicator: TocResultsIndicators[] = [];
+      let listRegions: any[] = [];
+      let listCountries: any[] = [];
+      let listResultsSdg: TocResultsSdgResults[] = [];
+      let listResultsImpact: TocResultsImpactAreaResults[] = [];
+
+      if (!this.validatorType.validatorIsArray(data)) {
+        return {
+          listResultsToc,
+          listResultsIndicator,
+          listRegions,
+          listCountries,
+          listResultsSdg,
+          listResultsImpact,
+        };
+      }
+
+      const allowed = new Set(["OUTCOME", "OUTPUT", "EOI"]);
+      const items = data.filter((it) => {
+        const cat =
+          typeof it?.category === "string" ? it.category.toUpperCase() : null;
+        return cat && allowed.has(cat);
+      });
+
+      for (const item of items) {
+        console.info({
+          message: "Processing ToC result",
+          itemId: item?.title,
+          category: item?.category,
+        });
+
+        const toc_result_id =
+          typeof item?.id === "string" || typeof item?.id === "number"
+            ? String(item.id)
+            : null;
+        if (!toc_result_id) continue;
+
+        const record: Partial<TocResults> = {
+          toc_result_id,
+          related_node_id:
+            typeof item?.related_node_id === "string"
+              ? item.related_node_id
+              : null,
+          result_title: typeof item?.title === "string" ? item.title : null,
+          result_description:
+            typeof item?.description === "string" ? item.description : null,
+          category:
+            typeof item?.category === "string"
+              ? item.category.toUpperCase()
+              : null,
+          wp_id:
+            typeof item?.group === "string" || typeof item?.group === "number"
+              ? String(item.group)
+              : null,
+
+          id_toc_initiative:
+            typeof meta?.original_id === "string" ? meta.original_id : null,
+          phase: typeof meta?.phase === "string" ? meta.phase : null,
+          version_id:
+            typeof meta?.version_id === "string" ? meta.version_id : null,
+          official_code: meta?.official_code ?? null,
+          is_global: true,
+          is_active: true,
+        };
+
+        const existing = await repo.findOne({
+          where: {
+            toc_result_id: record.toc_result_id,
+            phase: record.phase as any,
+          },
+        });
+
+        if (existing) {
+          await repo.update(
+            { toc_result_id: record.toc_result_id!, phase: record.phase! },
+            record
+          );
+        } else {
+          await repo.insert(record);
+        }
+
+        const saved = await repo.findOne({
+          where: {
+            toc_result_id: record.toc_result_id,
+            phase: record.phase as any,
+          },
+        });
+        if (!saved) continue;
+        listResultsToc.push(saved);
+
+        const projectsArray = Array.isArray(item?.projects)
+          ? item.projects
+          : [];
+        if (projectsArray.length) {
+          await this.saveResultProjectsV2(String(item.id), projectsArray);
+        }
+
+        const partnersArray = Array.isArray(item?.partners)
+          ? item.partners
+          : [];
+        if (partnersArray.length) {
+          await this.saveResultPartnersV2(String(item.id), partnersArray);
+        }
+
+        const indicatorsArray = Array.isArray(item?.quantitative_indicators)
+          ? item.quantitative_indicators
+          : [];
+        const indRes = await this.tocResultsIndicatorV2(
+          String(item.id),
+          indicatorsArray,
+          saved
+        );
+        listResultsIndicator.push(...indRes.listResultsIndicator);
+        listRegions.push(...indRes.listRegions);
+        listCountries.push(...indRes.listCountries);
+
+        const sdgNested = Array.isArray(item?.sdg_results)
+          ? item.sdg_results
+          : item?.sdgs && Array.isArray(item.sdgs)
+          ? item.sdgs
+          : [];
+        const sdgRel = await this.saveTocResultsSdgV2(
+          String(item.id),
+          sdgNested,
+          globalSdgResults,
+          saved
+        );
+        listResultsSdg.push(...sdgRel);
+
+        const impactNested = Array.isArray(item?.impact_area_results)
+          ? item.impact_area_results
+          : item?.impact_areas && Array.isArray(item.impact_areas)
+          ? item.impact_areas
+          : [];
+        const impactRel = await this.saveTocResultsImpactV2(
+          String(item.id),
+          impactNested,
+          globalImpactAreaResults,
+          saved
+        );
+        listResultsImpact.push(...impactRel);
+      }
+
+      return {
+        listResultsToc,
+        listResultsIndicator,
+        listRegions,
+        listCountries,
+        listResultsSdg,
+        listResultsImpact,
+      };
+    } catch (error) {
+      throw new Error(`Error saving ToC results V2: ${error}`);
+    }
+  }
+
+  async tocResultsIndicatorV2(
+    id_result: string,
+    indicators: any[],
+    tocResultRow: TocResults
+  ) {
+    try {
+      console.info({ message: "Saving ToC results indicators V2" });
+      const dataSource: DataSource = await Database.getDataSource();
+      const indicatorRepo = dataSource.getRepository(TocResultsIndicators);
+
+      let listResultsIndicator: TocResultsIndicators[] = [];
+      let listRegions: any[] = [];
+      let listCountries: any[] = [];
+
+      if (!this.validatorType.validatorIsArray(indicators)) {
+        return { listResultsIndicator, listRegions, listCountries };
+      }
+
+      await indicatorRepo.update(
+        { toc_results_id: tocResultRow.id },
+        { is_active: false }
+      );
+
+      for (const ind of indicators) {
+        if (!ind || (typeof ind.id !== "string" && typeof ind.id !== "number"))
+          continue;
+
+        const baselineRaw = Array.isArray(ind?.baseline)
+          ? ind.baseline[0]
+          : ind?.baseline;
+        const baselineValue =
+          baselineRaw && baselineRaw.value != null
+            ? String(baselineRaw.value)
+            : null;
+        const baselineDate =
+          typeof baselineRaw?.name === "string"
+            ? baselineRaw.name
+            : typeof baselineRaw?.date === "string"
+            ? baselineRaw.date
+            : null;
+
+        const dto = new TocResultsIndicatorsDto();
+        dto.toc_result_indicator_id =
+          typeof ind.id === "string" || typeof ind.id === "number"
+            ? String(ind.id)
+            : null;
+        dto.toc_results_id = tocResultRow.id;
+        dto.indicator_description =
+          typeof ind?.description === "string" ? ind.description : null;
+        dto.unit_messurament =
+          typeof ind?.unit_of_measurement === "string"
+            ? ind.unit_of_measurement
+            : null;
+        dto.baseline_value = baselineValue;
+        dto.baseline_date = baselineDate;
+
+        dto.data_colletion_source =
+          typeof ind?.data_collection_source === "string"
+            ? ind.data_collection_source
+            : null;
+        dto.data_collection_method =
+          typeof ind?.data_collection_method === "string"
+            ? ind.data_collection_method
+            : null;
+        dto.frequency_data_collection =
+          typeof ind?.data_collection_frequency === "string"
+            ? ind.data_collection_frequency
+            : null;
+        dto.type_value =
+          typeof ind?.type?.value === "string" ? ind.type.value : null;
+        dto.type_name =
+          typeof ind?.type?.name === "string" ? ind.type.name : null;
+        dto.location = typeof ind?.location === "string" ? ind.location : null;
+        dto.is_active = true;
+        dto.toc_result_id_toc = id_result;
+        dto.main = typeof ind?.main === "boolean" ? ind.main : null;
+        dto.create_date =
+          typeof ind?.creation_date === "string" ? ind.creation_date : null;
+        dto.related_node_id =
+          typeof ind?.related_node_id === "string"
+            ? ind.related_node_id
+            : String(ind.id);
+
+        const exists = await indicatorRepo.findOne({
+          where: {
+            related_node_id: dto.related_node_id,
+            toc_results_id: dto.toc_results_id,
+          },
+        });
+
+        if (exists) {
+          await indicatorRepo.update(
+            {
+              related_node_id: dto.related_node_id,
+              toc_results_id: dto.toc_results_id,
+            },
+            dto
+          );
+        } else {
+          await indicatorRepo.insert(dto);
+        }
+
+        const saved = await indicatorRepo.findOne({
+          where: {
+            related_node_id: dto.related_node_id,
+            toc_results_id: dto.toc_results_id,
+          },
+        });
+        if (saved) listResultsIndicator.push(saved);
+
+        const geo = {
+          regions: ind?.region ?? ind?.regions ?? [],
+          country: ind?.country ?? ind?.countries ?? [],
+        };
+        const geoRes = await this.saveIndicatorGeoScopeV2(String(ind.id), {
+          region: Array.isArray(ind?.region) ? ind.region : [],
+          country: Array.isArray(ind?.country) ? ind.country : [],
+        });
+        listRegions.push(...geoRes.listRegios);
+        listCountries.push(...geoRes.listCountries);
+
+        if (saved && ind?.target != null) {
+          await this.saveIndicatorTargetV2(
+            saved.id,
+            saved.toc_result_indicator_id,
+            ind.target
+          );
+        }
+      }
+
+      return { listResultsIndicator, listRegions, listCountries };
+    } catch (error) {
+      throw new Error(`Error saving toc results indicators V2: ${error}`);
+    }
+  }
+
+  async saveIndicatorGeoScopeV2(
+    indicatorId: string,
+    geo: { region?: any[]; country?: any[] }
+  ) {
+    try {
+      console.info({ message: "Saving indicator geo scope V2" });
+      const dataSource: DataSource = await Database.getDataSource();
+      const regionRepo = dataSource.getRepository(TocResultIndicatorRegion);
+      const countryRepo = dataSource.getRepository(TocResultIndicatorCountry);
+
+      let listRegios: TocResultIndicatorRegionDto[] = [];
+      let listCountries: TocResultIndicatorCountryDto[] = [];
+
+      await regionRepo.delete({ toc_result_id: indicatorId as any });
+      await countryRepo.delete({ toc_result_id: indicatorId as any });
+
+      const regions = Array.isArray(geo?.region) ? geo.region : [];
+      const seenRegions = new Set<number>();
+      for (const r of regions) {
+        const um49 =
+          typeof r?.um49Code === "number"
+            ? r.um49Code
+            : typeof r?.code === "number"
+            ? r.code
+            : typeof r?.id === "number"
+            ? r.id
+            : null;
+        if (um49 == null || seenRegions.has(um49)) continue;
+        seenRegions.add(um49);
+
+        const row = new TocResultIndicatorRegionDto();
+        row.toc_result_id = indicatorId;
+        row.clarisa_regions_id = um49;
+
+        const exists = await regionRepo.findOne({
+          where: {
+            toc_result_id: row.toc_result_id as any,
+            clarisa_regions_id: row.clarisa_regions_id as any,
+          },
+        });
+        if (!exists) await regionRepo.save(row);
+        listRegios.push(row);
+      }
+
+      const countries = Array.isArray(geo?.country) ? geo.country : [];
+      const seenCountries = new Set<number>();
+      for (const c of countries) {
+        const code =
+          typeof c?.code === "number"
+            ? c.code
+            : typeof c?.country_id === "number"
+            ? c.country_id
+            : null;
+        if (code == null || seenCountries.has(code)) continue;
+        seenCountries.add(code);
+
+        const row = new TocResultIndicatorCountryDto();
+        row.toc_result_id = indicatorId;
+        row.clarisa_countries_id = code;
+
+        const exists = await countryRepo.findOne({
+          where: {
+            toc_result_id: row.toc_result_id as any,
+            clarisa_countries_id: row.clarisa_countries_id as any,
+          },
+        });
+        if (!exists) await countryRepo.save(row);
+        listCountries.push(row);
+      }
+
+      return { listRegios, listCountries };
+    } catch (error) {
+      throw new Error(`Error saving indicator geo scope V2: ${error}`);
+    }
+  }
+
+  async saveIndicatorTargetV2(
+    id_indicator: number,
+    toc_result_indicator_id: string,
+    target: any
+  ) {
+    console.info({ message: "Saving indicator targets V2" });
+    try {
+      const dataSource: DataSource = await Database.getDataSource();
+      const repo = dataSource.getRepository(TocResultIndicatorTarget);
+
+      if (!id_indicator || !toc_result_indicator_id) return true;
+
+      const targets: any[] = Array.isArray(target)
+        ? target
+        : target && typeof target === "object"
+        ? [target]
+        : [];
+
+      await repo.delete({ toc_result_indicator_id });
+
+      let number = 1;
+      for (const t of targets) {
+        if (!t) continue;
+
+        const row = repo.create({
+          id_indicator,
+          toc_result_indicator_id,
+          number_target: number++,
+          target_value:
+            typeof t.value === "number" && !Number.isNaN(t.value)
+              ? t.value
+              : typeof t.value === "string" &&
+                t.value.trim() !== "" &&
+                !Number.isNaN(Number(t.value))
+              ? Number(t.value)
+              : null,
+          target_date:
+            typeof t.date === "string" && t.date.trim() !== ""
+              ? t.date.trim()
+              : null,
+        });
+
+        await repo.insert(row);
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error in saveIndicatorTargetV2:", error);
+      throw new Error(`Error saving indicator targets V2: ${error}`);
+    }
+  }
+
+  async saveResultProjectsV2(toc_result_id_toc: string, projects: any[]) {
+    console.info({ message: "Saving result Projects Bilateral" });
+    const dataSource: DataSource = await Database.getDataSource();
+    const projectRepo = dataSource.getRepository(TocResultProject);
+
+    if (!Array.isArray(projects) || !toc_result_id_toc) return [];
+
+    await projectRepo.delete({ toc_result_id_toc });
+
+    const saved: TocResultProject[] = [];
+    for (const p of projects) {
+      const project_id =
+        typeof p?.id === "string" || typeof p?.id === "number"
+          ? String(p.id)
+          : null;
+      if (!project_id) continue;
+
+      const row = projectRepo.create({
+        toc_result_id_toc,
+        project_id,
+        name: typeof p?.name === "string" ? p.name : null,
+        project_summary:
+          typeof p?.project_summary === "string" ? p.project_summary : null,
+        creation_date:
+          typeof p?.creation_date === "string" ? p.creation_date : null,
+        start_date: typeof p?.start_date === "string" ? p.start_date : null,
+        end_date: typeof p?.end_date === "string" ? p.end_date : null,
+      });
+
+      await projectRepo.insert(row);
+      saved.push(row);
+    }
+    return saved;
+  }
+
+  async saveResultPartnersV2(toc_result_id_toc: string, partners: any[]) {
+    try {
+      console.info({ message: "Saving result Partners V2" });
+      const dataSource: DataSource = await Database.getDataSource();
+      const partnerRepo = dataSource.getRepository(TocResultPartners);
+
+      if (!Array.isArray(partners) || !toc_result_id_toc) return [];
+
+      await partnerRepo.delete({ toc_result_id_toc });
+
+      const saved: TocResultPartners[] = [];
+      for (const p of partners) {
+        if (!p) continue;
+
+        const row = partnerRepo.create({
+          toc_result_id_toc,
+          toc_id: typeof p?.toc_id === "string" ? p.toc_id : null,
+          name: typeof p?.name === "string" ? p.name : null,
+          acronym: typeof p?.acronym === "string" ? p.acronym : null,
+          code: typeof p?.code === "number" ? p.code : null,
+          website_link:
+            typeof p?.websiteLink === "string" ? p.websiteLink : null,
+          added: typeof p?.added === "string" ? p.added : null,
+          add_source: typeof p?.add_source === "string" ? p.add_source : null,
+        });
+
+        await partnerRepo.insert(row);
+        saved.push(row);
+      }
+      return saved;
+    } catch (error) {
+      throw new Error(`Error saving result partners V2: ${error}`);
+    }
+  }
+
+  async saveTocResultsSdgV2(
+    toc_result_id_toc: string,
+    nestedSdgArray: any[],
+    globalSdgResults: TocSdgResults[],
+    tocResultRow: TocResults
+  ) {
+    try {
+      const dataSource: DataSource = await Database.getDataSource();
+      const relRepo = dataSource.getRepository(TocResultsSdgResults);
+
+      if (!Array.isArray(nestedSdgArray) || !tocResultRow?.id) return [];
+
+      await relRepo.update(
+        { toc_results_id: tocResultRow.id },
+        { is_active: 0 }
+      );
+
+      const relations: TocResultsSdgResults[] = [];
+      for (const sdgItem of nestedSdgArray) {
+        const sdgTocResultId =
+          typeof sdgItem?.id === "string" || typeof sdgItem?.id === "number"
+            ? String(sdgItem.id)
+            : typeof sdgItem?.toc_result_id === "string"
+            ? sdgItem.toc_result_id
+            : null;
+        if (!sdgTocResultId) continue;
+
+        const matched = globalSdgResults.find(
+          (g) => g.toc_result_id === sdgTocResultId
+        );
+        if (!matched) continue;
+
+        const dto = new TocResultsSdgResultsDto();
+        dto.toc_results_id = tocResultRow.id;
+        dto.toc_sdg_results_id = matched.id;
+        dto.toc_results_id_toc = toc_result_id_toc;
+        dto.toc_sdg_results_id_toc = sdgTocResultId;
+        dto.is_active = 1;
+
+        const existing = await relRepo.findOne({
+          where: {
+            toc_results_id: dto.toc_results_id,
+            toc_sdg_results_id: dto.toc_sdg_results_id,
+          },
+        });
+
+        if (existing) {
+          await relRepo.update(
+            {
+              toc_results_id: dto.toc_results_id,
+              toc_sdg_results_id: dto.toc_sdg_results_id,
+            },
+            dto
+          );
+          relations.push({ ...(existing as any), ...dto });
+        } else {
+          await relRepo.insert(dto);
+          const saved = await relRepo.findOne({
+            where: {
+              toc_results_id: dto.toc_results_id,
+              toc_sdg_results_id: dto.toc_sdg_results_id,
+            },
+          });
+          if (saved) relations.push(saved);
+        }
+      }
+      return relations;
+    } catch (error) {
+      throw new Error(`Error saving ToC results SDG relations V2: ${error}`);
+    }
+  }
+
+  async saveTocResultsImpactV2(
+    toc_result_id_toc: string,
+    nestedImpactArray: any[],
+    globalImpactAreaResults: any[],
+    tocResultRow: TocResults
+  ) {
+    try {
+      const dataSource: DataSource = await Database.getDataSource();
+      const relRepo = dataSource.getRepository(TocResultsImpactAreaResults);
+
+      if (!Array.isArray(nestedImpactArray) || !tocResultRow?.id) return [];
+
+      const fkResultId = String(tocResultRow.id);
+
+      await relRepo.update(
+        { toc_results_id: fkResultId },
+        { is_active: false }
+      );
+
+      const relations: TocResultsImpactAreaResults[] = [];
+      for (const iaItem of nestedImpactArray) {
+        const impactTocResultId =
+          typeof iaItem?.id === "string" || typeof iaItem?.id === "number"
+            ? String(iaItem.id)
+            : typeof iaItem?.toc_result_id === "string"
+            ? iaItem.toc_result_id
+            : null;
+        if (!impactTocResultId) continue;
+
+        const matched = globalImpactAreaResults.find(
+          (g) => g.toc_result_id === impactTocResultId
+        );
+        console.log(
+          "🚀 ~ TocResultServices ~ saveTocResultsImpactV2 ~ matched:",
+          matched
+        );
+        if (!matched) continue;
+
+        const dto = new TocResultsImpactAreaResultsDto();
+        dto.toc_results_id = fkResultId;
+        dto.toc_impact_area_results_id = String(matched.id);
+        dto.toc_results_id_toc = toc_result_id_toc;
+        dto.toc_impact_area_results_id_toc = impactTocResultId;
+        dto.is_active = true;
+
+        const existing = await relRepo.findOne({
+          where: {
+            toc_results_id: dto.toc_results_id,
+            toc_impact_area_results_id: dto.toc_impact_area_results_id,
+          },
+        });
+
+        if (existing) {
+          await relRepo.update(
+            {
+              toc_results_id: dto.toc_results_id,
+              toc_impact_area_results_id: dto.toc_impact_area_results_id,
+            },
+            dto
+          );
+          relations.push({ ...(existing as any), ...dto });
+        } else {
+          await relRepo.insert(dto);
+          const saved = await relRepo.findOne({
+            where: {
+              toc_results_id: dto.toc_results_id,
+              toc_impact_area_results_id: dto.toc_impact_area_results_id,
+            },
+          });
+          if (saved) relations.push(saved);
+        }
+      }
+      return relations;
+    } catch (error) {
+      throw new Error(
+        `Error saving ToC results impact area relations V2: ${error}`
+      );
     }
   }
 }

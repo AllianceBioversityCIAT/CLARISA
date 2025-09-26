@@ -205,4 +205,183 @@ export class TocSdgsServices {
       throw error;
     }
   }
+
+  async createTocSdgResultsV2(
+    items: any[],
+    meta: { phase: string | null; original_id: string | null }
+  ) {
+    console.info({ message: "Creating ToC SDG Results V2" });
+    const dataSource: DataSource = await Database.getDataSource();
+    const sdgRepo = dataSource.getRepository(TocSdgResults);
+
+    const listValidSdgResults: TocSdgResults[] = [];
+    const listSdgTargets: TocSdgResultsSdgTargets[] = [];
+    const listIndicators: TocSdgResultsSdgIndicators[] = [];
+
+    if (!this.validatorType.validatorIsArray(items)) {
+      return { sdgResults: [], sdgTargets: [], sdgIndicators: [] };
+    }
+
+    const sdgItems = items.filter((it) => {
+      const cat =
+        typeof it?.category === "string"
+          ? it.category.trim().toUpperCase()
+          : "";
+      return cat === "SDG";
+    });
+
+    for (const item of sdgItems) {
+      const toc_result_id =
+        typeof item?.id === "string" || typeof item?.id === "number"
+          ? String(item.id)
+          : null;
+      const sdg_id_raw = item?.type?.usndCode;
+      const sdg_id =
+        typeof sdg_id_raw === "number"
+          ? sdg_id_raw
+          : Number.isFinite(Number(sdg_id_raw))
+          ? Number(sdg_id_raw)
+          : null;
+      const sdg_contribution =
+        typeof item?.type?.fullName === "string" ? item.type.fullName : null;
+
+      if (!toc_result_id) continue;
+
+      const dto = new CreateSdgResultsDto();
+      dto.toc_result_id = toc_result_id;
+      dto.sdg_id = sdg_id ?? null;
+      dto.sdg_contribution = sdg_contribution;
+      dto.phase = meta?.phase ?? null;
+      dto.id_toc_initiative = meta?.original_id ?? null;
+      dto.is_active = true;
+
+      const existing = await sdgRepo.findOne({
+        where: { toc_result_id: dto.toc_result_id, phase: dto.phase },
+      });
+
+      if (existing) {
+        await sdgRepo.update(
+          { toc_result_id: dto.toc_result_id, phase: dto.phase },
+          dto
+        );
+      } else {
+        await sdgRepo.insert(dto);
+      }
+
+      const saved = await sdgRepo.findOne({
+        where: { toc_result_id: dto.toc_result_id, phase: dto.phase },
+      });
+      if (!saved) continue;
+
+      listValidSdgResults.push(saved);
+
+      // Targets
+      const targets = Array.isArray(item?.targets) ? item.targets : [];
+      const targetsSaved = await this.createTocSdgResultsSdgTargetsV2(
+        targets,
+        saved,
+        toc_result_id
+      );
+      listSdgTargets.push(...targetsSaved);
+
+      // Indicators
+      const indicators = Array.isArray(item?.indicators) ? item.indicators : [];
+      const indicatorsSaved = await this.createTocSdgResultsTocSdgIndicatorsV2(
+        indicators,
+        saved,
+        toc_result_id
+      );
+      listIndicators.push(...indicatorsSaved);
+    }
+
+    return {
+      sdgResults: listValidSdgResults,
+      sdgTargets: listSdgTargets,
+      sdgIndicators: listIndicators,
+    };
+  }
+
+  async createTocSdgResultsSdgTargetsV2(
+    targets: any[],
+    sdg: TocSdgResults,
+    toc_results_id_toc: string
+  ) {
+    const dataSource: DataSource = await Database.getDataSource();
+    const sdgRepoTarget = dataSource.getRepository(TocSdgResultsSdgTargets);
+
+    const sdgTargets: TocSdgResultsSdgTargets[] = [];
+    if (!this.validatorType.validatorIsArray(targets)) return sdgTargets;
+
+    for (const t of targets) {
+      const sdg_target_id =
+        typeof t?.id === "number"
+          ? t.id
+          : Number.isFinite(Number(t?.id))
+          ? Number(t.id)
+          : null;
+      if (!sdg_target_id) continue;
+
+      const relacion = new TocSdgResultsSdgTargetsDto();
+      relacion.toc_sdg_results_id = sdg.id;
+      relacion.toc_sdg_results_id_toc = toc_results_id_toc;
+      relacion.sdg_target_id = sdg_target_id;
+      relacion.is_active = true;
+
+      const exists = await sdgRepoTarget.findOne({
+        where: {
+          toc_sdg_results_id: relacion.toc_sdg_results_id,
+          toc_sdg_results_id_toc: relacion.toc_sdg_results_id_toc,
+          sdg_target_id: relacion.sdg_target_id,
+        },
+      });
+      if (!exists) {
+        await sdgRepoTarget.insert(relacion);
+      }
+      sdgTargets.push(relacion as any);
+    }
+    return sdgTargets;
+  }
+
+  async createTocSdgResultsTocSdgIndicatorsV2(
+    indicators: any[],
+    sdg: TocSdgResults,
+    toc_results_id_toc: string
+  ) {
+    const dataSource: DataSource = await Database.getDataSource();
+    const sdgIndicatorRep = dataSource.getRepository(
+      TocSdgResultsSdgIndicators
+    );
+
+    const result: TocSdgResultsSdgIndicators[] = [];
+    if (!this.validatorType.validatorIsArray(indicators)) return result;
+
+    for (const ind of indicators) {
+      const sdg_indicator_id =
+        typeof ind?.target_id === "number"
+          ? ind.target_id
+          : Number.isFinite(Number(ind?.target_id))
+          ? Number(ind.target_id)
+          : null;
+      if (!sdg_indicator_id) continue;
+
+      const relacion = new TocSdgResultsSdgIndicatorsDto();
+      relacion.toc_sdg_results_id = sdg.id;
+      relacion.toc_sdg_results_id_toc = toc_results_id_toc;
+      relacion.sdg_indicator_id = sdg_indicator_id;
+      relacion.is_active = true;
+
+      const exists = await sdgIndicatorRep.findOne({
+        where: {
+          toc_sdg_results_id: relacion.toc_sdg_results_id,
+          toc_sdg_results_id_toc: relacion.toc_sdg_results_id_toc,
+          sdg_indicator_id: relacion.sdg_indicator_id,
+        },
+      });
+      if (!exists) {
+        await sdgIndicatorRep.insert(relacion);
+      }
+      result.push(relacion as any);
+    }
+    return result;
+  }
 }
