@@ -1,0 +1,51 @@
+name: Trigger Jenkins Job (Clarisa)
+
+on:
+  push:
+    branches:
+      - "dev-v2"
+      - "main"
+  pull_request:
+    branches:
+      - "dev-v2"
+      - "main"
+  workflow_dispatch:
+
+jobs:
+  trigger-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine Jenkins Job URL
+        run: |
+          if [[ -n "$GITHUB_BASE_REF" ]]; then
+            ref_name="$GITHUB_BASE_REF"
+          else
+            ref_name="${GITHUB_REF##*/}"
+          fi
+
+          case "$ref_name" in
+            main)
+              job_name="clarisa-application-prod"
+              ;;
+            dev-v2)
+              job_name="clarisa-application-dev"
+              ;;
+            *)
+              echo "Unsupported target branch: $ref_name" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "Using Jenkins job: $job_name"
+          echo "JENKINS_URL=https://automation.prms.cgiar.org/job/${job_name}/build" >> $GITHUB_ENV
+
+      - name: Trigger Jenkins Job
+        run: |
+          curl -X POST ${{ env.JENKINS_URL }} \
+            --user ${{ secrets.JENKINS_USERNAME }}:${{ secrets.JENKINS_API_TOKEN }}
+        env:
+          JENKINS_URL: ${{ env.JENKINS_URL }}
+          JENKINS_USERNAME: ${{ secrets.JENKINS_USERNAME }}
+          JENKINS_API_TOKEN: ${{ secrets.JENKINS_API_TOKEN }}
+
