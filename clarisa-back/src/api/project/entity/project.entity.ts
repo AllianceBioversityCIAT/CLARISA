@@ -9,18 +9,14 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
-import { Institution } from '../../institution/entities/institution.entity'; // catálogo CLARISA
+import { Institution } from '../../institution/entities/institution.entity';
 import { ProjectCountry } from './project-country.entity';
 import { ProjectMapping } from './project-mapping.entity';
 
-@Entity('projects')
+@Entity('project')
 export class Project {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
-
-  @Index()
-  @Column({ type: 'bigint', nullable: true })
-  legacy_project_id: number;
 
   @Column({ type: 'text', nullable: false })
   short_name: string;
@@ -44,29 +40,29 @@ export class Project {
   total_budget: string;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
-  remaining_budget: string;
+  remaining: string;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
-  annual_budget: string;
+  annual: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  funding_source?: string;
+  source_of_funding?: string;
 
   // ===== Relaciones con catálogos CLARISA (por ID + objeto) =====
   @Index()
   @Column({ type: 'bigint', nullable: true })
-  lead_institution_id: number;
+  organization_code: number;
 
   @Index()
   @Column({ type: 'bigint', nullable: true })
-  funder_institution_id: number;
+  funder_code: number;
 
   @ManyToOne(() => Institution, (i) => i.lead_projects, { nullable: true })
-  @JoinColumn({ name: 'lead_institution_id' })
+  @JoinColumn({ name: 'organization_code' })
   lead_institution_object: Institution;
 
   @ManyToOne(() => Institution, (i) => i.funded_projects, { nullable: true })
-  @JoinColumn({ name: 'funder_institution_id' })
+  @JoinColumn({ name: 'funder_code' })
   funder_institution_object: Institution;
 
   // ===== Relaciones objeto =====

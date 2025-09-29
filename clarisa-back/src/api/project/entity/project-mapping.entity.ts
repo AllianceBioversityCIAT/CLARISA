@@ -16,7 +16,7 @@ export type Level = 'low' | 'medium' | 'high';
 export type MappingStatus = 'Confirmed' | 'Proposed' | 'Rejected' | 'Pending';
 
 @Entity('project_mapping')
-@Unique('uq_project_globalunit', ['project_id', 'global_unit_id'])
+@Unique('uq_project_globalunit', ['project_id', 'program_id'])
 export class ProjectMapping {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
@@ -28,7 +28,7 @@ export class ProjectMapping {
   /** CLARISA: global_units.id */
   @Index()
   @Column({ type: 'bigint', nullable: false })
-  global_unit_id: number;
+  program_id: number;
 
   @Column({ type: 'int', nullable: false })
   allocation: number; // 0..100 (valida en servicio o agrega CHECK en migration)
@@ -59,7 +59,7 @@ export class ProjectMapping {
   @ManyToOne(() => CgiarEntity, (gu) => gu.project_mappings_array, {
     nullable: true,
   })
-  @JoinColumn({ name: 'global_unit_id' })
+  @JoinColumn({ name: 'program_id' })
   global_unit_object: CgiarEntity;
 
   // auditable fields

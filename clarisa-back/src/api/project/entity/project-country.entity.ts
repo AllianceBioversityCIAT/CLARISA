@@ -13,7 +13,7 @@ import { Country } from '../../country/entities/country.entity';
 import { Project } from './project.entity';
 
 @Entity('project_countries')
-@Unique('uq_project_country', ['project_id', 'country_iso_numeric'])
+@Unique('uq_project_country', ['project_id', 'country_code'])
 export class ProjectCountry {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
@@ -24,7 +24,7 @@ export class ProjectCountry {
 
   @Index()
   @Column({ type: 'bigint', nullable: false })
-  country_iso_numeric: number;
+  country_code: number;
 
   // object relations
   @ManyToOne(() => Project, (p) => p.project_countries_array, {
@@ -37,7 +37,7 @@ export class ProjectCountry {
     nullable: true,
   })
   @JoinColumn({
-    name: 'country_iso_numeric',
+    name: 'country_code',
     referencedColumnName: 'iso_numeric',
   })
   country_object: Country;

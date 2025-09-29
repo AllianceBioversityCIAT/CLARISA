@@ -33,10 +33,10 @@ export class ProjectRepository extends Repository<Project> {
       order: {
         id: 'ASC',
         project_countries_array: {
-          country_iso_numeric: 'ASC',
+          country_code: 'ASC',
         },
         project_mappings_array: {
-          global_unit_id: 'ASC',
+          program_id: 'ASC',
         },
       },
     });
