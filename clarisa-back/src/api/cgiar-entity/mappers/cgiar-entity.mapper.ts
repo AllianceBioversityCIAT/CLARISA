@@ -151,6 +151,7 @@ export class CgiarEntityMapper {
       ? DateTime.fromJSDate(cgiarEntity.end_date).toFormat('yyyy-MM-dd')
       : null;
     cgiarEntityDtoV2.level = cgiarEntity.level;
+    cgiarEntityDtoV2.is_active = cgiarEntity.auditableFields?.is_active;
 
     if (cgiarEntity.cgiar_entity_type_object) {
       cgiarEntityDtoV2.entity_type = this._cgiarEntityTypeMapper.classToDtoV1(
