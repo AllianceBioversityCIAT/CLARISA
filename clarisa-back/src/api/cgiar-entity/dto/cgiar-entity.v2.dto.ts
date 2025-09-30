@@ -15,4 +15,5 @@ export class CgiarEntityDtoV2 extends BasicDto {
   level: number;
   incoming_lineages?: GlobalUnitLineageDto[];
   outgoing_lineages?: GlobalUnitLineageDto[];
+  is_active?: boolean;
 }
