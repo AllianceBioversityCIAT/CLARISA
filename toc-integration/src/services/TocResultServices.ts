@@ -815,28 +815,40 @@ export class TocResultServices {
           is_active: true,
         };
 
-        const existing = await repo.findOne({
-          where: {
-            toc_result_id: record.toc_result_id,
-            phase: record.phase as any,
-          },
-        });
+        const hasRelatedNodeId =
+          typeof record.related_node_id === "string" && record.related_node_id;
 
-        if (existing) {
-          await repo.update(
-            { toc_result_id: record.toc_result_id!, phase: record.phase! },
-            record
-          );
+        const whereByRelatedNode: Partial<TocResults> | null = hasRelatedNodeId
+          ? {
+              related_node_id: record.related_node_id,
+              ...(record.id_toc_initiative
+                ? { id_toc_initiative: record.id_toc_initiative }
+                : {}),
+              ...(record.phase ? { phase: record.phase as any } : {}),
+            }
+          : null;
+
+        let saved: TocResults | null = null;
+
+        if (whereByRelatedNode) {
+          const existing = await repo.findOne({ where: whereByRelatedNode });
+
+          if (existing) {
+            await repo.update(whereByRelatedNode, record);
+          } else {
+            await repo.insert(record);
+          }
+
+          saved = await repo.findOne({ where: whereByRelatedNode });
         } else {
-          await repo.insert(record);
+          const insertResult = await repo.insert(record);
+          const identifier = insertResult.identifiers?.[0];
+
+          if (identifier?.id) {
+            saved = await repo.findOne({ where: { id: identifier.id } });
+          }
         }
 
-        const saved = await repo.findOne({
-          where: {
-            toc_result_id: record.toc_result_id,
-            phase: record.phase as any,
-          },
-        });
         if (!saved) continue;
         listResultsToc.push(saved);
 
@@ -844,21 +856,28 @@ export class TocResultServices {
           ? item.projects
           : [];
         if (projectsArray.length) {
-          await this.saveResultProjectsV2(String(item.id), projectsArray);
+          await this.saveResultProjectsV2(
+            String(item?.related_node_id),
+            projectsArray
+          );
         }
 
         const partnersArray = Array.isArray(item?.partners)
           ? item.partners
           : [];
         if (partnersArray.length) {
-          await this.saveResultPartnersV2(String(item.id), partnersArray);
+          await this.saveResultPartnersV2(
+            String(item.related_node_id),
+            partnersArray
+          );
         }
 
         const indicatorsArray = Array.isArray(item?.quantitative_indicators)
           ? item.quantitative_indicators
           : [];
+
         const indRes = await this.tocResultsIndicatorV2(
-          String(item.id),
+          String(item.related_node_id),
           indicatorsArray,
           saved
         );
@@ -871,8 +890,9 @@ export class TocResultServices {
           : item?.sdgs && Array.isArray(item.sdgs)
           ? item.sdgs
           : [];
+
         const sdgRel = await this.saveTocResultsSdgV2(
-          String(item.id),
+          String(item.related_node_id),
           sdgNested,
           globalSdgResults,
           saved
@@ -884,8 +904,9 @@ export class TocResultServices {
           : item?.impact_areas && Array.isArray(item.impact_areas)
           ? item.impact_areas
           : [];
+
         const impactRel = await this.saveTocResultsImpactV2(
-          String(item.id),
+          String(item.related_node_id),
           impactNested,
           globalImpactAreaResults,
           saved
@@ -1343,10 +1364,6 @@ export class TocResultServices {
 
         const matched = globalImpactAreaResults.find(
           (g) => g.toc_result_id === impactTocResultId
-        );
-        console.log(
-          "🚀 ~ TocResultServices ~ saveTocResultsImpactV2 ~ matched:",
-          matched
         );
         if (!matched) continue;
 
