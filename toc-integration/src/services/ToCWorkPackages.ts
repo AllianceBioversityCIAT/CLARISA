@@ -25,21 +25,25 @@ export class ToCWorkPackagesService {
         acronym: ost?.acronym,
       });
 
-      const row = repo.create({
-        id:
-          typeof item?.id === "string" || typeof item?.id === "number"
-            ? String(item.id)
-            : undefined,
-        toc_id:
-          typeof ost?.toc_id === "string" || typeof ost?.toc_id === "number"
-            ? String(ost.toc_id)
-            : null,
+      const rawId =
+        typeof item?.id === "string" || typeof item?.id === "number"
+          ? String(item.id)
+          : undefined;
+      const tocId =
+        typeof ost?.toc_id === "string" || typeof ost?.toc_id === "number"
+          ? String(ost.toc_id)
+          : null;
+      const officialCode =
+        typeof ost?.wp_official_code === "string" ? ost.wp_official_code : null;
+
+      if (!officialCode || !tocId) continue;
+
+      const record: Partial<TocWorkPackages> = {
+        id: rawId,
+        toc_id: tocId,
         acronym: typeof ost?.acronym === "string" ? ost.acronym : null,
         source: typeof ost?.source === "string" ? ost.source : null,
-        wp_official_code:
-          typeof ost?.wp_official_code === "string"
-            ? ost.wp_official_code
-            : null,
+        wp_official_code: officialCode,
         name: typeof ost?.name === "string" ? ost.name : null,
         wp_type:
           typeof item?.wp_type === "string" || typeof item?.wp_type === "number"
@@ -50,12 +54,22 @@ export class ToCWorkPackagesService {
           typeof ost?.initiativeId === "number"
             ? String(ost.initiativeId)
             : null,
-      });
+      };
 
-      if (!row.id) continue;
+      const where = { wp_official_code: officialCode, toc_id: tocId };
+      const existing = await repo.findOne({ where });
 
-      await repo.save(row);
-      const fresh = await repo.findOne({ where: { id: row.id } });
+      if (existing) {
+        record.id = existing.id;
+        await repo.update(where, record);
+      } else {
+        if (!record.id) {
+          record.id = `${tocId}-${officialCode}`;
+        }
+        await repo.insert(record as TocWorkPackages);
+      }
+
+      const fresh = await repo.findOne({ where });
       if (fresh) workPackages.push(fresh);
     }
 
