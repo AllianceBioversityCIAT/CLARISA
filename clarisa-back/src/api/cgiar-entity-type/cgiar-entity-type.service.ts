@@ -71,8 +71,7 @@ export class CgiarEntityTypeService {
     }
 
     return this._cgiarEntityTypeMapper.entityTypeListToDtoV1List(
-      cgiarEntityTypes,
-      showIsActive,
+      cgiarEntityTypes
     );
   }
 
