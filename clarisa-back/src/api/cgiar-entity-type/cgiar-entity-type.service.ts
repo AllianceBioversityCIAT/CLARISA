@@ -45,7 +45,6 @@ export class CgiarEntityTypeService {
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<CgiarEntityTypeDtoV1[]> {
     let cgiarEntityTypes: CgiarEntityType[] = [];
-    let showIsActive = true;
     switch (option) {
       case FindAllOptions.SHOW_ALL:
         cgiarEntityTypes = await this._cgiarEntityTypeRepository.find({
@@ -55,7 +54,6 @@ export class CgiarEntityTypeService {
         break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        showIsActive = option !== FindAllOptions.SHOW_ONLY_ACTIVE;
         cgiarEntityTypes = await this._cgiarEntityTypeRepository.find({
           where: {
             ...this.whereClause,
@@ -71,7 +69,7 @@ export class CgiarEntityTypeService {
     }
 
     return this._cgiarEntityTypeMapper.entityTypeListToDtoV1List(
-      cgiarEntityTypes
+      cgiarEntityTypes,
     );
   }
 
