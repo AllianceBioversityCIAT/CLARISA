@@ -82,14 +82,13 @@ export class CgiarEntityTypeMapper {
 
   public entityTypeListToDtoV1List(
     cgiarEntityTypes: CgiarEntityType[],
-    showIsActive: boolean = false,
   ): CgiarEntityTypeDtoV1[] {
     return cgiarEntityTypes.map((entity) => this.entityTypeToDtoV1(entity));
   }
 
   public entityTypeToDtoV1(entity: CgiarEntityType): CgiarEntityTypeDtoV1 {
     const dto = new CgiarEntityTypeDtoV1();
-    dto.code = entity.id; // o entity.code si existe
+    dto.code = entity.id;
     dto.name = entity.name;
     dto.portfolio = entity.portfolio_object?.name ?? '';
     return dto;
