@@ -7,6 +7,7 @@ import { CgiarEntityTypeRepository } from './repositories/cgiar-entity-type.repo
 import { BasicDto } from '../../shared/entities/dtos/basic-dto';
 import { CgiarEntityTypeMapper } from './mappers/cgiar-entity-type.mapper';
 import { CgiarEntityTypeDtoV2 } from './dto/cgiar-entity-type.v2.dto';
+import { CgiarEntityTypeDtoV1 } from './dto/cgiar-entity-type.v1.dto';
 
 @Injectable()
 export class CgiarEntityTypeService {
@@ -30,6 +31,10 @@ export class CgiarEntityTypeService {
     CgiarEntityTypeOption.INITIATIVE,
     CgiarEntityTypeOption.IMPACT_AREA_PLATFORM,
     CgiarEntityTypeOption.ONE_CGIAR_SGP,
+    CgiarEntityTypeOption.SCIENCE_PROGRAM,
+    CgiarEntityTypeOption.SCALING_PROGRAM,
+    CgiarEntityTypeOption.ACCELERATOR,
+    CgiarEntityTypeOption.KEY_AREA_OF_WORK,
   ].map((cet) => cet.entity_type_id);
 
   private readonly whereClause: FindOptionsWhere<CgiarEntityType> = {
@@ -38,18 +43,17 @@ export class CgiarEntityTypeService {
 
   async findAllV1(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
-  ): Promise<BasicDto[]> {
+  ): Promise<CgiarEntityTypeDtoV1[]> {
     let cgiarEntityTypes: CgiarEntityType[] = [];
-    let showIsActive = true;
     switch (option) {
       case FindAllOptions.SHOW_ALL:
         cgiarEntityTypes = await this._cgiarEntityTypeRepository.find({
           where: this.whereClause,
+          relations: { portfolio_object: true },
         });
         break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
-        showIsActive = option !== FindAllOptions.SHOW_ONLY_ACTIVE;
         cgiarEntityTypes = await this._cgiarEntityTypeRepository.find({
           where: {
             ...this.whereClause,
@@ -57,15 +61,15 @@ export class CgiarEntityTypeService {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
             },
           },
+          relations: { portfolio_object: true },
         });
         break;
       default:
         throw Error('?!');
     }
 
-    return this._cgiarEntityTypeMapper.classListToDtoV1List(
+    return this._cgiarEntityTypeMapper.entityTypeListToDtoV1List(
       cgiarEntityTypes,
-      showIsActive,
     );
   }
 
