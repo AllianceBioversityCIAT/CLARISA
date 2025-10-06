@@ -12,4 +12,8 @@ export class TocResultIndicatorTarget {
   number_target: number;
   @Column()
   id_indicator: number;
+  @Column()
+  project_id: number;
+  @Column()
+  center_id: number;
 }

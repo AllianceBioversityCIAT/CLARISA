@@ -1,4 +1,4 @@
-import { DataSource } from "typeorm";
+import { DataSource, In } from "typeorm";
 import { Database } from "../database/db";
 import { ValidatorTypes } from "../validators/validatorType";
 import { ErrorValidators } from "../validators/errorsValidators";
@@ -23,6 +23,10 @@ import { TocResultIndicatorTarget } from "../entities/tocIndicatorTarget";
 import { TocResultProject } from "../entities/tocResultsProjects";
 import { TocResultPartners } from "../entities/tocResultsPartners";
 import { TocSdgResults } from "../entities/tocSdgResults";
+import { TocResultsMelias } from "../entities/tocResultsMelias";
+import { TocResultsMeliasCountry } from "../entities/tocResultsMeliasCountry";
+import { TocResultsMeliasContacts } from "../entities/tocResultsMeliasContacts";
+import { TocResultsMeliasRegion } from "../entities/tocResultsMeliasRegion";
 
 export class TocResultServices {
   public validatorType = new ValidatorTypes();
@@ -287,6 +291,18 @@ export class TocResultServices {
               typeof indicatorItem.related_node_id == "string"
                 ? indicatorItem.related_node_id
                 : indicatorItem.id;
+            indicator.measure_of_success_moderate =
+              typeof indicatorItem.measure_of_success_moderate === "string"
+                ? indicatorItem.measure_of_success_moderate
+                : null;
+            indicator.measure_of_success_minimum =
+              typeof indicatorItem.measure_of_success_minimum === "string"
+                ? indicatorItem.measure_of_success_minimum
+                : null;
+            indicator.measure_of_success_maximum =
+              typeof indicatorItem.measure_of_success_maximum === "string"
+                ? indicatorItem.measure_of_success_maximum
+                : null;
             listResultsIndicator.push(indicator);
 
             const existingRecord = await tocResultRepo.findOne({
@@ -755,6 +771,10 @@ export class TocResultServices {
       let listCountries: any[] = [];
       let listResultsSdg: TocResultsSdgResults[] = [];
       let listResultsImpact: TocResultsImpactAreaResults[] = [];
+      let listMelias: TocResultsMelias[] = [];
+      let listMeliasCountries: TocResultsMeliasCountry[] = [];
+      let listMeliasRegions: TocResultsMeliasRegion[] = [];
+      let listMeliasContacts: TocResultsMeliasContacts[] = [];
 
       if (!this.validatorType.validatorIsArray(data)) {
         return {
@@ -804,13 +824,18 @@ export class TocResultServices {
             typeof item?.group === "string" || typeof item?.group === "number"
               ? String(item.group)
               : null,
-
           id_toc_initiative:
             typeof meta?.original_id === "string" ? meta.original_id : null,
           phase: typeof meta?.phase === "string" ? meta.phase : null,
           version_id:
             typeof meta?.version_id === "string" ? meta.version_id : null,
           official_code: meta?.official_code ?? null,
+          responsible_organization:
+            typeof item?.responsible_organization?.code === "number"
+              ? String(item.responsible_organization.code)
+              : typeof item?.responsible_organization?.code === "string"
+              ? item.responsible_organization.code
+              : null,
           is_global: true,
           is_active: true,
         };
@@ -872,9 +897,22 @@ export class TocResultServices {
           );
         }
 
-        const indicatorsArray = Array.isArray(item?.quantitative_indicators)
+        const quantitativeIndicators = Array.isArray(
+          item?.quantitative_indicators
+        )
           ? item.quantitative_indicators
+          : Array.isArray(item?.indicators)
+          ? item.indicators
           : [];
+        const qualitativeIndicators = Array.isArray(
+          item?.qualitative_indicators
+        )
+          ? item.qualitative_indicators
+          : [];
+        const indicatorsArray = [
+          ...quantitativeIndicators,
+          ...qualitativeIndicators,
+        ];
 
         const indRes = await this.tocResultsIndicatorV2(
           String(item.related_node_id),
@@ -912,6 +950,25 @@ export class TocResultServices {
           saved
         );
         listResultsImpact.push(...impactRel);
+
+        const meliasArray = Array.isArray(item?.melias) ? item.melias : [];
+        const tocResultIdToc =
+          typeof item?.related_node_id === "string"
+            ? item.related_node_id
+            : null;
+        if (meliasArray.length) {
+          const meliasRes = await this.saveResultMeliasV2(
+            saved,
+            tocResultIdToc,
+            meliasArray
+          );
+          listMelias.push(...meliasRes.listMelias);
+          listMeliasCountries.push(...meliasRes.listCountries);
+          listMeliasRegions.push(...meliasRes.listRegions);
+          listMeliasContacts.push(...meliasRes.listContacts);
+        } else {
+          await this.clearMeliasForResult(saved);
+        }
       }
 
       return {
@@ -921,6 +978,10 @@ export class TocResultServices {
         listCountries,
         listResultsSdg,
         listResultsImpact,
+        listMelias,
+        listMeliasCountries,
+        listMeliasRegions,
+        listMeliasContacts,
       };
     } catch (error) {
       throw new Error(`Error saving ToC results V2: ${error}`);
@@ -951,6 +1012,7 @@ export class TocResultServices {
       );
 
       for (const ind of indicators) {
+        console.log({ processingIndicator: ind });
         if (!ind || (typeof ind.id !== "string" && typeof ind.id !== "number"))
           continue;
 
@@ -1009,6 +1071,18 @@ export class TocResultServices {
           typeof ind?.related_node_id === "string"
             ? ind.related_node_id
             : String(ind.id);
+        dto.measure_of_success_moderate =
+          typeof ind?.measure_of_success_moderate === "string"
+            ? ind.measure_of_success_moderate
+            : null;
+        dto.measure_of_success_minimum =
+          typeof ind?.measure_of_success_minimum === "string"
+            ? ind.measure_of_success_minimum
+            : null;
+        dto.measure_of_success_maximum =
+          typeof ind?.measure_of_success_maximum === "string"
+            ? ind.measure_of_success_maximum
+            : null;
 
         const exists = await indicatorRepo.findOne({
           where: {
@@ -1048,11 +1122,12 @@ export class TocResultServices {
         listRegions.push(...geoRes.listRegios);
         listCountries.push(...geoRes.listCountries);
 
-        if (saved && ind?.target != null) {
+        const targetData = ind?.targets ?? ind?.target;
+        if (saved && targetData != null) {
           await this.saveIndicatorTargetV2(
             saved.id,
             saved.toc_result_indicator_id,
-            ind.target
+            targetData
           );
         }
       }
@@ -1082,6 +1157,7 @@ export class TocResultServices {
       const regions = Array.isArray(geo?.region) ? geo.region : [];
       const seenRegions = new Set<number>();
       for (const r of regions) {
+        console.log({ processingRegion: r });
         const um49 =
           typeof r?.um49Code === "number"
             ? r.um49Code
@@ -1159,29 +1235,128 @@ export class TocResultServices {
 
       await repo.delete({ toc_result_indicator_id });
 
-      let number = 1;
+      let number = 0;
       for (const t of targets) {
+        console.log({ processingTarget: t });
         if (!t) continue;
 
-        const row = repo.create({
-          id_indicator,
-          toc_result_indicator_id,
-          number_target: number++,
-          target_value:
-            typeof t.value === "number" && !Number.isNaN(t.value)
-              ? t.value
-              : typeof t.value === "string" &&
-                t.value.trim() !== "" &&
-                !Number.isNaN(Number(t.value))
-              ? Number(t.value)
-              : null,
-          target_date:
-            typeof t.date === "string" && t.date.trim() !== ""
-              ? t.date.trim()
-              : null,
-        });
+        const yearEntries = Object.entries(t).filter(([key]) =>
+          /^\d{4}$/.test(String(key))
+        );
+        const centers = Array.isArray(t?.centers) ? t.centers : [];
+        const projects = Array.isArray(t?.projects) ? t.projects : [];
 
-        await repo.insert(row);
+        const parseNumeric = (value: any): number | null => {
+          if (typeof value === "number" && Number.isFinite(value)) return value;
+          if (typeof value === "string" && value.trim() !== "") {
+            const parsed = Number(value);
+            if (!Number.isNaN(parsed)) return parsed;
+          }
+          return null;
+        };
+
+        const parseValue = (value: any): number | null => {
+          if (typeof value === "number" && Number.isFinite(value)) return value;
+          if (typeof value === "string" && value.trim() !== "") {
+            const parsed = Number(value);
+            return Number.isNaN(parsed) ? null : parsed;
+          }
+          return null;
+        };
+
+        const rowsToInsert: Partial<TocResultIndicatorTarget>[] = [];
+        let insertedFromCollections = false;
+
+        const pushRowsForCollection = (
+          ids: any[],
+          idExtractor: (item: any) => number | null,
+          assign: (
+            row: Partial<TocResultIndicatorTarget>,
+            id: number | null
+          ) => void
+        ) => {
+          if (!ids.length) return;
+          for (const item of ids) {
+            const numericId = idExtractor(item);
+            if (numericId == null) continue;
+            insertedFromCollections = true;
+
+            for (const [year, value] of yearEntries) {
+              const row = repo.create({
+                id_indicator,
+                toc_result_indicator_id,
+                number_target: number++,
+                target_value: parseValue(value),
+                target_date: String(year),
+                center_id: null,
+                project_id: null,
+              });
+              assign(row, numericId);
+              rowsToInsert.push(row);
+            }
+          }
+        };
+
+        if (yearEntries.length) {
+          pushRowsForCollection(
+            centers,
+            (center) =>
+              parseNumeric(center?.code ?? center?.center_id ?? center?.id),
+            (row, id) => {
+              row.center_id = id;
+            }
+          );
+
+          pushRowsForCollection(
+            projects,
+            (project) =>
+              parseNumeric(project?.code ?? project?.project_id ?? project?.id),
+            (row, id) => {
+              row.project_id = id;
+            }
+          );
+
+          if (!insertedFromCollections) {
+            for (const [year, value] of yearEntries) {
+              rowsToInsert.push(
+                repo.create({
+                  id_indicator,
+                  toc_result_indicator_id,
+                  number_target: number++,
+                  target_value: parseValue(value),
+                  target_date: String(year),
+                  center_id: null,
+                  project_id: null,
+                })
+              );
+            }
+          }
+        } else {
+          const row = repo.create({
+            id_indicator,
+            toc_result_indicator_id,
+            number_target: number++,
+            target_value:
+              typeof t.value === "number" && !Number.isNaN(t.value)
+                ? t.value
+                : typeof t.value === "string" &&
+                  t.value.trim() !== "" &&
+                  !Number.isNaN(Number(t.value))
+                ? Number(t.value)
+                : null,
+            target_date:
+              typeof t.date === "string" && t.date.trim() !== ""
+                ? t.date.trim()
+                : null,
+            center_id: null,
+            project_id: null,
+          });
+          rowsToInsert.push(row);
+        }
+
+        if (rowsToInsert.length) {
+          await repo.insert(rowsToInsert);
+        }
       }
 
       return true;
@@ -1259,6 +1434,316 @@ export class TocResultServices {
     } catch (error) {
       throw new Error(`Error saving result partners V2: ${error}`);
     }
+  }
+
+  async saveResultMeliasV2(
+    tocResultRow: TocResults,
+    toc_result_id_toc: string | null,
+    melias: any[]
+  ): Promise<{
+    listMelias: TocResultsMelias[];
+    listCountries: TocResultsMeliasCountry[];
+    listRegions: TocResultsMeliasRegion[];
+    listContacts: TocResultsMeliasContacts[];
+  }> {
+    console.info({ message: "Saving result MELIAs V2" });
+    const dataSource: DataSource = await Database.getDataSource();
+    const meliaRepo = dataSource.getRepository(TocResultsMelias);
+    const countryRepo = dataSource.getRepository(TocResultsMeliasCountry);
+    const regionRepo = dataSource.getRepository(TocResultsMeliasRegion);
+    const contactRepo = dataSource.getRepository(TocResultsMeliasContacts);
+
+    if (!tocResultRow?.id) {
+      return {
+        listMelias: [],
+        listCountries: [],
+        listRegions: [],
+        listContacts: [],
+      };
+    }
+
+    const meliaArray = Array.isArray(melias) ? melias : [];
+    if (!meliaArray.length) {
+      await this.clearMeliasForResult(tocResultRow);
+      return {
+        listMelias: [],
+        listCountries: [],
+        listRegions: [],
+        listContacts: [],
+      };
+    }
+
+    const previousMelias = await meliaRepo.find({
+      where: { toc_result_id: tocResultRow.id },
+    });
+    const previousIds = previousMelias
+      .map((m) => m.melia_id)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+    if (previousIds.length) {
+      await countryRepo.delete({ melia_id: In(previousIds) });
+      await regionRepo.delete({ melia_id: In(previousIds) });
+      await contactRepo.delete({ melia_id: In(previousIds) });
+    }
+
+    await meliaRepo.delete({ toc_result_id: tocResultRow.id });
+
+    const listMelias: TocResultsMelias[] = [];
+    const listCountries: TocResultsMeliasCountry[] = [];
+    const listRegions: TocResultsMeliasRegion[] = [];
+    const listContacts: TocResultsMeliasContacts[] = [];
+
+    for (const meliaItem of meliaArray) {
+      const meliaId =
+        typeof meliaItem?.id === "string" || typeof meliaItem?.id === "number"
+          ? String(meliaItem.id)
+          : typeof meliaItem?.melia_id === "string"
+          ? meliaItem.melia_id
+          : null;
+
+      if (!meliaId) continue;
+
+      const center = meliaItem?.center ?? {};
+      const meliaType = meliaItem?.melia_type ?? {};
+      const reportedIndicators = meliaItem?.reported_indicators_count ?? {};
+
+      const row = meliaRepo.create({
+        melia_id: meliaId,
+        toc_result_id: tocResultRow.id,
+        toc_result_id_toc,
+        main: typeof meliaItem?.main === "boolean" ? meliaItem.main : false,
+        methods_and_design_approaches:
+          typeof meliaItem?.methods_and_design_approaches === "string"
+            ? meliaItem.methods_and_design_approaches
+            : null,
+        updating_date:
+          typeof meliaItem?.updating_date === "string"
+            ? meliaItem.updating_date
+            : null,
+        flow: typeof meliaItem?.flow === "string" ? meliaItem.flow : null,
+        flow_id:
+          typeof meliaItem?.flow_id === "string" ? meliaItem.flow_id : null,
+        title: typeof meliaItem?.title === "string" ? meliaItem.title : meliaId,
+        description:
+          typeof meliaItem?.description === "string"
+            ? meliaItem.description
+            : null,
+        geographic_scope:
+          typeof meliaItem?.geographic_scope === "string"
+            ? meliaItem.geographic_scope
+            : null,
+        specification:
+          typeof meliaItem?.specification === "string"
+            ? meliaItem.specification
+            : null,
+        creation_date:
+          typeof meliaItem?.creation_date === "string"
+            ? meliaItem.creation_date
+            : null,
+        end_date:
+          typeof meliaItem?.end_date === "string" ? meliaItem.end_date : null,
+        center_toc_id:
+          typeof center?.toc_id === "string" ? center.toc_id : null,
+        center_acronym:
+          typeof center?.acronym === "string" ? center.acronym : null,
+        center_name: typeof center?.name === "string" ? center.name : null,
+        center_code: typeof center?.code === "number" ? center.code : null,
+        melia_type_id: typeof meliaType?.id === "string" ? meliaType.id : null,
+        melia_type_title:
+          typeof meliaType?.title === "string" ? meliaType.title : null,
+        melia_type_description:
+          typeof meliaType?.description === "string"
+            ? meliaType.description
+            : null,
+        melia_type_color:
+          typeof meliaType?.color === "string" ? meliaType.color : null,
+        melia_type_main:
+          typeof meliaType?.main === "boolean" ? meliaType.main : false,
+        melia_type_creation_date:
+          typeof meliaType?.creation_date === "string"
+            ? meliaType.creation_date
+            : null,
+        reported_indicators_low:
+          typeof reportedIndicators?.low === "number"
+            ? reportedIndicators.low
+            : null,
+        reported_indicators_high:
+          typeof reportedIndicators?.high === "number"
+            ? reportedIndicators.high
+            : null,
+      });
+
+      await meliaRepo.insert(row);
+      listMelias.push(row);
+
+      const countries = await this.saveMeliaCountriesV2(
+        dataSource,
+        meliaId,
+        meliaItem?.country
+      );
+      listCountries.push(...countries);
+
+      const regions = await this.saveMeliaRegionsV2(
+        dataSource,
+        meliaId,
+        meliaItem?.region
+      );
+      listRegions.push(...regions);
+
+      const contacts = await this.saveMeliaContactsV2(
+        dataSource,
+        meliaId,
+        meliaItem?.contacts
+      );
+      listContacts.push(...contacts);
+    }
+
+    return { listMelias, listCountries, listRegions, listContacts };
+  }
+
+  private async saveMeliaCountriesV2(
+    dataSource: DataSource,
+    meliaId: string,
+    countries: any[]
+  ) {
+    const repo = dataSource.getRepository(TocResultsMeliasCountry);
+
+    await repo.delete({ melia_id: meliaId });
+
+    const rows: TocResultsMeliasCountry[] = [];
+    const countryArray = Array.isArray(countries) ? countries : [];
+
+    for (const country of countryArray) {
+      const code =
+        typeof country?.code === "number"
+          ? country.code
+          : typeof country?.country_id === "number"
+          ? country.country_id
+          : null;
+
+      const row = repo.create({
+        melia_id: meliaId,
+        toc_id: typeof country?.toc_id === "string" ? country.toc_id : null,
+        name: typeof country?.name === "string" ? country.name : null,
+        code,
+        country_name:
+          typeof country?.country_name === "string"
+            ? country.country_name
+            : null,
+      });
+
+      await repo.insert(row);
+      rows.push(row);
+    }
+
+    return rows;
+  }
+
+  private async saveMeliaRegionsV2(
+    dataSource: DataSource,
+    meliaId: string,
+    regions: any[]
+  ) {
+    const repo = dataSource.getRepository(TocResultsMeliasRegion);
+
+    await repo.delete({ melia_id: meliaId });
+
+    const rows: TocResultsMeliasRegion[] = [];
+    const regionArray = Array.isArray(regions) ? regions : [];
+
+    for (const region of regionArray) {
+      const um49 =
+        typeof region?.um49Code === "number"
+          ? region.um49Code
+          : typeof region?.code === "number"
+          ? region.code
+          : null;
+
+      const row = repo.create({
+        melia_id: meliaId,
+        toc_id: typeof region?.toc_id === "string" ? region.toc_id : null,
+        um49_code: um49,
+        name: typeof region?.name === "string" ? region.name : null,
+        region_id:
+          typeof region?.region_id === "string" ? region.region_id : null,
+      });
+
+      await repo.insert(row);
+      rows.push(row);
+    }
+
+    return rows;
+  }
+
+  private async saveMeliaContactsV2(
+    dataSource: DataSource,
+    meliaId: string,
+    contacts: any[]
+  ) {
+    const repo = dataSource.getRepository(TocResultsMeliasContacts);
+
+    await repo.delete({ melia_id: meliaId });
+
+    const rows: TocResultsMeliasContacts[] = [];
+    const contactArray = Array.isArray(contacts) ? contacts : [];
+
+    for (const contact of contactArray) {
+      const contactId =
+        typeof contact?.id === "string" || typeof contact?.id === "number"
+          ? String(contact.id)
+          : null;
+      if (!contactId) continue;
+
+      const row = repo.create({
+        melia_id: meliaId,
+        contact_id: contactId,
+        first_name:
+          typeof contact?.first_name === "string" ? contact.first_name : null,
+        last_name:
+          typeof contact?.last_name === "string" ? contact.last_name : null,
+        email: typeof contact?.email === "string" ? contact.email : null,
+        related_node_id:
+          typeof contact?.related_node_id === "string"
+            ? contact.related_node_id
+            : null,
+        main: typeof contact?.main === "boolean" ? contact.main : false,
+        creation_date:
+          typeof contact?.creation_date === "string"
+            ? contact.creation_date
+            : null,
+      });
+
+      await repo.insert(row);
+      rows.push(row);
+    }
+
+    return rows;
+  }
+
+  private async clearMeliasForResult(tocResultRow: TocResults) {
+    if (!tocResultRow?.id) return;
+
+    const dataSource: DataSource = await Database.getDataSource();
+    const meliaRepo = dataSource.getRepository(TocResultsMelias);
+    const countryRepo = dataSource.getRepository(TocResultsMeliasCountry);
+    const regionRepo = dataSource.getRepository(TocResultsMeliasRegion);
+    const contactRepo = dataSource.getRepository(TocResultsMeliasContacts);
+
+    const existing = await meliaRepo.find({
+      where: { toc_result_id: tocResultRow.id },
+    });
+
+    const existingIds = existing
+      .map((m) => m.melia_id)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+    if (existingIds.length) {
+      await countryRepo.delete({ melia_id: In(existingIds) });
+      await regionRepo.delete({ melia_id: In(existingIds) });
+      await contactRepo.delete({ melia_id: In(existingIds) });
+    }
+
+    await meliaRepo.delete({ toc_result_id: tocResultRow.id });
   }
 
   async saveTocResultsSdgV2(

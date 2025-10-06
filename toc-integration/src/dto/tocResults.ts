@@ -24,4 +24,14 @@ export class TocResultsDto {
   id_toc_initiative: string;
 
   version_id: string;
+
+  wp_id: string | null;
+
+  category: string | null;
+
+  related_node_id: string | null;
+
+  official_code: string | null;
+
+  responsible_organization: string;
 }
