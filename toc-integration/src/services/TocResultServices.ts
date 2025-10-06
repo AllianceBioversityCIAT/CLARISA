@@ -291,6 +291,18 @@ export class TocResultServices {
               typeof indicatorItem.related_node_id == "string"
                 ? indicatorItem.related_node_id
                 : indicatorItem.id;
+            indicator.measure_of_success_moderate =
+              typeof indicatorItem.measure_of_success_moderate === "string"
+                ? indicatorItem.measure_of_success_moderate
+                : null;
+            indicator.measure_of_success_minimum =
+              typeof indicatorItem.measure_of_success_minimum === "string"
+                ? indicatorItem.measure_of_success_minimum
+                : null;
+            indicator.measure_of_success_maximum =
+              typeof indicatorItem.measure_of_success_maximum === "string"
+                ? indicatorItem.measure_of_success_maximum
+                : null;
             listResultsIndicator.push(indicator);
 
             const existingRecord = await tocResultRepo.findOne({
@@ -812,13 +824,18 @@ export class TocResultServices {
             typeof item?.group === "string" || typeof item?.group === "number"
               ? String(item.group)
               : null,
-
           id_toc_initiative:
             typeof meta?.original_id === "string" ? meta.original_id : null,
           phase: typeof meta?.phase === "string" ? meta.phase : null,
           version_id:
             typeof meta?.version_id === "string" ? meta.version_id : null,
           official_code: meta?.official_code ?? null,
+          responsible_organization:
+            typeof item?.responsible_organization?.code === "number"
+              ? String(item.responsible_organization.code)
+              : typeof item?.responsible_organization?.code === "string"
+              ? item.responsible_organization.code
+              : null,
           is_global: true,
           is_active: true,
         };
@@ -880,11 +897,22 @@ export class TocResultServices {
           );
         }
 
-        const indicatorsArray = Array.isArray(item?.quantitative_indicators)
+        const quantitativeIndicators = Array.isArray(
+          item?.quantitative_indicators
+        )
           ? item.quantitative_indicators
           : Array.isArray(item?.indicators)
           ? item.indicators
           : [];
+        const qualitativeIndicators = Array.isArray(
+          item?.qualitative_indicators
+        )
+          ? item.qualitative_indicators
+          : [];
+        const indicatorsArray = [
+          ...quantitativeIndicators,
+          ...qualitativeIndicators,
+        ];
 
         const indRes = await this.tocResultsIndicatorV2(
           String(item.related_node_id),
@@ -1043,6 +1071,18 @@ export class TocResultServices {
           typeof ind?.related_node_id === "string"
             ? ind.related_node_id
             : String(ind.id);
+        dto.measure_of_success_moderate =
+          typeof ind?.measure_of_success_moderate === "string"
+            ? ind.measure_of_success_moderate
+            : null;
+        dto.measure_of_success_minimum =
+          typeof ind?.measure_of_success_minimum === "string"
+            ? ind.measure_of_success_minimum
+            : null;
+        dto.measure_of_success_maximum =
+          typeof ind?.measure_of_success_maximum === "string"
+            ? ind.measure_of_success_maximum
+            : null;
 
         const exists = await indicatorRepo.findOne({
           where: {
@@ -1195,30 +1235,128 @@ export class TocResultServices {
 
       await repo.delete({ toc_result_indicator_id });
 
-      let number = 1;
+      let number = 0;
       for (const t of targets) {
         console.log({ processingTarget: t });
         if (!t) continue;
 
-        const row = repo.create({
-          id_indicator,
-          toc_result_indicator_id,
-          number_target: number++,
-          target_value:
-            typeof t.value === "number" && !Number.isNaN(t.value)
-              ? t.value
-              : typeof t.value === "string" &&
-                t.value.trim() !== "" &&
-                !Number.isNaN(Number(t.value))
-              ? Number(t.value)
-              : null,
-          target_date:
-            typeof t.date === "string" && t.date.trim() !== ""
-              ? t.date.trim()
-              : null,
-        });
+        const yearEntries = Object.entries(t).filter(([key]) =>
+          /^\d{4}$/.test(String(key))
+        );
+        const centers = Array.isArray(t?.centers) ? t.centers : [];
+        const projects = Array.isArray(t?.projects) ? t.projects : [];
 
-        await repo.insert(row);
+        const parseNumeric = (value: any): number | null => {
+          if (typeof value === "number" && Number.isFinite(value)) return value;
+          if (typeof value === "string" && value.trim() !== "") {
+            const parsed = Number(value);
+            if (!Number.isNaN(parsed)) return parsed;
+          }
+          return null;
+        };
+
+        const parseValue = (value: any): number | null => {
+          if (typeof value === "number" && Number.isFinite(value)) return value;
+          if (typeof value === "string" && value.trim() !== "") {
+            const parsed = Number(value);
+            return Number.isNaN(parsed) ? null : parsed;
+          }
+          return null;
+        };
+
+        const rowsToInsert: Partial<TocResultIndicatorTarget>[] = [];
+        let insertedFromCollections = false;
+
+        const pushRowsForCollection = (
+          ids: any[],
+          idExtractor: (item: any) => number | null,
+          assign: (
+            row: Partial<TocResultIndicatorTarget>,
+            id: number | null
+          ) => void
+        ) => {
+          if (!ids.length) return;
+          for (const item of ids) {
+            const numericId = idExtractor(item);
+            if (numericId == null) continue;
+            insertedFromCollections = true;
+
+            for (const [year, value] of yearEntries) {
+              const row = repo.create({
+                id_indicator,
+                toc_result_indicator_id,
+                number_target: number++,
+                target_value: parseValue(value),
+                target_date: String(year),
+                center_id: null,
+                project_id: null,
+              });
+              assign(row, numericId);
+              rowsToInsert.push(row);
+            }
+          }
+        };
+
+        if (yearEntries.length) {
+          pushRowsForCollection(
+            centers,
+            (center) =>
+              parseNumeric(center?.code ?? center?.center_id ?? center?.id),
+            (row, id) => {
+              row.center_id = id;
+            }
+          );
+
+          pushRowsForCollection(
+            projects,
+            (project) =>
+              parseNumeric(project?.code ?? project?.project_id ?? project?.id),
+            (row, id) => {
+              row.project_id = id;
+            }
+          );
+
+          if (!insertedFromCollections) {
+            for (const [year, value] of yearEntries) {
+              rowsToInsert.push(
+                repo.create({
+                  id_indicator,
+                  toc_result_indicator_id,
+                  number_target: number++,
+                  target_value: parseValue(value),
+                  target_date: String(year),
+                  center_id: null,
+                  project_id: null,
+                })
+              );
+            }
+          }
+        } else {
+          const row = repo.create({
+            id_indicator,
+            toc_result_indicator_id,
+            number_target: number++,
+            target_value:
+              typeof t.value === "number" && !Number.isNaN(t.value)
+                ? t.value
+                : typeof t.value === "string" &&
+                  t.value.trim() !== "" &&
+                  !Number.isNaN(Number(t.value))
+                ? Number(t.value)
+                : null,
+            target_date:
+              typeof t.date === "string" && t.date.trim() !== ""
+                ? t.date.trim()
+                : null,
+            center_id: null,
+            project_id: null,
+          });
+          rowsToInsert.push(row);
+        }
+
+        if (rowsToInsert.length) {
+          await repo.insert(rowsToInsert);
+        }
       }
 
       return true;

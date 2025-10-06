@@ -62,4 +62,7 @@ export class TocResults {
     nullable: true,
   })
   official_code: string | null;
+
+  @Column()
+  responsible_organization: string;
 }
