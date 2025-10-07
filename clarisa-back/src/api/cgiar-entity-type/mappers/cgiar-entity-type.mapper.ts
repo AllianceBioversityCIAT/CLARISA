@@ -5,6 +5,7 @@ import { BasicDtoMapper } from '../../../shared/mappers/basic-dto.mapper';
 import { CgiarEntityTypeDtoV2 } from '../dto/cgiar-entity-type.v2.dto';
 import { FundingSource } from '../../funding-source/entities/funding-source.entity';
 import { Portfolio } from '../../portfolio/entities/portfolio.entity';
+import { CgiarEntityTypeDtoV1 } from '../dto/cgiar-entity-type.v1.dto';
 
 @Injectable()
 export class CgiarEntityTypeMapper {
@@ -77,5 +78,19 @@ export class CgiarEntityTypeMapper {
     return cgiarEntityTypes.map((cgiarEntityType) =>
       this.classToDtoV2(cgiarEntityType, showIsActive),
     );
+  }
+
+  public entityTypeListToDtoV1List(
+    cgiarEntityTypes: CgiarEntityType[],
+  ): CgiarEntityTypeDtoV1[] {
+    return cgiarEntityTypes.map((entity) => this.entityTypeToDtoV1(entity));
+  }
+
+  public entityTypeToDtoV1(entity: CgiarEntityType): CgiarEntityTypeDtoV1 {
+    const dto = new CgiarEntityTypeDtoV1();
+    dto.code = entity.id;
+    dto.name = entity.name;
+    dto.portfolio = entity.portfolio_object?.name ?? '';
+    return dto;
   }
 }
