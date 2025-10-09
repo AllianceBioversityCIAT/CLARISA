@@ -48,7 +48,7 @@ export class Project {
   @Column({ type: 'varchar', length: 255, nullable: true })
   source_of_funding?: string;
 
-  // ===== Relaciones con catálogos CLARISA (por ID + objeto) =====
+  // ===== Relations with CLARISA catalogs (by ID + object) =====
   @Index()
   @Column({ type: 'bigint', nullable: true })
   organization_code: number;
@@ -65,14 +65,14 @@ export class Project {
   @JoinColumn({ name: 'funder_code' })
   funder_institution_object: Institution;
 
-  // ===== Relaciones objeto =====
+  // ===== Object relations =====
   @OneToMany(() => ProjectCountry, (pc) => pc.project_object)
   project_countries_array: ProjectCountry[];
 
   @OneToMany(() => ProjectMapping, (pm) => pm.project_object)
   project_mappings_array: ProjectMapping[];
 
-  // ===== Campos opcionales del W3 =====
+  // ===== Optional W3 fields =====
   @Column({ type: 'text', nullable: true })
   interim_director_review: string;
 
