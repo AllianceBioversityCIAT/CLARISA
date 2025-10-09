@@ -31,7 +31,7 @@ export class ProjectMapping {
   program_id: number;
 
   @Column({ type: 'int', nullable: false })
-  allocation: number; // 0..100 (valida en servicio o agrega CHECK en migration)
+  allocation: number;
 
   @Column({ type: 'enum', enum: ['low', 'medium', 'high'], default: 'medium' })
   complementarity: Level;
