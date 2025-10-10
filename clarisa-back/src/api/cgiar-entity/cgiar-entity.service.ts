@@ -158,8 +158,7 @@ export class CgiarEntityService {
     const levelFilter = [1, 2];
     qb.andWhere('gu.level IN (:...levels)', { levels: levelFilter });
 
-    const portfolioFilter =
-      filters?.portfolioId !== undefined ? filters.portfolioId : 3;
+    const portfolioFilter = filters?.portfolioId ?? 3;
     qb.andWhere('gu.portfolio_id = :portfolioId', {
       portfolioId: portfolioFilter,
     });
