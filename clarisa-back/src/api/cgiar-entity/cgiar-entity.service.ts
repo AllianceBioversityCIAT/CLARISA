@@ -168,9 +168,11 @@ export class CgiarEntityService {
       qb.andWhere('gu.global_unit_type_id = :typeId', { typeId });
     }
 
-    if (filters?.year !== undefined && filters.year !== null) {
-      qb.andWhere('gu.year = :year', { year: filters.year });
-    }
+    const yearFilter =
+      filters?.year !== undefined && filters?.year !== null
+        ? filters.year
+        : new Date().getFullYear();
+    qb.andWhere('gu.year = :year', { year: yearFilter });
 
     qb.orderBy('gu.id', 'ASC');
 
@@ -218,12 +220,17 @@ export class CgiarEntityService {
   ): Promise<CgiarEntityDtoV2[]> {
     let cgiarEntities: CgiarEntity[] = [];
     let showIsActive = true;
+    const yearFilter = new Date().getFullYear();
 
     switch (option) {
       case FindAllOptions.SHOW_ALL:
         cgiarEntities = await this._cgiarEntityRepository.find({
           relations: this._findOptionsV2.relations,
-          where: { portfolio_object: In([portfolioId]), level: 1 },
+          where: {
+            portfolio_object: In([portfolioId]),
+            level: 1,
+            year: yearFilter,
+          },
         });
         break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
@@ -234,6 +241,7 @@ export class CgiarEntityService {
           where: {
             portfolio_object: In([portfolioId]),
             level: 1,
+            year: yearFilter,
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
             },
@@ -252,8 +260,9 @@ export class CgiarEntityService {
   }
 
   async getGlobalUnitsHierarchy(): Promise<any[]> {
+    const currentYear = new Date().getFullYear();
     const parents = await this._cgiarEntityRepository.find({
-      where: { level: 1 },
+      where: { level: 1, year: currentYear },
       relations: [
         'portfolio_object',
         'cgiar_entity_type_object',
