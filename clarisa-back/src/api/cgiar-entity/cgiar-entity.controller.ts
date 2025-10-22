@@ -1,11 +1,11 @@
 import {
+  ClassSerializerInterceptor,
   Controller,
   Get,
   Param,
-  Query,
   ParseIntPipe,
+  Query,
   UseInterceptors,
-  ClassSerializerInterceptor,
   Version,
 } from '@nestjs/common';
 import { CgiarEntityService } from './cgiar-entity.service';
@@ -33,8 +33,17 @@ export class CgiarEntityController {
 
   @Version('2')
   @Get()
-  async findAllV2(@Query('show') show: FindAllOptions) {
-    return await this.cgiarEntityService.findAllV2(show);
+  async findAllV2(
+    @Query('show') show: FindAllOptions,
+    @Query('type') type?: string,
+    @Query('portfolioId') portfolioId?: string,
+    @Query('year') year?: string,
+  ) {
+    return await this.cgiarEntityService.findAllV2(show, {
+      type,
+      portfolioId: this.parseOptionalNumber(portfolioId),
+      year: this.parseOptionalNumber(year),
+    });
   }
 
   @Get('groups')
@@ -65,5 +74,13 @@ export class CgiarEntityController {
       ids.map((id) => this.cgiarEntityService.findByPortfolioV2(id, show)),
     );
     return results.flat();
+  }
+  private parseOptionalNumber(value?: string): number | undefined {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
   }
 }

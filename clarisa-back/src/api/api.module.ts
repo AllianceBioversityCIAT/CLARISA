@@ -81,6 +81,7 @@ import { IntegrationModule } from '../integration/integration.module';
 import { GlobalParameterModule } from './global-parameter/global-parameter.module';
 import { HandlebarsTemplateModule } from './handlebars-template/handlebars-template.module';
 import { LeverModule } from './lever/lever.module';
+import { ProjectModule } from './project/project.module';
 
 @Module({
   controllers: [ApiController],
@@ -164,6 +165,7 @@ import { LeverModule } from './lever/lever.module';
     GlobalParameterModule,
     HandlebarsTemplateModule,
     LeverModule,
+    ProjectModule,
   ],
 })
 export class ApiModule {}

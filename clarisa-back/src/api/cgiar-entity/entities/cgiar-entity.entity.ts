@@ -11,6 +11,8 @@ import { AuditableEntity } from '../../../shared/entities/extends/auditable-enti
 import { CgiarEntityType } from '../../cgiar-entity-type/entities/cgiar-entity-type.entity';
 import { Institution } from '../../institution/entities/institution.entity';
 import { Portfolio } from '../../portfolio/entities/portfolio.entity';
+import { GlobalUnitLineage } from './global-unit-lineage.entity';
+import { ProjectMapping } from '../../project/entity/project-mapping.entity';
 
 @Entity('global_units')
 export class CgiarEntity {
@@ -31,6 +33,9 @@ export class CgiarEntity {
 
   @Column({ type: 'text', nullable: true })
   financial_code: string;
+
+  @Column({ type: 'int', nullable: true })
+  year: number;
 
   @Column({ type: 'timestamp', nullable: true })
   start_date: Date;
@@ -75,6 +80,15 @@ export class CgiarEntity {
   @ManyToOne(() => Portfolio, (p) => p.cgiar_entity_array)
   @JoinColumn({ name: 'portfolio_id' })
   portfolio_object: Portfolio;
+
+  @OneToMany(() => GlobalUnitLineage, (lineage) => lineage.from_global_unit)
+  outgoing_lineages: GlobalUnitLineage[];
+
+  @OneToMany(() => GlobalUnitLineage, (lineage) => lineage.to_global_unit)
+  incoming_lineages: GlobalUnitLineage[];
+  
+  @OneToMany(() => ProjectMapping, (pm) => pm.global_unit_object)
+  project_mappings_array: ProjectMapping[];
 
   //auditable fields
 

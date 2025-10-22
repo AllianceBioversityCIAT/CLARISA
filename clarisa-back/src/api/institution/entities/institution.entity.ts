@@ -15,6 +15,7 @@ import { InstitutionType } from '../../institution-type/entities/institution-typ
 import { PartnerRequest } from '../../partner-request/entities/partner-request.entity';
 import { InstitutionLocation } from './institution-location.entity';
 import { Center } from '../../center/entities/center.entity';
+import { Project } from '../../project/entity/project.entity';
 
 @Entity('institutions')
 export class Institution {
@@ -68,6 +69,12 @@ export class Institution {
 
   @OneToMany(() => Center, (c) => c.institution_object)
   center_array: Center[];
+
+  @OneToMany(() => Project, (p) => p.lead_institution_object)
+  lead_projects: Project[];
+
+  @OneToMany(() => Project, (p) => p.funder_institution_object)
+  funded_projects: Project[];
 
   //auditable fields
 

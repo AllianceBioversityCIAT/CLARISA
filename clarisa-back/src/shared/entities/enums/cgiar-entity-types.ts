@@ -50,6 +50,22 @@ export class CgiarEntityTypeOption {
   public static readonly ONE_CGIAR_PLATFORM_KEY_MODULE =
     new CgiarEntityTypeOption(20, 'one-cgiar-pkfm');
   public static readonly OFFI = new CgiarEntityTypeOption(21, 'offices');
+  public static readonly SCIENCE_PROGRAM = new CgiarEntityTypeOption(
+    22,
+    'science-programs',
+  );
+  public static readonly SCALING_PROGRAM = new CgiarEntityTypeOption(
+    23,
+    'scaling-programs',
+  );
+  public static readonly ACCELERATOR = new CgiarEntityTypeOption(
+    24,
+    'accelerators',
+  );
+  public static readonly KEY_AREA_OF_WORK = new CgiarEntityTypeOption(
+    26,
+    'key-areas-of-work',
+  );
 
   private constructor(
     public readonly entity_type_id: number,

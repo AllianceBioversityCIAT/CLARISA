@@ -23,13 +23,23 @@ export class CgiarEntityService {
       parent_object: true,
       cgiar_entity_type_object: true,
       portfolio_object: true,
+      outgoing_lineages: {
+        to_global_unit: {
+          parent_object: true,
+        },
+      },
+      incoming_lineages: {
+        from_global_unit: {
+          parent_object: true,
+        },
+      },
     },
   };
 
   constructor(
-    private _cgiarEntityRepository: CgiarEntityRepository,
-    private _centerService: CenterService,
-    private _cgiarEntityMapper: CgiarEntityMapper,
+    private readonly _cgiarEntityRepository: CgiarEntityRepository,
+    private readonly _centerService: CenterService,
+    private readonly _cgiarEntityMapper: CgiarEntityMapper,
   ) {}
 
   async findAllV1(
@@ -104,35 +114,92 @@ export class CgiarEntityService {
 
   async findAllV2(
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
+    filters?: { type?: string; portfolioId?: number; year?: number },
   ): Promise<CgiarEntityDtoV2[]> {
-    let cgiarEntities: CgiarEntity[] = [];
+    const qb = this._cgiarEntityRepository
+      .createQueryBuilder('gu')
+      .leftJoinAndSelect('gu.parent_object', 'parent')
+      .leftJoinAndSelect('gu.cgiar_entity_type_object', 'type')
+      .leftJoinAndSelect('gu.portfolio_object', 'portfolio')
+      .leftJoinAndSelect('gu.outgoing_lineages', 'outgoing_lineage')
+      .leftJoinAndSelect(
+        'outgoing_lineage.to_global_unit',
+        'outgoing_lineage_to',
+      )
+      .leftJoinAndSelect(
+        'outgoing_lineage_to.parent_object',
+        'outgoing_lineage_to_parent',
+      )
+      .leftJoinAndSelect('gu.incoming_lineages', 'incoming_lineage')
+      .leftJoinAndSelect(
+        'incoming_lineage.from_global_unit',
+        'incoming_lineage_from',
+      )
+      .leftJoinAndSelect(
+        'incoming_lineage_from.parent_object',
+        'incoming_lineage_from_parent',
+      );
+
     let showIsActive = true;
     switch (option) {
       case FindAllOptions.SHOW_ALL:
-        cgiarEntities = await this._cgiarEntityRepository.find(
-          this._findOptionsV2,
-        );
         break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
         showIsActive = option !== FindAllOptions.SHOW_ONLY_ACTIVE;
-        cgiarEntities = await this._cgiarEntityRepository.find({
-          relations: this._findOptionsV2.relations,
-          where: {
-            auditableFields: {
-              is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
-            },
-          },
+        qb.andWhere('gu.is_active = :isActive', {
+          isActive: option === FindAllOptions.SHOW_ONLY_ACTIVE,
         });
         break;
       default:
         throw Error('?!');
     }
 
+    const levelFilter = [1, 2];
+    qb.andWhere('gu.level IN (:...levels)', { levels: levelFilter });
+
+    const portfolioFilter = filters?.portfolioId ?? 3;
+    qb.andWhere('gu.portfolio_id = :portfolioId', {
+      portfolioId: portfolioFilter,
+    });
+
+    const typeId = this.resolveTypeFilter(filters?.type);
+    if (typeId) {
+      qb.andWhere('gu.global_unit_type_id = :typeId', { typeId });
+    }
+
+    const yearFilter = filters?.year ?? new Date().getFullYear();
+    qb.andWhere('gu.year = :year', { year: yearFilter });
+
+    qb.orderBy('gu.id', 'ASC');
+
+    const entities = await qb.getMany();
+
     return this._cgiarEntityMapper.classListToDtoV2List(
-      cgiarEntities,
+      entities,
       showIsActive,
+      false,
     );
+  }
+
+  private resolveTypeFilter(type?: string): number | undefined {
+    if (!type) {
+      return undefined;
+    }
+
+    const trimmed = type.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    const numeric = Number(trimmed);
+    if (Number.isFinite(numeric)) {
+      return numeric;
+    }
+
+    const option = CgiarEntityTypeOption.getfromPath(trimmed.toLowerCase());
+
+    return option?.entity_type_id;
   }
 
   async findOneV2(id: number): Promise<CgiarEntityDtoV2> {
@@ -150,12 +217,17 @@ export class CgiarEntityService {
   ): Promise<CgiarEntityDtoV2[]> {
     let cgiarEntities: CgiarEntity[] = [];
     let showIsActive = true;
+    const yearFilter = new Date().getFullYear();
 
     switch (option) {
       case FindAllOptions.SHOW_ALL:
         cgiarEntities = await this._cgiarEntityRepository.find({
           relations: this._findOptionsV2.relations,
-          where: { portfolio_object: In([portfolioId]), level: 1 },
+          where: {
+            portfolio_object: In([portfolioId]),
+            level: 1,
+            year: yearFilter,
+          },
         });
         break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
@@ -166,6 +238,7 @@ export class CgiarEntityService {
           where: {
             portfolio_object: In([portfolioId]),
             level: 1,
+            year: yearFilter,
             auditableFields: {
               is_active: option === FindAllOptions.SHOW_ONLY_ACTIVE,
             },
@@ -179,12 +252,14 @@ export class CgiarEntityService {
     return this._cgiarEntityMapper.classListToDtoV2List(
       cgiarEntities,
       showIsActive,
+      true,
     );
   }
 
   async getGlobalUnitsHierarchy(): Promise<any[]> {
+    const currentYear = new Date().getFullYear();
     const parents = await this._cgiarEntityRepository.find({
-      where: { level: 1 },
+      where: { level: 1, year: currentYear },
       relations: [
         'portfolio_object',
         'cgiar_entity_type_object',
