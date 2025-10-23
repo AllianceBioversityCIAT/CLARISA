@@ -168,10 +168,7 @@ export class CgiarEntityService {
       qb.andWhere('gu.global_unit_type_id = :typeId', { typeId });
     }
 
-    const yearFilter =
-      filters?.year !== undefined && filters?.year !== null
-        ? filters.year
-        : new Date().getFullYear();
+    const yearFilter = filters?.year ?? new Date().getFullYear();
     qb.andWhere('gu.year = :year', { year: yearFilter });
 
     qb.orderBy('gu.id', 'ASC');
