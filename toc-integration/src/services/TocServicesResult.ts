@@ -186,6 +186,7 @@ export class TocServicesResults {
 
     try {
       const tocHost = `${env.LINK_TOC}/api/toc/${spId}`;
+      console.info({ message: "Fetching data from ToC", tocHost });
 
       const response = await axios({
         method: "get",
