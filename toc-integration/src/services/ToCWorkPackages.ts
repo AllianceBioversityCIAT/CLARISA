@@ -39,8 +39,8 @@ export class ToCWorkPackagesService {
       if (!officialCode || !tocId) continue;
 
       const record: Partial<TocWorkPackages> = {
-        id: rawId,
         toc_id: tocId,
+        id: rawId ?? null,
         acronym: typeof ost?.acronym === "string" ? ost.acronym : null,
         source: typeof ost?.source === "string" ? ost.source : null,
         wp_official_code: officialCode,
@@ -56,20 +56,19 @@ export class ToCWorkPackagesService {
             : null,
       };
 
-      const where = { wp_official_code: officialCode, toc_id: tocId };
-      const existing = await repo.findOne({ where });
+      let existing =
+        (await repo.findOne({ where: { toc_id: tocId } })) ||
+        (await repo.findOne({ where: { wp_official_code: officialCode } }));
 
       if (existing) {
-        record.id = existing.id;
-        await repo.update(where, record);
+        record.id = rawId ?? existing.id ?? null;
+        await repo.update({ toc_id: existing.toc_id }, record);
       } else {
-        if (!record.id) {
-          record.id = `${tocId}-${officialCode}`;
-        }
+        record.id = rawId ?? `${tocId}-${officialCode}`;
         await repo.insert(record as TocWorkPackages);
       }
 
-      const fresh = await repo.findOne({ where });
+      const fresh = await repo.findOne({ where: { toc_id: tocId } });
       if (fresh) workPackages.push(fresh);
     }
 

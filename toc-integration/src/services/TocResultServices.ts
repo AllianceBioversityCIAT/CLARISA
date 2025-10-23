@@ -27,6 +27,7 @@ import { TocResultsMelias } from "../entities/tocResultsMelias";
 import { TocResultsMeliasCountry } from "../entities/tocResultsMeliasCountry";
 import { TocResultsMeliasContacts } from "../entities/tocResultsMeliasContacts";
 import { TocResultsMeliasRegion } from "../entities/tocResultsMeliasRegion";
+import { TocWorkPackages } from "../entities/tocWorkPackages";
 
 export class TocResultServices {
   public validatorType = new ValidatorTypes();
@@ -764,6 +765,7 @@ export class TocResultServices {
       console.info({ message: "Saving ToC results V2" });
       const dataSource: DataSource = await Database.getDataSource();
       const repo = dataSource.getRepository(TocResults);
+      const workPackageRepo = dataSource.getRepository(TocWorkPackages);
       const listResultsToc: TocResults[] = [];
 
       let listResultsIndicator: TocResultsIndicators[] = [];
@@ -794,6 +796,30 @@ export class TocResultServices {
         return cat && allowed.has(cat);
       });
 
+      const groupIds = Array.from(
+        new Set(
+          items
+            .map((it) =>
+              typeof it?.group === "string" || typeof it?.group === "number"
+                ? String(it.group)
+                : null
+            )
+            .filter((id): id is string => !!id)
+        )
+      );
+
+      const workPackageMap = new Map<string, string>();
+      if (groupIds.length) {
+        const workPackages = await workPackageRepo.find({
+          where: { id: In(groupIds) },
+        });
+        for (const wp of workPackages) {
+          if (typeof wp.id === "string" && typeof wp.toc_id === "string") {
+            workPackageMap.set(wp.id, wp.toc_id);
+          }
+        }
+      }
+
       for (const item of items) {
         console.info({
           message: "Processing ToC result",
@@ -806,6 +832,32 @@ export class TocResultServices {
             ? String(item.id)
             : null;
         if (!toc_result_id) continue;
+
+        const groupId =
+          typeof item?.group === "string" || typeof item?.group === "number"
+            ? String(item.group)
+            : null;
+        let mappedTocId =
+          groupId && workPackageMap.size
+            ? workPackageMap.get(groupId) ?? null
+            : null;
+        if (groupId && !mappedTocId) {
+          const fallbackWorkPackage = await workPackageRepo.findOne({
+            where: { id: groupId },
+          });
+          if (
+            fallbackWorkPackage &&
+            typeof fallbackWorkPackage.toc_id === "string"
+          ) {
+            mappedTocId = fallbackWorkPackage.toc_id;
+            workPackageMap.set(groupId, mappedTocId);
+          } else {
+            console.warn({
+              message: "Missing work package mapping for result group",
+              groupId,
+            });
+          }
+        }
 
         const record: Partial<TocResults> = {
           toc_result_id,
@@ -820,10 +872,7 @@ export class TocResultServices {
             typeof item?.category === "string"
               ? item.category.toUpperCase()
               : null,
-          wp_id:
-            typeof item?.group === "string" || typeof item?.group === "number"
-              ? String(item.group)
-              : null,
+          wp_id: mappedTocId,
           id_toc_initiative:
             typeof meta?.original_id === "string" ? meta.original_id : null,
           phase: typeof meta?.phase === "string" ? meta.phase : null,
