@@ -32,4 +32,7 @@ export class TocWorkPackages {
   @Index()
   @Column({ name: "initiativeId", type: "varchar", length: 50, nullable: true })
   initiativeId: string | null;
+
+  @Column({ name: "year", type: "int", nullable: true })
+  year: number | null;
 }
