@@ -1175,7 +1175,7 @@ export class TocResultServices {
         if (saved && targetData != null) {
           await this.saveIndicatorTargetV2(
             saved.id,
-            saved.toc_result_indicator_id,
+            saved.related_node_id,
             targetData
           );
         }
