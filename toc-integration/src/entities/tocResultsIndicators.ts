@@ -42,4 +42,10 @@ export class TocResultsIndicators {
   type_name: string;
   @Column()
   related_node_id: string;
+  @Column()
+  measure_of_success_moderate: string;
+  @Column()
+  measure_of_success_minimum: string;
+  @Column()
+  measure_of_success_maximum: string;
 }
