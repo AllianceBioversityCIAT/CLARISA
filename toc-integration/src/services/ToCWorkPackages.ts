@@ -54,6 +54,10 @@ export class ToCWorkPackagesService {
           typeof ost?.initiativeId === "number"
             ? String(ost.initiativeId)
             : null,
+        year:
+          typeof ost?.year === "string" || typeof ost?.year === "number"
+            ? Number(ost.year)
+            : null,
       };
 
       let existing =
