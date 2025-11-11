@@ -892,29 +892,31 @@ export class TocResultServices {
         const hasRelatedNodeId =
           typeof record.related_node_id === "string" && record.related_node_id;
 
-        const whereByRelatedNode: Partial<TocResults> | null = hasRelatedNodeId
-          ? {
-              related_node_id: record.related_node_id,
-              ...(record.id_toc_initiative
-                ? { id_toc_initiative: record.id_toc_initiative }
-                : {}),
-              ...(record.phase ? { phase: record.phase as any } : {}),
-            }
-          : null;
-
         let saved: TocResults | null = null;
 
-        if (whereByRelatedNode) {
-          const existing = await repo.findOne({ where: whereByRelatedNode });
+        if (hasRelatedNodeId) {
+          // Buscar exclusivamente por related_node_id
+          const existing = await repo.findOne({
+            where: { related_node_id: record.related_node_id },
+          });
 
           if (existing) {
-            await repo.update(whereByRelatedNode, record);
+            // Actualizar registro existente
+            await repo.update(
+              { related_node_id: record.related_node_id },
+              record
+            );
           } else {
+            // Insertar nuevo registro
             await repo.insert(record);
           }
 
-          saved = await repo.findOne({ where: whereByRelatedNode });
+          // Recuperar el registro guardado/actualizado
+          saved = await repo.findOne({
+            where: { related_node_id: record.related_node_id },
+          });
         } else {
+          // Si no hay related_node_id, solo hacer INSERT
           const insertResult = await repo.insert(record);
           const identifier = insertResult.identifiers?.[0];
 
@@ -1059,6 +1061,13 @@ export class TocResultServices {
         { toc_results_id: tocResultRow.id },
         { is_active: false }
       );
+
+      if (tocResultRow.related_node_id) {
+        await indicatorRepo.update(
+          { toc_result_id_toc: tocResultRow.related_node_id },
+          { is_active: false }
+        );
+      }
 
       for (const ind of indicators) {
         console.log({ processingIndicator: ind });
@@ -1282,7 +1291,31 @@ export class TocResultServices {
         ? [target]
         : [];
 
-      await repo.delete({ toc_result_indicator_id });
+      const existingByIdIndicator = await repo.find({
+        where: { id_indicator },
+      });
+
+      if (existingByIdIndicator.length > 0) {
+        console.info({
+          message: "Deleting existing targets by id_indicator",
+          id_indicator,
+          count: existingByIdIndicator.length,
+        });
+        await repo.delete({ id_indicator });
+      }
+
+      const existingByTocResultIndicatorId = await repo.find({
+        where: { toc_result_indicator_id },
+      });
+
+      if (existingByTocResultIndicatorId.length > 0) {
+        console.info({
+          message: "Deleting existing targets by toc_result_indicator_id",
+          toc_result_indicator_id,
+          count: existingByTocResultIndicatorId.length,
+        });
+        await repo.delete({ toc_result_indicator_id });
+      }
 
       let number = 0;
       for (const t of targets) {

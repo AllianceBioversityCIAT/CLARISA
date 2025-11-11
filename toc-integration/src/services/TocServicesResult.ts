@@ -185,7 +185,7 @@ export class TocServicesResults {
     };
 
     try {
-      const tocHost = `${env.LINK_TOC}/api/toc/${spId}`;
+      const tocHost = `${env.LINK_TOC}/api/toc/${spId}?phase_id=99134294-d7a1-4966-a63e-227c9e29b9fb`;
       console.info({ message: "Fetching data from ToC", tocHost });
 
       const response = await axios({
