@@ -1442,7 +1442,7 @@ export class TocResultServices {
             for (const centerId of centersForRow) {
               centerRows.push(
                 targetCenterRepo.create({
-                  toc_indicator_target_id: saved.toc_result_indicator_id as any,
+                  toc_indicator_target_id: saved.toc_result_indicator_id,
                   center_id: centerId,
                 })
               );
