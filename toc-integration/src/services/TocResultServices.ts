@@ -20,6 +20,7 @@ import { TocResultIndicatorRegionDto } from "../dto/tocIndicatorRegion";
 import { TocResultIndicatorCountryDto } from "../dto/tocIndicatorCountry";
 import { TocResultIndicatorTargetDTO } from "../dto/tocIndicatorTarget";
 import { TocResultIndicatorTarget } from "../entities/tocIndicatorTarget";
+import { TocResultIndicatorTargetCenter } from "../entities/tocResultIndicatorTargetCenter";
 import { TocResultProject } from "../entities/tocResultsProjects";
 import { TocResultPartners } from "../entities/tocResultsPartners";
 import { TocSdgResults } from "../entities/tocSdgResults";
@@ -1282,6 +1283,9 @@ export class TocResultServices {
     try {
       const dataSource: DataSource = await Database.getDataSource();
       const repo = dataSource.getRepository(TocResultIndicatorTarget);
+      const targetCenterRepo = dataSource.getRepository(
+        TocResultIndicatorTargetCenter
+      );
 
       if (!id_indicator || !toc_result_indicator_id) return true;
 
@@ -1295,6 +1299,10 @@ export class TocResultServices {
         where: { id_indicator },
       });
 
+      const existingByTocResultIndicatorId = await repo.find({
+        where: { toc_result_indicator_id },
+      });
+
       if (existingByIdIndicator.length > 0) {
         console.info({
           message: "Deleting existing targets by id_indicator",
@@ -1303,10 +1311,6 @@ export class TocResultServices {
         });
         await repo.delete({ id_indicator });
       }
-
-      const existingByTocResultIndicatorId = await repo.find({
-        where: { toc_result_indicator_id },
-      });
 
       if (existingByTocResultIndicatorId.length > 0) {
         console.info({
@@ -1346,59 +1350,49 @@ export class TocResultServices {
           return null;
         };
 
+        const centerIds: number[] = Array.from(
+          new Set<number>(
+            centers
+              .map((center) =>
+                parseNumeric(center?.code ?? center?.center_id ?? center?.id)
+              )
+              .filter((id): id is number => id != null)
+          )
+        );
+        const projectIds: number[] = Array.from(
+          new Set<number>(
+            projects
+              .map((project) =>
+                parseNumeric(
+                  project?.code ?? project?.project_id ?? project?.id
+                )
+              )
+              .filter((id): id is number => id != null)
+          )
+        );
+
         const rowsToInsert: Partial<TocResultIndicatorTarget>[] = [];
-        let insertedFromCollections = false;
-
-        const pushRowsForCollection = (
-          ids: any[],
-          idExtractor: (item: any) => number | null,
-          assign: (
-            row: Partial<TocResultIndicatorTarget>,
-            id: number | null
-          ) => void
-        ) => {
-          if (!ids.length) return;
-          for (const item of ids) {
-            const numericId = idExtractor(item);
-            if (numericId == null) continue;
-            insertedFromCollections = true;
-
-            for (const [year, value] of yearEntries) {
-              const row = repo.create({
-                id_indicator,
-                toc_result_indicator_id,
-                number_target: number++,
-                target_value: parseValue(value),
-                target_date: String(year),
-                center_id: null,
-                project_id: null,
-              });
-              assign(row, numericId);
-              rowsToInsert.push(row);
-            }
-          }
-        };
+        const centersPerRow: number[][] = [];
 
         if (yearEntries.length) {
-          pushRowsForCollection(
-            centers,
-            (center) =>
-              parseNumeric(center?.code ?? center?.center_id ?? center?.id),
-            (row, id) => {
-              row.center_id = id;
+          if (projectIds.length) {
+            for (const projectId of projectIds) {
+              for (const [year, value] of yearEntries) {
+                rowsToInsert.push(
+                  repo.create({
+                    id_indicator,
+                    toc_result_indicator_id,
+                    number_target: number++,
+                    target_value: parseValue(value),
+                    target_date: String(year),
+                    center_id: null,
+                    project_id: projectId,
+                  })
+                );
+                centersPerRow.push(centerIds);
+              }
             }
-          );
-
-          pushRowsForCollection(
-            projects,
-            (project) =>
-              parseNumeric(project?.code ?? project?.project_id ?? project?.id),
-            (row, id) => {
-              row.project_id = id;
-            }
-          );
-
-          if (!insertedFromCollections) {
+          } else {
             for (const [year, value] of yearEntries) {
               rowsToInsert.push(
                 repo.create({
@@ -1411,6 +1405,7 @@ export class TocResultServices {
                   project_id: null,
                 })
               );
+              centersPerRow.push(centerIds);
             }
           }
         } else {
@@ -1434,10 +1429,29 @@ export class TocResultServices {
             project_id: null,
           });
           rowsToInsert.push(row);
+          centersPerRow.push(centerIds);
         }
 
         if (rowsToInsert.length) {
-          await repo.insert(rowsToInsert);
+          const savedTargets = await repo.save(rowsToInsert);
+          const centerRows: TocResultIndicatorTargetCenter[] = [];
+          savedTargets.forEach((saved, idx) => {
+            const centersForRow = centersPerRow[idx];
+            if (!centersForRow?.length) return;
+
+            for (const centerId of centersForRow) {
+              centerRows.push(
+                targetCenterRepo.create({
+                  toc_indicator_target_id: saved.toc_result_indicator_id,
+                  center_id: centerId,
+                })
+              );
+            }
+          });
+
+          if (centerRows.length) {
+            await targetCenterRepo.save(centerRows);
+          }
         }
       }
 
