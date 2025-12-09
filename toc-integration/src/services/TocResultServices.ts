@@ -797,6 +797,57 @@ export class TocResultServices {
         return cat && allowed.has(cat);
       });
 
+      const normalizeTitle = (title?: string | null) =>
+        typeof title === "string" && title.trim().length
+          ? title.trim().toLowerCase()
+          : null;
+      const incomingTitles = new Set<string>();
+      for (const candidate of items) {
+        const normalized = normalizeTitle(candidate?.title);
+        if (normalized) incomingTitles.add(normalized);
+      }
+
+      const deactivationFilters: Record<string, string> = {};
+      if (typeof meta?.original_id === "string") {
+        deactivationFilters.id_toc_initiative = meta.original_id;
+      }
+      if (typeof meta?.phase === "string") {
+        deactivationFilters.phase = meta.phase;
+      }
+      if (typeof meta?.official_code === "string") {
+        deactivationFilters.official_code = meta.official_code;
+      }
+
+      if (Object.keys(deactivationFilters).length && incomingTitles.size) {
+        const existingRecords = await repo.find({
+          where: deactivationFilters as any,
+        });
+
+        const toDeactivatePrimaryKeys: (string | number)[] = [];
+
+        for (const record of existingRecords) {
+          const normalizedExisting = normalizeTitle(record?.result_title);
+
+          const shouldDeactivate =
+            !normalizedExisting || !incomingTitles.has(normalizedExisting);
+          if (!shouldDeactivate) continue;
+
+          if (
+            typeof record?.id === "number" ||
+            typeof record?.id === "string"
+          ) {
+            toDeactivatePrimaryKeys.push(record.id);
+          }
+        }
+
+        if (toDeactivatePrimaryKeys.length) {
+          await repo.update(
+            { id: In(toDeactivatePrimaryKeys as any[]) },
+            { is_active: false }
+          );
+        }
+      }
+
       const groupIds = Array.from(
         new Set(
           items
@@ -1442,7 +1493,7 @@ export class TocResultServices {
             for (const centerId of centersForRow) {
               centerRows.push(
                 targetCenterRepo.create({
-                  toc_indicator_target_id: saved.toc_result_indicator_id as any,
+                  toc_indicator_target_id: saved.toc_result_indicator_id,
                   center_id: centerId,
                 })
               );
