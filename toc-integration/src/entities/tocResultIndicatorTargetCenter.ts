@@ -13,16 +13,19 @@ export class TocResultIndicatorTargetCenter {
   id: number;
 
   @Column()
-  toc_indicator_target_id: string;
+  toc_indicator_target_id: number;
 
   @Column()
   center_id: number;
 
   @ManyToOne(
     () => TocResultIndicatorTarget,
-    (target) => target.toc_result_indicator_id,
+    (target) => target.toc_indicator_target_id,
     { onDelete: "CASCADE" }
   )
-  @JoinColumn({ name: "toc_indicator_target_id" })
+  @JoinColumn({
+    name: "toc_indicator_target_id",
+    referencedColumnName: "toc_indicator_target_id",
+  })
   target: TocResultIndicatorTarget;
 }
