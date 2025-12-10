@@ -1,14 +1,17 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity("toc_result_indicator_target")
 export class TocResultIndicatorTarget {
-  @PrimaryGeneratedColumn()
-  toc_result_indicator_id: string;
+  @PrimaryGeneratedColumn({ name: "toc_indicator_target_id" })
+  toc_indicator_target_id: number;
 
-  @Column({ nullable: true })
-  target_value: number | null;
+  @Column({ name: "toc_result_indicator_id", nullable: true, length: 500 })
+  toc_result_indicator_id: string | null;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 1000 })
+  target_value: string | null;
+
+  @Column({ nullable: true, length: 1000 })
   target_date: string | null;
 
   @Column()

@@ -674,7 +674,7 @@ export class TocResultServices {
             targetIndicator.toc_result_indicator_id = toc_id_indicator;
 
             if (typeof target.value === "number" && !isNaN(target.value)) {
-              targetIndicator.target_value = target.value;
+              targetIndicator.target_value = String(target.value);
             } else if (
               typeof target.value === "string" &&
               target.value.trim() !== ""
@@ -718,7 +718,7 @@ export class TocResultServices {
                 typeof targetItem.value === "number" &&
                 !isNaN(targetItem.value)
               ) {
-                targetIndicator.target_value = targetItem.value;
+                targetIndicator.target_value = String(targetItem.value);
               } else if (
                 typeof targetItem.value === "string" &&
                 targetItem.value.trim() !== ""
@@ -1350,10 +1350,6 @@ export class TocResultServices {
         where: { id_indicator },
       });
 
-      const existingByTocResultIndicatorId = await repo.find({
-        where: { toc_result_indicator_id },
-      });
-
       if (existingByIdIndicator.length > 0) {
         console.info({
           message: "Deleting existing targets by id_indicator",
@@ -1363,6 +1359,9 @@ export class TocResultServices {
         await repo.delete({ id_indicator });
       }
 
+      const existingByTocResultIndicatorId = await repo.find({
+        where: { toc_result_indicator_id },
+      });
       if (existingByTocResultIndicatorId.length > 0) {
         console.info({
           message: "Deleting existing targets by toc_result_indicator_id",
@@ -1392,11 +1391,11 @@ export class TocResultServices {
           return null;
         };
 
-        const parseValue = (value: any): number | null => {
-          if (typeof value === "number" && Number.isFinite(value)) return value;
+        const parseValue = (value: any): string | null => {
+          if (typeof value === "number" && Number.isFinite(value))
+            return String(value);
           if (typeof value === "string" && value.trim() !== "") {
-            const parsed = Number(value);
-            return Number.isNaN(parsed) ? null : parsed;
+            return value.trim();
           }
           return null;
         };
@@ -1466,11 +1465,9 @@ export class TocResultServices {
             number_target: number++,
             target_value:
               typeof t.value === "number" && !Number.isNaN(t.value)
-                ? t.value
-                : typeof t.value === "string" &&
-                  t.value.trim() !== "" &&
-                  !Number.isNaN(Number(t.value))
-                ? Number(t.value)
+                ? String(t.value)
+                : typeof t.value === "string" && t.value.trim() !== ""
+                ? t.value.trim()
                 : null,
             target_date:
               typeof t.date === "string" && t.date.trim() !== ""
@@ -1488,12 +1485,13 @@ export class TocResultServices {
           const centerRows: TocResultIndicatorTargetCenter[] = [];
           savedTargets.forEach((saved, idx) => {
             const centersForRow = centersPerRow[idx];
-            if (!centersForRow?.length) return;
+            const savedTargetId = saved?.toc_indicator_target_id;
+            if (!centersForRow?.length || !savedTargetId) return;
 
             for (const centerId of centersForRow) {
               centerRows.push(
                 targetCenterRepo.create({
-                  toc_indicator_target_id: saved.toc_result_indicator_id,
+                  toc_indicator_target_id: savedTargetId,
                   center_id: centerId,
                 })
               );
