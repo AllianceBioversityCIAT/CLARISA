@@ -3,7 +3,7 @@ export class TocResultIndicatorTargetDTO {
 
   toc_result_indicator_id: string;
 
-  target_value: number;
+  target_value: string | null;
 
   target_date: string;
 

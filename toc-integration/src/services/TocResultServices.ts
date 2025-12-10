@@ -674,7 +674,7 @@ export class TocResultServices {
             targetIndicator.toc_result_indicator_id = toc_id_indicator;
 
             if (typeof target.value === "number" && !isNaN(target.value)) {
-              targetIndicator.target_value = target.value;
+              targetIndicator.target_value = String(target.value);
             } else if (
               typeof target.value === "string" &&
               target.value.trim() !== ""
@@ -718,7 +718,7 @@ export class TocResultServices {
                 typeof targetItem.value === "number" &&
                 !isNaN(targetItem.value)
               ) {
-                targetIndicator.target_value = targetItem.value;
+                targetIndicator.target_value = String(targetItem.value);
               } else if (
                 typeof targetItem.value === "string" &&
                 targetItem.value.trim() !== ""
@@ -796,6 +796,57 @@ export class TocResultServices {
           typeof it?.category === "string" ? it.category.toUpperCase() : null;
         return cat && allowed.has(cat);
       });
+
+      const normalizeTitle = (title?: string | null) =>
+        typeof title === "string" && title.trim().length
+          ? title.trim().toLowerCase()
+          : null;
+      const incomingTitles = new Set<string>();
+      for (const candidate of items) {
+        const normalized = normalizeTitle(candidate?.title);
+        if (normalized) incomingTitles.add(normalized);
+      }
+
+      const deactivationFilters: Record<string, string> = {};
+      if (typeof meta?.original_id === "string") {
+        deactivationFilters.id_toc_initiative = meta.original_id;
+      }
+      if (typeof meta?.phase === "string") {
+        deactivationFilters.phase = meta.phase;
+      }
+      if (typeof meta?.official_code === "string") {
+        deactivationFilters.official_code = meta.official_code;
+      }
+
+      if (Object.keys(deactivationFilters).length && incomingTitles.size) {
+        const existingRecords = await repo.find({
+          where: deactivationFilters as any,
+        });
+
+        const toDeactivatePrimaryKeys: (string | number)[] = [];
+
+        for (const record of existingRecords) {
+          const normalizedExisting = normalizeTitle(record?.result_title);
+
+          const shouldDeactivate =
+            !normalizedExisting || !incomingTitles.has(normalizedExisting);
+          if (!shouldDeactivate) continue;
+
+          if (
+            typeof record?.id === "number" ||
+            typeof record?.id === "string"
+          ) {
+            toDeactivatePrimaryKeys.push(record.id);
+          }
+        }
+
+        if (toDeactivatePrimaryKeys.length) {
+          await repo.update(
+            { id: In(toDeactivatePrimaryKeys as any[]) },
+            { is_active: false }
+          );
+        }
+      }
 
       const groupIds = Array.from(
         new Set(
@@ -1299,10 +1350,6 @@ export class TocResultServices {
         where: { id_indicator },
       });
 
-      const existingByTocResultIndicatorId = await repo.find({
-        where: { toc_result_indicator_id },
-      });
-
       if (existingByIdIndicator.length > 0) {
         console.info({
           message: "Deleting existing targets by id_indicator",
@@ -1312,6 +1359,9 @@ export class TocResultServices {
         await repo.delete({ id_indicator });
       }
 
+      const existingByTocResultIndicatorId = await repo.find({
+        where: { toc_result_indicator_id },
+      });
       if (existingByTocResultIndicatorId.length > 0) {
         console.info({
           message: "Deleting existing targets by toc_result_indicator_id",
@@ -1341,11 +1391,11 @@ export class TocResultServices {
           return null;
         };
 
-        const parseValue = (value: any): number | null => {
-          if (typeof value === "number" && Number.isFinite(value)) return value;
+        const parseValue = (value: any): string | null => {
+          if (typeof value === "number" && Number.isFinite(value))
+            return String(value);
           if (typeof value === "string" && value.trim() !== "") {
-            const parsed = Number(value);
-            return Number.isNaN(parsed) ? null : parsed;
+            return value.trim();
           }
           return null;
         };
@@ -1415,11 +1465,9 @@ export class TocResultServices {
             number_target: number++,
             target_value:
               typeof t.value === "number" && !Number.isNaN(t.value)
-                ? t.value
-                : typeof t.value === "string" &&
-                  t.value.trim() !== "" &&
-                  !Number.isNaN(Number(t.value))
-                ? Number(t.value)
+                ? String(t.value)
+                : typeof t.value === "string" && t.value.trim() !== ""
+                ? t.value.trim()
                 : null,
             target_date:
               typeof t.date === "string" && t.date.trim() !== ""
@@ -1437,12 +1485,13 @@ export class TocResultServices {
           const centerRows: TocResultIndicatorTargetCenter[] = [];
           savedTargets.forEach((saved, idx) => {
             const centersForRow = centersPerRow[idx];
-            if (!centersForRow?.length) return;
+            const savedTargetId = saved?.toc_indicator_target_id;
+            if (!centersForRow?.length || !savedTargetId) return;
 
             for (const centerId of centersForRow) {
               centerRows.push(
                 targetCenterRepo.create({
-                  toc_indicator_target_id: saved.toc_result_indicator_id,
+                  toc_indicator_target_id: savedTargetId,
                   center_id: centerId,
                 })
               );
