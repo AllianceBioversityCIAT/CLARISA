@@ -914,9 +914,9 @@ export class TocResultServices {
         const record: Partial<TocResults> = {
           toc_result_id,
           related_node_id:
-            typeof item?.related_node_id === "string"
+            typeof item?.related_node_id === "string" && item.related_node_id !== ""
               ? item.related_node_id
-              : null,
+              : item.id,
           result_title: typeof item?.title === "string" ? item.title : null,
           result_description:
             typeof item?.description === "string" ? item.description : null,
@@ -935,8 +935,8 @@ export class TocResultServices {
             typeof item?.responsible_organization?.code === "number"
               ? String(item.responsible_organization.code)
               : typeof item?.responsible_organization?.code === "string"
-              ? item.responsible_organization.code
-              : null,
+                ? item.responsible_organization.code
+                : null,
           is_global: true,
           is_active: true,
         };
@@ -1005,8 +1005,8 @@ export class TocResultServices {
         )
           ? item.quantitative_indicators
           : Array.isArray(item?.indicators)
-          ? item.indicators
-          : [];
+            ? item.indicators
+            : [];
         const qualitativeIndicators = Array.isArray(
           item?.qualitative_indicators
         )
@@ -1017,8 +1017,18 @@ export class TocResultServices {
           ...qualitativeIndicators,
         ];
 
+        let relatedNodeId: string;
+        if (
+          item?.related_node_id !== undefined &&
+          item?.related_node_id !== null &&
+          item?.related_node_id !== ""
+        ) {
+          relatedNodeId = String(item.related_node_id);
+        } else {
+          relatedNodeId = String(item.id);
+        }
         const indRes = await this.tocResultsIndicatorV2(
-          String(item.related_node_id),
+          relatedNodeId,
           indicatorsArray,
           saved
         );
@@ -1029,8 +1039,8 @@ export class TocResultServices {
         const sdgNested = Array.isArray(item?.sdg_results)
           ? item.sdg_results
           : item?.sdgs && Array.isArray(item.sdgs)
-          ? item.sdgs
-          : [];
+            ? item.sdgs
+            : [];
 
         const sdgRel = await this.saveTocResultsSdgV2(
           String(item.related_node_id),
@@ -1043,8 +1053,8 @@ export class TocResultServices {
         const impactNested = Array.isArray(item?.impact_area_results)
           ? item.impact_area_results
           : item?.impact_areas && Array.isArray(item.impact_areas)
-          ? item.impact_areas
-          : [];
+            ? item.impact_areas
+            : [];
 
         const impactRel = await this.saveTocResultsImpactV2(
           String(item.related_node_id),
@@ -1137,8 +1147,8 @@ export class TocResultServices {
           typeof baselineRaw?.name === "string"
             ? baselineRaw.name
             : typeof baselineRaw?.date === "string"
-            ? baselineRaw.date
-            : null;
+              ? baselineRaw.date
+              : null;
 
         const dto = new TocResultsIndicatorsDto();
         dto.toc_result_indicator_id =
@@ -1178,7 +1188,7 @@ export class TocResultServices {
         dto.create_date =
           typeof ind?.creation_date === "string" ? ind.creation_date : null;
         dto.related_node_id =
-          typeof ind?.related_node_id === "string"
+          typeof ind?.related_node_id === "string" && ind.related_node_id !== ""
             ? ind.related_node_id
             : String(ind.id);
         dto.measure_of_success_moderate =
@@ -1272,10 +1282,10 @@ export class TocResultServices {
           typeof r?.um49Code === "number"
             ? r.um49Code
             : typeof r?.code === "number"
-            ? r.code
-            : typeof r?.id === "number"
-            ? r.id
-            : null;
+              ? r.code
+              : typeof r?.id === "number"
+                ? r.id
+                : null;
         if (um49 == null || seenRegions.has(um49)) continue;
         seenRegions.add(um49);
 
@@ -1300,8 +1310,8 @@ export class TocResultServices {
           typeof c?.code === "number"
             ? c.code
             : typeof c?.country_id === "number"
-            ? c.country_id
-            : null;
+              ? c.country_id
+              : null;
         if (code == null || seenCountries.has(code)) continue;
         seenCountries.add(code);
 
@@ -1343,8 +1353,8 @@ export class TocResultServices {
       const targets: any[] = Array.isArray(target)
         ? target
         : target && typeof target === "object"
-        ? [target]
-        : [];
+          ? [target]
+          : [];
 
       const existingByIdIndicator = await repo.find({
         where: { id_indicator },
@@ -1467,8 +1477,8 @@ export class TocResultServices {
               typeof t.value === "number" && !Number.isNaN(t.value)
                 ? String(t.value)
                 : typeof t.value === "string" && t.value.trim() !== ""
-                ? t.value.trim()
-                : null,
+                  ? t.value.trim()
+                  : null,
             target_date:
               typeof t.date === "string" && t.date.trim() !== ""
                 ? t.date.trim()
@@ -1643,8 +1653,8 @@ export class TocResultServices {
         typeof meliaItem?.id === "string" || typeof meliaItem?.id === "number"
           ? String(meliaItem.id)
           : typeof meliaItem?.melia_id === "string"
-          ? meliaItem.melia_id
-          : null;
+            ? meliaItem.melia_id
+            : null;
 
       if (!meliaId) continue;
 
@@ -1763,8 +1773,8 @@ export class TocResultServices {
         typeof country?.code === "number"
           ? country.code
           : typeof country?.country_id === "number"
-          ? country.country_id
-          : null;
+            ? country.country_id
+            : null;
 
       const row = repo.create({
         melia_id: meliaId,
@@ -1801,8 +1811,8 @@ export class TocResultServices {
         typeof region?.um49Code === "number"
           ? region.um49Code
           : typeof region?.code === "number"
-          ? region.code
-          : null;
+            ? region.code
+            : null;
 
       const row = repo.create({
         melia_id: meliaId,
@@ -1914,8 +1924,8 @@ export class TocResultServices {
           typeof sdgItem?.id === "string" || typeof sdgItem?.id === "number"
             ? String(sdgItem.id)
             : typeof sdgItem?.toc_result_id === "string"
-            ? sdgItem.toc_result_id
-            : null;
+              ? sdgItem.toc_result_id
+              : null;
         if (!sdgTocResultId) continue;
 
         const matched = globalSdgResults.find(
@@ -1988,8 +1998,8 @@ export class TocResultServices {
           typeof iaItem?.id === "string" || typeof iaItem?.id === "number"
             ? String(iaItem.id)
             : typeof iaItem?.toc_result_id === "string"
-            ? iaItem.toc_result_id
-            : null;
+              ? iaItem.toc_result_id
+              : null;
         if (!impactTocResultId) continue;
 
         const matched = globalImpactAreaResults.find(
