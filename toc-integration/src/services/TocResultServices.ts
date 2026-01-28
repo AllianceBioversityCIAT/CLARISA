@@ -1136,9 +1136,13 @@ export class TocResultServices {
         if (!ind || (typeof ind.id !== "string" && typeof ind.id !== "number"))
           continue;
 
-        const baselineRaw = Array.isArray(ind?.baseline)
-          ? ind.baseline[0]
-          : ind?.baseline;
+        const baselineSource =
+          Array.isArray(ind?.baseline)
+            ? ind.baseline[0]
+            : Array.isArray(ind?.baselines)
+              ? ind.baselines[0]
+              : ind?.baseline;
+        const baselineRaw = baselineSource;
         const baselineValue =
           baselineRaw && baselineRaw.value != null
             ? String(baselineRaw.value)
@@ -1157,36 +1161,40 @@ export class TocResultServices {
             : null;
         dto.toc_results_id = tocResultRow.id;
         dto.indicator_description =
-          typeof ind?.description === "string" ? ind.description : null;
+          typeof ind?.description === "string" ? ind.description : "";
         dto.unit_messurament =
           typeof ind?.unit_of_measurement === "string"
             ? ind.unit_of_measurement
-            : null;
-        dto.baseline_value = baselineValue;
-        dto.baseline_date = baselineDate;
+            : "";
+        dto.baseline_value = baselineValue ?? "";
+        dto.baseline_date = baselineDate ?? "";
+        dto.target_value = "";
+        dto.target_date = "";
 
         dto.data_colletion_source =
           typeof ind?.data_collection_source === "string"
             ? ind.data_collection_source
-            : null;
+            : "";
         dto.data_collection_method =
           typeof ind?.data_collection_method === "string"
             ? ind.data_collection_method
-            : null;
+            : "";
         dto.frequency_data_collection =
           typeof ind?.data_collection_frequency === "string"
             ? ind.data_collection_frequency
-            : null;
+            : "";
         dto.type_value =
-          typeof ind?.type?.value === "string" ? ind.type.value : null;
+          typeof ind?.type?.value === "string" ? ind.type.value : "";
         dto.type_name =
-          typeof ind?.type?.name === "string" ? ind.type.name : null;
-        dto.location = typeof ind?.location === "string" ? ind.location : null;
+          typeof ind?.type?.name === "string" ? ind.type.name : "";
+        dto.location = typeof ind?.location === "string" ? ind.location : "";
         dto.is_active = true;
         dto.toc_result_id_toc = id_result;
-        dto.main = typeof ind?.main === "boolean" ? ind.main : null;
+        dto.main = typeof ind?.main === "boolean" ? ind.main : false;
         dto.create_date =
-          typeof ind?.creation_date === "string" ? ind.creation_date : null;
+          typeof ind?.creation_date === "string"
+            ? ind.creation_date
+            : "";
         dto.related_node_id =
           typeof ind?.related_node_id === "string" && ind.related_node_id !== ""
             ? ind.related_node_id
@@ -1194,15 +1202,15 @@ export class TocResultServices {
         dto.measure_of_success_moderate =
           typeof ind?.measure_of_success_moderate === "string"
             ? ind.measure_of_success_moderate
-            : null;
+            : "";
         dto.measure_of_success_minimum =
           typeof ind?.measure_of_success_minimum === "string"
             ? ind.measure_of_success_minimum
-            : null;
+            : "";
         dto.measure_of_success_maximum =
           typeof ind?.measure_of_success_maximum === "string"
             ? ind.measure_of_success_maximum
-            : null;
+            : "";
 
         const exists = await indicatorRepo.findOne({
           where: {
