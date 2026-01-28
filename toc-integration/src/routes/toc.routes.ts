@@ -10,6 +10,9 @@ router.post("/toc", TocResultDashboard.getTocResultDashboard);
 // * New Portfolio Route
 router.post("/toc/sp", TocResultDashboard.bulkSpTocResultDashboard)
 
+// * New Portfolio Route
+router.post("/toc/avisa", TocResultDashboard.bulkAvisaTocResultDashboard)
+
 // Get test
 router.get("/tocs", TocResultDashboard.getToc);
 
