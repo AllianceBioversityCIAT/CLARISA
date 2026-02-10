@@ -215,7 +215,7 @@ export class TocServicesResults {
               : spId,
           version_id:
             typeof response.data.version_id === "string" ||
-            typeof response.data.version_id === "number"
+              typeof response.data.version_id === "number"
               ? String(version_id)
               : null,
           official_code: spId,
@@ -264,17 +264,13 @@ export class TocServicesResults {
         sendSlackNotification(
           ":check1:",
           spId,
-          `*Synchronization with the new ToC Integration was successful*\nTime=${durationMs}ms\nSDGs Results=${
-            counts.sdgResults
-          } | SDGs Targets=${counts.sdgTargets} | SDGs Indicators=${
-            counts.sdgIndicators
-          }\nImpact Areas=${counts.impactAreas} | IA Global Targets=${
-            counts.impactAreaGlobalTargets
+          `*Synchronization with the new ToC Integration was successful*\nTime=${durationMs}ms\nSDGs Results=${counts.sdgResults
+          } | SDGs Targets=${counts.sdgTargets} | SDGs Indicators=${counts.sdgIndicators
+          }\nImpact Areas=${counts.impactAreas} | IA Global Targets=${counts.impactAreaGlobalTargets
           } | IA Indicators=${counts.impactAreaIndicators}
           \nWPs (AOW)=${counts.workPackages}
           \nResults=${counts.results}
-          \nPhase=${metaForNotif.phase ?? "null"}\nEntity ID=${
-            metaForNotif.original_id ?? "null"
+          \nPhase=${metaForNotif.phase ?? "null"}\nEntity ID=${metaForNotif.original_id ?? "null"
           }`
         );
 
@@ -294,8 +290,130 @@ export class TocServicesResults {
       sendSlackNotification(
         ":alert:",
         spId,
-        `*A problem occurred while synchronizing with the new ToC Integration*\nTime=${durationMs}ms\nPhase=${
-          metaForNotif.phase ?? "null"
+        `*A problem occurred while synchronizing with the new ToC Integration*\nTime=${durationMs}ms\nPhase=${metaForNotif.phase ?? "null"
+        }\nEntity ID=${metaForNotif.original_id ?? "null"}`,
+        error
+      );
+      throw new Error(error as any);
+    }
+  }
+
+  async avisaSplitInformation() {
+    let metaForNotif: { phase: string | null; original_id: string | null } = {
+      phase: null,
+      original_id: 'SGP-02',
+    };
+
+    const startedAt = Date.now();
+    console.info({ message: "Start splitting information AVISA" });
+
+    try {
+      const tocHost = `https://toc.mel.cgiar.org/api/toc/a993d3ff-fd7d-4d27-a646-9c6b42dc8da3`;
+      console.info({ message: "Fetching data from ToC", tocHost });
+
+      const response = await axios({
+        method: "get",
+        url: tocHost,
+        timeout: 20000,
+      });
+
+      if (
+        this.validatorType.existPropertyInObjectMul(response.data, [
+          "data",
+          "relations",
+        ])
+      ) {
+        const { data, phase, original_id, version_id } = response.data || {};
+        if (!this.validatorType.validatorIsArray(data)) {
+          throw new Error("The property data must be an array");
+        }
+        const meta = {
+          phase:
+            typeof phase === "string" || typeof phase === "number"
+              ? String(phase)
+              : null,
+          original_id:
+            typeof original_id === "string" || typeof original_id === "number"
+              ? String(original_id)
+              : 'SGP-02',
+          version_id:
+            typeof response.data.version_id === "string" ||
+              typeof response.data.version_id === "number"
+              ? String(version_id)
+              : null,
+          official_code: 'SGP-02',
+        };
+        metaForNotif = meta;
+
+        const sdgV2 = await this.tocSdgResults.createTocSdgResultsV2(
+          data,
+          meta
+        );
+
+        const impactAreasV2 =
+          await this.tocImpactAreas.saveImpactAreaTocResultV2(data, meta);
+
+        const workPackagesV2 = await this.workPackages.saveWorkPackagesV2(data);
+
+        const resultsV2 = await this.resultsToc.saveTocResultsV2(
+          data,
+          meta,
+          sdgV2.sdgResults,
+          impactAreasV2.listImpactAreaResults
+        );
+
+        this.InformationSaving = {
+          ...sdgV2,
+          ...impactAreasV2,
+          ...workPackagesV2,
+          ...resultsV2,
+        };
+
+        await this.saveInDataBase();
+
+        const counts = {
+          sdgResults: sdgV2?.sdgResults?.length ?? 0,
+          sdgTargets: sdgV2?.sdgTargets?.length ?? 0,
+          sdgIndicators: sdgV2?.sdgIndicators?.length ?? 0,
+          impactAreas: impactAreasV2?.listImpactAreaResults?.length ?? 0,
+          impactAreaGlobalTargets: impactAreasV2?.globalTargets?.length ?? 0,
+          impactAreaIndicators:
+            impactAreasV2?.impactAreaIndicators?.length ?? 0,
+          workPackages: workPackagesV2?.workPackages?.length ?? 0,
+          results: resultsV2?.listResultsToc?.length ?? 0,
+        };
+        const durationMs = Date.now() - startedAt;
+
+        sendSlackNotification(
+          ":check1:",
+          'SGP-02',
+          `*Synchronization with the new ToC Integration was successful*\nTime=${durationMs}ms\nSDGs Results=${counts.sdgResults
+          } | SDGs Targets=${counts.sdgTargets} | SDGs Indicators=${counts.sdgIndicators
+          }\nImpact Areas=${counts.impactAreas} | IA Global Targets=${counts.impactAreaGlobalTargets
+          } | IA Indicators=${counts.impactAreaIndicators}
+          \nWPs (AOW)=${counts.workPackages}
+          \nResults=${counts.results}
+          \nPhase=${metaForNotif.phase ?? "null"}\nEntity ID=${metaForNotif.original_id ?? "null"
+          }`
+        );
+
+        console.info({ message: "Finished saving ToC results" });
+        return {
+          meta: metaForNotif,
+          counts,
+          durationMs,
+        };
+      } else {
+        throw new Error(
+          "The properties (data or relations) are not in the object"
+        );
+      }
+    } catch (error) {
+      const durationMs = Date.now() - startedAt;
+      sendSlackNotification(
+        ":alert:",
+        'SGP-02',
+        `*A problem occurred while synchronizing with the new ToC Integration*\nTime=${durationMs}ms\nPhase=${metaForNotif.phase ?? "null"
         }\nEntity ID=${metaForNotif.original_id ?? "null"}`,
         error
       );

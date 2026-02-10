@@ -33,6 +33,22 @@ export class tocController {
       return res.status(500).json(error);
     }
   }
+  
+  /**
+   * @param req
+   * @param res
+   * New ToC Integration dashboard for Avisa
+   */
+  async bulkAvisaTocResultDashboard(req: Request, res: Response) {
+    try {
+      let servicesInformation = new TocServicesResults();
+      const data = await servicesInformation.avisaSplitInformation();
+      res.json({ response: data });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json(error);
+    }
+  }
 
   async getToc(_req: Request, res: Response) {
     try {
