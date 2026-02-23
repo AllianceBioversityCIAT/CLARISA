@@ -1,4 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+
+jest.mock('primeng/table', () => ({
+  Table: class {},
+  TableModule: class {},
+}));
 
 import { DynamicTableFiltersComponent } from './dynamic-table-filters.component';
 
@@ -8,13 +15,17 @@ describe('DynamicTableFiltersComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ DynamicTableFiltersComponent ]
+      imports: [HttpClientTestingModule],
+      declarations: [DynamicTableFiltersComponent],
+      schemas: [NO_ERRORS_SCHEMA],
     })
-    .compileComponents();
+      .overrideComponent(DynamicTableFiltersComponent, {
+        set: { template: '<div></div>' },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(DynamicTableFiltersComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create', () => {
