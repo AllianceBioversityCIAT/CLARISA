@@ -31,24 +31,36 @@ describe('SdgController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAllV2', async () => {
-      mockSdgService.findAllV2 = mockSdgService.findAllV2 || jest.fn();
-      mockSdgService.findAllV2.mockResolvedValue([]);
+  it('should call service on findAllV2', async () => {
+    mockSdgService.findAllV2 = mockSdgService.findAllV2 || jest.fn();
+    mockSdgService.findAllV2.mockResolvedValue([]);
 
-      try { await (controller as any).findAllV2('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAllV2('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findAllLegacy', async () => {
-      mockSdgService.findAllLegacy = mockSdgService.findAllLegacy || jest.fn();
-      mockSdgService.findAllLegacy.mockResolvedValue([]);
+  it('should call service on findAllLegacy', async () => {
+    mockSdgService.findAllLegacy = mockSdgService.findAllLegacy || jest.fn();
+    mockSdgService.findAllLegacy.mockResolvedValue([]);
 
-      try { await (controller as any).findAllLegacy('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAllLegacy('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockSdgService.findOne = mockSdgService.findOne || jest.fn();
-      mockSdgService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockSdgService.findOne = mockSdgService.findOne || jest.fn();
+    mockSdgService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

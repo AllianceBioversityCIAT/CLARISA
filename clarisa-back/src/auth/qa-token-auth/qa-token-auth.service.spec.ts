@@ -52,26 +52,29 @@ describe('QaTokenAuthService', () => {
     expect(service).toBeDefined();
   });
 
-    it('should call repository on findAll', async () => {
-      Object.keys(mockQaTokenAuthRepository).forEach(k => {
-        if (typeof mockQaTokenAuthRepository[k]?.mockResolvedValue === 'function') {
-          mockQaTokenAuthRepository[k].mockResolvedValue([]);
-        }
-      });
-
-      const result = await service.findAll();
-      expect(result).toBeDefined();
+  it('should call repository on findAll', async () => {
+    Object.keys(mockQaTokenAuthRepository).forEach((k) => {
+      if (
+        typeof mockQaTokenAuthRepository[k]?.mockResolvedValue === 'function'
+      ) {
+        mockQaTokenAuthRepository[k].mockResolvedValue([]);
+      }
     });
 
-    it('should return a single item on findOne', async () => {
-      const mockItem = { id: 1 };
-      mockQaTokenAuthRepository.findOneBy = mockQaTokenAuthRepository.findOneBy || jest.fn();
-      mockQaTokenAuthRepository.findOne = mockQaTokenAuthRepository.findOne || jest.fn();
-      mockQaTokenAuthRepository.findOneBy.mockResolvedValue(mockItem);
-      mockQaTokenAuthRepository.findOne.mockResolvedValue(mockItem);
-      
+    const result = await service.findAll();
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findOne(1);
-      expect(result).toBeDefined();
-    });
+  it('should return a single item on findOne', async () => {
+    const mockItem = { id: 1 };
+    mockQaTokenAuthRepository.findOneBy =
+      mockQaTokenAuthRepository.findOneBy || jest.fn();
+    mockQaTokenAuthRepository.findOne =
+      mockQaTokenAuthRepository.findOne || jest.fn();
+    mockQaTokenAuthRepository.findOneBy.mockResolvedValue(mockItem);
+    mockQaTokenAuthRepository.findOne.mockResolvedValue(mockItem);
+
+    const result = await service.findOne(1);
+    expect(result).toBeDefined();
+  });
 });

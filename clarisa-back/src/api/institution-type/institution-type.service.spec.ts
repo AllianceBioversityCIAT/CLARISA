@@ -53,7 +53,10 @@ describe('InstitutionTypeService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InstitutionTypeService,
-        { provide: InstitutionTypeRepository, useValue: mockInstitutionTypeRepository },
+        {
+          provide: InstitutionTypeRepository,
+          useValue: mockInstitutionTypeRepository,
+        },
         { provide: InstitutionTypeMapper, useValue: mockInstitutionTypeMapper },
       ],
     }).compile();
@@ -65,65 +68,73 @@ describe('InstitutionTypeService', () => {
     expect(service).toBeDefined();
   });
 
-    it('should return items on findAll with SHOW_ALL', async () => {
-      const mockItems = [{ id: 1 }, { id: 2 }];
-      Object.keys(mockInstitutionTypeRepository).forEach(k => {
-        if (typeof mockInstitutionTypeRepository[k]?.mockResolvedValue === 'function') {
-          mockInstitutionTypeRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockInstitutionTypeMapper).forEach(k => {
-        if (typeof mockInstitutionTypeMapper[k]?.mockReturnValue === 'function') {
-          mockInstitutionTypeMapper[k].mockReturnValue(mockItems);
-        }
-      });
-
-      const result = await service.findAll(FindAllOptions.SHOW_ALL);
-      expect(result).toBeDefined();
+  it('should return items on findAll with SHOW_ALL', async () => {
+    const mockItems = [{ id: 1 }, { id: 2 }];
+    Object.keys(mockInstitutionTypeRepository).forEach((k) => {
+      if (
+        typeof mockInstitutionTypeRepository[k]?.mockResolvedValue ===
+        'function'
+      ) {
+        mockInstitutionTypeRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockInstitutionTypeMapper).forEach((k) => {
+      if (typeof mockInstitutionTypeMapper[k]?.mockReturnValue === 'function') {
+        mockInstitutionTypeMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should return active items on findAll with SHOW_ONLY_ACTIVE', async () => {
-      const mockItems = [{ id: 1 }];
-      Object.keys(mockInstitutionTypeRepository).forEach(k => {
-        if (typeof mockInstitutionTypeRepository[k]?.mockResolvedValue === 'function') {
-          mockInstitutionTypeRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockInstitutionTypeMapper).forEach(k => {
-        if (typeof mockInstitutionTypeMapper[k]?.mockReturnValue === 'function') {
-          mockInstitutionTypeMapper[k].mockReturnValue(mockItems);
-        }
-      });
+    const result = await service.findAll(FindAllOptions.SHOW_ALL);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
-      expect(result).toBeDefined();
+  it('should return active items on findAll with SHOW_ONLY_ACTIVE', async () => {
+    const mockItems = [{ id: 1 }];
+    Object.keys(mockInstitutionTypeRepository).forEach((k) => {
+      if (
+        typeof mockInstitutionTypeRepository[k]?.mockResolvedValue ===
+        'function'
+      ) {
+        mockInstitutionTypeRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockInstitutionTypeMapper).forEach((k) => {
+      if (typeof mockInstitutionTypeMapper[k]?.mockReturnValue === 'function') {
+        mockInstitutionTypeMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should throw on findAll with invalid option', async () => {
-      await expect(service.findAll('invalid' as any)).rejects.toThrow();
+    const result = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
+    expect(result).toBeDefined();
+  });
+
+  it('should throw on findAll with invalid option', async () => {
+    await expect(service.findAll('invalid' as any)).rejects.toThrow();
+  });
+
+  it('should return a single item on findOne', async () => {
+    const mockItem = { id: 1 };
+    mockInstitutionTypeRepository.findOneBy =
+      mockInstitutionTypeRepository.findOneBy || jest.fn();
+    mockInstitutionTypeRepository.findOne =
+      mockInstitutionTypeRepository.findOne || jest.fn();
+    mockInstitutionTypeRepository.findOneBy.mockResolvedValue(mockItem);
+    mockInstitutionTypeRepository.findOne.mockResolvedValue(mockItem);
+    Object.keys(mockInstitutionTypeMapper).forEach((k) => {
+      if (typeof mockInstitutionTypeMapper[k]?.mockReturnValue === 'function') {
+        mockInstitutionTypeMapper[k].mockReturnValue(mockItem);
+      }
     });
 
-    it('should return a single item on findOne', async () => {
-      const mockItem = { id: 1 };
-      mockInstitutionTypeRepository.findOneBy = mockInstitutionTypeRepository.findOneBy || jest.fn();
-      mockInstitutionTypeRepository.findOne = mockInstitutionTypeRepository.findOne || jest.fn();
-      mockInstitutionTypeRepository.findOneBy.mockResolvedValue(mockItem);
-      mockInstitutionTypeRepository.findOne.mockResolvedValue(mockItem);
-      Object.keys(mockInstitutionTypeMapper).forEach(k => {
-        if (typeof mockInstitutionTypeMapper[k]?.mockReturnValue === 'function') {
-          mockInstitutionTypeMapper[k].mockReturnValue(mockItem);
-        }
-      });
+    const result = await service.findOne(1);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findOne(1);
-      expect(result).toBeDefined();
-    });
+  it('should save items on update', async () => {
+    const dto = [{ id: 1 }];
+    mockInstitutionTypeRepository.save.mockResolvedValue(dto);
 
-    it('should save items on update', async () => {
-      const dto = [{ id: 1 }];
-      mockInstitutionTypeRepository.save.mockResolvedValue(dto);
-
-      const result = await service.update(dto as any);
-      expect(mockInstitutionTypeRepository.save).toHaveBeenCalledWith(dto);
-    });
+    await service.update(dto as any);
+    expect(mockInstitutionTypeRepository.save).toHaveBeenCalledWith(dto);
+  });
 });

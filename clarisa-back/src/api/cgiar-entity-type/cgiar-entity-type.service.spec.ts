@@ -50,7 +50,10 @@ describe('CgiarEntityTypeService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CgiarEntityTypeService,
-        { provide: CgiarEntityTypeRepository, useValue: mockCgiarEntityTypeRepository },
+        {
+          provide: CgiarEntityTypeRepository,
+          useValue: mockCgiarEntityTypeRepository,
+        },
         { provide: CgiarEntityTypeMapper, useValue: mockCgiarEntityTypeMapper },
       ],
     }).compile();
@@ -62,111 +65,127 @@ describe('CgiarEntityTypeService', () => {
     expect(service).toBeDefined();
   });
 
-    it('should return items on findAllV1 with SHOW_ALL', async () => {
-      const mockItems = [{ id: 1 }, { id: 2 }];
-      Object.keys(mockCgiarEntityTypeRepository).forEach(k => {
-        if (typeof mockCgiarEntityTypeRepository[k]?.mockResolvedValue === 'function') {
-          mockCgiarEntityTypeRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockCgiarEntityTypeMapper).forEach(k => {
-        if (typeof mockCgiarEntityTypeMapper[k]?.mockReturnValue === 'function') {
-          mockCgiarEntityTypeMapper[k].mockReturnValue(mockItems);
-        }
-      });
-
-      const result = await service.findAllV1(FindAllOptions.SHOW_ALL);
-      expect(result).toBeDefined();
+  it('should return items on findAllV1 with SHOW_ALL', async () => {
+    const mockItems = [{ id: 1 }, { id: 2 }];
+    Object.keys(mockCgiarEntityTypeRepository).forEach((k) => {
+      if (
+        typeof mockCgiarEntityTypeRepository[k]?.mockResolvedValue ===
+        'function'
+      ) {
+        mockCgiarEntityTypeRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockCgiarEntityTypeMapper).forEach((k) => {
+      if (typeof mockCgiarEntityTypeMapper[k]?.mockReturnValue === 'function') {
+        mockCgiarEntityTypeMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should return active items on findAllV1 with SHOW_ONLY_ACTIVE', async () => {
-      const mockItems = [{ id: 1 }];
-      Object.keys(mockCgiarEntityTypeRepository).forEach(k => {
-        if (typeof mockCgiarEntityTypeRepository[k]?.mockResolvedValue === 'function') {
-          mockCgiarEntityTypeRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockCgiarEntityTypeMapper).forEach(k => {
-        if (typeof mockCgiarEntityTypeMapper[k]?.mockReturnValue === 'function') {
-          mockCgiarEntityTypeMapper[k].mockReturnValue(mockItems);
-        }
-      });
+    const result = await service.findAllV1(FindAllOptions.SHOW_ALL);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findAllV1(FindAllOptions.SHOW_ONLY_ACTIVE);
-      expect(result).toBeDefined();
+  it('should return active items on findAllV1 with SHOW_ONLY_ACTIVE', async () => {
+    const mockItems = [{ id: 1 }];
+    Object.keys(mockCgiarEntityTypeRepository).forEach((k) => {
+      if (
+        typeof mockCgiarEntityTypeRepository[k]?.mockResolvedValue ===
+        'function'
+      ) {
+        mockCgiarEntityTypeRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockCgiarEntityTypeMapper).forEach((k) => {
+      if (typeof mockCgiarEntityTypeMapper[k]?.mockReturnValue === 'function') {
+        mockCgiarEntityTypeMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should throw on findAllV1 with invalid option', async () => {
-      await expect(service.findAllV1('invalid' as any)).rejects.toThrow();
+    const result = await service.findAllV1(FindAllOptions.SHOW_ONLY_ACTIVE);
+    expect(result).toBeDefined();
+  });
+
+  it('should throw on findAllV1 with invalid option', async () => {
+    await expect(service.findAllV1('invalid' as any)).rejects.toThrow();
+  });
+
+  it('should return a single item on findOneV1', async () => {
+    const mockItem = { id: 1 };
+    mockCgiarEntityTypeRepository.findOneBy =
+      mockCgiarEntityTypeRepository.findOneBy || jest.fn();
+    mockCgiarEntityTypeRepository.findOne =
+      mockCgiarEntityTypeRepository.findOne || jest.fn();
+    mockCgiarEntityTypeRepository.findOneBy.mockResolvedValue(mockItem);
+    mockCgiarEntityTypeRepository.findOne.mockResolvedValue(mockItem);
+    Object.keys(mockCgiarEntityTypeMapper).forEach((k) => {
+      if (typeof mockCgiarEntityTypeMapper[k]?.mockReturnValue === 'function') {
+        mockCgiarEntityTypeMapper[k].mockReturnValue(mockItem);
+      }
     });
 
-    it('should return a single item on findOneV1', async () => {
-      const mockItem = { id: 1 };
-      mockCgiarEntityTypeRepository.findOneBy = mockCgiarEntityTypeRepository.findOneBy || jest.fn();
-      mockCgiarEntityTypeRepository.findOne = mockCgiarEntityTypeRepository.findOne || jest.fn();
-      mockCgiarEntityTypeRepository.findOneBy.mockResolvedValue(mockItem);
-      mockCgiarEntityTypeRepository.findOne.mockResolvedValue(mockItem);
-      Object.keys(mockCgiarEntityTypeMapper).forEach(k => {
-        if (typeof mockCgiarEntityTypeMapper[k]?.mockReturnValue === 'function') {
-          mockCgiarEntityTypeMapper[k].mockReturnValue(mockItem);
-        }
-      });
+    const result = await service.findOneV1(1);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findOneV1(1);
-      expect(result).toBeDefined();
+  it('should return items on findAllV2 with SHOW_ALL', async () => {
+    const mockItems = [{ id: 1 }, { id: 2 }];
+    Object.keys(mockCgiarEntityTypeRepository).forEach((k) => {
+      if (
+        typeof mockCgiarEntityTypeRepository[k]?.mockResolvedValue ===
+        'function'
+      ) {
+        mockCgiarEntityTypeRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockCgiarEntityTypeMapper).forEach((k) => {
+      if (typeof mockCgiarEntityTypeMapper[k]?.mockReturnValue === 'function') {
+        mockCgiarEntityTypeMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should return items on findAllV2 with SHOW_ALL', async () => {
-      const mockItems = [{ id: 1 }, { id: 2 }];
-      Object.keys(mockCgiarEntityTypeRepository).forEach(k => {
-        if (typeof mockCgiarEntityTypeRepository[k]?.mockResolvedValue === 'function') {
-          mockCgiarEntityTypeRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockCgiarEntityTypeMapper).forEach(k => {
-        if (typeof mockCgiarEntityTypeMapper[k]?.mockReturnValue === 'function') {
-          mockCgiarEntityTypeMapper[k].mockReturnValue(mockItems);
-        }
-      });
+    const result = await service.findAllV2(FindAllOptions.SHOW_ALL);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findAllV2(FindAllOptions.SHOW_ALL);
-      expect(result).toBeDefined();
+  it('should return active items on findAllV2 with SHOW_ONLY_ACTIVE', async () => {
+    const mockItems = [{ id: 1 }];
+    Object.keys(mockCgiarEntityTypeRepository).forEach((k) => {
+      if (
+        typeof mockCgiarEntityTypeRepository[k]?.mockResolvedValue ===
+        'function'
+      ) {
+        mockCgiarEntityTypeRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockCgiarEntityTypeMapper).forEach((k) => {
+      if (typeof mockCgiarEntityTypeMapper[k]?.mockReturnValue === 'function') {
+        mockCgiarEntityTypeMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should return active items on findAllV2 with SHOW_ONLY_ACTIVE', async () => {
-      const mockItems = [{ id: 1 }];
-      Object.keys(mockCgiarEntityTypeRepository).forEach(k => {
-        if (typeof mockCgiarEntityTypeRepository[k]?.mockResolvedValue === 'function') {
-          mockCgiarEntityTypeRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockCgiarEntityTypeMapper).forEach(k => {
-        if (typeof mockCgiarEntityTypeMapper[k]?.mockReturnValue === 'function') {
-          mockCgiarEntityTypeMapper[k].mockReturnValue(mockItems);
-        }
-      });
+    const result = await service.findAllV2(FindAllOptions.SHOW_ONLY_ACTIVE);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findAllV2(FindAllOptions.SHOW_ONLY_ACTIVE);
-      expect(result).toBeDefined();
+  it('should throw on findAllV2 with invalid option', async () => {
+    await expect(service.findAllV2('invalid' as any)).rejects.toThrow();
+  });
+
+  it('should return a single item on findOneV2', async () => {
+    const mockItem = { id: 1 };
+    mockCgiarEntityTypeRepository.findOneBy =
+      mockCgiarEntityTypeRepository.findOneBy || jest.fn();
+    mockCgiarEntityTypeRepository.findOne =
+      mockCgiarEntityTypeRepository.findOne || jest.fn();
+    mockCgiarEntityTypeRepository.findOneBy.mockResolvedValue(mockItem);
+    mockCgiarEntityTypeRepository.findOne.mockResolvedValue(mockItem);
+    Object.keys(mockCgiarEntityTypeMapper).forEach((k) => {
+      if (typeof mockCgiarEntityTypeMapper[k]?.mockReturnValue === 'function') {
+        mockCgiarEntityTypeMapper[k].mockReturnValue(mockItem);
+      }
     });
 
-    it('should throw on findAllV2 with invalid option', async () => {
-      await expect(service.findAllV2('invalid' as any)).rejects.toThrow();
-    });
-
-    it('should return a single item on findOneV2', async () => {
-      const mockItem = { id: 1 };
-      mockCgiarEntityTypeRepository.findOneBy = mockCgiarEntityTypeRepository.findOneBy || jest.fn();
-      mockCgiarEntityTypeRepository.findOne = mockCgiarEntityTypeRepository.findOne || jest.fn();
-      mockCgiarEntityTypeRepository.findOneBy.mockResolvedValue(mockItem);
-      mockCgiarEntityTypeRepository.findOne.mockResolvedValue(mockItem);
-      Object.keys(mockCgiarEntityTypeMapper).forEach(k => {
-        if (typeof mockCgiarEntityTypeMapper[k]?.mockReturnValue === 'function') {
-          mockCgiarEntityTypeMapper[k].mockReturnValue(mockItem);
-        }
-      });
-
-      const result = await service.findOneV2(1);
-      expect(result).toBeDefined();
-    });
+    const result = await service.findOneV2(1);
+    expect(result).toBeDefined();
+  });
 });

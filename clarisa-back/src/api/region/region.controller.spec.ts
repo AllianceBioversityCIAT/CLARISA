@@ -30,31 +30,49 @@ describe('RegionController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAllUNRegions', async () => {
-      mockRegionService.findAllUNRegions = mockRegionService.findAllUNRegions || jest.fn();
-      mockRegionService.findAllUNRegions.mockResolvedValue([]);
+  it('should call service on findAllUNRegions', async () => {
+    mockRegionService.findAllUNRegions =
+      mockRegionService.findAllUNRegions || jest.fn();
+    mockRegionService.findAllUNRegions.mockResolvedValue([]);
 
-      try { await (controller as any).findAllUNRegions('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAllUNRegions('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findAllCGIARRegions', async () => {
-      mockRegionService.findAllCGIARRegions = mockRegionService.findAllCGIARRegions || jest.fn();
-      mockRegionService.findAllCGIARRegions.mockResolvedValue([]);
+  it('should call service on findAllCGIARRegions', async () => {
+    mockRegionService.findAllCGIARRegions =
+      mockRegionService.findAllCGIARRegions || jest.fn();
+    mockRegionService.findAllCGIARRegions.mockResolvedValue([]);
 
-      try { await (controller as any).findAllCGIARRegions('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAllCGIARRegions('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockRegionService.findOne = mockRegionService.findOne || jest.fn();
-      mockRegionService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockRegionService.findOne = mockRegionService.findOne || jest.fn();
+    mockRegionService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockRegionService.update = mockRegionService.update || jest.fn();
-      mockRegionService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockRegionService.update = mockRegionService.update || jest.fn();
+    mockRegionService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

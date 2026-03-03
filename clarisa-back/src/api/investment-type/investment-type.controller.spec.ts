@@ -30,24 +30,39 @@ describe('InvestmentTypeController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockInvestmentTypeService.findAll = mockInvestmentTypeService.findAll || jest.fn();
-      mockInvestmentTypeService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockInvestmentTypeService.findAll =
+      mockInvestmentTypeService.findAll || jest.fn();
+    mockInvestmentTypeService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockInvestmentTypeService.findOne = mockInvestmentTypeService.findOne || jest.fn();
-      mockInvestmentTypeService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockInvestmentTypeService.findOne =
+      mockInvestmentTypeService.findOne || jest.fn();
+    mockInvestmentTypeService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockInvestmentTypeService.update = mockInvestmentTypeService.update || jest.fn();
-      mockInvestmentTypeService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockInvestmentTypeService.update =
+      mockInvestmentTypeService.update || jest.fn();
+    mockInvestmentTypeService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

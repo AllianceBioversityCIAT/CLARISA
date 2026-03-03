@@ -17,21 +17,31 @@ describe('SecondOrderAdministrativeDivisionController', () => {
       controllers: [SecondOrderAdministrativeDivisionController],
       providers: [
         SecondOrderAdministrativeDivisionController,
-        { provide: SecondOrderAdministrativeDivisionService, useValue: mockSecondOrderAdministrativeDivisionService },
+        {
+          provide: SecondOrderAdministrativeDivisionService,
+          useValue: mockSecondOrderAdministrativeDivisionService,
+        },
       ],
     }).compile();
 
-    controller = module.get<SecondOrderAdministrativeDivisionController>(SecondOrderAdministrativeDivisionController);
+    controller = module.get<SecondOrderAdministrativeDivisionController>(
+      SecondOrderAdministrativeDivisionController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockSecondOrderAdministrativeDivisionService.findAll = mockSecondOrderAdministrativeDivisionService.findAll || jest.fn();
-      mockSecondOrderAdministrativeDivisionService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockSecondOrderAdministrativeDivisionService.findAll =
+      mockSecondOrderAdministrativeDivisionService.findAll || jest.fn();
+    mockSecondOrderAdministrativeDivisionService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

@@ -62,57 +62,59 @@ describe('PortfolioService', () => {
     expect(service).toBeDefined();
   });
 
-    it('should return items on findAll with SHOW_ALL', async () => {
-      const mockItems = [{ id: 1 }, { id: 2 }];
-      Object.keys(mockPortfolioRepository).forEach(k => {
-        if (typeof mockPortfolioRepository[k]?.mockResolvedValue === 'function') {
-          mockPortfolioRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockPortfolioMapper).forEach(k => {
-        if (typeof mockPortfolioMapper[k]?.mockReturnValue === 'function') {
-          mockPortfolioMapper[k].mockReturnValue(mockItems);
-        }
-      });
-
-      const result = await service.findAll(FindAllOptions.SHOW_ALL);
-      expect(result).toBeDefined();
+  it('should return items on findAll with SHOW_ALL', async () => {
+    const mockItems = [{ id: 1 }, { id: 2 }];
+    Object.keys(mockPortfolioRepository).forEach((k) => {
+      if (typeof mockPortfolioRepository[k]?.mockResolvedValue === 'function') {
+        mockPortfolioRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockPortfolioMapper).forEach((k) => {
+      if (typeof mockPortfolioMapper[k]?.mockReturnValue === 'function') {
+        mockPortfolioMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should return active items on findAll with SHOW_ONLY_ACTIVE', async () => {
-      const mockItems = [{ id: 1 }];
-      Object.keys(mockPortfolioRepository).forEach(k => {
-        if (typeof mockPortfolioRepository[k]?.mockResolvedValue === 'function') {
-          mockPortfolioRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockPortfolioMapper).forEach(k => {
-        if (typeof mockPortfolioMapper[k]?.mockReturnValue === 'function') {
-          mockPortfolioMapper[k].mockReturnValue(mockItems);
-        }
-      });
+    const result = await service.findAll(FindAllOptions.SHOW_ALL);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
-      expect(result).toBeDefined();
+  it('should return active items on findAll with SHOW_ONLY_ACTIVE', async () => {
+    const mockItems = [{ id: 1 }];
+    Object.keys(mockPortfolioRepository).forEach((k) => {
+      if (typeof mockPortfolioRepository[k]?.mockResolvedValue === 'function') {
+        mockPortfolioRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockPortfolioMapper).forEach((k) => {
+      if (typeof mockPortfolioMapper[k]?.mockReturnValue === 'function') {
+        mockPortfolioMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should throw on findAll with invalid option', async () => {
-      await expect(service.findAll('invalid' as any)).rejects.toThrow();
+    const result = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
+    expect(result).toBeDefined();
+  });
+
+  it('should throw on findAll with invalid option', async () => {
+    await expect(service.findAll('invalid' as any)).rejects.toThrow();
+  });
+
+  it('should return a single item on findOne', async () => {
+    const mockItem = { id: 1 };
+    mockPortfolioRepository.findOneBy =
+      mockPortfolioRepository.findOneBy || jest.fn();
+    mockPortfolioRepository.findOne =
+      mockPortfolioRepository.findOne || jest.fn();
+    mockPortfolioRepository.findOneBy.mockResolvedValue(mockItem);
+    mockPortfolioRepository.findOne.mockResolvedValue(mockItem);
+    Object.keys(mockPortfolioMapper).forEach((k) => {
+      if (typeof mockPortfolioMapper[k]?.mockReturnValue === 'function') {
+        mockPortfolioMapper[k].mockReturnValue(mockItem);
+      }
     });
 
-    it('should return a single item on findOne', async () => {
-      const mockItem = { id: 1 };
-      mockPortfolioRepository.findOneBy = mockPortfolioRepository.findOneBy || jest.fn();
-      mockPortfolioRepository.findOne = mockPortfolioRepository.findOne || jest.fn();
-      mockPortfolioRepository.findOneBy.mockResolvedValue(mockItem);
-      mockPortfolioRepository.findOne.mockResolvedValue(mockItem);
-      Object.keys(mockPortfolioMapper).forEach(k => {
-        if (typeof mockPortfolioMapper[k]?.mockReturnValue === 'function') {
-          mockPortfolioMapper[k].mockReturnValue(mockItem);
-        }
-      });
-
-      const result = await service.findOne(1);
-      expect(result).toBeDefined();
-    });
+    const result = await service.findOne(1);
+    expect(result).toBeDefined();
+  });
 });

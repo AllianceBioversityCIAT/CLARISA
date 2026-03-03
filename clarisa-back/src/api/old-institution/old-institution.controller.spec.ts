@@ -31,31 +31,51 @@ describe('OldInstitutionController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockOldInstitutionService.findAll = mockOldInstitutionService.findAll || jest.fn();
-      mockOldInstitutionService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockOldInstitutionService.findAll =
+      mockOldInstitutionService.findAll || jest.fn();
+    mockOldInstitutionService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findAllSimple', async () => {
-      mockOldInstitutionService.findAllSimple = mockOldInstitutionService.findAllSimple || jest.fn();
-      mockOldInstitutionService.findAllSimple.mockResolvedValue([]);
+  it('should call service on findAllSimple', async () => {
+    mockOldInstitutionService.findAllSimple =
+      mockOldInstitutionService.findAllSimple || jest.fn();
+    mockOldInstitutionService.findAllSimple.mockResolvedValue([]);
 
-      try { await (controller as any).findAllSimple('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAllSimple('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockOldInstitutionService.findOne = mockOldInstitutionService.findOne || jest.fn();
-      mockOldInstitutionService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockOldInstitutionService.findOne =
+      mockOldInstitutionService.findOne || jest.fn();
+    mockOldInstitutionService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockOldInstitutionService.update = mockOldInstitutionService.update || jest.fn();
-      mockOldInstitutionService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockOldInstitutionService.update =
+      mockOldInstitutionService.update || jest.fn();
+    mockOldInstitutionService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

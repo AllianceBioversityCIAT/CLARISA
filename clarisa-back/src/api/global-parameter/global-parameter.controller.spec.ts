@@ -18,28 +18,43 @@ describe('GlobalParameterController', () => {
       controllers: [GlobalParameterController],
       providers: [
         GlobalParameterController,
-        { provide: GlobalParameterService, useValue: mockGlobalParameterService },
+        {
+          provide: GlobalParameterService,
+          useValue: mockGlobalParameterService,
+        },
       ],
     }).compile();
 
-    controller = module.get<GlobalParameterController>(GlobalParameterController);
+    controller = module.get<GlobalParameterController>(
+      GlobalParameterController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockGlobalParameterService.findAll = mockGlobalParameterService.findAll || jest.fn();
-      mockGlobalParameterService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockGlobalParameterService.findAll =
+      mockGlobalParameterService.findAll || jest.fn();
+    mockGlobalParameterService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockGlobalParameterService.findOne = mockGlobalParameterService.findOne || jest.fn();
-      mockGlobalParameterService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockGlobalParameterService.findOne =
+      mockGlobalParameterService.findOne || jest.fn();
+    mockGlobalParameterService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

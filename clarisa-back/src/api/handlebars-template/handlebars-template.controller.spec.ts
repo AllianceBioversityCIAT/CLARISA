@@ -21,35 +21,55 @@ describe('HandlebarsTemplateController', () => {
       controllers: [HandlebarsTemplateController],
       providers: [
         HandlebarsTemplateController,
-        { provide: HandlebarsTemplateService, useValue: mockHandlebarsTemplateService },
+        {
+          provide: HandlebarsTemplateService,
+          useValue: mockHandlebarsTemplateService,
+        },
       ],
     }).compile();
 
-    controller = module.get<HandlebarsTemplateController>(HandlebarsTemplateController);
+    controller = module.get<HandlebarsTemplateController>(
+      HandlebarsTemplateController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockHandlebarsTemplateService.findAll = mockHandlebarsTemplateService.findAll || jest.fn();
-      mockHandlebarsTemplateService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockHandlebarsTemplateService.findAll =
+      mockHandlebarsTemplateService.findAll || jest.fn();
+    mockHandlebarsTemplateService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOneById', async () => {
-      mockHandlebarsTemplateService.findOneById = mockHandlebarsTemplateService.findOneById || jest.fn();
-      mockHandlebarsTemplateService.findOneById.mockResolvedValue([]);
+  it('should call service on findOneById', async () => {
+    mockHandlebarsTemplateService.findOneById =
+      mockHandlebarsTemplateService.findOneById || jest.fn();
+    mockHandlebarsTemplateService.findOneById.mockResolvedValue([]);
 
-      try { await (controller as any).findOneById('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOneById('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOneByName', async () => {
-      mockHandlebarsTemplateService.findOneByName = mockHandlebarsTemplateService.findOneByName || jest.fn();
-      mockHandlebarsTemplateService.findOneByName.mockResolvedValue([]);
+  it('should call service on findOneByName', async () => {
+    mockHandlebarsTemplateService.findOneByName =
+      mockHandlebarsTemplateService.findOneByName || jest.fn();
+    mockHandlebarsTemplateService.findOneByName.mockResolvedValue([]);
 
-      try { await (controller as any).findOneByName('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOneByName('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

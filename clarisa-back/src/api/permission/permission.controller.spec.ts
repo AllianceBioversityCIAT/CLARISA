@@ -29,17 +29,25 @@ describe('PermissionController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockPermissionService.findAll = mockPermissionService.findAll || jest.fn();
-      mockPermissionService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockPermissionService.findAll = mockPermissionService.findAll || jest.fn();
+    mockPermissionService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockPermissionService.findOne = mockPermissionService.findOne || jest.fn();
-      mockPermissionService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockPermissionService.findOne = mockPermissionService.findOne || jest.fn();
+    mockPermissionService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

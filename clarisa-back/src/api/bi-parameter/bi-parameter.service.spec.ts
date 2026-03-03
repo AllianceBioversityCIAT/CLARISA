@@ -66,13 +66,15 @@ describe('BiParameterService', () => {
     const dto = [{ id: 1 }];
     mockBiParameterRepository.save.mockResolvedValue(dto);
 
-    const result = await service.update(dto as any);
+    await service.update(dto as any);
     expect(mockBiParameterRepository.save).toHaveBeenCalledWith(dto);
   });
 
   it('should call repository on findAllUnitParametersBi', async () => {
     const mockResult = { units: [], parameters: [] };
-    mockBiParameterRepository.getFindAllInformation.mockResolvedValue(mockResult);
+    mockBiParameterRepository.getFindAllInformation.mockResolvedValue(
+      mockResult,
+    );
 
     const result = await service.findAllUnitParametersBi();
     expect(result).toEqual(mockResult);

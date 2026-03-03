@@ -16,21 +16,31 @@ describe('EndOfInitiativeOutcomeController', () => {
       controllers: [EndOfInitiativeOutcomeController],
       providers: [
         EndOfInitiativeOutcomeController,
-        { provide: EndOfInitiativeOutcomeService, useValue: mockEndOfInitiativeOutcomeService },
+        {
+          provide: EndOfInitiativeOutcomeService,
+          useValue: mockEndOfInitiativeOutcomeService,
+        },
       ],
     }).compile();
 
-    controller = module.get<EndOfInitiativeOutcomeController>(EndOfInitiativeOutcomeController);
+    controller = module.get<EndOfInitiativeOutcomeController>(
+      EndOfInitiativeOutcomeController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockEndOfInitiativeOutcomeService.findAll = mockEndOfInitiativeOutcomeService.findAll || jest.fn();
-      mockEndOfInitiativeOutcomeService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockEndOfInitiativeOutcomeService.findAll =
+      mockEndOfInitiativeOutcomeService.findAll || jest.fn();
+    mockEndOfInitiativeOutcomeService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

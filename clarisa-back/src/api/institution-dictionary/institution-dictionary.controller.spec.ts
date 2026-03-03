@@ -19,35 +19,55 @@ describe('InstitutionDictionaryController', () => {
       controllers: [InstitutionDictionaryController],
       providers: [
         InstitutionDictionaryController,
-        { provide: InstitutionDictionaryService, useValue: mockInstitutionDictionaryService },
+        {
+          provide: InstitutionDictionaryService,
+          useValue: mockInstitutionDictionaryService,
+        },
       ],
     }).compile();
 
-    controller = module.get<InstitutionDictionaryController>(InstitutionDictionaryController);
+    controller = module.get<InstitutionDictionaryController>(
+      InstitutionDictionaryController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockInstitutionDictionaryService.findAll = mockInstitutionDictionaryService.findAll || jest.fn();
-      mockInstitutionDictionaryService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockInstitutionDictionaryService.findAll =
+      mockInstitutionDictionaryService.findAll || jest.fn();
+    mockInstitutionDictionaryService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockInstitutionDictionaryService.findOne = mockInstitutionDictionaryService.findOne || jest.fn();
-      mockInstitutionDictionaryService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockInstitutionDictionaryService.findOne =
+      mockInstitutionDictionaryService.findOne || jest.fn();
+    mockInstitutionDictionaryService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockInstitutionDictionaryService.update = mockInstitutionDictionaryService.update || jest.fn();
-      mockInstitutionDictionaryService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockInstitutionDictionaryService.update =
+      mockInstitutionDictionaryService.update || jest.fn();
+    mockInstitutionDictionaryService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

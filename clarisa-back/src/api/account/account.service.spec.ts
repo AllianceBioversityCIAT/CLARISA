@@ -63,65 +63,66 @@ describe('AccountService', () => {
     expect(service).toBeDefined();
   });
 
-    it('should return items on findAll with SHOW_ALL', async () => {
-      const mockItems = [{ id: 1 }, { id: 2 }];
-      Object.keys(mockAccountRepository).forEach(k => {
-        if (typeof mockAccountRepository[k]?.mockResolvedValue === 'function') {
-          mockAccountRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockAccountMapper).forEach(k => {
-        if (typeof mockAccountMapper[k]?.mockReturnValue === 'function') {
-          mockAccountMapper[k].mockReturnValue(mockItems);
-        }
-      });
-
-      const result = await service.findAll(FindAllOptions.SHOW_ALL);
-      expect(result).toBeDefined();
+  it('should return items on findAll with SHOW_ALL', async () => {
+    const mockItems = [{ id: 1 }, { id: 2 }];
+    Object.keys(mockAccountRepository).forEach((k) => {
+      if (typeof mockAccountRepository[k]?.mockResolvedValue === 'function') {
+        mockAccountRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockAccountMapper).forEach((k) => {
+      if (typeof mockAccountMapper[k]?.mockReturnValue === 'function') {
+        mockAccountMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should return active items on findAll with SHOW_ONLY_ACTIVE', async () => {
-      const mockItems = [{ id: 1 }];
-      Object.keys(mockAccountRepository).forEach(k => {
-        if (typeof mockAccountRepository[k]?.mockResolvedValue === 'function') {
-          mockAccountRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockAccountMapper).forEach(k => {
-        if (typeof mockAccountMapper[k]?.mockReturnValue === 'function') {
-          mockAccountMapper[k].mockReturnValue(mockItems);
-        }
-      });
+    const result = await service.findAll(FindAllOptions.SHOW_ALL);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
-      expect(result).toBeDefined();
+  it('should return active items on findAll with SHOW_ONLY_ACTIVE', async () => {
+    const mockItems = [{ id: 1 }];
+    Object.keys(mockAccountRepository).forEach((k) => {
+      if (typeof mockAccountRepository[k]?.mockResolvedValue === 'function') {
+        mockAccountRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockAccountMapper).forEach((k) => {
+      if (typeof mockAccountMapper[k]?.mockReturnValue === 'function') {
+        mockAccountMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should throw on findAll with invalid option', async () => {
-      await expect(service.findAll('invalid' as any)).rejects.toThrow();
+    const result = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
+    expect(result).toBeDefined();
+  });
+
+  it('should throw on findAll with invalid option', async () => {
+    await expect(service.findAll('invalid' as any)).rejects.toThrow();
+  });
+
+  it('should return a single item on findOne', async () => {
+    const mockItem = { id: 1 };
+    mockAccountRepository.findOneBy =
+      mockAccountRepository.findOneBy || jest.fn();
+    mockAccountRepository.findOne = mockAccountRepository.findOne || jest.fn();
+    mockAccountRepository.findOneBy.mockResolvedValue(mockItem);
+    mockAccountRepository.findOne.mockResolvedValue(mockItem);
+    Object.keys(mockAccountMapper).forEach((k) => {
+      if (typeof mockAccountMapper[k]?.mockReturnValue === 'function') {
+        mockAccountMapper[k].mockReturnValue(mockItem);
+      }
     });
 
-    it('should return a single item on findOne', async () => {
-      const mockItem = { id: 1 };
-      mockAccountRepository.findOneBy = mockAccountRepository.findOneBy || jest.fn();
-      mockAccountRepository.findOne = mockAccountRepository.findOne || jest.fn();
-      mockAccountRepository.findOneBy.mockResolvedValue(mockItem);
-      mockAccountRepository.findOne.mockResolvedValue(mockItem);
-      Object.keys(mockAccountMapper).forEach(k => {
-        if (typeof mockAccountMapper[k]?.mockReturnValue === 'function') {
-          mockAccountMapper[k].mockReturnValue(mockItem);
-        }
-      });
+    const result = await service.findOne(1);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findOne(1);
-      expect(result).toBeDefined();
-    });
+  it('should save items on update', async () => {
+    const dto = [{ id: 1 }];
+    mockAccountRepository.save.mockResolvedValue(dto);
 
-    it('should save items on update', async () => {
-      const dto = [{ id: 1 }];
-      mockAccountRepository.save.mockResolvedValue(dto);
-
-      const result = await service.update(dto as any);
-      expect(mockAccountRepository.save).toHaveBeenCalledWith(dto);
-    });
+    await service.update(dto as any);
+    expect(mockAccountRepository.save).toHaveBeenCalledWith(dto);
+  });
 });

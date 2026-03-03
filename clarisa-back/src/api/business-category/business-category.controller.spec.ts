@@ -19,35 +19,55 @@ describe('BusinessCategoryController', () => {
       controllers: [BusinessCategoryController],
       providers: [
         BusinessCategoryController,
-        { provide: BusinessCategoryService, useValue: mockBusinessCategoryService },
+        {
+          provide: BusinessCategoryService,
+          useValue: mockBusinessCategoryService,
+        },
       ],
     }).compile();
 
-    controller = module.get<BusinessCategoryController>(BusinessCategoryController);
+    controller = module.get<BusinessCategoryController>(
+      BusinessCategoryController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockBusinessCategoryService.findAll = mockBusinessCategoryService.findAll || jest.fn();
-      mockBusinessCategoryService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockBusinessCategoryService.findAll =
+      mockBusinessCategoryService.findAll || jest.fn();
+    mockBusinessCategoryService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockBusinessCategoryService.findOne = mockBusinessCategoryService.findOne || jest.fn();
-      mockBusinessCategoryService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockBusinessCategoryService.findOne =
+      mockBusinessCategoryService.findOne || jest.fn();
+    mockBusinessCategoryService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockBusinessCategoryService.update = mockBusinessCategoryService.update || jest.fn();
-      mockBusinessCategoryService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockBusinessCategoryService.update =
+      mockBusinessCategoryService.update || jest.fn();
+    mockBusinessCategoryService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

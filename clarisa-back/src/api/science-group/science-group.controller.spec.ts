@@ -30,24 +30,39 @@ describe('ScienceGroupController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockScienceGroupService.findAll = mockScienceGroupService.findAll || jest.fn();
-      mockScienceGroupService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockScienceGroupService.findAll =
+      mockScienceGroupService.findAll || jest.fn();
+    mockScienceGroupService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockScienceGroupService.findOne = mockScienceGroupService.findOne || jest.fn();
-      mockScienceGroupService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockScienceGroupService.findOne =
+      mockScienceGroupService.findOne || jest.fn();
+    mockScienceGroupService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockScienceGroupService.update = mockScienceGroupService.update || jest.fn();
-      mockScienceGroupService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockScienceGroupService.update =
+      mockScienceGroupService.update || jest.fn();
+    mockScienceGroupService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

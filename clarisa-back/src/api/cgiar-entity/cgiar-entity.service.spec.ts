@@ -104,7 +104,7 @@ describe('CgiarEntityService', () => {
     mockCgiarEntityRepository.query.mockResolvedValue([{ max: 10 }]);
     mockCenterService.findOneV1.mockResolvedValue({ id: 5 });
 
-    const result = await service.findOneV1(15);
+    await service.findOneV1(15);
     expect(mockCenterService.findOneV1).toHaveBeenCalledWith(5);
   });
 

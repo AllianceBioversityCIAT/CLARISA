@@ -30,24 +30,39 @@ describe('GeneralAcronymController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockGeneralAcronymService.findAll = mockGeneralAcronymService.findAll || jest.fn();
-      mockGeneralAcronymService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockGeneralAcronymService.findAll =
+      mockGeneralAcronymService.findAll || jest.fn();
+    mockGeneralAcronymService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockGeneralAcronymService.findOne = mockGeneralAcronymService.findOne || jest.fn();
-      mockGeneralAcronymService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockGeneralAcronymService.findOne =
+      mockGeneralAcronymService.findOne || jest.fn();
+    mockGeneralAcronymService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockGeneralAcronymService.update = mockGeneralAcronymService.update || jest.fn();
-      mockGeneralAcronymService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockGeneralAcronymService.update =
+      mockGeneralAcronymService.update || jest.fn();
+    mockGeneralAcronymService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

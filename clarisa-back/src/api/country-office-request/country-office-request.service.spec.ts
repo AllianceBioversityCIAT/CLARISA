@@ -140,7 +140,10 @@ describe('CountryOfficeRequestService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CountryOfficeRequestService,
-        { provide: CountryOfficeRequestRepository, useValue: mockCountryOfficeRequestRepository },
+        {
+          provide: CountryOfficeRequestRepository,
+          useValue: mockCountryOfficeRequestRepository,
+        },
         { provide: InstitutionRepository, useValue: mockInstitutionRepository },
         { provide: MisRepository, useValue: mockMisRepository },
         { provide: CountryRepository, useValue: mockCountryRepository },
@@ -148,33 +151,39 @@ describe('CountryOfficeRequestService', () => {
       ],
     }).compile();
 
-    service = module.get<CountryOfficeRequestService>(CountryOfficeRequestService);
+    service = module.get<CountryOfficeRequestService>(
+      CountryOfficeRequestService,
+    );
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-    it('should call repository on findAll', async () => {
-      Object.keys(mockCountryOfficeRequestRepository).forEach(k => {
-        if (typeof mockCountryOfficeRequestRepository[k]?.mockResolvedValue === 'function') {
-          mockCountryOfficeRequestRepository[k].mockResolvedValue([]);
-        }
-      });
-
-      const result = await service.findAll();
-      expect(result).toBeDefined();
+  it('should call repository on findAll', async () => {
+    Object.keys(mockCountryOfficeRequestRepository).forEach((k) => {
+      if (
+        typeof mockCountryOfficeRequestRepository[k]?.mockResolvedValue ===
+        'function'
+      ) {
+        mockCountryOfficeRequestRepository[k].mockResolvedValue([]);
+      }
     });
 
-    it('should return a single item on findOne', async () => {
-      const mockItem = { id: 1 };
-      mockCountryOfficeRequestRepository.findOneBy = mockCountryOfficeRequestRepository.findOneBy || jest.fn();
-      mockCountryOfficeRequestRepository.findOne = mockCountryOfficeRequestRepository.findOne || jest.fn();
-      mockCountryOfficeRequestRepository.findOneBy.mockResolvedValue(mockItem);
-      mockCountryOfficeRequestRepository.findOne.mockResolvedValue(mockItem);
-      
+    const result = await service.findAll();
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findOne(1);
-      expect(result).toBeDefined();
-    });
+  it('should return a single item on findOne', async () => {
+    const mockItem = { id: 1 };
+    mockCountryOfficeRequestRepository.findOneBy =
+      mockCountryOfficeRequestRepository.findOneBy || jest.fn();
+    mockCountryOfficeRequestRepository.findOne =
+      mockCountryOfficeRequestRepository.findOne || jest.fn();
+    mockCountryOfficeRequestRepository.findOneBy.mockResolvedValue(mockItem);
+    mockCountryOfficeRequestRepository.findOne.mockResolvedValue(mockItem);
+
+    const result = await service.findOne(1);
+    expect(result).toBeDefined();
+  });
 });

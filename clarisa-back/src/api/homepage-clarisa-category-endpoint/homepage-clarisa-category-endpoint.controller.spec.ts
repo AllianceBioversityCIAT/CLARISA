@@ -16,21 +16,31 @@ describe('HomepageClarisaCategoryEndpointController', () => {
       controllers: [HomepageClarisaCategoryEndpointController],
       providers: [
         HomepageClarisaCategoryEndpointController,
-        { provide: HomepageClarisaCategoryEndpointService, useValue: mockHomepageClarisaCategoryEndpointService },
+        {
+          provide: HomepageClarisaCategoryEndpointService,
+          useValue: mockHomepageClarisaCategoryEndpointService,
+        },
       ],
     }).compile();
 
-    controller = module.get<HomepageClarisaCategoryEndpointController>(HomepageClarisaCategoryEndpointController);
+    controller = module.get<HomepageClarisaCategoryEndpointController>(
+      HomepageClarisaCategoryEndpointController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockHomepageClarisaCategoryEndpointService.findAll = mockHomepageClarisaCategoryEndpointService.findAll || jest.fn();
-      mockHomepageClarisaCategoryEndpointService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockHomepageClarisaCategoryEndpointService.findAll =
+      mockHomepageClarisaCategoryEndpointService.findAll || jest.fn();
+    mockHomepageClarisaCategoryEndpointService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

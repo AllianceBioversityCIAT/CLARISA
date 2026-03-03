@@ -29,17 +29,26 @@ describe('PhaseController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockPhaseService.findAll = mockPhaseService.findAll || jest.fn();
-      mockPhaseService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockPhaseService.findAll = mockPhaseService.findAll || jest.fn();
+    mockPhaseService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findAllByApplication', async () => {
-      mockPhaseService.findAllByApplication = mockPhaseService.findAllByApplication || jest.fn();
-      mockPhaseService.findAllByApplication.mockResolvedValue([]);
+  it('should call service on findAllByApplication', async () => {
+    mockPhaseService.findAllByApplication =
+      mockPhaseService.findAllByApplication || jest.fn();
+    mockPhaseService.findAllByApplication.mockResolvedValue([]);
 
-      try { await (controller as any).findAllByApplication('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAllByApplication('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

@@ -34,8 +34,14 @@ describe('ActionAreaOutcomeService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ActionAreaOutcomeService,
-        { provide: ActionAreaOutcomeRepository, useValue: mockActionAreaOutcomeRepository },
-        { provide: ActionAreaOutcomeIndicatorRepository, useValue: mockActionAreaOutcomeIndicatorRepository },
+        {
+          provide: ActionAreaOutcomeRepository,
+          useValue: mockActionAreaOutcomeRepository,
+        },
+        {
+          provide: ActionAreaOutcomeIndicatorRepository,
+          useValue: mockActionAreaOutcomeIndicatorRepository,
+        },
       ],
     }).compile();
 
@@ -48,18 +54,22 @@ describe('ActionAreaOutcomeService', () => {
 
   it('should return items on findAll with SHOW_ALL', async () => {
     const mockItems = [{ id: 1 }, { id: 2 }];
-    mockActionAreaOutcomeIndicatorRepository.findAllActionAreaOutcomes.mockResolvedValue(mockItems);
+    mockActionAreaOutcomeIndicatorRepository.findAllActionAreaOutcomes.mockResolvedValue(
+      mockItems,
+    );
 
     const result = await service.findAll(FindAllOptions.SHOW_ALL);
     expect(result).toBeDefined();
-    expect(mockActionAreaOutcomeIndicatorRepository.findAllActionAreaOutcomes).toHaveBeenCalledWith(
-      FindAllOptions.SHOW_ALL,
-    );
+    expect(
+      mockActionAreaOutcomeIndicatorRepository.findAllActionAreaOutcomes,
+    ).toHaveBeenCalledWith(FindAllOptions.SHOW_ALL);
   });
 
   it('should return active items on findAll with SHOW_ONLY_ACTIVE', async () => {
     const mockItems = [{ id: 1 }];
-    mockActionAreaOutcomeIndicatorRepository.findAllActionAreaOutcomes.mockResolvedValue(mockItems);
+    mockActionAreaOutcomeIndicatorRepository.findAllActionAreaOutcomes.mockResolvedValue(
+      mockItems,
+    );
 
     const result = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
     expect(result).toBeDefined();
@@ -81,7 +91,7 @@ describe('ActionAreaOutcomeService', () => {
     const dto = [{ id: 1 }];
     mockActionAreaOutcomeRepository.save.mockResolvedValue(dto);
 
-    const result = await service.update(dto as any);
+    await service.update(dto as any);
     expect(mockActionAreaOutcomeRepository.save).toHaveBeenCalledWith(dto);
   });
 });

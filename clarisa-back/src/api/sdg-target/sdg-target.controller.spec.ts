@@ -32,31 +32,50 @@ describe('SdgTargetController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAllV1', async () => {
-      mockSdgTargetService.findAllV1 = mockSdgTargetService.findAllV1 || jest.fn();
-      mockSdgTargetService.findAllV1.mockResolvedValue([]);
+  it('should call service on findAllV1', async () => {
+    mockSdgTargetService.findAllV1 =
+      mockSdgTargetService.findAllV1 || jest.fn();
+    mockSdgTargetService.findAllV1.mockResolvedValue([]);
 
-      try { await (controller as any).findAllV1('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAllV1('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findAllV2', async () => {
-      mockSdgTargetService.findAllV2 = mockSdgTargetService.findAllV2 || jest.fn();
-      mockSdgTargetService.findAllV2.mockResolvedValue([]);
+  it('should call service on findAllV2', async () => {
+    mockSdgTargetService.findAllV2 =
+      mockSdgTargetService.findAllV2 || jest.fn();
+    mockSdgTargetService.findAllV2.mockResolvedValue([]);
 
-      try { await (controller as any).findAllV2('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAllV2('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findAllIpsr', async () => {
-      mockSdgTargetService.findAllIpsr = mockSdgTargetService.findAllIpsr || jest.fn();
-      mockSdgTargetService.findAllIpsr.mockResolvedValue([]);
+  it('should call service on findAllIpsr', async () => {
+    mockSdgTargetService.findAllIpsr =
+      mockSdgTargetService.findAllIpsr || jest.fn();
+    mockSdgTargetService.findAllIpsr.mockResolvedValue([]);
 
-      try { await (controller as any).findAllIpsr('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAllIpsr('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockSdgTargetService.findOne = mockSdgTargetService.findOne || jest.fn();
-      mockSdgTargetService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockSdgTargetService.findOne = mockSdgTargetService.findOne || jest.fn();
+    mockSdgTargetService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

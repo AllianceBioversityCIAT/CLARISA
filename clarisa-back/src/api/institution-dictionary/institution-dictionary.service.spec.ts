@@ -36,11 +36,16 @@ describe('InstitutionDictionaryService', () => {
       providers: [
         InstitutionDictionaryService,
         { provide: InstitutionRepository, useValue: mockInstitutionRepository },
-        { provide: InstitutionDictionaryRepository, useValue: mockInstitutionDictionaryRepository },
+        {
+          provide: InstitutionDictionaryRepository,
+          useValue: mockInstitutionDictionaryRepository,
+        },
       ],
     }).compile();
 
-    service = module.get<InstitutionDictionaryService>(InstitutionDictionaryService);
+    service = module.get<InstitutionDictionaryService>(
+      InstitutionDictionaryService,
+    );
   });
 
   it('should be defined', () => {
@@ -49,18 +54,22 @@ describe('InstitutionDictionaryService', () => {
 
   it('should return items on findAll with SHOW_ALL', async () => {
     const mockItems = [{ id: 1 }, { id: 2 }];
-    mockInstitutionRepository.findInstitutionSourceEntries.mockResolvedValue(mockItems);
+    mockInstitutionRepository.findInstitutionSourceEntries.mockResolvedValue(
+      mockItems,
+    );
 
     const result = await service.findAll(FindAllOptions.SHOW_ALL);
     expect(result).toBeDefined();
-    expect(mockInstitutionRepository.findInstitutionSourceEntries).toHaveBeenCalledWith(
-      FindAllOptions.SHOW_ALL,
-    );
+    expect(
+      mockInstitutionRepository.findInstitutionSourceEntries,
+    ).toHaveBeenCalledWith(FindAllOptions.SHOW_ALL);
   });
 
   it('should return active items on findAll with SHOW_ONLY_ACTIVE', async () => {
     const mockItems = [{ id: 1 }];
-    mockInstitutionRepository.findInstitutionSourceEntries.mockResolvedValue(mockItems);
+    mockInstitutionRepository.findInstitutionSourceEntries.mockResolvedValue(
+      mockItems,
+    );
 
     const result = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
     expect(result).toBeDefined();
@@ -72,18 +81,22 @@ describe('InstitutionDictionaryService', () => {
 
   it('should return a single item on findOne', async () => {
     const mockItem = { id: 1 };
-    mockInstitutionRepository.findInstitutionSourceEntriesById.mockResolvedValue(mockItem);
+    mockInstitutionRepository.findInstitutionSourceEntriesById.mockResolvedValue(
+      mockItem,
+    );
 
     const result = await service.findOne(1);
     expect(result).toBeDefined();
-    expect(mockInstitutionRepository.findInstitutionSourceEntriesById).toHaveBeenCalledWith(1);
+    expect(
+      mockInstitutionRepository.findInstitutionSourceEntriesById,
+    ).toHaveBeenCalledWith(1);
   });
 
   it('should save items on update', async () => {
     const dto = [{ id: 1 }];
     mockInstitutionDictionaryRepository.save.mockResolvedValue(dto);
 
-    const result = await service.update(dto as any);
+    await service.update(dto as any);
     expect(mockInstitutionDictionaryRepository.save).toHaveBeenCalledWith(dto);
   });
 });

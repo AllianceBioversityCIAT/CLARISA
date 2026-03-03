@@ -30,24 +30,36 @@ describe('RegionTypeController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockRegionTypeService.findAll = mockRegionTypeService.findAll || jest.fn();
-      mockRegionTypeService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockRegionTypeService.findAll = mockRegionTypeService.findAll || jest.fn();
+    mockRegionTypeService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockRegionTypeService.findOne = mockRegionTypeService.findOne || jest.fn();
-      mockRegionTypeService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockRegionTypeService.findOne = mockRegionTypeService.findOne || jest.fn();
+    mockRegionTypeService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockRegionTypeService.update = mockRegionTypeService.update || jest.fn();
-      mockRegionTypeService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockRegionTypeService.update = mockRegionTypeService.update || jest.fn();
+    mockRegionTypeService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

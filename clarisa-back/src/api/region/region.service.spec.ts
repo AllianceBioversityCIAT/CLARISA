@@ -79,7 +79,7 @@ describe('RegionService', () => {
     const dto = [{ id: 1 }];
     mockRegionRepository.save.mockResolvedValue(dto);
 
-    const result = await service.update(dto as any);
+    await service.update(dto as any);
     expect(mockRegionRepository.save).toHaveBeenCalledWith(dto);
   });
 });

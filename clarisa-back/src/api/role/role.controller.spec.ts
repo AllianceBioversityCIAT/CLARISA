@@ -30,17 +30,25 @@ describe('RoleController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockRoleService.findAll = mockRoleService.findAll || jest.fn();
-      mockRoleService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockRoleService.findAll = mockRoleService.findAll || jest.fn();
+    mockRoleService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockRoleService.findOne = mockRoleService.findOne || jest.fn();
-      mockRoleService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockRoleService.findOne = mockRoleService.findOne || jest.fn();
+    mockRoleService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });
