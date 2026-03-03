@@ -36,7 +36,10 @@ describe('CenterService', () => {
       providers: [
         CenterService,
         { provide: CenterRepository, useValue: mockCenterRepository },
-        { provide: CgiarEntityTypeRepository, useValue: mockCgiarEntityTypeRepository },
+        {
+          provide: CgiarEntityTypeRepository,
+          useValue: mockCgiarEntityTypeRepository,
+        },
         { provide: CenterMapper, useValue: mockCenterMapper },
       ],
     }).compile();

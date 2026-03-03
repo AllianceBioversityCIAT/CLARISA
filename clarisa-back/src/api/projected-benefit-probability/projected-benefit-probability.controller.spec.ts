@@ -19,35 +19,55 @@ describe('ProjectedBenefitProbabilityController', () => {
       controllers: [ProjectedBenefitProbabilityController],
       providers: [
         ProjectedBenefitProbabilityController,
-        { provide: ProjectedBenefitProbabilityService, useValue: mockProjectedBenefitProbabilityService },
+        {
+          provide: ProjectedBenefitProbabilityService,
+          useValue: mockProjectedBenefitProbabilityService,
+        },
       ],
     }).compile();
 
-    controller = module.get<ProjectedBenefitProbabilityController>(ProjectedBenefitProbabilityController);
+    controller = module.get<ProjectedBenefitProbabilityController>(
+      ProjectedBenefitProbabilityController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockProjectedBenefitProbabilityService.findAll = mockProjectedBenefitProbabilityService.findAll || jest.fn();
-      mockProjectedBenefitProbabilityService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockProjectedBenefitProbabilityService.findAll =
+      mockProjectedBenefitProbabilityService.findAll || jest.fn();
+    mockProjectedBenefitProbabilityService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockProjectedBenefitProbabilityService.findOne = mockProjectedBenefitProbabilityService.findOne || jest.fn();
-      mockProjectedBenefitProbabilityService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockProjectedBenefitProbabilityService.findOne =
+      mockProjectedBenefitProbabilityService.findOne || jest.fn();
+    mockProjectedBenefitProbabilityService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockProjectedBenefitProbabilityService.update = mockProjectedBenefitProbabilityService.update || jest.fn();
-      mockProjectedBenefitProbabilityService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockProjectedBenefitProbabilityService.update =
+      mockProjectedBenefitProbabilityService.update || jest.fn();
+    mockProjectedBenefitProbabilityService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

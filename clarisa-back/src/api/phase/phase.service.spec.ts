@@ -78,8 +78,6 @@ describe('PhaseService', () => {
   });
 
   it('should throw on findAllByApplication with invalid application', async () => {
-    await expect(
-      service.findAllByApplication('INVALID_APP'),
-    ).rejects.toThrow();
+    await expect(service.findAllByApplication('INVALID_APP')).rejects.toThrow();
   });
 });

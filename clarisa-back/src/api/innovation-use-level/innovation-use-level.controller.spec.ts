@@ -19,35 +19,55 @@ describe('InnovationUseLevelController', () => {
       controllers: [InnovationUseLevelController],
       providers: [
         InnovationUseLevelController,
-        { provide: InnovationUseLevelService, useValue: mockInnovationUseLevelService },
+        {
+          provide: InnovationUseLevelService,
+          useValue: mockInnovationUseLevelService,
+        },
       ],
     }).compile();
 
-    controller = module.get<InnovationUseLevelController>(InnovationUseLevelController);
+    controller = module.get<InnovationUseLevelController>(
+      InnovationUseLevelController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockInnovationUseLevelService.findAll = mockInnovationUseLevelService.findAll || jest.fn();
-      mockInnovationUseLevelService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockInnovationUseLevelService.findAll =
+      mockInnovationUseLevelService.findAll || jest.fn();
+    mockInnovationUseLevelService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockInnovationUseLevelService.findOne = mockInnovationUseLevelService.findOne || jest.fn();
-      mockInnovationUseLevelService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockInnovationUseLevelService.findOne =
+      mockInnovationUseLevelService.findOne || jest.fn();
+    mockInnovationUseLevelService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockInnovationUseLevelService.update = mockInnovationUseLevelService.update || jest.fn();
-      mockInnovationUseLevelService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockInnovationUseLevelService.update =
+      mockInnovationUseLevelService.update || jest.fn();
+    mockInnovationUseLevelService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

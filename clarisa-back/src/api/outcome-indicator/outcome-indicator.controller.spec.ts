@@ -19,35 +19,55 @@ describe('OutcomeIndicatorController', () => {
       controllers: [OutcomeIndicatorController],
       providers: [
         OutcomeIndicatorController,
-        { provide: OutcomeIndicatorService, useValue: mockOutcomeIndicatorService },
+        {
+          provide: OutcomeIndicatorService,
+          useValue: mockOutcomeIndicatorService,
+        },
       ],
     }).compile();
 
-    controller = module.get<OutcomeIndicatorController>(OutcomeIndicatorController);
+    controller = module.get<OutcomeIndicatorController>(
+      OutcomeIndicatorController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockOutcomeIndicatorService.findAll = mockOutcomeIndicatorService.findAll || jest.fn();
-      mockOutcomeIndicatorService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockOutcomeIndicatorService.findAll =
+      mockOutcomeIndicatorService.findAll || jest.fn();
+    mockOutcomeIndicatorService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockOutcomeIndicatorService.findOne = mockOutcomeIndicatorService.findOne || jest.fn();
-      mockOutcomeIndicatorService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockOutcomeIndicatorService.findOne =
+      mockOutcomeIndicatorService.findOne || jest.fn();
+    mockOutcomeIndicatorService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockOutcomeIndicatorService.update = mockOutcomeIndicatorService.update || jest.fn();
-      mockOutcomeIndicatorService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockOutcomeIndicatorService.update =
+      mockOutcomeIndicatorService.update || jest.fn();
+    mockOutcomeIndicatorService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

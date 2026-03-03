@@ -30,24 +30,38 @@ describe('PolicyStageController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockPolicyStageService.findAll = mockPolicyStageService.findAll || jest.fn();
-      mockPolicyStageService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockPolicyStageService.findAll =
+      mockPolicyStageService.findAll || jest.fn();
+    mockPolicyStageService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockPolicyStageService.findOne = mockPolicyStageService.findOne || jest.fn();
-      mockPolicyStageService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockPolicyStageService.findOne =
+      mockPolicyStageService.findOne || jest.fn();
+    mockPolicyStageService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockPolicyStageService.update = mockPolicyStageService.update || jest.fn();
-      mockPolicyStageService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockPolicyStageService.update = mockPolicyStageService.update || jest.fn();
+    mockPolicyStageService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

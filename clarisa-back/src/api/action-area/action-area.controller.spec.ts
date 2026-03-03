@@ -30,24 +30,38 @@ describe('ActionAreaController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAllV1', async () => {
-      mockActionAreaService.findAllV1 = mockActionAreaService.findAllV1 || jest.fn();
-      mockActionAreaService.findAllV1.mockResolvedValue([]);
+  it('should call service on findAllV1', async () => {
+    mockActionAreaService.findAllV1 =
+      mockActionAreaService.findAllV1 || jest.fn();
+    mockActionAreaService.findAllV1.mockResolvedValue([]);
 
-      try { await (controller as any).findAllV1('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAllV1('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOneV1', async () => {
-      mockActionAreaService.findOneV1 = mockActionAreaService.findOneV1 || jest.fn();
-      mockActionAreaService.findOneV1.mockResolvedValue([]);
+  it('should call service on findOneV1', async () => {
+    mockActionAreaService.findOneV1 =
+      mockActionAreaService.findOneV1 || jest.fn();
+    mockActionAreaService.findOneV1.mockResolvedValue([]);
 
-      try { await (controller as any).findOneV1('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOneV1('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockActionAreaService.update = mockActionAreaService.update || jest.fn();
-      mockActionAreaService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockActionAreaService.update = mockActionAreaService.update || jest.fn();
+    mockActionAreaService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

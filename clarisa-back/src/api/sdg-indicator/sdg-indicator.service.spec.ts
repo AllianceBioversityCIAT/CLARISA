@@ -50,7 +50,10 @@ describe('SdgIndicatorService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SdgIndicatorService,
-        { provide: SdgIndicatorRepository, useValue: mockSdgIndicatorRepository },
+        {
+          provide: SdgIndicatorRepository,
+          useValue: mockSdgIndicatorRepository,
+        },
         { provide: SdgIndicatorMapper, useValue: mockSdgIndicatorMapper },
       ],
     }).compile();
@@ -62,95 +65,105 @@ describe('SdgIndicatorService', () => {
     expect(service).toBeDefined();
   });
 
-    it('should return items on findAllV1 with SHOW_ALL', async () => {
-      const mockItems = [{ id: 1 }, { id: 2 }];
-      Object.keys(mockSdgIndicatorRepository).forEach(k => {
-        if (typeof mockSdgIndicatorRepository[k]?.mockResolvedValue === 'function') {
-          mockSdgIndicatorRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockSdgIndicatorMapper).forEach(k => {
-        if (typeof mockSdgIndicatorMapper[k]?.mockReturnValue === 'function') {
-          mockSdgIndicatorMapper[k].mockReturnValue(mockItems);
-        }
-      });
-
-      const result = await service.findAllV1(FindAllOptions.SHOW_ALL);
-      expect(result).toBeDefined();
+  it('should return items on findAllV1 with SHOW_ALL', async () => {
+    const mockItems = [{ id: 1 }, { id: 2 }];
+    Object.keys(mockSdgIndicatorRepository).forEach((k) => {
+      if (
+        typeof mockSdgIndicatorRepository[k]?.mockResolvedValue === 'function'
+      ) {
+        mockSdgIndicatorRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockSdgIndicatorMapper).forEach((k) => {
+      if (typeof mockSdgIndicatorMapper[k]?.mockReturnValue === 'function') {
+        mockSdgIndicatorMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should return active items on findAllV1 with SHOW_ONLY_ACTIVE', async () => {
-      const mockItems = [{ id: 1 }];
-      Object.keys(mockSdgIndicatorRepository).forEach(k => {
-        if (typeof mockSdgIndicatorRepository[k]?.mockResolvedValue === 'function') {
-          mockSdgIndicatorRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockSdgIndicatorMapper).forEach(k => {
-        if (typeof mockSdgIndicatorMapper[k]?.mockReturnValue === 'function') {
-          mockSdgIndicatorMapper[k].mockReturnValue(mockItems);
-        }
-      });
+    const result = await service.findAllV1(FindAllOptions.SHOW_ALL);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findAllV1(FindAllOptions.SHOW_ONLY_ACTIVE);
-      expect(result).toBeDefined();
+  it('should return active items on findAllV1 with SHOW_ONLY_ACTIVE', async () => {
+    const mockItems = [{ id: 1 }];
+    Object.keys(mockSdgIndicatorRepository).forEach((k) => {
+      if (
+        typeof mockSdgIndicatorRepository[k]?.mockResolvedValue === 'function'
+      ) {
+        mockSdgIndicatorRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockSdgIndicatorMapper).forEach((k) => {
+      if (typeof mockSdgIndicatorMapper[k]?.mockReturnValue === 'function') {
+        mockSdgIndicatorMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should throw on findAllV1 with invalid option', async () => {
-      await expect(service.findAllV1('invalid' as any)).rejects.toThrow();
+    const result = await service.findAllV1(FindAllOptions.SHOW_ONLY_ACTIVE);
+    expect(result).toBeDefined();
+  });
+
+  it('should throw on findAllV1 with invalid option', async () => {
+    await expect(service.findAllV1('invalid' as any)).rejects.toThrow();
+  });
+
+  it('should return items on findAllV2 with SHOW_ALL', async () => {
+    const mockItems = [{ id: 1 }, { id: 2 }];
+    Object.keys(mockSdgIndicatorRepository).forEach((k) => {
+      if (
+        typeof mockSdgIndicatorRepository[k]?.mockResolvedValue === 'function'
+      ) {
+        mockSdgIndicatorRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockSdgIndicatorMapper).forEach((k) => {
+      if (typeof mockSdgIndicatorMapper[k]?.mockReturnValue === 'function') {
+        mockSdgIndicatorMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should return items on findAllV2 with SHOW_ALL', async () => {
-      const mockItems = [{ id: 1 }, { id: 2 }];
-      Object.keys(mockSdgIndicatorRepository).forEach(k => {
-        if (typeof mockSdgIndicatorRepository[k]?.mockResolvedValue === 'function') {
-          mockSdgIndicatorRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockSdgIndicatorMapper).forEach(k => {
-        if (typeof mockSdgIndicatorMapper[k]?.mockReturnValue === 'function') {
-          mockSdgIndicatorMapper[k].mockReturnValue(mockItems);
-        }
-      });
+    const result = await service.findAllV2(FindAllOptions.SHOW_ALL);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findAllV2(FindAllOptions.SHOW_ALL);
-      expect(result).toBeDefined();
+  it('should return active items on findAllV2 with SHOW_ONLY_ACTIVE', async () => {
+    const mockItems = [{ id: 1 }];
+    Object.keys(mockSdgIndicatorRepository).forEach((k) => {
+      if (
+        typeof mockSdgIndicatorRepository[k]?.mockResolvedValue === 'function'
+      ) {
+        mockSdgIndicatorRepository[k].mockResolvedValue(mockItems);
+      }
+    });
+    Object.keys(mockSdgIndicatorMapper).forEach((k) => {
+      if (typeof mockSdgIndicatorMapper[k]?.mockReturnValue === 'function') {
+        mockSdgIndicatorMapper[k].mockReturnValue(mockItems);
+      }
     });
 
-    it('should return active items on findAllV2 with SHOW_ONLY_ACTIVE', async () => {
-      const mockItems = [{ id: 1 }];
-      Object.keys(mockSdgIndicatorRepository).forEach(k => {
-        if (typeof mockSdgIndicatorRepository[k]?.mockResolvedValue === 'function') {
-          mockSdgIndicatorRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      Object.keys(mockSdgIndicatorMapper).forEach(k => {
-        if (typeof mockSdgIndicatorMapper[k]?.mockReturnValue === 'function') {
-          mockSdgIndicatorMapper[k].mockReturnValue(mockItems);
-        }
-      });
+    const result = await service.findAllV2(FindAllOptions.SHOW_ONLY_ACTIVE);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findAllV2(FindAllOptions.SHOW_ONLY_ACTIVE);
-      expect(result).toBeDefined();
+  it('should throw on findAllV2 with invalid option', async () => {
+    await expect(service.findAllV2('invalid' as any)).rejects.toThrow();
+  });
+
+  it('should return a single item on findOne', async () => {
+    const mockItem = { id: 1 };
+    mockSdgIndicatorRepository.findOneBy =
+      mockSdgIndicatorRepository.findOneBy || jest.fn();
+    mockSdgIndicatorRepository.findOne =
+      mockSdgIndicatorRepository.findOne || jest.fn();
+    mockSdgIndicatorRepository.findOneBy.mockResolvedValue(mockItem);
+    mockSdgIndicatorRepository.findOne.mockResolvedValue(mockItem);
+    Object.keys(mockSdgIndicatorMapper).forEach((k) => {
+      if (typeof mockSdgIndicatorMapper[k]?.mockReturnValue === 'function') {
+        mockSdgIndicatorMapper[k].mockReturnValue(mockItem);
+      }
     });
 
-    it('should throw on findAllV2 with invalid option', async () => {
-      await expect(service.findAllV2('invalid' as any)).rejects.toThrow();
-    });
-
-    it('should return a single item on findOne', async () => {
-      const mockItem = { id: 1 };
-      mockSdgIndicatorRepository.findOneBy = mockSdgIndicatorRepository.findOneBy || jest.fn();
-      mockSdgIndicatorRepository.findOne = mockSdgIndicatorRepository.findOne || jest.fn();
-      mockSdgIndicatorRepository.findOneBy.mockResolvedValue(mockItem);
-      mockSdgIndicatorRepository.findOne.mockResolvedValue(mockItem);
-      Object.keys(mockSdgIndicatorMapper).forEach(k => {
-        if (typeof mockSdgIndicatorMapper[k]?.mockReturnValue === 'function') {
-          mockSdgIndicatorMapper[k].mockReturnValue(mockItem);
-        }
-      });
-
-      const result = await service.findOne(1);
-      expect(result).toBeDefined();
-    });
+    const result = await service.findOne(1);
+    expect(result).toBeDefined();
+  });
 });

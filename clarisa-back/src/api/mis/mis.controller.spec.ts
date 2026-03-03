@@ -21,9 +21,7 @@ describe('MisController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MisController],
-      providers: [
-        { provide: MisService, useValue: mockMisService },
-      ],
+      providers: [{ provide: MisService, useValue: mockMisService }],
     })
       .overrideGuard(JwtAuthGuard)
       .useValue(mockGuard)
@@ -43,28 +41,28 @@ describe('MisController', () => {
     const userData = { userId: 1, email: 'test@test.com' } as any;
     const dto = { acronym: 'TEST', name: 'Test MIS' } as any;
 
-    const result = await controller.create(userData, dto);
+    await controller.create(userData, dto);
     expect(mockMisService.create).toHaveBeenCalledWith(dto, userData);
   });
 
   it('should call service on findAll', async () => {
     mockMisService.findAll.mockResolvedValue([]);
 
-    const result = await controller.findAll('active' as any);
+    await controller.findAll('active' as any);
     expect(mockMisService.findAll).toHaveBeenCalledWith('active');
   });
 
   it('should call service on findOne', async () => {
     mockMisService.findOne.mockResolvedValue({ id: 1 });
 
-    const result = await controller.findOne(1);
+    await controller.findOne(1);
     expect(mockMisService.findOne).toHaveBeenCalledWith(1);
   });
 
   it('should call service on findMetadataById', async () => {
     mockMisService.findMetadataById.mockResolvedValue({ id: 1 });
 
-    const result = await controller.findMetadataById(1);
+    await controller.findMetadataById(1);
     expect(mockMisService.findMetadataById).toHaveBeenCalledWith(1);
   });
 });

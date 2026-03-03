@@ -30,24 +30,38 @@ describe('BeneficiaryController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockBeneficiaryService.findAll = mockBeneficiaryService.findAll || jest.fn();
-      mockBeneficiaryService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockBeneficiaryService.findAll =
+      mockBeneficiaryService.findAll || jest.fn();
+    mockBeneficiaryService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockBeneficiaryService.findOne = mockBeneficiaryService.findOne || jest.fn();
-      mockBeneficiaryService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockBeneficiaryService.findOne =
+      mockBeneficiaryService.findOne || jest.fn();
+    mockBeneficiaryService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockBeneficiaryService.update = mockBeneficiaryService.update || jest.fn();
-      mockBeneficiaryService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockBeneficiaryService.update = mockBeneficiaryService.update || jest.fn();
+    mockBeneficiaryService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

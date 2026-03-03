@@ -31,24 +31,36 @@ describe('InitiativeController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockInitiativeService.findAll = mockInitiativeService.findAll || jest.fn();
-      mockInitiativeService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockInitiativeService.findAll = mockInitiativeService.findAll || jest.fn();
+    mockInitiativeService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockInitiativeService.findOne = mockInitiativeService.findOne || jest.fn();
-      mockInitiativeService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockInitiativeService.findOne = mockInitiativeService.findOne || jest.fn();
+    mockInitiativeService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockInitiativeService.update = mockInitiativeService.update || jest.fn();
-      mockInitiativeService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockInitiativeService.update = mockInitiativeService.update || jest.fn();
+    mockInitiativeService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

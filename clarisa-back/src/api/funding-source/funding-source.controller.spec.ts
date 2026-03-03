@@ -29,17 +29,27 @@ describe('FundingSourceController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockFundingSourceService.findAll = mockFundingSourceService.findAll || jest.fn();
-      mockFundingSourceService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockFundingSourceService.findAll =
+      mockFundingSourceService.findAll || jest.fn();
+    mockFundingSourceService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockFundingSourceService.findOne = mockFundingSourceService.findOne || jest.fn();
-      mockFundingSourceService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockFundingSourceService.findOne =
+      mockFundingSourceService.findOne || jest.fn();
+    mockFundingSourceService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

@@ -31,31 +31,50 @@ describe('BiParameterController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockBiParameterService.findAll = mockBiParameterService.findAll || jest.fn();
-      mockBiParameterService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockBiParameterService.findAll =
+      mockBiParameterService.findAll || jest.fn();
+    mockBiParameterService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findAllUnitParams', async () => {
-      mockBiParameterService.findAllUnitParams = mockBiParameterService.findAllUnitParams || jest.fn();
-      mockBiParameterService.findAllUnitParams.mockResolvedValue([]);
+  it('should call service on findAllUnitParams', async () => {
+    mockBiParameterService.findAllUnitParams =
+      mockBiParameterService.findAllUnitParams || jest.fn();
+    mockBiParameterService.findAllUnitParams.mockResolvedValue([]);
 
-      try { await (controller as any).findAllUnitParams('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAllUnitParams('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockBiParameterService.findOne = mockBiParameterService.findOne || jest.fn();
-      mockBiParameterService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockBiParameterService.findOne =
+      mockBiParameterService.findOne || jest.fn();
+    mockBiParameterService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockBiParameterService.update = mockBiParameterService.update || jest.fn();
-      mockBiParameterService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockBiParameterService.update = mockBiParameterService.update || jest.fn();
+    mockBiParameterService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

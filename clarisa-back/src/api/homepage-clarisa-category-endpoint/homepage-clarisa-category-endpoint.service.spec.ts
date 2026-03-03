@@ -36,25 +36,33 @@ describe('HomepageClarisaCategoryEndpointService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HomepageClarisaCategoryEndpointService,
-        { provide: HomepageClarisaCategoryEndpointRepository, useValue: mockHomepageClarisaCategoryEndpointRepository },
+        {
+          provide: HomepageClarisaCategoryEndpointRepository,
+          useValue: mockHomepageClarisaCategoryEndpointRepository,
+        },
       ],
     }).compile();
 
-    service = module.get<HomepageClarisaCategoryEndpointService>(HomepageClarisaCategoryEndpointService);
+    service = module.get<HomepageClarisaCategoryEndpointService>(
+      HomepageClarisaCategoryEndpointService,
+    );
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-    it('should call repository on findAll', async () => {
-      Object.keys(mockHomepageClarisaCategoryEndpointRepository).forEach(k => {
-        if (typeof mockHomepageClarisaCategoryEndpointRepository[k]?.mockResolvedValue === 'function') {
-          mockHomepageClarisaCategoryEndpointRepository[k].mockResolvedValue([]);
-        }
-      });
-
-      const result = await service.findAll();
-      expect(result).toBeDefined();
+  it('should call repository on findAll', async () => {
+    Object.keys(mockHomepageClarisaCategoryEndpointRepository).forEach((k) => {
+      if (
+        typeof mockHomepageClarisaCategoryEndpointRepository[k]
+          ?.mockResolvedValue === 'function'
+      ) {
+        mockHomepageClarisaCategoryEndpointRepository[k].mockResolvedValue([]);
+      }
     });
+
+    const result = await service.findAll();
+    expect(result).toBeDefined();
+  });
 });

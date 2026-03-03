@@ -19,14 +19,16 @@ describe('EndOfInitiativeOutcomeService', () => {
       ],
     }).compile();
 
-    service = module.get<EndOfInitiativeOutcomeService>(EndOfInitiativeOutcomeService);
+    service = module.get<EndOfInitiativeOutcomeService>(
+      EndOfInitiativeOutcomeService,
+    );
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-    it('should have methods', () => {
-      expect(service).toBeTruthy();
-    });
+  it('should have methods', () => {
+    expect(service).toBeTruthy();
+  });
 });

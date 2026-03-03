@@ -62,12 +62,21 @@ describe('PartnerRequestService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PartnerRequestService,
-        { provide: PartnerRequestRepository, useValue: mockPartnerRequestRepository },
-        { provide: InstitutionTypeRepository, useValue: mockInstitutionTypeRepository },
+        {
+          provide: PartnerRequestRepository,
+          useValue: mockPartnerRequestRepository,
+        },
+        {
+          provide: InstitutionTypeRepository,
+          useValue: mockInstitutionTypeRepository,
+        },
         { provide: MisRepository, useValue: mockMisRepository },
         { provide: CountryRepository, useValue: mockCountryRepository },
         { provide: UserRepository, useValue: mockUserRepository },
-        { provide: OpenSearchInstitutionApi, useValue: mockOpenSearchInstitutionApi },
+        {
+          provide: OpenSearchInstitutionApi,
+          useValue: mockOpenSearchInstitutionApi,
+        },
       ],
     }).compile();
 
@@ -80,16 +89,22 @@ describe('PartnerRequestService', () => {
 
   it('should return items on findAll with defaults', async () => {
     const mockItems = [{ id: 1 }, { id: 2 }];
-    mockPartnerRequestRepository.findAllPartnerRequests.mockResolvedValue(mockItems);
+    mockPartnerRequestRepository.findAllPartnerRequests.mockResolvedValue(
+      mockItems,
+    );
 
     const result = await service.findAll();
     expect(result).toBeDefined();
-    expect(mockPartnerRequestRepository.findAllPartnerRequests).toHaveBeenCalled();
+    expect(
+      mockPartnerRequestRepository.findAllPartnerRequests,
+    ).toHaveBeenCalled();
   });
 
   it('should return items on findAll with explicit params', async () => {
     const mockItems = [{ id: 1 }];
-    mockPartnerRequestRepository.findAllPartnerRequests.mockResolvedValue(mockItems);
+    mockPartnerRequestRepository.findAllPartnerRequests.mockResolvedValue(
+      mockItems,
+    );
 
     const result = await service.findAll('pending', 'all');
     expect(result).toBeDefined();
@@ -105,11 +120,15 @@ describe('PartnerRequestService', () => {
 
   it('should return a single item on findOne', async () => {
     const mockItem = { id: 1 };
-    mockPartnerRequestRepository.findPartnerRequestById.mockResolvedValue(mockItem);
+    mockPartnerRequestRepository.findPartnerRequestById.mockResolvedValue(
+      mockItem,
+    );
 
     const result = await service.findOne(1);
     expect(result).toBeDefined();
-    expect(mockPartnerRequestRepository.findPartnerRequestById).toHaveBeenCalledWith(1);
+    expect(
+      mockPartnerRequestRepository.findPartnerRequestById,
+    ).toHaveBeenCalledWith(1);
   });
 
   it('should call statisticsPartner on statisticsPartnerRequest', async () => {

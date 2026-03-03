@@ -19,35 +19,55 @@ describe('HomepageClarisaCategoryController', () => {
       controllers: [HomepageClarisaCategoryController],
       providers: [
         HomepageClarisaCategoryController,
-        { provide: HomepageClarisaCategoryService, useValue: mockHomepageClarisaCategoryService },
+        {
+          provide: HomepageClarisaCategoryService,
+          useValue: mockHomepageClarisaCategoryService,
+        },
       ],
     }).compile();
 
-    controller = module.get<HomepageClarisaCategoryController>(HomepageClarisaCategoryController);
+    controller = module.get<HomepageClarisaCategoryController>(
+      HomepageClarisaCategoryController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockHomepageClarisaCategoryService.findAll = mockHomepageClarisaCategoryService.findAll || jest.fn();
-      mockHomepageClarisaCategoryService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockHomepageClarisaCategoryService.findAll =
+      mockHomepageClarisaCategoryService.findAll || jest.fn();
+    mockHomepageClarisaCategoryService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockHomepageClarisaCategoryService.findOne = mockHomepageClarisaCategoryService.findOne || jest.fn();
-      mockHomepageClarisaCategoryService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockHomepageClarisaCategoryService.findOne =
+      mockHomepageClarisaCategoryService.findOne || jest.fn();
+    mockHomepageClarisaCategoryService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockHomepageClarisaCategoryService.update = mockHomepageClarisaCategoryService.update || jest.fn();
-      mockHomepageClarisaCategoryService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockHomepageClarisaCategoryService.update =
+      mockHomepageClarisaCategoryService.update || jest.fn();
+    mockHomepageClarisaCategoryService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

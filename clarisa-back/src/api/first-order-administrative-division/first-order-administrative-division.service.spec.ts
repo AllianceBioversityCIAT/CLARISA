@@ -19,14 +19,16 @@ describe('FirstOrderAdministrativeDivisionService', () => {
       ],
     }).compile();
 
-    service = module.get<FirstOrderAdministrativeDivisionService>(FirstOrderAdministrativeDivisionService);
+    service = module.get<FirstOrderAdministrativeDivisionService>(
+      FirstOrderAdministrativeDivisionService,
+    );
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-    it('should have methods', () => {
-      expect(service).toBeTruthy();
-    });
+  it('should have methods', () => {
+    expect(service).toBeTruthy();
+  });
 });

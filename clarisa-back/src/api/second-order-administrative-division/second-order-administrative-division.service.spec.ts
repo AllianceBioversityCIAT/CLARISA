@@ -5,8 +5,7 @@ import { ApiGeoNames } from '../../integration/geonames/geonames.api';
 describe('SecondOrderAdministrativeDivisionService', () => {
   let service: SecondOrderAdministrativeDivisionService;
 
-  const mockApiGeoNames: any = {
-  };
+  const mockApiGeoNames: any = {};
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -18,14 +17,16 @@ describe('SecondOrderAdministrativeDivisionService', () => {
       ],
     }).compile();
 
-    service = module.get<SecondOrderAdministrativeDivisionService>(SecondOrderAdministrativeDivisionService);
+    service = module.get<SecondOrderAdministrativeDivisionService>(
+      SecondOrderAdministrativeDivisionService,
+    );
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-    it('should have methods', () => {
-      expect(service).toBeTruthy();
-    });
+  it('should have methods', () => {
+    expect(service).toBeTruthy();
+  });
 });

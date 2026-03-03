@@ -39,20 +39,20 @@ describe('QaTokenAuthController', () => {
 
   it('should call service on findAll', () => {
     mockQaTokenAuthService.findAll.mockReturnValue([]);
-    const result = controller.findAll();
+    controller.findAll();
     expect(mockQaTokenAuthService.findAll).toHaveBeenCalled();
   });
 
   it('should call service on findOne', () => {
     mockQaTokenAuthService.findOne.mockReturnValue({});
-    const result = controller.findOne('1');
+    controller.findOne('1');
     expect(mockQaTokenAuthService.findOne).toHaveBeenCalledWith(1);
   });
 
   it('should call service on create', () => {
     const dto = { smoCode: 'test', email: 'test@test.com' } as any;
     mockQaTokenAuthService.create.mockResolvedValue({});
-    const result = controller.create(dto);
+    controller.create(dto);
     expect(mockQaTokenAuthService.create).toHaveBeenCalledWith(dto);
   });
 });

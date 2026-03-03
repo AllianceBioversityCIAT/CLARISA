@@ -23,7 +23,10 @@ describe('CountryOfficeRequestController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CountryOfficeRequestController],
       providers: [
-        { provide: CountryOfficeRequestService, useValue: mockCountryOfficeRequestService },
+        {
+          provide: CountryOfficeRequestService,
+          useValue: mockCountryOfficeRequestService,
+        },
       ],
     })
       .overrideGuard(JwtAuthGuard)
@@ -32,7 +35,9 @@ describe('CountryOfficeRequestController', () => {
       .useValue(mockGuard)
       .compile();
 
-    controller = module.get<CountryOfficeRequestController>(CountryOfficeRequestController);
+    controller = module.get<CountryOfficeRequestController>(
+      CountryOfficeRequestController,
+    );
   });
 
   it('should be defined', () => {
@@ -42,50 +47,56 @@ describe('CountryOfficeRequestController', () => {
   it('should call service on findAll', async () => {
     mockCountryOfficeRequestService.findAll.mockResolvedValue([]);
 
-    const result = await controller.findAll('pending', 'all');
-    expect(mockCountryOfficeRequestService.findAll).toHaveBeenCalledWith('pending', 'all');
+    await controller.findAll('pending', 'all');
+    expect(mockCountryOfficeRequestService.findAll).toHaveBeenCalledWith(
+      'pending',
+      'all',
+    );
   });
 
   it('should call service on findOne', async () => {
     mockCountryOfficeRequestService.findOne.mockResolvedValue({ id: 1 });
 
-    const result = await controller.findOne(1);
+    await controller.findOne(1);
     expect(mockCountryOfficeRequestService.findOne).toHaveBeenCalledWith(1);
   });
 
   it('should call service on createCountryOfficeRequests', async () => {
-    mockCountryOfficeRequestService.createCountryOfficeRequest.mockResolvedValue({ id: 1 });
+    mockCountryOfficeRequestService.createCountryOfficeRequest.mockResolvedValue(
+      { id: 1 },
+    );
     const userData = { userId: 1, email: 'test@test.com' } as any;
     const dto = {} as any;
 
-    const result = await controller.createCountryOfficeRequests(userData, dto, 'clarisa');
-    expect(mockCountryOfficeRequestService.createCountryOfficeRequest).toHaveBeenCalledWith(
-      dto,
-      { ...userData, mis: 'clarisa' },
-    );
+    await controller.createCountryOfficeRequests(userData, dto, 'clarisa');
+    expect(
+      mockCountryOfficeRequestService.createCountryOfficeRequest,
+    ).toHaveBeenCalledWith(dto, { ...userData, mis: 'clarisa' });
   });
 
   it('should call service on respondCountryOfficeRequest', async () => {
-    mockCountryOfficeRequestService.respondCountryOfficeRequest.mockResolvedValue({});
+    mockCountryOfficeRequestService.respondCountryOfficeRequest.mockResolvedValue(
+      {},
+    );
     const userData = { userId: 1, email: 'test@test.com' } as any;
     const dto = {} as any;
 
-    const result = await controller.respondCountryOfficeRequest(userData, dto);
-    expect(mockCountryOfficeRequestService.respondCountryOfficeRequest).toHaveBeenCalledWith(
-      dto,
-      userData,
-    );
+    await controller.respondCountryOfficeRequest(userData, dto);
+    expect(
+      mockCountryOfficeRequestService.respondCountryOfficeRequest,
+    ).toHaveBeenCalledWith(dto, userData);
   });
 
   it('should call service on updateCountryOfficeRequest', async () => {
-    mockCountryOfficeRequestService.updateCountryOfficeRequest.mockResolvedValue({});
+    mockCountryOfficeRequestService.updateCountryOfficeRequest.mockResolvedValue(
+      {},
+    );
     const userData = { userId: 1, email: 'test@test.com' } as any;
     const dto = {} as any;
 
-    const result = await controller.updateCountryOfficeRequest(userData, dto);
-    expect(mockCountryOfficeRequestService.updateCountryOfficeRequest).toHaveBeenCalledWith(
-      dto,
-      userData,
-    );
+    await controller.updateCountryOfficeRequest(userData, dto);
+    expect(
+      mockCountryOfficeRequestService.updateCountryOfficeRequest,
+    ).toHaveBeenCalledWith(dto, userData);
   });
 });

@@ -29,17 +29,27 @@ describe('GeopositionController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockGeopositionService.findAll = mockGeopositionService.findAll || jest.fn();
-      mockGeopositionService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockGeopositionService.findAll =
+      mockGeopositionService.findAll || jest.fn();
+    mockGeopositionService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockGeopositionService.findOne = mockGeopositionService.findOne || jest.fn();
-      mockGeopositionService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockGeopositionService.findOne =
+      mockGeopositionService.findOne || jest.fn();
+    mockGeopositionService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

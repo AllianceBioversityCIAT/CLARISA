@@ -30,24 +30,36 @@ describe('CountryController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockCountryService.findAll = mockCountryService.findAll || jest.fn();
-      mockCountryService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockCountryService.findAll = mockCountryService.findAll || jest.fn();
+    mockCountryService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockCountryService.findOne = mockCountryService.findOne || jest.fn();
-      mockCountryService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockCountryService.findOne = mockCountryService.findOne || jest.fn();
+    mockCountryService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockCountryService.update = mockCountryService.update || jest.fn();
-      mockCountryService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockCountryService.update = mockCountryService.update || jest.fn();
+    mockCountryService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

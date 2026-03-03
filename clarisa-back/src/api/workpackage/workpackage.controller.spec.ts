@@ -30,24 +30,38 @@ describe('WorkpackageController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockWorkpackageService.findAll = mockWorkpackageService.findAll || jest.fn();
-      mockWorkpackageService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockWorkpackageService.findAll =
+      mockWorkpackageService.findAll || jest.fn();
+    mockWorkpackageService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockWorkpackageService.findOne = mockWorkpackageService.findOne || jest.fn();
-      mockWorkpackageService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockWorkpackageService.findOne =
+      mockWorkpackageService.findOne || jest.fn();
+    mockWorkpackageService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockWorkpackageService.update = mockWorkpackageService.update || jest.fn();
-      mockWorkpackageService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockWorkpackageService.update = mockWorkpackageService.update || jest.fn();
+    mockWorkpackageService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

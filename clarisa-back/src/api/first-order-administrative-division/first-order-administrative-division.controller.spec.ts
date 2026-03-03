@@ -17,21 +17,31 @@ describe('FirstOrderAdministrativeDivisionController', () => {
       controllers: [FirstOrderAdministrativeDivisionController],
       providers: [
         FirstOrderAdministrativeDivisionController,
-        { provide: FirstOrderAdministrativeDivisionService, useValue: mockFirstOrderAdministrativeDivisionService },
+        {
+          provide: FirstOrderAdministrativeDivisionService,
+          useValue: mockFirstOrderAdministrativeDivisionService,
+        },
       ],
     }).compile();
 
-    controller = module.get<FirstOrderAdministrativeDivisionController>(FirstOrderAdministrativeDivisionController);
+    controller = module.get<FirstOrderAdministrativeDivisionController>(
+      FirstOrderAdministrativeDivisionController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockFirstOrderAdministrativeDivisionService.findAll = mockFirstOrderAdministrativeDivisionService.findAll || jest.fn();
-      mockFirstOrderAdministrativeDivisionService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockFirstOrderAdministrativeDivisionService.findAll =
+      mockFirstOrderAdministrativeDivisionService.findAll || jest.fn();
+    mockFirstOrderAdministrativeDivisionService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

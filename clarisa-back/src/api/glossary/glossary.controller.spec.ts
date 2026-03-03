@@ -32,31 +32,48 @@ describe('GlossaryController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockGlossaryService.findAll = mockGlossaryService.findAll || jest.fn();
-      mockGlossaryService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockGlossaryService.findAll = mockGlossaryService.findAll || jest.fn();
+    mockGlossaryService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findAllForDashboard', async () => {
-      mockGlossaryService.findAllForDashboard = mockGlossaryService.findAllForDashboard || jest.fn();
-      mockGlossaryService.findAllForDashboard.mockResolvedValue([]);
+  it('should call service on findAllForDashboard', async () => {
+    mockGlossaryService.findAllForDashboard =
+      mockGlossaryService.findAllForDashboard || jest.fn();
+    mockGlossaryService.findAllForDashboard.mockResolvedValue([]);
 
-      try { await (controller as any).findAllForDashboard('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAllForDashboard('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockGlossaryService.findOne = mockGlossaryService.findOne || jest.fn();
-      mockGlossaryService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockGlossaryService.findOne = mockGlossaryService.findOne || jest.fn();
+    mockGlossaryService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockGlossaryService.update = mockGlossaryService.update || jest.fn();
-      mockGlossaryService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockGlossaryService.update = mockGlossaryService.update || jest.fn();
+    mockGlossaryService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

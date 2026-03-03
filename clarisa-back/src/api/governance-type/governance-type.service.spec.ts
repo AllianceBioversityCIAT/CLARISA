@@ -36,7 +36,10 @@ describe('GovernanceTypeService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GovernanceTypeService,
-        { provide: GovernanceTypeRepository, useValue: mockGovernanceTypeRepository },
+        {
+          provide: GovernanceTypeRepository,
+          useValue: mockGovernanceTypeRepository,
+        },
       ],
     }).compile();
 
@@ -47,53 +50,56 @@ describe('GovernanceTypeService', () => {
     expect(service).toBeDefined();
   });
 
-    it('should return items on findAll with SHOW_ALL', async () => {
-      const mockItems = [{ id: 1 }, { id: 2 }];
-      Object.keys(mockGovernanceTypeRepository).forEach(k => {
-        if (typeof mockGovernanceTypeRepository[k]?.mockResolvedValue === 'function') {
-          mockGovernanceTypeRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      
-
-      const result = await service.findAll(FindAllOptions.SHOW_ALL);
-      expect(result).toBeDefined();
+  it('should return items on findAll with SHOW_ALL', async () => {
+    const mockItems = [{ id: 1 }, { id: 2 }];
+    Object.keys(mockGovernanceTypeRepository).forEach((k) => {
+      if (
+        typeof mockGovernanceTypeRepository[k]?.mockResolvedValue === 'function'
+      ) {
+        mockGovernanceTypeRepository[k].mockResolvedValue(mockItems);
+      }
     });
 
-    it('should return active items on findAll with SHOW_ONLY_ACTIVE', async () => {
-      const mockItems = [{ id: 1 }];
-      Object.keys(mockGovernanceTypeRepository).forEach(k => {
-        if (typeof mockGovernanceTypeRepository[k]?.mockResolvedValue === 'function') {
-          mockGovernanceTypeRepository[k].mockResolvedValue(mockItems);
-        }
-      });
-      
+    const result = await service.findAll(FindAllOptions.SHOW_ALL);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
-      expect(result).toBeDefined();
+  it('should return active items on findAll with SHOW_ONLY_ACTIVE', async () => {
+    const mockItems = [{ id: 1 }];
+    Object.keys(mockGovernanceTypeRepository).forEach((k) => {
+      if (
+        typeof mockGovernanceTypeRepository[k]?.mockResolvedValue === 'function'
+      ) {
+        mockGovernanceTypeRepository[k].mockResolvedValue(mockItems);
+      }
     });
 
-    it('should throw on findAll with invalid option', async () => {
-      await expect(service.findAll('invalid' as any)).rejects.toThrow();
-    });
+    const result = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
+    expect(result).toBeDefined();
+  });
 
-    it('should return a single item on findOne', async () => {
-      const mockItem = { id: 1 };
-      mockGovernanceTypeRepository.findOneBy = mockGovernanceTypeRepository.findOneBy || jest.fn();
-      mockGovernanceTypeRepository.findOne = mockGovernanceTypeRepository.findOne || jest.fn();
-      mockGovernanceTypeRepository.findOneBy.mockResolvedValue(mockItem);
-      mockGovernanceTypeRepository.findOne.mockResolvedValue(mockItem);
-      
+  it('should throw on findAll with invalid option', async () => {
+    await expect(service.findAll('invalid' as any)).rejects.toThrow();
+  });
 
-      const result = await service.findOne(1);
-      expect(result).toBeDefined();
-    });
+  it('should return a single item on findOne', async () => {
+    const mockItem = { id: 1 };
+    mockGovernanceTypeRepository.findOneBy =
+      mockGovernanceTypeRepository.findOneBy || jest.fn();
+    mockGovernanceTypeRepository.findOne =
+      mockGovernanceTypeRepository.findOne || jest.fn();
+    mockGovernanceTypeRepository.findOneBy.mockResolvedValue(mockItem);
+    mockGovernanceTypeRepository.findOne.mockResolvedValue(mockItem);
 
-    it('should save items on update', async () => {
-      const dto = [{ id: 1 }];
-      mockGovernanceTypeRepository.save.mockResolvedValue(dto);
+    const result = await service.findOne(1);
+    expect(result).toBeDefined();
+  });
 
-      const result = await service.update(dto as any);
-      expect(mockGovernanceTypeRepository.save).toHaveBeenCalledWith(dto);
-    });
+  it('should save items on update', async () => {
+    const dto = [{ id: 1 }];
+    mockGovernanceTypeRepository.save.mockResolvedValue(dto);
+
+    await service.update(dto as any);
+    expect(mockGovernanceTypeRepository.save).toHaveBeenCalledWith(dto);
+  });
 });

@@ -29,17 +29,25 @@ describe('PortfolioController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockPortfolioService.findAll = mockPortfolioService.findAll || jest.fn();
-      mockPortfolioService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockPortfolioService.findAll = mockPortfolioService.findAll || jest.fn();
+    mockPortfolioService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockPortfolioService.findOne = mockPortfolioService.findOne || jest.fn();
-      mockPortfolioService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockPortfolioService.findOne = mockPortfolioService.findOne || jest.fn();
+    mockPortfolioService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });

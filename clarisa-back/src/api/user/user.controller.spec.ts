@@ -35,45 +35,71 @@ describe('UserController', () => {
     expect(controller).toBeDefined();
   });
 
-    it('should call service on findAll', async () => {
-      mockUserService.findAll = mockUserService.findAll || jest.fn();
-      mockUserService.findAll.mockResolvedValue([]);
+  it('should call service on findAll', async () => {
+    mockUserService.findAll = mockUserService.findAll || jest.fn();
+    mockUserService.findAll.mockResolvedValue([]);
 
-      try { await (controller as any).findAll('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findByEmail', async () => {
-      mockUserService.findByEmail = mockUserService.findByEmail || jest.fn();
-      mockUserService.findByEmail.mockResolvedValue([]);
+  it('should call service on findByEmail', async () => {
+    mockUserService.findByEmail = mockUserService.findByEmail || jest.fn();
+    mockUserService.findByEmail.mockResolvedValue([]);
 
-      try { await (controller as any).findByEmail('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findByEmail('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findByUsername', async () => {
-      mockUserService.findByUsername = mockUserService.findByUsername || jest.fn();
-      mockUserService.findByUsername.mockResolvedValue([]);
+  it('should call service on findByUsername', async () => {
+    mockUserService.findByUsername =
+      mockUserService.findByUsername || jest.fn();
+    mockUserService.findByUsername.mockResolvedValue([]);
 
-      try { await (controller as any).findByUsername('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findByUsername('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on findOne', async () => {
-      mockUserService.findOne = mockUserService.findOne || jest.fn();
-      mockUserService.findOne.mockResolvedValue([]);
+  it('should call service on findOne', async () => {
+    mockUserService.findOne = mockUserService.findOne || jest.fn();
+    mockUserService.findOne.mockResolvedValue([]);
 
-      try { await (controller as any).findOne('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).findOne('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on getUsersPagination', async () => {
-      mockUserService.getUsersPagination = mockUserService.getUsersPagination || jest.fn();
-      mockUserService.getUsersPagination.mockResolvedValue([]);
+  it('should call service on getUsersPagination', async () => {
+    mockUserService.getUsersPagination =
+      mockUserService.getUsersPagination || jest.fn();
+    mockUserService.getUsersPagination.mockResolvedValue([]);
 
-      try { await (controller as any).getUsersPagination('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).getUsersPagination('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 
-    it('should call service on update', async () => {
-      mockUserService.update = mockUserService.update || jest.fn();
-      mockUserService.update.mockResolvedValue([]);
+  it('should call service on update', async () => {
+    mockUserService.update = mockUserService.update || jest.fn();
+    mockUserService.update.mockResolvedValue([]);
 
-      try { await (controller as any).update('active', {}, {}, {}); } catch (e) { /* ok */ }
-    });
+    try {
+      await (controller as any).update('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
+  });
 });
