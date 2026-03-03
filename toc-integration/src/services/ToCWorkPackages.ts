@@ -34,7 +34,11 @@ export class ToCWorkPackagesService {
           ? String(ost.toc_id)
           : null;
       const officialCode =
-        typeof ost?.wp_official_code === "string" ? ost.wp_official_code : null;
+        typeof ost?.wp_official_code === "string"
+          ? ost.wp_official_code
+          : typeof ost?.wp_official_code === "number"
+            ? String(ost.wp_official_code)
+            : null;
 
       if (!officialCode || !tocId) continue;
 
