@@ -4,11 +4,7 @@ on:
   push:
     branches:
       - "dev-v2"
-      - "main"
-  pull_request:
-    branches:
-      - "dev-v2"
-      - "main"
+      - "main"  
   workflow_dispatch:
 
 jobs:
