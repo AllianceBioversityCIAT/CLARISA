@@ -51,6 +51,38 @@ async function bootstrap() {
   }
   swaggerDocument.paths = publicPaths;
 
+  // Podar components.schemas a SOLO los DTOs referenciados (transitivamente)
+  // por los paths publicos. Asi el spec crudo no divulga modelos internos
+  // (UpdateUserDto, LoginDto, entidades de admin, etc.) -> "zero-leak".
+  const allSchemas = swaggerDocument.components?.schemas ?? {};
+  const usedSchemas = new Set<string>();
+  const collectRefs = (node: unknown): void => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      node.forEach(collectRefs);
+      return;
+    }
+    for (const [key, value] of Object.entries(node)) {
+      if (key === '$ref' && typeof value === 'string') {
+        const name = value.split('/').pop();
+        if (name && !usedSchemas.has(name)) {
+          usedSchemas.add(name);
+          collectRefs(allSchemas[name]); // resolver refs anidadas
+        }
+      } else {
+        collectRefs(value);
+      }
+    }
+  };
+  collectRefs(publicPaths);
+  if (swaggerDocument.components) {
+    const prunedSchemas: Record<string, unknown> = {};
+    for (const name of usedSchemas) {
+      if (allSchemas[name]) prunedSchemas[name] = allSchemas[name];
+    }
+    swaggerDocument.components.schemas = prunedSchemas as never;
+  }
+
   SwaggerModule.setup('api-docs', app, swaggerDocument, {
     jsonDocumentUrl: 'api-docs-json',
     swaggerOptions: { persistAuthorization: true },
