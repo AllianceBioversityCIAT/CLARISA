@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,11 +11,14 @@
         padding: 0;
         height: 100%;
       }
-      /* Oculta adornos propios de Scalar que no aplican a CLARISA */
+      /* Hide Scalar's own widgets that don't apply to CLARISA */
       .scalar-mcp-layer,
       .scalar-mcp-layer-link,
       a.scalar-version-number,
-      a[href*='scalar.com'] {
+      a[href*='scalar.com'],
+      /* "Ask AI Agent" button in the code/example panel (persistent, no flicker) */
+      .agent-button-container,
+      .ask-agent-scalar-input-label {
         display: none !important;
       }
       #loading {
@@ -26,22 +29,22 @@
     </style>
   </head>
   <body>
-    <div id="loading">Cargando documentacion…</div>
-    <!-- Scalar monta aqui -->
+    <div id="loading">Loading documentation…</div>
+    <!-- Scalar mounts here -->
     <script id="api-reference"></script>
 
     <script>
-      // Spec del back por query param (?spec=...). Fallback a localhost.
+      // Back-end spec via query param (?spec=...). Falls back to localhost.
       var params = new URLSearchParams(location.search);
       var specUrl = params.get('spec') || 'http://localhost:3000/api-docs-json';
 
       /**
-       * Transforma el spec crudo del back en uno CURADO:
-       *  - filtra a los endpoints definidos en catalog.json
-       *  - reasigna cada operacion a su categoria (tag)
-       *  - arma x-tagGroups para la jerarquia de 2 niveles (grupo > categoria)
-       * Asi Scalar muestra SOLO la documentacion publica, agrupada igual que
-       * la doc actual (One CGIAR Control List > General Control List, etc.).
+       * Turns the raw back-end spec into a CURATED one:
+       *  - filters to the endpoints defined in catalog.json
+       *  - reassigns each operation to its category (tag)
+       *  - builds x-tagGroups for the 2-level hierarchy (group > category)
+       * So Scalar shows ONLY the public documentation, grouped like the current
+       * docs (One CGIAR Control List > General Control List, etc.).
        */
       function curate(spec, catalog) {
         var newPaths = {};
@@ -69,7 +72,7 @@
                   op.summary = op.summary || ep.name;
                   newPaths[p][m] = op;
                 }
-                // un endpoint puede vivir en varias categorias (multi-tag)
+                // an endpoint may live in several categories (multi-tag)
                 if (newPaths[p][m].tags.indexOf(cat.name) === -1) {
                   newPaths[p][m].tags.push(cat.name);
                 }
@@ -90,6 +93,17 @@
         return out;
       }
 
+      // Hide Scalar widgets with no value here: "Ask AI" / "Test Request".
+      // These have no stable config flag, so we hide them by text as they render.
+      function hideExtraWidgets() {
+        document.querySelectorAll('button, a').forEach(function (n) {
+          var t = (n.textContent || '').replace(/\s+/g, ' ').trim();
+          if (/ask ai/i.test(t) || /^test request$/i.test(t)) {
+            n.style.display = 'none';
+          }
+        });
+      }
+
       (function () {
         Promise.all([
           fetch(specUrl).then(function (r) { return r.json(); }),
@@ -105,6 +119,7 @@
               theme: 'default',
               hideClientButton: true,
               hideModels: true,
+              hideTestRequestButton: true,
               showDeveloperTools: 'never',
               mcp: { disabled: true },
             });
@@ -112,30 +127,22 @@
             var loadingEl = document.getElementById('loading');
             if (loadingEl) loadingEl.remove();
 
-            // "Ask AI" no tiene flag: lo ocultamos por texto cuando aparece.
-            function hideAskAi() {
-              document.querySelectorAll('button, a').forEach(function (n) {
-                var t = (n.textContent || '').trim();
-                if (t === 'Ask AI' || t === 'Ask AI Agent') n.style.display = 'none';
-              });
-            }
-            new MutationObserver(hideAskAi).observe(document.body, {
+            new MutationObserver(hideExtraWidgets).observe(document.body, {
               childList: true,
               subtree: true,
             });
-            setInterval(hideAskAi, 500);
+            setInterval(hideExtraWidgets, 400);
 
             var cdn = document.createElement('script');
             cdn.src = 'https://cdn.jsdelivr.net/npm/@scalar/api-reference';
             document.body.appendChild(cdn);
 
-            console.log('[api-reference] curado:', loaded, 'endpoints publicos');
+            console.log('[api-reference] curated:', loaded, 'public endpoints');
           })
           .catch(function (err) {
             var loadingEl = document.getElementById('loading');
             if (loadingEl)
-              loadingEl.textContent =
-                'No se pudo cargar la documentacion: ' + err;
+              loadingEl.textContent = 'Could not load the documentation: ' + err;
           });
       })();
     </script>
