@@ -8,9 +8,11 @@ import {
   ClassSerializerInterceptor,
   Version,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { CgiarEntityTypeService } from './cgiar-entity-type.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+@ApiTags('CGIAR Entity Type')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class CgiarEntityTypeController {
@@ -20,6 +22,17 @@ export class CgiarEntityTypeController {
 
   @Version('1')
   @Get()
+  @ApiOperation({
+    summary: 'List CGIAR entity types',
+    description:
+      'Returns the entity types of CGIAR Research Programs (CRPs), Platforms (PTFs), Centers, Initiatives and the One CGIAR Platform.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
   async findAllV1(@Query('show') show: FindAllOptions) {
     return await this.cgiarEntityTypeService.findAllV1(show);
   }
@@ -32,6 +45,17 @@ export class CgiarEntityTypeController {
 
   @Version('2')
   @Get()
+  @ApiOperation({
+    summary: 'List CGIAR entity types',
+    description:
+      'Returns the entity types of CGIAR Research Programs (CRPs), Platforms (PTFs), Centers, Initiatives and the One CGIAR Platform.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
   async findAllV2(@Query('show') show: FindAllOptions) {
     return await this.cgiarEntityTypeService.findAllV2(show);
   }

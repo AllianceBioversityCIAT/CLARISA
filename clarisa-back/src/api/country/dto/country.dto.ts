@@ -5,37 +5,37 @@ import { SimpleRegionDto } from '../../region/dto/simple-region.dto';
 export class CountryDto {
   @ApiProperty({
     example: 170,
-    description: 'Codigo numerico del pais (estandar UN M49 / ISO-3166 numeric).',
+    description: 'Numeric country code (UN M49 / ISO-3166 numeric standard).',
   })
   code: number;
 
   @ApiProperty({
     example: 'CO',
-    description: 'Codigo ISO-3166-1 alpha-2 (dos letras).',
+    description: 'ISO-3166-1 alpha-2 code (two letters).',
   })
   isoAlpha2: string;
 
   @ApiProperty({
     example: 'COL',
-    description: 'Codigo ISO-3166-1 alpha-3 (tres letras).',
+    description: 'ISO-3166-1 alpha-3 code (three letters).',
   })
   isoAlpha3: string;
 
   @ApiProperty({
     example: 'Colombia',
-    description: 'Nombre oficial del pais en ingles.',
+    description: 'Official country name in English.',
   })
   name: string;
 
   @ApiProperty({
     type: () => SimpleRegionDto,
-    description: 'Region UN (estandar M49) a la que pertenece el pais.',
+    description: 'UN region (M49 standard) the country belongs to.',
   })
   regionDTO: SimpleRegionDto;
 
   @ApiProperty({
     type: () => GeopositionDto,
-    description: 'Geoposicion (latitud / longitud) asociada al pais.',
+    description: 'Geoposition (latitude / longitude) associated with the country.',
   })
   locationDTO: GeopositionDto;
 }
