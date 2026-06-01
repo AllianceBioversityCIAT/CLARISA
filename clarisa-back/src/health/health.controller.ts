@@ -1,11 +1,15 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Res, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InjectDataSource } from '@nestjs/typeorm';
+import { Response } from 'express';
 import { DataSource } from 'typeorm';
 
 /**
- * Health check liviano para readiness/liveness (load balancers, monitoreo de
- * deploys). Vive en la raiz: GET /health (fuera del prefijo /api).
+ * Lightweight health check for readiness/liveness (load balancers, deploy
+ * monitoring). Lives at the root: GET /health (outside the /api prefix).
+ *
+ * Returns HTTP 200 when the DB is reachable, and HTTP 503 when it is not, so it
+ * can be used directly as a readiness probe.
  */
 @ApiTags('Health')
 @Controller('health')
@@ -13,8 +17,8 @@ export class HealthController {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   @Get()
-  @ApiOperation({ summary: 'Estado del servicio y la conexion a base de datos' })
-  async check() {
+  @ApiOperation({ summary: 'Service and database connectivity status' })
+  async check(@Res() res: Response) {
     let db: 'up' | 'down' = 'down';
     try {
       await this.dataSource.query('SELECT 1');
@@ -23,11 +27,14 @@ export class HealthController {
       db = 'down';
     }
 
-    return {
-      status: db === 'up' ? 'ok' : 'degraded',
-      db,
-      uptimeSeconds: Math.round(process.uptime()),
-      timestamp: new Date().toISOString(),
-    };
+    const healthy = db === 'up';
+    return res
+      .status(healthy ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE)
+      .json({
+        status: healthy ? 'ok' : 'unavailable',
+        db,
+        uptimeSeconds: Math.round(process.uptime()),
+        timestamp: new Date().toISOString(),
+      });
   }
 }
