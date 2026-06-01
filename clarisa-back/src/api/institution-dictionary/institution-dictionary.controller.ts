@@ -12,12 +12,14 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { InstitutionDictionaryService } from './institution-dictionary.service';
 import { Response } from 'express';
 import { UpdateInstitutionDictionaryDto } from './dto/update-institution-dictionary.dto';
 import { InstitutionDictionary } from './entities/institution-dictionary.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+@ApiTags('Institution Dictionary')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class InstitutionDictionaryController {
@@ -26,6 +28,17 @@ export class InstitutionDictionaryController {
   ) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List related institutions (dictionary)',
+    description:
+      'Dictionary of institution name variants / aliases mapped to their canonical institution, used to reconcile institution names across CGIAR systems.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.institutionDictionaryService.findAll(show);
   }

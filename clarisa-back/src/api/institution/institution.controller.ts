@@ -12,18 +12,36 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { InstitutionService } from './institution.service';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
 import { Response } from 'express';
 import { Institution } from './entities/institution.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+@ApiTags('Institution')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class InstitutionController {
   constructor(private readonly institutionService: InstitutionService) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List institutions',
+    description:
+      'Official list of institutions registered in CLARISA, including their type, acronym, country offices and headquarters.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
+  @ApiQuery({
+    name: 'from',
+    required: false,
+    description: 'Optional incremental cursor: only institutions with an ID greater than this value.',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('from', new ParseIntPipe({ optional: true }))
