@@ -7,6 +7,7 @@ import { VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { versionExtractor } from './shared/interfaces/version-extractor';
 import { AppConfig } from './shared/utils/app-config';
+import { PUBLIC_OPENAPI_PATHS } from './shared/swagger/public-endpoints';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -28,12 +29,28 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('CLARISA API')
     .setDescription(
-      'CLARISA — catalogs as a service del CGIAR. Listas oficiales de instituciones, paises, regiones, entidades CGIAR, areas de impacto, SDGs, innovaciones, etc.',
+      'CLARISA — the CGIAR catalogs-as-a-service. Official control lists of institutions, countries, regions, CGIAR entities, impact areas, SDGs, innovations, and more.',
     )
     .setVersion('2.0.0')
     .addBearerAuth()
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+
+  // Exponer SOLO los endpoints publicos (control lists, GET de lectura).
+  // El resto del API (escritura, auth, admin) NO se documenta, aunque siga
+  // existiendo y protegido por sus guards. Ver shared/swagger/public-endpoints.
+  const allowed = new Set(PUBLIC_OPENAPI_PATHS);
+  const publicPaths: typeof swaggerDocument.paths = {};
+  for (const path of Object.keys(swaggerDocument.paths)) {
+    if (!allowed.has(path)) continue;
+    const ops = swaggerDocument.paths[path];
+    if (ops.get) {
+      // conservar unicamente el metodo GET de cada path publico
+      publicPaths[path] = { get: ops.get };
+    }
+  }
+  swaggerDocument.paths = publicPaths;
+
   SwaggerModule.setup('api-docs', app, swaggerDocument, {
     jsonDocumentUrl: 'api-docs-json',
     swaggerOptions: { persistAuthorization: true },

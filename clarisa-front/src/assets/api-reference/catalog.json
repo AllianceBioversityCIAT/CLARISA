@@ -1,12 +1,12 @@
 {
-  "_comment": "Mapa de la documentacion publica de CLARISA: que endpoints se muestran y en que categoria. Editable a mano. Define el filtrado + agrupamiento de la vista api-reference (Scalar). Fuente: context/documentation-endpoints-map.md (verificado vs prod 2026-06-01).",
+  "_comment": "Map of CLARISA's public documentation: which endpoints are shown and under which category. Hand-editable. Drives the filtering + grouping of the api-reference (Scalar) view. Source: context/documentation-endpoints-map.md (verified vs prod 2026-06-01).",
   "groups": [
     {
       "group": "One CGIAR Control List",
       "categories": [
         {
           "name": "General Control List",
-          "description": "Listas de control generales identificadas por los Management Information Systems durante el Annual Reporting, reutilizables para interoperabilidad entre plataformas CGIAR.",
+          "description": "General control lists identified by the Management Information Systems during the Annual Reporting, reusable for interoperability across CGIAR platforms.",
           "endpoints": [
             { "name": "CGIAR entities", "route": "api/cgiar-entities", "method": "get" },
             { "name": "CGIAR entities Types", "route": "api/cgiar-entity-types", "method": "get" },
@@ -19,7 +19,7 @@
         },
         {
           "name": "Institutions",
-          "description": "Listado oficial de instituciones, su diccionario de relaciones y los tipos de institucion.",
+          "description": "Official list of institutions, their relationship dictionary and the institution types.",
           "endpoints": [
             { "name": "Institutions List", "route": "api/institutions", "method": "get" },
             { "name": "Institutions Related List", "route": "api/institution-dictionary", "method": "get" },
@@ -28,7 +28,7 @@
         },
         {
           "name": "Research Strategy 2030",
-          "description": "Estructura de la estrategia de investigacion One CGIAR 2030: action areas, impact areas, SDGs, iniciativas y outcomes.",
+          "description": "Structure of the One CGIAR Research Strategy 2030: action areas, impact areas, SDGs, initiatives and outcomes.",
           "endpoints": [
             { "name": "Action Areas", "route": "api/action-areas", "method": "get" },
             { "name": "Impact Areas", "route": "api/impact-areas", "method": "get" },
@@ -46,7 +46,7 @@
         },
         {
           "name": "Innovation Catalog",
-          "description": "Listas de control del catalogo de innovaciones del CGIAR.",
+          "description": "Control lists of the CGIAR innovation catalog.",
           "endpoints": [
             { "name": "Business Category", "route": "api/business-categories", "method": "get" },
             { "name": "Technical Field", "route": "api/technical-fields", "method": "get" },
@@ -70,7 +70,7 @@
       "categories": [
         {
           "name": "CGIAR Entities",
-          "description": "Entidades CGIAR y sus tipos.",
+          "description": "CGIAR entities and their types.",
           "endpoints": [
             { "name": "CGIAR entities", "route": "api/cgiar-entities", "method": "get" },
             { "name": "CGIAR entities Types", "route": "api/cgiar-entity-types", "method": "get" }
@@ -78,7 +78,7 @@
         },
         {
           "name": "CGIAR Accounts",
-          "description": "Cuentas y tipos de cuenta.",
+          "description": "Accounts and account types.",
           "endpoints": [
             { "name": "Accounts", "route": "api/accounts", "method": "get" },
             { "name": "Account Types", "route": "api/account-types", "method": "get" }
@@ -86,21 +86,21 @@
         },
         {
           "name": "CGIAR Science Groups",
-          "description": "Science groups del One CGIAR.",
+          "description": "One CGIAR science groups.",
           "endpoints": [
             { "name": "Science groups", "route": "api/science-groups", "method": "get" }
           ]
         },
         {
           "name": "CGIAR Units",
-          "description": "Unidades organizacionales.",
+          "description": "Organizational units.",
           "endpoints": [
             { "name": "Units", "route": "api/units", "method": "get" }
           ]
         },
         {
           "name": "CGIAR Impact Areas",
-          "description": "Impact areas y SDGs en contexto operativo.",
+          "description": "Impact areas and SDGs in an operational context.",
           "endpoints": [
             { "name": "Impact Areas", "route": "api/impact-areas", "method": "get" },
             { "name": "Sustainable Development Goals", "route": "api/sdgs", "method": "get" }
