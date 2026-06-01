@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CLARISA API Reference</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+      /* Oculta adornos propios de Scalar que no aplican a CLARISA */
+      .scalar-mcp-layer,
+      .scalar-mcp-layer-link,
+      a.scalar-version-number,
+      a[href*='scalar.com'] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Scalar monta aqui -->
+    <script id="api-reference"></script>
+
+    <script>
+      // El spec del back llega por query param (?spec=...). Fallback a localhost.
+      var params = new URLSearchParams(location.search);
+      var spec = params.get('spec') || 'http://localhost:3000/api-docs-json';
+
+      var el = document.getElementById('api-reference');
+      el.setAttribute('data-url', spec);
+      el.dataset.configuration = JSON.stringify({
+        theme: 'default',
+        hideClientButton: true, // quita "Client Libraries / Test"
+        mcp: { disabled: true }, // quita "Generate MCP"
+        hideDarkModeToggle: false,
+      });
+
+      // "Ask AI" no tiene flag de config: lo ocultamos por texto en cuanto aparece.
+      function hideAskAi() {
+        document.querySelectorAll('button, a').forEach(function (n) {
+          var t = (n.textContent || '').trim();
+          if (t === 'Ask AI' || t === 'Ask AI Agent') {
+            n.style.display = 'none';
+          }
+        });
+      }
+      var obs = new MutationObserver(hideAskAi);
+      obs.observe(document.body, { childList: true, subtree: true });
+      setInterval(hideAskAi, 500);
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+  </body>
+</html>

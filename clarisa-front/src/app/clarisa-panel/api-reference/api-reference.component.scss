@@ -1,0 +1,39 @@
+.api-reference-proposal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: calc(100vh - 120px);
+}
+
+.api-reference-banner {
+  padding: 10px 16px;
+  background: #f0f6ff;
+  border-bottom: 1px solid #d6e4ff;
+  font-size: 13px;
+  color: #234;
+
+  .badge {
+    display: inline-block;
+    margin-right: 8px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #1a73e8;
+    color: #fff;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  code {
+    background: rgba(0, 0, 0, 0.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+}
+
+.scalar-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  border: 0;
+  display: block;
+}
