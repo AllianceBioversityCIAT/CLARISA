@@ -18,39 +18,124 @@
       a[href*='scalar.com'] {
         display: none !important;
       }
+      #loading {
+        font-family: system-ui, sans-serif;
+        padding: 24px;
+        color: #345;
+      }
     </style>
   </head>
   <body>
+    <div id="loading">Cargando documentacion…</div>
     <!-- Scalar monta aqui -->
     <script id="api-reference"></script>
 
     <script>
-      // El spec del back llega por query param (?spec=...). Fallback a localhost.
+      // Spec del back por query param (?spec=...). Fallback a localhost.
       var params = new URLSearchParams(location.search);
-      var spec = params.get('spec') || 'http://localhost:3000/api-docs-json';
+      var specUrl = params.get('spec') || 'http://localhost:3000/api-docs-json';
 
-      var el = document.getElementById('api-reference');
-      el.setAttribute('data-url', spec);
-      el.dataset.configuration = JSON.stringify({
-        theme: 'default',
-        hideClientButton: true, // quita "Client Libraries / Test"
-        mcp: { disabled: true }, // quita "Generate MCP"
-        hideDarkModeToggle: false,
-      });
+      /**
+       * Transforma el spec crudo del back en uno CURADO:
+       *  - filtra a los endpoints definidos en catalog.json
+       *  - reasigna cada operacion a su categoria (tag)
+       *  - arma x-tagGroups para la jerarquia de 2 niveles (grupo > categoria)
+       * Asi Scalar muestra SOLO la documentacion publica, agrupada igual que
+       * la doc actual (One CGIAR Control List > General Control List, etc.).
+       */
+      function curate(spec, catalog) {
+        var newPaths = {};
+        var tagDescriptions = {};
+        var tagOrder = [];
+        var tagGroups = [];
 
-      // "Ask AI" no tiene flag de config: lo ocultamos por texto en cuanto aparece.
-      function hideAskAi() {
-        document.querySelectorAll('button, a').forEach(function (n) {
-          var t = (n.textContent || '').trim();
-          if (t === 'Ask AI' || t === 'Ask AI Agent') {
-            n.style.display = 'none';
-          }
+        (catalog.groups || []).forEach(function (group) {
+          var groupTags = [];
+          (group.categories || []).forEach(function (cat) {
+            if (!(cat.name in tagDescriptions)) {
+              tagDescriptions[cat.name] = cat.description || '';
+              tagOrder.push(cat.name);
+            }
+            groupTags.push(cat.name);
+
+            (cat.endpoints || []).forEach(function (ep) {
+              var p = '/' + String(ep.route).replace(/^\/+/, '');
+              var m = (ep.method || 'get').toLowerCase();
+              if (spec.paths && spec.paths[p] && spec.paths[p][m]) {
+                if (!newPaths[p]) newPaths[p] = {};
+                if (!newPaths[p][m]) {
+                  var op = JSON.parse(JSON.stringify(spec.paths[p][m]));
+                  op.tags = [];
+                  op.summary = op.summary || ep.name;
+                  newPaths[p][m] = op;
+                }
+                // un endpoint puede vivir en varias categorias (multi-tag)
+                if (newPaths[p][m].tags.indexOf(cat.name) === -1) {
+                  newPaths[p][m].tags.push(cat.name);
+                }
+              }
+            });
+          });
+          tagGroups.push({ name: group.group, tags: groupTags });
         });
+
+        var tags = tagOrder.map(function (name) {
+          return { name: name, description: tagDescriptions[name] };
+        });
+
+        var out = JSON.parse(JSON.stringify(spec));
+        out.paths = newPaths;
+        out.tags = tags;
+        out['x-tagGroups'] = tagGroups;
+        return out;
       }
-      var obs = new MutationObserver(hideAskAi);
-      obs.observe(document.body, { childList: true, subtree: true });
-      setInterval(hideAskAi, 500);
+
+      (function () {
+        Promise.all([
+          fetch(specUrl).then(function (r) { return r.json(); }),
+          fetch('catalog.json').then(function (r) { return r.json(); }),
+        ])
+          .then(function (res) {
+            var curated = curate(res[0], res[1]);
+            var loaded = Object.keys(curated.paths).length;
+
+            var el = document.getElementById('api-reference');
+            el.dataset.configuration = JSON.stringify({
+              content: curated,
+              theme: 'default',
+              hideClientButton: true,
+              mcp: { disabled: true },
+            });
+
+            var loadingEl = document.getElementById('loading');
+            if (loadingEl) loadingEl.remove();
+
+            // "Ask AI" no tiene flag: lo ocultamos por texto cuando aparece.
+            function hideAskAi() {
+              document.querySelectorAll('button, a').forEach(function (n) {
+                var t = (n.textContent || '').trim();
+                if (t === 'Ask AI' || t === 'Ask AI Agent') n.style.display = 'none';
+              });
+            }
+            new MutationObserver(hideAskAi).observe(document.body, {
+              childList: true,
+              subtree: true,
+            });
+            setInterval(hideAskAi, 500);
+
+            var cdn = document.createElement('script');
+            cdn.src = 'https://cdn.jsdelivr.net/npm/@scalar/api-reference';
+            document.body.appendChild(cdn);
+
+            console.log('[api-reference] curado:', loaded, 'endpoints publicos');
+          })
+          .catch(function (err) {
+            var loadingEl = document.getElementById('loading');
+            if (loadingEl)
+              loadingEl.textContent =
+                'No se pudo cargar la documentacion: ' + err;
+          });
+      })();
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
   </body>
 </html>
