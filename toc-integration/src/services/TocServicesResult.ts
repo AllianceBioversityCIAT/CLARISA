@@ -426,4 +426,131 @@ export class TocServicesResults {
     const dataSource: DataSource = await Database.getDataSource();
     let sdgRepo = dataSource.getRepository(TocSdgResults);
   }
+
+  async getTocResultsByCategoryAndCode(category: string, officialCode: string, phaseId?: string) {
+    const dataSource: DataSource = await Database.getDataSource();
+    const queryRunner = dataSource.createQueryRunner();
+    await queryRunner.connect();
+
+    try {
+      let queryResults = `
+        SELECT DISTINCT
+          tr.id AS id,
+          tr.toc_result_id AS toc_internal_id,
+          tr.result_title AS title,
+          tr.result_description AS description,
+          tr.result_type AS toc_type_id,
+          tr.result_type AS toc_level_id,
+          tr.official_code AS official_code,
+          tr.wp_id AS work_package_id,
+          wp.acronym AS wp_short_name,
+          tr.phase AS phase,
+          tr.version_id AS version_id
+        FROM toc_results tr
+        LEFT JOIN toc_work_packages wp ON wp.toc_id = tr.wp_id
+        WHERE tr.is_active = 1
+          AND tr.category = ?
+          AND tr.official_code = ?
+      `;
+      const paramsResults: any[] = [category.toUpperCase(), officialCode];
+      
+      if (phaseId) {
+        queryResults += ` AND tr.phase = ?`;
+        paramsResults.push(phaseId);
+      }
+
+      queryResults += ` ORDER BY wp.acronym, tr.result_title ASC`;
+
+      const results = await queryRunner.query(queryResults, paramsResults);
+
+      if (!results || !results.length) {
+        return [];
+      }
+
+      const tocResultIds = results.map((r: any) => r.id);
+
+      const placeholders = tocResultIds.map(() => "?").join(", ");
+      const queryIndicators = `
+        SELECT
+          tri.toc_results_id AS toc_results_id,
+          tri.id AS indicator_id,
+          tri.toc_result_indicator_id,
+          tri.related_node_id,
+          tri.indicator_description,
+          tri.unit_messurament,
+          tri.type_value,
+          tri.type_name,
+          tri.location,
+          trit.target_value,
+          trit.target_date
+        FROM toc_results_indicators tri
+        LEFT JOIN toc_result_indicator_target trit
+          ON trit.id_indicator = tri.id
+        WHERE tri.toc_results_id IN (${placeholders})
+          AND tri.is_active = 1
+      `;
+
+      const indicatorRows = await queryRunner.query(queryIndicators, tocResultIds);
+
+      const indicatorMap = new Map<number, any[]>();
+
+      for (const row of indicatorRows) {
+        const tocResultId = Number(row.toc_results_id);
+        if (!indicatorMap.has(tocResultId)) {
+          indicatorMap.set(tocResultId, []);
+        }
+
+        const list = indicatorMap.get(tocResultId)!;
+
+        let indicator = list.find((ind: any) => ind.indicator_id === Number(row.indicator_id));
+
+        if (!indicator) {
+          indicator = {
+            indicator_id: Number(row.indicator_id),
+            toc_result_indicator_id: row.toc_result_indicator_id ?? null,
+            related_node_id: row.related_node_id ?? null,
+            indicator_description: row.indicator_description ?? null,
+            unit_messurament: row.unit_messurament ?? null,
+            type_value: row.type_value ?? null,
+            type_name: row.type_name ?? null,
+            location: row.location ?? null,
+            targets: []
+          };
+          list.push(indicator);
+        }
+
+        if (row.target_value !== null && row.target_value !== undefined) {
+          const targetExists = indicator.targets.some((t: any) => t.target_value === row.target_value && t.target_date === row.target_date);
+          if (!targetExists) {
+            indicator.targets.push({
+              target_value: row.target_value,
+              target_date: row.target_date ?? null
+            });
+          }
+        }
+      }
+
+      const enrichedResults = results.map((row: any) => {
+        return {
+          toc_result_id: row.id,
+          toc_internal_id: row.toc_internal_id,
+          title: row.title,
+          description: row.description,
+          toc_type_id: row.toc_type_id,
+          toc_level_id: row.toc_level_id,
+          official_code: row.official_code,
+          work_package_id: row.work_package_id,
+          wp_short_name: row.wp_short_name,
+          phase: row.phase,
+          version_id: row.version_id,
+          indicators: indicatorMap.get(row.id) ?? []
+        };
+      });
+
+      return enrichedResults;
+    } finally {
+      await queryRunner.release();
+    }
+  }
 }
+
