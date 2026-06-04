@@ -21,4 +21,7 @@ router.get("/", TocResultDashboard.getHelloWorld);
 
 // Get test
 router.get("/test", TocResultDashboard.getTest);
+
+router.get("/toc/results/category/:category/initiative/:official_code", TocResultDashboard.getTocResultsByCategoryAndCode);
+
 export default router;
