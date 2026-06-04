@@ -30,6 +30,14 @@ const routes: Routes = [
           ),
         canActivate: [LoginGuardGuard],
       },
+      {
+        path: 'microservices-admin',
+        loadChildren: () =>
+          import('./pages/microservices-admin/microservices-admin.module').then(
+            (m) => m.MicroservicesAdminModule
+          ),
+        canActivate: [LoginGuardGuard],
+      },
     ],
   },
 ];
