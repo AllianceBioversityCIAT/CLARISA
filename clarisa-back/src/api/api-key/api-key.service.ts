@@ -56,14 +56,18 @@ export class ApiKeyService {
       await this._environmentService.findOneByAcronym(environmentAcronym);
     if (!environmentDto) {
       const available = await this._environmentService.findAll();
-      const acronyms = available.map((e) => e.acronym).filter(Boolean).join(', ');
+      const acronyms = available
+        .map((e) => e.acronym)
+        .filter(Boolean)
+        .join(', ');
       throw new Error(
         `Environment "${environmentAcronym}" not found.${acronyms ? ` Available: ${acronyms}` : ''}`,
       );
     }
     const environmentId = environmentDto.code as number;
-    const keyPrefixSegment =
-      this.normalizeEnvironmentForKeyPrefix(environmentDto.acronym);
+    const keyPrefixSegment = this.normalizeEnvironmentForKeyPrefix(
+      environmentDto.acronym,
+    );
 
     if (createApiKeyDto.expires_at) {
       const expiresAt = new Date(createApiKeyDto.expires_at);
@@ -148,7 +152,10 @@ export class ApiKeyService {
     return apiKey ? this._apiKeyMapper.classToDto(apiKey) : null;
   }
 
-  async revoke(id: number, userData: UserData): Promise<ResponseDto<ApiKeyDto>> {
+  async revoke(
+    id: number,
+    userData: UserData,
+  ): Promise<ResponseDto<ApiKeyDto>> {
     const apiKey = await this._loadForUpdate(id);
     apiKey.auditableFields.is_active = false;
     apiKey.auditableFields.updated_by = userData.userId;
@@ -218,7 +225,10 @@ export class ApiKeyService {
 
   /** Key prefix segment from DB acronym (e.g. PROD → prod → cl_prod_) */
   private normalizeEnvironmentForKeyPrefix(acronym: string): string {
-    return acronym.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    return acronym
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
   }
 
   private generateApiKey(environmentCode: string): {
