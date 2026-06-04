@@ -86,7 +86,7 @@ export class CgiarEntity {
 
   @OneToMany(() => GlobalUnitLineage, (lineage) => lineage.to_global_unit)
   incoming_lineages: GlobalUnitLineage[];
-  
+
   @OneToMany(() => ProjectMapping, (pm) => pm.global_unit_object)
   project_mappings_array: ProjectMapping[];
 
