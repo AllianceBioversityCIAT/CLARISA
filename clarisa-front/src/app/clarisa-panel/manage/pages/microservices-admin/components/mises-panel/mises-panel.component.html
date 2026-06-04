@@ -1,0 +1,214 @@
+<header class="panel-header">
+  <div>
+    <h1 class="panel-header__title">MIS Registry</h1>
+    <p class="panel-header__desc">
+      Register Management Information Systems used in CLARISA microservice authentication.
+    </p>
+  </div>
+  <div class="panel-header__actions">
+    <p-dropdown
+      [options]="[
+        { label: 'Active', value: 'active' },
+        { label: 'All', value: 'all' },
+        { label: 'Inactive', value: 'inactive' }
+      ]"
+      [(ngModel)]="showFilter"
+      optionLabel="label"
+      optionValue="value"
+      (onChange)="loadMises()"
+      styleClass="filter-dropdown"
+    ></p-dropdown>
+    <button
+      pButton
+      type="button"
+      label="Create MIS"
+      icon="pi pi-plus"
+      class="p-button-success btn-brand"
+      (click)="openCreate()"
+    ></button>
+  </div>
+</header>
+
+<section class="panel-card">
+  <p-table
+    [value]="mises"
+    [loading]="loading"
+    [rows]="10"
+    [paginator]="mises.length > 10"
+    styleClass="p-datatable-sm admin-table"
+    responsiveLayout="scroll"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Acronym</th>
+        <th>Name</th>
+        <th>Environment</th>
+        <th>Status</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-mis>
+      <tr>
+        <td><code class="key-prefix">{{ mis.acronym }}</code></td>
+        <td><span class="cell-primary">{{ mis.name }}</span></td>
+        <td>
+          <span *ngIf="mis.environment; else noEnv">
+            {{ mis.environment }}
+            <span class="env-name" *ngIf="mis.environmentName"> · {{ mis.environmentName }}</span>
+          </span>
+          <ng-template #noEnv>—</ng-template>
+        </td>
+        <td>
+          <p-tag
+            [value]="mis.is_active === false ? 'Inactive' : 'Active'"
+            [severity]="mis.is_active === false ? 'danger' : 'success'"
+          ></p-tag>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="4" class="empty-cell">
+          No MIS entries yet.
+          <button
+            pButton
+            type="button"
+            label="Create the first MIS"
+            class="p-button-link p-0 ms-1"
+            (click)="openCreate()"
+          ></button>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</section>
+
+<p-dialog
+  header="Create MIS"
+  [(visible)]="createVisible"
+  [modal]="true"
+  [style]="{ width: '38rem' }"
+  [contentStyle]="{ overflow: 'visible' }"
+  [draggable]="false"
+  [closable]="!submitting"
+  styleClass="admin-dialog"
+>
+  <form [formGroup]="form" class="admin-form" (ngSubmit)="submitCreate()">
+    <div class="field">
+      <label for="misName">Name <span class="req">*</span></label>
+      <input
+        id="misName"
+        pInputText
+        formControlName="name"
+        class="w-full"
+        placeholder="e.g. Email Microservice"
+      />
+      <small class="field-error" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">
+        Name is required.
+      </small>
+    </div>
+
+    <div class="field">
+      <label for="misAcronym">Acronym <span class="req">*</span></label>
+      <input
+        id="misAcronym"
+        pInputText
+        formControlName="acronym"
+        class="w-full"
+        placeholder="EMAIL"
+        style="text-transform: uppercase"
+      />
+      <small class="field-hint">Letters, numbers, underscore, hyphen only. Stored in uppercase.</small>
+      <small class="field-error" *ngIf="form.get('acronym')?.invalid && form.get('acronym')?.touched">
+        Valid acronym required (e.g. EMAIL, TOC).
+      </small>
+    </div>
+
+    <div class="field">
+      <label for="misContact">Contact point <span class="req">*</span></label>
+      <p-dropdown
+        id="misContact"
+        formControlName="contact_point_id"
+        [options]="users"
+        optionLabel="displayName"
+        optionValue="id"
+        [filter]="true"
+        filterBy="displayName,email,first_name,last_name"
+        [showClear]="true"
+        [virtualScroll]="users.length > 20"
+        [itemSize]="44"
+        [disabled]="usersLoading"
+        [placeholder]="usersLoading ? 'Loading users…' : 'Select CLARISA user'"
+        appendTo="body"
+        [style]="{ width: '100%' }"
+        styleClass="w-full admin-dropdown"
+        panelStyleClass="admin-dropdown-panel"
+        (onShow)="onDropdownShow($event)"
+      >
+        <ng-template let-user pTemplate="item">
+          <div class="dd-option">
+            <span class="dd-option__title">{{ user.displayName }}</span>
+            <span class="dd-option__meta" *ngIf="user.email">{{ user.email }}</span>
+          </div>
+        </ng-template>
+        <ng-template let-user pTemplate="selectedItem">
+          <span class="dd-selected" [title]="user.email">{{ user.displayName }}</span>
+        </ng-template>
+      </p-dropdown>
+      <small class="field-hint">Defaults to your account when logged in.</small>
+      <small class="field-error" *ngIf="form.get('contact_point_id')?.invalid && form.get('contact_point_id')?.touched">
+        Contact point is required.
+      </small>
+    </div>
+
+    <div class="field">
+      <label for="misEnv">Environment <span class="req">*</span></label>
+      <p-dropdown
+        id="misEnv"
+        formControlName="environment"
+        [options]="environments"
+        optionLabel="label"
+        optionValue="acronym"
+        [disabled]="environmentsLoading"
+        [placeholder]="environmentsLoading ? 'Loading environments…' : 'Select environment (e.g. PROD)'"
+        appendTo="body"
+        [style]="{ width: '100%' }"
+        styleClass="w-full admin-dropdown"
+        panelStyleClass="admin-dropdown-panel"
+        (onShow)="onDropdownShow($event)"
+      >
+        <ng-template let-env pTemplate="item">
+          <div class="dd-option">
+            <span class="dd-option__title">{{ env.acronym }}</span>
+            <span class="dd-option__meta" *ngIf="env.name">{{ env.name }}</span>
+          </div>
+        </ng-template>
+        <ng-template let-env pTemplate="selectedItem">
+          <span class="dd-selected">{{ env.acronym }}</span>
+        </ng-template>
+      </p-dropdown>
+      <small class="field-hint">Must match an existing environment acronym (PROD, DEV, etc.).</small>
+      <small class="field-error" *ngIf="form.get('environment')?.invalid && form.get('environment')?.touched">
+        Environment is required.
+      </small>
+    </div>
+
+    <div class="dialog-footer">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        class="p-button-text"
+        [disabled]="submitting"
+        (click)="createVisible = false"
+      ></button>
+      <button
+        pButton
+        type="submit"
+        [label]="submitting ? 'Creating…' : 'Create MIS'"
+        class="btn-brand"
+        [loading]="submitting"
+        [disabled]="submitting || form.invalid"
+      ></button>
+    </div>
+  </form>
+</p-dialog>

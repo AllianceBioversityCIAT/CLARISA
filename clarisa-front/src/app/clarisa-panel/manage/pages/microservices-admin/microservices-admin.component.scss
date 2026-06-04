@@ -1,0 +1,23 @@
+// Offset for fixed/sticky .app-header in manage (see partner-request sidemenu: 60–72px)
+$manage-header-height: 72px;
+
+.ms-admin-layout {
+  display: flex;
+  min-height: calc(100vh - #{$manage-header-height});
+  padding-top: $manage-header-height;
+  background: #f4f6f8;
+  box-sizing: border-box;
+}
+
+@media (max-width: 991px) {
+  .ms-admin-layout {
+    padding-top: 60px;
+    min-height: calc(100vh - 60px);
+  }
+}
+
+.ms-admin-main {
+  flex: 1;
+  min-width: 0;
+  padding: 1.5rem 2rem 2rem;
+}

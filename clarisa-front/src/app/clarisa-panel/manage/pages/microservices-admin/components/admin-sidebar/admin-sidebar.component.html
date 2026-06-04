@@ -1,0 +1,28 @@
+<aside class="admin-sidebar">
+  <div class="admin-sidebar__brand">
+    <span class="admin-sidebar__eyebrow">CLARISA Admin</span>
+    <h2 class="admin-sidebar__title">Microservices</h2>
+    <p class="admin-sidebar__subtitle">
+      API key lifecycle and MIS registry for M2M authentication.
+    </p>
+  </div>
+
+  <nav class="admin-sidebar__nav" aria-label="Admin sections">
+    <button
+      *ngFor="let item of navItems"
+      type="button"
+      class="admin-sidebar__link"
+      [class.admin-sidebar__link--active]="activeSection === item.id"
+      (click)="select(item.id)"
+    >
+      <span class="admin-sidebar__link-label">{{ item.label }}</span>
+      <span class="admin-sidebar__link-hint">{{ item.hint }}</span>
+    </button>
+  </nav>
+
+  <div class="admin-sidebar__footer">
+    <a routerLink="/clarisa-panel/manage/partner-request" class="admin-sidebar__back">
+      ← Back to manage
+    </a>
+  </div>
+</aside>

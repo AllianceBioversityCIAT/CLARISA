@@ -71,6 +71,7 @@ import { FundingSourceModule } from './funding-source/funding-source.module';
 import { CenterModule } from './center/center.module';
 import { EnvironmentModule } from './environment/environment.module';
 import { AppSecretModule } from './app-secret/app-secret.module';
+import { ApiKeyModule } from './api-key/api-key.module';
 import { MicroserviceMonitoringTestLinkModule } from './microservice-monitoring-test-link/microservice-monitoring-test-link.module';
 import { GlobalParameterModule } from './global-parameter/global-parameter.module';
 import { HandlebarsTemplateModule } from './handlebars-template/handlebars-template.module';
@@ -369,6 +370,10 @@ export const apiRoutes = [
   {
     path: 'app-secrets',
     module: AppSecretModule,
+  },
+  {
+    path: 'api-keys',
+    module: ApiKeyModule,
   },
   {
     path: 'monitor-test-links',

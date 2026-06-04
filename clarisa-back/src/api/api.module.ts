@@ -76,6 +76,7 @@ import { FundingSourceModule } from './funding-source/funding-source.module';
 import { CenterModule } from './center/center.module';
 import { EnvironmentModule } from './environment/environment.module';
 import { AppSecretModule } from './app-secret/app-secret.module';
+import { ApiKeyModule } from './api-key/api-key.module';
 import { MicroserviceMonitoringTestLinkModule } from './microservice-monitoring-test-link/microservice-monitoring-test-link.module';
 import { IntegrationModule } from '../integration/integration.module';
 import { GlobalParameterModule } from './global-parameter/global-parameter.module';
@@ -161,6 +162,7 @@ import { ProjectModule } from './project/project.module';
     CenterModule,
     EnvironmentModule,
     AppSecretModule,
+    ApiKeyModule,
     MicroserviceMonitoringTestLinkModule,
     GlobalParameterModule,
     HandlebarsTemplateModule,
