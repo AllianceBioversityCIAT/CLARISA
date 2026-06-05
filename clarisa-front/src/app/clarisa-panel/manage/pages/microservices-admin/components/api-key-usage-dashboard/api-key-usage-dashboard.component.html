@@ -1,0 +1,350 @@
+<header class="dash-header">
+  <div>
+    <h1 class="dash-header__title">API Key Usage</h1>
+    <p class="dash-header__desc">
+      Operational view of validation traffic — filter by MIS, API key, or consuming microservice.
+    </p>
+  </div>
+  <div class="dash-header__actions">
+    <button
+      pButton
+      type="button"
+      icon="pi pi-refresh"
+      label="Refresh"
+      class="p-button-outlined"
+      (click)="refresh()"
+      [disabled]="loading"
+    ></button>
+    <button
+      pButton
+      type="button"
+      icon="pi pi-download"
+      label="Export CSV"
+      class="p-button-outlined"
+      (click)="exportLogsCsv()"
+      [disabled]="!logs?.items?.length"
+    ></button>
+  </div>
+</header>
+
+<section class="dash-toolbar panel-card">
+  <div class="dash-toolbar__group">
+    <label>Period</label>
+    <p-dropdown
+      [options]="rangeOptions"
+      [(ngModel)]="rangePreset"
+      optionLabel="label"
+      optionValue="value"
+      (onChange)="onRangeChange()"
+      styleClass="dash-dropdown"
+    ></p-dropdown>
+  </div>
+
+  <div class="dash-toolbar__group" *ngIf="rangePreset === 'custom'">
+    <label>From</label>
+    <p-calendar [(ngModel)]="customFrom" dateFormat="yy-mm-dd" [showIcon]="true"></p-calendar>
+  </div>
+  <div class="dash-toolbar__group" *ngIf="rangePreset === 'custom'">
+    <label>To</label>
+    <p-calendar [(ngModel)]="customTo" dateFormat="yy-mm-dd" [showIcon]="true"></p-calendar>
+  </div>
+  <div class="dash-toolbar__group" *ngIf="rangePreset === 'custom'">
+    <button pButton type="button" label="Apply" class="p-button-sm" (click)="applyCustomRange()"></button>
+  </div>
+
+  <div class="dash-toolbar__group">
+    <label>Granularity</label>
+    <p-dropdown
+      [options]="[
+        { label: 'Daily', value: 'day' },
+        { label: 'Weekly', value: 'week' }
+      ]"
+      [(ngModel)]="granularity"
+      optionLabel="label"
+      optionValue="value"
+      (onChange)="onFiltersChange()"
+      styleClass="dash-dropdown"
+    ></p-dropdown>
+  </div>
+
+  <div class="dash-toolbar__group">
+    <label>MIS</label>
+    <p-dropdown
+      [options]="mises"
+      [(ngModel)]="filterMisId"
+      optionLabel="label"
+      optionValue="id"
+      [showClear]="true"
+      placeholder="All MIS"
+      (onChange)="onFiltersChange()"
+      styleClass="dash-dropdown dash-dropdown--wide"
+    ></p-dropdown>
+  </div>
+
+  <div class="dash-toolbar__group">
+    <label>API Key</label>
+    <p-dropdown
+      [options]="apiKeyOptions"
+      [(ngModel)]="filterApiKeyId"
+      optionLabel="label"
+      optionValue="id"
+      [showClear]="true"
+      placeholder="All keys"
+      (onChange)="onFiltersChange()"
+      styleClass="dash-dropdown dash-dropdown--wide"
+    ></p-dropdown>
+  </div>
+
+  <div class="dash-toolbar__group">
+    <label>Microservice</label>
+    <p-dropdown
+      [options]="microserviceOptions"
+      [(ngModel)]="filterMicroservice"
+      optionLabel="label"
+      optionValue="value"
+      [showClear]="true"
+      placeholder="All services"
+      (onChange)="onFiltersChange()"
+      styleClass="dash-dropdown"
+    ></p-dropdown>
+  </div>
+</section>
+
+<div class="dash-kpis" *ngIf="summary">
+  <article class="kpi-card">
+    <span class="kpi-card__label">Total requests</span>
+    <strong class="kpi-card__value">{{ formatNumber(summary.totals.total_requests) }}</strong>
+    <span class="kpi-card__hint">In selected period</span>
+  </article>
+  <article class="kpi-card">
+    <span class="kpi-card__label">Avg response</span>
+    <strong class="kpi-card__value">{{ formatMs(summary.totals.avg_response_time_ms) }}</strong>
+    <span class="kpi-card__hint">Validation latency</span>
+  </article>
+  <article class="kpi-card">
+    <span class="kpi-card__label">Error rate</span>
+    <strong class="kpi-card__value">{{ errorRate() }}</strong>
+    <span class="kpi-card__hint">{{ formatNumber(summary.totals.error_count) }} errors logged</span>
+  </article>
+  <article class="kpi-card">
+    <span class="kpi-card__label">Active keys</span>
+    <strong class="kpi-card__value">{{ formatNumber(summary.totals.active_keys) }}</strong>
+    <span class="kpi-card__hint">{{ formatNumber(summary.totals.revoked_keys) }} revoked</span>
+  </article>
+  <article class="kpi-card kpi-card--alert" *ngIf="summary.totals.expiring_within_30_days">
+    <span class="kpi-card__label">Expiring soon</span>
+    <strong class="kpi-card__value">{{ formatNumber(summary.totals.expiring_within_30_days) }}</strong>
+    <span class="kpi-card__hint">Within 30 days</span>
+  </article>
+  <article class="kpi-card">
+    <span class="kpi-card__label">MIS consumers</span>
+    <strong class="kpi-card__value">{{ formatNumber(summary.by_mis.length) }}</strong>
+    <span class="kpi-card__hint">{{ formatNumber(summary.by_microservice.length) }} microservices</span>
+  </article>
+</div>
+
+<section class="dash-charts" *ngIf="summary">
+  <article class="panel-card chart-card">
+    <header class="chart-card__head">
+      <h2>Request timeline</h2>
+      <span>Volume over time</span>
+    </header>
+    <p-chart type="line" [data]="timelineChart" [options]="{ maintainAspectRatio: false, plugins: { legend: { display: false } } }"></p-chart>
+  </article>
+
+  <article class="panel-card chart-card">
+    <header class="chart-card__head">
+      <h2>By microservice</h2>
+      <span>Who is calling validate / CLARISA</span>
+    </header>
+    <p-chart type="bar" [data]="microserviceChart" [options]="{ maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }"></p-chart>
+  </article>
+</section>
+
+<section class="panel-card table-card dash-matrix" *ngIf="summary?.by_mis_microservice?.length">
+  <header class="table-card__head">
+    <h2>MIS → Microservice matrix</h2>
+    <span>Requests per consumer MIS to each microservice_name (e.g. ToC PROD → reports)</span>
+  </header>
+  <p-table [value]="summary.by_mis_microservice" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>MIS</th>
+        <th>Environment</th>
+        <th>Microservice</th>
+        <th>Requests</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-row>
+      <tr>
+        <td>
+          <span class="cell-primary">{{ row.mis_acronym }}</span>
+          <span class="cell-sub">{{ row.mis_name }}</span>
+        </td>
+        <td>{{ row.environment || '—' }}</td>
+        <td><code>{{ row.microservice_name }}</code></td>
+        <td><strong>{{ formatNumber(row.total_requests) }}</strong></td>
+      </tr>
+    </ng-template>
+  </p-table>
+</section>
+
+<section class="dash-grid" *ngIf="summary">
+  <article class="panel-card table-card">
+    <header class="table-card__head">
+      <h2>Consumption by MIS</h2>
+      <span>e.g. ToC — PROD traffic to each microservice_name aggregate</span>
+    </header>
+    <p-table [value]="summary.by_mis" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>MIS</th>
+          <th>Environment</th>
+          <th>Requests</th>
+          <th>Keys</th>
+          <th>Microservices</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr>
+          <td>
+            <span class="cell-primary">{{ row.mis_acronym }}</span>
+            <span class="cell-sub">{{ row.mis_name }}</span>
+          </td>
+          <td>{{ row.environment || '—' }}</td>
+          <td><strong>{{ formatNumber(row.total_requests) }}</strong></td>
+          <td>{{ row.api_key_count }}</td>
+          <td>{{ row.microservices_used }}</td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr><td colspan="5" class="empty-cell">No usage in this period.</td></tr>
+      </ng-template>
+    </p-table>
+  </article>
+
+  <article class="panel-card table-card">
+    <header class="table-card__head">
+      <h2>Consumption by API key</h2>
+      <span>Click a row to drill down</span>
+    </header>
+    <p-table
+      [value]="summary.keys"
+      styleClass="p-datatable-sm admin-table dash-table--clickable"
+      responsiveLayout="scroll"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Key</th>
+          <th>MIS</th>
+          <th>Period</th>
+          <th>Lifetime</th>
+          <th>Last used</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr [class.is-selected]="filterApiKeyId === row.id" (click)="selectApiKey(row.id)">
+          <td>
+            <span class="cell-primary">{{ row.name }}</span>
+            <code class="key-prefix">{{ row.key_prefix }}…</code>
+          </td>
+          <td>{{ row.mis_acronym || '—' }}</td>
+          <td><strong>{{ formatNumber(row.requests_in_period) }}</strong></td>
+          <td>{{ formatNumber(row.usage_count) }}</td>
+          <td>{{ formatDate(row.last_used_at) }}</td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr><td colspan="5" class="empty-cell">No key activity in this period.</td></tr>
+      </ng-template>
+    </p-table>
+  </article>
+</section>
+
+<section class="dash-detail panel-card" *ngIf="keyDetail">
+  <header class="dash-detail__head">
+    <div>
+      <h2>{{ keyDetail.api_key.name }}</h2>
+      <p>
+        <code>{{ keyDetail.api_key.key_prefix }}…</code>
+        · {{ keyDetail.api_key.mis_acronym || 'No MIS' }}
+        · {{ keyDetail.api_key.environment || '—' }}
+      </p>
+    </div>
+    <button pButton type="button" icon="pi pi-times" class="p-button-text" (click)="clearKeyDetail()"></button>
+  </header>
+
+  <div class="dash-detail__kpis">
+    <span><strong>{{ formatNumber(keyDetail.totals.total_requests) }}</strong> requests</span>
+    <span><strong>{{ formatMs(keyDetail.totals.avg_response_time_ms) }}</strong> avg</span>
+    <span><strong>{{ keyDetail.totals.active_days }}</strong> active days</span>
+  </div>
+
+  <div class="dash-charts dash-charts--detail" *ngIf="!detailLoading">
+    <article class="chart-card chart-card--nested">
+      <header class="chart-card__head"><h3>Key timeline</h3></header>
+      <p-chart type="line" [data]="keyTimelineChart" [options]="{ maintainAspectRatio: false, plugins: { legend: { display: false } } }"></p-chart>
+    </article>
+    <article class="chart-card chart-card--nested">
+      <header class="chart-card__head"><h3>By microservice</h3></header>
+      <p-chart type="bar" [data]="keyMicroserviceChart" [options]="{ maintainAspectRatio: false, plugins: { legend: { display: false } } }"></p-chart>
+    </article>
+  </div>
+
+  <article class="table-card table-card--nested" *ngIf="keyDetail.top_endpoints.length">
+    <header class="table-card__head"><h3>Top endpoints / patterns</h3></header>
+    <p-table [value]="keyDetail.top_endpoints" styleClass="p-datatable-sm admin-table">
+      <ng-template pTemplate="header">
+        <tr><th>Endpoint</th><th>Requests</th><th>Share</th></tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr>
+          <td><code>{{ row.label }}</code></td>
+          <td>{{ formatNumber(row.total_requests) }}</td>
+          <td>{{ row.percentage }}%</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </article>
+</section>
+
+<section class="panel-card table-card dash-logs">
+  <header class="table-card__head">
+    <h2>Activity log</h2>
+    <span>{{ formatNumber(logs?.total) }} events · latest 100</span>
+  </header>
+  <p-table
+    [value]="logs?.items || []"
+    [loading]="logsLoading"
+    styleClass="p-datatable-sm admin-table"
+    responsiveLayout="scroll"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Time</th>
+        <th>MIS</th>
+        <th>Key</th>
+        <th>Microservice</th>
+        <th>Endpoint</th>
+        <th>Status</th>
+        <th>Latency</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-row>
+      <tr>
+        <td>{{ formatDate(row.created_at) }}</td>
+        <td>{{ row.mis_acronym || '—' }}</td>
+        <td><code>{{ row.key_prefix }}…</code></td>
+        <td>{{ row.microservice_name }}</td>
+        <td><code>{{ row.endpoint_accessed }}</code></td>
+        <td>{{ row.status_code ?? '—' }}</td>
+        <td>{{ formatMs(row.response_time_ms) }}</td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr><td colspan="7" class="empty-cell">No log entries for current filters.</td></tr>
+    </ng-template>
+  </p-table>
+</section>
+
+<p-progressSpinner *ngIf="loading" styleClass="dash-spinner"></p-progressSpinner>

@@ -5,6 +5,7 @@ import { ApiKeyRepository } from './repositories/api-key.repository';
 import { ApiKeyUsageLogRepository } from './repositories/api-key-usage-log.repository';
 import { ApiKeyMapper } from './mappers/api-key.mapper';
 import { ApiKeyUsageLogService } from './api-key-usage-log.service';
+import { ApiKeyUsageMetricsService } from './api-key-usage-metrics.service';
 import { MisModule } from '../mis/mis.module';
 import { EnvironmentModule } from '../environment/environment.module';
 import { BCryptPasswordEncoder } from '../../auth/utils/BCryptPasswordEncoder';
@@ -19,11 +20,17 @@ import { IsKnownApiKeyScopeConstraint } from './validators/is-known-api-key-scop
     ApiKeyRepository,
     ApiKeyUsageLogRepository,
     ApiKeyUsageLogService,
+    ApiKeyUsageMetricsService,
     ApiKeyMapper,
     BCryptPasswordEncoder,
     AppConfig,
     IsKnownApiKeyScopeConstraint,
   ],
-  exports: [ApiKeyService, ApiKeyRepository, ApiKeyUsageLogService],
+  exports: [
+    ApiKeyService,
+    ApiKeyRepository,
+    ApiKeyUsageLogService,
+    ApiKeyUsageMetricsService,
+  ],
 })
 export class ApiKeyModule {}

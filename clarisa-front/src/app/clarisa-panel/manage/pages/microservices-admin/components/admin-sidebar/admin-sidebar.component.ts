@@ -17,6 +17,11 @@ export class AdminSidebarComponent {
       hint: 'Create, rotate, and revoke keys',
     },
     {
+      id: 'usage',
+      label: 'Usage & Analytics',
+      hint: 'Metrics, timelines, and activity logs',
+    },
+    {
       id: 'mises',
       label: 'MIS Registry',
       hint: 'Manage microservice identities',

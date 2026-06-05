@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 
-export type AdminSection = 'api-keys' | 'mises';
+export type AdminSection = 'api-keys' | 'usage' | 'mises';
 
 @Component({
   selector: 'app-microservices-admin',

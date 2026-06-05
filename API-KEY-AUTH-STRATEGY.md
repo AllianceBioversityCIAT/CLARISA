@@ -843,10 +843,10 @@ Import `GuardsModule` in the feature module when wiring phase B.
 
 ### 11.4 Phase 4: Observability & Dashboard (Week 4)
 
-- [ ] Build dashboard UI components (usage charts, key list, metrics)
-- [ ] Implement usage summary aggregation endpoints
-- [ ] Set up alerts for key expiration and anomaly detection
-- [ ] Create downloadable usage reports (CSV)
+- [x] Build dashboard UI — **Usage & Analytics** section in microservices admin (KPIs, timeline, MIS×microservice matrix, drill-down per key, activity log)
+- [x] Implement usage aggregation endpoints (`GET /api/api-keys/usage/summary`, `GET /api/api-keys/:id/usage`, `GET /api/api-keys/usage/logs`)
+- [x] CSV export of activity log from admin UI
+- [ ] Set up automated alerts for key expiration and anomaly detection
 
 ### 11.5 Phase 5: Deprecation (Week 5+)
 
