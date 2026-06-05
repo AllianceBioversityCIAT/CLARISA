@@ -16,6 +16,18 @@ import {
   API_KEY_SCOPE_CATALOG,
   assertKnownApiKeyScopes,
 } from './constants/api-key-scopes';
+import { ValidateApiKeyDto } from './dto/validate-api-key.dto';
+import { ValidateApiKeyResponseDto } from './dto/validate-api-key-response.dto';
+import { ApiKeyUsageLogService } from './api-key-usage-log.service';
+import { isClientIpAllowed } from './utils/ip-allowlist';
+
+export interface ValidateApiKeyOptions {
+  clientIp?: string;
+  httpMethod?: string;
+  userAgent?: string;
+  responseTimeMs?: number;
+  recordUsage?: boolean;
+}
 
 @Injectable()
 export class ApiKeyService {
@@ -25,6 +37,7 @@ export class ApiKeyService {
     private _misService: MisService,
     private _environmentService: EnvironmentService,
     private _bcryptPasswordEncoder: BCryptPasswordEncoder,
+    private _apiKeyUsageLogService: ApiKeyUsageLogService,
   ) {}
 
   private readonly _where: FindManyOptions<ApiKey> = {
@@ -115,6 +128,95 @@ export class ApiKeyService {
 
   listScopeCatalog() {
     return API_KEY_SCOPE_CATALOG;
+  }
+
+  async validate(
+    validateApiKeyDto: ValidateApiKeyDto,
+    options: ValidateApiKeyOptions = {},
+  ): Promise<ValidateApiKeyResponseDto> {
+    const startedAt = Date.now();
+    const plainKey = validateApiKeyDto.api_key?.trim();
+    if (!plainKey) {
+      return { valid: false, error: 'Missing api_key' };
+    }
+
+    const keyPrefix = plainKey.slice(0, 16);
+    if (keyPrefix.length < 16) {
+      return { valid: false, error: 'Invalid API key format' };
+    }
+
+    const candidates = await this._apiKeyRepository
+      .createQueryBuilder('apiKey')
+      .addSelect('apiKey.key_hash')
+      .leftJoinAndSelect('apiKey.mis_object', 'mis_object')
+      .leftJoinAndSelect('apiKey.environment_object', 'environment_object')
+      .where('apiKey.key_prefix = :keyPrefix', { keyPrefix })
+      .getMany();
+
+    const matched = candidates.find((candidate) =>
+      this._bcryptPasswordEncoder.matches(candidate.key_hash, plainKey),
+    );
+
+    if (!matched) {
+      return { valid: false, error: 'Invalid API key' };
+    }
+
+    if (!matched.auditableFields?.is_active) {
+      return { valid: false, error: 'API key is revoked' };
+    }
+
+    if (matched.expires_at && matched.expires_at <= new Date()) {
+      return { valid: false, error: 'API key has expired' };
+    }
+
+    const effectiveIp = validateApiKeyDto.ip_address?.trim() || options.clientIp;
+    if (!isClientIpAllowed(effectiveIp, matched.allowed_ips)) {
+      return { valid: false, error: 'IP address is not allowed for this key' };
+    }
+
+    const scopes = matched.scopes ?? [];
+    if (
+      validateApiKeyDto.required_scope &&
+      !scopes.includes(validateApiKeyDto.required_scope)
+    ) {
+      return {
+        valid: false,
+        error: `Missing required scope: ${validateApiKeyDto.required_scope}`,
+      };
+    }
+
+    await this._apiKeyUsageLogService.touchKeyUsage(matched.id);
+
+    if (options.recordUsage !== false) {
+      this._apiKeyUsageLogService.recordUsageAsync({
+        api_key_id: matched.id,
+        microservice_name: validateApiKeyDto.microservice_name,
+        endpoint_accessed: validateApiKeyDto.endpoint_accessed,
+        http_method: options.httpMethod,
+        status_code: 200,
+        ip_address: effectiveIp,
+        user_agent: options.userAgent,
+        response_time_ms: options.responseTimeMs ?? Date.now() - startedAt,
+      });
+    }
+
+    const response: ValidateApiKeyResponseDto = {
+      valid: true,
+      api_key_id: matched.id,
+      key_prefix: matched.key_prefix,
+      environment: matched.environment_object?.acronym,
+      scopes: scopes.length ? scopes : undefined,
+    };
+
+    if (matched.mis_object) {
+      response.mis = {
+        id: matched.mis_object.id,
+        name: matched.mis_object.name,
+        acronym: matched.mis_object.acronym,
+      };
+    }
+
+    return response;
   }
 
   async findAll(

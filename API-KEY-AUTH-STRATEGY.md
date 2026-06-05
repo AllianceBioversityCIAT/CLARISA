@@ -777,11 +777,11 @@ All key lifecycle events are logged via the existing `AuditableEntity`:
 
 ### 11.2 Phase 2: Validation Engine (Week 2)
 
-- [ ] Implement `ApiKeyService.validate()` with all checks (hash, active, scope, env, IP)
-- [ ] Implement `ApiKeyGuard` — a NestJS guard that can be used on endpoints
-- [ ] Create `/api/auth/validate-api-key` public endpoint
-- [ ] Add rate limiting to the validation endpoint
-- [ ] Implement async usage logging via EventEmitter
+- [x] Implement `ApiKeyService.validate()` with all checks (hash, active, scope, env, IP)
+- [x] Implement `ApiKeyGuard` — a NestJS guard that can be used on endpoints
+- [x] Create `/api/auth/validate-api-key` public endpoint
+- [x] Add rate limiting to the validation endpoint
+- [x] Implement async usage logging (`setImmediate` + `touchKeyUsage` for `last_used_at` / `usage_count`)
 
 ### 11.3 Phase 3: Integration (Week 3)
 
