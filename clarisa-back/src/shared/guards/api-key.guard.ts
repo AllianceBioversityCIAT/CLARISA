@@ -7,10 +7,8 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { ApiKeyService } from '../../api/api-key/api-key.service';
-import {
-  API_KEY_AUTH_CONTEXT_KEY,
-  API_KEY_HEADER,
-} from '../../api/api-key/constants/api-key-auth.constants';
+import { API_KEY_AUTH_CONTEXT_KEY } from '../../api/api-key/constants/api-key-auth.constants';
+import { readApiKeyHeader } from '../utils/read-api-key-header';
 import { ApiKeyAuthContext } from '../../api/api-key/interfaces/api-key-auth-context';
 import { REQUIRE_API_KEY_SCOPE } from '../decorators/require-api-key-scope.decorator';
 
@@ -23,7 +21,7 @@ export class ApiKeyGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    const apiKey = this._readApiKeyHeader(request);
+    const apiKey = readApiKeyHeader(request);
 
     if (!apiKey) {
       throw new UnauthorizedException({
@@ -71,14 +69,6 @@ export class ApiKeyGuard implements CanActivate {
     ] = authContext;
 
     return true;
-  }
-
-  private _readApiKeyHeader(request: Request): string | undefined {
-    const raw = request.headers[API_KEY_HEADER];
-    if (Array.isArray(raw)) {
-      return raw[0]?.trim();
-    }
-    return typeof raw === 'string' ? raw.trim() : undefined;
   }
 
   private _resolveClientIp(request: Request): string {

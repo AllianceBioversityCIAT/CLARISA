@@ -785,10 +785,61 @@ All key lifecycle events are logged via the existing `AuditableEntity`:
 
 ### 11.3 Phase 3: Integration (Week 3)
 
-- [ ] Add `ApiKeyGuard` alongside `JwtAuthGuard` on target endpoints
-- [ ] Add `X-API-Key` header detection to existing middleware
+**P2-2994 phase A (in progress):** hybrid auth infrastructure only — guards implemented, **no production controllers wired yet**.
+
+- [x] `CompositeAuthGuard` — `X-API-Key` or JWT (JWT unchanged when header absent)
+- [x] `HybridAuthorizationGuard` — API key → scope check via `ApiKeyGuard`; JWT → existing `PermissionGuard`
+- [x] `@GetApiKeyAuth()` request decorator
+- [x] Progressive rollout plan (see §11.3.1)
+- [ ] Wire hybrid guards on pilot endpoints (phase B — e.g. partner-request writes)
+- [ ] Add `X-API-Key` header detection in existing middleware (if needed beyond guards)
 - [ ] Update microservice configurations to use API keys
 - [ ] Create migration script to generate API keys for existing AppSecret relationships
+
+#### 11.3.1 Progressive rollout plan (P2-2994)
+
+Do **not** enable API key auth on all endpoints at once. Existing JWT panel users and AppSecret consumers must keep working during migration.
+
+| Phase | Scope | Endpoints | Notes |
+|-------|--------|-----------|--------|
+| **4.0** (current) | Infrastructure only | None | `CompositeAuthGuard`, `HybridAuthorizationGuard`, `@GetApiKeyAuth`, `@RequireApiKeyScope` — exported from `GuardsModule`; zero controller changes |
+| **4.1** | Pilot — partner-request **writes** | `POST create`, `PATCH update`, `POST respond`, `POST create-bulk` | Replace `@UseGuards(JwtAuthGuard, PermissionGuard)` with hybrid guards; add `@RequireApiKeyScope(...)` per handler; optional feature flag for TEST first |
+| **4.1** | Partner-request **reads** | `GET` routes | Stay **public** unless a future requirement mandates scoped reads |
+| **4.2+** | Additional modules | e.g. `institutions`, `toc` | One module at a time after pilot metrics |
+| **Excluded** | Admin / panel-only | `api-keys`, `users`, `roles`, permissions admin | **JWT only** — never API key |
+
+**Future controller pattern (partner-request write example — not applied in phase A):**
+
+```typescript
+import { CompositeAuthGuard } from '../../shared/guards/composite-auth.guard';
+import { HybridAuthorizationGuard } from '../../shared/guards/hybrid-authorization.guard';
+import { RequireApiKeyScope } from '../../shared/decorators/require-api-key-scope.decorator';
+import { GetApiKeyAuth } from '../../shared/decorators/get-api-key-auth.decorator';
+
+@Post('create')
+@UseGuards(CompositeAuthGuard, HybridAuthorizationGuard)
+@RequireApiKeyScope('partner-requests:create')
+async createPartnerRequest(
+  @GetUserData() userData: UserData,
+  @GetApiKeyAuth() apiKeyAuth: ApiKeyAuthContext | undefined,
+  @Body() dto: CreatePartnerRequestDto,
+) {
+  // JWT path: userData populated as today
+  // API-key path: apiKeyAuth.mis identifies the consumer; handler may branch if needed
+}
+```
+
+**Auth decision flow:**
+
+```
+Request
+  ├─ X-API-Key present? → ApiKeyGuard (hash, scope, IP, log clarisa-api + real path)
+  │                        → HybridAuthorizationGuard: skip PermissionGuard
+  └─ No X-API-Key        → JwtAuthGuard (unchanged)
+                           → HybridAuthorizationGuard → PermissionGuard (unchanged)
+```
+
+Import `GuardsModule` in the feature module when wiring phase B.
 
 ### 11.4 Phase 4: Observability & Dashboard (Week 4)
 
@@ -806,25 +857,12 @@ All key lifecycle events are logged via the existing `AuditableEntity`:
 
 ### 11.6 Backward Compatibility
 
-During migration, both systems can coexist:
+During migration, JWT users, AppSecret consumers, and API-key platforms coexist. No endpoint is switched until its rollout phase (§11.3.1).
 
-```typescript
-// Guard that accepts both authentication methods
-@Injectable()
-export class CompositeAuthGuard implements CanActivate {
-    async canActivate(context: ExecutionContext): Promise<boolean> {
-        const request = context.switchToHttp().getRequest();
-        const apiKey = request.headers['x-api-key'];
+Implemented in `clarisa-back/src/shared/guards/`:
 
-        if (apiKey) {
-            return this.apiKeyGuard.validate(apiKey);
-        }
-
-        // Fall back to JWT (existing flow)
-        return this.jwtAuthGuard.canActivate(context);
-    }
-}
-```
+- `composite-auth.guard.ts` — `X-API-Key` → `ApiKeyGuard`; otherwise `JwtAuthGuard`
+- `hybrid-authorization.guard.ts` — API key → pass (scope already checked); JWT → `PermissionGuard`
 
 ---
 
