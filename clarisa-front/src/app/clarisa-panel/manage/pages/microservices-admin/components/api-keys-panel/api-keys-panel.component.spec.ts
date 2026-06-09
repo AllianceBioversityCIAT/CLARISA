@@ -11,20 +11,14 @@ describe('ApiKeysPanelComponent', () => {
   let fixture: ComponentFixture<ApiKeysPanelComponent>;
 
   const manageApiMock = {
-    getAllApiKeys: jasmine
-      .createSpy('getAllApiKeys')
-      .and.returnValue(of([])),
-    getAllEnvironments: jasmine
-      .createSpy('getAllEnvironments')
-      .and.returnValue(of([])),
-    getApiKeyScopes: jasmine
-      .createSpy('getApiKeyScopes')
-      .and.returnValue(of([])),
-    getAllMis: jasmine.createSpy('getAllMis').and.returnValue(of([])),
-    createApiKey: jasmine.createSpy('createApiKey'),
-    revokeApiKey: jasmine.createSpy('revokeApiKey'),
-    rotateApiKey: jasmine.createSpy('rotateApiKey'),
-    deleteApiKey: jasmine.createSpy('deleteApiKey'),
+    getAllApiKeys: jest.fn().mockReturnValue(of([])),
+    getAllEnvironments: jest.fn().mockReturnValue(of([])),
+    getApiKeyScopes: jest.fn().mockReturnValue(of([])),
+    getAllMis: jest.fn().mockReturnValue(of([])),
+    createApiKey: jest.fn(),
+    revokeApiKey: jest.fn(),
+    rotateApiKey: jest.fn(),
+    deleteApiKey: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -37,11 +31,15 @@ describe('ApiKeysPanelComponent', () => {
         ConfirmationService,
       ],
       schemas: [NO_ERRORS_SCHEMA],
-    }).compileComponents();
+    })
+      .overrideComponent(ApiKeysPanelComponent, {
+        set: { template: '<div></div>' },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(ApiKeysPanelComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    component.ngOnInit();
   });
 
   it('should create', () => {
@@ -58,5 +56,50 @@ describe('ApiKeysPanelComponent', () => {
   it('should build key prefix preview from environment acronym', () => {
     expect(component.keyPrefixPreview('PROD')).toBe('cl_prod_');
     expect(component.keyPrefixPreview(null)).toBe('cl_{env}_');
+  });
+
+  it('should resolve key status labels and severities', () => {
+    const active = {
+      id: 1,
+      name: 'Active',
+      key_prefix: 'cl_dev_',
+      usage_count: 1,
+      is_active: true,
+    };
+    const revoked = { ...active, is_active: false };
+    const expired = {
+      ...active,
+      expires_at: '2000-01-01T00:00:00.000Z',
+    };
+
+    expect(component.statusLabel(active)).toBe('Active');
+    expect(component.statusSeverity(active)).toBe('success');
+    expect(component.statusLabel(revoked)).toBe('Revoked');
+    expect(component.statusSeverity(revoked)).toBe('danger');
+    expect(component.statusLabel(expired)).toBe('Expired');
+    expect(component.statusSeverity(expired)).toBe('warning');
+  });
+
+  it('should patch environment when a linked MIS is selected', () => {
+    component.mises = [
+      { id: 5, acronym: 'EMAIL', name: 'Email MS', environment: 'PROD' },
+    ];
+
+    component.onMisSelected(null);
+    component.onMisSelected(5);
+
+    expect(component.form.get('environment')?.value).toBe('PROD');
+  });
+
+  it('should not copy an empty secret', () => {
+    const writeText = jest.fn();
+    Object.assign(navigator, {
+      clipboard: { writeText },
+    });
+    component.createdSecret = '';
+
+    component.copySecret();
+
+    expect(writeText).not.toHaveBeenCalled();
   });
 });

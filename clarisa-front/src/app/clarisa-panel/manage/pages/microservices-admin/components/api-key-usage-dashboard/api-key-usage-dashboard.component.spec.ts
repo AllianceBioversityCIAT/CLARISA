@@ -12,30 +12,28 @@ describe('ApiKeyUsageDashboardComponent', () => {
   let fixture: ComponentFixture<ApiKeyUsageDashboardComponent>;
 
   const manageApiMock = {
-    getAllMis: jasmine.createSpy('getAllMis').and.returnValue(of([])),
-    getApiKeyUsageSummary: jasmine
-      .createSpy('getApiKeyUsageSummary')
-      .and.returnValue(
-        of({
-          period: { from: '', to: '' },
-          totals: {
-            total_requests: 0,
-            error_count: 0,
-            avg_response_time_ms: null,
-            active_keys: 0,
-            revoked_keys: 0,
-            expiring_within_30_days: 0,
-          },
-          by_mis: [],
-          by_mis_microservice: [],
-          by_microservice: [],
-          keys: [],
-          time_series: [],
-        }),
-      ),
-    getApiKeyUsageLogs: jasmine
-      .createSpy('getApiKeyUsageLogs')
-      .and.returnValue(of({ period: { from: '', to: '' }, total: 0, items: [] })),
+    getAllMis: jest.fn().mockReturnValue(of([])),
+    getApiKeyUsageSummary: jest.fn().mockReturnValue(
+      of({
+        period: { from: '', to: '' },
+        totals: {
+          total_requests: 0,
+          error_count: 0,
+          avg_response_time_ms: null,
+          active_keys: 0,
+          revoked_keys: 0,
+          expiring_within_30_days: 0,
+        },
+        by_mis: [],
+        by_mis_microservice: [],
+        by_microservice: [],
+        keys: [],
+        time_series: [],
+      }),
+    ),
+    getApiKeyUsageLogs: jest
+      .fn()
+      .mockReturnValue(of({ period: { from: '', to: '' }, total: 0, items: [] })),
   };
 
   beforeEach(async () => {
@@ -47,15 +45,58 @@ describe('ApiKeyUsageDashboardComponent', () => {
         { provide: ManageApiService, useValue: manageApiMock },
       ],
       schemas: [NO_ERRORS_SCHEMA],
-    }).compileComponents();
+    })
+      .overrideComponent(ApiKeyUsageDashboardComponent, {
+        set: { template: '<div></div>' },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(ApiKeyUsageDashboardComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    component.ngOnInit();
   });
 
   it('should create and load summary', () => {
     expect(component).toBeTruthy();
     expect(manageApiMock.getApiKeyUsageSummary).toHaveBeenCalled();
+  });
+
+  it('should format metrics and compute error rate', () => {
+    expect(component.formatNumber(null)).toBe('—');
+    expect(component.formatNumber(1200)).toBe('1,200');
+    expect(component.formatMs(42)).toBe('42 ms');
+    expect(component.formatDate('')).toBe('—');
+
+    component.summary = {
+      period: { from: '', to: '' },
+      totals: {
+        total_requests: 0,
+        error_count: 0,
+        avg_response_time_ms: null,
+        active_keys: 0,
+        revoked_keys: 0,
+        expiring_within_30_days: 0,
+      },
+      by_mis: [],
+      by_mis_microservice: [],
+      by_microservice: [],
+      keys: [],
+      time_series: [],
+    };
+    expect(component.errorRate()).toBe('0%');
+
+    component.summary.totals.total_requests = 10;
+    component.summary.totals.error_count = 2;
+    expect(component.errorRate()).toBe('20.0%');
+  });
+
+  it('should skip CSV export when there are no log rows', () => {
+    component.logs = { period: { from: '', to: '' }, total: 0, items: [] };
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click');
+
+    component.exportLogsCsv();
+
+    expect(clickSpy).not.toHaveBeenCalled();
+    clickSpy.mockRestore();
   });
 });
