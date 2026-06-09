@@ -30,9 +30,7 @@ export function resolveUsageDateRange(
 
   const startRaw = from
     ? new Date(from)
-    : new Date(
-        endRaw.getTime() - DEFAULT_RANGE_DAYS * 24 * 60 * 60 * 1000,
-      );
+    : new Date(endRaw.getTime() - DEFAULT_RANGE_DAYS * 24 * 60 * 60 * 1000);
 
   if (Number.isNaN(startRaw.getTime())) {
     throw new Error('Invalid "from" date');
