@@ -7,22 +7,26 @@ import { PermissionGuard } from '../../shared/guards/permission.guard';
 describe('MisController', () => {
   let controller: MisController;
 
-  const misServiceMock = {
+  const mockMisService: any = {
     create: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
     findMetadataById: jest.fn(),
   };
 
+  const mockGuard: any = { canActivate: jest.fn().mockReturnValue(true) };
+
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MisController],
-      providers: [{ provide: MisService, useValue: misServiceMock }],
+      providers: [{ provide: MisService, useValue: mockMisService }],
     })
       .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: jest.fn(() => true) })
+      .useValue(mockGuard)
       .overrideGuard(PermissionGuard)
-      .useValue({ canActivate: jest.fn(() => true) })
+      .useValue(mockGuard)
       .compile();
 
     controller = module.get<MisController>(MisController);
@@ -30,5 +34,35 @@ describe('MisController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('should call service on create', async () => {
+    mockMisService.create.mockResolvedValue({ id: 1 });
+    const userData = { userId: 1, email: 'test@test.com' } as any;
+    const dto = { acronym: 'TEST', name: 'Test MIS' } as any;
+
+    await controller.create(userData, dto);
+    expect(mockMisService.create).toHaveBeenCalledWith(dto, userData);
+  });
+
+  it('should call service on findAll', async () => {
+    mockMisService.findAll.mockResolvedValue([]);
+
+    await controller.findAll('active' as any);
+    expect(mockMisService.findAll).toHaveBeenCalledWith('active');
+  });
+
+  it('should call service on findOne', async () => {
+    mockMisService.findOne.mockResolvedValue({ id: 1 });
+
+    await controller.findOne(1);
+    expect(mockMisService.findOne).toHaveBeenCalledWith(1);
+  });
+
+  it('should call service on findMetadataById', async () => {
+    mockMisService.findMetadataById.mockResolvedValue({ id: 1 });
+
+    await controller.findMetadataById(1);
+    expect(mockMisService.findMetadataById).toHaveBeenCalledWith(1);
   });
 });
