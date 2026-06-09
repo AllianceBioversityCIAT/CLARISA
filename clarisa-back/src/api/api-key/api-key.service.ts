@@ -169,7 +169,8 @@ export class ApiKeyService {
       return { valid: false, error: 'API key has expired' };
     }
 
-    const effectiveIp = validateApiKeyDto.ip_address?.trim() || options.clientIp;
+    const effectiveIp =
+      validateApiKeyDto.ip_address?.trim() || options.clientIp;
     if (!isClientIpAllowed(effectiveIp, matched.allowed_ips)) {
       return { valid: false, error: 'IP address is not allowed for this key' };
     }

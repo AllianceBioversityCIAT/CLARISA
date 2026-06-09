@@ -1,8 +1,4 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Observable, isObservable, lastValueFrom } from 'rxjs';
 import { API_KEY_AUTH_CONTEXT_KEY } from '../../api/api-key/constants/api-key-auth.constants';
 import { PermissionGuard } from './permission.guard';
@@ -22,9 +18,7 @@ export class HybridAuthorizationGuard implements CanActivate {
       return true;
     }
 
-    return this._resolveGuardResult(
-      this._permissionGuard.canActivate(context),
-    );
+    return this._resolveGuardResult(this._permissionGuard.canActivate(context));
   }
 
   private async _resolveGuardResult(

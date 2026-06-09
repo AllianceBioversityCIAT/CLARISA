@@ -46,7 +46,11 @@ export class ApiKeyValidateController {
       throw new UnauthorizedException(result);
     }
 
-    const { api_key_id, key_prefix, ...response } = result;
+    const {
+      api_key_id: _api_key_id,
+      key_prefix: _key_prefix,
+      ...response
+    } = result;
     return response;
   }
 

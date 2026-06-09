@@ -1,9 +1,4 @@
-import {
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { IsKnownApiKeyScope } from '../validators/is-known-api-key-scope.validator';
 
 export class ValidateApiKeyDto {

@@ -1,8 +1,4 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Observable, isObservable, lastValueFrom } from 'rxjs';
 import { Request } from 'express';
 import { ApiKeyGuard } from './api-key.guard';

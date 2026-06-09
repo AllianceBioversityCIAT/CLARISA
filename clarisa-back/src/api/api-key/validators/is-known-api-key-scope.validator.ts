@@ -7,7 +7,9 @@ import {
 import { isKnownApiKeyScope } from '../constants/api-key-scopes';
 
 @ValidatorConstraint({ name: 'isKnownApiKeyScope', async: false })
-export class IsKnownApiKeyScopeConstraint implements ValidatorConstraintInterface {
+export class IsKnownApiKeyScopeConstraint
+  implements ValidatorConstraintInterface
+{
   validate(value: unknown): boolean {
     if (value === undefined || value === null || value === '') {
       return true;

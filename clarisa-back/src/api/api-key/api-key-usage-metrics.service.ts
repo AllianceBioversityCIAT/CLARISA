@@ -11,10 +11,7 @@ import {
   UsageLogsResponseDto,
   UsageSummaryResponseDto,
 } from './dto/usage-metrics.dto';
-import {
-  resolveUsageDateRange,
-  toIsoPeriod,
-} from './utils/usage-date-range';
+import { resolveUsageDateRange, toIsoPeriod } from './utils/usage-date-range';
 
 interface UsageFilterParams {
   from: Date;
