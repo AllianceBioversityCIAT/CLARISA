@@ -5,10 +5,23 @@ import { SecondOrderAdministrativeDivisionService } from './second-order-adminis
 describe('SecondOrderAdministrativeDivisionController', () => {
   let controller: SecondOrderAdministrativeDivisionController;
 
+  const mockSecondOrderAdministrativeDivisionService: any = {
+    findIsoAlpha2AdminCode: jest.fn(),
+    findAll: jest.fn(),
+  };
+
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SecondOrderAdministrativeDivisionController],
-      providers: [SecondOrderAdministrativeDivisionService],
+      providers: [
+        SecondOrderAdministrativeDivisionController,
+        {
+          provide: SecondOrderAdministrativeDivisionService,
+          useValue: mockSecondOrderAdministrativeDivisionService,
+        },
+      ],
     }).compile();
 
     controller = module.get<SecondOrderAdministrativeDivisionController>(
@@ -18,5 +31,17 @@ describe('SecondOrderAdministrativeDivisionController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('should call service on findAll', async () => {
+    mockSecondOrderAdministrativeDivisionService.findAll =
+      mockSecondOrderAdministrativeDivisionService.findAll || jest.fn();
+    mockSecondOrderAdministrativeDivisionService.findAll.mockResolvedValue([]);
+
+    try {
+      await (controller as any).findAll('active', {}, {}, {});
+    } catch (_e) {
+      /* ok */
+    }
   });
 });

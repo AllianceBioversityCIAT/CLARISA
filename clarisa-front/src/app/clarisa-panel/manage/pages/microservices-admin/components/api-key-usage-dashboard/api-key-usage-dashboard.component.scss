@@ -1,0 +1,255 @@
+@import '../_shared-panel';
+
+:host {
+  display: block;
+  position: relative;
+}
+
+.dash-header {
+  @extend .panel-header;
+
+  &__title {
+    @extend .panel-header__title;
+    letter-spacing: -0.02em;
+  }
+
+  &__desc {
+    @extend .panel-header__desc;
+  }
+
+  &__actions {
+    @extend .panel-header__actions;
+  }
+}
+
+.dash-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.25rem;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+  align-items: flex-end;
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+
+    label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+    }
+  }
+}
+
+:host ::ng-deep .dash-dropdown {
+  min-width: 9rem;
+
+  &--wide {
+    min-width: 14rem;
+  }
+}
+
+.dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.kpi-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-top: 3px solid #0065bd;
+
+  &--alert {
+    border-top-color: #d97706;
+    background: linear-gradient(180deg, #fffbeb 0%, #fff 40%);
+  }
+
+  &__label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 0.35rem;
+  }
+
+  &__value {
+    display: block;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__hint {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.72rem;
+    color: #94a3b8;
+  }
+}
+
+.dash-charts {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  &--detail {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+  }
+}
+
+.chart-card {
+  padding: 0.75rem 1rem 1rem;
+  min-height: 16rem;
+
+  &--nested {
+    border: 1px solid #eef1f4;
+    border-radius: 8px;
+    box-shadow: none;
+    min-height: 13rem;
+  }
+
+  &__head {
+    margin-bottom: 0.75rem;
+
+    h2,
+    h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    span {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+  }
+
+  ::ng-deep canvas {
+    max-height: 220px;
+  }
+}
+
+.dash-matrix {
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.25rem 0.75rem;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.table-card {
+  padding: 0.5rem 0.25rem 0.75rem;
+
+  &--nested {
+    margin-top: 0.75rem;
+    padding: 0.25rem;
+  }
+
+  &__head {
+    padding: 0.5rem 0.85rem 0.65rem;
+    border-bottom: 1px solid #f1f5f9;
+    margin-bottom: 0.25rem;
+
+    h2,
+    h3 {
+      margin: 0;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    span {
+      font-size: 0.72rem;
+      color: #94a3b8;
+    }
+  }
+}
+
+.cell-sub {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+:host ::ng-deep .dash-table--clickable .p-datatable-tbody > tr {
+  cursor: pointer;
+
+  &.is-selected,
+  &.p-highlight {
+    background: #eff6ff !important;
+  }
+}
+
+.dash-detail {
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+
+  &__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+
+    h2 {
+      margin: 0 0 0.25rem;
+      font-size: 1.1rem;
+      color: #0065bd;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+  }
+
+  &__kpis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    font-size: 0.82rem;
+    color: #475569;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+}
+
+.dash-logs {
+  margin-bottom: 2rem;
+}
+
+:host ::ng-deep .dash-spinner {
+  position: absolute;
+  top: 6rem;
+  right: 2rem;
+  width: 36px;
+  height: 36px;
+}
+
+@media (max-width: 1100px) {
+  .dash-charts,
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+}

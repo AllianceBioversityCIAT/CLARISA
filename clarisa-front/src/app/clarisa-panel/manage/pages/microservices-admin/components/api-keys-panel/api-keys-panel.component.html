@@ -1,0 +1,275 @@
+<header class="panel-header">
+  <div>
+    <h1 class="panel-header__title">API Keys</h1>
+    <p class="panel-header__desc">
+      Issue and manage <code>X-API-Key</code> credentials for microservice access.
+    </p>
+  </div>
+  <div class="panel-header__actions">
+    <p-dropdown
+      [options]="[
+        { label: 'Active', value: 'active' },
+        { label: 'All', value: 'all' },
+        { label: 'Inactive', value: 'inactive' }
+      ]"
+      [(ngModel)]="showFilter"
+      optionLabel="label"
+      optionValue="value"
+      (onChange)="loadKeys()"
+      styleClass="filter-dropdown"
+    ></p-dropdown>
+    <button
+      pButton
+      type="button"
+      label="New API key"
+      icon="pi pi-plus"
+      class="p-button-success btn-brand"
+      (click)="openCreate()"
+    ></button>
+  </div>
+</header>
+
+<section class="panel-card">
+  <p-table
+    [value]="keys"
+    [loading]="loading"
+    [rows]="10"
+    [paginator]="keys.length > 10"
+    styleClass="p-datatable-sm admin-table"
+    responsiveLayout="scroll"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Name</th>
+        <th>Prefix</th>
+        <th>MIS</th>
+        <th>Env</th>
+        <th>Scopes</th>
+        <th>Usage</th>
+        <th>Status</th>
+        <th style="width: 9rem">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-key>
+      <tr>
+        <td><span class="cell-primary">{{ key.name }}</span></td>
+        <td><code class="key-prefix">{{ key.key_prefix }}…</code></td>
+        <td>{{ key.mis_acronym || '—' }}</td>
+        <td>{{ key.environment || '—' }}</td>
+        <td>
+          <span class="scopes-cell" [pTooltip]="(key.scopes || []).join(', ')" tooltipPosition="top">
+            {{ (key.scopes || []).length ? (key.scopes | slice:0:2).join(', ') : '—' }}
+            <span *ngIf="(key.scopes || []).length > 2" class="scopes-more">+{{ key.scopes.length - 2 }}</span>
+          </span>
+        </td>
+        <td>{{ key.usage_count ?? 0 }}</td>
+        <td>
+          <p-tag [value]="statusLabel(key)" [severity]="statusSeverity(key)"></p-tag>
+        </td>
+        <td>
+          <div class="row-actions" *ngIf="key.is_active">
+            <button
+              pButton
+              type="button"
+              icon="pi pi-refresh"
+              class="p-button-text p-button-sm"
+              pTooltip="Rotate"
+              (click)="confirmRotate(key)"
+            ></button>
+            <button
+              pButton
+              type="button"
+              icon="pi pi-ban"
+              class="p-button-text p-button-sm p-button-warning"
+              pTooltip="Revoke"
+              (click)="confirmRevoke(key)"
+            ></button>
+          </div>
+          <button
+            *ngIf="!key.is_active"
+            pButton
+            type="button"
+            icon="pi pi-trash"
+            class="p-button-text p-button-sm p-button-danger"
+            pTooltip="Delete"
+            (click)="confirmDelete(key)"
+          ></button>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="8" class="empty-cell">No API keys found for this filter.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</section>
+
+<p-dialog
+  header="Create API key"
+  [(visible)]="createVisible"
+  [modal]="true"
+  [style]="{ width: '38rem' }"
+  [draggable]="false"
+  [contentStyle]="{ overflow: 'visible' }"
+  styleClass="admin-dialog"
+>
+  <form [formGroup]="form" class="admin-form" (ngSubmit)="submitCreate()">
+    <div class="field">
+      <label for="keyName">Name <span class="req">*</span></label>
+      <input id="keyName" pInputText formControlName="name" class="w-full" placeholder="e.g. Email MS - Production" />
+      <small class="field-error" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">Name is required (max 255 chars).</small>
+    </div>
+
+    <div class="field">
+      <label for="keyMis">Linked MIS</label>
+      <p-dropdown
+        id="keyMis"
+        formControlName="mis_id"
+        [options]="mises"
+        optionLabel="acronym"
+        optionValue="id"
+        [showClear]="true"
+        [filter]="true"
+        filterBy="acronym,name,environment"
+        placeholder="Optional"
+        (onChange)="onMisSelected($event.value)"
+        appendTo="body"
+        [style]="{ width: '100%' }"
+        styleClass="w-full admin-dropdown"
+        panelStyleClass="admin-dropdown-panel"
+        (onShow)="onDropdownShow($event)"
+      >
+        <ng-template let-mis pTemplate="item">
+          <div class="dd-option">
+            <span class="dd-option__title">{{ mis.acronym }}</span>
+            <span class="dd-option__meta" *ngIf="mis.name">{{ mis.name }}</span>
+            <span class="dd-option__meta" *ngIf="mis.environment">Env: {{ mis.environment }}</span>
+          </div>
+        </ng-template>
+        <ng-template let-mis pTemplate="selectedItem">
+          <span class="dd-selected">{{ mis.acronym }}</span>
+        </ng-template>
+      </p-dropdown>
+    </div>
+
+    <div class="field">
+      <label for="keyEnv">Key environment <span class="req">*</span></label>
+      <p-dropdown
+        id="keyEnv"
+        formControlName="environment"
+        [options]="environments"
+        optionLabel="label"
+        optionValue="acronym"
+        [disabled]="environmentsLoading"
+        [placeholder]="environmentsLoading ? 'Loading environments…' : 'Select environment (e.g. PROD)'"
+        appendTo="body"
+        [style]="{ width: '100%' }"
+        styleClass="w-full admin-dropdown"
+        panelStyleClass="admin-dropdown-panel"
+        (onShow)="onDropdownShow($event)"
+      >
+        <ng-template let-env pTemplate="item">
+          <div class="dd-option">
+            <span class="dd-option__title">{{ env.acronym }}</span>
+            <span class="dd-option__meta" *ngIf="env.name">{{ env.name }}</span>
+          </div>
+        </ng-template>
+        <ng-template let-env pTemplate="selectedItem">
+          <span class="dd-selected">{{ env.acronym }}</span>
+        </ng-template>
+      </p-dropdown>
+      <small class="field-hint">
+        Same catalog as MIS (DEV, TEST, PROD, etc.). Key prefix:
+        <code>{{ keyPrefixPreview(form.get('environment')?.value) }}</code>
+      </small>
+    </div>
+
+    <div class="field">
+      <label for="keyScopes">Scopes</label>
+      <p-multiSelect
+        inputId="keyScopes"
+        formControlName="scopes"
+        [options]="scopeGroups"
+        [group]="true"
+        optionGroupLabel="label"
+        optionGroupChildren="items"
+        optionLabel="label"
+        optionValue="value"
+        display="chip"
+        [filter]="true"
+        filterPlaceHolder="Search permissions…"
+        [showToggleAll]="false"
+        [disabled]="scopesLoading"
+        [placeholder]="scopesLoading ? 'Loading scopes…' : 'Select permissions (optional)'"
+        appendTo="body"
+        styleClass="w-full admin-multiselect"
+        panelStyleClass="admin-dropdown-panel"
+        [style]="{ width: '100%' }"
+      >
+        <ng-template let-option pTemplate="item">
+          <div class="dd-option" [title]="option.title">
+            <span class="dd-option__title">{{ option.label }}</span>
+            <span class="dd-option__meta">{{ option.value }}</span>
+          </div>
+        </ng-template>
+      </p-multiSelect>
+      <small class="field-hint">
+        Permissions for CLARISA APIs and microservice capabilities — not other MIS identifiers.
+      </small>
+    </div>
+
+    <div class="field">
+      <label for="keyIps">Allowed IPs</label>
+      <textarea
+        id="keyIps"
+        pInputTextarea
+        formControlName="allowedIpsText"
+        rows="2"
+        class="w-full"
+        placeholder="10.0.0.0/8 (optional, comma-separated)"
+      ></textarea>
+    </div>
+
+    <div class="field">
+      <label for="keyExpires">Expires at</label>
+      <p-calendar
+        id="keyExpires"
+        formControlName="expires_at"
+        [showIcon]="true"
+        dateFormat="yy-mm-dd"
+        [showTime]="true"
+        appendTo="body"
+        styleClass="w-full"
+        panelStyleClass="admin-dropdown-panel"
+      ></p-calendar>
+    </div>
+
+    <div class="dialog-footer">
+      <button pButton type="button" label="Cancel" class="p-button-text" (click)="createVisible = false"></button>
+      <button pButton type="submit" label="Create key" class="btn-brand"></button>
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  header="Save your API key"
+  [(visible)]="secretVisible"
+  [modal]="true"
+  [closable]="true"
+  (onHide)="closeSecretDialog()"
+  [style]="{ width: '36rem' }"
+  styleClass="admin-dialog secret-dialog"
+>
+  <div class="secret-banner">
+    <i class="pi pi-exclamation-triangle"></i>
+    <p>This secret is shown <strong>once</strong>. Copy it now and store it securely.</p>
+  </div>
+  <div class="secret-box">
+    <code>{{ createdSecret }}</code>
+  </div>
+  <div class="dialog-footer">
+    <button pButton type="button" label="Copy" icon="pi pi-copy" class="btn-brand" (click)="copySecret()"></button>
+    <button pButton type="button" label="Done" class="p-button-text" (click)="closeSecretDialog()"></button>
+  </div>
+</p-dialog>

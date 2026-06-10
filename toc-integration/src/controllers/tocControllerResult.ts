@@ -85,4 +85,33 @@ export class tocController {
       return res.status(error.response.status).json(error.response.data);
     }
   }
+
+  async getTocResultsByCategoryAndCode(req: Request, res: Response) {
+    const { category, official_code } = req.params;
+    const { phase } = req.query;
+
+    if (!category || !official_code) {
+      return res.status(400).json({
+        message: "Parameters 'category' and 'official_code' are required.",
+        statusCode: 400
+      });
+    }
+
+    try {
+      let servicesInformation = new TocServicesResults();
+      const data = await servicesInformation.getTocResultsByCategoryAndCode(
+        category,
+        official_code,
+        typeof phase === "string" ? phase : undefined
+      );
+      return res.json({ response: data });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        message: error.message || "An error occurred while fetching ToC results.",
+        statusCode: 500
+      });
+    }
+  }
 }
+
