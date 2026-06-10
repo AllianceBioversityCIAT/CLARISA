@@ -4,7 +4,8 @@ on:
   push:
     branches:
       - "dev-v2"
-      - "main"  
+      - "main"
+      - "staging"
   workflow_dispatch:
 
 jobs:
@@ -26,6 +27,9 @@ jobs:
               ;;
             dev-v2)
               job_name="clarisa-application-dev"
+              ;;
+            staging)
+              job_name="clarisa-application-staging"
               ;;
             *)
               echo "Unsupported target branch: $ref_name" >&2
