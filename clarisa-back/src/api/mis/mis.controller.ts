@@ -9,6 +9,8 @@ import {
   Post,
   UseGuards,
   Body,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { MisService } from './mis.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
@@ -25,6 +27,13 @@ export class MisController {
 
   @Post('create')
   @UseGuards(JwtAuthGuard, PermissionGuard)
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  )
   create(
     @GetUserData() userData: UserData,
     @Body() createMisDto: CreateMisDto,

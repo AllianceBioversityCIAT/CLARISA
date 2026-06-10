@@ -1,7 +1,7 @@
 # API Key Authentication Strategy for CLARISA
 
-> **Status:** Proposal  
-> **Last Updated:** 2026-05-14  
+> **Status:** In implementation (P2-2982 / P2-2992 foundation)  
+> **Last Updated:** 2026-06-04  
 > **Authors:** CLARISA Engineering Team
 
 ---
@@ -33,6 +33,8 @@ CLARISA currently uses a complex multi-step authentication flow for microservice
 - Enables instant revocation
 - Follows industry-standard `X-API-Key` header patterns
 - Integrates asynchronously with CLARISA's existing RBAC and environment scoping
+- Supports **dual use**: the same key can call **CLARISA internal APIs** directly (`X-API-Key` + guard) and be validated by **satellite microservices** via `POST /api/auth/validate-api-key`
+- Uses the existing **`environments` catalog** (e.g. `DEV`, `TEST`, `PROD`) for key prefix segments — not hardcoded `live` / `dev` / `stag` strings
 
 ---
 
@@ -103,7 +105,7 @@ Microservice authenticates with:
 │                                                         │
 │  Incoming Request → ApiKeyGuard → /validate-api-key    │
 │                                                         │
-│  Headers: X-API-Key: cl_live_a1b2c3d4...              │
+│  Headers: X-API-Key: cl_prod_a1b2c3d4...              │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -116,7 +118,26 @@ Microservice authenticates with:
 | **Logging** | Async via EventEmitter | Prevents latency penalty on the critical auth path |
 | **Key prefix** | Stored in plain text | Enables UI display and key identification without exposing the full secret |
 | **Key hash** | BCrypt | Consistent with existing CLARISA password hashing |
-| **Scopes** | JSON array | Flexible, extensible permission model |
+| **Environment** | `environments.acronym` (DB) | Same catalog as MIS; prefix segment = lowercase acronym (`PROD` → `cl_prod_`) |
+| **Scopes** | Canonical catalog (JSON array) | **Permissions** for CLARISA endpoints / MS capabilities — not other MIS identifiers |
+| **MIS link (`mis_id`)** | Optional owner identity | Audit, metrics, and admin UI — separate from scopes |
+
+### 3.3 Dual use and scope semantics
+
+| Field | Meaning | Example |
+|---|---|---|
+| **`mis_id`** | Who owns / uses the key (consumer identity) | Link to `PRMS`, `AICCRA-MS`, etc. |
+| **`scopes`** | What the key may do | `institutions:read`, `email:send`, `toc:read` |
+| **`environment`** | Which deployment tier the key belongs to | `PROD`, `DEV`, `TEST` (from `environments` table) |
+
+**Scopes are not MIS names.** Do not encode sender/receiver MIS pairs in `scopes`; that was the AppSecret model. Scopes gate CLARISA routes and microservice capabilities checked at validation time (`required_scope`).
+
+**Dual use of one key:**
+
+1. **Direct CLARISA API access** — Client sends `X-API-Key`; `ApiKeyGuard` / `CompositeAuthGuard` validates hash, environment, scopes, IP, expiry (P2-2993 / P2-2994).
+2. **Microservice validation** — MS calls `POST /api/auth/validate-api-key` with the caller's key and optional `required_scope`; CLARISA returns `valid`, `mis`, `environment`, `scopes`.
+
+Admin UI loads scopes from `GET /api/api-keys/scopes`; create rejects unknown scope values.
 
 ---
 
@@ -302,10 +323,10 @@ cl_[env]_[random_base62]
 
 Where:
   cl        = CLARISA prefix (identifies the issuer)
-  [env]     = environment code (live, dev, stag)
+  [env]     = lowercase segment from environments.acronym (e.g. prod, dev, test)
   [random]  = cryptographically random 40-char base62 string
 
-Example: cl_live_9f8d7e6c5b4a3b2a1c0d9e8f7g6h5i4j3k2l1m
+Example: cl_prod_9f8d7e6c5b4a3b2a1c0d9e8f7g6h5i4j3k2l1m
 ```
 
 ### 5.2 Key Prefix
@@ -314,7 +335,7 @@ The `key_prefix` column stores the first 16 characters for UI identification:
 
 | Full Key | Prefix Stored |
 |---|---|
-| `cl_live_9f8d7e6c5b4a3b2a1c0d...` | `cl_live_9f8d7e` |
+| `cl_prod_9f8d7e6c5b4a3b2a1c0d...` | `cl_prod_9f8d7e` |
 | `cl_dev_a1b2c3d4e5f6g7h8i9j0...` | `cl_dev_a1b2c3d` |
 
 ### 5.3 Generation Algorithm
@@ -346,12 +367,13 @@ All protected by `JwtAuthGuard` + `PermissionGuard` (admin role required).
 
 | Method | Path | Description | Request | Response |
 |---|---|---|---|---|
-| `POST` | `/api/api-keys/create` | Create a new API key | `CreateApiKeyDto` | `{ key: "cl_live_...", key_prefix: "cl_live_...", id }` |
+| `POST` | `/api/api-keys/create` | Create a new API key | `CreateApiKeyDto` | `{ key: "cl_prod_...", key_prefix: "cl_prod_...", id }` |
 | `GET` | `/api/api-keys` | List all keys | Query: `?show=active\|all\|inactive` | `ApiKeyDto[]` (no hash) |
-| `GET` | `/api/api-keys/:id` | Get key details | — | `ApiKeyDto` (no hash) |
+| `GET` | `/api/api-keys/scopes` | Scope catalog for admin UI | — | `ApiKeyScopeDefinition[]` |
+| `GET` | `/api/api-keys/get/:id` | Get key details | — | `ApiKeyDto` (no hash) |
 | `PATCH` | `/api/api-keys/:id/revoke` | Revoke (soft-delete) | — | `{ success: true }` |
 | `DELETE` | `/api/api-keys/:id` | Hard delete | — | `{ success: true }` |
-| `PATCH` | `/api/api-keys/:id/rotate` | Rotate key (revoke old + create new) | — | `{ key: "cl_live_...", key_prefix: "...", id }` |
+| `PATCH` | `/api/api-keys/:id/rotate` | Rotate key (revoke old + create new) | — | `{ key: "cl_prod_...", key_prefix: "...", id }` |
 | `GET` | `/api/api-keys/:id/usage` | Get usage metrics | Query: `?from=&to=&granularity=day\|month` | `UsageStatsDto` |
 | `GET` | `/api/api-keys/usage/summary` | Global usage summary | Query: `?from=&to=` | `UsageSummaryDto[]` |
 
@@ -360,13 +382,32 @@ All protected by `JwtAuthGuard` + `PermissionGuard` (admin role required).
 ```typescript
 export class CreateApiKeyDto {
     name: string;                     // Required. Human-readable name
-    mis_id?: number;                  // Optional. Link to existing MIS
-    scopes?: string[];               // Optional. e.g. ["email:send", "toc:read"]
-    environment?: string;            // Optional. "live", "dev", "stag"
+    mis_id?: number;                  // Optional. Consumer MIS (identity / audit)
+    scopes?: string[];               // Optional. From catalog — see 6.2.1
+    environment: string;              // Required. environments.acronym e.g. "PROD", "DEV"
     allowed_ips?: string[];          // Optional. IP whitelist
     expires_at?: string;             // Optional. ISO 8601 date
 }
 ```
+
+#### 6.2.1 Scope catalog (implemented)
+
+Source of truth: `clarisa-back/src/api/api-key/constants/api-key-scopes.ts`. Exposed via `GET /api/api-keys/scopes`. Create validates each scope with `@IsIn(API_KEY_SCOPE_VALUES)`.
+
+| Scope | Group | Purpose |
+|---|---|---|
+| `institutions:read` | CLARISA API | Read institutions / reference data |
+| `partner-requests:read` | CLARISA API | List/view partner requests |
+| `partner-requests:create` | CLARISA API | Create/update partner requests |
+| `mises:read` | CLARISA API | Read MIS registry |
+| `environments:read` | CLARISA API | Read environment catalog |
+| `toc:read` | CLARISA API | Read ToC results |
+| `toc:write` | CLARISA API | Write ToC resources |
+| `email:send` | Microservices | Send email via email MS flow |
+| `email:status` | Microservices | Query email delivery status |
+| `auth:validate-key` | Microservices | Allow MS to call validate-api-key |
+
+Add new scopes in the constants file and deploy; guards and `required_scope` checks reference the same strings.
 
 ### 6.3 `ValidateApiKeyDto` (the Microservice Validation Contract)
 
@@ -427,7 +468,7 @@ ApiKeyService.create()
     ├── 3. Store { key_prefix, key_hash, ... } in DB
     │
     ▼
-Response: { id, name, key: "cl_live_9f8d7e...", key_prefix: "cl_live_9f8d" }
+Response: { id, name, key: "cl_prod_9f8d7e...", key_prefix: "cl_prod_9f8d" }
 // ⚠️ key is only returned ONCE. User must save it immediately.
 ```
 
@@ -609,7 +650,7 @@ FROM api_keys;
 API Key Dashboard
 ═══════════════════════════════════════════════════════════════
 
- Key: cl_live_9f8d7e  →  Email Service PROD       ● Active
+ Key: cl_prod_9f8d7e  →  Email Service PROD       ● Active
 ─────────────────────────────────────────────────────────────
  Created:    10 May 2026 by admin@cgiar.org
  Last Used:  14 May 2026 15:32:01 (from 192.168.1.50)
@@ -658,7 +699,7 @@ API Key Dashboard
 {
     "valid": true,
     "mis": { "id": 5, "name": "Email Microservice", "acronym": "EMAIL" },
-    "environment": "live",
+    "environment": "PROD",
     "scopes": ["email:send", "email:status"]
 }
 
@@ -736,25 +777,76 @@ All key lifecycle events are logged via the existing `AuditableEntity`:
 
 ### 11.2 Phase 2: Validation Engine (Week 2)
 
-- [ ] Implement `ApiKeyService.validate()` with all checks (hash, active, scope, env, IP)
-- [ ] Implement `ApiKeyGuard` — a NestJS guard that can be used on endpoints
-- [ ] Create `/api/auth/validate-api-key` public endpoint
-- [ ] Add rate limiting to the validation endpoint
-- [ ] Implement async usage logging via EventEmitter
+- [x] Implement `ApiKeyService.validate()` with all checks (hash, active, scope, env, IP)
+- [x] Implement `ApiKeyGuard` — a NestJS guard that can be used on endpoints
+- [x] Create `/api/auth/validate-api-key` public endpoint
+- [x] Add rate limiting to the validation endpoint
+- [x] Implement async usage logging (`setImmediate` + `touchKeyUsage` for `last_used_at` / `usage_count`)
 
 ### 11.3 Phase 3: Integration (Week 3)
 
-- [ ] Add `ApiKeyGuard` alongside `JwtAuthGuard` on target endpoints
-- [ ] Add `X-API-Key` header detection to existing middleware
+**P2-2994 phase A (in progress):** hybrid auth infrastructure only — guards implemented, **no production controllers wired yet**.
+
+- [x] `CompositeAuthGuard` — `X-API-Key` or JWT (JWT unchanged when header absent)
+- [x] `HybridAuthorizationGuard` — API key → scope check via `ApiKeyGuard`; JWT → existing `PermissionGuard`
+- [x] `@GetApiKeyAuth()` request decorator
+- [x] Progressive rollout plan (see §11.3.1)
+- [ ] Wire hybrid guards on pilot endpoints (phase B — e.g. partner-request writes)
+- [ ] Add `X-API-Key` header detection in existing middleware (if needed beyond guards)
 - [ ] Update microservice configurations to use API keys
 - [ ] Create migration script to generate API keys for existing AppSecret relationships
 
+#### 11.3.1 Progressive rollout plan (P2-2994)
+
+Do **not** enable API key auth on all endpoints at once. Existing JWT panel users and AppSecret consumers must keep working during migration.
+
+| Phase | Scope | Endpoints | Notes |
+|-------|--------|-----------|--------|
+| **4.0** (current) | Infrastructure only | None | `CompositeAuthGuard`, `HybridAuthorizationGuard`, `@GetApiKeyAuth`, `@RequireApiKeyScope` — exported from `GuardsModule`; zero controller changes |
+| **4.1** | Pilot — partner-request **writes** | `POST create`, `PATCH update`, `POST respond`, `POST create-bulk` | Replace `@UseGuards(JwtAuthGuard, PermissionGuard)` with hybrid guards; add `@RequireApiKeyScope(...)` per handler; optional feature flag for TEST first |
+| **4.1** | Partner-request **reads** | `GET` routes | Stay **public** unless a future requirement mandates scoped reads |
+| **4.2+** | Additional modules | e.g. `institutions`, `toc` | One module at a time after pilot metrics |
+| **Excluded** | Admin / panel-only | `api-keys`, `users`, `roles`, permissions admin | **JWT only** — never API key |
+
+**Future controller pattern (partner-request write example — not applied in phase A):**
+
+```typescript
+import { CompositeAuthGuard } from '../../shared/guards/composite-auth.guard';
+import { HybridAuthorizationGuard } from '../../shared/guards/hybrid-authorization.guard';
+import { RequireApiKeyScope } from '../../shared/decorators/require-api-key-scope.decorator';
+import { GetApiKeyAuth } from '../../shared/decorators/get-api-key-auth.decorator';
+
+@Post('create')
+@UseGuards(CompositeAuthGuard, HybridAuthorizationGuard)
+@RequireApiKeyScope('partner-requests:create')
+async createPartnerRequest(
+  @GetUserData() userData: UserData,
+  @GetApiKeyAuth() apiKeyAuth: ApiKeyAuthContext | undefined,
+  @Body() dto: CreatePartnerRequestDto,
+) {
+  // JWT path: userData populated as today
+  // API-key path: apiKeyAuth.mis identifies the consumer; handler may branch if needed
+}
+```
+
+**Auth decision flow:**
+
+```
+Request
+  ├─ X-API-Key present? → ApiKeyGuard (hash, scope, IP, log clarisa-api + real path)
+  │                        → HybridAuthorizationGuard: skip PermissionGuard
+  └─ No X-API-Key        → JwtAuthGuard (unchanged)
+                           → HybridAuthorizationGuard → PermissionGuard (unchanged)
+```
+
+Import `GuardsModule` in the feature module when wiring phase B.
+
 ### 11.4 Phase 4: Observability & Dashboard (Week 4)
 
-- [ ] Build dashboard UI components (usage charts, key list, metrics)
-- [ ] Implement usage summary aggregation endpoints
-- [ ] Set up alerts for key expiration and anomaly detection
-- [ ] Create downloadable usage reports (CSV)
+- [x] Build dashboard UI — **Usage & Analytics** section in microservices admin (KPIs, timeline, MIS×microservice matrix, drill-down per key, activity log)
+- [x] Implement usage aggregation endpoints (`GET /api/api-keys/usage/summary`, `GET /api/api-keys/:id/usage`, `GET /api/api-keys/usage/logs`)
+- [x] CSV export of activity log from admin UI
+- [ ] Set up automated alerts for key expiration and anomaly detection
 
 ### 11.5 Phase 5: Deprecation (Week 5+)
 
@@ -765,25 +857,12 @@ All key lifecycle events are logged via the existing `AuditableEntity`:
 
 ### 11.6 Backward Compatibility
 
-During migration, both systems can coexist:
+During migration, JWT users, AppSecret consumers, and API-key platforms coexist. No endpoint is switched until its rollout phase (§11.3.1).
 
-```typescript
-// Guard that accepts both authentication methods
-@Injectable()
-export class CompositeAuthGuard implements CanActivate {
-    async canActivate(context: ExecutionContext): Promise<boolean> {
-        const request = context.switchToHttp().getRequest();
-        const apiKey = request.headers['x-api-key'];
+Implemented in `clarisa-back/src/shared/guards/`:
 
-        if (apiKey) {
-            return this.apiKeyGuard.validate(apiKey);
-        }
-
-        // Fall back to JWT (existing flow)
-        return this.jwtAuthGuard.canActivate(context);
-    }
-}
-```
+- `composite-auth.guard.ts` — `X-API-Key` → `ApiKeyGuard`; otherwise `JwtAuthGuard`
+- `hybrid-authorization.guard.ts` — API key → pass (scope already checked); JWT → `PermissionGuard`
 
 ---
 
@@ -821,22 +900,22 @@ POST /api/api-keys/create
     "name": "Email MS - Production",
     "mis_id": 5,
     "scopes": ["email:send", "email:status"],
-    "environment": "live"
+    "environment": "PROD"
 }
 
 Response:
 {
     "id": 42,
     "name": "Email MS - Production",
-    "key": "cl_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0",
-    "key_prefix": "cl_live_a1b2c3d"
+    "key": "cl_prod_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0",
+    "key_prefix": "cl_prod_a1b2c3d"
 }
 ```
 
 **Runtime (email service calls Email MS):**
 ```
 POST /api/email/send
-X-API-Key: cl_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0
+X-API-Key: cl_prod_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0
 Content-Type: application/json
 
 { "to": "user@example.com", "subject": "Hello", "body": "..." }
@@ -846,7 +925,7 @@ Content-Type: application/json
 ```
 POST /api/auth/validate-api-key
 {
-    "api_key": "cl_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0",
+    "api_key": "cl_prod_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0",
     "required_scope": "email:send",
     "microservice_name": "email-ms",
     "endpoint_accessed": "/api/email/send",
@@ -857,7 +936,7 @@ Response:
 {
     "valid": true,
     "mis": { "id": 5, "name": "Email Microservice", "acronym": "EMAIL" },
-    "environment": "live",
+    "environment": "PROD",
     "scopes": ["email:send", "email:status"]
 }
 ```
@@ -869,7 +948,7 @@ Response:
 **Response time:** ~5 seconds.
 
 1. Admin navigates to CLARISA Dashboard → API Keys
-2. Searches for the key by prefix (`cl_live_a1b2c3d`)
+2. Searches for the key by prefix (`cl_prod_a1b2c3d`)
 3. Clicks **Revoke**
 4. Done. All downstream validation immediately fails.
 

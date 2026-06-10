@@ -1,0 +1,15 @@
+<div class="ms-admin-layout">
+  <app-admin-sidebar
+    [activeSection]="activeSection"
+    (sectionChange)="setSection($event)"
+  ></app-admin-sidebar>
+
+  <main class="ms-admin-main">
+    <app-api-keys-panel *ngIf="activeSection === 'api-keys'"></app-api-keys-panel>
+    <app-api-key-usage-dashboard *ngIf="activeSection === 'usage'"></app-api-key-usage-dashboard>
+    <app-mises-panel *ngIf="activeSection === 'mises'"></app-mises-panel>
+  </main>
+</div>
+
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>
