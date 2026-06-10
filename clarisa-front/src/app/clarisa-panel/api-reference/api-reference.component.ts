@@ -3,15 +3,13 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { environment } from 'src/environments/environment';
 
 /**
- * PROPUESTA (no reemplaza la documentacion actual).
+ * Documentacion de API custom de CLARISA.
  *
- * Renderiza dinamicamente el spec OpenAPI que el back expone en
- * `${apiUrl}api-docs-json` (Swagger autogenerado desde los controllers/DTOs).
- *
- * Se monta dentro de un IFRAME (assets/api-reference/index.html) para AISLAR
- * Scalar del CSS global del template CLARISA (Bootstrap/PrimeNG), que de otro
- * modo deforma sus inputs/botones. El iframe usa Scalar por CDN, asi que no se
- * agregan dependencias al package.json mientras es propuesta.
+ * Se monta dentro de un IFRAME (assets/api-reference/index.html) para AISLAR la
+ * doc del CSS global del template CLARISA (Bootstrap/PrimeNG), que de otro modo
+ * deforma sus inputs/botones. La app del iframe consume el spec OpenAPI
+ * (`${apiUrl}api-docs-json`, zero-leak) y la data en vivo de cada control list,
+ * por eso recibe la URL base del API por query param `?api=`.
  */
 @Component({
   selector: 'app-api-reference',
@@ -19,15 +17,12 @@ import { environment } from 'src/environments/environment';
   styleUrls: ['./api-reference.component.scss'],
 })
 export class ApiReferenceComponent {
-  /** URL del spec OpenAPI servido por el back. */
-  specUrl = `${environment.apiUrl}api-docs-json`;
-
-  /** Pagina aislada de Scalar, con el spec pasado por query param. */
+  /** Pagina aislada de la doc, con la URL base del API pasada por query param. */
   iframeUrl: SafeResourceUrl;
 
   constructor(sanitizer: DomSanitizer) {
-    const url = `assets/api-reference/index.html?spec=${encodeURIComponent(
-      this.specUrl
+    const url = `assets/api-reference/index.html?api=${encodeURIComponent(
+      environment.apiUrl
     )}`;
     this.iframeUrl = sanitizer.bypassSecurityTrustResourceUrl(url);
   }

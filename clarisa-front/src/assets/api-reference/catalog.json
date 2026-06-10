@@ -1,5 +1,5 @@
 {
-  "_comment": "Map of CLARISA's public documentation: which endpoints are shown and under which category. Hand-editable. Drives the filtering + grouping of the api-reference (Scalar) view. Source: context/documentation-endpoints-map.md (verified vs prod 2026-06-01).",
+  "_comment": "Map of CLARISA's public documentation: which endpoints are shown and under which category. Hand-editable. Drives the grouping of the api-reference view. Mirrors the CURRENT public docs (4 categories under One CGIAR Control List, verified vs prod 2026-06-10). See CATALOG.md for how to add endpoints. Source: context/documentation-endpoints-map.md.",
   "groups": [
     {
       "group": "One CGIAR Control List",
@@ -8,102 +8,199 @@
           "name": "General Control List",
           "description": "General control lists identified by the Management Information Systems during the Annual Reporting, reusable for interoperability across CGIAR platforms.",
           "endpoints": [
-            { "name": "CGIAR entities", "route": "api/cgiar-entities", "method": "get" },
-            { "name": "CGIAR entities Types", "route": "api/cgiar-entity-types", "method": "get" },
-            { "name": "Countries", "route": "api/countries", "method": "get" },
-            { "name": "UN Regions", "route": "api/regions/un-regions", "method": "get" },
-            { "name": "One CGIAR Regions", "route": "api/regions/one-cgiar-regions", "method": "get" },
-            { "name": "CGIAR Acronyms", "route": "api/acronyms", "method": "get" },
-            { "name": "Glossary", "route": "api/glossary", "method": "get" }
+            {
+              "name": "CGIAR entities",
+              "route": "api/cgiar-entities",
+              "method": "get"
+            },
+            {
+              "name": "CGIAR entities Types",
+              "route": "api/cgiar-entity-types",
+              "method": "get"
+            },
+            {
+              "name": "Countries",
+              "route": "api/countries",
+              "method": "get"
+            },
+            {
+              "name": "UN Regions",
+              "route": "api/regions/un-regions",
+              "method": "get"
+            },
+            {
+              "name": "One CGIAR Regions",
+              "route": "api/regions/one-cgiar-regions",
+              "method": "get"
+            },
+            {
+              "name": "CGIAR Acronyms",
+              "route": "api/acronyms",
+              "method": "get"
+            },
+            {
+              "name": "Glossary",
+              "route": "api/glossary",
+              "method": "get"
+            }
           ]
         },
         {
           "name": "Institutions",
           "description": "Official list of institutions, their relationship dictionary and the institution types.",
           "endpoints": [
-            { "name": "Institutions List", "route": "api/institutions", "method": "get" },
-            { "name": "Institutions Related List", "route": "api/institution-dictionary", "method": "get" },
-            { "name": "Institution Types", "route": "api/institution-types", "method": "get" }
+            {
+              "name": "Institutions List",
+              "route": "api/institutions",
+              "method": "get"
+            },
+            {
+              "name": "Institutions Related List",
+              "route": "api/institution-dictionary",
+              "method": "get"
+            },
+            {
+              "name": "Institution Types",
+              "route": "api/institution-types",
+              "method": "get"
+            }
           ]
         },
         {
           "name": "Research Strategy 2030",
           "description": "Structure of the One CGIAR Research Strategy 2030: action areas, impact areas, SDGs, initiatives and outcomes.",
           "endpoints": [
-            { "name": "Action Areas", "route": "api/action-areas", "method": "get" },
-            { "name": "Impact Areas", "route": "api/impact-areas", "method": "get" },
-            { "name": "Impact Areas Indicators", "route": "api/impact-area-indicators", "method": "get" },
-            { "name": "Sustainable Development Goals", "route": "api/sdgs", "method": "get" },
-            { "name": "SDG Targets", "route": "api/sdg-targets", "method": "get" },
-            { "name": "SDG Indicators", "route": "api/sdg-indicators", "method": "get" },
-            { "name": "Initiatives", "route": "api/initiatives", "method": "get" },
-            { "name": "End of Initiative Outcomes", "route": "api/end-of-initiative-outcomes", "method": "get" },
-            { "name": "Action Areas Outcomes", "route": "api/action-area-outcomes", "method": "get" },
-            { "name": "Action Areas Outcome Indicators", "route": "api/action-area-outcome-indicators", "method": "get" },
-            { "name": "Workpackages", "route": "api/workpackages", "method": "get" },
-            { "name": "MELIA study types", "route": "api/study-types", "method": "get" }
+            {
+              "name": "Action Areas",
+              "route": "api/action-areas",
+              "method": "get"
+            },
+            {
+              "name": "Impact Areas",
+              "route": "api/impact-areas",
+              "method": "get"
+            },
+            {
+              "name": "Impact Areas Indicators",
+              "route": "api/impact-area-indicators",
+              "method": "get"
+            },
+            {
+              "name": "Sustainable Development Goals",
+              "route": "api/sdgs",
+              "method": "get"
+            },
+            {
+              "name": "SDG Targets",
+              "route": "api/sdg-targets",
+              "method": "get"
+            },
+            {
+              "name": "SDG Indicators",
+              "route": "api/sdg-indicators",
+              "method": "get"
+            },
+            {
+              "name": "Initiatives",
+              "route": "api/initiatives",
+              "method": "get"
+            },
+            {
+              "name": "End of Initiative Outcomes",
+              "route": "api/end-of-initiative-outcomes",
+              "method": "get"
+            },
+            {
+              "name": "Action Areas Outcomes",
+              "route": "api/action-area-outcomes",
+              "method": "get"
+            },
+            {
+              "name": "Action Areas Outcome Indicators",
+              "route": "api/action-area-outcome-indicators",
+              "method": "get"
+            },
+            {
+              "name": "Workpackages",
+              "route": "api/workpackages",
+              "method": "get"
+            },
+            {
+              "name": "MELIA study types",
+              "route": "api/study-types",
+              "method": "get"
+            }
           ]
         },
         {
           "name": "Innovation Catalog",
           "description": "Control lists of the CGIAR innovation catalog.",
           "endpoints": [
-            { "name": "Business Category", "route": "api/business-categories", "method": "get" },
-            { "name": "Technical Field", "route": "api/technical-fields", "method": "get" },
-            { "name": "Type of Innovation", "route": "api/innovation-types", "method": "get" },
-            { "name": "Governance Type", "route": "api/governance-types", "method": "get" },
-            { "name": "Environmental Benefits", "route": "api/environmental-benefits", "method": "get" },
-            { "name": "Technology Development Stage", "route": "api/technology-development-stages", "method": "get" },
-            { "name": "Innovation Readiness Levels", "route": "api/innovation-readiness-levels", "method": "get" },
-            { "name": "Administrative Scale", "route": "api/administrative-scales", "method": "get" },
-            { "name": "Users", "route": "api/oc-users", "method": "get" },
-            { "name": "Beneficiaries", "route": "api/beneficiaries", "method": "get" },
-            { "name": "Type of Investment", "route": "api/investment-types", "method": "get" },
-            { "name": "Innovation Use Levels", "route": "api/innovation-use-levels", "method": "get" },
-            { "name": "Innovation Nature", "route": "api/innovation-characteristics", "method": "get" }
-          ]
-        }
-      ]
-    },
-    {
-      "group": "One CGIAR Operation",
-      "categories": [
-        {
-          "name": "CGIAR Entities",
-          "description": "CGIAR entities and their types.",
-          "endpoints": [
-            { "name": "CGIAR entities", "route": "api/cgiar-entities", "method": "get" },
-            { "name": "CGIAR entities Types", "route": "api/cgiar-entity-types", "method": "get" }
-          ]
-        },
-        {
-          "name": "CGIAR Accounts",
-          "description": "Accounts and account types.",
-          "endpoints": [
-            { "name": "Accounts", "route": "api/accounts", "method": "get" },
-            { "name": "Account Types", "route": "api/account-types", "method": "get" }
-          ]
-        },
-        {
-          "name": "CGIAR Science Groups",
-          "description": "One CGIAR science groups.",
-          "endpoints": [
-            { "name": "Science groups", "route": "api/science-groups", "method": "get" }
-          ]
-        },
-        {
-          "name": "CGIAR Units",
-          "description": "Organizational units.",
-          "endpoints": [
-            { "name": "Units", "route": "api/units", "method": "get" }
-          ]
-        },
-        {
-          "name": "CGIAR Impact Areas",
-          "description": "Impact areas and SDGs in an operational context.",
-          "endpoints": [
-            { "name": "Impact Areas", "route": "api/impact-areas", "method": "get" },
-            { "name": "Sustainable Development Goals", "route": "api/sdgs", "method": "get" }
+            {
+              "name": "Business Category",
+              "route": "api/business-categories",
+              "method": "get"
+            },
+            {
+              "name": "Technical Field",
+              "route": "api/technical-fields",
+              "method": "get"
+            },
+            {
+              "name": "Type of Innovation",
+              "route": "api/innovation-types",
+              "method": "get"
+            },
+            {
+              "name": "Governance Type",
+              "route": "api/governance-types",
+              "method": "get"
+            },
+            {
+              "name": "Environmental Benefits",
+              "route": "api/environmental-benefits",
+              "method": "get"
+            },
+            {
+              "name": "Technology Development Stage",
+              "route": "api/technology-development-stages",
+              "method": "get"
+            },
+            {
+              "name": "Innovation Readiness Levels",
+              "route": "api/innovation-readiness-levels",
+              "method": "get"
+            },
+            {
+              "name": "Administrative Scale",
+              "route": "api/administrative-scales",
+              "method": "get"
+            },
+            {
+              "name": "Users",
+              "route": "api/oc-users",
+              "method": "get"
+            },
+            {
+              "name": "Beneficiaries",
+              "route": "api/beneficiaries",
+              "method": "get"
+            },
+            {
+              "name": "Type of Investment",
+              "route": "api/investment-types",
+              "method": "get"
+            },
+            {
+              "name": "Innovation Use Levels",
+              "route": "api/innovation-use-levels",
+              "method": "get"
+            },
+            {
+              "name": "Innovation Nature",
+              "route": "api/innovation-characteristics",
+              "method": "get"
+            }
           ]
         }
       ]
