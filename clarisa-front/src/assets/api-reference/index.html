@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLARISA · API Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            clarisa: {
+              50: '#eff7ff', 100: '#dbecfe', 200: '#bfdffe', 300: '#93cbfd',
+              400: '#60aefa', 500: '#3b8ef6', 600: '#0065bd', 700: '#0058a5',
+              800: '#064a87', 900: '#0b3e70', 950: '#07274a',
+            },
+            leaf: {
+              50: '#f7fbe9', 100: '#ebf4d9', 200: '#d8eaae', 300: '#bcdb78',
+              400: '#a0c94a', 500: '#7ab800', 600: '#669a00', 700: '#4e7600',
+              800: '#405e06', 900: '#37500a',
+            },
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          boxShadow: {
+            card: '0 1px 2px rgba(7,39,74,.06), 0 4px 16px rgba(7,39,74,.07)',
+            pop: '0 8px 30px rgba(7,39,74,.14)',
+          },
+        },
+      },
+    };
+  </script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    ::-webkit-scrollbar { width: 9px; height: 9px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #c4d4e4; border-radius: 9px; border: 2px solid #f8fafc; }
+    ::-webkit-scrollbar-thumb:hover { background: #9db8d2; }
+    .fade-in { animation: fadeIn .25s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .skeleton { animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+    table.data th { position: sticky; top: 0; z-index: 5; }
+  </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 antialiased">
+
+  <!-- ░░ TOPBAR ░░ -->
+  <header class="fixed inset-x-0 top-0 z-40 h-16 border-b border-slate-200/80 bg-white/90 backdrop-blur">
+    <div class="flex h-full items-center gap-4 px-5">
+      <a href="#" onclick="goHome();return false" class="flex items-center gap-3 shrink-0">
+        <div class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-clarisa-600 to-clarisa-800 text-white font-extrabold text-sm shadow-card">C</div>
+        <div class="leading-tight">
+          <div class="font-extrabold tracking-tight text-clarisa-700 text-[15px]">CLARISA</div>
+          <div class="text-[11px] font-medium text-slate-400 -mt-0.5">API Documentation</div>
+        </div>
+      </a>
+      <div class="relative ml-2 hidden md:block w-[420px]">
+        <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
+        <input id="globalSearch" type="text" placeholder="Search endpoints…  ( / )"
+          class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-clarisa-400 focus:bg-white focus:ring-4 focus:ring-clarisa-100" />
+      </div>
+      <div class="ml-auto"></div>
+    </div>
+  </header>
+
+  <!-- ░░ LAYOUT ░░ -->
+  <div class="flex pt-16">
+
+    <!-- SIDEBAR -->
+    <aside class="fixed bottom-0 left-0 top-16 z-30 w-72 overflow-y-auto border-r border-slate-200/80 bg-white px-3 py-5">
+      <div id="sidebar"></div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="ml-72 min-h-[calc(100vh-4rem)] flex-1 px-8 py-8">
+      <div id="main" class="mx-auto max-w-6xl"></div>
+    </main>
+  </div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   CLARISA API Documentation — custom proposal (no Scalar)
+   Data sources:
+     · catalog.json  → curated hierarchy  group > category > endpoint
+     · {API}/api-docs-json → OpenAPI spec (descriptions + schemas)
+     · {API}/<route> → live data, rendered as table + Excel export
+   ════════════════════════════════════════════════════════════════════ */
+
+const API_BASE = (new URLSearchParams(location.search).get('api') || 'http://localhost:3000/').replace(/\/?$/, '/');
+
+const state = {
+  catalog: null, spec: null,
+  current: null,            // { group, category, endpoint }
+  rows: [], columns: [],    // flattened data of current endpoint
+  filtered: [],
+  sortKey: null, sortDir: 1,
+  page: 1, pageSize: 25,
+  tab: 'table',
+  cache: new Map(),
+};
+
+const $  = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ── boot ─────────────────────────────────────────────────────────── */
+(async function boot() {
+  try {
+    // no-store: catalog and spec are tiny and must always reflect the latest
+    // deploy (a cached catalog.json would show stale categories)
+    const [catalog, spec] = await Promise.all([
+      fetch('catalog.json', { cache: 'no-store' }).then(r => r.json()),
+      fetch(API_BASE + 'api-docs-json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+    ]);
+    state.catalog = catalog;
+    state.spec = spec;
+    renderSidebar();
+    goHome();
+  } catch (e) {
+    $('#main').innerHTML = `<div class="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">Could not load catalog.json — ${esc(e)}</div>`;
+  }
+})();
+
+/* ── sidebar ──────────────────────────────────────────────────────── */
+function renderSidebar(filter = '') {
+  const q = filter.trim().toLowerCase();
+  let html = '';
+  state.catalog.groups.forEach((g, gi) => {
+    const cats = g.categories.map((c, ci) => {
+      const eps = c.endpoints.filter(ep => !q || ep.name.toLowerCase().includes(q) || ep.route.toLowerCase().includes(q));
+      if (q && !eps.length && !c.name.toLowerCase().includes(q)) return '';
+      const list = (q ? eps : c.endpoints).map(ep => `
+        <button onclick='selectEndpoint(${gi},${ci},${JSON.stringify(ep.route)})'
+          data-route="${esc(ep.route)}"
+          class="ep-btn group flex w-full items-center gap-2 rounded-lg px-3 py-[7px] text-left text-[13px] font-medium text-slate-500 transition hover:bg-clarisa-50 hover:text-clarisa-700">
+          <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300 transition group-hover:bg-leaf-500"></span>
+          <span class="truncate">${esc(ep.name)}</span>
+        </button>`).join('');
+      return `
+        <details class="cat mb-1" ${q ? 'open' : ''} data-cat="${gi}-${ci}">
+          <summary class="flex cursor-pointer select-none items-center justify-between rounded-lg px-3 py-2 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-100">
+            <span class="truncate">${esc(c.name)}</span>
+            <span class="ml-2 shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400">${c.endpoints.length}</span>
+          </summary>
+          <div class="ml-2 border-l border-slate-200 pl-2 pt-1">${list}</div>
+        </details>`;
+    }).join('');
+    if (q && !cats.trim()) return;
+    html += `
+      <div class="mb-5">
+        <div class="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.14em] text-clarisa-600/70">${esc(g.group)}</div>
+        ${cats}
+      </div>`;
+  });
+  $('#sidebar').innerHTML = html || '<div class="px-3 py-6 text-sm text-slate-400">No endpoints match your search.</div>';
+  highlightActive();
+}
+
+function highlightActive() {
+  document.querySelectorAll('.ep-btn').forEach(b => {
+    const active = state.current && b.dataset.route === state.current.endpoint.route;
+    b.classList.toggle('bg-clarisa-50', active);
+    b.classList.toggle('text-clarisa-700', active);
+    b.classList.toggle('font-semibold', active);
+    if (active) b.closest('details')?.setAttribute('open', '');
+  });
+}
+
+$('#globalSearch').addEventListener('input', e => renderSidebar(e.target.value));
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#globalSearch').focus(); }
+});
+
+/* ── home / welcome ───────────────────────────────────────────────── */
+function goHome() {
+  state.current = null;
+  highlightActive();
+  const c = state.catalog;
+  const nCats = c.groups.reduce((a, g) => a + g.categories.length, 0);
+  const nEps  = c.groups.reduce((a, g) => a + g.categories.reduce((b, x) => b + x.endpoints.length, 0), 0);
+
+  const groupCards = c.groups.map((g, gi) => `
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+      <div class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-clarisa-600/70">Group</div>
+      <h3 class="mb-4 text-lg font-bold text-clarisa-800">${esc(g.group)}</h3>
+      <div class="flex flex-wrap gap-2">
+        ${g.categories.map((cat, ci) => `
+          <button onclick="openFirstOf(${gi},${ci})"
+            class="rounded-full border border-clarisa-100 bg-clarisa-50 px-3.5 py-1.5 text-xs font-semibold text-clarisa-700 transition hover:border-leaf-300 hover:bg-leaf-100 hover:text-leaf-800">
+            ${esc(cat.name)} <span class="opacity-50">· ${cat.endpoints.length}</span>
+          </button>`).join('')}
+      </div>
+    </div>`).join('');
+
+  $('#main').innerHTML = `
+    <div class="fade-in">
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-clarisa-700 via-clarisa-800 to-clarisa-950 p-10 text-white shadow-pop">
+        <div class="absolute -right-16 -top-24 h-72 w-72 rounded-full bg-leaf-500/15 blur-2xl"></div>
+        <div class="absolute -bottom-28 right-32 h-64 w-64 rounded-full bg-clarisa-400/15 blur-2xl"></div>
+        <div class="relative">
+          <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-leaf-200">CGIAR · catalogs as a service</div>
+          <h1 class="text-3xl font-extrabold tracking-tight md:text-4xl">Explore CLARISA's official control lists</h1>
+          <p class="mt-3 max-w-2xl text-[15px] leading-relaxed text-clarisa-100">
+            Browse every public list as a <b class="text-white">live table</b>, download it to
+            <b class="text-white">Excel</b> in one click, or grab the <b class="text-white">JSON / code snippets</b>
+            if you are integrating a system. Pick a category on the left to start.
+          </p>
+          <div class="mt-7 flex flex-wrap gap-3">
+            ${[ [c.groups.length,'Groups'], [nCats,'Categories'], [nEps,'Endpoints'] ].map(([n, l]) => `
+              <div class="rounded-2xl bg-white/10 px-5 py-3 backdrop-blur">
+                <div class="text-2xl font-extrabold text-leaf-300">${n}</div>
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-clarisa-200">${l}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="mt-8 grid gap-5 lg:grid-cols-2">${groupCards}</div>
+      <div class="mt-8 flex items-start gap-3 rounded-2xl border border-leaf-200 bg-leaf-50 p-5">
+        <div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-leaf-500 font-bold text-white">i</div>
+        <div class="text-sm leading-relaxed text-leaf-900">
+          <b>New here?</b> Every endpoint page has two faces: the <b>Table</b> tab is made for analysts and
+          non-technical users (filter, sort, export to Excel); the <b>JSON, Schema and Code</b> tabs are made
+          for developers integrating CLARISA into their platforms.
+        </div>
+      </div>
+    </div>`;
+}
+
+function openFirstOf(gi, ci) {
+  const ep = state.catalog.groups[gi].categories[ci].endpoints[0];
+  if (ep) selectEndpoint(gi, ci, ep.route);
+}
+
+/* ── endpoint page ────────────────────────────────────────────────── */
+function specOpFor(route) {
+  const p = '/' + route.replace(/^\/+/, '');
+  return state.spec?.paths?.[p]?.get || null;
+}
+
+async function selectEndpoint(gi, ci, route) {
+  const group = state.catalog.groups[gi];
+  const category = group.categories[ci];
+  const endpoint = category.endpoints.find(e => e.route === route);
+  state.current = { group, category, endpoint };
+  state.tab = 'table'; state.page = 1; state.sortKey = null;
+  highlightActive();
+  renderEndpointShell(true);
+
+  try {
+    let raw = state.cache.get(route);
+    if (!raw) {
+      raw = await fetch(API_BASE + route).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+      state.cache.set(route, raw);
+    }
+    const arr = Array.isArray(raw) ? raw : [raw];
+    state.rows = arr.map(r => flatten(r));
+    state.columns = deriveColumns(state.rows);
+    state.filtered = state.rows;
+    if (state.current?.endpoint.route === route) renderEndpointShell(false);
+  } catch (e) {
+    if (state.current?.endpoint.route === route) renderEndpointShell(false, String(e));
+  }
+}
+
+function flatten(obj, prefix = '', depth = 0, out = {}) {
+  if (obj === null || typeof obj !== 'object') { out[prefix || 'value'] = obj; return out; }
+  for (const [k, v] of Object.entries(obj)) {
+    const key = prefix ? prefix + '.' + k : k;
+    if (v && typeof v === 'object' && !Array.isArray(v) && depth < 2) flatten(v, key, depth + 1, out);
+    else if (Array.isArray(v)) out[key] = v.map(x => (x && typeof x === 'object') ? (x.name ?? x.code ?? x.acronym ?? JSON.stringify(x)) : x).join(', ');
+    else out[key] = v;
+  }
+  return out;
+}
+
+function deriveColumns(rows) {
+  const cols = [];
+  const seen = new Set();
+  rows.slice(0, 200).forEach(r => Object.keys(r).forEach(k => { if (!seen.has(k)) { seen.add(k); cols.push(k); } }));
+  return cols;
+}
+
+function renderEndpointShell(loading, error = null) {
+  const { group, category, endpoint } = state.current;
+  const op = specOpFor(endpoint.route);
+  const desc = op?.description || op?.summary || category.description || '';
+  const inSpec = !!op;
+
+  $('#main').innerHTML = `
+    <div class="fade-in">
+      <nav class="mb-3 flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+        <button onclick="goHome()" class="transition hover:text-clarisa-600">Home</button>
+        <span>/</span><span>${esc(group.group)}</span>
+        <span>/</span><span class="text-clarisa-600">${esc(category.name)}</span>
+      </nav>
+
+      <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
+        <div class="max-w-3xl">
+          <h1 class="text-2xl font-extrabold tracking-tight text-clarisa-800">${esc(endpoint.name)}</h1>
+          ${desc ? `<p class="mt-1.5 text-[14px] leading-relaxed text-slate-500">${esc(desc)}</p>` : ''}
+        </div>
+        ${!inSpec && state.spec ? '<span class="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold text-amber-700">not in public spec</span>' : ''}
+      </div>
+
+      <div class="mb-6 flex items-center gap-0 overflow-hidden rounded-2xl border border-leaf-300 bg-leaf-50 shadow-card">
+        <span class="m-2 rounded-xl bg-leaf-500 px-4 py-2 font-mono text-[13px] font-bold text-white">GET</span>
+        <code class="flex-1 truncate font-mono text-[13px] font-medium text-slate-700">${esc(API_BASE + endpoint.route)}</code>
+        <button onclick="copyText('${esc(API_BASE + endpoint.route)}', this)"
+          class="m-2 rounded-xl border border-leaf-300 bg-white px-3.5 py-2 text-xs font-bold text-leaf-700 transition hover:bg-leaf-100">Copy</button>
+        <a href="${esc(API_BASE + endpoint.route)}" target="_blank"
+          class="m-2 ml-0 rounded-xl border border-leaf-300 bg-white px-3.5 py-2 text-xs font-bold text-leaf-700 transition hover:bg-leaf-100">Open ↗</a>
+      </div>
+
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex rounded-xl border border-slate-200 bg-white p-1 shadow-card">
+          ${['table:Table','json:JSON','schema:Schema','code:Code'].map(t => {
+            const [id, label] = t.split(':');
+            const on = state.tab === id;
+            return `<button onclick="setTab('${id}')"
+              class="rounded-lg px-4 py-1.5 text-[13px] font-semibold transition ${on ? 'bg-clarisa-600 text-white shadow' : 'text-slate-500 hover:text-clarisa-700'}">${label}</button>`;
+          }).join('')}
+        </div>
+        <div class="flex items-center gap-2" id="exportZone"></div>
+      </div>
+
+      <div id="tabBody"></div>
+    </div>`;
+
+  if (loading) {
+    $('#tabBody').innerHTML = `
+      <div class="rounded-2xl border border-slate-200 bg-white p-16 text-center shadow-card">
+        <svg class="spin mx-auto h-8 w-8 text-clarisa-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+        <div class="mt-4 text-sm font-semibold text-slate-500">Fetching live data…</div>
+        <div class="mt-1 text-xs text-slate-400">Large lists (e.g. Institutions) can take a few seconds.</div>
+      </div>`;
+    return;
+  }
+  if (error) {
+    $('#tabBody').innerHTML = `
+      <div class="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+        <div class="text-sm font-bold text-red-700">Could not load this endpoint</div>
+        <div class="mt-1 font-mono text-xs text-red-500">${esc(error)}</div>
+        <button onclick='selectEndpointRetry()' class="mt-4 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700">Retry</button>
+      </div>`;
+    return;
+  }
+  renderTab();
+}
+
+function selectEndpointRetry() {
+  const { group, category, endpoint } = state.current;
+  const gi = state.catalog.groups.indexOf(group), ci = group.categories.indexOf(category);
+  state.cache.delete(endpoint.route);
+  selectEndpoint(gi, ci, endpoint.route);
+}
+
+function setTab(t) { state.tab = t; renderEndpointShell(false); }
+
+/* ── tabs ─────────────────────────────────────────────────────────── */
+function renderTab() {
+  const zone = $('#exportZone');
+  zone.innerHTML = '';
+  if (state.tab === 'table') {
+    zone.innerHTML = `
+      <span class="mr-1 rounded-full bg-clarisa-50 px-3 py-1.5 text-xs font-bold text-clarisa-700">${state.filtered.length.toLocaleString()} records</span>
+      <button onclick="exportExcel()" class="flex items-center gap-1.5 rounded-xl bg-leaf-500 px-4 py-2 text-xs font-bold text-white shadow-card transition hover:bg-leaf-600">
+        <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v8.6l2.3-2.3a1 1 0 111.4 1.4l-4 4a1 1 0 01-1.4 0l-4-4a1 1 0 111.4-1.4L9 11.6V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011 1v1h12v-1a1 1 0 112 0v2a1 1 0 01-1 1H3a1 1 0 01-1-1v-2a1 1 0 011-1z"/></svg>
+        Excel</button>
+      <button onclick="exportCSV()" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-clarisa-300 hover:text-clarisa-700">CSV</button>
+      <button onclick="exportJSON()" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-clarisa-300 hover:text-clarisa-700">JSON</button>`;
+  }
+  if (state.tab === 'table')  return renderTable();
+  if (state.tab === 'json')   return renderJSON();
+  if (state.tab === 'schema') return renderSchema();
+  if (state.tab === 'code')   return renderCode();
+}
+
+/* ── TABLE tab ────────────────────────────────────────────────────── */
+function renderTable() {
+  const total = state.filtered.length;
+  const pages = Math.max(1, Math.ceil(total / state.pageSize));
+  state.page = Math.min(state.page, pages);
+  const start = (state.page - 1) * state.pageSize;
+  const rows = state.filtered.slice(start, start + state.pageSize);
+
+  const ths = state.columns.map(c => {
+    const on = state.sortKey === c;
+    return `<th onclick="sortBy('${esc(c)}')"
+      class="cursor-pointer select-none whitespace-nowrap border-b border-slate-200 bg-clarisa-700 px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white transition hover:bg-clarisa-600">
+      ${esc(c)} <span class="${on ? 'text-leaf-300' : 'text-clarisa-300/40'}">${on ? (state.sortDir > 0 ? '▲' : '▼') : '↕'}</span></th>`;
+  }).join('');
+
+  const trs = rows.map((r, i) => `
+    <tr class="${i % 2 ? 'bg-slate-50/60' : 'bg-white'} transition hover:bg-leaf-50">
+      ${state.columns.map(c => {
+        let v = r[c];
+        if (v === null || v === undefined || v === '') return '<td class="border-b border-slate-100 px-4 py-2.5 text-slate-300">—</td>';
+        if (typeof v === 'boolean') return `<td class="border-b border-slate-100 px-4 py-2.5">${v ? '<span class="font-bold text-leaf-600">✓ yes</span>' : '<span class="font-semibold text-slate-400">✗ no</span>'}</td>`;
+        v = String(v);
+        const long = v.length > 120;
+        return `<td class="max-w-[420px] truncate border-b border-slate-100 px-4 py-2.5 text-[13px] text-slate-600" ${long ? `title="${esc(v)}"` : ''}>${esc(long ? v.slice(0, 120) + '…' : v)}</td>`;
+      }).join('')}
+    </tr>`).join('');
+
+  $('#tabBody').innerHTML = `
+    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+      <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3">
+        <div class="relative flex-1 min-w-[220px] max-w-sm">
+          <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
+          <input id="tableSearch" type="text" placeholder="Filter ${state.rows.length.toLocaleString()} records…"
+            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-[13px] outline-none transition focus:border-clarisa-400 focus:bg-white focus:ring-4 focus:ring-clarisa-100" />
+        </div>
+        <div class="ml-auto flex items-center gap-2 text-xs font-semibold text-slate-400">
+          Rows
+          <select id="pageSize" class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-bold text-slate-600 outline-none">
+            ${[25, 50, 100, 250].map(n => `<option ${n === state.pageSize ? 'selected' : ''}>${n}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="max-h-[58vh] overflow-auto">
+        <table class="data w-full border-collapse text-sm"><thead><tr>${ths}</tr></thead><tbody>${trs ||
+          `<tr><td colspan="${state.columns.length}" class="px-4 py-12 text-center text-sm text-slate-400">No records match your filter.</td></tr>`}</tbody></table>
+      </div>
+      <div class="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs font-semibold text-slate-500">
+        <span>Showing <b class="text-clarisa-700">${total ? (start + 1).toLocaleString() : 0}–${Math.min(start + state.pageSize, total).toLocaleString()}</b> of <b class="text-clarisa-700">${total.toLocaleString()}</b></span>
+        <div class="flex items-center gap-1.5">
+          <button onclick="setPage(${state.page - 1})" ${state.page <= 1 ? 'disabled' : ''} class="rounded-lg border border-slate-200 px-3 py-1.5 transition enabled:hover:border-clarisa-300 enabled:hover:text-clarisa-700 disabled:opacity-40">← Prev</button>
+          <span class="px-2">Page <b class="text-clarisa-700">${state.page}</b> / ${pages.toLocaleString()}</span>
+          <button onclick="setPage(${state.page + 1})" ${state.page >= pages ? 'disabled' : ''} class="rounded-lg border border-slate-200 px-3 py-1.5 transition enabled:hover:border-clarisa-300 enabled:hover:text-clarisa-700 disabled:opacity-40">Next →</button>
+        </div>
+      </div>
+    </div>`;
+
+  let deb;
+  $('#tableSearch').addEventListener('input', e => {
+    clearTimeout(deb);
+    deb = setTimeout(() => {
+      const q = e.target.value.trim().toLowerCase();
+      state.filtered = !q ? state.rows : state.rows.filter(r => state.columns.some(c => String(r[c] ?? '').toLowerCase().includes(q)));
+      state.page = 1;
+      applySort(false);
+      renderTab();
+      const inp = $('#tableSearch'); inp.value = e.target.value; inp.focus(); inp.setSelectionRange(q.length + 99, q.length + 99);
+    }, 250);
+  });
+  $('#pageSize').addEventListener('change', e => { state.pageSize = +e.target.value; state.page = 1; renderTable(); });
+}
+
+function setPage(p) { state.page = p; renderTable(); }
+
+function sortBy(col) {
+  if (state.sortKey === col) state.sortDir *= -1; else { state.sortKey = col; state.sortDir = 1; }
+  applySort(true);
+}
+function applySort(rerender) {
+  if (state.sortKey) {
+    const k = state.sortKey, d = state.sortDir;
+    state.filtered = [...state.filtered].sort((a, b) => {
+      const x = a[k], y = b[k];
+      if (x == null) return 1; if (y == null) return -1;
+      const nx = parseFloat(x), ny = parseFloat(y);
+      if (!isNaN(nx) && !isNaN(ny) && String(nx) == String(x).trim() && String(ny) == String(y).trim()) return (nx - ny) * d;
+      return String(x).localeCompare(String(y)) * d;
+    });
+  }
+  if (rerender) renderTable();
+}
+
+/* ── JSON tab ─────────────────────────────────────────────────────── */
+function renderJSON() {
+  const raw = state.cache.get(state.current.endpoint.route);
+  const arr = Array.isArray(raw) ? raw : [raw];
+  const preview = arr.slice(0, 50);
+  $('#exportZone').innerHTML = `<button onclick="exportJSON()" class="rounded-xl bg-clarisa-600 px-4 py-2 text-xs font-bold text-white shadow-card transition hover:bg-clarisa-700">Download full JSON</button>`;
+  $('#tabBody').innerHTML = `
+    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-clarisa-950 shadow-card">
+      <div class="flex items-center justify-between border-b border-white/10 px-5 py-3">
+        <span class="font-mono text-xs font-semibold text-clarisa-300">Live response · showing first ${preview.length.toLocaleString()} of ${arr.length.toLocaleString()} items</span>
+        <button onclick="copyText(jsonPreviewText(), this)" class="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/20">Copy</button>
+      </div>
+      <pre class="max-h-[62vh] overflow-auto p-5 font-mono text-[12.5px] leading-relaxed text-leaf-200"><code>${esc(JSON.stringify(preview, null, 2))}</code></pre>
+    </div>`;
+}
+function jsonPreviewText() {
+  const raw = state.cache.get(state.current.endpoint.route);
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return JSON.stringify(arr.slice(0, 50), null, 2);
+}
+
+/* ── SCHEMA tab ───────────────────────────────────────────────────── */
+function resolveRef(node) {
+  if (node?.$ref) {
+    const name = node.$ref.split('/').pop();
+    return state.spec?.components?.schemas?.[name] || {};
+  }
+  return node || {};
+}
+function renderSchema() {
+  const op = specOpFor(state.current.endpoint.route);
+  let schema = op?.responses?.['200']?.content?.['application/json']?.schema;
+  schema = resolveRef(schema);
+  if (schema.type === 'array') schema = resolveRef(schema.items);
+  const props = schema.properties;
+
+  if (!props) {
+    const sample = state.rows[0] || {};
+    $('#tabBody').innerHTML = schemaTable(Object.keys(sample).map(k => [k, { type: typeof sample[k] }]), true);
+    return;
+  }
+  const required = new Set(schema.required || []);
+  $('#tabBody').innerHTML = schemaTable(Object.entries(props).map(([k, v]) => [k, resolveRef(v), required.has(k)]), false);
+}
+function schemaTable(entries, inferred) {
+  const rows = entries.map(([name, def, req]) => `
+    <tr class="bg-white transition hover:bg-clarisa-50/40">
+      <td class="border-b border-slate-100 px-5 py-3 font-mono text-[13px] font-semibold text-clarisa-700">${esc(name)} ${req ? '<span class="ml-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500">required</span>' : ''}</td>
+      <td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md bg-leaf-100 px-2 py-1 font-mono text-[11px] font-bold text-leaf-800">${esc(def.type || 'object')}${def.format ? ` · ${esc(def.format)}` : ''}</span></td>
+      <td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-500">${esc(def.description || '')}</td>
+    </tr>`).join('');
+  return `
+    ${inferred ? '<div class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-700">Schema not published in the OpenAPI spec — fields inferred from live data.</div>' : ''}
+    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+      <table class="w-full border-collapse text-sm">
+        <thead><tr>
+          <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Field</th>
+          <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Type</th>
+          <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Description</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+/* ── CODE tab ─────────────────────────────────────────────────────── */
+function renderCode() {
+  const url = API_BASE + state.current.endpoint.route;
+  const blocks = [
+    ['cURL', `curl -X GET "${url}" \\\n  -H "Accept: application/json"`],
+    ['JavaScript (fetch)', `const res = await fetch("${url}");\nconst data = await res.json();\nconsole.log(data);`],
+    ['Python (requests)', `import requests\n\nres = requests.get("${url}")\ndata = res.json()\nprint(len(data), "records")`],
+  ];
+  $('#tabBody').innerHTML = blocks.map(([title, code]) => `
+    <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-[13px] font-bold text-clarisa-800">${title}</span>
+        <button onclick='copyText(${JSON.stringify(code)}, this)' class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-clarisa-300 hover:text-clarisa-700">Copy</button>
+      </div>
+      <pre class="overflow-auto bg-slate-50 p-5 font-mono text-[12.5px] leading-relaxed text-slate-700"><code>${esc(code)}</code></pre>
+    </div>`).join('');
+}
+
+/* ── exports ──────────────────────────────────────────────────────── */
+function exportName(ext) {
+  const d = new Date().toISOString().slice(0, 10);
+  return `CLARISA_${state.current.endpoint.name.replace(/\s+/g, '_')}_${d}.${ext}`;
+}
+function exportExcel() {
+  const ws = XLSX.utils.json_to_sheet(state.filtered);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'data');
+  XLSX.writeFile(wb, exportName('xlsx'));
+}
+function exportCSV() {
+  const ws = XLSX.utils.json_to_sheet(state.filtered);
+  download(new Blob(['﻿' + XLSX.utils.sheet_to_csv(ws)], { type: 'text/csv;charset=utf-8' }), exportName('csv'));
+}
+function exportJSON() {
+  const raw = state.cache.get(state.current.endpoint.route);
+  download(new Blob([JSON.stringify(raw, null, 2)], { type: 'application/json' }), exportName('json'));
+}
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+/* ── misc ─────────────────────────────────────────────────────────── */
+function copyText(t, btn) {
+  navigator.clipboard.writeText(t).then(() => {
+    const old = btn.textContent; btn.textContent = 'Copied ✓';
+    setTimeout(() => (btn.textContent = old), 1400);
+  });
+}
+</script>
+</body>
+</html>

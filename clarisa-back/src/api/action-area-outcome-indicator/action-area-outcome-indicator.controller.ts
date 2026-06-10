@@ -12,12 +12,14 @@ import {
   UseInterceptors,
   ClassSerializerInterceptor,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { ActionAreaOutcomeIndicatorService } from './action-area-outcome-indicator.service';
 import { UpdateActionAreaOutcomeIndicatorDto } from './dto/update-action-area-outcome-indicator.dto';
 import { ActionAreaOutcomeIndicator } from './entities/action-area-outcome-indicator.entity';
 
+@ApiTags('Action Area Outcome Indicator')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class ActionAreaOutcomeIndicatorController {
@@ -26,6 +28,16 @@ export class ActionAreaOutcomeIndicatorController {
   ) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List action area outcome indicators',
+    description: 'Indicators that measure the action area outcomes.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.actionAreaOutcomeIndicatorService.findAll(show);
   }

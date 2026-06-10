@@ -7,9 +7,11 @@ import {
   Query,
   ParseIntPipe,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { InnovationCharacteristicService } from './innovation-characteristic.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+@ApiTags('Innovation Nature')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class InnovationCharacteristicController {
@@ -18,6 +20,16 @@ export class InnovationCharacteristicController {
   ) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List innovation nature',
+    description: 'Nature / characteristics used to describe innovations in the catalog.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.innovationCharacteristicService.findAll(show);
   }

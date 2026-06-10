@@ -12,12 +12,14 @@ import {
   UseInterceptors,
   ClassSerializerInterceptor,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { ImpactAreaIndicatorService } from './impact-area-indicator.service';
 import { UpdateImpactAreaIndicatorDto } from './dto/update-impact-area-indicator.dto';
 import { ImpactAreaIndicator } from './entities/impact-area-indicator.entity';
 import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+@ApiTags('Impact Area Indicator')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class ImpactAreaIndicatorController {
@@ -26,6 +28,19 @@ export class ImpactAreaIndicatorController {
   ) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List impact area indicators',
+    description:
+      'Indicators that measure progress against the One CGIAR impact areas.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
+  @ApiQuery({ name: 'version', required: false, description: 'Optional indicator framework version.' })
+  @ApiQuery({ name: 'portfolio', required: false, description: 'Optional portfolio filter.' })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('version') version: string,
