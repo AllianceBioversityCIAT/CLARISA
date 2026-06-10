@@ -98,6 +98,7 @@ const API_BASE = (new URLSearchParams(location.search).get('api') || 'http://loc
 
 const state = {
   catalog: null, spec: null,
+  nav: 'home',              // 'home' | 'get-started' | 'endpoint' — active sidebar target
   current: null,            // { group, category, endpoint }
   rows: [], columns: [],    // flattened data of current endpoint
   filtered: [],
@@ -131,6 +132,14 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 /* ── sidebar ──────────────────────────────────────────────────────── */
 function renderSidebar(filter = '') {
   const q = filter.trim().toLowerCase();
+  // "Get Started" is navigation chrome, not an endpoint — always rendered first,
+  // outside the endpoint search filter.
+  const getStartedBtn = `
+    <button id="getStartedBtn" onclick="renderGetStarted()"
+      class="mb-5 flex w-full items-center gap-2.5 rounded-xl border border-clarisa-100 bg-clarisa-50/60 px-3 py-2.5 text-left text-[13px] font-bold text-clarisa-700 transition hover:border-leaf-300 hover:bg-leaf-50">
+      <svg class="h-4 w-4 shrink-0 text-leaf-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      <span>Get Started</span>
+    </button>`;
   let html = '';
   state.catalog.groups.forEach((g, gi) => {
     const cats = g.categories.map((c, ci) => {
@@ -159,7 +168,7 @@ function renderSidebar(filter = '') {
         ${cats}
       </div>`;
   });
-  $('#sidebar').innerHTML = html || '<div class="px-3 py-6 text-sm text-slate-400">No endpoints match your search.</div>';
+  $('#sidebar').innerHTML = getStartedBtn + (html || '<div class="px-3 py-6 text-sm text-slate-400">No endpoints match your search.</div>');
   highlightActive();
 }
 
@@ -171,6 +180,13 @@ function highlightActive() {
     b.classList.toggle('font-semibold', active);
     if (active) b.closest('details')?.setAttribute('open', '');
   });
+  const gs = $('#getStartedBtn');
+  if (gs) {
+    const on = state.nav === 'get-started';
+    gs.classList.toggle('border-leaf-300', on);
+    gs.classList.toggle('bg-leaf-50', on);
+    gs.classList.toggle('text-leaf-800', on);
+  }
 }
 
 $('#globalSearch').addEventListener('input', e => renderSidebar(e.target.value));
@@ -181,6 +197,7 @@ document.addEventListener('keydown', e => {
 /* ── home / welcome ───────────────────────────────────────────────── */
 function goHome() {
   state.current = null;
+  state.nav = 'home';
   highlightActive();
   const c = state.catalog;
   const nCats = c.groups.reduce((a, g) => a + g.categories.length, 0);
@@ -238,6 +255,98 @@ function openFirstOf(gi, ci) {
   if (ep) selectEndpoint(gi, ci, ep.route);
 }
 
+/* ── get started / authentication ─────────────────────────────────── */
+function renderGetStarted() {
+  state.current = null;
+  state.nav = 'get-started';
+  highlightActive();
+
+  const sampleUrl = API_BASE + 'institutions';
+  const curlEx = `curl -X GET "${sampleUrl}" \\\n  -H "X-API-Key: cl_prod_9f8d7e6c5b4a3b2a1c0d…" \\\n  -H "Accept: application/json"`;
+  const fetchEx = `const apiKey = "cl_prod_9f8d7e6c5b4a3b2a1c0d…";\n\nconst res = await fetch("${sampleUrl}", {\n  method: "GET",\n  headers: {\n    "X-API-Key": apiKey,\n    "Accept": "application/json",\n  },\n});\nconst data = await res.json();\nconsole.log(data);`;
+
+  const codeBlock = (title, code) => `
+    <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-[13px] font-bold text-clarisa-800">${title}</span>
+        <button onclick='copyText(${JSON.stringify(code)}, this)' class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-clarisa-300 hover:text-clarisa-700">Copy</button>
+      </div>
+      <pre class="overflow-auto bg-slate-50 p-5 font-mono text-[12.5px] leading-relaxed text-slate-700"><code>${esc(code)}</code></pre>
+    </div>`;
+
+  $('#main').innerHTML = `
+    <div class="fade-in mx-auto max-w-4xl">
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-clarisa-700 via-clarisa-800 to-clarisa-950 p-9 text-white shadow-pop">
+        <div class="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-leaf-500/15 blur-2xl"></div>
+        <div class="relative">
+          <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-leaf-200">Get Started</div>
+          <h1 class="text-3xl font-extrabold tracking-tight">Authenticating with the CLARISA API</h1>
+          <p class="mt-3 max-w-2xl text-[15px] leading-relaxed text-clarisa-100">
+            CLARISA serves CGIAR's official control lists as a service. Browsing the public
+            catalogs on this page needs no setup — but to consume the API from your own system
+            you authenticate with an <b class="text-white">API token</b>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Hybrid auth -->
+      <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+        <h2 class="text-lg font-bold text-clarisa-800">A hybrid authentication model</h2>
+        <p class="mt-2 text-[14px] leading-relaxed text-slate-600">
+          The API now accepts a valid <b>API token</b> sent in the
+          <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12.5px] text-clarisa-700">X-API-Key</code>
+          request header. Existing integrations that authenticate with the legacy
+          <b>JWT</b> keep working — the two coexist, so you can migrate at your own pace.
+        </p>
+      </section>
+
+      <!-- Request a token -->
+      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+        <h2 class="text-lg font-bold text-clarisa-800">1 · Request a token</h2>
+        <p class="mt-2 text-[14px] leading-relaxed text-slate-600">
+          There is no public self-service portal yet. To get a token, email
+          <b>both</b> support addresses below:
+        </p>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <a href="mailto:CLARISASupport@cgiar.org" class="rounded-xl border border-clarisa-100 bg-clarisa-50 px-4 py-2.5 text-[13px] font-bold text-clarisa-700 transition hover:border-leaf-300 hover:bg-leaf-50">✉ CLARISASupport@cgiar.org</a>
+          <a href="mailto:PRMSTechsupport@cgiar.org" class="rounded-xl border border-clarisa-100 bg-clarisa-50 px-4 py-2.5 text-[13px] font-bold text-clarisa-700 transition hover:border-leaf-300 hover:bg-leaf-50">✉ PRMSTechsupport@cgiar.org</a>
+        </div>
+        <p class="mt-4 text-[14px] font-semibold text-slate-700">Include in your request:</p>
+        <ul class="mt-2 space-y-1.5 text-[14px] leading-relaxed text-slate-600">
+          <li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-leaf-500"></span><span><b>Name &amp; organization / project</b> — who will use the key.</span></li>
+          <li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-leaf-500"></span><span><b>Use case</b> — a short description of how your system integrates with CLARISA.</span></li>
+          <li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-leaf-500"></span><span><b>Environment</b> — development / staging, production, or both.</span></li>
+        </ul>
+        <p class="mt-4 text-[14px] leading-relaxed text-slate-600">
+          Once approved you receive a token shaped like
+          <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12.5px] text-clarisa-700">cl_[env]_[random]</code>,
+          for example <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12.5px] text-clarisa-700">cl_prod_9f8d7e6c…</code>.
+          Treat it as a secret — do not commit it to source control.
+        </p>
+      </section>
+
+      <!-- Use the token -->
+      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+        <h2 class="text-lg font-bold text-clarisa-800">2 · Use the token</h2>
+        <p class="mb-4 mt-2 text-[14px] leading-relaxed text-slate-600">
+          Send your token in the <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12.5px] text-clarisa-700">X-API-Key</code> header on every request.
+        </p>
+        ${codeBlock('cURL', curlEx)}
+        ${codeBlock('JavaScript (fetch)', fetchEx)}
+      </section>
+
+      <!-- Read-only notice -->
+      <div class="mt-6 flex items-start gap-3 rounded-2xl border border-leaf-200 bg-leaf-50 p-5">
+        <div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-leaf-500 font-bold text-white">i</div>
+        <div class="text-sm leading-relaxed text-leaf-900">
+          <b>Read-only.</b> The public control-list endpoints exposed by this API only support
+          <b>GET</b> requests. Creating, updating or deleting catalog data is restricted to
+          CLARISA's administrative workflows.
+        </div>
+      </div>
+    </div>`;
+}
+
 /* ── endpoint page ────────────────────────────────────────────────── */
 function specOpFor(route) {
   const p = '/' + route.replace(/^\/+/, '');
@@ -249,6 +358,7 @@ async function selectEndpoint(gi, ci, route) {
   const category = group.categories[ci];
   const endpoint = category.endpoints.find(e => e.route === route);
   state.current = { group, category, endpoint };
+  state.nav = 'endpoint';
   state.tab = 'table'; state.page = 1; state.sortKey = null;
   highlightActive();
   renderEndpointShell(true);
