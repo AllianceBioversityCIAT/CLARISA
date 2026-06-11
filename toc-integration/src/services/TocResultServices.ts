@@ -758,6 +758,7 @@ export class TocResultServices {
       original_id: string | null;
       version_id?: string | null;
       official_code: string | null;
+      reporting_year?: number | null;
     },
     globalSdgResults: TocSdgResults[] = [],
     globalImpactAreaResults: any[] = []
@@ -860,10 +861,36 @@ export class TocResultServices {
         )
       );
 
+      const workPackageYear =
+        typeof meta?.reporting_year === "number" ? meta.reporting_year : 2025;
+
       const workPackageMap = new Map<string, string>();
+
+      for (const node of data) {
+        if (!node) continue;
+        const nodeCategory =
+          typeof node?.category === "string"
+            ? node.category.toUpperCase()
+            : null;
+        if (nodeCategory !== "WP") continue;
+
+        const ost = node?.ost_wp || {};
+        const tocId =
+          typeof ost?.toc_id === "string" || typeof ost?.toc_id === "number"
+            ? String(ost.toc_id)
+            : null;
+        const nodeId =
+          typeof node?.id === "string" || typeof node?.id === "number"
+            ? String(node.id)
+            : null;
+        if (nodeId && tocId) {
+          workPackageMap.set(nodeId, tocId);
+        }
+      }
+
       if (groupIds.length) {
         const workPackages = await workPackageRepo.find({
-          where: { id: In(groupIds) },
+          where: { id: In(groupIds), year: workPackageYear },
         });
         for (const wp of workPackages) {
           if (typeof wp.id === "string" && typeof wp.toc_id === "string") {
@@ -895,7 +922,7 @@ export class TocResultServices {
             : null;
         if (groupId && !mappedTocId) {
           const fallbackWorkPackage = await workPackageRepo.findOne({
-            where: { id: groupId },
+            where: { id: groupId, year: workPackageYear },
           });
           if (
             fallbackWorkPackage &&
@@ -904,10 +931,21 @@ export class TocResultServices {
             mappedTocId = fallbackWorkPackage.toc_id;
             workPackageMap.set(groupId, mappedTocId);
           } else {
-            console.warn({
-              message: "Missing work package mapping for result group",
-              groupId,
+            const fallbackByTocId = await workPackageRepo.findOne({
+              where: { toc_id: groupId, year: workPackageYear },
             });
+            if (
+              fallbackByTocId &&
+              typeof fallbackByTocId.toc_id === "string"
+            ) {
+              mappedTocId = fallbackByTocId.toc_id;
+              workPackageMap.set(groupId, mappedTocId);
+            } else {
+              console.warn({
+                message: "Missing work package mapping for result group",
+                groupId,
+              });
+            }
           }
         }
 
@@ -947,26 +985,23 @@ export class TocResultServices {
         let saved: TocResults | null = null;
 
         if (hasRelatedNodeId) {
-          // Buscar exclusivamente por related_node_id
-          const existing = await repo.findOne({
-            where: { related_node_id: record.related_node_id },
-          });
+          const lookupWhere =
+            typeof record.phase === "string" && record.phase
+              ? {
+                  related_node_id: record.related_node_id,
+                  phase: record.phase,
+                }
+              : { related_node_id: record.related_node_id };
+
+          const existing = await repo.findOne({ where: lookupWhere });
 
           if (existing) {
-            // Actualizar registro existente
-            await repo.update(
-              { related_node_id: record.related_node_id },
-              record
-            );
+            await repo.update(lookupWhere, record);
           } else {
-            // Insertar nuevo registro
             await repo.insert(record);
           }
 
-          // Recuperar el registro guardado/actualizado
-          saved = await repo.findOne({
-            where: { related_node_id: record.related_node_id },
-          });
+          saved = await repo.findOne({ where: lookupWhere });
         } else {
           // Si no hay related_node_id, solo hacer INSERT
           const insertResult = await repo.insert(record);

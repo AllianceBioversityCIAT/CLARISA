@@ -24,9 +24,11 @@ export class tocController {
    */
   async bulkSpTocResultDashboard(req: Request, res: Response) {
     const spIds = await req.body.spId;
+    const phaseId =
+      typeof req.body.phaseId === "string" ? req.body.phaseId : undefined;
     try {
       let servicesInformation = new TocServicesResults();
-      const data = await servicesInformation.spSplitInformation(spIds);
+      const data = await servicesInformation.spSplitInformation(spIds, phaseId);
       res.json({ response: data });
     } catch (error) {
       console.error(error);

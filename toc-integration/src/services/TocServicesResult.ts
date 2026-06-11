@@ -14,6 +14,7 @@ import { TocOutputOutcomeRelationService } from "./TocOutputOutcomeRelations";
 import { sendSlackNotification } from "../validators/slackNotification";
 import { ToCWorkPackagesService } from "./ToCWorkPackages";
 import { env } from "process";
+import { resolvePhaseId, SpSyncMeta } from "../types/sp-sync-meta";
 
 export class TocServicesResults {
   public validatorType = new ValidatorTypes();
@@ -176,16 +177,19 @@ export class TocServicesResults {
     }
   }
 
-  async spSplitInformation(spId: string) {
+  async spSplitInformation(spId: string, inputPhaseId?: string) {
     const startedAt = Date.now();
-    console.info({ message: "Start splitting information", spId });
-    let metaForNotif: { phase: string | null; original_id: string | null } = {
+    const phaseId = resolvePhaseId(inputPhaseId);
+    console.info({ message: "Start splitting information", spId, phaseId });
+    let metaForNotif: SpSyncMeta = {
       phase: null,
       original_id: spId,
+      version_id: null,
+      official_code: spId,
     };
 
     try {
-      const tocHost = `${env.LINK_TOC}/api/toc/${spId}?phase_id=99134294-d7a1-4966-a63e-227c9e29b9fb`;
+      const tocHost = `${env.LINK_TOC}/api/toc/${spId}?phase_id=${phaseId}`;
       console.info({ message: "Fetching data from ToC", tocHost });
 
       const response = await axios({
@@ -200,25 +204,39 @@ export class TocServicesResults {
           "relations",
         ])
       ) {
-        const { data, phase, original_id, version_id } = response.data || {};
+        const {
+          data,
+          phase,
+          original_id,
+          version_id,
+          version,
+          toc_type,
+        } = response.data || {};
         if (!this.validatorType.validatorIsArray(data)) {
           throw new Error("The property data must be an array");
         }
-        const meta = {
-          phase:
-            typeof phase === "string" || typeof phase === "number"
-              ? String(phase)
-              : null,
+
+        const resolvedPhase =
+          typeof phase === "string" || typeof phase === "number"
+            ? String(phase)
+            : phaseId;
+
+        const reportingYear = await this.fetchReportingYear(phaseId);
+
+        const meta: SpSyncMeta = {
+          phase: resolvedPhase,
           original_id:
             typeof original_id === "string" || typeof original_id === "number"
               ? String(original_id)
               : spId,
           version_id:
-            typeof response.data.version_id === "string" ||
-              typeof response.data.version_id === "number"
+            typeof version_id === "string" || typeof version_id === "number"
               ? String(version_id)
               : null,
           official_code: spId,
+          reporting_year: reportingYear,
+          version: typeof version === "number" ? version : null,
+          toc_type: typeof toc_type === "string" ? toc_type : null,
         };
         metaForNotif = meta;
 
@@ -230,7 +248,10 @@ export class TocServicesResults {
         const impactAreasV2 =
           await this.tocImpactAreas.saveImpactAreaTocResultV2(data, meta);
 
-        const workPackagesV2 = await this.workPackages.saveWorkPackagesV2(data);
+        const workPackagesV2 = await this.workPackages.saveWorkPackagesV2(
+          data,
+          meta
+        );
 
         const resultsV2 = await this.resultsToc.saveTocResultsV2(
           data,
@@ -270,7 +291,7 @@ export class TocServicesResults {
           } | IA Indicators=${counts.impactAreaIndicators}
           \nWPs (AOW)=${counts.workPackages}
           \nResults=${counts.results}
-          \nPhase=${metaForNotif.phase ?? "null"}\nEntity ID=${metaForNotif.original_id ?? "null"
+          \nPhase=${metaForNotif.phase ?? "null"}\nReporting Year=${metaForNotif.reporting_year ?? "null"}\nEntity ID=${metaForNotif.original_id ?? "null"
           }`
         );
 
@@ -296,6 +317,76 @@ export class TocServicesResults {
       );
       throw new Error(error as any);
     }
+  }
+
+  private async fetchReportingYear(phaseId: string): Promise<number | null> {
+    try {
+      // ToC GET /api/phases/{id} ignores the path id and returns the active phase.
+      // Always resolve reporting_year from the full list and match by phase id.
+      const listUrl = `${env.LINK_TOC}/api/phases`;
+      const { data: listBody } = await axios.get(listUrl, { timeout: 10000 });
+      const phase = this.findPhaseInPhasesResponse(listBody, phaseId);
+      if (phase) {
+        return this.parseReportingYear(phase.reporting_year);
+      }
+
+      console.warn({
+        message: "Phase not found in ToC phases list",
+        phaseId,
+      });
+      return null;
+    } catch (error) {
+      console.warn({
+        message: "Could not fetch reporting_year from ToC phases API",
+        phaseId,
+        error,
+      });
+      return null;
+    }
+  }
+
+  private findPhaseInPhasesResponse(
+    body: unknown,
+    phaseId: string
+  ): { id?: string; reporting_year?: unknown } | null {
+    if (!body || typeof body !== "object") {
+      return null;
+    }
+
+    const record = body as Record<string, unknown>;
+
+    if (record.id === phaseId) {
+      return record as { id?: string; reporting_year?: unknown };
+    }
+
+    const candidates: unknown[] = [];
+    if (Array.isArray(record.data)) {
+      candidates.push(...record.data);
+    }
+    if (Array.isArray(body)) {
+      candidates.push(...body);
+    }
+
+    for (const item of candidates) {
+      if (
+        item &&
+        typeof item === "object" &&
+        (item as { id?: string }).id === phaseId
+      ) {
+        return item as { id?: string; reporting_year?: unknown };
+      }
+    }
+
+    return null;
+  }
+
+  private parseReportingYear(value: unknown): number | null {
+    if (typeof value === "number") {
+      return value;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   async avisaSplitInformation() {
@@ -433,6 +524,12 @@ export class TocServicesResults {
     await queryRunner.connect();
 
     try {
+      let reportingYear: number | null = null;
+      if (phaseId) {
+        reportingYear = await this.fetchReportingYear(phaseId);
+      }
+      const workPackageYear = reportingYear ?? 2025;
+
       let queryResults = `
         SELECT DISTINCT
           tr.id AS id,
@@ -447,12 +544,12 @@ export class TocServicesResults {
           tr.phase AS phase,
           tr.version_id AS version_id
         FROM toc_results tr
-        LEFT JOIN toc_work_packages wp ON wp.toc_id = tr.wp_id
+        LEFT JOIN toc_work_packages wp ON wp.toc_id = tr.wp_id AND wp.year = ?
         WHERE tr.is_active = 1
           AND tr.category = ?
           AND tr.official_code = ?
       `;
-      const paramsResults: any[] = [category.toUpperCase(), officialCode];
+      const paramsResults: any[] = [workPackageYear, category.toUpperCase(), officialCode];
       
       if (phaseId) {
         queryResults += ` AND tr.phase = ?`;
