@@ -48,6 +48,7 @@
     .skeleton { animation: pulse 1.4s ease-in-out infinite; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
     table.data th { position: sticky; top: 0; z-index: 5; }
+    .docpill { border-radius: .375rem; background: #eef4fb; padding: .075rem .35rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; color: #1d5da8; }
   </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 antialiased">
@@ -359,7 +360,7 @@ async function selectEndpoint(gi, ci, route) {
   const endpoint = category.endpoints.find(e => e.route === route);
   state.current = { group, category, endpoint };
   state.nav = 'endpoint';
-  state.tab = 'table'; state.page = 1; state.sortKey = null;
+  state.tab = 'doc'; state.page = 1; state.sortKey = null;
   highlightActive();
   renderEndpointShell(true);
 
@@ -430,7 +431,7 @@ function renderEndpointShell(loading, error = null) {
 
       <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div class="flex rounded-xl border border-slate-200 bg-white p-1 shadow-card">
-          ${['table:Table','json:JSON','schema:Schema','code:Code'].map(t => {
+          ${['doc:Doc','table:Table','json:JSON','schema:Schema','code:Code'].map(t => {
             const [id, label] = t.split(':');
             const on = state.tab === id;
             return `<button onclick="setTab('${id}')"
@@ -443,6 +444,8 @@ function renderEndpointShell(loading, error = null) {
       <div id="tabBody"></div>
     </div>`;
 
+  // Doc and Code are spec/static-derived — render them immediately, no wait for live data.
+  if (loading && (state.tab === 'doc' || state.tab === 'code')) { renderTab(); return; }
   if (loading) {
     $('#tabBody').innerHTML = `
       <div class="rounded-2xl border border-slate-200 bg-white p-16 text-center shadow-card">
@@ -486,6 +489,7 @@ function renderTab() {
       <button onclick="exportCSV()" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-clarisa-300 hover:text-clarisa-700">CSV</button>
       <button onclick="exportJSON()" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-clarisa-300 hover:text-clarisa-700">JSON</button>`;
   }
+  if (state.tab === 'doc')    return renderDoc();
   if (state.tab === 'table')  return renderTable();
   if (state.tab === 'json')   return renderJSON();
   if (state.tab === 'schema') return renderSchema();
@@ -664,6 +668,209 @@ function renderCode() {
       </div>
       <pre class="overflow-auto bg-slate-50 p-5 font-mono text-[12.5px] leading-relaxed text-slate-700"><code>${esc(code)}</code></pre>
     </div>`).join('');
+}
+
+/* ── DOC tab ──────────────────────────────────────────────────────── */
+/* Endpoints that expose a v2 via the ?version=2 query param (the rest serve v1).
+   Mirrors the @Version(...) decorators in the NestJS controllers. */
+const V2_ENDPOINTS = {
+  'cgiar-entities':        'Returns the richer <code class="docpill">CgiarEntityDtoV2</code> shape (entity type, lineages, portfolio, dates) and adds the <code class="docpill">portfolioId</code> and <code class="docpill">year</code> filters.',
+  'cgiar-entity-typology': 'Returns the v2 typology shape.',
+  'sdgs':                  'Declared <code class="docpill">@Version([\'1\',\'2\'])</code> — responds identically for v1 and v2.',
+  'sdg-targets':           'Returns the v2 target shape.',
+  'sdg-indicators':        'Returns the v2 indicator shape.',
+};
+
+function tsType(node) {
+  if (!node) return 'any';
+  if (node.$ref) return node.$ref.split('/').pop();
+  if (node.type === 'array') {
+    const it = node.items || {};
+    const inner = it.$ref ? it.$ref.split('/').pop() : tsType(it);
+    return inner + '[]';
+  }
+  if (Array.isArray(node.enum)) return node.enum.map(e => JSON.stringify(e)).join(' | ');
+  const t = node.type;
+  if (t === 'integer' || t === 'number') return 'number';
+  if (t === 'boolean') return 'boolean';
+  if (t === 'string') return 'string';
+  if (t === 'object') return 'object';
+  return t || 'any';
+}
+
+function docCodeBlock(title, code) {
+  return `
+    <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-[13px] font-bold text-clarisa-800">${title}</span>
+        <button onclick='copyText(${JSON.stringify(code)}, this)' class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-clarisa-300 hover:text-clarisa-700">Copy</button>
+      </div>
+      <pre class="overflow-auto bg-slate-50 p-5 font-mono text-[12.5px] leading-relaxed text-slate-700"><code>${esc(code)}</code></pre>
+    </div>`;
+}
+
+function docSection(title, subtitle, bodyHtml) {
+  return `
+    <section class="mb-6">
+      <h2 class="text-lg font-bold text-clarisa-800">${title}</h2>
+      ${subtitle ? `<p class="mb-3 mt-1 text-[13.5px] leading-relaxed text-slate-500">${subtitle}</p>` : '<div class="mb-3"></div>'}
+      ${bodyHtml}
+    </section>`;
+}
+
+function renderDoc() {
+  const route = state.current.endpoint.route;            // e.g. "api/cgiar-entities"
+  const baseRoute = route.replace(/^api\//, '').replace(/^\/+/, '');
+  const url = API_BASE + route;
+  const op = specOpFor(route);
+
+  /* ── 1. Versioning ── */
+  const v2 = V2_ENDPOINTS[baseRoute];
+  let versioningBody;
+  if (v2) {
+    const vEx = `# v1 — default, no param needed\nGET ${url}\n\n# v2 — opt in with the version query param\nGET ${url}?version=2`;
+    versioningBody = `
+      <div class="mb-4 grid gap-3 sm:grid-cols-2">
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-card">
+          <div class="flex items-center gap-2"><span class="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[12px] font-bold text-slate-600">v1</span><span class="text-[12px] font-semibold text-slate-400">default</span></div>
+          <p class="mt-2 text-[13.5px] leading-relaxed text-slate-600">Served when no <code class="docpill">version</code> param is sent.</p>
+        </div>
+        <div class="rounded-xl border border-leaf-300 bg-leaf-50 p-4 shadow-card">
+          <div class="flex items-center gap-2"><span class="rounded-md bg-leaf-500 px-2 py-0.5 font-mono text-[12px] font-bold text-white">v2</span><span class="text-[12px] font-semibold text-leaf-700">opt-in</span></div>
+          <p class="mt-2 text-[13.5px] leading-relaxed text-leaf-900">${v2}</p>
+        </div>
+      </div>
+      ${docCodeBlock('Selecting a version', vEx)}`;
+  } else {
+    versioningBody = `
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div class="flex items-center gap-2"><span class="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[12px] font-bold text-slate-600">v1</span><span class="text-[12px] font-semibold text-slate-400">only</span></div>
+        <p class="mt-2 text-[13.5px] leading-relaxed text-slate-600">
+          This endpoint has a single version. Sending <code class="docpill">?version=2</code> has no effect — it always serves its v1 response.
+        </p>
+      </div>`;
+  }
+  const versioning = docSection(
+    'Versioning',
+    `CLARISA versions the API through an optional <code class="docpill">?version=N</code> query param — not via the URI and not via a header. Omit it and you get <b>v1</b>.`,
+    versioningBody,
+  );
+
+  /* ── 2. Query params ── */
+  const qParams = (op?.parameters || []).filter(p => p.in === 'query');
+  let paramsBody, exampleQuery = '';
+  if (qParams.length) {
+    const rows = qParams.map(p => {
+      const sc = p.schema || {};
+      const type = tsType(sc);
+      const def = sc.default !== undefined ? String(sc.default) : '';
+      return `
+        <tr class="bg-white transition hover:bg-clarisa-50/40">
+          <td class="border-b border-slate-100 px-5 py-3 font-mono text-[13px] font-semibold text-clarisa-700">${esc(p.name)} ${p.required ? '<span class="ml-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500">required</span>' : ''}</td>
+          <td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md bg-leaf-100 px-2 py-1 font-mono text-[11px] font-bold text-leaf-800">${esc(type)}</span></td>
+          <td class="border-b border-slate-100 px-5 py-3 font-mono text-[12px] text-slate-500">${def ? esc(def) : '<span class="text-slate-300">—</span>'}</td>
+          <td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-500">${esc(p.description || '')}</td>
+        </tr>`;
+    }).join('');
+    // build a realistic example using up to 2 params
+    const ex = qParams.slice(0, 2).map(p => {
+      const sc = p.schema || {};
+      const val = Array.isArray(sc.enum) ? sc.enum[0] : (sc.default !== undefined ? sc.default : (tsType(sc) === 'number' ? 1 : 'value'));
+      return `${p.name}=${val}`;
+    });
+    if (v2) ex.push('version=2');
+    exampleQuery = '?' + ex.join('&');
+    paramsBody = `
+      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+        <table class="w-full border-collapse text-sm">
+          <thead><tr>
+            <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Param</th>
+            <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Type</th>
+            <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Default</th>
+            <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Description</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      ${docCodeBlock('Example with query params', `GET ${url}${exampleQuery}`)}`;
+  } else {
+    const fallback = v2 ? `?version=2` : '';
+    paramsBody = `
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-[13.5px] leading-relaxed text-slate-600">
+        No query parameters are published for this endpoint in the OpenAPI spec.${v2 ? ` You can still pass <code class="docpill">?version=2</code> to opt into v2.` : ''}
+      </div>${fallback ? docCodeBlock('Example', `GET ${url}${fallback}`) : ''}`;
+  }
+  const params = docSection('Query parameters', 'Optional filters you can append to the request URL.', paramsBody);
+
+  /* ── 3. Responses / status codes ── */
+  const responses = op?.responses || {};
+  let respBody;
+  const respKeys = Object.keys(responses);
+  if (respKeys.length) {
+    respBody = `
+      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+        <table class="w-full border-collapse text-sm">
+          <thead><tr>
+            <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Status</th>
+            <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Meaning</th>
+          </tr></thead>
+          <tbody>${respKeys.map(code => {
+            const ok = code.startsWith('2');
+            return `<tr class="bg-white">
+              <td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md px-2 py-1 font-mono text-[12px] font-bold ${ok ? 'bg-leaf-100 text-leaf-800' : 'bg-amber-100 text-amber-700'}">${esc(code)}</span></td>
+              <td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-600">${esc(responses[code].description || (ok ? 'Successful response' : ''))}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>`;
+  } else {
+    respBody = `
+      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+        <table class="w-full border-collapse text-sm">
+          <thead><tr>
+            <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Status</th>
+            <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Meaning</th>
+          </tr></thead>
+          <tbody>
+            <tr class="bg-white"><td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md bg-leaf-100 px-2 py-1 font-mono text-[12px] font-bold text-leaf-800">200</span></td><td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-600">Successful response — returns the control list.</td></tr>
+            <tr class="bg-white"><td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md bg-amber-100 px-2 py-1 font-mono text-[12px] font-bold text-amber-700">401</span></td><td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-600">Missing or invalid API token.</td></tr>
+          </tbody>
+        </table>
+      </div>`;
+  }
+  const respSection = docSection('Responses', 'HTTP status codes this endpoint can return.', respBody);
+
+  /* ── 4. Response model / DTO interface ── */
+  let schemaNode = op?.responses?.['200']?.content?.['application/json']?.schema;
+  let returnsArray = false;
+  if (schemaNode?.type === 'array') { returnsArray = true; schemaNode = schemaNode.items; }
+  const modelName = schemaNode?.$ref ? schemaNode.$ref.split('/').pop() : (resolveRef(schemaNode).title || 'Response');
+  const model = resolveRef(schemaNode);
+  const props = model.properties;
+  let dtoBody;
+  if (props) {
+    const required = new Set(model.required || []);
+    const lines = Object.entries(props).map(([k, v]) => {
+      const optional = required.has(k) ? '' : '?';
+      const t = tsType(v);
+      const desc = (resolveRef(v).description || v.description || '').replace(/\s+/g, ' ').trim();
+      return `  ${k}${optional}: ${t};${desc ? '  // ' + desc : ''}`;
+    });
+    const iface = `interface ${modelName} {\n${lines.join('\n')}\n}`;
+    const returnLine = `// GET ${route} → ${returnsArray ? modelName + '[]' : modelName}`;
+    dtoBody = docCodeBlock(`${modelName}${returnsArray ? '[]' : ''}`, `${returnLine}\n\n${iface}`);
+  } else {
+    const sample = state.rows && state.rows[0];
+    if (sample) {
+      const lines = Object.keys(sample).map(k => `  ${k}: ${typeof sample[k] === 'number' ? 'number' : typeof sample[k] === 'boolean' ? 'boolean' : 'string'};`);
+      dtoBody = `<div class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-700">Model not published in the OpenAPI spec — shape inferred from live data.</div>${docCodeBlock('Inferred shape', `interface ${modelName} {\n${lines.join('\n')}\n}`)}`;
+    } else {
+      dtoBody = `<div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-[13.5px] text-slate-600">No response model published for this endpoint.</div>`;
+    }
+  }
+  const dtoSection = docSection('Response model', 'The DTO returned in the response body.', dtoBody);
+
+  $('#tabBody').innerHTML = `<div class="max-w-4xl">${versioning}${params}${respSection}${dtoSection}</div>`;
 }
 
 /* ── exports ──────────────────────────────────────────────────────── */
