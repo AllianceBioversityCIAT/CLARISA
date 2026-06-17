@@ -1,14 +1,17 @@
-import { DataSource } from "typeorm";
+import { Repository } from "typeorm";
 import { Database } from "../database/db";
 import { ValidatorTypes } from "../validators/validatorType";
 import { TocWorkPackages } from "../entities/tocWorkPackages";
+import { SpSyncMeta } from "../types/sp-sync-meta";
+
+const LEGACY_DEFAULT_YEAR = 2025;
 
 export class ToCWorkPackagesService {
   private validator = new ValidatorTypes();
 
-  async saveWorkPackagesV2(data: any[]) {
+  async saveWorkPackagesV2(data: any[], meta?: SpSyncMeta) {
     console.info({ message: "Creating ToC Work Packages V2" });
-    const dataSource: DataSource = await Database.getDataSource();
+    const dataSource = await Database.getDataSource();
     const repo = dataSource.getRepository(TocWorkPackages);
     const workPackages: TocWorkPackages[] = [];
 
@@ -42,8 +45,19 @@ export class ToCWorkPackagesService {
 
       if (!officialCode || !tocId) continue;
 
+      const year = this.resolveWorkPackageYear(meta, ost);
+      if (year == null) {
+        console.warn({
+          message: "Skipping work package without resolvable year",
+          tocId,
+          acronym: ost?.acronym,
+        });
+        continue;
+      }
+
       const record: Partial<TocWorkPackages> = {
         toc_id: tocId,
+        year,
         id: rawId ?? null,
         acronym: typeof ost?.acronym === "string" ? ost.acronym : null,
         source: typeof ost?.source === "string" ? ost.source : null,
@@ -58,28 +72,65 @@ export class ToCWorkPackagesService {
           typeof ost?.initiativeId === "number"
             ? String(ost.initiativeId)
             : null,
-        year:
-          typeof ost?.year === "string" || typeof ost?.year === "number"
-            ? Number(ost.year)
-            : null,
       };
 
-      let existing =
-        (await repo.findOne({ where: { toc_id: tocId } })) ||
-        (await repo.findOne({ where: { wp_official_code: officialCode } }));
+      const existing = await this.findExistingWorkPackage(
+        repo,
+        tocId,
+        officialCode,
+        year
+      );
 
       if (existing) {
         record.id = rawId ?? existing.id ?? null;
-        await repo.update({ toc_id: existing.toc_id }, record);
+        await repo.update({ toc_id: existing.toc_id, year: existing.year }, record);
       } else {
         record.id = rawId ?? `${tocId}-${officialCode}`;
         await repo.insert(record as TocWorkPackages);
       }
 
-      const fresh = await repo.findOne({ where: { toc_id: tocId } });
+      const fresh = await repo.findOne({ where: { toc_id: tocId, year } });
       if (fresh) workPackages.push(fresh);
     }
 
     return { workPackages };
+  }
+
+  private resolveWorkPackageYear(meta: SpSyncMeta | undefined, ost: any): number | null {
+    if (typeof meta?.reporting_year === "number") {
+      return meta.reporting_year;
+    }
+
+    if (typeof ost?.year === "string" || typeof ost?.year === "number") {
+      const parsed = Number(ost.year);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+
+    return LEGACY_DEFAULT_YEAR;
+  }
+
+  private async findExistingWorkPackage(
+    repo: Repository<TocWorkPackages>,
+    tocId: string,
+    officialCode: string,
+    year: number
+  ): Promise<TocWorkPackages | null> {
+    const byTocIdAndYear = await repo.findOne({
+      where: { toc_id: tocId, year },
+    });
+    if (byTocIdAndYear) {
+      return byTocIdAndYear;
+    }
+
+    const byCodeAndYear = await repo.findOne({
+      where: { wp_official_code: officialCode, year },
+    });
+    if (byCodeAndYear) {
+      return byCodeAndYear;
+    }
+
+    return null;
   }
 }

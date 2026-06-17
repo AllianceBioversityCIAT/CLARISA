@@ -5,6 +5,9 @@ export class TocWorkPackages {
   @PrimaryColumn({ name: "toc_id", type: "varchar", length: 100 })
   toc_id: string;
 
+  @PrimaryColumn({ name: "year", type: "int" })
+  year: number;
+
   @Column({ name: "id", type: "varchar", length: 100, nullable: true })
   id: string | null;
 
@@ -32,7 +35,4 @@ export class TocWorkPackages {
   @Index()
   @Column({ name: "initiativeId", type: "varchar", length: 50, nullable: true })
   initiativeId: string | null;
-
-  @Column({ name: "year", type: "int", nullable: true })
-  year: number | null;
 }
