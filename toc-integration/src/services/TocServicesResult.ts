@@ -14,7 +14,25 @@ import { TocOutputOutcomeRelationService } from "./TocOutputOutcomeRelations";
 import { sendSlackNotification } from "../validators/slackNotification";
 import { ToCWorkPackagesService } from "./ToCWorkPackages";
 import { env } from "process";
-import { resolvePhaseId, SpSyncMeta } from "../types/sp-sync-meta";
+import {
+  DEFAULT_REPORTING_YEAR,
+  resolvePhaseId,
+  resolvePhaseIdFromReportingYear,
+  SpSyncMeta,
+} from "../types/sp-sync-meta";
+
+export interface TocResultsReadFilters {
+  year?: number;
+  phaseId?: string;
+}
+
+export interface TocResultsReadMeta {
+  year: number;
+  phase: string;
+}
+
+const PHASES_LIST_CACHE_TTL_MS = 10 * 60 * 1000;
+let phasesListCache: { body: unknown; fetchedAt: number } | null = null;
 
 export class TocServicesResults {
   public validatorType = new ValidatorTypes();
@@ -319,12 +337,54 @@ export class TocServicesResults {
     }
   }
 
+  private async fetchPhasesListBody(forceRefresh = false): Promise<unknown> {
+    const now = Date.now();
+    if (
+      !forceRefresh &&
+      phasesListCache &&
+      now - phasesListCache.fetchedAt < PHASES_LIST_CACHE_TTL_MS
+    ) {
+      return phasesListCache.body;
+    }
+
+    const listUrl = `${env.LINK_TOC}/api/phases`;
+    const { data: listBody } = await axios.get(listUrl, { timeout: 10000 });
+    phasesListCache = { body: listBody, fetchedAt: now };
+    return listBody;
+  }
+
+  private listPhasesFromResponse(
+    body: unknown
+  ): { id?: string; reporting_year?: unknown }[] {
+    if (!body || typeof body !== "object") {
+      return [];
+    }
+
+    const record = body as Record<string, unknown>;
+    if (Array.isArray(record.data)) {
+      return record.data.filter(
+        (item): item is { id?: string; reporting_year?: unknown } =>
+          !!item && typeof item === "object"
+      );
+    }
+
+    if (Array.isArray(body)) {
+      return body.filter(
+        (item): item is { id?: string; reporting_year?: unknown } =>
+          !!item && typeof item === "object"
+      );
+    }
+
+    if (typeof record.id === "string") {
+      return [record as { id?: string; reporting_year?: unknown }];
+    }
+
+    return [];
+  }
+
   private async fetchReportingYear(phaseId: string): Promise<number | null> {
     try {
-      // ToC GET /api/phases/{id} ignores the path id and returns the active phase.
-      // Always resolve reporting_year from the full list and match by phase id.
-      const listUrl = `${env.LINK_TOC}/api/phases`;
-      const { data: listBody } = await axios.get(listUrl, { timeout: 10000 });
+      const listBody = await this.fetchPhasesListBody();
       const phase = this.findPhaseInPhasesResponse(listBody, phaseId);
       if (phase) {
         return this.parseReportingYear(phase.reporting_year);
@@ -343,6 +403,81 @@ export class TocServicesResults {
       });
       return null;
     }
+  }
+
+  private async fetchPhaseIdByReportingYear(
+    reportingYear: number
+  ): Promise<string | null> {
+    try {
+      const listBody = await this.fetchPhasesListBody();
+      for (const phase of this.listPhasesFromResponse(listBody)) {
+        if (
+          typeof phase.id === "string" &&
+          this.parseReportingYear(phase.reporting_year) === reportingYear
+        ) {
+          return phase.id;
+        }
+      }
+    } catch (error) {
+      console.warn({
+        message: "Could not resolve phase id from ToC phases API",
+        reportingYear,
+        error,
+      });
+    }
+
+    return resolvePhaseIdFromReportingYear(reportingYear);
+  }
+
+  private createReadFilterError(
+    message: string,
+    statusCode: number
+  ): Error & { statusCode: number } {
+    const error = new Error(message) as Error & { statusCode: number };
+    error.statusCode = statusCode;
+    return error;
+  }
+
+  async resolveReadFilters(
+    filters: TocResultsReadFilters = {}
+  ): Promise<TocResultsReadMeta> {
+    const reportingYear = filters.year ?? DEFAULT_REPORTING_YEAR;
+    const explicitPhaseId =
+      typeof filters.phaseId === "string" ? filters.phaseId.trim() : "";
+
+    if (explicitPhaseId) {
+      const yearFromPhase = await this.fetchReportingYear(explicitPhaseId);
+      const resolvedYear = yearFromPhase ?? reportingYear;
+
+      if (
+        filters.year != null &&
+        yearFromPhase != null &&
+        filters.year !== yearFromPhase
+      ) {
+        throw this.createReadFilterError(
+          `Query parameters 'year' (${filters.year}) and 'phase' (${explicitPhaseId}) refer to different reporting years (${yearFromPhase}).`,
+          400
+        );
+      }
+
+      return {
+        year: resolvedYear,
+        phase: explicitPhaseId,
+      };
+    }
+
+    const phaseId = await this.fetchPhaseIdByReportingYear(reportingYear);
+    if (!phaseId) {
+      throw this.createReadFilterError(
+        `No ToC phase found for reporting year ${reportingYear}.`,
+        404
+      );
+    }
+
+    return {
+      year: reportingYear,
+      phase: phaseId,
+    };
   }
 
   private findPhaseInPhasesResponse(
@@ -518,18 +653,17 @@ export class TocServicesResults {
     let sdgRepo = dataSource.getRepository(TocSdgResults);
   }
 
-  async getTocResultsByCategoryAndCode(category: string, officialCode: string, phaseId?: string) {
+  async getTocResultsByCategoryAndCode(
+    category: string,
+    officialCode: string,
+    filters: TocResultsReadFilters = {}
+  ): Promise<{ meta: TocResultsReadMeta; results: any[] }> {
+    const readMeta = await this.resolveReadFilters(filters);
     const dataSource: DataSource = await Database.getDataSource();
     const queryRunner = dataSource.createQueryRunner();
     await queryRunner.connect();
 
     try {
-      let reportingYear: number | null = null;
-      if (phaseId) {
-        reportingYear = await this.fetchReportingYear(phaseId);
-      }
-      const workPackageYear = reportingYear ?? 2025;
-
       let queryResults = `
         SELECT DISTINCT
           tr.id AS id,
@@ -548,20 +682,21 @@ export class TocServicesResults {
         WHERE tr.is_active = 1
           AND tr.category = ?
           AND tr.official_code = ?
+          AND tr.phase = ?
       `;
-      const paramsResults: any[] = [workPackageYear, category.toUpperCase(), officialCode];
-      
-      if (phaseId) {
-        queryResults += ` AND tr.phase = ?`;
-        paramsResults.push(phaseId);
-      }
+      const paramsResults: any[] = [
+        readMeta.year,
+        category.toUpperCase(),
+        officialCode,
+        readMeta.phase,
+      ];
 
       queryResults += ` ORDER BY wp.acronym, tr.result_title ASC`;
 
       const results = await queryRunner.query(queryResults, paramsResults);
 
       if (!results || !results.length) {
-        return [];
+        return { meta: readMeta, results: [] };
       }
 
       const tocResultIds = results.map((r: any) => r.id);
@@ -644,7 +779,7 @@ export class TocServicesResults {
         };
       });
 
-      return enrichedResults;
+      return { meta: readMeta, results: enrichedResults };
     } finally {
       await queryRunner.release();
     }
