@@ -1,6 +1,10 @@
 import axios from "axios";
 import { Request, Response } from "express";
 import { TocServicesResults } from "../services/TocServicesResult";
+import {
+  DEFAULT_REPORTING_YEAR,
+  parseReportingYearInput,
+} from "../types/sp-sync-meta";
 
 export class tocController {
   async getTocResultDashboard(req: Request, res: Response) {
@@ -90,7 +94,7 @@ export class tocController {
 
   async getTocResultsByCategoryAndCode(req: Request, res: Response) {
     const { category, official_code } = req.params;
-    const { phase } = req.query;
+    const { phase, year } = req.query;
 
     if (!category || !official_code) {
       return res.status(400).json({
@@ -99,19 +103,37 @@ export class tocController {
       });
     }
 
+    const parsedYear =
+      year === undefined
+        ? DEFAULT_REPORTING_YEAR
+        : parseReportingYearInput(year);
+
+    if (year !== undefined && parsedYear == null) {
+      return res.status(400).json({
+        message: "Query parameter 'year' must be a valid reporting year.",
+        statusCode: 400
+      });
+    }
+
     try {
       let servicesInformation = new TocServicesResults();
-      const data = await servicesInformation.getTocResultsByCategoryAndCode(
-        category,
-        official_code,
-        typeof phase === "string" ? phase : undefined
-      );
-      return res.json({ response: data });
-    } catch (error) {
+      const { meta, results } =
+        await servicesInformation.getTocResultsByCategoryAndCode(
+          category,
+          official_code,
+          {
+            year: parsedYear ?? DEFAULT_REPORTING_YEAR,
+            phaseId: typeof phase === "string" ? phase : undefined,
+          }
+        );
+      return res.json({ meta, response: results });
+    } catch (error: any) {
       console.error(error);
-      return res.status(500).json({
+      const statusCode =
+        typeof error?.statusCode === "number" ? error.statusCode : 500;
+      return res.status(statusCode).json({
         message: error.message || "An error occurred while fetching ToC results.",
-        statusCode: 500
+        statusCode
       });
     }
   }

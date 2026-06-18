@@ -38,7 +38,28 @@ Returns a list of active ToC results matching the specified category and initiat
 
 | Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `phase` | `string` | No | Filters results by a specific ToC Phase UUID (e.g., `99134294-d7a1-4966-a63e-227c9e29b9fb`). |
+| `year` | `number` | No | Reporting year (e.g. `2025`, `2026`). **Default: `2025`**. Resolves the ToC phase UUID automatically. |
+| `phase` | `string` | No | ToC Phase UUID (legacy). If both `year` and `phase` are sent, they must refer to the same reporting year. |
+
+**Examples:**
+
+```
+GET .../toc/results/category/OUTPUT/initiative/SP09
+GET .../toc/results/category/OUTPUT/initiative/SP09?year=2026
+GET .../toc/results/category/EOI/initiative/SP09?year=2026
+```
+
+**Response envelope:**
+
+```json
+{
+  "meta": {
+    "year": 2026,
+    "phase": "7baf200a-c958-4ded-9894-6557a94cae18"
+  },
+  "response": [ "... results ..." ]
+}
+```
 
 ---
 
