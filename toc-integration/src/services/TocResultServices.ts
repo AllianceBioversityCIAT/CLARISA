@@ -1159,13 +1159,6 @@ export class TocResultServices {
         { is_active: false }
       );
 
-      if (tocResultRow.related_node_id) {
-        await indicatorRepo.update(
-          { toc_result_id_toc: tocResultRow.related_node_id },
-          { is_active: false }
-        );
-      }
-
       for (const ind of indicators) {
         console.log({ processingIndicator: ind });
         if (!ind || (typeof ind.id !== "string" && typeof ind.id !== "number"))
@@ -1410,18 +1403,6 @@ export class TocResultServices {
           count: existingByIdIndicator.length,
         });
         await repo.delete({ id_indicator });
-      }
-
-      const existingByTocResultIndicatorId = await repo.find({
-        where: { toc_result_indicator_id },
-      });
-      if (existingByTocResultIndicatorId.length > 0) {
-        console.info({
-          message: "Deleting existing targets by toc_result_indicator_id",
-          toc_result_indicator_id,
-          count: existingByTocResultIndicatorId.length,
-        });
-        await repo.delete({ toc_result_indicator_id });
       }
 
       let number = 0;
