@@ -579,7 +579,10 @@ export class TocServicesResults {
         const impactAreasV2 =
           await this.tocImpactAreas.saveImpactAreaTocResultV2(data, meta);
 
-        const workPackagesV2 = await this.workPackages.saveWorkPackagesV2(data);
+        const workPackagesV2 = await this.workPackages.saveWorkPackagesV2(
+          data,
+          meta
+        );
 
         const resultsV2 = await this.resultsToc.saveTocResultsV2(
           data,
@@ -676,9 +679,14 @@ export class TocServicesResults {
           tr.wp_id AS work_package_id,
           wp.acronym AS wp_short_name,
           tr.phase AS phase,
-          tr.version_id AS version_id
+          tr.version_id AS version_id,
+          tr.related_node_id AS related_node_id
         FROM toc_results tr
-        LEFT JOIN toc_work_packages wp ON wp.toc_id = tr.wp_id AND wp.year = ?
+        LEFT JOIN toc_work_packages wp ON wp.toc_id = tr.wp_id
+          AND (
+            (wp.phase IS NOT NULL AND wp.phase = tr.phase)
+            OR (wp.phase IS NULL AND wp.year = ?)
+          )
         WHERE tr.is_active = 1
           AND tr.category = ?
           AND tr.official_code = ?
@@ -762,6 +770,82 @@ export class TocServicesResults {
         }
       }
 
+      const relatedNodeIds = results
+        .map((r: { related_node_id?: string }) => r.related_node_id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+      const synergyMap = new Map<string, any[]>();
+
+      if (relatedNodeIds.length) {
+        const synergyPlaceholders = relatedNodeIds.map(() => "?").join(", ");
+        const synergyRows = await queryRunner.query(
+          `SELECT
+            toc_result_id_toc,
+            synergy_id,
+            related_node_id,
+            flow_id,
+            description,
+            creation_date,
+            updating_date,
+            main,
+            flow_toc_id,
+            initiative_id,
+            flow_title,
+            flow_type,
+            wp_type,
+            flow_status,
+            status_reason,
+            project_state,
+            cgiar_project,
+            approved,
+            archive,
+            organization_id,
+            diagram_image,
+            flow_creation_date,
+            flow_version,
+            flow_main,
+            flow_last_update
+          FROM toc_result_synergy_programs
+          WHERE toc_result_id_toc IN (${synergyPlaceholders})`,
+          relatedNodeIds
+        );
+
+        for (const row of synergyRows) {
+          const key = row.toc_result_id_toc;
+          if (!synergyMap.has(key)) {
+            synergyMap.set(key, []);
+          }
+          synergyMap.get(key)!.push({
+            synergy_id: row.synergy_id ?? null,
+            related_node_id: row.related_node_id ?? null,
+            flow_id: row.flow_id ?? null,
+            description: row.description ?? null,
+            creation_date: row.creation_date ?? null,
+            updating_date: row.updating_date ?? null,
+            main: row.main ?? null,
+            flow: {
+              id: row.flow_toc_id ?? null,
+              initiative_id: row.initiative_id ?? null,
+              title: row.flow_title ?? null,
+              type: row.flow_type ?? null,
+              wp_type: row.wp_type ?? null,
+              status: row.flow_status ?? null,
+              status_reason: row.status_reason ?? null,
+              project_state: row.project_state ?? null,
+              cgiar_project: row.cgiar_project ?? null,
+              approved: row.approved ?? null,
+              archive: row.archive ?? null,
+              organization_id: row.organization_id ?? null,
+              diagram_image: row.diagram_image ?? null,
+              creation_date: row.flow_creation_date ?? null,
+              version: row.flow_version ?? null,
+              main: row.flow_main ?? null,
+              last_update: row.flow_last_update ?? null,
+            },
+          });
+        }
+      }
+
       const enrichedResults = results.map((row: any) => {
         return {
           toc_result_id: row.id,
@@ -775,6 +859,8 @@ export class TocServicesResults {
           wp_short_name: row.wp_short_name,
           phase: row.phase,
           version_id: row.version_id,
+          related_node_id: row.related_node_id ?? null,
+          synergy_programs: synergyMap.get(row.related_node_id) ?? [],
           indicators: indicatorMap.get(row.id) ?? []
         };
       });

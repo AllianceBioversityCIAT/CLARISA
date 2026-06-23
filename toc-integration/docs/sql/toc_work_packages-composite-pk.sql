@@ -43,5 +43,6 @@ ALTER TABLE toc_work_packages
 SHOW INDEX FROM toc_work_packages;
 
 -- NOTE: toc_results.wp_id is no longer FK-enforced.
--- Reporting/sync must join toc_work_packages using (wp_id = toc_id AND year = reporting year).
--- Optional future: add toc_results.wp_year and FK (wp_id, wp_year) -> (toc_id, year).
+-- Reporting/sync must join toc_work_packages using (wp_id = toc_id AND phase = tr.phase),
+-- with fallback (wp.phase IS NULL AND wp.year = reporting year) for legacy rows.
+-- See docs/sql/toc_work_packages-add-phase.sql

@@ -1,0 +1,33 @@
+-- toc_result_synergy_programs: synergy programs linked to toc_results via related_node_id
+
+CREATE TABLE toc_result_synergy_programs (
+  id INT NOT NULL AUTO_INCREMENT,
+  toc_result_id_toc VARCHAR(100) NOT NULL,
+  synergy_id VARCHAR(100) NULL,
+  related_node_id VARCHAR(100) NULL,
+  flow_id VARCHAR(100) NULL,
+  description TEXT NULL,
+  creation_date VARCHAR(50) NULL,
+  updating_date VARCHAR(50) NULL,
+  main TINYINT(1) NULL,
+  flow_toc_id VARCHAR(100) NULL,
+  initiative_id VARCHAR(50) NULL,
+  flow_title VARCHAR(500) NULL,
+  flow_type VARCHAR(100) NULL,
+  wp_type VARCHAR(50) NULL,
+  flow_status VARCHAR(50) NULL,
+  status_reason VARCHAR(255) NULL,
+  project_state VARCHAR(100) NULL,
+  cgiar_project TINYINT(1) NULL,
+  approved TINYINT(1) NULL,
+  archive TINYINT(1) NULL,
+  organization_id VARCHAR(100) NULL,
+  diagram_image VARCHAR(500) NULL,
+  flow_creation_date VARCHAR(50) NULL,
+  flow_version INT NULL,
+  flow_main TINYINT(1) NULL,
+  flow_last_update INT NULL,
+  PRIMARY KEY (id),
+  INDEX idx_toc_result_synergy_programs_result (toc_result_id_toc),
+  INDEX idx_toc_result_synergy_programs_initiative (initiative_id)
+);

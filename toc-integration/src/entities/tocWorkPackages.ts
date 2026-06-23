@@ -8,6 +8,10 @@ export class TocWorkPackages {
   @PrimaryColumn({ name: "year", type: "int" })
   year: number;
 
+  @Index()
+  @Column({ name: "phase", type: "varchar", length: 100, nullable: true })
+  phase: string | null;
+
   @Column({ name: "id", type: "varchar", length: 100, nullable: true })
   id: string | null;
 
