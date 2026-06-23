@@ -1,4 +1,4 @@
-import { DataSource, In } from "typeorm";
+import { DataSource, In, Repository } from "typeorm";
 import { Database } from "../database/db";
 import { ValidatorTypes } from "../validators/validatorType";
 import { ErrorValidators } from "../validators/errorsValidators";
@@ -23,6 +23,7 @@ import { TocResultIndicatorTarget } from "../entities/tocIndicatorTarget";
 import { TocResultIndicatorTargetCenter } from "../entities/tocResultIndicatorTargetCenter";
 import { TocResultProject } from "../entities/tocResultsProjects";
 import { TocResultPartners } from "../entities/tocResultsPartners";
+import { TocResultSynergyPrograms } from "../entities/tocResultsSynergyPrograms";
 import { TocSdgResults } from "../entities/tocSdgResults";
 import { TocResultsMelias } from "../entities/tocResultsMelias";
 import { TocResultsMeliasCountry } from "../entities/tocResultsMeliasCountry";
@@ -861,8 +862,7 @@ export class TocResultServices {
         )
       );
 
-      const workPackageYear =
-        typeof meta?.reporting_year === "number" ? meta.reporting_year : 2025;
+      const workPackageScope = this.resolveWorkPackageScope(meta);
 
       const workPackageMap = new Map<string, string>();
 
@@ -889,9 +889,11 @@ export class TocResultServices {
       }
 
       if (groupIds.length) {
-        const workPackages = await workPackageRepo.find({
-          where: { id: In(groupIds), year: workPackageYear },
-        });
+        const workPackages = await this.findWorkPackagesByNodeIds(
+          workPackageRepo,
+          groupIds,
+          meta
+        );
         for (const wp of workPackages) {
           if (typeof wp.id === "string" && typeof wp.toc_id === "string") {
             workPackageMap.set(wp.id, wp.toc_id);
@@ -921,9 +923,11 @@ export class TocResultServices {
             ? workPackageMap.get(groupId) ?? null
             : null;
         if (groupId && !mappedTocId) {
-          const fallbackWorkPackage = await workPackageRepo.findOne({
-            where: { id: groupId, year: workPackageYear },
-          });
+          const fallbackWorkPackage = await this.findWorkPackageByNodeId(
+            workPackageRepo,
+            groupId,
+            meta
+          );
           if (
             fallbackWorkPackage &&
             typeof fallbackWorkPackage.toc_id === "string"
@@ -931,21 +935,12 @@ export class TocResultServices {
             mappedTocId = fallbackWorkPackage.toc_id;
             workPackageMap.set(groupId, mappedTocId);
           } else {
-            const fallbackByTocId = await workPackageRepo.findOne({
-              where: { toc_id: groupId, year: workPackageYear },
+            console.warn({
+              message: "Missing work package mapping for result group",
+              groupId,
+              phase: workPackageScope.phase,
+              year: workPackageScope.year,
             });
-            if (
-              fallbackByTocId &&
-              typeof fallbackByTocId.toc_id === "string"
-            ) {
-              mappedTocId = fallbackByTocId.toc_id;
-              workPackageMap.set(groupId, mappedTocId);
-            } else {
-              console.warn({
-                message: "Missing work package mapping for result group",
-                groupId,
-              });
-            }
           }
         }
 
@@ -1034,6 +1029,14 @@ export class TocResultServices {
             partnersArray
           );
         }
+
+        const synergyProgramsArray = Array.isArray(item?.synergy_programs)
+          ? item.synergy_programs
+          : [];
+        await this.saveResultSynergyProgramsV2(
+          String(item.related_node_id),
+          synergyProgramsArray
+        );
 
         const quantitativeIndicators = Array.isArray(
           item?.quantitative_indicators
@@ -1615,6 +1618,100 @@ export class TocResultServices {
     }
   }
 
+  async saveResultSynergyProgramsV2(
+    toc_result_id_toc: string,
+    synergyPrograms: any[]
+  ) {
+    try {
+      console.info({ message: "Saving result synergy programs V2" });
+      const dataSource: DataSource = await Database.getDataSource();
+      const repo = dataSource.getRepository(TocResultSynergyPrograms);
+
+      if (!toc_result_id_toc) return [];
+
+      await repo.delete({ toc_result_id_toc });
+
+      if (!Array.isArray(synergyPrograms) || !synergyPrograms.length) {
+        return [];
+      }
+
+      const saved: TocResultSynergyPrograms[] = [];
+      for (const item of synergyPrograms) {
+        if (!item) continue;
+
+        const flow =
+          item?.flow && typeof item.flow === "object" ? item.flow : {};
+
+        const row = repo.create({
+          toc_result_id_toc,
+          synergy_id:
+            typeof item?.id === "string" || typeof item?.id === "number"
+              ? String(item.id)
+              : null,
+          related_node_id:
+            typeof item?.related_node_id === "string"
+              ? item.related_node_id
+              : null,
+          flow_id:
+            typeof item?.flow_id === "string" || typeof item?.flow_id === "number"
+              ? String(item.flow_id)
+              : null,
+          description:
+            typeof item?.description === "string" ? item.description : null,
+          creation_date:
+            typeof item?.creation_date === "string" ? item.creation_date : null,
+          updating_date:
+            typeof item?.updating_date === "string" ? item.updating_date : null,
+          main: typeof item?.main === "boolean" ? item.main : null,
+          flow_toc_id:
+            typeof flow?.id === "string" || typeof flow?.id === "number"
+              ? String(flow.id)
+              : null,
+          initiative_id:
+            typeof flow?.initiative_id === "string"
+              ? flow.initiative_id
+              : typeof flow?.initiative_id === "number"
+                ? String(flow.initiative_id)
+                : null,
+          flow_title: typeof flow?.title === "string" ? flow.title : null,
+          flow_type: typeof flow?.type === "string" ? flow.type : null,
+          wp_type: typeof flow?.wp_type === "string" ? flow.wp_type : null,
+          flow_status: typeof flow?.status === "string" ? flow.status : null,
+          status_reason:
+            typeof flow?.status_reason === "string" ? flow.status_reason : null,
+          project_state:
+            typeof flow?.project_state === "string" ? flow.project_state : null,
+          cgiar_project:
+            typeof flow?.cgiar_project === "boolean" ? flow.cgiar_project : null,
+          approved: typeof flow?.approved === "boolean" ? flow.approved : null,
+          archive: typeof flow?.archive === "boolean" ? flow.archive : null,
+          organization_id:
+            typeof flow?.organization_id === "string"
+              ? flow.organization_id
+              : null,
+          diagram_image:
+            typeof flow?.diagram_image === "string" ? flow.diagram_image : null,
+          flow_creation_date:
+            typeof flow?.creation_date === "string"
+              ? flow.creation_date
+              : null,
+          flow_version:
+            typeof flow?.version === "number" ? flow.version : null,
+          flow_main: typeof flow?.main === "boolean" ? flow.main : null,
+          flow_last_update:
+            typeof flow?.last_update === "number" ? flow.last_update : null,
+        });
+
+        await repo.insert(row);
+        saved.push(row);
+      }
+
+      return saved;
+    } catch (error) {
+      throw new Error(`Error saving result synergy programs V2: ${error}`);
+    }
+  }
+
   async saveResultMeliasV2(
     tocResultRow: TocResults,
     toc_result_id_toc: string | null,
@@ -2071,5 +2168,64 @@ export class TocResultServices {
         `Error saving ToC results impact area relations V2: ${error}`
       );
     }
+  }
+
+  private resolveWorkPackageScope(meta: {
+    phase?: string | null;
+    reporting_year?: number | null;
+  }): { phase: string | null; year: number } {
+    const phase =
+      typeof meta?.phase === "string" && meta.phase.trim()
+        ? meta.phase.trim()
+        : null;
+    const year =
+      typeof meta?.reporting_year === "number" ? meta.reporting_year : 2025;
+    return { phase, year };
+  }
+
+  private async findWorkPackagesByNodeIds(
+    repo: Repository<TocWorkPackages>,
+    nodeIds: string[],
+    meta: { phase?: string | null; reporting_year?: number | null }
+  ): Promise<TocWorkPackages[]> {
+    if (!nodeIds.length) return [];
+
+    const { phase, year } = this.resolveWorkPackageScope(meta);
+
+    if (phase) {
+      const byPhase = await repo.find({
+        where: { id: In(nodeIds), phase },
+      });
+      if (byPhase.length) return byPhase;
+    }
+
+    return repo.find({ where: { id: In(nodeIds), year } });
+  }
+
+  private async findWorkPackageByNodeId(
+    repo: Repository<TocWorkPackages>,
+    nodeId: string,
+    meta: { phase?: string | null; reporting_year?: number | null }
+  ): Promise<TocWorkPackages | null> {
+    const { phase, year } = this.resolveWorkPackageScope(meta);
+
+    if (phase) {
+      const byIdAndPhase = await repo.findOne({
+        where: { id: nodeId, phase },
+      });
+      if (byIdAndPhase) return byIdAndPhase;
+
+      const byTocIdAndPhase = await repo.findOne({
+        where: { toc_id: nodeId, phase },
+      });
+      if (byTocIdAndPhase) return byTocIdAndPhase;
+    }
+
+    const byIdAndYear = await repo.findOne({
+      where: { id: nodeId, year },
+    });
+    if (byIdAndYear) return byIdAndYear;
+
+    return repo.findOne({ where: { toc_id: nodeId, year } });
   }
 }
