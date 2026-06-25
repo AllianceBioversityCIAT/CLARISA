@@ -9,6 +9,14 @@ export class TocResultSynergyPrograms {
   @Column({ type: "varchar", length: 100 })
   toc_result_id_toc: string;
 
+  @Index()
+  @Column({ type: "int", nullable: true })
+  toc_results_id: number | null;
+
+  @Index()
+  @Column({ type: "varchar", length: 100, nullable: true })
+  phase: string | null;
+
   @Column({ type: "varchar", length: 100, nullable: true })
   synergy_id: string | null;
 
