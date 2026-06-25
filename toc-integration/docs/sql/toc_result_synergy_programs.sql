@@ -3,6 +3,8 @@
 CREATE TABLE toc_result_synergy_programs (
   id INT NOT NULL AUTO_INCREMENT,
   toc_result_id_toc VARCHAR(100) NOT NULL,
+  toc_results_id INT NULL,
+  phase VARCHAR(100) NULL,
   synergy_id VARCHAR(100) NULL,
   related_node_id VARCHAR(100) NULL,
   flow_id VARCHAR(100) NULL,
@@ -29,5 +31,7 @@ CREATE TABLE toc_result_synergy_programs (
   flow_last_update INT NULL,
   PRIMARY KEY (id),
   INDEX idx_toc_result_synergy_programs_result (toc_result_id_toc),
+  INDEX idx_toc_result_synergy_programs_toc_results_id (toc_results_id),
+  INDEX idx_toc_result_synergy_programs_phase (phase),
   INDEX idx_toc_result_synergy_programs_initiative (initiative_id)
 );

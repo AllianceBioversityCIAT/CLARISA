@@ -1010,33 +1010,36 @@ export class TocResultServices {
         if (!saved) continue;
         listResultsToc.push(saved);
 
+        const resultLinkId =
+          typeof saved.related_node_id === "string" && saved.related_node_id !== ""
+            ? saved.related_node_id
+            : null;
+
         const projectsArray = Array.isArray(item?.projects)
           ? item.projects
           : [];
-        if (projectsArray.length) {
-          await this.saveResultProjectsV2(
-            String(item?.related_node_id),
-            projectsArray
-          );
+        if (projectsArray.length && resultLinkId) {
+          await this.saveResultProjectsV2(resultLinkId, projectsArray);
         }
 
         const partnersArray = Array.isArray(item?.partners)
           ? item.partners
           : [];
-        if (partnersArray.length) {
-          await this.saveResultPartnersV2(
-            String(item.related_node_id),
-            partnersArray
-          );
+        if (partnersArray.length && resultLinkId) {
+          await this.saveResultPartnersV2(resultLinkId, partnersArray);
         }
 
         const synergyProgramsArray = Array.isArray(item?.synergy_programs)
           ? item.synergy_programs
           : [];
-        await this.saveResultSynergyProgramsV2(
-          String(item.related_node_id),
-          synergyProgramsArray
-        );
+        if (resultLinkId) {
+          await this.saveResultSynergyProgramsV2(
+            saved.id,
+            resultLinkId,
+            typeof saved.phase === "string" ? saved.phase : null,
+            synergyProgramsArray
+          );
+        }
 
         const quantitativeIndicators = Array.isArray(
           item?.quantitative_indicators
@@ -1619,7 +1622,9 @@ export class TocResultServices {
   }
 
   async saveResultSynergyProgramsV2(
+    tocResultsId: number,
     toc_result_id_toc: string,
+    phase: string | null,
     synergyPrograms: any[]
   ) {
     try {
@@ -1627,9 +1632,9 @@ export class TocResultServices {
       const dataSource: DataSource = await Database.getDataSource();
       const repo = dataSource.getRepository(TocResultSynergyPrograms);
 
-      if (!toc_result_id_toc) return [];
+      if (!tocResultsId || !toc_result_id_toc) return [];
 
-      await repo.delete({ toc_result_id_toc });
+      await repo.delete({ toc_results_id: tocResultsId });
 
       if (!Array.isArray(synergyPrograms) || !synergyPrograms.length) {
         return [];
@@ -1644,6 +1649,8 @@ export class TocResultServices {
 
         const row = repo.create({
           toc_result_id_toc,
+          toc_results_id: tocResultsId,
+          phase,
           synergy_id:
             typeof item?.id === "string" || typeof item?.id === "number"
               ? String(item.id)

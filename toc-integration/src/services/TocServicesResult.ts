@@ -770,16 +770,14 @@ export class TocServicesResults {
         }
       }
 
-      const relatedNodeIds = results
-        .map((r: { related_node_id?: string }) => r.related_node_id)
-        .filter((id): id is string => typeof id === "string" && id.length > 0);
+      const tocResultIdsForSynergy = results.map((r: { id: number }) => r.id);
+      const synergyMap = new Map<number, any[]>();
 
-      const synergyMap = new Map<string, any[]>();
-
-      if (relatedNodeIds.length) {
-        const synergyPlaceholders = relatedNodeIds.map(() => "?").join(", ");
+      if (tocResultIdsForSynergy.length) {
+        const synergyPlaceholders = tocResultIdsForSynergy.map(() => "?").join(", ");
         const synergyRows = await queryRunner.query(
           `SELECT
+            toc_results_id,
             toc_result_id_toc,
             synergy_id,
             related_node_id,
@@ -806,12 +804,40 @@ export class TocServicesResults {
             flow_main,
             flow_last_update
           FROM toc_result_synergy_programs
-          WHERE toc_result_id_toc IN (${synergyPlaceholders})`,
-          relatedNodeIds
+          WHERE toc_results_id IN (${synergyPlaceholders})
+             OR (
+               toc_results_id IS NULL
+               AND toc_result_id_toc IN (
+                 SELECT related_node_id
+                 FROM toc_results
+                 WHERE id IN (${synergyPlaceholders})
+               )
+             )`,
+          [...tocResultIdsForSynergy, ...tocResultIdsForSynergy]
+        );
+
+        const relatedNodeIdByResultId = new Map<number, string>(
+          results
+            .filter(
+              (r: { id: number; related_node_id?: string }) =>
+                typeof r.related_node_id === "string" && r.related_node_id.length > 0
+            )
+            .map((r: { id: number; related_node_id: string }) => [
+              r.id,
+              r.related_node_id,
+            ])
         );
 
         for (const row of synergyRows) {
-          const key = row.toc_result_id_toc;
+          const key =
+            typeof row.toc_results_id === "number"
+              ? Number(row.toc_results_id)
+              : Array.from(relatedNodeIdByResultId.entries()).find(
+                  ([, relatedNodeId]) => relatedNodeId === row.toc_result_id_toc
+                )?.[0];
+
+          if (key == null) continue;
+
           if (!synergyMap.has(key)) {
             synergyMap.set(key, []);
           }
@@ -860,7 +886,7 @@ export class TocServicesResults {
           phase: row.phase,
           version_id: row.version_id,
           related_node_id: row.related_node_id ?? null,
-          synergy_programs: synergyMap.get(row.related_node_id) ?? [],
+          synergy_programs: synergyMap.get(row.id) ?? [],
           indicators: indicatorMap.get(row.id) ?? []
         };
       });
