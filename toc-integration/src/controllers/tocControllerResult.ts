@@ -47,11 +47,19 @@ export class tocController {
    */
   async versionTocResultDashboard(req: Request, res: Response) {
     const versionId = req.body.versionId;
+    const phaseId = req.body.phaseId;
     const officialCode =
       typeof req.body.officialCode === "string" ? req.body.officialCode : undefined;
+    const version =
+      typeof req.body.version === "number" ? req.body.version : undefined;
     try {
       let servicesInformation = new TocServicesResults();
-      const data = await servicesInformation.versionSplitInformation(versionId, officialCode);
+      const data = await servicesInformation.versionSplitInformation(
+        versionId,
+        phaseId,
+        officialCode,
+        version
+      );
       res.json({ response: data });
     } catch (error) {
       console.error(error);

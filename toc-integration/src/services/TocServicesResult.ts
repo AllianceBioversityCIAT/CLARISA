@@ -337,9 +337,14 @@ export class TocServicesResults {
     }
   }
 
-  async versionSplitInformation(versionId: string, officialCode?: string) {
+  async versionSplitInformation(
+    versionId: string,
+    phaseId: string,
+    officialCode?: string,
+    inputVersion?: number
+  ) {
     const startedAt = Date.now();
-    console.info({ message: "Start version split", versionId });
+    console.info({ message: "Start version split", versionId, phaseId });
 
     try {
       const tocHost = `${env.LINK_TOC}/api/toc/${versionId}`;
@@ -359,21 +364,15 @@ export class TocServicesResults {
       ) {
         const {
           data,
-          phase,
           original_id,
-          version_id,
-          version,
+          version_id: respVersionId,
+          version: respVersion,
           toc_type,
         } = response.data || {};
 
         if (!this.validatorType.validatorIsArray(data)) {
           throw new Error("The property data must be an array");
         }
-
-        const resolvedPhase =
-          typeof phase === "string" || typeof phase === "number"
-            ? String(phase)
-            : null;
 
         const resolvedOfficialCode =
           typeof officialCode === "string" && officialCode.trim()
@@ -382,23 +381,21 @@ export class TocServicesResults {
               ? String(original_id)
               : versionId;
 
-        const reportingYear = resolvedPhase
-          ? await this.fetchReportingYear(resolvedPhase)
-          : null;
+        const reportingYear = await this.fetchReportingYear(phaseId);
 
         const meta: SpSyncMeta = {
-          phase: resolvedPhase,
+          phase: phaseId,
           original_id:
             typeof original_id === "string" || typeof original_id === "number"
               ? String(original_id)
               : null,
           version_id:
-            typeof version_id === "string" || typeof version_id === "number"
-              ? String(version_id)
+            typeof respVersionId === "string" || typeof respVersionId === "number"
+              ? String(respVersionId)
               : null,
           official_code: resolvedOfficialCode,
           reporting_year: reportingYear,
-          version: typeof version === "number" ? version : null,
+          version: typeof inputVersion === "number" ? inputVersion : typeof respVersion === "number" ? respVersion : 0,
           toc_type: typeof toc_type === "string" ? toc_type : null,
         };
 
