@@ -337,6 +337,149 @@ export class TocServicesResults {
     }
   }
 
+  async versionSplitInformation(versionId: string, officialCode?: string) {
+    const startedAt = Date.now();
+    console.info({ message: "Start version split", versionId });
+
+    try {
+      const tocHost = `${env.LINK_TOC}/api/toc/${versionId}`;
+      console.info({ message: "Fetching data from ToC by version", tocHost });
+
+      const response = await axios({
+        method: "get",
+        url: tocHost,
+        timeout: 20000,
+      });
+
+      if (
+        this.validatorType.existPropertyInObjectMul(response.data, [
+          "data",
+          "relations",
+        ])
+      ) {
+        const {
+          data,
+          phase,
+          original_id,
+          version_id,
+          version,
+          toc_type,
+        } = response.data || {};
+
+        if (!this.validatorType.validatorIsArray(data)) {
+          throw new Error("The property data must be an array");
+        }
+
+        const resolvedPhase =
+          typeof phase === "string" || typeof phase === "number"
+            ? String(phase)
+            : null;
+
+        const resolvedOfficialCode =
+          typeof officialCode === "string" && officialCode.trim()
+            ? officialCode.trim()
+            : typeof original_id === "string" || typeof original_id === "number"
+              ? String(original_id)
+              : versionId;
+
+        const reportingYear = resolvedPhase
+          ? await this.fetchReportingYear(resolvedPhase)
+          : null;
+
+        const meta: SpSyncMeta = {
+          phase: resolvedPhase,
+          original_id:
+            typeof original_id === "string" || typeof original_id === "number"
+              ? String(original_id)
+              : null,
+          version_id:
+            typeof version_id === "string" || typeof version_id === "number"
+              ? String(version_id)
+              : null,
+          official_code: resolvedOfficialCode,
+          reporting_year: reportingYear,
+          version: typeof version === "number" ? version : null,
+          toc_type: typeof toc_type === "string" ? toc_type : null,
+        };
+
+        const sdgV2 = await this.tocSdgResults.createTocSdgResultsV2(
+          data,
+          meta
+        );
+
+        const impactAreasV2 =
+          await this.tocImpactAreas.saveImpactAreaTocResultV2(data, meta);
+
+        const workPackagesV2 = await this.workPackages.saveWorkPackagesV2(
+          data,
+          meta
+        );
+
+        const resultsV2 = await this.resultsToc.saveTocResultsV2(
+          data,
+          meta,
+          sdgV2.sdgResults,
+          impactAreasV2.listImpactAreaResults
+        );
+
+        this.InformationSaving = {
+          ...sdgV2,
+          ...impactAreasV2,
+          ...workPackagesV2,
+          ...resultsV2,
+        };
+
+        await this.saveInDataBase();
+
+        const counts = {
+          sdgResults: sdgV2?.sdgResults?.length ?? 0,
+          sdgTargets: sdgV2?.sdgTargets?.length ?? 0,
+          sdgIndicators: sdgV2?.sdgIndicators?.length ?? 0,
+          impactAreas: impactAreasV2?.listImpactAreaResults?.length ?? 0,
+          impactAreaGlobalTargets: impactAreasV2?.globalTargets?.length ?? 0,
+          impactAreaIndicators:
+            impactAreasV2?.impactAreaIndicators?.length ?? 0,
+          workPackages: workPackagesV2?.workPackages?.length ?? 0,
+          results: resultsV2?.listResultsToc?.length ?? 0,
+        };
+        const durationMs = Date.now() - startedAt;
+
+        sendSlackNotification(
+          ":check1:",
+          resolvedOfficialCode,
+          `*Synchronization by version was successful*\nTime=${durationMs}ms\nSDGs Results=${counts.sdgResults
+          } | SDGs Targets=${counts.sdgTargets} | SDGs Indicators=${counts.sdgIndicators
+          }\nImpact Areas=${counts.impactAreas} | IA Global Targets=${counts.impactAreaGlobalTargets
+          } | IA Indicators=${counts.impactAreaIndicators}
+          \nWPs (AOW)=${counts.workPackages}
+          \nResults=${counts.results}
+          \nPhase=${meta.phase ?? "null"}\nReporting Year=${meta.reporting_year ?? "null"}\nEntity ID=${meta.original_id ?? "null"
+          }`
+        );
+
+        console.info({ message: "Finished saving ToC results by version" });
+        return {
+          meta,
+          counts,
+          durationMs,
+        };
+      } else {
+        throw new Error(
+          "The properties (data or relations) are not in the object"
+        );
+      }
+    } catch (error) {
+      const durationMs = Date.now() - startedAt;
+      sendSlackNotification(
+        ":alert:",
+        officialCode ?? versionId,
+        `*A problem occurred while synchronizing by version*\nTime=${durationMs}ms\nVersion ID=${versionId}`,
+        error
+      );
+      throw new Error(error as any);
+    }
+  }
+
   private async fetchPhasesListBody(forceRefresh = false): Promise<unknown> {
     const now = Date.now();
     if (

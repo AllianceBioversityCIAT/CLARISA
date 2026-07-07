@@ -10,6 +10,9 @@ router.post("/toc", TocResultDashboard.getTocResultDashboard);
 // * New Portfolio Route
 router.post("/toc/sp", TocResultDashboard.bulkSpTocResultDashboard)
 
+// * Sync by version UUID
+router.post("/toc/version", TocResultDashboard.versionTocResultDashboard)
+
 // * New Portfolio Route
 router.post("/toc/avisa", TocResultDashboard.bulkAvisaTocResultDashboard)
 
