@@ -43,6 +43,33 @@ export class tocController {
   /**
    * @param req
    * @param res
+   * Sync ToC data by version UUID
+   */
+  async versionTocResultDashboard(req: Request, res: Response) {
+    const versionId = req.body.versionId;
+    const phaseId = req.body.phaseId;
+    const officialCode =
+      typeof req.body.officialCode === "string" ? req.body.officialCode : undefined;
+    const version =
+      typeof req.body.version === "number" ? req.body.version : undefined;
+    try {
+      let servicesInformation = new TocServicesResults();
+      const data = await servicesInformation.versionSplitInformation(
+        versionId,
+        phaseId,
+        officialCode,
+        version
+      );
+      res.json({ response: data });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json(error);
+    }
+  }
+
+  /**
+   * @param req
+   * @param res
    * New ToC Integration dashboard for Avisa
    */
   async bulkAvisaTocResultDashboard(req: Request, res: Response) {

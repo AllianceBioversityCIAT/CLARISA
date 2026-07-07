@@ -55,9 +55,15 @@ export class ToCWorkPackagesService {
         continue;
       }
 
+      const phase =
+        typeof meta?.phase === "string" && meta.phase.trim()
+          ? meta.phase.trim()
+          : null;
+
       const record: Partial<TocWorkPackages> = {
         toc_id: tocId,
         year,
+        phase,
         id: rawId ?? null,
         acronym: typeof ost?.acronym === "string" ? ost.acronym : null,
         source: typeof ost?.source === "string" ? ost.source : null,
@@ -78,7 +84,8 @@ export class ToCWorkPackagesService {
         repo,
         tocId,
         officialCode,
-        year
+        year,
+        phase
       );
 
       if (existing) {
@@ -115,7 +122,8 @@ export class ToCWorkPackagesService {
     repo: Repository<TocWorkPackages>,
     tocId: string,
     officialCode: string,
-    year: number
+    year: number,
+    phase: string | null
   ): Promise<TocWorkPackages | null> {
     const byTocIdAndYear = await repo.findOne({
       where: { toc_id: tocId, year },
@@ -124,11 +132,29 @@ export class ToCWorkPackagesService {
       return byTocIdAndYear;
     }
 
+    if (phase) {
+      const byTocIdAndPhase = await repo.findOne({
+        where: { toc_id: tocId, phase },
+      });
+      if (byTocIdAndPhase) {
+        return byTocIdAndPhase;
+      }
+    }
+
     const byCodeAndYear = await repo.findOne({
       where: { wp_official_code: officialCode, year },
     });
     if (byCodeAndYear) {
       return byCodeAndYear;
+    }
+
+    if (phase) {
+      const byCodeAndPhase = await repo.findOne({
+        where: { wp_official_code: officialCode, phase },
+      });
+      if (byCodeAndPhase) {
+        return byCodeAndPhase;
+      }
     }
 
     return null;

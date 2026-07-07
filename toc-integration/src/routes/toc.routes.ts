@@ -3,12 +3,15 @@ import { tocController } from "../controllers/tocControllerResult";
 
 const router = Router();
 const TocResultDashboard = new tocController();
-
+ 
 // get information toc result dashboard
 router.post("/toc", TocResultDashboard.getTocResultDashboard);
 
 // * New Portfolio Route
 router.post("/toc/sp", TocResultDashboard.bulkSpTocResultDashboard)
+
+// * Sync by version UUID
+router.post("/toc/version", TocResultDashboard.versionTocResultDashboard)
 
 // * New Portfolio Route
 router.post("/toc/avisa", TocResultDashboard.bulkAvisaTocResultDashboard)
@@ -22,6 +25,7 @@ router.get("/", TocResultDashboard.getHelloWorld);
 // Get test
 router.get("/test", TocResultDashboard.getTest);
 
+// Get ToC Results by Category and Initiative
 router.get("/toc/results/category/:category/initiative/:official_code", TocResultDashboard.getTocResultsByCategoryAndCode);
 
 export default router;

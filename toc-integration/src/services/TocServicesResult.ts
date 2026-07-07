@@ -337,6 +337,146 @@ export class TocServicesResults {
     }
   }
 
+  async versionSplitInformation(
+    versionId: string,
+    phaseId: string,
+    officialCode?: string,
+    inputVersion?: number
+  ) {
+    const startedAt = Date.now();
+    console.info({ message: "Start version split", versionId, phaseId });
+
+    try {
+      const tocHost = `${env.LINK_TOC}/api/toc/${versionId}`;
+      console.info({ message: "Fetching data from ToC by version", tocHost });
+
+      const response = await axios({
+        method: "get",
+        url: tocHost,
+        timeout: 20000,
+      });
+
+      if (
+        this.validatorType.existPropertyInObjectMul(response.data, [
+          "data",
+          "relations",
+        ])
+      ) {
+        const {
+          data,
+          original_id,
+          version_id: respVersionId,
+          version: respVersion,
+          toc_type,
+        } = response.data || {};
+
+        if (!this.validatorType.validatorIsArray(data)) {
+          throw new Error("The property data must be an array");
+        }
+
+        const resolvedOfficialCode =
+          typeof officialCode === "string" && officialCode.trim()
+            ? officialCode.trim()
+            : typeof original_id === "string" || typeof original_id === "number"
+              ? String(original_id)
+              : versionId;
+
+        const reportingYear = await this.fetchReportingYear(phaseId);
+
+        const meta: SpSyncMeta = {
+          phase: phaseId,
+          original_id:
+            typeof original_id === "string" || typeof original_id === "number"
+              ? String(original_id)
+              : null,
+          version_id:
+            typeof respVersionId === "string" || typeof respVersionId === "number"
+              ? String(respVersionId)
+              : null,
+          official_code: resolvedOfficialCode,
+          reporting_year: reportingYear,
+          version: typeof inputVersion === "number" ? inputVersion : typeof respVersion === "number" ? respVersion : 0,
+          toc_type: typeof toc_type === "string" ? toc_type : null,
+        };
+
+        const sdgV2 = await this.tocSdgResults.createTocSdgResultsV2(
+          data,
+          meta
+        );
+
+        const impactAreasV2 =
+          await this.tocImpactAreas.saveImpactAreaTocResultV2(data, meta);
+
+        const workPackagesV2 = await this.workPackages.saveWorkPackagesV2(
+          data,
+          meta
+        );
+
+        const resultsV2 = await this.resultsToc.saveTocResultsV2(
+          data,
+          meta,
+          sdgV2.sdgResults,
+          impactAreasV2.listImpactAreaResults
+        );
+
+        this.InformationSaving = {
+          ...sdgV2,
+          ...impactAreasV2,
+          ...workPackagesV2,
+          ...resultsV2,
+        };
+
+        await this.saveInDataBase();
+
+        const counts = {
+          sdgResults: sdgV2?.sdgResults?.length ?? 0,
+          sdgTargets: sdgV2?.sdgTargets?.length ?? 0,
+          sdgIndicators: sdgV2?.sdgIndicators?.length ?? 0,
+          impactAreas: impactAreasV2?.listImpactAreaResults?.length ?? 0,
+          impactAreaGlobalTargets: impactAreasV2?.globalTargets?.length ?? 0,
+          impactAreaIndicators:
+            impactAreasV2?.impactAreaIndicators?.length ?? 0,
+          workPackages: workPackagesV2?.workPackages?.length ?? 0,
+          results: resultsV2?.listResultsToc?.length ?? 0,
+        };
+        const durationMs = Date.now() - startedAt;
+
+        sendSlackNotification(
+          ":check1:",
+          resolvedOfficialCode,
+          `*Synchronization by version was successful*\nTime=${durationMs}ms\nSDGs Results=${counts.sdgResults
+          } | SDGs Targets=${counts.sdgTargets} | SDGs Indicators=${counts.sdgIndicators
+          }\nImpact Areas=${counts.impactAreas} | IA Global Targets=${counts.impactAreaGlobalTargets
+          } | IA Indicators=${counts.impactAreaIndicators}
+          \nWPs (AOW)=${counts.workPackages}
+          \nResults=${counts.results}
+          \nPhase=${meta.phase ?? "null"}\nReporting Year=${meta.reporting_year ?? "null"}\nEntity ID=${meta.original_id ?? "null"
+          }`
+        );
+
+        console.info({ message: "Finished saving ToC results by version" });
+        return {
+          meta,
+          counts,
+          durationMs,
+        };
+      } else {
+        throw new Error(
+          "The properties (data or relations) are not in the object"
+        );
+      }
+    } catch (error) {
+      const durationMs = Date.now() - startedAt;
+      sendSlackNotification(
+        ":alert:",
+        officialCode ?? versionId,
+        `*A problem occurred while synchronizing by version*\nTime=${durationMs}ms\nVersion ID=${versionId}`,
+        error
+      );
+      throw new Error(error as any);
+    }
+  }
+
   private async fetchPhasesListBody(forceRefresh = false): Promise<unknown> {
     const now = Date.now();
     if (
@@ -579,7 +719,10 @@ export class TocServicesResults {
         const impactAreasV2 =
           await this.tocImpactAreas.saveImpactAreaTocResultV2(data, meta);
 
-        const workPackagesV2 = await this.workPackages.saveWorkPackagesV2(data);
+        const workPackagesV2 = await this.workPackages.saveWorkPackagesV2(
+          data,
+          meta
+        );
 
         const resultsV2 = await this.resultsToc.saveTocResultsV2(
           data,
@@ -676,9 +819,14 @@ export class TocServicesResults {
           tr.wp_id AS work_package_id,
           wp.acronym AS wp_short_name,
           tr.phase AS phase,
-          tr.version_id AS version_id
+          tr.version_id AS version_id,
+          tr.related_node_id AS related_node_id
         FROM toc_results tr
-        LEFT JOIN toc_work_packages wp ON wp.toc_id = tr.wp_id AND wp.year = ?
+        LEFT JOIN toc_work_packages wp ON wp.toc_id = tr.wp_id
+          AND (
+            (wp.phase IS NOT NULL AND wp.phase = tr.phase)
+            OR (wp.phase IS NULL AND wp.year = ?)
+          )
         WHERE tr.is_active = 1
           AND tr.category = ?
           AND tr.official_code = ?
@@ -762,6 +910,108 @@ export class TocServicesResults {
         }
       }
 
+      const tocResultIdsForSynergy = results.map((r: { id: number }) => r.id);
+      const synergyMap = new Map<number, any[]>();
+
+      if (tocResultIdsForSynergy.length) {
+        const synergyPlaceholders = tocResultIdsForSynergy.map(() => "?").join(", ");
+        const synergyRows = await queryRunner.query(
+          `SELECT
+            toc_results_id,
+            toc_result_id_toc,
+            synergy_id,
+            related_node_id,
+            flow_id,
+            description,
+            creation_date,
+            updating_date,
+            main,
+            flow_toc_id,
+            initiative_id,
+            flow_title,
+            flow_type,
+            wp_type,
+            flow_status,
+            status_reason,
+            project_state,
+            cgiar_project,
+            approved,
+            archive,
+            organization_id,
+            diagram_image,
+            flow_creation_date,
+            flow_version,
+            flow_main,
+            flow_last_update
+          FROM toc_result_synergy_programs
+          WHERE toc_results_id IN (${synergyPlaceholders})
+             OR (
+               toc_results_id IS NULL
+               AND toc_result_id_toc IN (
+                 SELECT related_node_id
+                 FROM toc_results
+                 WHERE id IN (${synergyPlaceholders})
+               )
+             )`,
+          [...tocResultIdsForSynergy, ...tocResultIdsForSynergy]
+        );
+
+        const relatedNodeIdByResultId = new Map<number, string>(
+          results
+            .filter(
+              (r: { id: number; related_node_id?: string }) =>
+                typeof r.related_node_id === "string" && r.related_node_id.length > 0
+            )
+            .map((r: { id: number; related_node_id: string }) => [
+              r.id,
+              r.related_node_id,
+            ])
+        );
+
+        for (const row of synergyRows) {
+          const key =
+            typeof row.toc_results_id === "number"
+              ? Number(row.toc_results_id)
+              : Array.from(relatedNodeIdByResultId.entries()).find(
+                  ([, relatedNodeId]) => relatedNodeId === row.toc_result_id_toc
+                )?.[0];
+
+          if (key == null) continue;
+
+          if (!synergyMap.has(key)) {
+            synergyMap.set(key, []);
+          }
+          synergyMap.get(key)!.push({
+            synergy_id: row.synergy_id ?? null,
+            related_node_id: row.related_node_id ?? null,
+            flow_id: row.flow_id ?? null,
+            description: row.description ?? null,
+            creation_date: row.creation_date ?? null,
+            updating_date: row.updating_date ?? null,
+            main: row.main ?? null,
+            flow: {
+              id: row.flow_toc_id ?? null,
+              initiative_id: row.initiative_id ?? null,
+              title: row.flow_title ?? null,
+              type: row.flow_type ?? null,
+              wp_type: row.wp_type ?? null,
+              status: row.flow_status ?? null,
+              status_reason: row.status_reason ?? null,
+              project_state: row.project_state ?? null,
+              cgiar_project: row.cgiar_project ?? null,
+              approved: row.approved ?? null,
+              archive: row.archive ?? null,
+              organization_id: row.organization_id ?? null,
+              diagram_image: row.diagram_image ?? null,
+              creation_date: row.flow_creation_date ?? null,
+              version: row.flow_version ?? null,
+              main: row.flow_main ?? null,
+              last_update: row.flow_last_update ?? null,
+            },
+          });
+        }
+      }
+
       const enrichedResults = results.map((row: any) => {
         return {
           toc_result_id: row.id,
@@ -775,6 +1025,8 @@ export class TocServicesResults {
           wp_short_name: row.wp_short_name,
           phase: row.phase,
           version_id: row.version_id,
+          related_node_id: row.related_node_id ?? null,
+          synergy_programs: synergyMap.get(row.id) ?? [],
           indicators: indicatorMap.get(row.id) ?? []
         };
       });
