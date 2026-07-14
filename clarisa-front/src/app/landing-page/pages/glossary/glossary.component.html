@@ -1,0 +1,88 @@
+<app-banner></app-banner>
+
+<section class="glossary-section">
+  <div class="container">
+    <div class="glossary-intro">
+      <h3>CGIAR terms and definitions</h3>
+      <p>
+        Glossary of terms and their definitions used across CLARISA and CGIAR reporting. Filter by portfolio or search
+        any term below.
+      </p>
+    </div>
+
+    <div class="glossary-toolbar">
+      <div class="glossary-search">
+        <i class="pi pi-search"></i>
+        <input
+          type="text"
+          [(ngModel)]="searchText"
+          (ngModelChange)="onSearchChange()"
+          placeholder="Search a term or definition..." />
+      </div>
+
+      <div class="glossary-filters" *ngIf="portfolios.length">
+        <button
+          type="button"
+          class="filter-pill"
+          [class.active]="selectedPortfolioCode == null"
+          (click)="selectPortfolio(null)">
+          All portfolios
+        </button>
+        <button
+          type="button"
+          class="filter-pill"
+          [ngClass]="selectedPortfolioCode === portfolio.code ? portfolioColorClass(portfolio.code) : ''"
+          *ngFor="let portfolio of portfolios"
+          [class.active]="selectedPortfolioCode === portfolio.code"
+          (click)="selectPortfolio(portfolio.code)">
+          {{ portfolio.name }}
+        </button>
+      </div>
+    </div>
+
+    <div class="glossary-loading" *ngIf="loading">
+      <i class="pi pi-spin pi-spinner"></i>
+      <p>Loading glossary...</p>
+    </div>
+
+    <div class="glossary-empty" *ngIf="!loading && !filteredTerms.length">
+      <i class="pi pi-book"></i>
+      <p>No terms match your search.</p>
+    </div>
+
+    <div class="glossary-list" *ngIf="!loading && filteredTerms.length">
+      <article class="glossary-card" *ngFor="let item of pagedTerms">
+        <div class="card-header">
+          <h4>{{ item.term }}</h4>
+          <div class="card-portfolios" *ngIf="item.portfolios?.length">
+            <span
+              class="portfolio-chip"
+              [ngClass]="portfolioColorClass(portfolio.id)"
+              *ngFor="let portfolio of item.portfolios"
+              [title]="portfolio.acronym || portfolio.name">
+              {{ portfolio.name }}
+            </span>
+          </div>
+        </div>
+        <p [innerHTML]="item.definition"></p>
+      </article>
+    </div>
+
+    <nav class="glossary-pagination" *ngIf="!loading && totalPages > 1">
+      <button type="button" class="page-btn" [disabled]="page === 1" (click)="goToPage(page - 1)">
+        <i class="pi pi-angle-left"></i>
+      </button>
+      <button
+        type="button"
+        class="page-btn"
+        *ngFor="let pageNumber of pageNumbers"
+        [class.active]="page === pageNumber"
+        (click)="goToPage(pageNumber)">
+        {{ pageNumber }}
+      </button>
+      <button type="button" class="page-btn" [disabled]="page === totalPages" (click)="goToPage(page + 1)">
+        <i class="pi pi-angle-right"></i>
+      </button>
+    </nav>
+  </div>
+</section>

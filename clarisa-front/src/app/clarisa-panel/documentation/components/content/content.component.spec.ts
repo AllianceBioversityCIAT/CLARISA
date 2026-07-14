@@ -400,4 +400,96 @@ describe('ContentComponent', () => {
       expect(result[0]['Name']).toBe('Test');
     });
   });
+
+  describe('chips column (portfolios)', () => {
+    it('should keep chips columns in columnsTable', () => {
+      const props = {
+        portfolios: { show_in_table: true, object_type: 'chips', column_name: 'Portfolios', order: 0 },
+      };
+      const result = component.columnsTable(props);
+      expect(result.length).toBe(1);
+      expect(result[0][2]).toBe('chips');
+    });
+
+    it('should flatten chips to comma-separated names on export', () => {
+      component.arrayColumns = [['Portfolios', 'portfolios', 'chips']] as any;
+      const result = component.createObjectFormat({
+        portfolios: [{ id: 2, name: 'CGIAR portfolio 2022-2024' }, { id: 3, name: 'CGIAR portfolio 2025-2030' }],
+      });
+      expect(result['Portfolios']).toBe('CGIAR portfolio 2022-2024, CGIAR portfolio 2025-2030');
+    });
+
+    it('should export empty string when the term has no portfolios', () => {
+      component.arrayColumns = [['Portfolios', 'portfolios', 'chips']] as any;
+      const result = component.createObjectFormat({ portfolios: [] });
+      expect(result['Portfolios']).toBe('');
+    });
+
+    it('should render chips as list in the response JSON preview', () => {
+      const props = {
+        portfolios: {
+          object_type: 'chips',
+          properties: { name: { object_type: 'field', type: 'string' } },
+        },
+      };
+      const result = component.jsonResponse(props, 'list');
+      expect(Array.isArray(result[0].portfolios)).toBe(true);
+    });
+  });
+
+  describe('applyPortfolioFilter', () => {
+    const rows = [
+      { term: 'A', portfolios: [{ id: 2, name: 'P22' }] },
+      { term: 'B', portfolios: [{ id: 3, name: 'P25' }] },
+      { term: 'C', portfolios: [{ id: 2, name: 'P22' }, { id: 3, name: 'P25' }] },
+      { term: 'D', portfolios: [] },
+    ];
+
+    beforeEach(() => {
+      component.informationEndpointAll = rows;
+      component.informationEndpoint = rows;
+    });
+
+    it('should filter rows by one selected portfolio id', () => {
+      component.togglePortfolioFilter(3);
+      expect(component.informationEndpoint.map((r: any) => r.term)).toEqual(['B', 'C']);
+    });
+
+    it('should combine several selected portfolios (OR)', () => {
+      component.togglePortfolioFilter(2);
+      component.togglePortfolioFilter(3);
+      expect(component.informationEndpoint.map((r: any) => r.term)).toEqual(['A', 'B', 'C']);
+    });
+
+    it('should restore all rows (including terms without portfolios) when every chip is unselected', () => {
+      component.togglePortfolioFilter(3);
+      component.togglePortfolioFilter(3);
+      expect(component.informationEndpoint.length).toBe(4);
+    });
+  });
+
+  describe('ensurePortfoliosColumnMetadata', () => {
+    it('should inject the chips column when the DB metadata lacks it', () => {
+      component.informationPrint = {
+        response_json: {
+          properties: {
+            term: { show_in_table: true, object_type: 'field', column_name: 'Term', order: 0 },
+          },
+        },
+      };
+      component.ensurePortfoliosColumnMetadata();
+      const injected = component.informationPrint.response_json.properties.portfolios;
+      expect(injected.object_type).toBe('chips');
+      expect(injected.show_in_table).toBe(true);
+    });
+
+    it('should not overwrite the column when the DB metadata already has it', () => {
+      const existing = { object_type: 'chips', column_name: 'Portfolios', marker: 'db' };
+      component.informationPrint = {
+        response_json: { properties: { portfolios: existing } },
+      };
+      component.ensurePortfoliosColumnMetadata();
+      expect(component.informationPrint.response_json.properties.portfolios).toBe(existing);
+    });
+  });
 });

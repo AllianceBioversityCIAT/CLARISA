@@ -6,6 +6,7 @@ import autoTable from 'jspdf-autotable';
 import * as FileSaver from 'file-saver';
 import { environment } from '../../../../../environments/environment';
 import { UrlParamsService } from 'src/app/clarisa-panel/services/url-params.service';
+import { ManageApiService } from 'src/app/clarisa-panel/manage/services/manage-api.service';
 
 @Component({
   selector: 'app-content',
@@ -27,8 +28,13 @@ export class ContentComponent implements OnInit, OnChanges {
   loading: boolean = true;
   urlClarisa: string;
   showDynamicTableFilters: boolean = false;
+  informationEndpointAll: any = [];
+  hasPortfolios: boolean = false;
+  portfolioOptions: any[] = [];
+  selectedPortfolioCodes: number[] = [];
   constructor(
     private _manageApiService: EndpointsInformationService,
+    private _portfoliosApiService: ManageApiService,
     public _servicesUrl: UrlParamsService
   ) {}
 
@@ -86,9 +92,59 @@ export class ContentComponent implements OnInit, OnChanges {
       }
     });
     this._manageApiService.getAnyEndpoint(this.informationPrint.route).subscribe(resp => {
+      this.informationEndpointAll = resp;
       this.informationEndpoint = resp;
+      this.selectedPortfolioCodes = [];
+      this.hasPortfolios = Array.isArray(resp) && resp.some((row: any) => Array.isArray(row?.portfolios));
+      if (this.hasPortfolios) {
+        this.ensurePortfoliosColumnMetadata();
+        if (!this.portfolioOptions.length) {
+          this._portfoliosApiService.getAllPortfolios().subscribe((portfolios: any) => {
+            this.portfolioOptions = portfolios ?? [];
+          });
+        }
+      }
       this.loading = false;
     });
+  }
+
+  // Fallback: if the endpoint data carries `portfolios` but the DB-driven
+  // column metadata (hp_clarisa_endpoints.response_json) does not include the
+  // column yet, inject it client-side so the chips column always renders.
+  ensurePortfoliosColumnMetadata() {
+    const responseJson = this.informationPrint?.response_json;
+    if (!responseJson?.properties || responseJson.properties.portfolios) {
+      return;
+    }
+    responseJson.properties.portfolios = {
+      type: 'list',
+      order: Object.keys(responseJson.properties).length,
+      properties: {
+        id: { type: 'number', order: 0, properties: null, column_name: null, object_type: 'field', show_in_table: false },
+        name: { type: 'string', order: 1, properties: null, column_name: '', object_type: 'field', show_in_table: true },
+        acronym: { type: 'string', order: 2, properties: null, column_name: null, object_type: 'field', show_in_table: false }
+      },
+      column_name: 'Portfolios',
+      object_type: 'chips',
+      show_in_table: true
+    };
+  }
+
+  togglePortfolioFilter(code: number) {
+    this.selectedPortfolioCodes = this.selectedPortfolioCodes.includes(code)
+      ? this.selectedPortfolioCodes.filter(selected => selected !== code)
+      : [...this.selectedPortfolioCodes, code];
+    this.applyPortfolioFilter();
+  }
+
+  applyPortfolioFilter() {
+    if (!this.selectedPortfolioCodes.length) {
+      this.informationEndpoint = this.informationEndpointAll;
+      return;
+    }
+    this.informationEndpoint = this.informationEndpointAll.filter((row: any) =>
+      row?.portfolios?.some((portfolio: any) => this.selectedPortfolioCodes.includes(portfolio.id))
+    );
   }
 
   iniciativeEndInformation() {
@@ -143,8 +199,8 @@ export class ContentComponent implements OnInit, OnChanges {
     if (auxList[i].object_type == 'object') {
       responseJson[0][i] = this.jsonResponse(auxList[i].properties, auxList[i].object_type);
     }
-    if (auxList[i].object_type == 'list') {
-      responseJson[0][i] = this.jsonResponse(auxList[i].properties, auxList[i].object_type);
+    if (auxList[i].object_type == 'list' || auxList[i].object_type == 'chips') {
+      responseJson[0][i] = this.jsonResponse(auxList[i].properties, 'list');
     }
   }
 
@@ -277,6 +333,9 @@ export class ContentComponent implements OnInit, OnChanges {
       }
       if (k[2] == 'list') {
         objectFormat[k[0]] = this.getListValue(i, k);
+      }
+      if (k[2] == 'chips') {
+        objectFormat[k[0]] = (i[k[1]] ?? []).map((chip: any) => chip.name).join(', ');
       }
     }
     return objectFormat;
