@@ -88,6 +88,31 @@ describe('GlossaryService', () => {
     expect(result).toBeDefined();
   });
 
+  it('should load the portfolio relation on findOne', async () => {
+    mockGlossaryRepository.findOne.mockResolvedValue({ id: 1 });
+
+    await service.findOne(1);
+    expect(mockGlossaryRepository.findOne).toHaveBeenCalledWith({
+      where: { id: 1 },
+      relations: {
+        glossary_portfolio_array: { portfolio_object: true },
+      },
+    });
+  });
+
+  it('should load the portfolio relation on findAll', async () => {
+    mockGlossaryRepository.find.mockResolvedValue([]);
+
+    await service.findAll(FindAllOptions.SHOW_ALL);
+    expect(mockGlossaryRepository.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        relations: {
+          glossary_portfolio_array: { portfolio_object: true },
+        },
+      }),
+    );
+  });
+
   it('should save items on update', async () => {
     const dto = [{ id: 1 }];
     mockGlossaryRepository.save.mockResolvedValue(dto);

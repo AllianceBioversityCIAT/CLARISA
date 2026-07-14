@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { UpdateGlossaryDto } from './dto/update-glossary.dto';
-import { FindOptionsOrder, FindOptionsWhere } from 'typeorm';
+import {
+  FindOptionsOrder,
+  FindOptionsRelations,
+  FindOptionsWhere,
+} from 'typeorm';
 import { Glossary } from './entities/glossary.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { GlossaryRepository } from './repositories/glossary.repository';
@@ -16,6 +20,9 @@ export class GlossaryService {
     const orderClause: FindOptionsOrder<Glossary> = {
       title: 'ASC',
     };
+    const relationsClause: FindOptionsRelations<Glossary> = {
+      glossary_portfolio_array: { portfolio_object: true },
+    };
 
     if (onlyDashboard) {
       whereClause = {
@@ -29,6 +36,7 @@ export class GlossaryService {
         return this.glossaryRepository.find({
           where: whereClause,
           order: orderClause,
+          relations: relationsClause,
         });
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
@@ -41,6 +49,7 @@ export class GlossaryService {
         return this.glossaryRepository.find({
           where: whereClause,
           order: orderClause,
+          relations: relationsClause,
         });
       default:
         throw Error('?!');
@@ -48,7 +57,12 @@ export class GlossaryService {
   }
 
   findOne(id: number) {
-    return this.glossaryRepository.findOneBy({ id });
+    return this.glossaryRepository.findOne({
+      where: { id },
+      relations: {
+        glossary_portfolio_array: { portfolio_object: true },
+      },
+    });
   }
 
   async update(updateGlossary: UpdateGlossaryDto[]): Promise<Glossary[]> {

@@ -3,6 +3,7 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
 import { CgiarEntityType } from '../../cgiar-entity-type/entities/cgiar-entity-type.entity';
 import { CgiarEntity } from '../../cgiar-entity/entities/cgiar-entity.entity';
+import { GlossaryPortfolio } from '../../glossary/entities/glossary-portfolio.entity';
 import { ImpactAreaIndicator } from '../../impact-area-indicator/entities/impact-area-indicator.entity';
 
 @Entity('portfolios')
@@ -31,6 +32,10 @@ export class Portfolio {
 
   @OneToMany(() => ImpactAreaIndicator, (iai) => iai.portfolio)
   impact_area_indicators: ImpactAreaIndicator[];
+
+  @Exclude()
+  @OneToMany(() => GlossaryPortfolio, (gp) => gp.portfolio_object)
+  glossary_portfolio_array: GlossaryPortfolio[];
 
   //auditable fields
 
