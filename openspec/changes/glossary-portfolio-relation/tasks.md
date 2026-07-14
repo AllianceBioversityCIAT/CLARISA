@@ -19,8 +19,14 @@
 - [x] 3.2 Expose `portfolios: [{ id, name, acronym }]` in the serialized glossary response, filtering to active associations at serialization time, keeping the raw relation `@Exclude`d and all existing fields unchanged; verify the serialized output does NOT leak the full `Portfolio` entity or its relation arrays
 - [x] 3.3 ~~Update Swagger decorators/description of the glossary endpoints~~ DROPPED: the branch base (`staging`) has no Swagger decorators on this controller (they exist only on dev-v2); re-add when the feature reaches a base with Swagger
 
-## 4. Validation & quality gate
+## 4. Repair migration — dev DB drift (added 2026-07-14, approved by Juanda)
 
-- [x] 4.1 Update/extend `glossary.service.spec.ts` and `glossary.controller.spec.ts` to cover the `portfolios` exposure (multi-portfolio term, term with no associations)
-- [x] 4.2 Run `npm test`, `npm run build` and lint in `clarisa-back` — all green
-- [x] 4.3 Final self-audit against the spec scenarios (multi-portfolio, unique constraint, backfill mirrors `is_active`, non-breaking response) before marking the change ready
+- [ ] 4.1 Write conditional migration `RestoreGlossaryTitleColumn`: if `glossary.term` exists (dev DB drift from the old `dev`-line rename), rename it back to `title`; if the column is already `title` (staging/prod), no-op. `down()` is a no-op (the `term` name must never be reintroduced — golden no-rename rule).
+- [ ] 4.2 Test in Docker BOTH scenarios: drifted DB (term→title renamed) and healthy DB (no-op, no failure)
+- [ ] 4.3 Ship through the normal flow (feature branch → dev-v2 → Jenkins runs it in the cloud) and verify `GET /api/glossary` in dev returns terms with `portfolios`
+
+## 5. Validation & quality gate
+
+- [x] 5.1 Update/extend `glossary.service.spec.ts` and `glossary.controller.spec.ts` to cover the `portfolios` exposure (multi-portfolio term, term with no associations)
+- [x] 5.2 Run `npm test`, `npm run build` and lint in `clarisa-back` — all green
+- [x] 5.3 Final self-audit against the spec scenarios (multi-portfolio, unique constraint, backfill mirrors `is_active`, non-breaking response) before marking the change ready
