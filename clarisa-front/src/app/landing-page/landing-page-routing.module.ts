@@ -37,6 +37,13 @@ const routes: Routes = [
           import('./pages/faq/faq.module').then((m) => m.FaqModule),
       },
       {
+        path: 'glossary',
+        loadChildren: () =>
+          import('./pages/glossary/glossary.module').then(
+            (m) => m.GlossaryModule
+          ),
+      },
+      {
         path: 'institutionsRequestBi',
         loadChildren: () =>
           import(

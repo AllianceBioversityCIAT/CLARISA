@@ -1,0 +1,242 @@
+.glossary-section {
+  padding: 48px 0 72px;
+  background-color: #f7f8f5;
+}
+
+.glossary-intro {
+  margin-bottom: 28px;
+
+  h3 {
+    color: #436280;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  p {
+    color: #5f6b76;
+    max-width: 720px;
+  }
+}
+
+.glossary-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.glossary-search {
+  position: relative;
+  flex: 1 1 320px;
+  max-width: 470px;
+
+  i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #739600;
+  }
+
+  input {
+    width: 100%;
+    padding: 10px 18px 10px 42px;
+    border: 1px solid #d8dfd0;
+    border-radius: 50px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus {
+      border-color: #739600;
+      box-shadow: 0 0 0 3px rgba(115, 150, 0, 0.15);
+    }
+  }
+}
+
+.glossary-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-pill {
+  border: 1px solid #739600;
+  background: transparent;
+  color: #739600;
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(115, 150, 0, 0.12);
+  }
+
+  &.active {
+    background-color: #739600;
+    color: #fff;
+  }
+
+  &.active.chip-color-0 {
+    background-color: #6d28d9;
+    border-color: #6d28d9;
+  }
+  &.active.chip-color-1 {
+    background-color: #8a8f98;
+    border-color: #8a8f98;
+  }
+  &.active.chip-color-2 {
+    background-color: #739600;
+    border-color: #739600;
+  }
+  &.active.chip-color-3 {
+    background-color: #2563a8;
+    border-color: #2563a8;
+  }
+  &.active.chip-color-4 {
+    background-color: #c2701e;
+    border-color: #c2701e;
+  }
+}
+
+.glossary-loading,
+.glossary-empty {
+  text-align: center;
+  padding: 64px 0;
+  color: #5f6b76;
+
+  i {
+    font-size: 2.2rem;
+    color: #739600;
+    margin-bottom: 12px;
+    display: inline-block;
+  }
+}
+
+.glossary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 960px;
+}
+
+.glossary-card {
+  background: #fff;
+  border: 1px solid #e6eadf;
+  border-left: 4px solid #739600;
+  border-radius: 10px;
+  padding: 20px 26px;
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 8px 20px rgba(67, 98, 128, 0.12);
+  }
+
+  .card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+
+    h4 {
+      color: #436280;
+      font-size: 17px;
+      font-weight: 700;
+      margin: 0;
+    }
+  }
+
+  p {
+    color: #4c5560;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre-line;
+  }
+}
+
+.card-portfolios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.glossary-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 32px;
+  max-width: 960px;
+}
+
+.page-btn {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #d8dfd0;
+  background: #fff;
+  color: #436280;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover:not(:disabled) {
+    border-color: #739600;
+    color: #739600;
+  }
+
+  &.active {
+    background-color: #739600;
+    border-color: #739600;
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.portfolio-chip {
+  display: inline-block;
+  background-color: #739600;
+  color: #fff;
+  padding: 0.4rem 0.9rem;
+  border-radius: 1.2rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  // Paleta determinística por portfolio (id % 5)
+  &.chip-color-0 {
+    background-color: #6d28d9; // violeta
+  }
+  &.chip-color-1 {
+    background-color: #8a8f98; // gris (portfolios cerrados, ej. 2016-2021)
+  }
+  &.chip-color-2 {
+    background-color: #739600; // verde CGIAR (2022-2024)
+  }
+  &.chip-color-3 {
+    background-color: #2563a8; // azul (2025-2030)
+  }
+  &.chip-color-4 {
+    background-color: #c2701e; // naranja (CGIAR general)
+  }
+}
+
+@media (max-width: 576px) {
+  .glossary-card .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
