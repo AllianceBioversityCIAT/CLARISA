@@ -29,7 +29,9 @@ export class GlossaryController {
   @ApiOperation({
     summary: 'List glossary terms',
     description:
-      'Glossary of terms and their definitions used across CLARISA and CGIAR reporting.',
+      'Glossary of terms and their definitions used across CLARISA and CGIAR reporting. ' +
+      'Each term includes a "portfolios" array with the CGIAR portfolios ' +
+      '(id, name, acronym) the term belongs to.',
   })
   @ApiQuery({
     name: 'show',
