@@ -20,16 +20,23 @@ The public page SHALL provide a text search (matching term and definition) and a
 - **WHEN** the visitor picks a portfolio
 - **THEN** only terms associated with that portfolio id remain visible
 
-### Requirement: Vertical list with pagination
-Because definitions vary greatly in length, the public page SHALL present terms as a single-column vertical list (one card per row) with client-side pagination (10 terms per page, pager controls). Changing the search text or the portfolio filter SHALL reset the pager to page 1.
+### Requirement: Vertical alphabetical list with letter index
+Because definitions vary greatly in length, the public page SHALL present terms as a single-column vertical list (one card per row), sorted alphabetically, with NO pagination (updated per Yeck 2026-07-15). Below the portfolio filter, the page SHALL show a letter index as small circles containing ONLY the initials that exist among the current terms; selecting a letter filters the list (toggle), and the available letters SHALL recompute when the portfolio filter changes.
 
-#### Scenario: Paging through terms
-- **WHEN** more than 10 terms match the current search/filter
-- **THEN** the page shows the first 10 with pager controls, and selecting page 2 shows the next batch
+#### Scenario: Letter index reflects existing initials
+- **WHEN** the loaded terms start with A, C and S only
+- **THEN** the letter index shows exactly the circles A, C and S
 
-#### Scenario: Filter resets the pager
-- **WHEN** the visitor is on page 2 and types in the search box
-- **THEN** the pager returns to page 1 with the new result set
+#### Scenario: Filtering by initial
+- **WHEN** the visitor clicks the "S" circle
+- **THEN** only terms starting with S remain visible; clicking it again restores the list
+
+### Requirement: Portfolio filter shows active portfolios without CGIAR prefix
+The portfolio filter SHALL offer every ACTIVE portfolio (even those with no terms yet, each taking its deterministic color when selected) and hide inactive/closed portfolios (e.g. 2016-2021). Portfolio labels in pills and chips SHALL drop the leading "CGIAR" word, keeping a capitalized first letter (e.g. "Portfolio 2022-2024", "General"). Inactive (unselected) pills SHALL be neutral (no portfolio color).
+
+#### Scenario: Closed portfolio hidden
+- **WHEN** the portfolios endpoint returns 2016-2021 with is_active = 0
+- **THEN** that portfolio does not appear among the filter pills
 
 ### Requirement: Resilient rendering
 The page SHALL handle edge states gracefully: loading indicator while fetching, an empty-state message when no term matches the search/filter, and terms without portfolios rendered without chips.

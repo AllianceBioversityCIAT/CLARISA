@@ -11,9 +11,8 @@ export class GlossaryComponent implements OnInit {
   portfolios: any[] = [];
   searchText: string = '';
   selectedPortfolioCode: number | null = null;
+  selectedLetter: string | null = null;
   loading: boolean = true;
-  page: number = 1;
-  pageSize: number = 10;
 
   constructor(private _glossaryPageService: GlossaryPageService) {}
 
@@ -33,49 +32,61 @@ export class GlossaryComponent implements OnInit {
     });
   }
 
+  // Every ACTIVE portfolio is offered as a filter (closed ones, e.g. 2016-2021, are hidden)
+  get filterPortfolios(): any[] {
+    return this.portfolios.filter(portfolio => portfolio.is_active !== 0 && portfolio.is_active !== false);
+  }
+
+  // Terms matching the portfolio filter (base set for the letter index)
+  private get portfolioFilteredTerms(): GlossaryTerm[] {
+    return this.terms.filter(
+      term => this.selectedPortfolioCode == null || term.portfolios?.some(portfolio => portfolio.id === this.selectedPortfolioCode)
+    );
+  }
+
+  // Only the initials that exist among the current terms
+  get availableLetters(): string[] {
+    const letters = new Set<string>();
+    for (const term of this.portfolioFilteredTerms) {
+      const initial = term.term?.trim().charAt(0).toUpperCase();
+      if (initial) {
+        letters.add(initial);
+      }
+    }
+    return Array.from(letters).sort();
+  }
+
   get filteredTerms(): GlossaryTerm[] {
     const search = this.searchText.trim().toLowerCase();
-    return this.terms.filter(term => {
-      const matchesSearch =
-        !search || term.term?.toLowerCase().includes(search) || term.definition?.toLowerCase().includes(search);
-      const matchesPortfolio =
-        this.selectedPortfolioCode == null || term.portfolios?.some(portfolio => portfolio.id === this.selectedPortfolioCode);
-      return matchesSearch && matchesPortfolio;
-    });
-  }
-
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredTerms.length / this.pageSize));
-  }
-
-  get pagedTerms(): GlossaryTerm[] {
-    const start = (this.page - 1) * this.pageSize;
-    return this.filteredTerms.slice(start, start + this.pageSize);
-  }
-
-  get pageNumbers(): number[] {
-    return Array.from({ length: this.totalPages }, (_, index) => index + 1);
+    return this.portfolioFilteredTerms
+      .filter(term => {
+        const matchesSearch =
+          !search || term.term?.toLowerCase().includes(search) || term.definition?.toLowerCase().includes(search);
+        const matchesLetter = this.selectedLetter == null || term.term?.trim().toUpperCase().startsWith(this.selectedLetter);
+        return matchesSearch && matchesLetter;
+      })
+      .sort((a, b) => (a.term ?? '').localeCompare(b.term ?? ''));
   }
 
   selectPortfolio(code: number | null) {
     this.selectedPortfolioCode = this.selectedPortfolioCode === code ? null : code;
-    this.page = 1;
+    if (this.selectedLetter && !this.availableLetters.includes(this.selectedLetter)) {
+      this.selectedLetter = null;
+    }
   }
 
-  onSearchChange() {
-    this.page = 1;
+  selectLetter(letter: string) {
+    this.selectedLetter = this.selectedLetter === letter ? null : letter;
+  }
+
+  // "CGIAR portfolio 2022-2024" -> "Portfolio 2022-2024" · "CGIAR general" -> "General"
+  portfolioLabel(name: string): string {
+    const stripped = (name ?? '').replace(/^CGIAR\s+/i, '').trim();
+    return stripped ? stripped.charAt(0).toUpperCase() + stripped.slice(1) : name;
   }
 
   // Deterministic color per portfolio (cycles a fixed palette by id)
   portfolioColorClass(id: number): string {
     return 'chip-color-' + (Math.abs(id ?? 0) % 5);
-  }
-
-  goToPage(page: number) {
-    if (page < 1 || page > this.totalPages) {
-      return;
-    }
-    this.page = page;
-    document.querySelector('.glossary-section')?.scrollIntoView?.({ behavior: 'smooth' });
   }
 }
