@@ -8,12 +8,14 @@
 
   h3 {
     color: #436280;
+    font-size: 22px;
     font-weight: 700;
     margin-bottom: 8px;
   }
 
   p {
     color: #5f6b76;
+    font-size: 14px;
     max-width: 720px;
   }
 }
@@ -41,10 +43,10 @@
 
   input {
     width: 100%;
-    padding: 10px 18px 10px 42px;
+    padding: 8px 16px 8px 40px;
     border: 1px solid #d8dfd0;
     border-radius: 50px;
-    font-size: 15px;
+    font-size: 13px;
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
@@ -62,18 +64,19 @@
 }
 
 .filter-pill {
-  border: 1px solid #739600;
+  border: 1px solid #d8dfd0;
   background: transparent;
-  color: #739600;
-  padding: 6px 14px;
+  color: #5f6b76;
+  padding: 5px 13px;
   border-radius: 50px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 
   &:hover {
-    background-color: rgba(115, 150, 0, 0.12);
+    border-color: #a8b3a0;
+    background-color: rgba(115, 150, 0, 0.08);
   }
 
   &.active {
@@ -129,7 +132,7 @@
   border: 1px solid #e6eadf;
   border-left: 4px solid #739600;
   border-radius: 10px;
-  padding: 20px 26px;
+  padding: 16px 22px;
   transition: box-shadow 0.15s ease;
 
   &:hover {
@@ -146,7 +149,7 @@
 
     h4 {
       color: #436280;
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 700;
       margin: 0;
     }
@@ -154,8 +157,8 @@
 
   p {
     color: #4c5560;
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 13px;
+    line-height: 1.65;
     margin: 0;
     white-space: pre-line;
   }
@@ -167,52 +170,14 @@
   gap: 6px;
 }
 
-.glossary-pagination {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 32px;
-  max-width: 960px;
-}
-
-.page-btn {
-  min-width: 38px;
-  height: 38px;
-  padding: 0 10px;
-  border: 1px solid #d8dfd0;
-  background: #fff;
-  color: #436280;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
-
-  &:hover:not(:disabled) {
-    border-color: #739600;
-    color: #739600;
-  }
-
-  &.active {
-    background-color: #739600;
-    border-color: #739600;
-    color: #fff;
-  }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: default;
-  }
-}
 
 .portfolio-chip {
   display: inline-block;
   background-color: #739600;
   color: #fff;
-  padding: 0.4rem 0.9rem;
-  border-radius: 1.2rem;
-  font-size: 0.88rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 1rem;
+  font-size: 0.72rem;
   font-weight: 600;
   white-space: nowrap;
 
@@ -238,5 +203,38 @@
   .glossary-card .card-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+.glossary-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: -14px 0 28px;
+}
+
+.letter-circle {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #d8dfd0;
+  background: #fff;
+  color: #436280;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #739600;
+    color: #739600;
+  }
+
+  &.active {
+    background-color: #739600;
+    border-color: #739600;
+    color: #fff;
   }
 }

@@ -90,36 +90,56 @@ describe('GlossaryComponent', () => {
     expect(component.filteredTerms).toEqual([]);
   });
 
-  describe('pagination', () => {
+  it('should return terms sorted alphabetically', () => {
+    fixture.detectChanges();
+    expect(component.filteredTerms.map(t => t.term)).toEqual(['Action Area', 'Innovation', 'Orphan', 'Shared term']);
+  });
+
+  describe('letter filter', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      component.pageSize = 2;
     });
 
-    it('should slice the filtered terms per page', () => {
-      expect(component.totalPages).toBe(2);
-      expect(component.pagedTerms.map(t => t.term)).toEqual(['Action Area', 'Innovation']);
-
-      component.goToPage(2);
-      expect(component.pagedTerms.map(t => t.term)).toEqual(['Shared term', 'Orphan']);
+    it('should expose only the initials that exist', () => {
+      expect(component.availableLetters).toEqual(['A', 'I', 'O', 'S']);
     });
 
-    it('should ignore out-of-range pages', () => {
-      component.goToPage(0);
-      expect(component.page).toBe(1);
-      component.goToPage(99);
-      expect(component.page).toBe(1);
+    it('should filter terms by the selected initial and toggle off', () => {
+      component.selectLetter('S');
+      expect(component.filteredTerms.map(t => t.term)).toEqual(['Shared term']);
+      component.selectLetter('S');
+      expect(component.filteredTerms.length).toBe(4);
     });
 
-    it('should reset to page 1 when the search or the portfolio filter changes', () => {
-      component.goToPage(2);
-      component.searchText = 'a';
-      component.onSearchChange();
-      expect(component.page).toBe(1);
+    it('should recompute letters when a portfolio is selected and drop an orphan selection', () => {
+      component.selectLetter('A');
+      component.selectPortfolio(3);
+      expect(component.availableLetters).toEqual(['I', 'S']);
+      expect(component.selectedLetter).toBeNull();
+    });
+  });
 
-      component.goToPage(2);
-      component.selectPortfolio(2);
-      expect(component.page).toBe(1);
+  describe('portfolio filter pills', () => {
+    it('should offer every active portfolio (even without terms) and hide inactive ones', () => {
+      mockService.getPortfolios.mockReturnValue(
+        of([
+          { code: 1, name: 'CGIAR portfolio 2016-2021', is_active: 0 },
+          { code: 2, name: 'CGIAR portfolio 2022-2024', is_active: 1 },
+          { code: 3, name: 'CGIAR portfolio 2025-2030', is_active: 1 },
+          { code: 4, name: 'CGIAR general', is_active: 1 }
+        ])
+      );
+      fixture.detectChanges();
+      expect(component.filterPortfolios.map((p: any) => p.code)).toEqual([2, 3, 4]);
+    });
+  });
+
+  describe('portfolioLabel', () => {
+    it('should strip the CGIAR prefix and keep a capital first letter', () => {
+      fixture.detectChanges();
+      expect(component.portfolioLabel('CGIAR portfolio 2022-2024')).toBe('Portfolio 2022-2024');
+      expect(component.portfolioLabel('CGIAR general')).toBe('General');
+      expect(component.portfolioLabel('Something else')).toBe('Something else');
     });
   });
 });

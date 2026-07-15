@@ -13,14 +13,10 @@
     <div class="glossary-toolbar">
       <div class="glossary-search">
         <i class="pi pi-search"></i>
-        <input
-          type="text"
-          [(ngModel)]="searchText"
-          (ngModelChange)="onSearchChange()"
-          placeholder="Search a term or definition..." />
+        <input type="text" [(ngModel)]="searchText" placeholder="Search a term or definition..." />
       </div>
 
-      <div class="glossary-filters" *ngIf="portfolios.length">
+      <div class="glossary-filters" *ngIf="filterPortfolios.length">
         <button
           type="button"
           class="filter-pill"
@@ -32,12 +28,23 @@
           type="button"
           class="filter-pill"
           [ngClass]="selectedPortfolioCode === portfolio.code ? portfolioColorClass(portfolio.code) : ''"
-          *ngFor="let portfolio of portfolios"
+          *ngFor="let portfolio of filterPortfolios"
           [class.active]="selectedPortfolioCode === portfolio.code"
           (click)="selectPortfolio(portfolio.code)">
-          {{ portfolio.name }}
+          {{ portfolioLabel(portfolio.name) }}
         </button>
       </div>
+    </div>
+
+    <div class="glossary-letters" *ngIf="!loading && availableLetters.length">
+      <button
+        type="button"
+        class="letter-circle"
+        *ngFor="let letter of availableLetters"
+        [class.active]="selectedLetter === letter"
+        (click)="selectLetter(letter)">
+        {{ letter }}
+      </button>
     </div>
 
     <div class="glossary-loading" *ngIf="loading">
@@ -51,7 +58,7 @@
     </div>
 
     <div class="glossary-list" *ngIf="!loading && filteredTerms.length">
-      <article class="glossary-card" *ngFor="let item of pagedTerms">
+      <article class="glossary-card" *ngFor="let item of filteredTerms">
         <div class="card-header">
           <h4>{{ item.term }}</h4>
           <div class="card-portfolios" *ngIf="item.portfolios?.length">
@@ -60,29 +67,12 @@
               [ngClass]="portfolioColorClass(portfolio.id)"
               *ngFor="let portfolio of item.portfolios"
               [title]="portfolio.acronym || portfolio.name">
-              {{ portfolio.name }}
+              {{ portfolioLabel(portfolio.name) }}
             </span>
           </div>
         </div>
         <p [innerHTML]="item.definition"></p>
       </article>
     </div>
-
-    <nav class="glossary-pagination" *ngIf="!loading && totalPages > 1">
-      <button type="button" class="page-btn" [disabled]="page === 1" (click)="goToPage(page - 1)">
-        <i class="pi pi-angle-left"></i>
-      </button>
-      <button
-        type="button"
-        class="page-btn"
-        *ngFor="let pageNumber of pageNumbers"
-        [class.active]="page === pageNumber"
-        (click)="goToPage(pageNumber)">
-        {{ pageNumber }}
-      </button>
-      <button type="button" class="page-btn" [disabled]="page === totalPages" (click)="goToPage(page + 1)">
-        <i class="pi pi-angle-right"></i>
-      </button>
-    </nav>
   </div>
 </section>
