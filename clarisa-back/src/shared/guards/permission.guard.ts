@@ -3,9 +3,10 @@ import {
   CanActivate,
   ExecutionContext,
   Logger,
+  UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ModuleRef, Reflector } from '@nestjs/core';
-import { Observable } from 'rxjs';
 import { User } from '../../api/user/entities/user.entity';
 import { UserService } from '../../api/user/user.service';
 import { IS_CLARISA_PAGE } from '../decorators/clarisa-page.decorator';
@@ -18,13 +19,9 @@ export class PermissionGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private moduleRef: ModuleRef,
-  ) {
-    this.userService = this.moduleRef.get(UserService, { strict: false });
-  }
+  ) {}
 
-  canActivate(
-    context: ExecutionContext,
-  ): boolean | Promise<boolean> | Observable<boolean> {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isClarisaPage: boolean | undefined = this.reflector.get<boolean>(
       IS_CLARISA_PAGE,
       context.getClass(),
@@ -33,24 +30,45 @@ export class PermissionGuard implements CanActivate {
     const userPayload = request.user;
     const route = request.originalUrl as string;
 
-    return this.userService
-      .findOneByEmail(userPayload.email)
-      .then((userDb: User) => {
-        if (isClarisaPage) {
-          //TODO extract this magic constant
-          return userDb.id === 3043;
-        }
+    if (!userPayload?.email) {
+      throw new UnauthorizedException('Missing authenticated user');
+    }
 
-        const isRoutePermitted = (userDb.permissions ?? []).some((p) =>
-          route.includes(p),
-        );
-        if (!isRoutePermitted) {
-          this._logger.error(
-            `User ${userDb.email} tried to access route ${route} without permission`,
-          );
-        }
+    const userDb: User = await this._getUserService().findOneByEmail(
+      userPayload.email,
+    );
 
-        return isRoutePermitted;
-      });
+    if (!userDb) {
+      throw new UnauthorizedException('Authenticated user was not found');
+    }
+
+    if (isClarisaPage) {
+      //TODO extract this magic constant
+      return userDb.id === 3043;
+    }
+
+    const isRoutePermitted = (userDb.permissions ?? []).some((p) =>
+      route.includes(p),
+    );
+    if (!isRoutePermitted) {
+      this._logger.error(
+        `User ${userDb.email} tried to access route ${route} without permission`,
+      );
+      throw new ForbiddenException(
+        `User is not permitted to access route ${route}`,
+      );
+    }
+
+    return true;
+  }
+
+  private _getUserService(): UserService {
+    if (!this.userService) {
+      this.userService = this.moduleRef.get(UserService, { strict: false });
+    }
+    if (!this.userService) {
+      throw new UnauthorizedException('User service is unavailable');
+    }
+    return this.userService;
   }
 }

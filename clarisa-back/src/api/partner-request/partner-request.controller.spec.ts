@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PartnerRequestController } from './partner-request.controller';
 import { PartnerRequestService } from './partner-request.service';
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
-import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { CompositeAuthGuard } from '../../shared/guards/composite-auth.guard';
+import { HybridAuthorizationGuard } from '../../shared/guards/hybrid-authorization.guard';
 
 describe('PartnerRequestController', () => {
   let controller: PartnerRequestController;
@@ -28,9 +28,9 @@ describe('PartnerRequestController', () => {
         { provide: PartnerRequestService, useValue: mockPartnerRequestService },
       ],
     })
-      .overrideGuard(JwtAuthGuard)
+      .overrideGuard(CompositeAuthGuard)
       .useValue(mockGuard)
-      .overrideGuard(PermissionGuard)
+      .overrideGuard(HybridAuthorizationGuard)
       .useValue(mockGuard)
       .compile();
 
@@ -78,15 +78,41 @@ describe('PartnerRequestController', () => {
     expect(mockPartnerRequestService.findOne).toHaveBeenCalledWith(1);
   });
 
-  it('should call service on createPartnerRequest', async () => {
+  it('should call service on createPartnerRequest with JWT actor', async () => {
     mockPartnerRequestService.createPartnerRequest.mockResolvedValue({ id: 1 });
     const userData = { userId: 1, email: 'test@test.com' } as any;
     const dto = {} as any;
 
-    await controller.createPartnerRequest(userData, dto, 'clarisa');
+    await controller.createPartnerRequest(userData, undefined, dto, 'clarisa');
     expect(mockPartnerRequestService.createPartnerRequest).toHaveBeenCalledWith(
       dto,
       { ...userData, mis: 'clarisa' },
+    );
+  });
+
+  it('should resolve API-key create using body userId and key MIS', async () => {
+    mockPartnerRequestService.createPartnerRequest.mockResolvedValue({ id: 1 });
+    const apiKeyAuth = {
+      api_key_id: 9,
+      key_prefix: 'cl_prod_abcdefgh',
+      mis: { id: 3, name: 'PRMS', acronym: 'PRMS' },
+    };
+    const dto = { userId: 42, externalUserMail: 'bot@example.com' } as any;
+
+    await controller.createPartnerRequest(
+      undefined,
+      apiKeyAuth,
+      dto,
+      undefined,
+    );
+    expect(mockPartnerRequestService.createPartnerRequest).toHaveBeenCalledWith(
+      dto,
+      {
+        userId: 42,
+        email: 'bot@example.com',
+        permissions: '',
+        mis: 'PRMS',
+      },
     );
   });
 
@@ -95,7 +121,7 @@ describe('PartnerRequestController', () => {
     const userData = { userId: 1, email: 'test@test.com' } as any;
     const dto = {} as any;
 
-    await controller.respondPartnerRequest(userData, dto);
+    await controller.respondPartnerRequest(userData, undefined, dto);
     expect(
       mockPartnerRequestService.respondPartnerRequest,
     ).toHaveBeenCalledWith(dto, userData);
@@ -106,7 +132,7 @@ describe('PartnerRequestController', () => {
     const userData = { userId: 1, email: 'test@test.com' } as any;
     const dto = {} as any;
 
-    await controller.updatePartnerRequest(userData, dto);
+    await controller.updatePartnerRequest(userData, undefined, dto);
     expect(mockPartnerRequestService.updatePartnerRequest).toHaveBeenCalledWith(
       dto,
       userData,
