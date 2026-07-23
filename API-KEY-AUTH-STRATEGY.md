@@ -785,13 +785,13 @@ All key lifecycle events are logged via the existing `AuditableEntity`:
 
 ### 11.3 Phase 3: Integration (Week 3)
 
-**P2-2994 phase A (in progress):** hybrid auth infrastructure only — guards implemented, **no production controllers wired yet**.
+**P2-2994 phase B (in progress):** hybrid auth wired on partner-request write endpoints. JWT panel users keep working; API-key callers need scope `partner-requests:create` and a body `userId` for audit fields.
 
 - [x] `CompositeAuthGuard` — `X-API-Key` or JWT (JWT unchanged when header absent)
 - [x] `HybridAuthorizationGuard` — API key → scope check via `ApiKeyGuard`; JWT → existing `PermissionGuard`
 - [x] `@GetApiKeyAuth()` request decorator
 - [x] Progressive rollout plan (see §11.3.1)
-- [ ] Wire hybrid guards on pilot endpoints (phase B — e.g. partner-request writes)
+- [x] Wire hybrid guards on pilot endpoints (phase B — partner-request writes)
 - [ ] Add `X-API-Key` header detection in existing middleware (if needed beyond guards)
 - [ ] Update microservice configurations to use API keys
 - [ ] Create migration script to generate API keys for existing AppSecret relationships
@@ -802,13 +802,13 @@ Do **not** enable API key auth on all endpoints at once. Existing JWT panel user
 
 | Phase | Scope | Endpoints | Notes |
 |-------|--------|-----------|--------|
-| **4.0** (current) | Infrastructure only | None | `CompositeAuthGuard`, `HybridAuthorizationGuard`, `@GetApiKeyAuth`, `@RequireApiKeyScope` — exported from `GuardsModule`; zero controller changes |
-| **4.1** | Pilot — partner-request **writes** | `POST create`, `PATCH update`, `POST respond`, `POST create-bulk` | Replace `@UseGuards(JwtAuthGuard, PermissionGuard)` with hybrid guards; add `@RequireApiKeyScope(...)` per handler; optional feature flag for TEST first |
+| **4.0** | Infrastructure only | None | `CompositeAuthGuard`, `HybridAuthorizationGuard`, `@GetApiKeyAuth`, `@RequireApiKeyScope` — exported from `GuardsModule` |
+| **4.1** (current) | Pilot — partner-request **writes** | `POST create`, `PATCH update`, `POST respond`, `POST create-bulk` | Hybrid guards + `@RequireApiKeyScope('partner-requests:create')`; API-key path uses body `userId` for audit; MIS can come from query or key `mis` |
 | **4.1** | Partner-request **reads** | `GET` routes | Stay **public** unless a future requirement mandates scoped reads |
 | **4.2+** | Additional modules | e.g. `institutions`, `toc` | One module at a time after pilot metrics |
 | **Excluded** | Admin / panel-only | `api-keys`, `users`, `roles`, permissions admin | **JWT only** — never API key |
 
-**Future controller pattern (partner-request write example — not applied in phase A):**
+**Controller pattern applied on partner-request writes:**
 
 ```typescript
 import { CompositeAuthGuard } from '../../shared/guards/composite-auth.guard';
@@ -820,12 +820,12 @@ import { GetApiKeyAuth } from '../../shared/decorators/get-api-key-auth.decorato
 @UseGuards(CompositeAuthGuard, HybridAuthorizationGuard)
 @RequireApiKeyScope('partner-requests:create')
 async createPartnerRequest(
-  @GetUserData() userData: UserData,
+  @GetUserData() userData: UserData | undefined,
   @GetApiKeyAuth() apiKeyAuth: ApiKeyAuthContext | undefined,
   @Body() dto: CreatePartnerRequestDto,
 ) {
   // JWT path: userData populated as today
-  // API-key path: apiKeyAuth.mis identifies the consumer; handler may branch if needed
+  // API-key path: body.userId required for audit; apiKeyAuth.mis can fill MIS
 }
 ```
 
@@ -839,7 +839,7 @@ Request
                            → HybridAuthorizationGuard → PermissionGuard (unchanged)
 ```
 
-Import `GuardsModule` in the feature module when wiring phase B.
+Import `GuardsModule` in the feature module when wiring hybrid endpoints (already done for `PartnerRequestModule`).
 
 ### 11.4 Phase 4: Observability & Dashboard (Week 4)
 
