@@ -39,4 +39,14 @@ export class FinalResponseDto<T> {
   public static getStatus(responseDto: FinalResponseDto<any>): HttpStatus {
     return responseDto.status;
   }
+
+  toJSON() {
+    return {
+      response: this.response,
+      message: this.message,
+      status: this.status,
+      date: this.date,
+      path: this.path,
+    };
+  }
 }
