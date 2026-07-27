@@ -38,7 +38,15 @@ describe('ProjectController', () => {
 
     await controller.findAll();
 
-    expect(service.findAll).toHaveBeenCalled();
+    expect(service.findAll).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should pass phase filter to the service', async () => {
+    projectServiceMock.findAll.mockResolvedValueOnce([]);
+
+    await controller.findAll(2026);
+
+    expect(service.findAll).toHaveBeenCalledWith(2026);
   });
 
   it('should call service on findByGlobalUnit', async () => {

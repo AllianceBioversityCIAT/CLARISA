@@ -25,13 +25,19 @@ export class ProjectMapping {
   @Column({ type: 'bigint', nullable: false })
   project_id: number;
 
-  /** CLARISA: global_units.id */
+  /** CLARISA: global_units.id. Unresolved W3 mappings remain in staging. */
   @Index()
   @Column({ type: 'bigint', nullable: false })
   program_id: number;
 
   @Column({ type: 'int', nullable: false })
   allocation: number;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  source_program_code: string;
+
+  @Column({ type: 'text', nullable: true })
+  source_program_name: string;
 
   @Column({ type: 'enum', enum: ['low', 'medium', 'high'], default: 'medium' })
   complementarity: Level;

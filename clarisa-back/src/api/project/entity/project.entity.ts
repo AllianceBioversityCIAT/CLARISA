@@ -13,12 +13,20 @@ import { Institution } from '../../institution/entities/institution.entity';
 import { ProjectCountry } from './project-country.entity';
 import { ProjectMapping } from './project-mapping.entity';
 
+@Index(
+  'uq_project_external_identity',
+  ['external_source', 'external_project_id'],
+  {
+    unique: true,
+  },
+)
 @Entity('project')
 export class Project {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @Column({ type: 'text', nullable: false })
+  /** CLARISA display alias; for W3 rows this is populated from external_code. */
   short_name: string;
 
   @Column({ type: 'text', nullable: false })
@@ -47,6 +55,47 @@ export class Project {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   source_of_funding?: string;
+
+  @Column({ type: 'int', nullable: false, default: 2025 })
+  phase: number;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  external_source: string;
+
+  @Index('idx_project_external_project_id')
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  external_project_id: string;
+
+  @Column({ type: 'bigint', nullable: true })
+  external_record_id: number;
+
+  /** Original W3 Registry project code. */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  external_code: string;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  source_status: string;
+
+  @Column({ type: 'int', nullable: true })
+  source_snapshot_id: number;
+
+  @Column({ type: 'datetime', nullable: true })
+  source_created_at: Date;
+
+  @Column({ type: 'datetime', nullable: true })
+  source_updated_at: Date;
+
+  @Column({ type: 'datetime', nullable: true })
+  last_synced_at: Date;
+
+  @Column({ type: 'text', nullable: true })
+  source_center_name: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  source_center_acronym: string;
+
+  @Column({ type: 'text', nullable: true })
+  source_funder: string;
 
   // ===== Relations with CLARISA catalogs (by ID + object) =====
   @Index()

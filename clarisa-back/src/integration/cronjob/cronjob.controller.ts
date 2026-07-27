@@ -13,6 +13,7 @@ import { ReportingCron } from '../reporting/reporting.cron';
 import { RiskCron } from '../risk/risk.cron';
 import { PRMSApplication } from '../../shared/entities/enums/prms-applications';
 import { GlobalParameterCron } from './global-parameters/global-parameter.cron';
+import { W3RegistrySyncService } from '../w3/w3-registry-sync.service';
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -23,7 +24,13 @@ export class CronjobController {
     private readonly _cronReporting: ReportingCron,
     private readonly _cronRisk: RiskCron,
     private readonly _cronGlobalParam: GlobalParameterCron,
+    private readonly _w3RegistrySync: W3RegistrySyncService,
   ) {}
+
+  @Get('w3/projects')
+  async syncW3Projects() {
+    return this._w3RegistrySync.syncProjects();
+  }
 
   @Get('ost/initiatives')
   async updateAllInititatives() {
