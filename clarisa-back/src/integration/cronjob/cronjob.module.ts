@@ -23,9 +23,10 @@ import { RiskApi } from '../risk/risk.api';
 import { GlobalParameterService } from '../../api/global-parameter/global-parameter.service';
 import { GlobalParameterRepository } from '../../api/global-parameter/repositories/global-parameter.repository';
 import { GlobalParameterCron } from './global-parameters/global-parameter.cron';
+import { W3RegistryModule } from '../w3/w3-registry.module';
 
 @Module({
-  imports: [HttpModule],
+  imports: [HttpModule, W3RegistryModule],
   providers: [
     OSTCron,
     OSTApi,

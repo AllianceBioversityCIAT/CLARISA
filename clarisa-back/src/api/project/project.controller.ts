@@ -4,6 +4,8 @@ import {
   ClassSerializerInterceptor,
   Get,
   Param,
+  ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { ProjectService } from './project.service';
 
@@ -13,8 +15,10 @@ export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
   @Get()
-  async findAll() {
-    return this.projectService.findAll();
+  async findAll(
+    @Query('phase', new ParseIntPipe({ optional: true })) phase?: number,
+  ) {
+    return this.projectService.findAll(phase);
   }
 
   @Get('by-global-unit/:officialCode')
