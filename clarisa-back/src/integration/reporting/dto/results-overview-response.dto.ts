@@ -6,6 +6,13 @@ export class ResultsOverviewItemDto {
   @ApiProperty() result_title: string;
   @ApiPropertyOptional() result_description: string | null;
 
+  @ApiProperty() result_type_id: number;
+  @ApiProperty({
+    description:
+      'Result type name (Innovation Development, Innovation Use, Innovation Package)',
+  })
+  result_type: string;
+
   @ApiProperty() version_id: number;
   @ApiProperty() phase_name: string;
   @ApiPropertyOptional() phase_year: number | null;
@@ -18,17 +25,14 @@ export class ResultsOverviewItemDto {
   @ApiPropertyOptional() lead_initiative_program_short_name: string | null;
 
   @ApiPropertyOptional({
-    description: 'Semicolon-separated contributing initiative IDs',
-  })
-  contributing_initiative_program_ids: string | null;
-
-  @ApiPropertyOptional({
-    description: 'Semicolon-separated contributing initiative official codes',
+    description:
+      'Semicolon-separated official codes of contributing science programs',
   })
   contributing_initiative_program_official_codes: string | null;
 
   @ApiPropertyOptional({
-    description: 'Semicolon-separated contributing initiative short names',
+    description:
+      'Semicolon-separated short names of contributing science programs',
   })
   contributing_initiative_program_short_names: string | null;
 
@@ -36,12 +40,12 @@ export class ResultsOverviewItemDto {
   @ApiPropertyOptional() lead_center_acronym: string | null;
 
   @ApiPropertyOptional({
-    description: 'Semicolon-separated contributing center codes',
+    description: 'Semicolon-separated codes of contributing centers',
   })
   contributing_center_codes: string | null;
 
   @ApiPropertyOptional({
-    description: 'Semicolon-separated contributing center acronyms',
+    description: 'Semicolon-separated acronyms of contributing centers',
   })
   contributing_center_acronyms: string | null;
 }

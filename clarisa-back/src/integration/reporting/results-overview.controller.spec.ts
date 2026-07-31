@@ -10,8 +10,10 @@ const MOCK_PAGINATED: ResultsOverviewPaginatedDto = {
     {
       result_id: 1,
       result_code: 100,
-      result_title: 'Test Result',
+      result_title: 'Test Innovation',
       result_description: 'A description',
+      result_type_id: 7,
+      result_type: 'Innovation Development',
       version_id: 3,
       phase_name: 'Phase 2024',
       phase_year: 2024,
@@ -20,7 +22,6 @@ const MOCK_PAGINATED: ResultsOverviewPaginatedDto = {
       lead_initiative_program_id: 12,
       lead_initiative_program_official_code: 'INIT-12',
       lead_initiative_program_short_name: 'Agri Innovations',
-      contributing_initiative_program_ids: '5;8',
       contributing_initiative_program_official_codes: 'INIT-5;INIT-8',
       contributing_initiative_program_short_names: 'Food Systems;Nutrition',
       lead_center_code: 'CIP',
@@ -77,6 +78,7 @@ describe('ResultsOverviewController', () => {
       const query: ResultsOverviewQueryDto = {
         version_id: 3,
         status_id: [1, 2],
+        result_type_id: [7],
         initiative_id: 12,
         center_code: 'CIP',
         search: 'maize',
