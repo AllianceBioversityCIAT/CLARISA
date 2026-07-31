@@ -5,8 +5,6 @@ import { ReportingApi } from './reporting.api';
 import { reportingDataSource } from '../../shared/database/reporting-data-source';
 import { InnovationService } from './services/taat-innovation.service';
 import { InnovationController } from './taat-innovation.controller';
-import { ResultsOverviewService } from './services/results-overview.service';
-import { ResultsOverviewController } from './results-overview.controller';
 
 @Module({
   imports: [
@@ -16,8 +14,8 @@ import { ResultsOverviewController } from './results-overview.controller';
       name: 'reporting',
     }),
   ],
-  providers: [ReportingApi, InnovationService, ResultsOverviewService],
-  controllers: [InnovationController, ResultsOverviewController],
-  exports: [ReportingApi, InnovationService, ResultsOverviewService],
+  providers: [ReportingApi, InnovationService],
+  controllers: [InnovationController],
+  exports: [ReportingApi, InnovationService],
 })
 export class ReportingModule {}
