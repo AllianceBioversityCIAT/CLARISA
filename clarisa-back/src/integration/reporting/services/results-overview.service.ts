@@ -7,6 +7,8 @@ import {
   ResultsOverviewPaginatedDto,
 } from '../dto/results-overview-response.dto';
 
+const VIEW = 'vw_results_innovations_overview';
+
 @Injectable()
 export class ResultsOverviewService {
   private readonly logger = new Logger(ResultsOverviewService.name);
@@ -22,6 +24,7 @@ export class ResultsOverviewService {
     const {
       version_id,
       status_id,
+      result_type_id,
       initiative_id,
       center_code,
       search,
@@ -43,20 +46,35 @@ export class ResultsOverviewService {
       params.push(...status_id);
     }
 
+    if (result_type_id?.length) {
+      const placeholders = result_type_id.map(() => '?').join(', ');
+      conditions.push(`vro.result_type_id IN (${placeholders})`);
+      params.push(...result_type_id);
+    }
+
     if (initiative_id != null) {
-      conditions.push(`(
-        vro.lead_initiative_program_id = ?
-        OR FIND_IN_SET(?, REPLACE(vro.contributing_initiative_program_ids, ';', ','))
+      // The view does not expose contributing IDs as a column, so we filter
+      // directly against the source table to cover both lead and contributing.
+      conditions.push(`EXISTS (
+        SELECT 1
+        FROM   results_by_inititiative rbi2
+        WHERE  rbi2.result_id      = vro.result_id
+          AND  rbi2.inititiative_id = ?
+          AND  rbi2.is_active       = 1
       )`);
-      params.push(initiative_id, String(initiative_id));
+      params.push(initiative_id);
     }
 
     if (center_code) {
-      conditions.push(`(
-        vro.lead_center_code = ?
-        OR FIND_IN_SET(?, REPLACE(vro.contributing_center_codes, ';', ','))
+      // Same pattern — query source table directly for lead + contributing.
+      conditions.push(`EXISTS (
+        SELECT 1
+        FROM   results_center rc2
+        WHERE  rc2.result_id  = vro.result_id
+          AND  rc2.center_id  = ?
+          AND  rc2.is_active  = 1
       )`);
-      params.push(center_code, center_code);
+      params.push(center_code);
     }
 
     if (search?.trim()) {
@@ -75,7 +93,7 @@ export class ResultsOverviewService {
 
     const dataQuery = `
       SELECT *
-      FROM   vw_results_overview vro
+      FROM   ${VIEW} vro
       ${whereClause}
       ORDER  BY vro.result_code ASC
       LIMIT  ? OFFSET ?
@@ -83,12 +101,12 @@ export class ResultsOverviewService {
 
     const countQuery = `
       SELECT COUNT(*) AS total
-      FROM   vw_results_overview vro
+      FROM   ${VIEW} vro
       ${whereClause}
     `;
 
     this.logger.log(
-      `Fetching results overview — page ${page}, limit ${limit}, filters: ${JSON.stringify({ version_id, status_id, initiative_id, center_code, search })}`,
+      `Fetching innovations overview — page ${page}, limit ${limit}, filters: ${JSON.stringify({ version_id, status_id, result_type_id, initiative_id, center_code, search })}`,
     );
 
     const [data, countResult] = await Promise.all([
@@ -104,7 +122,9 @@ export class ResultsOverviewService {
 
     const total = Number(countResult[0].total);
 
-    this.logger.log(`Results overview returned ${data.length} / ${total} rows`);
+    this.logger.log(
+      `Innovations overview returned ${data.length} / ${total} rows`,
+    );
 
     return {
       data,

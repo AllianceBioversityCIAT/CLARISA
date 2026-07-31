@@ -1,13 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import { ResultsOverviewService } from './results-overview.service';
-import { ResultsOverviewQueryDto } from '../dto/results-overview-query.dto';
 
 const MOCK_ROW = {
   result_id: 1,
   result_code: 100,
-  result_title: 'Test Result',
+  result_title: 'Test Innovation',
   result_description: 'A description',
+  result_type_id: 7,
+  result_type: 'Innovation Development',
   version_id: 3,
   phase_name: 'Phase 2024',
   phase_year: 2024,
@@ -16,7 +17,6 @@ const MOCK_ROW = {
   lead_initiative_program_id: 12,
   lead_initiative_program_official_code: 'INIT-12',
   lead_initiative_program_short_name: 'Agri Innovations',
-  contributing_initiative_program_ids: '5;8',
   contributing_initiative_program_official_codes: 'INIT-5;INIT-8',
   contributing_initiative_program_short_names: 'Food Systems;Nutrition',
   lead_center_code: 'CIP',
@@ -60,12 +60,10 @@ describe('ResultsOverviewService', () => {
 
     it('should return paginated results with default params', async () => {
       setupMocks();
-      const query: ResultsOverviewQueryDto = {};
-
-      const result = await service.getResultsOverview(query);
+      const result = await service.getResultsOverview({});
 
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].result_code).toBe(100);
+      expect(result.data[0].result_type).toBe('Innovation Development');
       expect(result.pagination).toEqual({
         page: 1,
         limit: 25,
@@ -73,6 +71,14 @@ describe('ResultsOverviewService', () => {
         total_pages: 1,
       });
       expect(mockQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it('should query the correct view name', async () => {
+      setupMocks([], 0);
+      await service.getResultsOverview({});
+
+      const [dataCall] = mockQuery.mock.calls;
+      expect(dataCall[0]).toContain('vw_results_innovations_overview');
     });
 
     it('should build query without WHERE clause when no filters provided', async () => {
@@ -109,32 +115,52 @@ describe('ResultsOverviewService', () => {
       const [dataCall] = mockQuery.mock.calls;
       expect(dataCall[0]).toContain('vro.status_id IN (?, ?, ?)');
       expect(dataCall[1]).toContain(1);
-      expect(dataCall[1]).toContain(2);
       expect(dataCall[1]).toContain(3);
     });
 
-    it('should apply initiative_id filter on lead and contributing columns', async () => {
+    it('should apply result_type_id filter with a single value', async () => {
+      setupMocks();
+      await service.getResultsOverview({ result_type_id: [7] });
+
+      const [dataCall] = mockQuery.mock.calls;
+      expect(dataCall[0]).toContain('vro.result_type_id IN (?)');
+      expect(dataCall[1]).toContain(7);
+    });
+
+    it('should apply result_type_id filter with multiple values', async () => {
+      setupMocks();
+      await service.getResultsOverview({ result_type_id: [2, 7] });
+
+      const [dataCall] = mockQuery.mock.calls;
+      expect(dataCall[0]).toContain('vro.result_type_id IN (?, ?)');
+      expect(dataCall[1]).toContain(2);
+      expect(dataCall[1]).toContain(7);
+    });
+
+    it('should apply initiative_id filter using EXISTS subquery against source table', async () => {
       setupMocks();
       await service.getResultsOverview({ initiative_id: 12 });
 
       const [dataCall] = mockQuery.mock.calls;
-      expect(dataCall[0]).toContain('vro.lead_initiative_program_id = ?');
-      expect(dataCall[0]).toContain(
-        "FIND_IN_SET(?, REPLACE(vro.contributing_initiative_program_ids, ';', ','))",
-      );
+      const sql: string = dataCall[0];
+      expect(sql).toContain('EXISTS');
+      expect(sql).toContain('results_by_inititiative');
+      expect(sql).toContain('rbi2.result_id      = vro.result_id');
+      expect(sql).toContain('rbi2.inititiative_id = ?');
+      // Only one param pushed (not two as in the old FIND_IN_SET approach)
       expect(dataCall[1]).toContain(12);
-      expect(dataCall[1]).toContain('12');
     });
 
-    it('should apply center_code filter on lead and contributing columns', async () => {
+    it('should apply center_code filter using EXISTS subquery against source table', async () => {
       setupMocks();
       await service.getResultsOverview({ center_code: 'CIP' });
 
       const [dataCall] = mockQuery.mock.calls;
-      expect(dataCall[0]).toContain('vro.lead_center_code = ?');
-      expect(dataCall[0]).toContain(
-        "FIND_IN_SET(?, REPLACE(vro.contributing_center_codes, ';', ','))",
-      );
+      const sql: string = dataCall[0];
+      expect(sql).toContain('EXISTS');
+      expect(sql).toContain('results_center');
+      expect(sql).toContain('rc2.result_id  = vro.result_id');
+      expect(sql).toContain('rc2.center_id  = ?');
       expect(dataCall[1]).toContain('CIP');
     });
 
@@ -157,11 +183,12 @@ describe('ResultsOverviewService', () => {
       expect(dataCall[0]).not.toContain('LIKE');
     });
 
-    it('should combine multiple filters with AND', async () => {
+    it('should combine all filters with AND', async () => {
       setupMocks();
       await service.getResultsOverview({
         version_id: 3,
         status_id: [1, 2],
+        result_type_id: [7],
         initiative_id: 12,
         center_code: 'CIP',
         search: 'maize',
@@ -171,8 +198,8 @@ describe('ResultsOverviewService', () => {
       const sql: string = dataCall[0];
       expect(sql).toContain('vro.version_id = ?');
       expect(sql).toContain('vro.status_id IN (?, ?)');
-      expect(sql).toContain('vro.lead_initiative_program_id = ?');
-      expect(sql).toContain('vro.lead_center_code = ?');
+      expect(sql).toContain('vro.result_type_id IN (?)');
+      expect(sql).toContain('EXISTS');
       expect(sql).toContain('vro.result_title LIKE ?');
       expect((sql.match(/AND/g) ?? []).length).toBeGreaterThanOrEqual(4);
     });
@@ -182,7 +209,6 @@ describe('ResultsOverviewService', () => {
       await service.getResultsOverview({ version_id: 5, status_id: [2] });
 
       const [dataCall, countCall] = mockQuery.mock.calls;
-      // count params must be a subset of data params (data appends limit+offset)
       expect(dataCall[1]).toEqual(expect.arrayContaining(countCall[1]));
       expect(dataCall[1].length).toBe(countCall[1].length + 2);
     });
@@ -205,8 +231,8 @@ describe('ResultsOverviewService', () => {
 
       const [dataCall] = mockQuery.mock.calls;
       const dataParams: number[] = dataCall[1];
-      expect(dataParams.at(-2)).toBe(20); // LIMIT
-      expect(dataParams.at(-1)).toBe(40); // OFFSET = (3-1)*20
+      expect(dataParams.at(-2)).toBe(20);
+      expect(dataParams.at(-1)).toBe(40);
     });
 
     it('should return empty data array and total 0 when no rows found', async () => {
