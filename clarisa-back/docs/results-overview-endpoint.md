@@ -1,6 +1,6 @@
 # Innovations Overview Endpoint
 
-`GET /results-overview`
+`GET /integration/innovation/results-overview`
 
 Returns a paginated list of PRMS innovation results with their associated science programs, centers, phase, and status. The endpoint is backed by `vw_results_innovations_overview` and is scoped exclusively to innovation result types (Innovation Use, Innovation Development, Innovation Use IPSR).
 
@@ -15,7 +15,7 @@ Returns a paginated list of PRMS innovation results with their associated scienc
 
 **Full URL:**
 ```
-GET {base}/results-overview
+GET {base}/integration/innovation/results-overview
 ```
 
 ---

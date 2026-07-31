@@ -3,6 +3,7 @@ import { CronjobModule } from './cronjob/cronjob.module';
 import { OpenSearchModule } from './opensearch/open-search.module';
 import { openSearchRoutes } from './opensearch/open-search.routes';
 import { ReportingModule } from './reporting/reporting.module';
+import { InnovationModule } from './innovation/innovation.module';
 
 export const integrationRoutes: Routes = [
   {
@@ -17,5 +18,9 @@ export const integrationRoutes: Routes = [
   {
     path: 'taat',
     module: ReportingModule,
+  },
+  {
+    path: 'innovation',
+    module: InnovationModule,
   },
 ];

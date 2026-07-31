@@ -6,6 +6,7 @@ import { OpenSearchModule } from './opensearch/open-search.module';
 import { HttpModule } from '@nestjs/axios';
 import { HandlebarsTemplateModule } from '../api/handlebars-template/handlebars-template.module';
 import { ReportingModule } from './reporting/reporting.module';
+import { InnovationModule } from './innovation/innovation.module';
 
 @Module({
   imports: [
@@ -14,9 +15,10 @@ import { ReportingModule } from './reporting/reporting.module';
     HttpModule,
     HandlebarsTemplateModule,
     ReportingModule,
+    InnovationModule,
   ],
   providers: [QaApi],
   controllers: [IntegrationController],
-  exports: [QaApi, ReportingModule],
+  exports: [QaApi, ReportingModule, InnovationModule],
 })
 export class IntegrationModule {}
