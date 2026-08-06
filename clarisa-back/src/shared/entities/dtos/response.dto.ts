@@ -66,4 +66,12 @@ export class ResponseDto<T> {
   ): ResponseDto<T> {
     return new ResponseDto(response, message, status);
   }
+
+  toJSON() {
+    return {
+      response: this.response,
+      message: this.message,
+      status: this.status,
+    };
+  }
 }
