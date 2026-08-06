@@ -83,6 +83,30 @@ describe('InstitutionLifecycleComponent', () => {
     expect(component.availableSuccessors.map((option) => option.id)).toEqual([2]);
   });
 
+  it('should hand the dropdown a stable array reference', () => {
+    // Regression. This used to be a getter bound to `[options]`, so Angular
+    // re-evaluated it on every change detection cycle and handed PrimeNG a
+    // brand new array each time. With close to ten thousand institutions in
+    // the catalogue, the changed reference made the dropdown re-render, which
+    // scheduled another cycle: the options never painted and the tab froze.
+    component.openEdit(component.institutions[0]);
+
+    const first = component.availableSuccessors;
+    const second = component.availableSuccessors;
+
+    expect(second).toBe(first);
+  });
+
+  it('should refresh the candidates when the edited row changes', () => {
+    // The flip side of the field: it has to be recomputed whenever one of its
+    // two inputs moves, or the dialog would offer the previous row's list.
+    component.openEdit(component.institutions[0]);
+    expect(component.availableSuccessors.map((option) => option.id)).toEqual([2]);
+
+    component.openEdit(component.institutions[1]);
+    expect(component.availableSuccessors.map((option) => option.id)).not.toContain(2);
+  });
+
   it('should not offer a retired institution as a successor', () => {
     // The API rejects it with "is itself retired", so offering it could only
     // end in a failed save.
