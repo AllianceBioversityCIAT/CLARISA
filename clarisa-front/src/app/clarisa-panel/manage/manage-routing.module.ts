@@ -38,6 +38,14 @@ const routes: Routes = [
           ),
         canActivate: [LoginGuardGuard],
       },
+      {
+        path: 'institution-lifecycle',
+        loadChildren: () =>
+          import(
+            './pages/institution-lifecycle/institution-lifecycle.module'
+          ).then((m) => m.InstitutionLifecycleModule),
+        canActivate: [LoginGuardGuard],
+      },
     ],
   },
 ];
