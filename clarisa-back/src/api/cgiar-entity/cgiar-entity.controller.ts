@@ -8,9 +8,12 @@ import {
   UseInterceptors,
   Version,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiOkResponse } from '@nestjs/swagger';
 import { CgiarEntityService } from './cgiar-entity.service';
+import { CgiarEntityDtoV2 } from './dto/cgiar-entity.v2.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+@ApiTags('CGIAR Entity')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class CgiarEntityController {
@@ -18,6 +21,22 @@ export class CgiarEntityController {
 
   @Version('1')
   @Get()
+  @ApiOperation({
+    summary: 'List CGIAR entities',
+    description:
+      'Official list of CGIAR Centers, CGIAR Research Programs (CRPs) and CGIAR Platforms (PTFs), including entities that are no longer active.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    description: 'Optional filter by CGIAR entity type.',
+  })
   async findAllV1(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
@@ -33,6 +52,21 @@ export class CgiarEntityController {
 
   @Version('2')
   @Get()
+  @ApiOperation({
+    summary: 'List CGIAR entities',
+    description:
+      'Official list of CGIAR Centers, CGIAR Research Programs (CRPs) and CGIAR Platforms (PTFs), including entities that are no longer active.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
+  @ApiQuery({ name: 'type', required: false, description: 'Optional filter by CGIAR entity type.' })
+  @ApiQuery({ name: 'portfolioId', required: false, description: 'Optional filter by portfolio ID.' })
+  @ApiQuery({ name: 'year', required: false, description: 'Optional filter by year.' })
+  @ApiOkResponse({ type: CgiarEntityDtoV2, isArray: true, description: 'List of CGIAR entities.' })
   async findAllV2(
     @Query('show') show: FindAllOptions,
     @Query('type') type?: string,

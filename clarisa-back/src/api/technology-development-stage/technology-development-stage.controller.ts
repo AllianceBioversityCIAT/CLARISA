@@ -12,12 +12,14 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { TechnologyDevelopmentStageService } from './technology-development-stage.service';
 import { UpdateTechnologyDevelopmentStageDto } from './dto/update-technology-development-stage.dto';
 import { Response } from 'express';
 import { TechnologyDevelopmentStage } from './entities/technology-development-stage.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+@ApiTags('Technology Development Stage')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class TechnologyDevelopmentStageController {
@@ -26,6 +28,16 @@ export class TechnologyDevelopmentStageController {
   ) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List technology development stages',
+    description: 'Stages of technology development used to classify innovations.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.technologyDevelopmentStageService.findAll(show);
   }

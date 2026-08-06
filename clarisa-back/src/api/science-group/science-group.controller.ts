@@ -12,18 +12,30 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { ScienceGroupService } from './science-group.service';
 import { UpdateScienceGroupDto } from './dto/update-science-group.dto';
 import { Response } from 'express';
 import { ScienceGroup } from './entities/science-group.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+@ApiTags('Science Group')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class ScienceGroupController {
   constructor(private readonly scienceGroupService: ScienceGroupService) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List science groups',
+    description: 'One CGIAR science groups.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.scienceGroupService.findAll(show);
   }

@@ -12,12 +12,14 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { InnovationUseLevelService } from './innovation-use-level.service';
 import { UpdateInnovationUseLevelDto } from './dto/update-innovation-use-level.dto';
 import { InnovationUseLevel } from './entities/innovation-use-level.entity';
 import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+@ApiTags('Innovation Use Level')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class InnovationUseLevelController {
@@ -26,6 +28,16 @@ export class InnovationUseLevelController {
   ) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List innovation use levels',
+    description: 'Use levels (IUL) used to assess how widely an innovation is being used.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.innovationUseLevelService.findAll(show);
   }

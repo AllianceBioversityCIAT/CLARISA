@@ -12,18 +12,30 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { BeneficiaryService } from './beneficiary.service';
 import { UpdateBeneficiaryDto } from './dto/update-beneficiary.dto';
 import { Response } from 'express';
 import { Beneficiary } from './entities/beneficiary.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+@ApiTags('Beneficiary')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class BeneficiaryController {
   constructor(private readonly beneficiaryService: BeneficiaryService) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List beneficiaries',
+    description: 'Beneficiary types targeted by innovations in the catalog.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.beneficiaryService.findAll(show);
   }
