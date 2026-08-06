@@ -38,6 +38,14 @@ const routes: Routes = [
           ),
         canActivate: [LoginGuardGuard],
       },
+      {
+        path: 'glossary-admin',
+        loadChildren: () =>
+          import('./pages/glossary-admin/glossary-admin.module').then(
+            (m) => m.GlossaryAdminModule
+          ),
+        canActivate: [LoginGuardGuard],
+      },
     ],
   },
 ];
