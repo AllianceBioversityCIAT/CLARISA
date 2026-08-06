@@ -9,27 +9,45 @@ import {
   Query,
   ParseIntPipe,
   Res,
+  Req,
   HttpStatus,
   HttpException,
+  UseGuards,
 } from '@nestjs/common';
 import { InstitutionService } from './institution.service';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
-import { Response } from 'express';
+import { UpdateInstitutionLifecycleDto } from './dto/update-institution-lifecycle.dto';
+import { Request, Response } from 'express';
 import { Institution } from './entities/institution.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { ValidityStatusOptions } from '../../shared/entities/enums/validity-status-options';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { UserData } from '../../shared/interfaces/user-data';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class InstitutionController {
   constructor(private readonly institutionService: InstitutionService) {}
 
+  /**
+   * `status` is optional and defaults to `all`, so a caller that does not send
+   * it gets exactly the same response it gets today. It filters by value and
+   * not by a boolean so a fourth state can be added later without breaking
+   * anyone.
+   */
   @Get()
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('from', new ParseIntPipe({ optional: true }))
     from?: number,
+    @Query('status') status?: ValidityStatusOptions,
   ) {
-    return await this.institutionService.findAll(show, from);
+    return await this.institutionService.findAll(
+      show,
+      from,
+      status ?? ValidityStatusOptions.SHOW_ALL,
+    );
   }
 
   @Get('simple')
@@ -59,5 +77,27 @@ export class InstitutionController {
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
+  }
+
+  /**
+   * Retire an institution and, optionally, link it to the one that replaces it.
+   *
+   * Deliberately a separate, guarded endpoint rather than extra keys on
+   * `PATCH update`: deciding that an institution can no longer be reported
+   * against affects every CGIAR system that consumes this catalogue, and must
+   * not travel through the same unauthenticated bulk-edit door.
+   */
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @Patch(':id/lifecycle')
+  async updateLifecycle(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() lifecycleDto: UpdateInstitutionLifecycleDto,
+    @Req() request: Request & { user?: UserData },
+  ) {
+    return await this.institutionService.updateLifecycle(
+      id,
+      lifecycleDto,
+      request.user?.userId,
+    );
   }
 }
