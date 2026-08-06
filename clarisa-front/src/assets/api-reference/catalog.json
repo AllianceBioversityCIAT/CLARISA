@@ -1,5 +1,5 @@
 {
-  "_comment": "Map of CLARISA's public documentation: which endpoints are shown and under which category. Hand-editable. Drives the grouping of the api-reference view. Mirrors the CURRENT public docs (4 categories under One CGIAR Control List, verified vs prod 2026-06-10). See CATALOG.md for how to add endpoints. Source: context/documentation-endpoints-map.md.",
+  "_comment": "Map of CLARISA's public documentation: which endpoints are shown and under which category. Hand-editable. Drives the grouping of the api-reference view. Mirrors the CURRENT public docs, verified against clarisatest-back api/hp-clarisa-category-endpoints on 2026-08-06 (TEST is ahead of prod: it carries \"CGIAR entities groups\" and \"Projects\", which prod does not have yet). A `?group=<slug>` query param narrows the view to a single group. See CATALOG.md for how to add endpoints. Source: context/documentation-endpoints-map.md.",
   "groups": [
     {
       "group": "One CGIAR Control List",
@@ -41,6 +41,16 @@
             {
               "name": "Glossary",
               "route": "api/glossary",
+              "method": "get"
+            },
+            {
+              "name": "CGIAR entities groups",
+              "route": "api/cgiar-entities/groups",
+              "method": "get"
+            },
+            {
+              "name": "Projects",
+              "route": "api/projects",
               "method": "get"
             }
           ]
@@ -199,6 +209,83 @@
             {
               "name": "Innovation Nature",
               "route": "api/innovation-characteristics",
+              "method": "get"
+            }
+          ]
+        }
+      ],
+      "description": "Official control lists identified by the Management Information Systems during the Annual Reporting process, reusable to standardize and provide interoperability across CGIAR platforms."
+    },
+    {
+      "group": "One CGIAR Operation",
+      "description": "Control lists supporting One CGIAR Business Operations: entities, accounts, science groups, units and the impact areas they report against.",
+      "categories": [
+        {
+          "name": "CGIAR Entities",
+          "description": "One CGIAR entities and the typology used to classify them.",
+          "endpoints": [
+            {
+              "name": "CGIAR entities",
+              "route": "api/cgiar-entities",
+              "method": "get"
+            },
+            {
+              "name": "CGIAR entities Types",
+              "route": "api/cgiar-entity-types",
+              "method": "get"
+            }
+          ]
+        },
+        {
+          "name": "CGIAR Accounts",
+          "description": "Financial and operational accounts used across One CGIAR operations, and their types.",
+          "endpoints": [
+            {
+              "name": "Accounts",
+              "route": "api/accounts",
+              "method": "get"
+            },
+            {
+              "name": "Account Types",
+              "route": "api/account-types",
+              "method": "get"
+            }
+          ]
+        },
+        {
+          "name": "CGIAR Science Groups",
+          "description": "Science groups that organize One CGIAR research.",
+          "endpoints": [
+            {
+              "name": "Science groups",
+              "route": "api/science-groups",
+              "method": "get"
+            }
+          ]
+        },
+        {
+          "name": "CGIAR Units",
+          "description": "Organizational units used across One CGIAR operations.",
+          "endpoints": [
+            {
+              "name": "Units",
+              "route": "api/units",
+              "method": "get"
+            }
+          ]
+        },
+        {
+          "name": "CGIAR Impact Areas",
+          "description": "Impact areas and Sustainable Development Goals that One CGIAR operations report against.",
+          "endpoints": [
+            {
+              "name": "Impact Areas",
+              "route": "api/impact-areas",
+              "method": "get"
+            },
+            {
+              "name": "Sustainable Development Goals",
+              "route": "api/sdgs",
               "method": "get"
             }
           ]

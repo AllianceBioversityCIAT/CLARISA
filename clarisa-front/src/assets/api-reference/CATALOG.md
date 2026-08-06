@@ -38,11 +38,44 @@ the grouping has to live here.
 }
 ```
 
-- **group** → top section in the sidebar (currently a single group: `One CGIAR Control List`).
-- **category** → the specific grouping the public sees, mirroring the current public docs:
-  `General Control List` (7), `Institutions` (3), `Research Strategy 2030` (12),
-  `Innovation Catalog` (13) — 35 endpoints total.
+- **group** → top section in the sidebar, and the unit the `?group=` param scopes to.
+  Two groups today, mirroring the public menu:
+  - `One CGIAR Control List` — `General Control List` (7), `Institutions` (3),
+    `Research Strategy 2030` (12), `Innovation Catalog` (13) — 35 endpoints.
+  - `One CGIAR Operation` — `CGIAR Entities` (2), `CGIAR Accounts` (2),
+    `CGIAR Science Groups` (1), `CGIAR Units` (1), `CGIAR Impact Areas` (2) — 8 endpoints.
+- **category** → the specific grouping the public sees.
 - **endpoint** → `name` (display label), `route` (the API path, no leading slash), `method` (`get`).
+
+Both groups and their category order mirror what prod serves at
+`api/hp-clarisa-category-endpoints` (verified 2026-08-06). The legacy groups
+`Annual Report API Reference` and `Additional Services` are intentionally absent:
+they carry zero endpoints in prod.
+
+### Scoping the view to one group — `?group=`
+
+`index.html` accepts an optional `group` query param that narrows the whole view
+(sidebar, home and counters) to a single group. The value is matched as a slug,
+so `One CGIAR Operation`, `One_CGIAR_Operation` and `one-cgiar-operation` are
+equivalent. An unknown value falls back to the full catalog instead of rendering
+an empty page.
+
+This is what backs the public menu, through the Angular routes:
+
+| Menu entry | Route | Result |
+|---|---|---|
+| API Reference | `/clarisa-panel/api-reference` | Whole catalog |
+| One CGIAR Control List | `/clarisa-panel/api-reference/One_CGIAR_Control_List` | Only that group |
+| One CGIAR Operation | `/clarisa-panel/api-reference/One_CGIAR_Operation` | Only that group |
+
+Renaming a group in `catalog.json` therefore changes its slug and **breaks those
+links** — update `api-reference-routing.module.ts` consumers (the three menus and
+the `api-services` page) in the same commit.
+
+The legacy DB-driven documentation at `/clarisa-panel/documentation/:category`
+still exists and still works; it is simply no longer linked from the menus. The
+legacy swagger redirects in `shared/services/routes-clarisa-legacy.ts` keep
+pointing at it on purpose.
 
 ### An endpoint can live in several categories
 

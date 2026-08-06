@@ -31,7 +31,7 @@ const routes: Routes = [
       },
 
       {
-        // PROPUESTA: documentacion dinamica desde el OpenAPI del back.
+        // Dynamic API documentation generated from the back-end OpenAPI spec.
         path: 'api-reference',
         loadChildren: () =>
           import('./api-reference/api-reference.module').then(

@@ -12,11 +12,6 @@
       theme: {
         extend: {
           colors: {
-            clarisa: {
-              50: '#eff7ff', 100: '#dbecfe', 200: '#bfdffe', 300: '#93cbfd',
-              400: '#60aefa', 500: '#3b8ef6', 600: '#0065bd', 700: '#0058a5',
-              800: '#064a87', 900: '#0b3e70', 950: '#07274a',
-            },
             leaf: {
               50: '#f7fbe9', 100: '#ebf4d9', 200: '#d8eaae', 300: '#bcdb78',
               400: '#a0c94a', 500: '#7ab800', 600: '#669a00', 700: '#4e7600',
@@ -48,39 +43,35 @@
     .skeleton { animation: pulse 1.4s ease-in-out infinite; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
     table.data th { position: sticky; top: 0; z-index: 5; }
+    .docpill { border-radius: .375rem; background: #f2f7e4; padding: .075rem .35rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; color: #4e7600; }
   </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 antialiased">
 
-  <!-- ░░ TOPBAR ░░ -->
-  <header class="fixed inset-x-0 top-0 z-40 h-16 border-b border-slate-200/80 bg-white/90 backdrop-blur">
-    <div class="flex h-full items-center gap-4 px-5">
-      <a href="#" onclick="goHome();return false" class="flex items-center gap-3 shrink-0">
-        <div class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-clarisa-600 to-clarisa-800 text-white font-extrabold text-sm shadow-card">C</div>
-        <div class="leading-tight">
-          <div class="font-extrabold tracking-tight text-clarisa-700 text-[15px]">CLARISA</div>
-          <div class="text-[11px] font-medium text-slate-400 -mt-0.5">API Documentation</div>
-        </div>
-      </a>
-      <div class="relative ml-2 hidden md:block w-[420px]">
-        <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
-        <input id="globalSearch" type="text" placeholder="Search endpoints…  ( / )"
-          class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-clarisa-400 focus:bg-white focus:ring-4 focus:ring-clarisa-100" />
-      </div>
-      <div class="ml-auto"></div>
-    </div>
-  </header>
-
-  <!-- ░░ LAYOUT ░░ -->
-  <div class="flex pt-16">
+  <!-- ░░ LAYOUT ░░
+       No topbar of its own: the page is embedded under the CLARISA site navbar,
+       and a second bar stacked below it read as duplicated chrome. The search
+       box now lives at the top of the sidebar, which is what it actually
+       filters. -->
+  <div class="flex">
 
     <!-- SIDEBAR -->
-    <aside class="fixed bottom-0 left-0 top-16 z-30 w-72 overflow-y-auto border-r border-slate-200/80 bg-white px-3 py-5">
+    <aside class="fixed bottom-0 left-0 top-0 z-30 w-72 overflow-y-auto border-r border-slate-200/80 bg-white px-3 py-5">
+      <div class="mb-4 px-1">
+        <button onclick="goHome()" class="mb-2 block w-full truncate text-left text-[13px] font-extrabold tracking-tight text-leaf-700 transition hover:text-leaf-800">
+          <span id="sidebarContext">API Documentation</span>
+        </button>
+        <div class="relative">
+          <svg class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
+          <input id="globalSearch" type="text" placeholder="Search endpoints…  ( / )"
+            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-[13px] outline-none transition focus:border-leaf-500 focus:bg-white focus:ring-4 focus:ring-leaf-200" />
+        </div>
+      </div>
       <div id="sidebar"></div>
     </aside>
 
     <!-- MAIN -->
-    <main class="ml-72 min-h-[calc(100vh-4rem)] flex-1 px-8 py-8">
+    <main class="ml-72 min-h-screen flex-1 px-8 py-8">
       <div id="main" class="mx-auto max-w-6xl"></div>
     </main>
   </div>
@@ -94,10 +85,33 @@
      · {API}/<route> → live data, rendered as table + Excel export
    ════════════════════════════════════════════════════════════════════ */
 
-const API_BASE = (new URLSearchParams(location.search).get('api') || 'http://localhost:3000/').replace(/\/?$/, '/');
+const PARAMS = new URLSearchParams(location.search);
+const API_BASE = (PARAMS.get('api') || 'http://localhost:3000/').replace(/\/?$/, '/');
+
+/* Optional `?group=` narrows the view to a single group of the catalog, so the
+   same app can back the "One CGIAR Control List" and "One CGIAR Operation"
+   pages of the public menu. Matching is done on a slug, so
+   `one-cgiar-operation`, `One_CGIAR_Operation` and `One CGIAR Operation` are
+   all accepted. Unknown values fall back to the full catalog. */
+const GROUP_PARAM = (PARAMS.get('group') || '').trim();
+
+const slug = s => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+function applyGroupFilter(catalog) {
+  if (!GROUP_PARAM) return catalog;
+  const wanted = slug(GROUP_PARAM);
+  const groups = (catalog?.groups ?? []).filter(g => slug(g.group) === wanted);
+  if (!groups.length) {
+    console.warn(`[api-reference] Unknown group "${GROUP_PARAM}" — showing the whole catalog.`);
+    return catalog;
+  }
+  return { ...catalog, groups };
+}
 
 const state = {
   catalog: null, spec: null,
+  scopedGroup: null,        // group name when the view is narrowed by ?group=
+  nav: 'home',              // 'home' | 'get-started' | 'endpoint' — active sidebar target
   current: null,            // { group, category, endpoint }
   rows: [], columns: [],    // flattened data of current endpoint
   filtered: [],
@@ -119,8 +133,10 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
       fetch('catalog.json', { cache: 'no-store' }).then(r => r.json()),
       fetch(API_BASE + 'api-docs-json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
     ]);
-    state.catalog = catalog;
+    state.catalog = applyGroupFilter(catalog);
+    state.scopedGroup = GROUP_PARAM && state.catalog.groups.length === 1 ? state.catalog.groups[0].group : null;
     state.spec = spec;
+    applyScopedBranding();
     renderSidebar();
     goHome();
   } catch (e) {
@@ -128,9 +144,28 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
   }
 })();
 
+/* When the view is scoped to one group, say so in the topbar and the tab
+   title instead of repeating the group name on every screen. */
+function applyScopedBranding() {
+  if (!state.scopedGroup) return;
+  const context = $('#sidebarContext');
+  if (context) context.textContent = state.scopedGroup;
+  document.title = `CLARISA · ${state.scopedGroup}`;
+  const search = $('#globalSearch');
+  if (search) search.placeholder = `Search in ${state.scopedGroup}…  ( / )`;
+}
+
 /* ── sidebar ──────────────────────────────────────────────────────── */
 function renderSidebar(filter = '') {
   const q = filter.trim().toLowerCase();
+  // "Get Started" is navigation chrome, not an endpoint — always rendered first,
+  // outside the endpoint search filter.
+  const getStartedBtn = `
+    <button id="getStartedBtn" onclick="renderGetStarted()"
+      class="mb-5 flex w-full items-center gap-2.5 rounded-xl border border-leaf-200 bg-leaf-50/70 px-3 py-2.5 text-left text-[13px] font-bold text-leaf-700 transition hover:border-leaf-300 hover:bg-leaf-50">
+      <svg class="h-4 w-4 shrink-0 text-leaf-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      <span>Get Started</span>
+    </button>`;
   let html = '';
   state.catalog.groups.forEach((g, gi) => {
     const cats = g.categories.map((c, ci) => {
@@ -139,7 +174,7 @@ function renderSidebar(filter = '') {
       const list = (q ? eps : c.endpoints).map(ep => `
         <button onclick='selectEndpoint(${gi},${ci},${JSON.stringify(ep.route)})'
           data-route="${esc(ep.route)}"
-          class="ep-btn group flex w-full items-center gap-2 rounded-lg px-3 py-[7px] text-left text-[13px] font-medium text-slate-500 transition hover:bg-clarisa-50 hover:text-clarisa-700">
+          class="ep-btn group flex w-full items-center gap-2 rounded-lg px-3 py-[7px] text-left text-[13px] font-medium text-slate-500 transition hover:bg-leaf-50 hover:text-leaf-700">
           <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300 transition group-hover:bg-leaf-500"></span>
           <span class="truncate">${esc(ep.name)}</span>
         </button>`).join('');
@@ -153,24 +188,35 @@ function renderSidebar(filter = '') {
         </details>`;
     }).join('');
     if (q && !cats.trim()) return;
+    // The group heading is redundant when the whole view is that group.
+    const heading = state.scopedGroup
+      ? ''
+      : `<div class="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.14em] text-leaf-700/80">${esc(g.group)}</div>`;
     html += `
       <div class="mb-5">
-        <div class="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.14em] text-clarisa-600/70">${esc(g.group)}</div>
+        ${heading}
         ${cats}
       </div>`;
   });
-  $('#sidebar').innerHTML = html || '<div class="px-3 py-6 text-sm text-slate-400">No endpoints match your search.</div>';
+  $('#sidebar').innerHTML = getStartedBtn + (html || '<div class="px-3 py-6 text-sm text-slate-400">No endpoints match your search.</div>');
   highlightActive();
 }
 
 function highlightActive() {
   document.querySelectorAll('.ep-btn').forEach(b => {
     const active = state.current && b.dataset.route === state.current.endpoint.route;
-    b.classList.toggle('bg-clarisa-50', active);
-    b.classList.toggle('text-clarisa-700', active);
+    b.classList.toggle('bg-leaf-50', active);
+    b.classList.toggle('text-leaf-700', active);
     b.classList.toggle('font-semibold', active);
     if (active) b.closest('details')?.setAttribute('open', '');
   });
+  const gs = $('#getStartedBtn');
+  if (gs) {
+    const on = state.nav === 'get-started';
+    gs.classList.toggle('border-leaf-300', on);
+    gs.classList.toggle('bg-leaf-50', on);
+    gs.classList.toggle('text-leaf-800', on);
+  }
 }
 
 $('#globalSearch').addEventListener('input', e => renderSidebar(e.target.value));
@@ -181,47 +227,71 @@ document.addEventListener('keydown', e => {
 /* ── home / welcome ───────────────────────────────────────────────── */
 function goHome() {
   state.current = null;
+  state.nav = 'home';
   highlightActive();
   const c = state.catalog;
   const nCats = c.groups.reduce((a, g) => a + g.categories.length, 0);
   const nEps  = c.groups.reduce((a, g) => a + g.categories.reduce((b, x) => b + x.endpoints.length, 0), 0);
 
-  const groupCards = c.groups.map((g, gi) => `
-    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
-      <div class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-clarisa-600/70">Group</div>
-      <h3 class="mb-4 text-lg font-bold text-clarisa-800">${esc(g.group)}</h3>
-      <div class="flex flex-wrap gap-2">
-        ${g.categories.map((cat, ci) => `
-          <button onclick="openFirstOf(${gi},${ci})"
-            class="rounded-full border border-clarisa-100 bg-clarisa-50 px-3.5 py-1.5 text-xs font-semibold text-clarisa-700 transition hover:border-leaf-300 hover:bg-leaf-100 hover:text-leaf-800">
-            ${esc(cat.name)} <span class="opacity-50">· ${cat.endpoints.length}</span>
-          </button>`).join('')}
-      </div>
-    </div>`).join('');
+  // Scoped to one group: show a card per CATEGORY (with its description), since
+  // repeating the group name in a single card would say nothing new.
+  const cards = state.scopedGroup
+    ? c.groups[0].categories.map((cat, ci) => `
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+          <div class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-leaf-700/80">Category</div>
+          <h3 class="mb-2 text-lg font-bold text-leaf-800">${esc(cat.name)}</h3>
+          ${cat.description ? `<p class="mb-4 text-[13px] leading-relaxed text-slate-500">${esc(cat.description)}</p>` : '<div class="mb-4"></div>'}
+          <div class="flex flex-wrap gap-2">
+            ${cat.endpoints.map(ep => `
+              <button onclick='selectEndpoint(0,${ci},${JSON.stringify(ep.route)})'
+                class="rounded-full border border-leaf-200 bg-leaf-50 px-3.5 py-1.5 text-xs font-semibold text-leaf-700 transition hover:border-leaf-300 hover:bg-leaf-100 hover:text-leaf-800">
+                ${esc(ep.name)}
+              </button>`).join('')}
+          </div>
+        </div>`).join('')
+    : c.groups.map((g, gi) => `
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+          <div class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-leaf-700/80">Group</div>
+          <h3 class="mb-4 text-lg font-bold text-leaf-800">${esc(g.group)}</h3>
+          <div class="flex flex-wrap gap-2">
+            ${g.categories.map((cat, ci) => `
+              <button onclick="openFirstOf(${gi},${ci})"
+                class="rounded-full border border-leaf-200 bg-leaf-50 px-3.5 py-1.5 text-xs font-semibold text-leaf-700 transition hover:border-leaf-300 hover:bg-leaf-100 hover:text-leaf-800">
+                ${esc(cat.name)} <span class="opacity-50">· ${cat.endpoints.length}</span>
+              </button>`).join('')}
+          </div>
+        </div>`).join('');
+
+  const heroTitle = state.scopedGroup ? esc(state.scopedGroup) : "Explore CLARISA's official control lists";
+  const heroDescription = state.scopedGroup ? c.groups[0].description : null;
+  const stats = state.scopedGroup
+    ? [[nCats, 'Categories'], [nEps, 'Endpoints']]
+    : [[c.groups.length, 'Groups'], [nCats, 'Categories'], [nEps, 'Endpoints']];
 
   $('#main').innerHTML = `
     <div class="fade-in">
-      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-clarisa-700 via-clarisa-800 to-clarisa-950 p-10 text-white shadow-pop">
-        <div class="absolute -right-16 -top-24 h-72 w-72 rounded-full bg-leaf-500/15 blur-2xl"></div>
-        <div class="absolute -bottom-28 right-32 h-64 w-64 rounded-full bg-clarisa-400/15 blur-2xl"></div>
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-leaf-600 via-leaf-700 to-leaf-900 p-10 text-white shadow-pop">
+        <div class="absolute -right-16 -top-24 h-72 w-72 rounded-full bg-leaf-300/20 blur-2xl"></div>
+        <div class="absolute -bottom-28 right-32 h-64 w-64 rounded-full bg-leaf-400/25 blur-2xl"></div>
         <div class="relative">
-          <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-leaf-200">CGIAR · catalogs as a service</div>
-          <h1 class="text-3xl font-extrabold tracking-tight md:text-4xl">Explore CLARISA's official control lists</h1>
-          <p class="mt-3 max-w-2xl text-[15px] leading-relaxed text-clarisa-100">
+          <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-leaf-100">CGIAR · catalogs as a service</div>
+          <h1 class="text-3xl font-extrabold tracking-tight md:text-4xl">${heroTitle}</h1>
+          <p class="mt-3 max-w-2xl text-[15px] leading-relaxed text-leaf-50">
+            ${heroDescription ? esc(heroDescription) + '<br class="hidden md:block" />' : ''}
             Browse every public list as a <b class="text-white">live table</b>, download it to
             <b class="text-white">Excel</b> in one click, or grab the <b class="text-white">JSON / code snippets</b>
             if you are integrating a system. Pick a category on the left to start.
           </p>
           <div class="mt-7 flex flex-wrap gap-3">
-            ${[ [c.groups.length,'Groups'], [nCats,'Categories'], [nEps,'Endpoints'] ].map(([n, l]) => `
-              <div class="rounded-2xl bg-white/10 px-5 py-3 backdrop-blur">
-                <div class="text-2xl font-extrabold text-leaf-300">${n}</div>
-                <div class="text-[11px] font-semibold uppercase tracking-wider text-clarisa-200">${l}</div>
+            ${stats.map(([n, l]) => `
+              <div class="rounded-2xl bg-white/15 px-5 py-3 backdrop-blur">
+                <div class="text-2xl font-extrabold text-white">${n}</div>
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-leaf-100">${l}</div>
               </div>`).join('')}
           </div>
         </div>
       </div>
-      <div class="mt-8 grid gap-5 lg:grid-cols-2">${groupCards}</div>
+      <div class="mt-8 grid gap-5 lg:grid-cols-2">${cards}</div>
       <div class="mt-8 flex items-start gap-3 rounded-2xl border border-leaf-200 bg-leaf-50 p-5">
         <div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-leaf-500 font-bold text-white">i</div>
         <div class="text-sm leading-relaxed text-leaf-900">
@@ -238,6 +308,98 @@ function openFirstOf(gi, ci) {
   if (ep) selectEndpoint(gi, ci, ep.route);
 }
 
+/* ── get started / authentication ─────────────────────────────────── */
+function renderGetStarted() {
+  state.current = null;
+  state.nav = 'get-started';
+  highlightActive();
+
+  const sampleUrl = API_BASE + 'institutions';
+  const curlEx = `curl -X GET "${sampleUrl}" \\\n  -H "X-API-Key: cl_prod_9f8d7e6c5b4a3b2a1c0d…" \\\n  -H "Accept: application/json"`;
+  const fetchEx = `const apiKey = "cl_prod_9f8d7e6c5b4a3b2a1c0d…";\n\nconst res = await fetch("${sampleUrl}", {\n  method: "GET",\n  headers: {\n    "X-API-Key": apiKey,\n    "Accept": "application/json",\n  },\n});\nconst data = await res.json();\nconsole.log(data);`;
+
+  const codeBlock = (title, code) => `
+    <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-[13px] font-bold text-leaf-800">${title}</span>
+        <button onclick='copyText(${JSON.stringify(code)}, this)' class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-leaf-400 hover:text-leaf-700">Copy</button>
+      </div>
+      <pre class="overflow-auto bg-slate-50 p-5 font-mono text-[12.5px] leading-relaxed text-slate-700"><code>${esc(code)}</code></pre>
+    </div>`;
+
+  $('#main').innerHTML = `
+    <div class="fade-in mx-auto max-w-4xl">
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-leaf-600 via-leaf-700 to-leaf-900 p-9 text-white shadow-pop">
+        <div class="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-leaf-300/20 blur-2xl"></div>
+        <div class="relative">
+          <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-leaf-100">Get Started</div>
+          <h1 class="text-3xl font-extrabold tracking-tight">Authenticating with the CLARISA API</h1>
+          <p class="mt-3 max-w-2xl text-[15px] leading-relaxed text-leaf-50">
+            CLARISA serves CGIAR's official control lists as a service. Browsing the public
+            catalogs on this page needs no setup — but to consume the API from your own system
+            you authenticate with an <b class="text-white">API token</b>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Hybrid auth -->
+      <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+        <h2 class="text-lg font-bold text-leaf-800">A hybrid authentication model</h2>
+        <p class="mt-2 text-[14px] leading-relaxed text-slate-600">
+          The API now accepts a valid <b>API token</b> sent in the
+          <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12.5px] text-leaf-700">X-API-Key</code>
+          request header. Existing integrations that authenticate with the legacy
+          <b>JWT</b> keep working — the two coexist, so you can migrate at your own pace.
+        </p>
+      </section>
+
+      <!-- Request a token -->
+      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+        <h2 class="text-lg font-bold text-leaf-800">1 · Request a token</h2>
+        <p class="mt-2 text-[14px] leading-relaxed text-slate-600">
+          There is no public self-service portal yet. To get a token, email
+          <b>both</b> support addresses below:
+        </p>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <a href="mailto:CLARISASupport@cgiar.org" class="rounded-xl border border-leaf-200 bg-leaf-50 px-4 py-2.5 text-[13px] font-bold text-leaf-700 transition hover:border-leaf-300 hover:bg-leaf-50">✉ CLARISASupport@cgiar.org</a>
+          <a href="mailto:PRMSTechsupport@cgiar.org" class="rounded-xl border border-leaf-200 bg-leaf-50 px-4 py-2.5 text-[13px] font-bold text-leaf-700 transition hover:border-leaf-300 hover:bg-leaf-50">✉ PRMSTechsupport@cgiar.org</a>
+        </div>
+        <p class="mt-4 text-[14px] font-semibold text-slate-700">Include in your request:</p>
+        <ul class="mt-2 space-y-1.5 text-[14px] leading-relaxed text-slate-600">
+          <li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-leaf-500"></span><span><b>Name &amp; organization / project</b> — who will use the key.</span></li>
+          <li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-leaf-500"></span><span><b>Use case</b> — a short description of how your system integrates with CLARISA.</span></li>
+          <li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-leaf-500"></span><span><b>Environment</b> — development / staging, production, or both.</span></li>
+        </ul>
+        <p class="mt-4 text-[14px] leading-relaxed text-slate-600">
+          Once approved you receive a token shaped like
+          <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12.5px] text-leaf-700">cl_[env]_[random]</code>,
+          for example <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12.5px] text-leaf-700">cl_prod_9f8d7e6c…</code>.
+          Treat it as a secret — do not commit it to source control.
+        </p>
+      </section>
+
+      <!-- Use the token -->
+      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+        <h2 class="text-lg font-bold text-leaf-800">2 · Use the token</h2>
+        <p class="mb-4 mt-2 text-[14px] leading-relaxed text-slate-600">
+          Send your token in the <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12.5px] text-leaf-700">X-API-Key</code> header on every request.
+        </p>
+        ${codeBlock('cURL', curlEx)}
+        ${codeBlock('JavaScript (fetch)', fetchEx)}
+      </section>
+
+      <!-- Read-only notice -->
+      <div class="mt-6 flex items-start gap-3 rounded-2xl border border-leaf-200 bg-leaf-50 p-5">
+        <div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-leaf-500 font-bold text-white">i</div>
+        <div class="text-sm leading-relaxed text-leaf-900">
+          <b>Read-only.</b> The public control-list endpoints exposed by this API only support
+          <b>GET</b> requests. Creating, updating or deleting catalog data is restricted to
+          CLARISA's administrative workflows.
+        </div>
+      </div>
+    </div>`;
+}
+
 /* ── endpoint page ────────────────────────────────────────────────── */
 function specOpFor(route) {
   const p = '/' + route.replace(/^\/+/, '');
@@ -249,7 +411,8 @@ async function selectEndpoint(gi, ci, route) {
   const category = group.categories[ci];
   const endpoint = category.endpoints.find(e => e.route === route);
   state.current = { group, category, endpoint };
-  state.tab = 'table'; state.page = 1; state.sortKey = null;
+  state.nav = 'endpoint';
+  state.tab = 'doc'; state.page = 1; state.sortKey = null;
   highlightActive();
   renderEndpointShell(true);
 
@@ -296,14 +459,14 @@ function renderEndpointShell(loading, error = null) {
   $('#main').innerHTML = `
     <div class="fade-in">
       <nav class="mb-3 flex items-center gap-1.5 text-xs font-semibold text-slate-400">
-        <button onclick="goHome()" class="transition hover:text-clarisa-600">Home</button>
+        <button onclick="goHome()" class="transition hover:text-leaf-700">Home</button>
         <span>/</span><span>${esc(group.group)}</span>
-        <span>/</span><span class="text-clarisa-600">${esc(category.name)}</span>
+        <span>/</span><span class="text-leaf-700">${esc(category.name)}</span>
       </nav>
 
       <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div class="max-w-3xl">
-          <h1 class="text-2xl font-extrabold tracking-tight text-clarisa-800">${esc(endpoint.name)}</h1>
+          <h1 class="text-2xl font-extrabold tracking-tight text-leaf-800">${esc(endpoint.name)}</h1>
           ${desc ? `<p class="mt-1.5 text-[14px] leading-relaxed text-slate-500">${esc(desc)}</p>` : ''}
         </div>
         ${!inSpec && state.spec ? '<span class="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold text-amber-700">not in public spec</span>' : ''}
@@ -320,11 +483,11 @@ function renderEndpointShell(loading, error = null) {
 
       <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div class="flex rounded-xl border border-slate-200 bg-white p-1 shadow-card">
-          ${['table:Table','json:JSON','schema:Schema','code:Code'].map(t => {
+          ${['doc:Doc','table:Table','json:JSON','schema:Schema','code:Code'].map(t => {
             const [id, label] = t.split(':');
             const on = state.tab === id;
             return `<button onclick="setTab('${id}')"
-              class="rounded-lg px-4 py-1.5 text-[13px] font-semibold transition ${on ? 'bg-clarisa-600 text-white shadow' : 'text-slate-500 hover:text-clarisa-700'}">${label}</button>`;
+              class="rounded-lg px-4 py-1.5 text-[13px] font-semibold transition ${on ? 'bg-leaf-700 text-white shadow' : 'text-slate-500 hover:text-leaf-700'}">${label}</button>`;
           }).join('')}
         </div>
         <div class="flex items-center gap-2" id="exportZone"></div>
@@ -333,10 +496,12 @@ function renderEndpointShell(loading, error = null) {
       <div id="tabBody"></div>
     </div>`;
 
+  // Doc and Code are spec/static-derived — render them immediately, no wait for live data.
+  if (loading && (state.tab === 'doc' || state.tab === 'code')) { renderTab(); return; }
   if (loading) {
     $('#tabBody').innerHTML = `
       <div class="rounded-2xl border border-slate-200 bg-white p-16 text-center shadow-card">
-        <svg class="spin mx-auto h-8 w-8 text-clarisa-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+        <svg class="spin mx-auto h-8 w-8 text-leaf-700" fill="none" viewBox="0 0 24 24"><circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
         <div class="mt-4 text-sm font-semibold text-slate-500">Fetching live data…</div>
         <div class="mt-1 text-xs text-slate-400">Large lists (e.g. Institutions) can take a few seconds.</div>
       </div>`;
@@ -369,13 +534,14 @@ function renderTab() {
   zone.innerHTML = '';
   if (state.tab === 'table') {
     zone.innerHTML = `
-      <span class="mr-1 rounded-full bg-clarisa-50 px-3 py-1.5 text-xs font-bold text-clarisa-700">${state.filtered.length.toLocaleString()} records</span>
+      <span class="mr-1 rounded-full bg-leaf-50 px-3 py-1.5 text-xs font-bold text-leaf-700">${state.filtered.length.toLocaleString()} records</span>
       <button onclick="exportExcel()" class="flex items-center gap-1.5 rounded-xl bg-leaf-500 px-4 py-2 text-xs font-bold text-white shadow-card transition hover:bg-leaf-600">
         <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v8.6l2.3-2.3a1 1 0 111.4 1.4l-4 4a1 1 0 01-1.4 0l-4-4a1 1 0 111.4-1.4L9 11.6V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011 1v1h12v-1a1 1 0 112 0v2a1 1 0 01-1 1H3a1 1 0 01-1-1v-2a1 1 0 011-1z"/></svg>
         Excel</button>
-      <button onclick="exportCSV()" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-clarisa-300 hover:text-clarisa-700">CSV</button>
-      <button onclick="exportJSON()" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-clarisa-300 hover:text-clarisa-700">JSON</button>`;
+      <button onclick="exportCSV()" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-leaf-400 hover:text-leaf-700">CSV</button>
+      <button onclick="exportJSON()" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-leaf-400 hover:text-leaf-700">JSON</button>`;
   }
+  if (state.tab === 'doc')    return renderDoc();
   if (state.tab === 'table')  return renderTable();
   if (state.tab === 'json')   return renderJSON();
   if (state.tab === 'schema') return renderSchema();
@@ -393,8 +559,8 @@ function renderTable() {
   const ths = state.columns.map(c => {
     const on = state.sortKey === c;
     return `<th onclick="sortBy('${esc(c)}')"
-      class="cursor-pointer select-none whitespace-nowrap border-b border-slate-200 bg-clarisa-700 px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white transition hover:bg-clarisa-600">
-      ${esc(c)} <span class="${on ? 'text-leaf-300' : 'text-clarisa-300/40'}">${on ? (state.sortDir > 0 ? '▲' : '▼') : '↕'}</span></th>`;
+      class="cursor-pointer select-none whitespace-nowrap border-b border-slate-200 bg-leaf-700 px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white transition hover:bg-leaf-700">
+      ${esc(c)} <span class="${on ? 'text-leaf-300' : 'text-leaf-400/50'}">${on ? (state.sortDir > 0 ? '▲' : '▼') : '↕'}</span></th>`;
   }).join('');
 
   const trs = rows.map((r, i) => `
@@ -415,7 +581,7 @@ function renderTable() {
         <div class="relative flex-1 min-w-[220px] max-w-sm">
           <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
           <input id="tableSearch" type="text" placeholder="Filter ${state.rows.length.toLocaleString()} records…"
-            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-[13px] outline-none transition focus:border-clarisa-400 focus:bg-white focus:ring-4 focus:ring-clarisa-100" />
+            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-[13px] outline-none transition focus:border-leaf-500 focus:bg-white focus:ring-4 focus:ring-leaf-200" />
         </div>
         <div class="ml-auto flex items-center gap-2 text-xs font-semibold text-slate-400">
           Rows
@@ -429,11 +595,11 @@ function renderTable() {
           `<tr><td colspan="${state.columns.length}" class="px-4 py-12 text-center text-sm text-slate-400">No records match your filter.</td></tr>`}</tbody></table>
       </div>
       <div class="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs font-semibold text-slate-500">
-        <span>Showing <b class="text-clarisa-700">${total ? (start + 1).toLocaleString() : 0}–${Math.min(start + state.pageSize, total).toLocaleString()}</b> of <b class="text-clarisa-700">${total.toLocaleString()}</b></span>
+        <span>Showing <b class="text-leaf-700">${total ? (start + 1).toLocaleString() : 0}–${Math.min(start + state.pageSize, total).toLocaleString()}</b> of <b class="text-leaf-700">${total.toLocaleString()}</b></span>
         <div class="flex items-center gap-1.5">
-          <button onclick="setPage(${state.page - 1})" ${state.page <= 1 ? 'disabled' : ''} class="rounded-lg border border-slate-200 px-3 py-1.5 transition enabled:hover:border-clarisa-300 enabled:hover:text-clarisa-700 disabled:opacity-40">← Prev</button>
-          <span class="px-2">Page <b class="text-clarisa-700">${state.page}</b> / ${pages.toLocaleString()}</span>
-          <button onclick="setPage(${state.page + 1})" ${state.page >= pages ? 'disabled' : ''} class="rounded-lg border border-slate-200 px-3 py-1.5 transition enabled:hover:border-clarisa-300 enabled:hover:text-clarisa-700 disabled:opacity-40">Next →</button>
+          <button onclick="setPage(${state.page - 1})" ${state.page <= 1 ? 'disabled' : ''} class="rounded-lg border border-slate-200 px-3 py-1.5 transition enabled:hover:border-leaf-400 enabled:hover:text-leaf-700 disabled:opacity-40">← Prev</button>
+          <span class="px-2">Page <b class="text-leaf-700">${state.page}</b> / ${pages.toLocaleString()}</span>
+          <button onclick="setPage(${state.page + 1})" ${state.page >= pages ? 'disabled' : ''} class="rounded-lg border border-slate-200 px-3 py-1.5 transition enabled:hover:border-leaf-400 enabled:hover:text-leaf-700 disabled:opacity-40">Next →</button>
         </div>
       </div>
     </div>`;
@@ -478,11 +644,11 @@ function renderJSON() {
   const raw = state.cache.get(state.current.endpoint.route);
   const arr = Array.isArray(raw) ? raw : [raw];
   const preview = arr.slice(0, 50);
-  $('#exportZone').innerHTML = `<button onclick="exportJSON()" class="rounded-xl bg-clarisa-600 px-4 py-2 text-xs font-bold text-white shadow-card transition hover:bg-clarisa-700">Download full JSON</button>`;
+  $('#exportZone').innerHTML = `<button onclick="exportJSON()" class="rounded-xl bg-leaf-700 px-4 py-2 text-xs font-bold text-white shadow-card transition hover:bg-leaf-700">Download full JSON</button>`;
   $('#tabBody').innerHTML = `
-    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-clarisa-950 shadow-card">
+    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-leaf-900 shadow-card">
       <div class="flex items-center justify-between border-b border-white/10 px-5 py-3">
-        <span class="font-mono text-xs font-semibold text-clarisa-300">Live response · showing first ${preview.length.toLocaleString()} of ${arr.length.toLocaleString()} items</span>
+        <span class="font-mono text-xs font-semibold text-leaf-400">Live response · showing first ${preview.length.toLocaleString()} of ${arr.length.toLocaleString()} items</span>
         <button onclick="copyText(jsonPreviewText(), this)" class="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/20">Copy</button>
       </div>
       <pre class="max-h-[62vh] overflow-auto p-5 font-mono text-[12.5px] leading-relaxed text-leaf-200"><code>${esc(JSON.stringify(preview, null, 2))}</code></pre>
@@ -519,8 +685,8 @@ function renderSchema() {
 }
 function schemaTable(entries, inferred) {
   const rows = entries.map(([name, def, req]) => `
-    <tr class="bg-white transition hover:bg-clarisa-50/40">
-      <td class="border-b border-slate-100 px-5 py-3 font-mono text-[13px] font-semibold text-clarisa-700">${esc(name)} ${req ? '<span class="ml-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500">required</span>' : ''}</td>
+    <tr class="bg-white transition hover:bg-leaf-50/60">
+      <td class="border-b border-slate-100 px-5 py-3 font-mono text-[13px] font-semibold text-leaf-700">${esc(name)} ${req ? '<span class="ml-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500">required</span>' : ''}</td>
       <td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md bg-leaf-100 px-2 py-1 font-mono text-[11px] font-bold text-leaf-800">${esc(def.type || 'object')}${def.format ? ` · ${esc(def.format)}` : ''}</span></td>
       <td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-500">${esc(def.description || '')}</td>
     </tr>`).join('');
@@ -529,9 +695,9 @@ function schemaTable(entries, inferred) {
     <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
       <table class="w-full border-collapse text-sm">
         <thead><tr>
-          <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Field</th>
-          <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Type</th>
-          <th class="border-b border-slate-200 bg-clarisa-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Description</th>
+          <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Field</th>
+          <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Type</th>
+          <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Description</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -549,11 +715,214 @@ function renderCode() {
   $('#tabBody').innerHTML = blocks.map(([title, code]) => `
     <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
       <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-        <span class="text-[13px] font-bold text-clarisa-800">${title}</span>
-        <button onclick='copyText(${JSON.stringify(code)}, this)' class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-clarisa-300 hover:text-clarisa-700">Copy</button>
+        <span class="text-[13px] font-bold text-leaf-800">${title}</span>
+        <button onclick='copyText(${JSON.stringify(code)}, this)' class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-leaf-400 hover:text-leaf-700">Copy</button>
       </div>
       <pre class="overflow-auto bg-slate-50 p-5 font-mono text-[12.5px] leading-relaxed text-slate-700"><code>${esc(code)}</code></pre>
     </div>`).join('');
+}
+
+/* ── DOC tab ──────────────────────────────────────────────────────── */
+/* Endpoints that expose a v2 via the ?version=2 query param (the rest serve v1).
+   Mirrors the @Version(...) decorators in the NestJS controllers. */
+const V2_ENDPOINTS = {
+  'cgiar-entities':        'Returns the richer <code class="docpill">CgiarEntityDtoV2</code> shape (entity type, lineages, portfolio, dates) and adds the <code class="docpill">portfolioId</code> and <code class="docpill">year</code> filters.',
+  'cgiar-entity-typology': 'Returns the v2 typology shape.',
+  'sdgs':                  'Declared <code class="docpill">@Version([\'1\',\'2\'])</code> — responds identically for v1 and v2.',
+  'sdg-targets':           'Returns the v2 target shape.',
+  'sdg-indicators':        'Returns the v2 indicator shape.',
+};
+
+function tsType(node) {
+  if (!node) return 'any';
+  if (node.$ref) return node.$ref.split('/').pop();
+  if (node.type === 'array') {
+    const it = node.items || {};
+    const inner = it.$ref ? it.$ref.split('/').pop() : tsType(it);
+    return inner + '[]';
+  }
+  if (Array.isArray(node.enum)) return node.enum.map(e => JSON.stringify(e)).join(' | ');
+  const t = node.type;
+  if (t === 'integer' || t === 'number') return 'number';
+  if (t === 'boolean') return 'boolean';
+  if (t === 'string') return 'string';
+  if (t === 'object') return 'object';
+  return t || 'any';
+}
+
+function docCodeBlock(title, code) {
+  return `
+    <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-[13px] font-bold text-leaf-800">${title}</span>
+        <button onclick='copyText(${JSON.stringify(code)}, this)' class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-leaf-400 hover:text-leaf-700">Copy</button>
+      </div>
+      <pre class="overflow-auto bg-slate-50 p-5 font-mono text-[12.5px] leading-relaxed text-slate-700"><code>${esc(code)}</code></pre>
+    </div>`;
+}
+
+function docSection(title, subtitle, bodyHtml) {
+  return `
+    <section class="mb-6">
+      <h2 class="text-lg font-bold text-leaf-800">${title}</h2>
+      ${subtitle ? `<p class="mb-3 mt-1 text-[13.5px] leading-relaxed text-slate-500">${subtitle}</p>` : '<div class="mb-3"></div>'}
+      ${bodyHtml}
+    </section>`;
+}
+
+function renderDoc() {
+  const route = state.current.endpoint.route;            // e.g. "api/cgiar-entities"
+  const baseRoute = route.replace(/^api\//, '').replace(/^\/+/, '');
+  const url = API_BASE + route;
+  const op = specOpFor(route);
+
+  /* ── 1. Versioning ── */
+  const v2 = V2_ENDPOINTS[baseRoute];
+  let versioningBody;
+  if (v2) {
+    const vEx = `# v1 — default, no param needed\nGET ${url}\n\n# v2 — opt in with the version query param\nGET ${url}?version=2`;
+    versioningBody = `
+      <div class="mb-4 grid gap-3 sm:grid-cols-2">
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-card">
+          <div class="flex items-center gap-2"><span class="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[12px] font-bold text-slate-600">v1</span><span class="text-[12px] font-semibold text-slate-400">default</span></div>
+          <p class="mt-2 text-[13.5px] leading-relaxed text-slate-600">Served when no <code class="docpill">version</code> param is sent.</p>
+        </div>
+        <div class="rounded-xl border border-leaf-300 bg-leaf-50 p-4 shadow-card">
+          <div class="flex items-center gap-2"><span class="rounded-md bg-leaf-500 px-2 py-0.5 font-mono text-[12px] font-bold text-white">v2</span><span class="text-[12px] font-semibold text-leaf-700">opt-in</span></div>
+          <p class="mt-2 text-[13.5px] leading-relaxed text-leaf-900">${v2}</p>
+        </div>
+      </div>
+      ${docCodeBlock('Selecting a version', vEx)}`;
+  } else {
+    versioningBody = `
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div class="flex items-center gap-2"><span class="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[12px] font-bold text-slate-600">v1</span><span class="text-[12px] font-semibold text-slate-400">only</span></div>
+        <p class="mt-2 text-[13.5px] leading-relaxed text-slate-600">
+          This endpoint has a single version. Sending <code class="docpill">?version=2</code> has no effect — it always serves its v1 response.
+        </p>
+      </div>`;
+  }
+  const versioning = docSection(
+    'Versioning',
+    `CLARISA versions the API through an optional <code class="docpill">?version=N</code> query param — not via the URI and not via a header. Omit it and you get <b>v1</b>.`,
+    versioningBody,
+  );
+
+  /* ── 2. Query params ── */
+  const qParams = (op?.parameters || []).filter(p => p.in === 'query');
+  let paramsBody, exampleQuery = '';
+  if (qParams.length) {
+    const rows = qParams.map(p => {
+      const sc = p.schema || {};
+      const type = tsType(sc);
+      const def = sc.default !== undefined ? String(sc.default) : '';
+      return `
+        <tr class="bg-white transition hover:bg-leaf-50/60">
+          <td class="border-b border-slate-100 px-5 py-3 font-mono text-[13px] font-semibold text-leaf-700">${esc(p.name)} ${p.required ? '<span class="ml-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500">required</span>' : ''}</td>
+          <td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md bg-leaf-100 px-2 py-1 font-mono text-[11px] font-bold text-leaf-800">${esc(type)}</span></td>
+          <td class="border-b border-slate-100 px-5 py-3 font-mono text-[12px] text-slate-500">${def ? esc(def) : '<span class="text-slate-300">—</span>'}</td>
+          <td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-500">${esc(p.description || '')}</td>
+        </tr>`;
+    }).join('');
+    // build a realistic example using up to 2 params
+    const ex = qParams.slice(0, 2).map(p => {
+      const sc = p.schema || {};
+      const val = Array.isArray(sc.enum) ? sc.enum[0] : (sc.default !== undefined ? sc.default : (tsType(sc) === 'number' ? 1 : 'value'));
+      return `${p.name}=${val}`;
+    });
+    if (v2) ex.push('version=2');
+    exampleQuery = '?' + ex.join('&');
+    paramsBody = `
+      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+        <table class="w-full border-collapse text-sm">
+          <thead><tr>
+            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Param</th>
+            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Type</th>
+            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Default</th>
+            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Description</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      ${docCodeBlock('Example with query params', `GET ${url}${exampleQuery}`)}`;
+  } else {
+    const fallback = v2 ? `?version=2` : '';
+    paramsBody = `
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-[13.5px] leading-relaxed text-slate-600">
+        No query parameters are published for this endpoint in the OpenAPI spec.${v2 ? ` You can still pass <code class="docpill">?version=2</code> to opt into v2.` : ''}
+      </div>${fallback ? docCodeBlock('Example', `GET ${url}${fallback}`) : ''}`;
+  }
+  const params = docSection('Query parameters', 'Optional filters you can append to the request URL.', paramsBody);
+
+  /* ── 3. Responses / status codes ── */
+  const responses = op?.responses || {};
+  let respBody;
+  const respKeys = Object.keys(responses);
+  if (respKeys.length) {
+    respBody = `
+      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+        <table class="w-full border-collapse text-sm">
+          <thead><tr>
+            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Status</th>
+            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Meaning</th>
+          </tr></thead>
+          <tbody>${respKeys.map(code => {
+            const ok = code.startsWith('2');
+            return `<tr class="bg-white">
+              <td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md px-2 py-1 font-mono text-[12px] font-bold ${ok ? 'bg-leaf-100 text-leaf-800' : 'bg-amber-100 text-amber-700'}">${esc(code)}</span></td>
+              <td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-600">${esc(responses[code].description || (ok ? 'Successful response' : ''))}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>`;
+  } else {
+    respBody = `
+      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+        <table class="w-full border-collapse text-sm">
+          <thead><tr>
+            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Status</th>
+            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Meaning</th>
+          </tr></thead>
+          <tbody>
+            <tr class="bg-white"><td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md bg-leaf-100 px-2 py-1 font-mono text-[12px] font-bold text-leaf-800">200</span></td><td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-600">Successful response — returns the control list.</td></tr>
+            <tr class="bg-white"><td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md bg-amber-100 px-2 py-1 font-mono text-[12px] font-bold text-amber-700">401</span></td><td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-600">Missing or invalid API token.</td></tr>
+          </tbody>
+        </table>
+      </div>`;
+  }
+  const respSection = docSection('Responses', 'HTTP status codes this endpoint can return.', respBody);
+
+  /* ── 4. Response model / DTO interface ── */
+  let schemaNode = op?.responses?.['200']?.content?.['application/json']?.schema;
+  let returnsArray = false;
+  if (schemaNode?.type === 'array') { returnsArray = true; schemaNode = schemaNode.items; }
+  const modelName = schemaNode?.$ref ? schemaNode.$ref.split('/').pop() : (resolveRef(schemaNode).title || 'Response');
+  const model = resolveRef(schemaNode);
+  const props = model.properties;
+  let dtoBody;
+  if (props) {
+    const required = new Set(model.required || []);
+    const lines = Object.entries(props).map(([k, v]) => {
+      const optional = required.has(k) ? '' : '?';
+      const t = tsType(v);
+      const desc = (resolveRef(v).description || v.description || '').replace(/\s+/g, ' ').trim();
+      return `  ${k}${optional}: ${t};${desc ? '  // ' + desc : ''}`;
+    });
+    const iface = `interface ${modelName} {\n${lines.join('\n')}\n}`;
+    const returnLine = `// GET ${route} → ${returnsArray ? modelName + '[]' : modelName}`;
+    dtoBody = docCodeBlock(`${modelName}${returnsArray ? '[]' : ''}`, `${returnLine}\n\n${iface}`);
+  } else {
+    const sample = state.rows && state.rows[0];
+    if (sample) {
+      const lines = Object.keys(sample).map(k => `  ${k}: ${typeof sample[k] === 'number' ? 'number' : typeof sample[k] === 'boolean' ? 'boolean' : 'string'};`);
+      dtoBody = `<div class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-700">Model not published in the OpenAPI spec — shape inferred from live data.</div>${docCodeBlock('Inferred shape', `interface ${modelName} {\n${lines.join('\n')}\n}`)}`;
+    } else {
+      dtoBody = `<div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-[13.5px] text-slate-600">No response model published for this endpoint.</div>`;
+    }
+  }
+  const dtoSection = docSection('Response model', 'The DTO returned in the response body.', dtoBody);
+
+  $('#tabBody').innerHTML = `<div class="max-w-4xl">${versioning}${params}${respSection}${dtoSection}</div>`;
 }
 
 /* ── exports ──────────────────────────────────────────────────────── */

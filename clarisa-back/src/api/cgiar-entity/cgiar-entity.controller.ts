@@ -81,6 +81,11 @@ export class CgiarEntityController {
   }
 
   @Get('groups')
+  @ApiOperation({
+    summary: 'List CGIAR entity groups',
+    description:
+      'Hierarchy of CGIAR global units: each group with the entities that belong to it. Useful to render entity pickers grouped by their parent unit.',
+  })
   async getHierarchy(): Promise<any[]> {
     return this.cgiarEntityService.getGlobalUnitsHierarchy();
   }

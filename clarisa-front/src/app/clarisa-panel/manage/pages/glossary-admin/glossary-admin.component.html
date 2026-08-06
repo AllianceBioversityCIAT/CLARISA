@@ -1,0 +1,34 @@
+<div class="glossary-admin-layout">
+  <aside class="glossary-sidebar">
+    <div class="glossary-sidebar__head">
+      <h2 class="glossary-sidebar__title">Glossary</h2>
+      <p class="glossary-sidebar__hint">Manage the CLARISA glossary terms and their portfolios.</p>
+    </div>
+    <nav class="glossary-sidebar__nav">
+      <button
+        type="button"
+        class="glossary-sidebar__link"
+        [class.glossary-sidebar__link--active]="activeSection === 'terms'"
+        (click)="setSection('terms')">
+        <span class="glossary-sidebar__label">Terms</span>
+        <span class="glossary-sidebar__desc">Browse, create and edit terms one by one</span>
+      </button>
+      <button
+        type="button"
+        class="glossary-sidebar__link"
+        [class.glossary-sidebar__link--active]="activeSection === 'bulk'"
+        (click)="setSection('bulk')">
+        <span class="glossary-sidebar__label">Bulk upload</span>
+        <span class="glossary-sidebar__desc">Load many terms from a file or a paste</span>
+      </button>
+    </nav>
+  </aside>
+
+  <main class="glossary-main">
+    <app-glossary-terms-panel *ngIf="activeSection === 'terms'" [reloadToken]="termsReloadToken"></app-glossary-terms-panel>
+    <app-glossary-bulk-panel *ngIf="activeSection === 'bulk'" (imported)="onImported()"></app-glossary-bulk-panel>
+  </main>
+</div>
+
+<p-toast position="top-right"></p-toast>
+<p-confirmDialog></p-confirmDialog>

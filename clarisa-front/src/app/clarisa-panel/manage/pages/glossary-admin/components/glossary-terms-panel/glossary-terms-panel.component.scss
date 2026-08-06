@@ -1,0 +1,87 @@
+@import '../shared-panel';
+
+.glossary-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+}
+
+.glossary-filters__search {
+  flex: 1 1 18rem;
+  max-width: 26rem;
+
+  input {
+    width: 100%;
+  }
+}
+
+.glossary-filters__count {
+  margin-left: auto;
+  font-size: 0.76rem;
+  color: #94a3b8;
+}
+
+:host ::ng-deep .filter-dropdown--wide {
+  min-width: 14rem;
+}
+
+.cell-definition {
+  color: #475569;
+  line-height: 1.45;
+  max-width: 40rem;
+}
+
+.row-inactive {
+  opacity: 0.62;
+}
+
+.portfolio-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.portfolio-chip {
+  display: inline-block;
+  background: #f1f8e6;
+  border: 1px solid #d5e8b0;
+  color: #4a6b00;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.portfolio-empty {
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+.required {
+  color: #dc2626;
+}
+
+.field--inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.field--inline__label {
+  margin: 0 !important;
+  font-weight: 500 !important;
+  cursor: pointer;
+}
+
+:host ::ng-deep .admin-form .full-width {
+  width: 100%;
+}
+
+:host ::ng-deep .admin-form textarea {
+  width: 100%;
+  resize: vertical;
+}

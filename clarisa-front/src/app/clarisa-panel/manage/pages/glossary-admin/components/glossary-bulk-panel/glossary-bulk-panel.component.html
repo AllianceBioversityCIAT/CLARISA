@@ -1,0 +1,305 @@
+<div class="panel-header">
+  <div>
+    <h1 class="panel-header__title">Bulk upload</h1>
+    <p class="panel-header__desc">
+      Load many terms at once from a CSV/Excel file or from a paste. Nothing is written until the summary is reviewed and confirmed.
+    </p>
+  </div>
+  <div class="panel-header__actions">
+    <button
+      pButton
+      type="button"
+      label="Download template"
+      icon="pi pi-download"
+      class="p-button-text p-button-sm"
+      (click)="downloadTemplate()"></button>
+  </div>
+</div>
+
+<ol class="wizard-steps">
+  <li class="wizard-steps__item" [class.wizard-steps__item--active]="step === 'source'" [class.wizard-steps__item--done]="step !== 'source'">
+    <span class="wizard-steps__num">1</span> Content
+  </li>
+  <li
+    class="wizard-steps__item"
+    [class.wizard-steps__item--active]="step === 'mapping'"
+    [class.wizard-steps__item--done]="step === 'review' || step === 'done'">
+    <span class="wizard-steps__num">2</span> Columns and portfolios
+  </li>
+  <li class="wizard-steps__item" [class.wizard-steps__item--active]="step === 'review'" [class.wizard-steps__item--done]="step === 'done'">
+    <span class="wizard-steps__num">3</span> Review
+  </li>
+  <li class="wizard-steps__item" [class.wizard-steps__item--active]="step === 'done'"><span class="wizard-steps__num">4</span> Result</li>
+</ol>
+
+<!-- ------------------------------------------------------- STEP 1: SOURCE -->
+<div class="panel-card wizard-card" *ngIf="step === 'source'">
+  <div class="source-grid">
+    <section class="source-block">
+      <h3 class="source-block__title">Upload a file</h3>
+      <p class="source-block__hint">Accepted: {{ acceptedExtensions }}. The first row is used as the header when it looks like one.</p>
+      <label class="dropzone">
+        <i class="pi pi-file-import dropzone__icon"></i>
+        <span class="dropzone__text">Click to choose a file</span>
+        <input type="file" [accept]="acceptedExtensions" (change)="onFileSelected($event)" hidden />
+      </label>
+    </section>
+
+    <div class="source-divider"><span>or</span></div>
+
+    <section class="source-block">
+      <h3 class="source-block__title">Paste from a spreadsheet</h3>
+      <p class="source-block__hint">Copy the cells in Excel or Google Sheets and paste them here. Tabs, commas and semicolons are all understood.</p>
+      <textarea
+        pInputTextarea
+        rows="8"
+        class="paste-area"
+        placeholder="term&#9;definition&#10;Impact Area&#9;One of the five CGIAR areas where impact is pursued."
+        [(ngModel)]="pastedText"></textarea>
+      <button
+        pButton
+        type="button"
+        label="Read pasted content"
+        icon="pi pi-arrow-right"
+        class="btn-brand p-button-sm"
+        [disabled]="!pastedText.trim()"
+        [loading]="parsing"
+        (click)="usePastedText()"></button>
+    </section>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------ STEP 2: MAPPING -->
+<div class="panel-card wizard-card" *ngIf="step === 'mapping' && table">
+  <div class="source-recap">
+    <i class="pi pi-check-circle"></i>
+    <span
+      ><strong>{{ table.rows.length }}</strong> row(s) read from <strong>{{ table.sourceName }}</strong> — {{ table.headers.length }} column(s)</span
+    >
+    <button pButton type="button" label="Change source" class="p-button-text p-button-sm" (click)="backToSource()"></button>
+  </div>
+
+  <div class="mapping-grid">
+    <div class="field">
+      <label>Which column holds the <strong>term</strong>? <span class="required">*</span></label>
+      <p-dropdown
+        appendTo="body"
+        panelStyleClass="admin-dropdown-panel"
+        placeholder="Select a column"
+        styleClass="full-width"
+        [options]="columnOptions"
+        [(ngModel)]="termColumn"
+        (onShow)="onDropdownShow($event)">
+      </p-dropdown>
+    </div>
+
+    <div class="field">
+      <label>Which column holds the <strong>definition</strong>? <span class="required">*</span></label>
+      <p-dropdown
+        appendTo="body"
+        panelStyleClass="admin-dropdown-panel"
+        placeholder="Select a column"
+        styleClass="full-width"
+        [options]="columnOptions"
+        [(ngModel)]="definitionColumn"
+        (onShow)="onDropdownShow($event)">
+      </p-dropdown>
+    </div>
+
+    <div class="field field--full">
+      <label>Portfolios assigned to every term in this batch</label>
+      <p-multiSelect
+        appendTo="body"
+        display="chip"
+        placeholder="e.g. P22 and P25"
+        styleClass="full-width"
+        [options]="portfolioOptions"
+        [(ngModel)]="selectedPortfolioIds"
+        [filter]="true">
+      </p-multiSelect>
+      <small class="field-hint">Optional. Whatever is picked here replaces the portfolios of the terms that get updated.</small>
+    </div>
+
+    <div class="field">
+      <label>If the term already exists…</label>
+      <p-dropdown
+        appendTo="body"
+        panelStyleClass="admin-dropdown-panel"
+        styleClass="full-width"
+        [options]="conflictOptions"
+        [(ngModel)]="conflictPolicy"
+        (onShow)="onDropdownShow($event)">
+      </p-dropdown>
+    </div>
+
+    <div class="field field--checkbox">
+      <p-checkbox inputId="bulk-dashboard" [(ngModel)]="showInDashboard" [binary]="true"></p-checkbox>
+      <label for="bulk-dashboard">Show these terms in the dashboard</label>
+    </div>
+  </div>
+
+  <div class="mapping-preview" *ngIf="mappingReady">
+    <h4 class="mapping-preview__title">This is how the first rows will be read</h4>
+    <table class="mini-table">
+      <thead>
+        <tr>
+          <th style="width: 30%">Term</th>
+          <th>Definition</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of mappingPreviewRows">
+          <td class="cell-primary">{{ row.term || '—' }}</td>
+          <td>{{ row.definition || '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="mapping-error" *ngIf="mappingError">
+    <i class="pi pi-exclamation-triangle"></i>
+    {{ mappingError }}
+  </p>
+
+  <div class="wizard-actions">
+    <button pButton type="button" label="Back" class="p-button-text" (click)="backToSource()"></button>
+    <button
+      pButton
+      type="button"
+      label="Check what will be loaded"
+      icon="pi pi-search"
+      class="btn-brand"
+      [disabled]="!mappingReady"
+      [loading]="previewing"
+      (click)="runPreview()"></button>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------- STEP 3: REVIEW -->
+<div class="panel-card wizard-card" *ngIf="step === 'review' && preview">
+  <div class="summary-grid">
+    <div class="summary-card summary-card--total">
+      <span class="summary-card__value">{{ preview.summary.total }}</span>
+      <span class="summary-card__label">Rows read</span>
+    </div>
+    <div class="summary-card summary-card--create">
+      <span class="summary-card__value">{{ preview.summary.to_create }}</span>
+      <span class="summary-card__label">To create</span>
+    </div>
+    <div class="summary-card summary-card--update">
+      <span class="summary-card__value">{{ preview.summary.to_update }}</span>
+      <span class="summary-card__label">To update</span>
+    </div>
+    <div class="summary-card summary-card--reactivate" *ngIf="preview.summary.to_reactivate">
+      <span class="summary-card__value">{{ preview.summary.to_reactivate }}</span>
+      <span class="summary-card__label">To reactivate</span>
+    </div>
+    <div class="summary-card summary-card--skip">
+      <span class="summary-card__value">{{ preview.summary.skipped }}</span>
+      <span class="summary-card__label">Skipped</span>
+    </div>
+    <div class="summary-card summary-card--invalid" [class.summary-card--alert]="hasInvalidRows">
+      <span class="summary-card__value">{{ preview.summary.invalid }}</span>
+      <span class="summary-card__label">With errors</span>
+    </div>
+  </div>
+
+  <div class="portfolio-recap" *ngIf="selectedPortfolioLabels.length">
+    <i class="pi pi-tags"></i>
+    <span>Portfolios applied: </span>
+    <span class="portfolio-chip" *ngFor="let label of selectedPortfolioLabels">{{ label }}</span>
+  </div>
+
+  <p class="review-notice" *ngIf="hasReactivations">
+    <i class="pi pi-info-circle"></i>
+    <span>
+      <strong>{{ preview.summary.to_reactivate }}</strong> term(s) in this file were deactivated on purpose. Importing them publishes them again —
+      check the <em>To reactivate</em> filter if that is not what you want.
+    </span>
+  </p>
+
+  <p class="review-warning" *ngIf="hasInvalidRows">
+    <i class="pi pi-exclamation-triangle"></i>
+    There are <strong>{{ preview.summary.invalid }}</strong> row(s) with errors. Fix them in the source and read it again — nothing will be written
+    while errors remain.
+  </p>
+
+  <div class="review-toolbar">
+    <p-dropdown
+      appendTo="body"
+      panelStyleClass="admin-dropdown-panel"
+      styleClass="filter-dropdown filter-dropdown--wide"
+      [options]="actionFilterOptions"
+      [(ngModel)]="actionFilter"
+      (onShow)="onDropdownShow($event)">
+    </p-dropdown>
+    <span class="review-toolbar__count">Showing {{ reviewRows.length }} row(s)</span>
+  </div>
+
+  <p-table [value]="reviewRows" [rows]="20" [paginator]="reviewRows.length > 20" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
+    <ng-template pTemplate="header">
+      <tr>
+        <th style="width: 4rem">Row</th>
+        <th style="width: 7rem">Action</th>
+        <th style="width: 16rem">Term</th>
+        <th>Definition to be saved</th>
+        <th style="width: 11rem">Portfolios</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-row>
+      <tr [class.row-invalid]="row.action === 'invalid'">
+        <td>{{ row.index }}</td>
+        <td><p-tag [value]="actionLabel(row.action)" [severity]="actionSeverity(row.action)"></p-tag></td>
+        <td class="cell-primary">{{ row.term || '—' }}</td>
+        <td>
+          <div>{{ row.definition || '—' }}</div>
+          <div class="cell-previous" *ngIf="row.action === 'update' && row.current_definition">
+            <span class="cell-previous__label">Currently:</span> {{ row.current_definition }}
+          </div>
+          <div class="cell-message" *ngIf="row.message">{{ row.message }}</div>
+        </td>
+        <td>
+          <span class="portfolio-chips" *ngIf="row.portfolios?.length; else noRowPortfolios">
+            <span class="portfolio-chip" *ngFor="let portfolio of row.portfolios">{{ portfolio.acronym || portfolio.name }}</span>
+          </span>
+          <ng-template #noRowPortfolios><span class="portfolio-empty">Not assigned</span></ng-template>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="5" class="empty-cell">No rows match this filter.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  <div class="wizard-actions">
+    <button pButton type="button" label="Back" class="p-button-text" (click)="backToMapping()"></button>
+    <button
+      pButton
+      type="button"
+      [label]="'Load ' + writableCount + ' term(s)'"
+      icon="pi pi-cloud-upload"
+      class="btn-brand"
+      [disabled]="hasInvalidRows || !hasWritableRows"
+      [loading]="importing"
+      (click)="confirmImport()"></button>
+  </div>
+</div>
+
+<!-- --------------------------------------------------------- STEP 4: DONE -->
+<div class="panel-card wizard-card" *ngIf="step === 'done' && result">
+  <div class="done-block">
+    <i class="pi pi-check-circle done-block__icon"></i>
+    <h3 class="done-block__title">Glossary updated</h3>
+    <p class="done-block__desc">
+      <strong>{{ result.summary.to_create }}</strong> term(s) created and <strong>{{ result.summary.to_update }}</strong> updated.
+      <span *ngIf="result.summary.skipped">{{ result.summary.skipped }} were left untouched.</span>
+    </p>
+    <div class="wizard-actions wizard-actions--center">
+      <button pButton type="button" label="Load another batch" icon="pi pi-plus" class="btn-brand" (click)="startOver()"></button>
+    </div>
+  </div>
+</div>

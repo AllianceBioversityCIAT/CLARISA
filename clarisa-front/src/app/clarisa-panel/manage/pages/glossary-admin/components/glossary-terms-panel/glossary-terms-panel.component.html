@@ -1,0 +1,168 @@
+<div class="panel-header">
+  <div>
+    <h1 class="panel-header__title">Glossary terms</h1>
+    <p class="panel-header__desc">
+      Every term published by <code>GET api/glossary</code>. Deactivating a term hides it from the public glossary without deleting anything.
+    </p>
+  </div>
+  <div class="panel-header__actions">
+    <button pButton type="button" icon="pi pi-refresh" class="p-button-text p-button-sm" pTooltip="Reload" (click)="loadTerms()"></button>
+    <button pButton type="button" label="New term" icon="pi pi-plus" class="btn-brand p-button-sm" (click)="openCreate()"></button>
+  </div>
+</div>
+
+<div class="glossary-filters">
+  <span class="p-input-icon-left glossary-filters__search">
+    <i class="pi pi-search"></i>
+    <input type="text" pInputText placeholder="Search term or definition" [(ngModel)]="search" (ngModelChange)="applyFilters()" />
+  </span>
+
+  <p-dropdown
+    styleClass="filter-dropdown"
+    panelStyleClass="admin-dropdown-panel"
+    appendTo="body"
+    [options]="statusOptions"
+    [(ngModel)]="statusFilter"
+    (onChange)="applyFilters()"
+    (onShow)="onDropdownShow($event)">
+  </p-dropdown>
+
+  <p-dropdown
+    styleClass="filter-dropdown filter-dropdown--wide"
+    panelStyleClass="admin-dropdown-panel"
+    appendTo="body"
+    placeholder="All portfolios"
+    [options]="portfolioOptions"
+    [showClear]="true"
+    [(ngModel)]="portfolioFilter"
+    (onChange)="applyFilters()"
+    (onShow)="onDropdownShow($event)">
+  </p-dropdown>
+
+  <button pButton type="button" label="Clear" icon="pi pi-filter-slash" class="p-button-text p-button-sm" (click)="clearFilters()"></button>
+
+  <span class="glossary-filters__count">{{ filteredTerms.length }} of {{ terms.length }} terms</span>
+</div>
+
+<div class="panel-card">
+  <p-table
+    [value]="filteredTerms"
+    [loading]="loading"
+    [rows]="15"
+    [paginator]="filteredTerms.length > 15"
+    [rowsPerPageOptions]="[15, 30, 50, 100]"
+    styleClass="p-datatable-sm admin-table"
+    responsiveLayout="scroll">
+    <ng-template pTemplate="header">
+      <tr>
+        <th style="width: 18rem">Term</th>
+        <th>Definition</th>
+        <th style="width: 14rem">Portfolios</th>
+        <th style="width: 7rem">Status</th>
+        <th style="width: 7rem">Actions</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-term>
+      <tr [class.row-inactive]="!term.is_active">
+        <td class="cell-primary">{{ term.term }}</td>
+        <td class="cell-definition">{{ term.definition }}</td>
+        <td>
+          <span class="portfolio-chips" *ngIf="term.portfolios?.length; else noPortfolios">
+            <span class="portfolio-chip" *ngFor="let portfolio of term.portfolios" [pTooltip]="portfolio.name">
+              {{ portfolioLabel(portfolio) }}
+            </span>
+          </span>
+          <ng-template #noPortfolios>
+            <span class="portfolio-empty">Not assigned</span>
+          </ng-template>
+        </td>
+        <td>
+          <p-tag [value]="term.is_active ? 'Active' : 'Inactive'" [severity]="term.is_active ? 'success' : 'danger'"></p-tag>
+        </td>
+        <td>
+          <div class="row-actions">
+            <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm" pTooltip="Edit" (click)="openEdit(term)"></button>
+            <button
+              pButton
+              type="button"
+              [icon]="term.is_active ? 'pi pi-eye-slash' : 'pi pi-eye'"
+              class="p-button-text p-button-sm"
+              [pTooltip]="term.is_active ? 'Deactivate' : 'Activate'"
+              (click)="toggleStatus(term)"></button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="5" class="empty-cell">
+          {{ loading ? 'Loading terms…' : 'No glossary terms match the current filters.' }}
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  [header]="dialogTitle"
+  [(visible)]="dialogVisible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '38rem' }"
+  styleClass="admin-dialog"
+  (onHide)="closeDialog()">
+  <form [formGroup]="form" class="admin-form" (ngSubmit)="submit()">
+    <div class="field">
+      <label for="glossary-term">Term <span class="required">*</span></label>
+      <input id="glossary-term" type="text" pInputText formControlName="term" maxlength="500" placeholder="e.g. Impact Area" />
+      <small class="field-error" *ngIf="isInvalid('term')">The term is required.</small>
+    </div>
+
+    <div class="field">
+      <label for="glossary-definition">Definition <span class="required">*</span></label>
+      <textarea
+        id="glossary-definition"
+        pInputTextarea
+        formControlName="definition"
+        rows="5"
+        placeholder="Definition shown in the public glossary"></textarea>
+      <small class="field-error" *ngIf="isInvalid('definition')">The definition is required.</small>
+    </div>
+
+    <div class="field">
+      <label for="glossary-portfolios">Portfolios</label>
+      <p-multiSelect
+        inputId="glossary-portfolios"
+        appendTo="body"
+        display="chip"
+        placeholder="Select the portfolios this term belongs to"
+        [options]="portfolioOptions"
+        formControlName="portfolio_ids"
+        [filter]="true"
+        styleClass="full-width">
+      </p-multiSelect>
+      <small class="field-hint">A term without portfolios still shows in the glossary, just without chips.</small>
+    </div>
+
+    <div class="field field--inline">
+      <p-checkbox inputId="glossary-dashboard" formControlName="show_in_dashboard" [binary]="true"></p-checkbox>
+      <label for="glossary-dashboard" class="field--inline__label">Show in dashboard</label>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button pButton type="button" label="Cancel" class="p-button-text" (click)="closeDialog()" [disabled]="saving"></button>
+      <button
+        pButton
+        type="button"
+        [label]="editingTerm ? 'Save changes' : 'Create term'"
+        class="btn-brand"
+        [loading]="saving"
+        (click)="submit()"></button>
+    </div>
+  </ng-template>
+</p-dialog>
