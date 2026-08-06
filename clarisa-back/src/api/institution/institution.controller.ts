@@ -104,7 +104,16 @@ export class InstitutionController {
       transform: true,
     }),
   )
-  @Patch(':id/lifecycle')
+  // The id goes last on purpose. `PermissionGuard` authorises by checking
+  // whether the requested path *contains* one of the user's permissions, and
+  // every permission in the table is a literal route prefix
+  // (`/api/institutions/create-bulk`, `/api/partner-requests/respond`). With
+  // the id in the middle, `/api/institutions/221/lifecycle` matches no
+  // permission that is not also dangerously broad: only `/api/institutions`
+  // would work, and that would open every institution endpoint at once.
+  // `/api/institutions/lifecycle/221` matches `/api/institutions/lifecycle`,
+  // which grants exactly this endpoint and nothing else.
+  @Patch('lifecycle/:id')
   async updateLifecycle(
     @Param('id', ParseIntPipe) id: number,
     @Body() lifecycleDto: UpdateInstitutionLifecycleDto,
