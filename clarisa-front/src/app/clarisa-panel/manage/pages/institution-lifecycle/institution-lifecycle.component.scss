@@ -1,0 +1,78 @@
+@import '../microservices-admin/components/shared-panel';
+
+// Offset for the sticky .app-header rendered by the manage layout.
+$manage-header-height: 72px;
+
+.lifecycle-layout {
+  min-height: calc(100vh - #{$manage-header-height});
+  padding-top: $manage-header-height;
+  background: #f4f6f8;
+  box-sizing: border-box;
+}
+
+@media (max-width: 991px) {
+  .lifecycle-layout {
+    padding-top: 60px;
+    min-height: calc(100vh - 60px);
+  }
+}
+
+.lifecycle-main {
+  padding: 1.5rem 2rem 2rem;
+}
+
+.table-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0.25rem;
+}
+
+.search-input {
+  border-radius: 50px;
+  width: 26rem;
+  max-width: 100%;
+}
+
+.cell-meta {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+
+.cell-muted {
+  color: #94a3b8;
+}
+
+.lineage-cell {
+  font-size: 0.82rem;
+  color: #334155;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 1rem;
+}
+
+@media (max-width: 640px) {
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inline-clear {
+  font-size: 0.72rem;
+  vertical-align: baseline;
+}
+
+:host ::ng-deep .admin-form p-calendar {
+  display: block;
+  width: 100%;
+
+  .p-calendar {
+    width: 100%;
+  }
+}

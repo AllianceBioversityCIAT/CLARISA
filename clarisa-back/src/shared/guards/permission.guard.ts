@@ -28,7 +28,15 @@ export class PermissionGuard implements CanActivate {
     );
     const request = context.switchToHttp().getRequest();
     const userPayload = request.user;
-    const route = request.originalUrl as string;
+    // `originalUrl` carries the query string in Express, and the permission
+    // check below is a substring match, so anything the caller appends to the
+    // URL would be compared against their own permissions: appending
+    // `?x=/api/countries` made any route look permitted to a user whose only
+    // permission was `/api/countries`. Only the path is authorised. Dropping
+    // characters can never grant a permission that is denied today, so this is
+    // strictly more restrictive than the previous behaviour.
+    const originalUrl = request.originalUrl as string;
+    const route = originalUrl?.split('?')[0] ?? originalUrl;
 
     if (!userPayload?.email) {
       throw new UnauthorizedException('Missing authenticated user');
