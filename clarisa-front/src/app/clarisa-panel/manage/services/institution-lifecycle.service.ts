@@ -49,7 +49,7 @@ export interface InstitutionApiResponse {
   previousNames?: string[];
 }
 
-/** Body accepted by PATCH api/institutions/:id/lifecycle. */
+/** Body accepted by PATCH api/institutions/lifecycle/:id. */
 export interface InstitutionLifecyclePayload {
   startDate?: string | null;
   endDate?: string | null;
@@ -84,7 +84,7 @@ export class InstitutionLifecycleService {
     body: InstitutionLifecyclePayload,
   ): Observable<InstitutionApiResponse> {
     return this.http.patch<InstitutionApiResponse>(
-      `${this.urlApi}api/institutions/${id}/lifecycle`,
+      `${this.urlApi}api/institutions/lifecycle/${id}`,
       body,
     );
   }

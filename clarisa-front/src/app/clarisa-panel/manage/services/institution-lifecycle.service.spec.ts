@@ -46,7 +46,9 @@ describe('InstitutionLifecycleService', () => {
   it('should PATCH the lifecycle endpoint', () => {
     const body = { endDate: '2025-12-31', replacedByInstitutionId: 9876 };
     service.updateLifecycle(1234, body).subscribe();
-    const req = httpMock.expectOne(`${baseUrl}api/institutions/1234/lifecycle`);
+    // The id goes last so the path contains the literal permission route
+    // `/api/institutions/lifecycle`, which is what PermissionGuard matches.
+    const req = httpMock.expectOne(`${baseUrl}api/institutions/lifecycle/1234`);
     expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toEqual(body);
     req.flush({ code: 1234 });
