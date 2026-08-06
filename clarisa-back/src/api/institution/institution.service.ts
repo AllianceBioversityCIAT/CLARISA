@@ -69,18 +69,66 @@ export class InstitutionService {
    * through `updateLifecycle`, which is guarded.
    */
   async update(updateInitiativeDto: UpdateInstitutionDto[]) {
-    const sanitised = (updateInitiativeDto ?? []).map((dto) => {
-      const clean = { ...dto } as Record<string, unknown>;
-      for (const forbidden of InstitutionService.LIFECYCLE_FIELDS) {
-        delete clean[forbidden];
-      }
-      return clean;
-    });
+    // The payload is sanitised, never reshaped. This endpoint has no
+    // validation pipe, so the body arrives exactly as the caller typed it:
+    // `save()` accepts a single entity as well as an array, and it is the one
+    // that decides what an empty or malformed body means. Normalising here
+    // would change the answer a caller gets today without having changed
+    // anything on its side, which is precisely what this change must not do.
+    if (Array.isArray(updateInitiativeDto)) {
+      return await this.institutionRepository.save(
+        updateInitiativeDto.map((dto) => this._stripLifecycleFields(dto)),
+      );
+    }
 
-    return await this.institutionRepository.save(sanitised);
+    if (updateInitiativeDto && typeof updateInitiativeDto === 'object') {
+      return await this.institutionRepository.save(
+        this._stripLifecycleFields(updateInitiativeDto),
+      );
+    }
+
+    // Anything else (an empty body, a scalar) reaches TypeORM untouched, so the
+    // caller gets the very same error it gets today.
+    return await this.institutionRepository.save(updateInitiativeDto as never);
   }
 
-  private static readonly LIFECYCLE_FIELDS = [
+  /**
+   * Copies the payload without its lifecycle fields, never writing a key that
+   * has an inherited setter.
+   *
+   * `{ ...dto }` is not safe here: this project targets es2017, so TypeScript
+   * emits it as `Object.assign`, which copies with `[[Set]]`. A body carrying
+   * `"__proto__": { "end_date": "..." }` — which `JSON.parse` hands over as a
+   * plain own property — then lands on the *prototype* of the copy, where
+   * `delete` cannot reach it and where TypeORM, which resolves columns through
+   * the prototype chain, reads it happily. That turned the sanitiser itself
+   * into the way in for `end_date` through this unauthenticated endpoint.
+   * Building the copy key by key with `defineProperty` keeps `[[Set]]` out of
+   * the picture, and the prototype keys are dropped along with the lifecycle
+   * ones. A caller sending none of them is unaffected.
+   */
+  private _stripLifecycleFields(dto: UpdateInstitutionDto) {
+    const source = dto as unknown as Record<string, unknown>;
+    const clean: Record<string, unknown> = {};
+
+    for (const key of Object.keys(source)) {
+      if (InstitutionService.FORBIDDEN_FIELDS.has(key)) {
+        continue;
+      }
+
+      Object.defineProperty(clean, key, {
+        value: source[key],
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    return clean;
+  }
+
+  private static readonly FORBIDDEN_FIELDS = new Set([
+    // lifecycle: only `updateLifecycle` may write these
     'start_date',
     'end_date',
     'startDate',
@@ -89,7 +137,11 @@ export class InstitutionService {
     'incoming_lineages',
     'replacedBy',
     'replaces',
-  ];
+    // prototype-chain keys: no payload gets to hide a column behind them
+    '__proto__',
+    'constructor',
+    'prototype',
+  ]);
 
   /**
    * Retire an institution and optionally link it to its successor.

@@ -13,6 +13,8 @@ import {
   HttpStatus,
   HttpException,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { InstitutionService } from './institution.service';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
@@ -46,7 +48,11 @@ export class InstitutionController {
     return await this.institutionService.findAll(
       show,
       from,
-      status ?? ValidityStatusOptions.SHOW_ALL,
+      // `||` and not `??`: `?status=` with no value is an absent filter, not a
+      // misspelled one, and several HTTP clients serialise an undefined query
+      // parameter exactly like that. A misspelled value is still rejected in
+      // the service.
+      status || ValidityStatusOptions.SHOW_ALL,
     );
   }
 
@@ -71,7 +77,10 @@ export class InstitutionController {
     @Body() updateUserDtoList: UpdateInstitutionDto[],
   ) {
     try {
-      const result: Institution[] =
+      // The union is what this endpoint has always returned at runtime: the
+      // body is not validated, so a caller may send a single object and
+      // TypeORM answers with a single entity.
+      const result: Institution | Institution[] =
         await this.institutionService.update(updateUserDtoList);
       return res.status(HttpStatus.OK).json(result);
     } catch (error) {
@@ -88,6 +97,13 @@ export class InstitutionController {
    * not travel through the same unauthenticated bulk-edit door.
    */
   @UseGuards(JwtAuthGuard, PermissionGuard)
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  )
   @Patch(':id/lifecycle')
   async updateLifecycle(
     @Param('id', ParseIntPipe) id: number,

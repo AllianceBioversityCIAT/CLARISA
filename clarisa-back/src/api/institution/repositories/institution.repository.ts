@@ -45,6 +45,13 @@ export class InstitutionRepository
    * the outer `group by i.id` keeps counting one row per institution.
    * `json_arrayagg` returns NULL and not an empty array when it matches no
    * rows, hence the coalesce: these arrays must never be null.
+   *
+   * `previousAcronyms` and `previousNames` are lookup sets, NOT two columns of
+   * the same table: a predecessor with no acronym contributes a name and no
+   * acronym, so the two arrays can have different lengths and index `n` of one
+   * does not belong to index `n` of the other. `json_arrayagg` also does not
+   * accept ORDER BY in MySQL 8, so neither array has a guaranteed order. Use
+   * `replaces` whenever a name has to be paired with its acronym.
    */
   private static readonly LINEAGE_SELECT_FRAGMENT = `
         coalesce((
@@ -75,7 +82,8 @@ export class InstitutionRepository
           select json_arrayagg(pred_a.acronym)
           from institution_lineage edge_a
           join institutions pred_a on pred_a.id = edge_a.from_institution_id
-          where edge_a.to_institution_id = i.id and pred_a.acronym is not null
+          where edge_a.to_institution_id = i.id
+            and pred_a.acronym is not null and pred_a.acronym <> ''
         ), json_array()) previousAcronyms,
         coalesce((
           select json_arrayagg(pred_n.name)
@@ -368,8 +376,14 @@ export class InstitutionRepository
    *
    * Both writes happen in one transaction: an institution retired without its
    * successor is a legitimate state, but a successor recorded without the
-   * retirement date would publish a contradiction. `updated_at` is bumped
-   * explicitly so PRMS's incremental sync (`?from=`) picks the row up.
+   * retirement date would publish a contradiction and is rejected. Reviving
+   * (`endDate: null`) drops the succession edges for the same reason, and an
+   * explicit `replacedByInstitutionId: null` drops them on their own.
+   * Re-sending the successor already recorded rewrites that edge in place
+   * rather than failing, so the relation type, the change date and the note
+   * remain correctable. `updated_at` is bumped explicitly on every institution
+   * whose published record changed, so PRMS's incremental sync (`?from=`) picks
+   * them all up.
    */
   async updateLifecycle(
     id: number,
@@ -381,10 +395,31 @@ export class InstitutionRepository
       throw new NotFoundException(`Institution with id '${id}' was not found`);
     }
 
+    /** edges already leaving this institution, read once for the guards below */
+    let outgoingEdges: InstitutionLineage[] = [];
+
     if (dto.replacedByInstitutionId != null) {
-      if (dto.replacedByInstitutionId === id) {
+      // Compared numerically, not with ===. The id comes from the URL as a
+      // number but the body is only coerced when a ValidationPipe is in front
+      // of the handler; a string '221' would slip past a strict comparison and
+      // create a self-loop that no consumer resolving a rename chain can exit.
+      if (Number(dto.replacedByInstitutionId) === Number(id)) {
         throw new BadRequestException(
           'An institution cannot replace itself. Pick a different successor.',
+        );
+      }
+
+      // A successor is only meaningful once the institution stops being
+      // consumable. Publishing `validityStatus: 'active'` next to a non-empty
+      // `replacedBy` leaves PRMS, MEL, MARLO and STAR without a rule: either
+      // they keep offering an institution that already declares its own
+      // replacement, or they hide one that is still valid. The date being
+      // written in this same call counts; so does one written earlier.
+      const resultingEndDate =
+        dto.endDate !== undefined ? dto.endDate : institution.end_date;
+      if (resultingEndDate == null || resultingEndDate === '') {
+        throw new BadRequestException(
+          'A successor can only be recorded together with an end date. Send `endDate` in this same request, or retire the institution first.',
         );
       }
 
@@ -406,10 +441,33 @@ export class InstitutionRepository
         );
       }
 
-      const alreadyReplaced = await this.manager.count(InstitutionLineage, {
+      // `is_active` is the platform's logical delete and stays untouched by
+      // this endpoint, but pointing consumers at a logically deleted row is the
+      // same mistake as pointing them at a retired one: the default
+      // `GET /api/institutions` does not return it, so `replacedBy` would name
+      // an institution absent from the very catalogue the consumer holds.
+      const successorIsActive = successor.auditableFields?.is_active;
+      if (successorIsActive !== undefined && !successorIsActive) {
+        throw new BadRequestException(
+          `Institution '${dto.replacedByInstitutionId}' is not active. Point at an institution consumers can still see.`,
+        );
+      }
+
+      // Only the successor an institution does NOT have yet is a conflict.
+      // Re-sending the one already recorded is how the admin panel corrects the
+      // relation type, the change date or the note of an existing edge — and it
+      // is what its dialog sends verbatim when it is reopened on a row that is
+      // already linked, so rejecting it would make the panel unable to save any
+      // institution it had already retired.
+      outgoingEdges = await this.manager.find(InstitutionLineage, {
         where: { from_institution_id: id },
       });
-      if (alreadyReplaced > 0) {
+      const conflicting = outgoingEdges.filter(
+        (edge) =>
+          Number(edge.to_institution_id) !==
+          Number(dto.replacedByInstitutionId),
+      );
+      if (conflicting.length) {
         throw new BadRequestException(
           `Institution '${id}' already has a successor recorded. Remove the existing lineage edge before recording a new one.`,
         );
@@ -447,17 +505,77 @@ export class InstitutionRepository
         params,
       );
 
+      // Reviving is the undo of retiring, so it has to undo the succession as
+      // well. An institution back in service that still declares who replaced
+      // it publishes the very contradiction guarded against above, with a
+      // `changeDate` pointing at a retirement that no longer exists, and the
+      // surviving edge would trip the conflict guard forever, leaving it
+      // impossible to retire again towards a different successor.
+      //
+      // An explicit `replacedByInstitutionId: null` removes the succession on
+      // its own, without reviving: a wrong successor has to be undoable, and
+      // the alternative — revive, then retire again — rewrites the end date and
+      // republishes the institution as valid in between.
+      if (dto.endDate === null || dto.replacedByInstitutionId === null) {
+        const edgesToDrop: InstitutionLineage[] = await entityManager.find(
+          InstitutionLineage,
+          { where: { from_institution_id: id } },
+        );
+
+        if (edgesToDrop.length) {
+          await entityManager.delete(InstitutionLineage, {
+            from_institution_id: id,
+          });
+
+          // Same reason as when the edge is created: the successors' published
+          // `replaces`, `previousAcronyms` and `previousNames` just changed, so
+          // an incremental `?from=` sync has to see them.
+          const successorIds = edgesToDrop.map(
+            (edge) => edge.to_institution_id,
+          );
+          await entityManager.query(
+            `UPDATE institutions SET updated_at = CURRENT_TIMESTAMP(6) WHERE id in (${successorIds
+              .map(() => '?')
+              .join(', ')})`,
+            successorIds,
+          );
+        }
+      }
+
       if (dto.replacedByInstitutionId != null) {
-        const edge = new InstitutionLineage();
+        // Reuses the row when the same succession is being re-sent, so its id
+        // and `created_at` survive a correction of the relation type, the
+        // change date or the note.
+        const edge =
+          outgoingEdges.find(
+            (existing) =>
+              Number(existing.to_institution_id) ===
+              Number(dto.replacedByInstitutionId),
+          ) ?? new InstitutionLineage();
         edge.from_institution_id = id;
         edge.to_institution_id = dto.replacedByInstitutionId;
         edge.relation_type =
           dto.relationType ?? InstitutionLineageRelationType.RENAME;
-        edge.change_date = dto.changeDate ?? dto.endDate ?? null;
-        edge.note = dto.note ?? null;
-        edge.created_by = userId;
+        // Falls back to the stored end date for the two-step flow (retire now,
+        // link the successor later): the guard above proves one of the three is
+        // set, so the edge is never left without a date.
+        edge.change_date =
+          dto.changeDate ?? dto.endDate ?? institution.end_date ?? null;
+        edge.note = dto.note ?? edge.note ?? null;
+        edge.created_by = edge.created_by ?? userId;
 
         await entityManager.save(InstitutionLineage, edge);
+
+        // The successor's published record changes too: `replaces`,
+        // `previousAcronyms` and `previousNames` are all derived from this new
+        // edge. Its own `updated_at` is bumped so PRMS's incremental sync
+        // (`?from=`) picks it up; otherwise consumers keep a stale successor
+        // with an empty lineage, which is precisely the record they need in
+        // order to resolve the retired one.
+        await entityManager.query(
+          `UPDATE institutions SET updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?`,
+          [dto.replacedByInstitutionId],
+        );
       }
     });
 

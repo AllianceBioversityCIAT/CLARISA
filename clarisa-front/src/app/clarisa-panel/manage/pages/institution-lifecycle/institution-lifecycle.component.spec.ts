@@ -2,7 +2,7 @@ import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { InstitutionLifecycleService } from '../../services/institution-lifecycle.service';
 import { InstitutionLifecycleComponent } from './institution-lifecycle.component';
 
@@ -83,6 +83,52 @@ describe('InstitutionLifecycleComponent', () => {
     expect(component.availableSuccessors.map((option) => option.id)).toEqual([2]);
   });
 
+  it('should not offer a retired institution as a successor', () => {
+    // The API rejects it with "is itself retired", so offering it could only
+    // end in a failed save.
+    component.openEdit(component.institutions[1]);
+    expect(component.availableSuccessors).toEqual([]);
+  });
+
+  it('should keep the recorded successor listed even after it is retired', () => {
+    component.institutions[1].validityStatus = 'ended';
+    component.successorOptions = component.successorOptions.map((option) =>
+      option.id === 2 ? { ...option, selectable: false } : option
+    );
+
+    component.openEdit(component.institutions[0]);
+
+    expect(component.availableSuccessors.map((option) => option.id)).toEqual([2]);
+  });
+
+  it('should reload when the saved row no longer matches the status filter', () => {
+    component.statusFilter = 'active';
+    serviceMock.getInstitutions.mockClear();
+    serviceMock.updateLifecycle.mockReturnValueOnce(
+      of({ code: 2, name: 'New Institution', endDate: '2026-01-31', validityStatus: 'ended' })
+    );
+
+    component.openEdit(component.institutions[1]);
+    component.form.patchValue({ endDate: new Date(2026, 0, 31) });
+    component.submit();
+
+    expect(serviceMock.getInstitutions).toHaveBeenCalledWith('active');
+  });
+
+  it('should drop an institution from the successor list once it is retired', () => {
+    serviceMock.updateLifecycle.mockReturnValueOnce(
+      of({ code: 2, name: 'New Institution', endDate: '2026-01-31', validityStatus: 'ended' })
+    );
+
+    component.openEdit(component.institutions[1]);
+    component.form.patchValue({ endDate: new Date(2026, 0, 31) });
+    component.submit();
+
+    expect(
+      component.successorOptions.find((option) => option.id === 2)?.selectable
+    ).toBe(false);
+  });
+
   it('should prefill the form from the current lineage', () => {
     component.openEdit(component.institutions[0]);
     expect(component.editVisible).toBe(true);
@@ -91,13 +137,29 @@ describe('InstitutionLifecycleComponent', () => {
   });
 
   it('should send local ISO dates and lineage on submit', () => {
-    component.openEdit(component.institutions[0]);
+    component.openEdit(component.institutions[1]);
     component.form.patchValue({
       endDate: new Date(2025, 11, 31),
-      replacedByInstitutionId: 2,
+      replacedByInstitutionId: 1,
       relationType: 'MERGE',
-      note: '  merged into NEW  ',
+      note: '  merged into OLD  ',
     });
+
+    component.submit();
+
+    expect(serviceMock.updateLifecycle).toHaveBeenCalledWith(2, {
+      startDate: null,
+      endDate: '2025-12-31',
+      replacedByInstitutionId: 1,
+      relationType: 'MERGE',
+      changeDate: '2025-12-31',
+      note: 'merged into OLD',
+    });
+  });
+
+  it('should resend the recorded succession so its relation type can be corrected', () => {
+    component.openEdit(component.institutions[0]);
+    component.form.patchValue({ relationType: 'SUCCESSOR' });
 
     component.submit();
 
@@ -105,10 +167,68 @@ describe('InstitutionLifecycleComponent', () => {
       startDate: null,
       endDate: '2025-12-31',
       replacedByInstitutionId: 2,
-      relationType: 'MERGE',
+      relationType: 'SUCCESSOR',
       changeDate: '2025-12-31',
-      note: 'merged into NEW',
     });
+  });
+
+  it('should send an explicit null when the recorded successor is cleared', () => {
+    // Omitting the key leaves the edge in place, so the panel would show a
+    // success toast and re-render the very successor it was asked to remove.
+    component.openEdit(component.institutions[0]);
+    component.form.patchValue({ replacedByInstitutionId: null });
+
+    component.submit();
+
+    expect(serviceMock.updateLifecycle).toHaveBeenCalledWith(1, {
+      startDate: null,
+      endDate: '2025-12-31',
+      replacedByInstitutionId: null,
+    });
+  });
+
+  it('should refuse to swap the recorded successor in a single step', () => {
+    component.openEdit(component.institutions[0]);
+    component.form.patchValue({ replacedByInstitutionId: 3 });
+
+    component.submit();
+
+    expect(serviceMock.updateLifecycle).not.toHaveBeenCalled();
+  });
+
+  it('should not send a removal for a row that never had a successor', () => {
+    component.openEdit(component.institutions[1]);
+
+    component.submit();
+
+    expect(serviceMock.updateLifecycle).toHaveBeenCalledWith(2, {
+      startDate: null,
+      endDate: null,
+    });
+  });
+
+  it('should surface the per-field validation messages of the API', () => {
+    const messageService = TestBed.inject(MessageService);
+    const spy = jest.spyOn(messageService, 'add');
+    serviceMock.updateLifecycle.mockReturnValueOnce(
+      throwError(() => ({
+        error: {
+          response: { message: ['endDate must be a calendar date (yyyy-MM-dd)'] },
+          message: 'Bad Request Exception',
+        },
+      }))
+    );
+
+    component.openEdit(component.institutions[1]);
+    component.submit();
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        severity: 'error',
+        detail: 'endDate must be a calendar date (yyyy-MM-dd)',
+      })
+    );
+    spy.mockRestore();
   });
 
   it('should omit lineage fields when no successor is chosen', () => {
@@ -121,6 +241,17 @@ describe('InstitutionLifecycleComponent', () => {
       startDate: null,
       endDate: null,
     });
+  });
+
+  it('should refuse to send a successor without an end date', () => {
+    // The API rejects that combination: an institution that is still valid and
+    // already declares who replaces it leaves consumers without a rule.
+    component.openEdit(component.institutions[1]);
+    component.form.patchValue({ endDate: null, replacedByInstitutionId: 1 });
+
+    component.submit();
+
+    expect(serviceMock.updateLifecycle).not.toHaveBeenCalled();
   });
 
   it('should render a readable lineage label', () => {

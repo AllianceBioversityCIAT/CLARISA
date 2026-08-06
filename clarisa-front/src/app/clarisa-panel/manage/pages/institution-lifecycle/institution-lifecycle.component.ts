@@ -37,6 +37,8 @@ interface InstitutionOption {
   name: string;
   acronym: string;
   code: number;
+  /** false once the institution has an end date of its own. */
+  selectable: boolean;
 }
 
 @Component({
@@ -52,6 +54,8 @@ export class InstitutionLifecycleComponent implements OnInit {
   editVisible = false;
   selected: InstitutionRow | null = null;
   statusFilter: InstitutionStatusFilter = 'all';
+  /** Successor already recorded for the row being edited, if any. */
+  private recordedSuccessorId: number | null = null;
 
   readonly statusOptions = [
     { label: 'All', value: 'all' },
@@ -130,6 +134,10 @@ export class InstitutionLifecycleComponent implements OnInit {
       changeDate: this.toDate(currentLink?.changeDate ?? null),
       note: ''
     });
+    // Remembered so `submit` can tell a row that never had a successor (nothing
+    // to send) from one whose recorded successor was just cleared, which the
+    // API only removes when the key travels as an explicit null.
+    this.recordedSuccessorId = currentLink ? currentLink.code : null;
     this.editVisible = true;
   }
 
@@ -138,12 +146,20 @@ export class InstitutionLifecycleComponent implements OnInit {
     this.selected = null;
   }
 
-  /** Successor candidates, excluding the institution being edited. */
+  /**
+   * Successor candidates: neither the institution being edited nor one that is
+   * itself retired. The API rejects the latter ("is itself retired. Point at
+   * the institution that is currently valid"), so offering it can only end in a
+   * failed save. The one already recorded stays listed even if it was retired
+   * afterwards, so reopening the dialog does not blank the field.
+   */
   get availableSuccessors(): InstitutionOption[] {
     const currentId = this.selected?.id;
-    return currentId
-      ? this.successorOptions.filter((option) => option.id !== currentId)
-      : this.successorOptions;
+    const recorded = this.recordedSuccessorId;
+    return this.successorOptions.filter(
+      (option) =>
+        option.id !== currentId && (option.selectable || option.id === recorded)
+    );
   }
 
   clearEndDate(): void {
@@ -160,18 +176,55 @@ export class InstitutionLifecycleComponent implements OnInit {
     }
 
     const raw = this.form.value;
+    const endDate = this.toIsoDate(raw.endDate);
     const payload: InstitutionLifecyclePayload = {
       startDate: this.toIsoDate(raw.startDate),
-      endDate: this.toIsoDate(raw.endDate)
+      endDate
     };
 
-    if (raw.replacedByInstitutionId) {
-      payload.replacedByInstitutionId = Number(raw.replacedByInstitutionId);
+    const chosenSuccessorId = raw.replacedByInstitutionId
+      ? Number(raw.replacedByInstitutionId)
+      : null;
+
+    if (chosenSuccessorId) {
+      // Mirrors the API invariant: a successor only means something once the
+      // institution stops being consumable. An empty end date here is a revive,
+      // which drops the succession instead of recording one.
+      if (!endDate) {
+        this.messages.add({
+          severity: 'warn',
+          summary: 'End of validity required',
+          detail: 'An institution can only be replaced once it has an end date. Set one, or clear the successor to bring it back into service.'
+        });
+        return;
+      }
+
+      // The API only rewrites the succession it already has; a different one is
+      // rejected. Saying so here avoids sending a request that can only come
+      // back as a 400.
+      if (this.recordedSuccessorId && chosenSuccessorId !== this.recordedSuccessorId) {
+        this.messages.add({
+          severity: 'warn',
+          summary: 'A successor is already recorded',
+          detail: 'Clear the successor and save to remove the one recorded, then pick the new one. Replacing it in a single step is not allowed.'
+        });
+        return;
+      }
+
+      payload.replacedByInstitutionId = chosenSuccessorId;
       payload.relationType = (raw.relationType || 'NEW') as InstitutionRelationType;
-      const changeDate = this.toIsoDate(raw.changeDate) ?? this.toIsoDate(raw.endDate);
+      const changeDate = this.toIsoDate(raw.changeDate) ?? endDate;
       if (changeDate) {
         payload.changeDate = changeDate;
       }
+    } else if (this.recordedSuccessorId) {
+      // Clearing the dropdown has to travel as an explicit null: omitting the
+      // key leaves the recorded succession in place, so the panel would answer
+      // with a success toast and re-render the successor it was just asked to
+      // remove. Sending null removes it without reviving the institution, which
+      // would otherwise republish it as valid to PRMS, MEL, MARLO and STAR in
+      // between.
+      payload.replacedByInstitutionId = null;
     }
 
     const note = (raw.note || '').trim();
@@ -220,6 +273,24 @@ export class InstitutionLifecycleComponent implements OnInit {
 
   private mergeUpdatedRow(updated: InstitutionApiResponse): void {
     const row = this.normalizeInstitution(updated);
+
+    // The dropdown is seeded once, so without this an institution retired in
+    // this session would stay on offer as a successor until the page is
+    // reloaded — and the API would reject it on save.
+    this.successorOptions = this.successorOptions.map((option) =>
+      option.id === row.id ? this.toOption(row) : option
+    );
+
+    // Retiring an institution while the table is narrowed to "Active" (or
+    // reviving one while it shows "Ended") leaves a row on screen that the
+    // filter no longer matches. Reloading keeps the list honest about what it
+    // claims to be showing, and refreshes the successor lineage of the other
+    // institutions the same write touched.
+    if (this.statusFilter !== 'all' && row.validityStatus !== this.statusFilter) {
+      this.loadInstitutions();
+      return;
+    }
+
     const index = this.institutions.findIndex((item) => item.id === row.id);
     if (index >= 0) {
       // Replace the array so the PrimeNG table picks the change up.
@@ -273,7 +344,8 @@ export class InstitutionLifecycleComponent implements OnInit {
       code: row.code,
       name: row.name,
       acronym: row.acronym,
-      label: `${row.name}${suffix}`
+      label: `${row.name}${suffix}`,
+      selectable: row.validityStatus !== 'ended'
     };
   }
 
@@ -305,9 +377,16 @@ export class InstitutionLifecycleComponent implements OnInit {
   }
 
   private toastError(err: any): void {
+    // The API wraps every error as { response: <nest payload>, message, ... }.
+    // For a validation failure the outer `message` is the generic
+    // "Bad Request Exception" and the per-field messages live in
+    // `response.message`, so the nested one has to be read first — otherwise
+    // the admin only ever sees "Bad Request Exception" and cannot tell which
+    // field the API refused.
+    const nested = err?.error?.response?.message;
     const detail =
+      (Array.isArray(nested) ? nested.join(' · ') : nested) ??
       err?.error?.message ??
-      err?.error?.response?.message ??
       (typeof err?.error === 'string' ? err.error : null) ??
       err?.message ??
       'Request failed';

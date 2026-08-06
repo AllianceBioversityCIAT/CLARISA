@@ -19,6 +19,19 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *
  * This migration is only ever executed by the deploy pipeline, never by hand,
  * so every statement is guarded and the whole thing is a no-op on retry.
+ *
+ * DEPLOY ORDER — this migration must run BEFORE the new image starts serving.
+ * The repo cannot enforce it: `ormconfig` sets `migrationsRun: false`, the
+ * production image has no `ts-node` (devDependency, and `migration:execute`
+ * loads `src/ormconfig.ts`), and the Jenkins job lives outside this repository.
+ * The order matters more than usual here because the `Institution` entity now
+ * declares `start_date` / `end_date`: with the new code on the old schema every
+ * ORM read of the entity fails, which is not only `GET /api/institutions` but
+ * anything loading `institution_object` — partner requests, country office
+ * requests, centers, CGIAR entities, projects. The reverse order is safe: the
+ * pre-change queries were verified against the migrated schema and return the
+ * same rows and the same columns, so the migration can be applied while the old
+ * image is still serving. If the migration fails, the deploy must be aborted.
  */
 export class AddInstitutionValidityAndLineage1785994442256
   implements MigrationInterface
@@ -28,8 +41,16 @@ export class AddInstitutionValidityAndLineage1785994442256
   private static readonly LINEAGE_TABLE = 'institution_lineage';
   private static readonly FK_FROM = 'fk_institution_lineage_from_institution';
   private static readonly FK_TO = 'fk_institution_lineage_to_institution';
+  /** seconds an ALTER may wait for the metadata lock before the deploy fails */
+  private static readonly LOCK_WAIT_TIMEOUT_SECONDS = 30;
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    await this.withBoundedLockWait(queryRunner, () =>
+      this.applyUp(queryRunner),
+    );
+  }
+
+  private async applyUp(queryRunner: QueryRunner): Promise<void> {
     // Both columns are appended at the end of the row and are NULLable with no
     // default, so MySQL 8 applies them with ALGORITHM=INSTANT: no table rebuild
     // and no blocking of readers or writers on `institutions`.
@@ -104,6 +125,12 @@ export class AddInstitutionValidityAndLineage1785994442256
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await this.withBoundedLockWait(queryRunner, () =>
+      this.applyDown(queryRunner),
+    );
+  }
+
+  private async applyDown(queryRunner: QueryRunner): Promise<void> {
     // Reverse order. DROP TABLE takes the table's own foreign keys and indices
     // with it, so they are not dropped one by one.
     await queryRunner.query(
@@ -120,6 +147,49 @@ export class AddInstitutionValidityAndLineage1785994442256
       await queryRunner.query(
         `ALTER TABLE \`institutions\` DROP COLUMN \`start_date\``,
       );
+    }
+  }
+
+  /**
+   * Runs the migration with a bounded wait for the metadata lock.
+   *
+   * Every `ALTER TABLE institutions` here needs the exclusive metadata lock on
+   * the table, and it can only take it once every transaction that already
+   * touched `institutions` has finished. MySQL's default `lock_wait_timeout` is
+   * 31536000 seconds — a year — so a single long-running transaction does not
+   * make the ALTER fail: it makes it wait, and while it waits every request
+   * that arrives afterwards queues behind it. The most consumed catalogue of
+   * the platform stops answering PRMS, MEL, MARLO and STAR for as long as that
+   * lasts, with nothing in the logs but a deploy that has not finished.
+   *
+   * Failing after 30 seconds is the better of the two outcomes: the deploy goes
+   * red, which is exactly what it should do, and the pipeline can just run the
+   * migration again once the blocking transaction is gone, because every
+   * statement below is idempotent.
+   *
+   * The previous value is restored so nothing is left behind on the pooled
+   * connection this migration borrowed.
+   */
+  private async withBoundedLockWait(
+    queryRunner: QueryRunner,
+    run: () => Promise<void>,
+  ): Promise<void> {
+    const [row] = await queryRunner.query(
+      `SELECT @@session.lock_wait_timeout AS previous`,
+    );
+    // Interpolated, not bound: the value is read straight from the server and
+    // forced through Number, and `SET SESSION` takes no placeholders on every
+    // driver.
+    const previous = Number(row?.previous) || 31536000;
+
+    await queryRunner.query(
+      `SET SESSION lock_wait_timeout = ${AddInstitutionValidityAndLineage1785994442256.LOCK_WAIT_TIMEOUT_SECONDS}`,
+    );
+
+    try {
+      await run();
+    } finally {
+      await queryRunner.query(`SET SESSION lock_wait_timeout = ${previous}`);
     }
   }
 

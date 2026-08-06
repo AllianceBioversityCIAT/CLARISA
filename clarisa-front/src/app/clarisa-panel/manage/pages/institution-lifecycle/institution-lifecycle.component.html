@@ -173,7 +173,7 @@
           panelStyleClass="admin-dropdown-panel"
         ></p-calendar>
         <small class="field-hint">
-          Leave empty to keep it active.
+          Leave empty to keep it active. Clearing it on a retired institution also removes its recorded successor.
           <button
             pButton
             type="button"
@@ -218,7 +218,10 @@
           <span class="dd-selected">{{ option.label }}</span>
         </ng-template>
       </p-dropdown>
-      <small class="field-hint">The institution that takes over. Leave empty if there is none.</small>
+      <small class="field-hint">
+        The institution that takes over. Leave empty if there is none — clearing it on a row that
+        already has one removes the recorded succession when you save.
+      </small>
     </div>
 
     <div class="field-grid">
