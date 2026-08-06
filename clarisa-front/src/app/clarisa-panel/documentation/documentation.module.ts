@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { DocumentationRoutingModule } from './documentation-routing.module';
 import { DocumentationComponent } from './documentation.component';
 import { VerticalMenuComponent } from './components/vertical-menu/vertical-menu.component';
-import { HorizontalMenuComponent } from './components/horizontal-menu/horizontal-menu.component';
+import { DocumentationHorizontalMenuModule } from './components/horizontal-menu/horizontal-menu.module';
 import { ContentComponent } from './components/content/content.component';
 import { TableModule } from 'primeng/table';
 import { CalendarModule } from 'primeng/calendar';
@@ -25,7 +25,6 @@ import { FormsModule } from '@angular/forms';
   declarations: [
     DocumentationComponent,
     VerticalMenuComponent,
-    HorizontalMenuComponent,
     ContentComponent,
     DynamicTableFiltersComponent,
     HierarchicalFilterPipe
@@ -33,6 +32,7 @@ import { FormsModule } from '@angular/forms';
   imports: [
     CommonModule,
     DocumentationRoutingModule,
+    DocumentationHorizontalMenuModule,
     TableModule,
     CalendarModule,
     SliderModule,
