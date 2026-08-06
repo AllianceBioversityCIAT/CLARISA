@@ -56,4 +56,10 @@ export const PUBLIC_OPENAPI_PATHS: string[] = [
   '/api/investment-types',
   '/api/innovation-use-levels',
   '/api/innovation-characteristics',
+  // One CGIAR Operation (CGIAR Accounts / Science Groups / Units).
+  // CGIAR Entities and CGIAR Impact Areas reuse paths already listed above.
+  '/api/accounts',
+  '/api/account-types',
+  '/api/science-groups',
+  '/api/units',
 ];

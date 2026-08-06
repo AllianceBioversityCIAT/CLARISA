@@ -60,7 +60,7 @@
         <div class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-clarisa-600 to-clarisa-800 text-white font-extrabold text-sm shadow-card">C</div>
         <div class="leading-tight">
           <div class="font-extrabold tracking-tight text-clarisa-700 text-[15px]">CLARISA</div>
-          <div class="text-[11px] font-medium text-slate-400 -mt-0.5">API Documentation</div>
+          <div id="topbarSubtitle" class="text-[11px] font-medium text-slate-400 -mt-0.5">API Documentation</div>
         </div>
       </a>
       <div class="relative ml-2 hidden md:block w-[420px]">
@@ -95,10 +95,32 @@
      · {API}/<route> → live data, rendered as table + Excel export
    ════════════════════════════════════════════════════════════════════ */
 
-const API_BASE = (new URLSearchParams(location.search).get('api') || 'http://localhost:3000/').replace(/\/?$/, '/');
+const PARAMS = new URLSearchParams(location.search);
+const API_BASE = (PARAMS.get('api') || 'http://localhost:3000/').replace(/\/?$/, '/');
+
+/* Optional `?group=` narrows the view to a single group of the catalog, so the
+   same app can back the "One CGIAR Control List" and "One CGIAR Operation"
+   pages of the public menu. Matching is done on a slug, so
+   `one-cgiar-operation`, `One_CGIAR_Operation` and `One CGIAR Operation` are
+   all accepted. Unknown values fall back to the full catalog. */
+const GROUP_PARAM = (PARAMS.get('group') || '').trim();
+
+const slug = s => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+function applyGroupFilter(catalog) {
+  if (!GROUP_PARAM) return catalog;
+  const wanted = slug(GROUP_PARAM);
+  const groups = (catalog?.groups ?? []).filter(g => slug(g.group) === wanted);
+  if (!groups.length) {
+    console.warn(`[api-reference] Unknown group "${GROUP_PARAM}" — showing the whole catalog.`);
+    return catalog;
+  }
+  return { ...catalog, groups };
+}
 
 const state = {
   catalog: null, spec: null,
+  scopedGroup: null,        // group name when the view is narrowed by ?group=
   nav: 'home',              // 'home' | 'get-started' | 'endpoint' — active sidebar target
   current: null,            // { group, category, endpoint }
   rows: [], columns: [],    // flattened data of current endpoint
@@ -121,14 +143,27 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
       fetch('catalog.json', { cache: 'no-store' }).then(r => r.json()),
       fetch(API_BASE + 'api-docs-json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
     ]);
-    state.catalog = catalog;
+    state.catalog = applyGroupFilter(catalog);
+    state.scopedGroup = GROUP_PARAM && state.catalog.groups.length === 1 ? state.catalog.groups[0].group : null;
     state.spec = spec;
+    applyScopedBranding();
     renderSidebar();
     goHome();
   } catch (e) {
     $('#main').innerHTML = `<div class="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">Could not load catalog.json — ${esc(e)}</div>`;
   }
 })();
+
+/* When the view is scoped to one group, say so in the topbar and the tab
+   title instead of repeating the group name on every screen. */
+function applyScopedBranding() {
+  if (!state.scopedGroup) return;
+  const subtitle = $('#topbarSubtitle');
+  if (subtitle) subtitle.textContent = state.scopedGroup;
+  document.title = `CLARISA · ${state.scopedGroup}`;
+  const search = $('#globalSearch');
+  if (search) search.placeholder = `Search in ${state.scopedGroup}…  ( / )`;
+}
 
 /* ── sidebar ──────────────────────────────────────────────────────── */
 function renderSidebar(filter = '') {
@@ -163,9 +198,13 @@ function renderSidebar(filter = '') {
         </details>`;
     }).join('');
     if (q && !cats.trim()) return;
+    // The group heading is redundant when the whole view is that group.
+    const heading = state.scopedGroup
+      ? ''
+      : `<div class="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.14em] text-clarisa-600/70">${esc(g.group)}</div>`;
     html += `
       <div class="mb-5">
-        <div class="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.14em] text-clarisa-600/70">${esc(g.group)}</div>
+        ${heading}
         ${cats}
       </div>`;
   });
@@ -204,18 +243,40 @@ function goHome() {
   const nCats = c.groups.reduce((a, g) => a + g.categories.length, 0);
   const nEps  = c.groups.reduce((a, g) => a + g.categories.reduce((b, x) => b + x.endpoints.length, 0), 0);
 
-  const groupCards = c.groups.map((g, gi) => `
-    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
-      <div class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-clarisa-600/70">Group</div>
-      <h3 class="mb-4 text-lg font-bold text-clarisa-800">${esc(g.group)}</h3>
-      <div class="flex flex-wrap gap-2">
-        ${g.categories.map((cat, ci) => `
-          <button onclick="openFirstOf(${gi},${ci})"
-            class="rounded-full border border-clarisa-100 bg-clarisa-50 px-3.5 py-1.5 text-xs font-semibold text-clarisa-700 transition hover:border-leaf-300 hover:bg-leaf-100 hover:text-leaf-800">
-            ${esc(cat.name)} <span class="opacity-50">· ${cat.endpoints.length}</span>
-          </button>`).join('')}
-      </div>
-    </div>`).join('');
+  // Scoped to one group: show a card per CATEGORY (with its description), since
+  // repeating the group name in a single card would say nothing new.
+  const cards = state.scopedGroup
+    ? c.groups[0].categories.map((cat, ci) => `
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+          <div class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-clarisa-600/70">Category</div>
+          <h3 class="mb-2 text-lg font-bold text-clarisa-800">${esc(cat.name)}</h3>
+          ${cat.description ? `<p class="mb-4 text-[13px] leading-relaxed text-slate-500">${esc(cat.description)}</p>` : '<div class="mb-4"></div>'}
+          <div class="flex flex-wrap gap-2">
+            ${cat.endpoints.map(ep => `
+              <button onclick='selectEndpoint(0,${ci},${JSON.stringify(ep.route)})'
+                class="rounded-full border border-clarisa-100 bg-clarisa-50 px-3.5 py-1.5 text-xs font-semibold text-clarisa-700 transition hover:border-leaf-300 hover:bg-leaf-100 hover:text-leaf-800">
+                ${esc(ep.name)}
+              </button>`).join('')}
+          </div>
+        </div>`).join('')
+    : c.groups.map((g, gi) => `
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+          <div class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-clarisa-600/70">Group</div>
+          <h3 class="mb-4 text-lg font-bold text-clarisa-800">${esc(g.group)}</h3>
+          <div class="flex flex-wrap gap-2">
+            ${g.categories.map((cat, ci) => `
+              <button onclick="openFirstOf(${gi},${ci})"
+                class="rounded-full border border-clarisa-100 bg-clarisa-50 px-3.5 py-1.5 text-xs font-semibold text-clarisa-700 transition hover:border-leaf-300 hover:bg-leaf-100 hover:text-leaf-800">
+                ${esc(cat.name)} <span class="opacity-50">· ${cat.endpoints.length}</span>
+              </button>`).join('')}
+          </div>
+        </div>`).join('');
+
+  const heroTitle = state.scopedGroup ? esc(state.scopedGroup) : "Explore CLARISA's official control lists";
+  const heroDescription = state.scopedGroup ? c.groups[0].description : null;
+  const stats = state.scopedGroup
+    ? [[nCats, 'Categories'], [nEps, 'Endpoints']]
+    : [[c.groups.length, 'Groups'], [nCats, 'Categories'], [nEps, 'Endpoints']];
 
   $('#main').innerHTML = `
     <div class="fade-in">
@@ -224,14 +285,15 @@ function goHome() {
         <div class="absolute -bottom-28 right-32 h-64 w-64 rounded-full bg-clarisa-400/15 blur-2xl"></div>
         <div class="relative">
           <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-leaf-200">CGIAR · catalogs as a service</div>
-          <h1 class="text-3xl font-extrabold tracking-tight md:text-4xl">Explore CLARISA's official control lists</h1>
+          <h1 class="text-3xl font-extrabold tracking-tight md:text-4xl">${heroTitle}</h1>
           <p class="mt-3 max-w-2xl text-[15px] leading-relaxed text-clarisa-100">
+            ${heroDescription ? esc(heroDescription) + '<br class="hidden md:block" />' : ''}
             Browse every public list as a <b class="text-white">live table</b>, download it to
             <b class="text-white">Excel</b> in one click, or grab the <b class="text-white">JSON / code snippets</b>
             if you are integrating a system. Pick a category on the left to start.
           </p>
           <div class="mt-7 flex flex-wrap gap-3">
-            ${[ [c.groups.length,'Groups'], [nCats,'Categories'], [nEps,'Endpoints'] ].map(([n, l]) => `
+            ${stats.map(([n, l]) => `
               <div class="rounded-2xl bg-white/10 px-5 py-3 backdrop-blur">
                 <div class="text-2xl font-extrabold text-leaf-300">${n}</div>
                 <div class="text-[11px] font-semibold uppercase tracking-wider text-clarisa-200">${l}</div>
@@ -239,7 +301,7 @@ function goHome() {
           </div>
         </div>
       </div>
-      <div class="mt-8 grid gap-5 lg:grid-cols-2">${groupCards}</div>
+      <div class="mt-8 grid gap-5 lg:grid-cols-2">${cards}</div>
       <div class="mt-8 flex items-start gap-3 rounded-2xl border border-leaf-200 bg-leaf-50 p-5">
         <div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-leaf-500 font-bold text-white">i</div>
         <div class="text-sm leading-relaxed text-leaf-900">
