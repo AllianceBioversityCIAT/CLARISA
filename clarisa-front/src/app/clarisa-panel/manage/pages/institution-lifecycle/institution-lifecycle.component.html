@@ -193,6 +193,11 @@
 
     <div class="field">
       <label for="lifecycleSuccessor">Replaced by</label>
+      <!-- Always virtualised, never conditionally: the catalogue holds close to
+           ten thousand institutions, and toggling the flag makes PrimeNG tear
+           down and rebuild its scroller. `scrollHeight` must be an explicit
+           multiple of `itemSize`, or the virtual scroller has no viewport to
+           measure against and paints an empty panel. -->
       <p-dropdown
         inputId="lifecycleSuccessor"
         formControlName="replacedByInstitutionId"
@@ -202,8 +207,9 @@
         [filter]="true"
         filterBy="label,name,acronym,code"
         [showClear]="true"
-        [virtualScroll]="availableSuccessors.length > 20"
+        [virtualScroll]="true"
         [itemSize]="44"
+        scrollHeight="352px"
         placeholder="Search an institution (optional)"
         filterPlaceholder="Type a name or acronym…"
         appendTo="body"
