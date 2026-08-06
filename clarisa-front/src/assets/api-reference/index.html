@@ -12,11 +12,6 @@
       theme: {
         extend: {
           colors: {
-            clarisa: {
-              50: '#eff7ff', 100: '#dbecfe', 200: '#bfdffe', 300: '#93cbfd',
-              400: '#60aefa', 500: '#3b8ef6', 600: '#0065bd', 700: '#0058a5',
-              800: '#064a87', 900: '#0b3e70', 950: '#07274a',
-            },
             leaf: {
               50: '#f7fbe9', 100: '#ebf4d9', 200: '#d8eaae', 300: '#bcdb78',
               400: '#a0c94a', 500: '#7ab800', 600: '#669a00', 700: '#4e7600',
@@ -53,35 +48,30 @@
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 antialiased">
 
-  <!-- ░░ TOPBAR ░░ -->
-  <header class="fixed inset-x-0 top-0 z-40 h-16 border-b border-slate-200/80 bg-white/90 backdrop-blur">
-    <div class="flex h-full items-center gap-4 px-5">
-      <a href="#" onclick="goHome();return false" class="flex items-center gap-3 shrink-0">
-        <div class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-leaf-600 to-leaf-800 text-white font-extrabold text-sm shadow-card">C</div>
-        <div class="leading-tight">
-          <div class="font-extrabold tracking-tight text-leaf-700 text-[15px]">CLARISA</div>
-          <div id="topbarSubtitle" class="text-[11px] font-medium text-slate-400 -mt-0.5">API Documentation</div>
-        </div>
-      </a>
-      <div class="relative ml-2 hidden md:block w-[420px]">
-        <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
-        <input id="globalSearch" type="text" placeholder="Search endpoints…  ( / )"
-          class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-leaf-500 focus:bg-white focus:ring-4 focus:ring-leaf-200" />
-      </div>
-      <div class="ml-auto"></div>
-    </div>
-  </header>
-
-  <!-- ░░ LAYOUT ░░ -->
-  <div class="flex pt-16">
+  <!-- ░░ LAYOUT ░░
+       No topbar of its own: the page is embedded under the CLARISA site navbar,
+       and a second bar stacked below it read as duplicated chrome. The search
+       box now lives at the top of the sidebar, which is what it actually
+       filters. -->
+  <div class="flex">
 
     <!-- SIDEBAR -->
-    <aside class="fixed bottom-0 left-0 top-16 z-30 w-72 overflow-y-auto border-r border-slate-200/80 bg-white px-3 py-5">
+    <aside class="fixed bottom-0 left-0 top-0 z-30 w-72 overflow-y-auto border-r border-slate-200/80 bg-white px-3 py-5">
+      <div class="mb-4 px-1">
+        <button onclick="goHome()" class="mb-2 block w-full truncate text-left text-[13px] font-extrabold tracking-tight text-leaf-700 transition hover:text-leaf-800">
+          <span id="sidebarContext">API Documentation</span>
+        </button>
+        <div class="relative">
+          <svg class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
+          <input id="globalSearch" type="text" placeholder="Search endpoints…  ( / )"
+            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-[13px] outline-none transition focus:border-leaf-500 focus:bg-white focus:ring-4 focus:ring-leaf-200" />
+        </div>
+      </div>
       <div id="sidebar"></div>
     </aside>
 
     <!-- MAIN -->
-    <main class="ml-72 min-h-[calc(100vh-4rem)] flex-1 px-8 py-8">
+    <main class="ml-72 min-h-screen flex-1 px-8 py-8">
       <div id="main" class="mx-auto max-w-6xl"></div>
     </main>
   </div>
@@ -158,8 +148,8 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
    title instead of repeating the group name on every screen. */
 function applyScopedBranding() {
   if (!state.scopedGroup) return;
-  const subtitle = $('#topbarSubtitle');
-  if (subtitle) subtitle.textContent = state.scopedGroup;
+  const context = $('#sidebarContext');
+  if (context) context.textContent = state.scopedGroup;
   document.title = `CLARISA · ${state.scopedGroup}`;
   const search = $('#globalSearch');
   if (search) search.placeholder = `Search in ${state.scopedGroup}…  ( / )`;
