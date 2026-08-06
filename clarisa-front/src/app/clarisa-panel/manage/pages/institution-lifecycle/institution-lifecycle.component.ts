@@ -104,6 +104,7 @@ export class InstitutionLifecycleComponent implements OnInit {
         this.institutions = list.map((inst) => this.normalizeInstitution(inst));
         if (seedOptions) {
           this.successorOptions = this.institutions.map((row) => this.toOption(row));
+          this.refreshSuccessorCandidates();
         }
         this.loading = false;
       },
@@ -138,6 +139,7 @@ export class InstitutionLifecycleComponent implements OnInit {
     // to send) from one whose recorded successor was just cleared, which the
     // API only removes when the key travels as an explicit null.
     this.recordedSuccessorId = currentLink ? currentLink.code : null;
+    this.refreshSuccessorCandidates();
     this.editVisible = true;
   }
 
@@ -152,11 +154,21 @@ export class InstitutionLifecycleComponent implements OnInit {
    * the institution that is currently valid"), so offering it can only end in a
    * failed save. The one already recorded stays listed even if it was retired
    * afterwards, so reopening the dialog does not blank the field.
+   *
+   * A plain field and not a getter. The catalogue holds close to ten thousand
+   * institutions, and Angular evaluates a getter bound to `[options]` on every
+   * change detection cycle: it would filter the whole list again and hand
+   * PrimeNG a brand new array each time, whose changed reference makes the
+   * dropdown re-render, which schedules another cycle. The dropdown never
+   * painted its options and the tab froze. It is recomputed only when its two
+   * inputs actually change: the row being edited and the loaded catalogue.
    */
-  get availableSuccessors(): InstitutionOption[] {
+  availableSuccessors: InstitutionOption[] = [];
+
+  private refreshSuccessorCandidates(): void {
     const currentId = this.selected?.id;
     const recorded = this.recordedSuccessorId;
-    return this.successorOptions.filter(
+    this.availableSuccessors = this.successorOptions.filter(
       (option) =>
         option.id !== currentId && (option.selectable || option.id === recorded)
     );
@@ -280,6 +292,7 @@ export class InstitutionLifecycleComponent implements OnInit {
     this.successorOptions = this.successorOptions.map((option) =>
       option.id === row.id ? this.toOption(row) : option
     );
+    this.refreshSuccessorCandidates();
 
     // Retiring an institution while the table is narrowed to "Active" (or
     // reviving one while it shows "Ended") leaves a row on screen that the
