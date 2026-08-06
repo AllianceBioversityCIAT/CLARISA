@@ -29,16 +29,30 @@ export class InstitutionRepository
 {
   /**
    * Validity period, formatted in SQL so the value does not depend on how the
-   * driver serialises a DATE. `endDate` NULL means the institution is still
-   * valid and consumable; a date means it must no longer be used.
-   * `validityStatus` is a string and not a boolean on purpose: a boolean has
-   * exactly two states forever, and the day a third one is needed the only
-   * options are a second field or a breaking change.
+   * driver serialises a DATE.
+   *
+   * `endDate` is the last day the institution is valid, so the period is read
+   * as a period and not as a flag: a date still in the future means the
+   * institution is valid *today* and will stop being valid on that day. Reading
+   * it as mere presence would make it impossible to announce a retirement in
+   * advance — the institution would switch off in PRMS, MEL, MARLO and STAR the
+   * same day someone typed the date — which is precisely the SMO to SO case
+   * this feature exists for.
+   *
+   * `validityStatus` is a string and not a boolean for the same reason a third
+   * state exists at all: a boolean has exactly two values forever.
+   *   active — no end date, valid indefinitely
+   *   ending — end date in the future: still usable, retirement announced
+   *   ended  — end date today or earlier: must no longer be used
    */
   private static readonly VALIDITY_SELECT_FRAGMENT = `
         date_format(i.start_date, '%Y-%m-%d') startDate,
         date_format(i.end_date, '%Y-%m-%d') endDate,
-        case when i.end_date is null then 'active' else 'ended' end validityStatus`;
+        case
+          when i.end_date is null then 'active'
+          when i.end_date > curdate() then 'ending'
+          else 'ended'
+        end validityStatus`;
 
   /**
    * Lineage, resolved one hop only. Correlated subqueries rather than joins so
@@ -92,6 +106,38 @@ export class InstitutionRepository
           where edge_n.to_institution_id = i.id
         ), json_array()) previousNames`;
 
+  /**
+   * Whether an end date has already arrived.
+   *
+   * A date still in the future is an announced retirement, not a retirement:
+   * the institution stays valid until that day inclusive. Both this check and
+   * the SQL fragments above have to agree on that, or the API would publish
+   * `ending` for a row the write path treats as already gone.
+   *
+   * Compared as calendar days, never as instants: `new Date('2026-08-06')` is
+   * parsed as UTC midnight, so in a negative-offset timezone it would land on
+   * the previous local day and retire an institution twelve hours early. DATE
+   * columns come back as `yyyy-MM-dd`, which sorts lexicographically.
+   */
+  private static isRetired(endDate: string | Date | null | undefined): boolean {
+    if (endDate == null) {
+      return false;
+    }
+
+    const asDay =
+      endDate instanceof Date
+        ? InstitutionRepository.toLocalDay(endDate)
+        : String(endDate).slice(0, 10);
+
+    return asDay <= InstitutionRepository.toLocalDay(new Date());
+  }
+
+  private static toLocalDay(date: Date): string {
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    return `${date.getFullYear()}-${month}-${day}`;
+  }
+
   constructor(
     private dataSource: DataSource,
     private institutionLocationRepository: InstitutionLocationRepository,
@@ -141,9 +187,11 @@ export class InstitutionRepository
     // Additive and opt-in. The default (SHOW_ALL) adds nothing to the clause,
     // so a caller that sends no `status` gets the exact same rows as today.
     if (validityStatus === ValidityStatusOptions.SHOW_ONLY_ACTIVE) {
-      whereClause += ' and i.end_date is null';
+      // An end date still in the future is not a retirement yet: the
+      // institution is usable until that day inclusive.
+      whereClause += ' and (i.end_date is null or i.end_date > curdate())';
     } else if (validityStatus === ValidityStatusOptions.SHOW_ONLY_ENDED) {
-      whereClause += ' and i.end_date is not null';
+      whereClause += ' and i.end_date is not null and i.end_date <= curdate()';
     }
 
     const query: string = `
@@ -435,7 +483,12 @@ export class InstitutionRepository
       // Only the tip of a chain may be replaced. Without this, approving the
       // same replacement twice, or replacing an already-retired institution,
       // silently produces a fork that no consumer can resolve.
-      if (successor.end_date != null) {
+      //
+      // A successor whose end date is still in the future is NOT retired: it is
+      // valid until that day, and pointing at it is legitimate — that is the
+      // whole reason retirements can be announced in advance. Only a date that
+      // has already arrived disqualifies it.
+      if (InstitutionRepository.isRetired(successor.end_date)) {
         throw new BadRequestException(
           `Institution '${dto.replacedByInstitutionId}' is itself retired (end date ${successor.end_date}). Point at the institution that is currently valid.`,
         );

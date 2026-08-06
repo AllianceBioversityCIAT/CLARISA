@@ -319,7 +319,7 @@ export class InstitutionLifecycleComponent implements OnInit {
       typeName: raw.institutionType?.name ?? '',
       startDate: raw.startDate ?? null,
       endDate,
-      validityStatus: raw.validityStatus ?? (endDate ? 'ended' : 'active'),
+      validityStatus: raw.validityStatus ?? this.deriveValidityStatus(endDate),
       replacedBy,
       replaces,
       previousAcronyms,
@@ -337,6 +337,27 @@ export class InstitutionLifecycleComponent implements OnInit {
     };
   }
 
+  /**
+   * Fallback for the rare case the API omits the status. An end date still in
+   * the future does not retire the institution: it announces when it will be
+   * retired, and it stays usable until that day.
+   */
+  private deriveValidityStatus(endDate: string | null): InstitutionValidityStatus {
+    if (!endDate) {
+      return 'active';
+    }
+
+    const end = this.toDate(endDate);
+    if (!end) {
+      return 'ended';
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return end > today ? 'ending' : 'ended';
+  }
+
   private toOption(row: InstitutionRow): InstitutionOption {
     const suffix = row.acronym ? ` (${row.acronym})` : '';
     return {
@@ -345,6 +366,8 @@ export class InstitutionLifecycleComponent implements OnInit {
       name: row.name,
       acronym: row.acronym,
       label: `${row.name}${suffix}`,
+      // An announced retirement is still a valid successor: only an end date
+      // that has already arrived disqualifies it.
       selectable: row.validityStatus !== 'ended'
     };
   }

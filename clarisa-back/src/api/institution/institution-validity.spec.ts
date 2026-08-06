@@ -744,13 +744,19 @@ describe('InstitutionRepository lifecycle invariants', () => {
       // Only the WHERE clause matters here: `i.end_date is null` also appears
       // in the select, inside the CASE that derives `validityStatus`.
       const whereClause = sql.slice(sql.lastIndexOf('where i.is_active'));
-      expect(whereClause).not.toContain('and i.end_date is null');
+      expect(whereClause).not.toContain('and (i.end_date is null');
       expect(whereClause).not.toContain('and i.end_date is not null');
     });
 
     it.each([
-      [ValidityStatusOptions.SHOW_ONLY_ACTIVE, 'and i.end_date is null'],
-      [ValidityStatusOptions.SHOW_ONLY_ENDED, 'and i.end_date is not null'],
+      [
+        ValidityStatusOptions.SHOW_ONLY_ACTIVE,
+        'and (i.end_date is null or i.end_date > curdate())',
+      ],
+      [
+        ValidityStatusOptions.SHOW_ONLY_ENDED,
+        'and i.end_date is not null and i.end_date <= curdate()',
+      ],
     ])('adds exactly one predicate for %s', async (status, predicate) => {
       const sql = await capture(
         FindAllOptions.SHOW_ALL,
@@ -760,6 +766,21 @@ describe('InstitutionRepository lifecycle invariants', () => {
       );
 
       expect(sql).toContain(predicate);
+    });
+
+    it('treats an end date still in the future as usable', async () => {
+      // The filter answers "can I still use it today", not "does it carry a
+      // date". Announcing a retirement in advance must not switch the
+      // institution off for every consumer the same day it is announced.
+      const sql = await capture(
+        FindAllOptions.SHOW_ALL,
+        undefined,
+        undefined,
+        ValidityStatusOptions.SHOW_ONLY_ACTIVE,
+      );
+
+      expect(sql).toContain('i.end_date > curdate()');
+      expect(sql).toContain("when i.end_date > curdate() then 'ending'");
     });
 
     it('coalesces every lineage array so none can be published as null', async () => {

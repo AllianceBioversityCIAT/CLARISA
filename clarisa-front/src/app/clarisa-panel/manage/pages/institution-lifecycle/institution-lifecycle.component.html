@@ -95,12 +95,18 @@
             </td>
             <td>{{ inst.typeName || '—' }}</td>
             <td>
-              <ng-container *ngIf="inst.endDate; else stillActive">
-                <p-tag [value]="inst.endDate" severity="warning"></p-tag>
+              <!-- An end date in the future is an announced retirement, not a
+                   retirement: the institution is still usable until that day. -->
+              <ng-container [ngSwitch]="inst.validityStatus">
+                <p-tag *ngSwitchCase="'ended'" [value]="inst.endDate" severity="danger" [pTooltip]="'Retired on ' + inst.endDate"></p-tag>
+                <p-tag
+                  *ngSwitchCase="'ending'"
+                  [value]="inst.endDate"
+                  severity="warning"
+                  [pTooltip]="'Still valid. Retires on ' + inst.endDate"
+                ></p-tag>
+                <p-tag *ngSwitchDefault value="Active" severity="success"></p-tag>
               </ng-container>
-              <ng-template #stillActive>
-                <p-tag value="Active" severity="success"></p-tag>
-              </ng-template>
             </td>
             <td>
               <span class="lineage-cell" *ngIf="inst.replacedBy?.length; else noLineage">

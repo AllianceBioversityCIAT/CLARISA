@@ -6,10 +6,22 @@ import { environment } from 'src/environments/environment';
 /** Kind of link between an institution and the one that replaces it. */
 export type InstitutionRelationType = 'NEW' | 'SUCCESSOR' | 'MERGE' | 'SPLIT';
 
-/** Validity filter accepted by GET api/institutions. */
-export type InstitutionValidityStatus = 'active' | 'ended';
+/**
+ * Validity status reported by the API for a single institution.
+ *
+ * `ending` means the end date is still in the future: the institution is valid
+ * today and stops being valid on that day. It is what makes it possible to
+ * announce a retirement in advance instead of switching the institution off the
+ * same day someone types the date.
+ */
+export type InstitutionValidityStatus = 'active' | 'ending' | 'ended';
 
-export type InstitutionStatusFilter = InstitutionValidityStatus | 'all';
+/**
+ * Validity filter accepted by GET api/institutions. Narrower than the status on
+ * purpose: `active` covers everything still usable today, announced retirements
+ * included.
+ */
+export type InstitutionStatusFilter = 'active' | 'ended' | 'all';
 
 /** Lineage edge returned in replacedBy[] / replaces[]. */
 export interface InstitutionLineageLink {
