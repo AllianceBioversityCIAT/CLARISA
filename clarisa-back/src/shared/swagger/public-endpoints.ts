@@ -25,6 +25,8 @@ export const PUBLIC_OPENAPI_PATHS: string[] = [
   '/api/regions/one-cgiar-regions',
   '/api/acronyms',
   '/api/glossary',
+  '/api/cgiar-entities/groups',
+  '/api/projects',
   // Institutions
   '/api/institutions',
   '/api/institution-dictionary',

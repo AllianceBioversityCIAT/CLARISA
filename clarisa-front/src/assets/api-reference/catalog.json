@@ -1,5 +1,5 @@
 {
-  "_comment": "Map of CLARISA's public documentation: which endpoints are shown and under which category. Hand-editable. Drives the grouping of the api-reference view. Mirrors the CURRENT public docs (One CGIAR Control List with 4 categories and One CGIAR Operation with 5, verified against prod api/hp-clarisa-category-endpoints on 2026-08-06). A `?group=<slug>` query param narrows the view to a single group. See CATALOG.md for how to add endpoints. Source: context/documentation-endpoints-map.md.",
+  "_comment": "Map of CLARISA's public documentation: which endpoints are shown and under which category. Hand-editable. Drives the grouping of the api-reference view. Mirrors the CURRENT public docs, verified against clarisatest-back api/hp-clarisa-category-endpoints on 2026-08-06 (TEST is ahead of prod: it carries \"CGIAR entities groups\" and \"Projects\", which prod does not have yet). A `?group=<slug>` query param narrows the view to a single group. See CATALOG.md for how to add endpoints. Source: context/documentation-endpoints-map.md.",
   "groups": [
     {
       "group": "One CGIAR Control List",
@@ -41,6 +41,16 @@
             {
               "name": "Glossary",
               "route": "api/glossary",
+              "method": "get"
+            },
+            {
+              "name": "CGIAR entities groups",
+              "route": "api/cgiar-entities/groups",
+              "method": "get"
+            },
+            {
+              "name": "Projects",
+              "route": "api/projects",
               "method": "get"
             }
           ]
