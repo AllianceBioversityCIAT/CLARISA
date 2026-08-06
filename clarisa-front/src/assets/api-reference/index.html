@@ -95,7 +95,29 @@ const API_BASE = (PARAMS.get('api') || 'http://localhost:3000/').replace(/\/?$/,
    all accepted. Unknown values fall back to the full catalog. */
 const GROUP_PARAM = (PARAMS.get('group') || '').trim();
 
+/* Deep link into a category or a single endpoint, so the public hierarchy
+   `documentation/<group>/<category>/<endpoint>` lands where it should. */
+const CATEGORY_PARAM = (PARAMS.get('category') || '').trim();
+const ENDPOINT_PARAM = (PARAMS.get('endpoint') || '').trim();
+
 const slug = s => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+/* URL segments use the display name with underscores for spaces, the way the
+   documentation has always been linked. */
+const toSegment = s => String(s ?? '').trim().replace(/\s+/g, '_');
+
+/* Tells the Angular host which path is being shown, so the address bar keeps
+   up with in-page navigation without reloading this frame. */
+function announcePath(segments) {
+  try {
+    parent.postMessage(
+      { type: 'clarisa-docs:navigate', path: segments.filter(Boolean).map(toSegment) },
+      window.location.origin
+    );
+  } catch (e) {
+    /* standalone (outside the Angular shell) — nothing to sync */
+  }
+}
 
 function applyGroupFilter(catalog) {
   if (!GROUP_PARAM) return catalog;
@@ -138,11 +160,45 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
     state.spec = spec;
     applyScopedBranding();
     renderSidebar();
-    goHome();
+    if (!openDeepLink()) goHome();
   } catch (e) {
     $('#main').innerHTML = `<div class="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">Could not load catalog.json — ${esc(e)}</div>`;
   }
 })();
+
+/* Opens whatever `?category=` / `?endpoint=` point at. Segments are matched
+   loosely (slug), so `Institutions_List`, `institutions-list` and the plain
+   display name all resolve. Returns false when there is nothing to open, or
+   when the target no longer exists — the caller falls back to the home view
+   instead of leaving a blank page on a stale link. */
+function openDeepLink() {
+  if (!CATEGORY_PARAM && !ENDPOINT_PARAM) return false;
+
+  const groups = state.catalog.groups;
+
+  for (let gi = 0; gi < groups.length; gi++) {
+    const categories = groups[gi].categories;
+    for (let ci = 0; ci < categories.length; ci++) {
+      if (CATEGORY_PARAM && slug(categories[ci].name) !== slug(CATEGORY_PARAM)) continue;
+
+      if (!ENDPOINT_PARAM) {
+        openFirstOf(gi, ci);
+        return true;
+      }
+
+      const ep = categories[ci].endpoints.find(
+        e => slug(e.name) === slug(ENDPOINT_PARAM) || slug(e.route) === slug(ENDPOINT_PARAM)
+      );
+      if (ep) {
+        selectEndpoint(gi, ci, ep.route);
+        return true;
+      }
+    }
+  }
+
+  console.warn(`[api-reference] Nothing matched category="${CATEGORY_PARAM}" endpoint="${ENDPOINT_PARAM}"`);
+  return false;
+}
 
 /* When the view is scoped to one group, say so in the topbar and the tab
    title instead of repeating the group name on every screen. */
@@ -228,6 +284,7 @@ document.addEventListener('keydown', e => {
 function goHome() {
   state.current = null;
   state.nav = 'home';
+  announcePath([state.scopedGroup]);
   highlightActive();
   const c = state.catalog;
   const nCats = c.groups.reduce((a, g) => a + g.categories.length, 0);
@@ -413,6 +470,7 @@ async function selectEndpoint(gi, ci, route) {
   state.current = { group, category, endpoint };
   state.nav = 'endpoint';
   state.tab = 'doc'; state.page = 1; state.sortKey = null;
+  announcePath([group.group, category.name, endpoint?.name]);
   highlightActive();
   renderEndpointShell(true);
 
