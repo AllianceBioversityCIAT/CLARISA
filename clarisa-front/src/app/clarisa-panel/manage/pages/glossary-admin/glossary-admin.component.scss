@@ -1,9 +1,16 @@
+// Offset for the fixed .app-header in manage, same value the microservices
+// admin uses. Without it the panel heading renders behind the top bar.
+$manage-header-height: 72px;
+
 .glossary-admin-layout {
   display: flex;
   align-items: flex-start;
   gap: 1.5rem;
   padding: 1.5rem;
-  min-height: 70vh;
+  padding-top: calc(#{$manage-header-height} + 1.5rem);
+  min-height: calc(100vh - #{$manage-header-height});
+  background: #f4f6f8;
+  box-sizing: border-box;
 }
 
 .glossary-sidebar {
@@ -13,7 +20,8 @@
   border-radius: 10px;
   padding: 1rem;
   position: sticky;
-  top: 1rem;
+  // Sticks below the fixed header instead of sliding under it.
+  top: calc(#{$manage-header-height} + 1rem);
 }
 
 .glossary-sidebar__head {
@@ -84,10 +92,18 @@
   min-width: 0;
 }
 
+@media (max-width: 991px) {
+  .glossary-admin-layout {
+    padding-top: calc(60px + 1rem);
+    min-height: calc(100vh - 60px);
+  }
+}
+
 @media (max-width: 900px) {
   .glossary-admin-layout {
     flex-direction: column;
     padding: 1rem;
+    padding-top: calc(60px + 1rem);
   }
 
   .glossary-sidebar {
