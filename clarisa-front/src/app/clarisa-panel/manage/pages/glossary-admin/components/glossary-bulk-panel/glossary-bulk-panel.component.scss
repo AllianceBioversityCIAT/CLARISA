@@ -188,6 +188,23 @@
   }
 }
 
+.source-recap__aside {
+  color: #6b7f45;
+}
+
+.mapping-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.82rem;
+  color: #1e40af;
+  margin: 0 0 1.1rem;
+}
+
 .mapping-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

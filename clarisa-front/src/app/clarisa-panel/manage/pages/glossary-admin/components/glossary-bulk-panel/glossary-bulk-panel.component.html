@@ -73,22 +73,44 @@
 <div class="panel-card wizard-card" *ngIf="step === 'mapping' && table">
   <div class="source-recap">
     <i class="pi pi-check-circle"></i>
-    <span
-      ><strong>{{ table.rows.length }}</strong> row(s) read from <strong>{{ table.sourceName }}</strong> — {{ table.headers.length }} column(s)</span
-    >
+    <span>
+      <strong>{{ table.rows.length }}</strong> row(s) read from <strong>{{ table.sourceName }}</strong> — {{ table.headers.length }} column(s) with
+      content
+      <span class="source-recap__aside" *ngIf="emptyColumnCount">({{ emptyColumnCount }} empty column(s) ignored)</span>
+    </span>
     <button pButton type="button" label="Change source" class="p-button-text p-button-sm" (click)="backToSource()"></button>
   </div>
+
+  <p class="mapping-note" *ngIf="hiddenColumnCount">
+    <i class="pi pi-info-circle"></i>
+    <span>
+      This sheet also carries <strong>{{ hiddenColumnCount }}</strong> unnamed column(s); only the first {{ maxGeneratedColumns }} are listed. If the
+      column you need is not there, give it a header in the spreadsheet and read the file again.
+    </span>
+  </p>
 
   <div class="mapping-grid">
     <div class="field">
       <label>Which column holds the <strong>term</strong>? <span class="required">*</span></label>
+      <!-- Always virtualised, never conditionally: a spreadsheet can bring in
+           dozens of columns and toggling the flag makes PrimeNG tear down and
+           rebuild its scroller. `scrollHeight` must be an exact multiple of
+           `itemSize`, or the virtual scroller has no viewport to measure
+           against and paints an empty panel. -->
       <p-dropdown
         appendTo="body"
-        panelStyleClass="admin-dropdown-panel"
+        panelStyleClass="admin-dropdown-panel column-dropdown-panel"
         placeholder="Select a column"
+        filterPlaceholder="Search a column…"
         styleClass="full-width"
+        scrollHeight="288px"
+        filterBy="label"
         [options]="columnOptions"
         [(ngModel)]="termColumn"
+        [filter]="true"
+        [resetFilterOnHide]="true"
+        [virtualScroll]="true"
+        [itemSize]="36"
         (onShow)="onDropdownShow($event)">
       </p-dropdown>
     </div>
@@ -97,11 +119,18 @@
       <label>Which column holds the <strong>definition</strong>? <span class="required">*</span></label>
       <p-dropdown
         appendTo="body"
-        panelStyleClass="admin-dropdown-panel"
+        panelStyleClass="admin-dropdown-panel column-dropdown-panel"
         placeholder="Select a column"
+        filterPlaceholder="Search a column…"
         styleClass="full-width"
+        scrollHeight="288px"
+        filterBy="label"
         [options]="columnOptions"
         [(ngModel)]="definitionColumn"
+        [filter]="true"
+        [resetFilterOnHide]="true"
+        [virtualScroll]="true"
+        [itemSize]="36"
         (onShow)="onDropdownShow($event)">
       </p-dropdown>
     </div>

@@ -124,6 +124,57 @@ describe('GlossaryFileParserService', () => {
       expect(table.rows[0]).toEqual(['Outcome', 'A change', '']);
     });
 
+    it('drops the columns that hold nothing in the header nor in any row', () => {
+      // Excel keeps formatted-but-empty cells alive, so a sheet with two real
+      // columns can report hundreds. They used to reach the picker as ghosts.
+      const table = service.parseText('term,definition,,,\nOutcome,A change,,,\nOutput,A product,,,');
+
+      expect(table.headers).toEqual(['term', 'definition']);
+      expect(table.sourceColumns).toBe(5);
+      expect(table.rows).toEqual([
+        ['Outcome', 'A change'],
+        ['Output', 'A product']
+      ]);
+    });
+
+    it('survives a sheet that reports the full Excel width', () => {
+      // What `CLARISA_Glossary_Updates.xlsx` did: 60 usable rows spread over
+      // 16 384 columns, which used to reach the picker as `Column 1..16384`.
+      const padding = ','.repeat(16382);
+      const table = service.parseText(`term,definition${padding}\nOutcome,A change${padding}`);
+
+      expect(table.sourceColumns).toBe(16384);
+      expect(table.headers).toEqual(['term', 'definition']);
+      expect(table.rows).toEqual([['Outcome', 'A change']]);
+    });
+
+    it('keeps a named column even when every one of its rows is empty', () => {
+      const table = service.parseText('term,definition,notes\nOutcome,A change,\nOutput,A product,');
+
+      expect(table.headers).toEqual(['term', 'definition', 'notes']);
+      expect(table.rows[0]).toEqual(['Outcome', 'A change', '']);
+    });
+
+    it('keeps an unnamed column that does carry data', () => {
+      const table = service.parseText('term,definition,\nOutcome,A change,extra');
+
+      expect(table.headers).toEqual(['term', 'definition', 'Column 3']);
+      expect(table.rows[0]).toEqual(['Outcome', 'A change', 'extra']);
+    });
+
+    it('flags which headers had to be invented', () => {
+      const table = service.parseText('term,,definition\nOutcome,x,A change');
+
+      expect(table.headers).toEqual(['term', 'Column 2', 'definition']);
+      expect(table.generatedHeaders).toEqual([false, true, false]);
+    });
+
+    it('flags every header as invented when the first row is data', () => {
+      const table = service.parseText('Impact Area,One of the five CGIAR areas.\nOutcome,A change');
+
+      expect(table.generatedHeaders).toEqual([true, true]);
+    });
+
     it('rejects empty content', () => {
       expect(() => service.parseText('   ')).toThrow(/empty/i);
     });
