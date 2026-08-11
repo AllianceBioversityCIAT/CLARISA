@@ -19,6 +19,8 @@ interface InstitutionRow {
   name: string;
   acronym: string;
   typeName: string;
+  /** Day the row was created in CLARISA, shown as a reference only. */
+  added: string | null;
   startDate: string | null;
   endDate: string | null;
   validityStatus: InstitutionValidityStatus;
@@ -77,14 +79,29 @@ export class InstitutionLifecycleComponent implements OnInit {
     private _institutionLifecycleService: InstitutionLifecycleService,
     private messages: MessageService,
   ) {
+    // `startDate` is deliberately absent. Nobody asked for it — the request
+    // that started this work asks for the end date only — and sending it on
+    // every save is what made an untouched field able to erase a stored value.
+    // The column, the DTO and the PATCH all keep supporting it.
     this.form = this.fb.group({
-      startDate: [null],
       endDate: [null],
       replacedByInstitutionId: [null],
-      relationType: ['NEW', Validators.required],
+      // Not required: it describes the succession edge, so it only travels
+      // when a successor was picked, and its dropdown can never be emptied.
+      relationType: ['NEW'],
       changeDate: [null],
-      note: ['', Validators.maxLength(500)]
+      note: ['', Validators.maxLength(5000)]
     });
+  }
+
+  /** True once a successor is picked: the lineage fields only exist then. */
+  get hasSuccessor(): boolean {
+    return !!this.form.get('replacedByInstitutionId')?.value;
+  }
+
+  /** The API refuses a successor on an institution that is still valid. */
+  get endDateRequired(): boolean {
+    return this.hasSuccessor;
   }
 
   ngOnInit(): void {
@@ -128,11 +145,12 @@ export class InstitutionLifecycleComponent implements OnInit {
     this.selected = row;
     const currentLink = row.replacedBy.length ? row.replacedBy[0] : null;
     this.form.reset({
-      startDate: this.toDate(row.startDate),
       endDate: this.toDate(row.endDate),
       replacedByInstitutionId: currentLink ? currentLink.code : null,
       relationType: currentLink?.relationType ?? 'NEW',
-      changeDate: this.toDate(currentLink?.changeDate ?? null),
+      // An edge that is already recorded keeps its date; a new one is offered
+      // today, which is when the person filling the form is doing the change.
+      changeDate: this.toDate(currentLink?.changeDate ?? null) ?? (currentLink ? null : new Date()),
       note: ''
     });
     // Remembered so `submit` can tell a row that never had a successor (nothing
@@ -189,10 +207,10 @@ export class InstitutionLifecycleComponent implements OnInit {
 
     const raw = this.form.value;
     const endDate = this.toIsoDate(raw.endDate);
-    const payload: InstitutionLifecyclePayload = {
-      startDate: this.toIsoDate(raw.startDate),
-      endDate
-    };
+    // `startDate` is not sent. The API only writes the keys it receives, so
+    // omitting it leaves whatever the institution already had; sending the
+    // null of a field the form no longer shows would wipe it on every save.
+    const payload: InstitutionLifecyclePayload = { endDate };
 
     const chosenSuccessorId = raw.replacedByInstitutionId
       ? Number(raw.replacedByInstitutionId)
@@ -330,6 +348,7 @@ export class InstitutionLifecycleComponent implements OnInit {
       name: raw.name ?? '',
       acronym,
       typeName: raw.institutionType?.name ?? '',
+      added: this.toDayOnly(raw.added),
       startDate: raw.startDate ?? null,
       endDate,
       validityStatus: raw.validityStatus ?? this.deriveValidityStatus(endDate),
@@ -386,6 +405,20 @@ export class InstitutionLifecycleComponent implements OnInit {
   }
 
   /** Parses an ISO yyyy-MM-dd string into a local Date, avoiding timezone drift. */
+  /**
+   * Keeps the calendar day of a timestamp and drops the time. `added` arrives
+   * as an ISO instant (`2016-06-20T07:50:12.000Z`) and only the day is shown,
+   * so the string is cut rather than parsed: turning it into a local Date
+   * would move it a day for anyone west of UTC.
+   */
+  private toDayOnly(value: string | null | undefined): string | null {
+    if (!value) {
+      return null;
+    }
+    const match = /^(\d{4}-\d{2}-\d{2})/.exec(String(value));
+    return match ? match[1] : null;
+  }
+
   private toDate(value: string | null | undefined): Date | null {
     if (!value) {
       return null;
