@@ -8,6 +8,10 @@ export interface ParsedTable {
   rows: string[][];
   /** Where the data came from, shown back to the user. */
   sourceName: string;
+  /** True at the positions whose header was invented because the source had none. */
+  generatedHeaders: boolean[];
+  /** Columns the source declared, before the empty ones were dropped. */
+  sourceColumns: number;
 }
 
 const MAX_ROWS = 2000;
@@ -193,8 +197,8 @@ export class GlossaryFileParserService {
   }
 
   /**
-   * Normalizes a raw matrix into a table: drops fully empty rows, takes the
-   * first row as headers when it looks like one, and pads short rows.
+   * Normalizes a raw matrix into a table: drops fully empty rows and columns,
+   * takes the first row as headers when it looks like one, and pads short rows.
    */
   private toTable(matrix: string[][], sourceName: string): ParsedTable {
     const nonEmpty = (matrix ?? []).filter(row => (row ?? []).some(cell => (cell ?? '').toString().trim().length));
@@ -203,21 +207,24 @@ export class GlossaryFileParserService {
       throw new Error('No readable rows were found');
     }
 
-    const width = nonEmpty.reduce((max, row) => Math.max(max, row.length), 0);
+    const sourceColumns = nonEmpty.reduce((max, row) => Math.max(max, row.length), 0);
     const padded = nonEmpty.map(row => {
       const copy = [...row.map(cell => (cell ?? '').toString().trim())];
-      while (copy.length < width) {
+      while (copy.length < sourceColumns) {
         copy.push('');
       }
       return copy;
     });
 
-    const [first, ...rest] = padded;
+    const trimmed = this.dropEmptyColumns(padded, sourceColumns);
+
+    const [first, ...rest] = trimmed;
     const looksLikeHeader = this.looksLikeHeader(first);
 
     const headers = looksLikeHeader ? first.map((cell, index) => cell || `Column ${index + 1}`) : first.map((_, index) => `Column ${index + 1}`);
+    const generatedHeaders = looksLikeHeader ? first.map(cell => !cell.length) : first.map(() => true);
 
-    const rows = looksLikeHeader ? rest : padded;
+    const rows = looksLikeHeader ? rest : trimmed;
 
     if (rows.length > MAX_ROWS) {
       throw new Error(`The file has ${rows.length} rows and the limit is ${MAX_ROWS}. Split it and load it in parts.`);
@@ -227,7 +234,34 @@ export class GlossaryFileParserService {
       throw new Error('The file only has a header row, there is no data to load');
     }
 
-    return { headers, rows, sourceName };
+    return { headers, rows, sourceName, generatedHeaders, sourceColumns };
+  }
+
+  /**
+   * Removes the columns that hold nothing at all — no header and no value in
+   * any row.
+   *
+   * Excel keeps a cell alive as soon as it was ever formatted, so a sheet that
+   * shows five columns routinely reports its full 16 384 (`XFD`). Those ghost
+   * columns used to reach the mapping step as `Column 1..16384`, which is both
+   * unusable and the reason the column pickers choked.
+   *
+   * A column is only dropped when it is empty everywhere, so no data is lost.
+   */
+  private dropEmptyColumns(rows: string[][], width: number): string[][] {
+    const kept: number[] = [];
+
+    for (let column = 0; column < width; column++) {
+      if (rows.some(row => row[column].length)) {
+        kept.push(column);
+      }
+    }
+
+    if (kept.length === width) {
+      return rows;
+    }
+
+    return rows.map(row => kept.map(column => row[column]));
   }
 
   /**

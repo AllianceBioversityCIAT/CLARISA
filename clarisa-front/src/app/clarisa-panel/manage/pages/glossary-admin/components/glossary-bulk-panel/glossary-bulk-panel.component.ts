@@ -12,13 +12,9 @@ import {
 import { GlossaryFileParserService, ParsedTable } from '../../services/glossary-file-parser.service';
 import { matchDropdownPanelToTrigger } from '../../../../utils/dropdown-panel-width';
 import { apiErrorMessage } from '../../utils/api-error-message';
+import { buildColumnOptions, ColumnOption, MAX_GENERATED_COLUMN_OPTIONS } from '../../utils/column-options';
 
 type WizardStep = 'source' | 'mapping' | 'review' | 'done';
-
-interface ColumnOption {
-  label: string;
-  value: number;
-}
 
 @Component({
   selector: 'app-glossary-bulk-panel',
@@ -40,12 +36,15 @@ export class GlossaryBulkPanelComponent implements OnInit {
 
   // --- mapping --------------------------------------------------------
   columnOptions: ColumnOption[] = [];
+  /** Unnamed columns left out of the pickers, reported to the user. */
+  hiddenColumnCount = 0;
+  readonly maxGeneratedColumns = MAX_GENERATED_COLUMN_OPTIONS;
   termColumn: number | null = null;
   definitionColumn: number | null = null;
   selectedPortfolioIds: number[] = [];
   conflictPolicy: GlossaryBulkConflictPolicy = 'update';
   showInDashboard = false;
-  portfolioOptions: ColumnOption[] = [];
+  portfolioOptions: { label: string; value: number }[] = [];
 
   readonly conflictOptions = [
     { label: 'Update the existing definition', value: 'update' as GlossaryBulkConflictPolicy },
@@ -120,11 +119,14 @@ export class GlossaryBulkPanelComponent implements OnInit {
     try {
       const table = await read();
       this.table = table;
-      this.columnOptions = table.headers.map((header, index) => ({ label: header, value: index }));
 
       const detected = this._parser.detectColumns(table.headers);
       this.termColumn = detected.termIndex >= 0 ? detected.termIndex : null;
       this.definitionColumn = detected.definitionIndex >= 0 ? detected.definitionIndex : null;
+
+      const columns = buildColumnOptions(table, [this.termColumn, this.definitionColumn]);
+      this.columnOptions = columns.options;
+      this.hiddenColumnCount = columns.hiddenCount;
 
       this.step = 'mapping';
       this._messageService.add({
@@ -156,6 +158,11 @@ export class GlossaryBulkPanelComponent implements OnInit {
   }
 
   // ------------------------------------------------------------- step 2
+
+  /** Columns the file declared but that carry no header and no value at all. */
+  get emptyColumnCount(): number {
+    return this.table ? this.table.sourceColumns - this.table.headers.length : 0;
+  }
 
   get mappingReady(): boolean {
     return this.termColumn !== null && this.definitionColumn !== null && this.termColumn !== this.definitionColumn;
@@ -287,6 +294,8 @@ export class GlossaryBulkPanelComponent implements OnInit {
     this.preview = null;
     this.result = null;
     this.pastedText = '';
+    this.columnOptions = [];
+    this.hiddenColumnCount = 0;
     this.termColumn = null;
     this.definitionColumn = null;
     this.selectedPortfolioIds = [];
