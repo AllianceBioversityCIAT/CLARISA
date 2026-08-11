@@ -50,13 +50,29 @@ export class InstitutionController {
     name: 'show',
     enum: FindAllOptions,
     required: false,
-    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+    description:
+      "Filter by the platform's own active flag: 'all', 'active' (default) or 'inactive'. It is independent of `status`, which looks at the validity dates instead.",
   })
+  // The old wording ("only institutions with an ID greater than this value")
+  // described something this parameter has never done: the repository compares
+  // it against `updated_at`, so `from=600` reads as 1970 and returns the whole
+  // list rather than the institutions after ID 600.
   @ApiQuery({
     name: 'from',
     required: false,
+    type: Number,
     description:
-      'Optional incremental cursor: only institutions with an ID greater than this value.',
+      'Incremental sync cursor: a Unix timestamp in MILLISECONDS. Returns only the institutions modified at or after that moment (compared against `updated_at`), not the ones with a higher ID.',
+  })
+  // Without this decorator Swagger still picks the parameter up from `@Query`,
+  // but publishes it as REQUIRED and with no description — which is exactly
+  // backwards, and is what the public documentation was showing.
+  @ApiQuery({
+    name: 'status',
+    enum: ValidityStatusOptions,
+    required: false,
+    description:
+      "Filter by validity period: 'all' (default), 'active' for institutions still valid today, or 'ended' for those whose validity already closed.",
   })
   async findAll(
     @Query('show') show: FindAllOptions,
