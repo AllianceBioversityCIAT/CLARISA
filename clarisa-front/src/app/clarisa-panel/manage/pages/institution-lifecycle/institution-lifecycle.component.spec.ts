@@ -160,6 +160,15 @@ describe('InstitutionLifecycleComponent', () => {
     expect(component.form.get('relationType')?.value).toBe('NEW');
   });
 
+  /** Local yyyy-MM-dd of a Date, the same way the component serializes one. */
+  const asIsoDay = (value: Date | null | undefined) =>
+    value
+      ? `${value.getFullYear()}-${`${value.getMonth() + 1}`.padStart(2, '0')}-${`${value.getDate()}`.padStart(2, '0')}`
+      : null;
+
+  /** Today, the day the change is being recorded. */
+  const today = () => asIsoDay(new Date());
+
   it('should send local ISO dates and lineage on submit', () => {
     component.openEdit(component.institutions[1]);
     component.form.patchValue({
@@ -172,13 +181,58 @@ describe('InstitutionLifecycleComponent', () => {
     component.submit();
 
     expect(serviceMock.updateLifecycle).toHaveBeenCalledWith(2, {
-      startDate: null,
       endDate: '2025-12-31',
       replacedByInstitutionId: 1,
       relationType: 'MERGE',
-      changeDate: '2025-12-31',
+      // The day the succession is being recorded, not the day the institution
+      // stops being valid: they are different facts and only coincided by
+      // accident while the field defaulted to the end date.
+      changeDate: today(),
       note: 'merged into OLD',
     });
+  });
+
+  it('should never send startDate, so an untouched validity start is not erased', () => {
+    // The form no longer shows the field; sending its null would blank the
+    // stored value on every save, because the API writes any key it receives.
+    component.openEdit(component.institutions[0]);
+    component.submit();
+
+    const payload = serviceMock.updateLifecycle.mock.calls[0][1];
+    expect('startDate' in payload).toBe(false);
+    expect(component.form.get('startDate')).toBeNull();
+  });
+
+  it('should offer today as the change date of a succession being recorded now', () => {
+    component.openEdit(component.institutions[1]);
+
+    expect(asIsoDay(component.form.get('changeDate')?.value)).toBe(today());
+  });
+
+  it('should keep the change date already recorded instead of overwriting it with today', () => {
+    component.openEdit(component.institutions[0]);
+
+    expect(asIsoDay(component.form.get('changeDate')?.value)).toBe('2025-12-31');
+  });
+
+  it('should only ask for the lineage fields once a successor is picked', () => {
+    component.openEdit(component.institutions[1]);
+    expect(component.hasSuccessor).toBe(false);
+    expect(component.endDateRequired).toBe(false);
+
+    component.form.patchValue({ replacedByInstitutionId: 1 });
+
+    expect(component.hasSuccessor).toBe(true);
+    expect(component.endDateRequired).toBe(true);
+  });
+
+  it('should not block the form on the relation type', () => {
+    // It describes the succession edge, the API never demands it and the
+    // dropdown cannot be emptied: requiring it was dead validation.
+    component.openEdit(component.institutions[1]);
+    component.form.patchValue({ relationType: null });
+
+    expect(component.form.valid).toBe(true);
   });
 
   it('should resend the recorded succession so its relation type can be corrected', () => {
@@ -188,7 +242,6 @@ describe('InstitutionLifecycleComponent', () => {
     component.submit();
 
     expect(serviceMock.updateLifecycle).toHaveBeenCalledWith(1, {
-      startDate: null,
       endDate: '2025-12-31',
       replacedByInstitutionId: 2,
       relationType: 'SUCCESSOR',
@@ -205,7 +258,6 @@ describe('InstitutionLifecycleComponent', () => {
     component.submit();
 
     expect(serviceMock.updateLifecycle).toHaveBeenCalledWith(1, {
-      startDate: null,
       endDate: '2025-12-31',
       replacedByInstitutionId: null,
     });
@@ -226,7 +278,6 @@ describe('InstitutionLifecycleComponent', () => {
     component.submit();
 
     expect(serviceMock.updateLifecycle).toHaveBeenCalledWith(2, {
-      startDate: null,
       endDate: null,
     });
   });
@@ -262,7 +313,6 @@ describe('InstitutionLifecycleComponent', () => {
     component.submit();
 
     expect(serviceMock.updateLifecycle).toHaveBeenCalledWith(2, {
-      startDate: null,
       endDate: null,
     });
   });

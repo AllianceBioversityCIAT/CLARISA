@@ -68,6 +68,18 @@ $manage-header-height: 72px;
   vertical-align: baseline;
 }
 
+.form-note {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
 :host ::ng-deep .admin-form p-calendar {
   display: block;
   width: 100%;
