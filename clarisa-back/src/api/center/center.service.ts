@@ -25,6 +25,7 @@ export class CenterService {
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
   ): Promise<CenterDtoV1[]> {
     let result: Center[] = [];
+    let showIsActive: boolean = true;
 
     const type = await this._cgiarEntityTypeRepository.findOneBy({
       name: Like('%center%'),
@@ -42,6 +43,7 @@ export class CenterService {
         break;
       case FindAllOptions.SHOW_ONLY_ACTIVE:
       case FindAllOptions.SHOW_ONLY_INACTIVE:
+        showIsActive = option !== FindAllOptions.SHOW_ONLY_ACTIVE;
         result = await this._centerRepository.find({
           where: {
             auditableFields: {
@@ -59,7 +61,7 @@ export class CenterService {
       center.cgiar_entity_type_object = type;
     });
 
-    return this._centerMapper.classListToDtoV1List(result);
+    return this._centerMapper.classListToDtoV1List(result, showIsActive);
   }
 
   async findOneV1(id: number): Promise<CenterDtoV1> {
@@ -78,7 +80,7 @@ export class CenterService {
 
     if (result) {
       result.cgiar_entity_type_object = type;
-      return this._centerMapper.classToDtoV1(result);
+      return this._centerMapper.classToDtoV1(result, true);
     }
 
     return null;
