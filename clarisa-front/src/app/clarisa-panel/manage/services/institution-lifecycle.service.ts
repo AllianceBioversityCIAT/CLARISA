@@ -40,6 +40,8 @@ export interface InstitutionApiResponse {
   acronym?: string;
   websiteLink?: string;
   institutionType?: { code?: number; name?: string };
+  /** `created_at` of the row in CLARISA. Not the validity period. */
+  added?: string | null;
   startDate?: string | null;
   endDate?: string | null;
   validityStatus?: InstitutionValidityStatus;
