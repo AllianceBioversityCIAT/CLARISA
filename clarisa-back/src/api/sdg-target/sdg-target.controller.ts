@@ -22,7 +22,8 @@ export class SdgTargetController {
   @Get()
   @ApiOperation({
     summary: 'List SDG targets',
-    description: 'Targets associated with the UN Sustainable Development Goals.',
+    description:
+      'Targets associated with the UN Sustainable Development Goals.',
   })
   @ApiQuery({
     name: 'show',
@@ -38,7 +39,8 @@ export class SdgTargetController {
   @Get()
   @ApiOperation({
     summary: 'List SDG targets',
-    description: 'Targets associated with the UN Sustainable Development Goals.',
+    description:
+      'Targets associated with the UN Sustainable Development Goals.',
   })
   @ApiQuery({
     name: 'show',

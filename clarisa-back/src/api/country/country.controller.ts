@@ -46,7 +46,11 @@ export class CountryController {
     description:
       "Filter by status: 'all', 'active' (active only) or 'inactive' (inactive only). Active records are returned by default.",
   })
-  @ApiOkResponse({ type: CountryDto, isArray: true, description: 'List of countries.' })
+  @ApiOkResponse({
+    type: CountryDto,
+    isArray: true,
+    description: 'List of countries.',
+  })
   async findAll(@Query('show') show: FindAllOptions) {
     return await this.countryService.findAll(show);
   }
@@ -69,7 +73,11 @@ export class CountryController {
       'Updates one or more countries. Administrative operation (requires authentication).',
   })
   @ApiBody({ type: UpdateCountryDto, isArray: true })
-  @ApiOkResponse({ type: CountryDto, isArray: true, description: 'Updated countries.' })
+  @ApiOkResponse({
+    type: CountryDto,
+    isArray: true,
+    description: 'Updated countries.',
+  })
   async update(
     @Res() res: Response,
     @Body() updateCountryDtoList: UpdateCountryDto[],

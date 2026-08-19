@@ -12,7 +12,8 @@ export class EndOfInitiativeOutcomeController {
   @Get()
   @ApiOperation({
     summary: 'List end of initiative outcomes',
-    description: 'End-of-Initiative outcomes defined for the One CGIAR Initiatives.',
+    description:
+      'End-of-Initiative outcomes defined for the One CGIAR Initiatives.',
   })
   findAll() {
     return this.endOfInitiativeOutcomeService.findAll();

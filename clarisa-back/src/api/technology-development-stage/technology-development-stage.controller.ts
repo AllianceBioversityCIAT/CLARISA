@@ -30,7 +30,8 @@ export class TechnologyDevelopmentStageController {
   @Get()
   @ApiOperation({
     summary: 'List technology development stages',
-    description: 'Stages of technology development used to classify innovations.',
+    description:
+      'Stages of technology development used to classify innovations.',
   })
   @ApiQuery({
     name: 'show',

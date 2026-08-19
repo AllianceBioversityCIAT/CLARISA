@@ -22,7 +22,8 @@ export class InnovationCharacteristicController {
   @Get()
   @ApiOperation({
     summary: 'List innovation nature',
-    description: 'Nature / characteristics used to describe innovations in the catalog.',
+    description:
+      'Nature / characteristics used to describe innovations in the catalog.',
   })
   @ApiQuery({
     name: 'show',

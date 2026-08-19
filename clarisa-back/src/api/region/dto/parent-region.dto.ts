@@ -6,7 +6,10 @@ export class ParentRegionDto {
   @OpenSearchProperty({ type: 'text' })
   name: string;
 
-  @ApiProperty({ example: 19, description: 'UN M49 code of the parent region.' })
+  @ApiProperty({
+    example: 19,
+    description: 'UN M49 code of the parent region.',
+  })
   @OpenSearchProperty({ type: 'integer' })
   um49Code: number;
 }

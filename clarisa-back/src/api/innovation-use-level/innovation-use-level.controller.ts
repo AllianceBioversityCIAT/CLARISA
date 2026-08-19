@@ -30,7 +30,8 @@ export class InnovationUseLevelController {
   @Get()
   @ApiOperation({
     summary: 'List innovation use levels',
-    description: 'Use levels (IUL) used to assess how widely an innovation is being used.',
+    description:
+      'Use levels (IUL) used to assess how widely an innovation is being used.',
   })
   @ApiQuery({
     name: 'show',

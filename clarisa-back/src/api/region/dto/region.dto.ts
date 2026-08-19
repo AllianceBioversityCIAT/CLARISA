@@ -8,7 +8,10 @@ export class RegionDto {
   @OpenSearchProperty({ type: 'integer' })
   code: number;
 
-  @ApiProperty({ example: 'Latin America and the Caribbean', description: 'Region name.' })
+  @ApiProperty({
+    example: 'Latin America and the Caribbean',
+    description: 'Region name.',
+  })
   @OpenSearchProperty({ type: 'text' })
   name: string;
 
@@ -20,11 +23,18 @@ export class RegionDto {
   @OpenSearchProperty({ type: 'integer' })
   um49Code: number;
 
-  @ApiProperty({ type: () => ParentRegionDto, description: 'Parent region (M49 hierarchy).' })
+  @ApiProperty({
+    type: () => ParentRegionDto,
+    description: 'Parent region (M49 hierarchy).',
+  })
   @OpenSearchProperty({ type: 'object', nestedType: ParentRegionDto })
   parentRegion: ParentRegionDto;
 
-  @ApiProperty({ type: () => SimpleCountryDto, isArray: true, description: 'Countries that belong to the region.' })
+  @ApiProperty({
+    type: () => SimpleCountryDto,
+    isArray: true,
+    description: 'Countries that belong to the region.',
+  })
   @OpenSearchProperty({ type: 'nested', nestedType: SimpleCountryDto })
   countries: SimpleCountryDto[];
 }

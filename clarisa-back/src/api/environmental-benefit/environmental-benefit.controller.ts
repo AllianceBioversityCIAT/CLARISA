@@ -30,7 +30,8 @@ export class EnvironmentalBenefitController {
   @Get()
   @ApiOperation({
     summary: 'List environmental benefits',
-    description: 'Environmental benefits associated with innovations in the catalog.',
+    description:
+      'Environmental benefits associated with innovations in the catalog.',
   })
   @ApiQuery({
     name: 'show',

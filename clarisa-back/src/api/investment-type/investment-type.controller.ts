@@ -28,7 +28,8 @@ export class InvestmentTypeController {
   @Get()
   @ApiOperation({
     summary: 'List investment types',
-    description: 'Types of investment associated with innovations in the catalog.',
+    description:
+      'Types of investment associated with innovations in the catalog.',
   })
   @ApiQuery({
     name: 'show',
