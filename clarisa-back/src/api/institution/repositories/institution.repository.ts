@@ -73,6 +73,7 @@ export class InstitutionRepository
             "code", succ.id,
             "name", succ.name,
             "acronym", succ.acronym,
+            "direction", "successor",
             "relationType", edge_out.relation_type,
             "changeDate", date_format(edge_out.change_date, '%Y-%m-%d')
           ))
@@ -85,6 +86,7 @@ export class InstitutionRepository
             "code", pred.id,
             "name", pred.name,
             "acronym", pred.acronym,
+            "direction", "predecessor",
             "relationType", edge_in.relation_type,
             "changeDate", date_format(edge_in.change_date, '%Y-%m-%d')
           ))
