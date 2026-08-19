@@ -55,7 +55,8 @@ export class InstitutionController {
   @ApiQuery({
     name: 'from',
     required: false,
-    description: 'Optional incremental cursor: only institutions with an ID greater than this value.',
+    description:
+      'Optional incremental cursor: only institutions with an ID greater than this value.',
   })
   async findAll(
     @Query('show') show: FindAllOptions,

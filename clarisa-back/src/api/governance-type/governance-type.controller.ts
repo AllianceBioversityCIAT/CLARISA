@@ -28,7 +28,8 @@ export class GovernanceTypeController {
   @Get()
   @ApiOperation({
     summary: 'List governance types',
-    description: 'Governance types used to classify innovations in the catalog.',
+    description:
+      'Governance types used to classify innovations in the catalog.',
   })
   @ApiQuery({
     name: 'show',

@@ -28,7 +28,8 @@ export class TechnicalFieldController {
   @Get()
   @ApiOperation({
     summary: 'List technical fields',
-    description: 'Technical fields used to classify innovations in the catalog.',
+    description:
+      'Technical fields used to classify innovations in the catalog.',
   })
   @ApiQuery({
     name: 'show',

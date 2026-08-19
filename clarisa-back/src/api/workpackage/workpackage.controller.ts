@@ -35,13 +35,14 @@ export class WorkpackageController {
     name: 'workpackages',
     enum: FindAllOptions,
     required: false,
-    description: "Filter workpackages by status: 'all', 'active' (default) or 'inactive'.",
+    description:
+      "Filter workpackages by status: 'all', 'active' (default) or 'inactive'.",
   })
   @ApiQuery({
     name: 'initiatives',
     enum: FindAllOptions,
     required: false,
-    description: "Filter the parent initiatives by status.",
+    description: 'Filter the parent initiatives by status.',
   })
   async findAll(
     @Query('workpackages') showWorkpackages: FindAllOptions,

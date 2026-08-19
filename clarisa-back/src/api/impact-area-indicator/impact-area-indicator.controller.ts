@@ -39,8 +39,16 @@ export class ImpactAreaIndicatorController {
     required: false,
     description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
   })
-  @ApiQuery({ name: 'version', required: false, description: 'Optional indicator framework version.' })
-  @ApiQuery({ name: 'portfolio', required: false, description: 'Optional portfolio filter.' })
+  @ApiQuery({
+    name: 'version',
+    required: false,
+    description: 'Optional indicator framework version.',
+  })
+  @ApiQuery({
+    name: 'portfolio',
+    required: false,
+    description: 'Optional portfolio filter.',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('version') version: string,

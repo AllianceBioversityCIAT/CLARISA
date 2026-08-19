@@ -22,7 +22,8 @@ export class SdgIndicatorController {
   @Get()
   @ApiOperation({
     summary: 'List SDG indicators',
-    description: 'Indicators associated with the UN Sustainable Development Goals.',
+    description:
+      'Indicators associated with the UN Sustainable Development Goals.',
   })
   @ApiQuery({
     name: 'show',
@@ -38,7 +39,8 @@ export class SdgIndicatorController {
   @Get()
   @ApiOperation({
     summary: 'List SDG indicators',
-    description: 'Indicators associated with the UN Sustainable Development Goals.',
+    description:
+      'Indicators associated with the UN Sustainable Development Goals.',
   })
   @ApiQuery({
     name: 'show',

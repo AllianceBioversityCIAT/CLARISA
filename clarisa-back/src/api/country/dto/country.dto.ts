@@ -35,7 +35,8 @@ export class CountryDto {
 
   @ApiProperty({
     type: () => GeopositionDto,
-    description: 'Geoposition (latitude / longitude) associated with the country.',
+    description:
+      'Geoposition (latitude / longitude) associated with the country.',
   })
   locationDTO: GeopositionDto;
 }

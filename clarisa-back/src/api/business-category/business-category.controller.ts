@@ -30,7 +30,8 @@ export class BusinessCategoryController {
   @Get()
   @ApiOperation({
     summary: 'List business categories',
-    description: 'Business categories used to classify innovations in the catalog.',
+    description:
+      'Business categories used to classify innovations in the catalog.',
   })
   @ApiQuery({
     name: 'show',

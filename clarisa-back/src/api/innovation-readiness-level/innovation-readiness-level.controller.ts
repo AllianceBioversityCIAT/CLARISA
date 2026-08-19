@@ -30,7 +30,8 @@ export class InnovationReadinessLevelController {
   @Get()
   @ApiOperation({
     summary: 'List innovation readiness levels',
-    description: 'Readiness levels (IRL) used to assess how mature an innovation is.',
+    description:
+      'Readiness levels (IRL) used to assess how mature an innovation is.',
   })
   @ApiQuery({
     name: 'show',
@@ -38,7 +39,11 @@ export class InnovationReadinessLevelController {
     required: false,
     description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
   })
-  @ApiQuery({ name: 'type', required: false, description: 'Optional filter by readiness level type.' })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    description: 'Optional filter by readiness level type.',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,

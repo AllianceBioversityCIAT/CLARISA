@@ -8,7 +8,12 @@ import {
   UseInterceptors,
   Version,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiOkResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiOkResponse,
+} from '@nestjs/swagger';
 import { CgiarEntityService } from './cgiar-entity.service';
 import { CgiarEntityDtoV2 } from './dto/cgiar-entity.v2.dto';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
@@ -63,10 +68,26 @@ export class CgiarEntityController {
     required: false,
     description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
   })
-  @ApiQuery({ name: 'type', required: false, description: 'Optional filter by CGIAR entity type.' })
-  @ApiQuery({ name: 'portfolioId', required: false, description: 'Optional filter by portfolio ID.' })
-  @ApiQuery({ name: 'year', required: false, description: 'Optional filter by year.' })
-  @ApiOkResponse({ type: CgiarEntityDtoV2, isArray: true, description: 'List of CGIAR entities.' })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    description: 'Optional filter by CGIAR entity type.',
+  })
+  @ApiQuery({
+    name: 'portfolioId',
+    required: false,
+    description: 'Optional filter by portfolio ID.',
+  })
+  @ApiQuery({
+    name: 'year',
+    required: false,
+    description: 'Optional filter by year.',
+  })
+  @ApiOkResponse({
+    type: CgiarEntityDtoV2,
+    isArray: true,
+    description: 'List of CGIAR entities.',
+  })
   async findAllV2(
     @Query('show') show: FindAllOptions,
     @Query('type') type?: string,

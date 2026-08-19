@@ -29,7 +29,8 @@ export class AccountController {
   @Get()
   @ApiOperation({
     summary: 'List CGIAR accounts',
-    description: 'Financial/operational accounts used across One CGIAR operations.',
+    description:
+      'Financial/operational accounts used across One CGIAR operations.',
   })
   @ApiQuery({
     name: 'show',

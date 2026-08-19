@@ -44,7 +44,11 @@ export class RegionController {
     required: false,
     description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
   })
-  @ApiOkResponse({ type: RegionDto, isArray: true, description: 'List of UN regions.' })
+  @ApiOkResponse({
+    type: RegionDto,
+    isArray: true,
+    description: 'List of UN regions.',
+  })
   async findAllUNRegions(@Query('show') show: FindAllOptions) {
     return await this.regionService.findAll(RegionTypeEnum.UN_REGION, show);
   }
@@ -61,7 +65,11 @@ export class RegionController {
     required: false,
     description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
   })
-  @ApiOkResponse({ type: RegionDto, isArray: true, description: 'List of One CGIAR regions.' })
+  @ApiOkResponse({
+    type: RegionDto,
+    isArray: true,
+    description: 'List of One CGIAR regions.',
+  })
   async findAllCGIARRegions(@Query('show') show: FindAllOptions) {
     return await this.regionService.findAll(RegionTypeEnum.CGIAR_REGION, show);
   }

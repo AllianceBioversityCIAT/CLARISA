@@ -36,7 +36,11 @@ export class InnovationTypeController {
     required: false,
     description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
   })
-  @ApiQuery({ name: 'type', required: false, description: 'Optional filter by parent innovation type.' })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    description: 'Optional filter by parent innovation type.',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,
