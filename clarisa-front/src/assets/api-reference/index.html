@@ -162,6 +162,75 @@ const state = {
 const $  = (s, el=document) => el.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+/* Some values — glossary definitions above all — carry real markup in the
+   database: `<br>` for line breaks, `<a href>` for references, `&bull;` for
+   bullets. Printing them escaped shows the reader the tags themselves.
+
+   These values are editable from the admin panel, so assigning them straight
+   to innerHTML would let anyone who can edit a term inject markup into a page
+   other people read. Instead the value is parsed into a <template>, which the
+   browser builds INERT — no script runs, no image loads, no event fires — and
+   then walked: only the tags below survive, everything else is flattened to
+   its text. What reaches innerHTML is markup this file built, not the string
+   that came from the API. */
+const RICH_TAGS = new Set(['BR', 'A', 'B', 'STRONG', 'I', 'EM', 'U', 'P', 'UL', 'OL', 'LI', 'SUP', 'SUB']);
+
+const safeHref = href => {
+  const raw = String(href ?? '').trim();
+  // An empty href would resolve to this very page and quietly pass the protocol
+  // check below, turning every stripped link into a self-link.
+  if (!raw) return null;
+  try {
+    // Anything whose final protocol is not http(s) — `javascript:`, `data:`,
+    // `vbscript:` — is dropped and the link degrades to its text.
+    const url = new URL(raw, window.location.href);
+    return /^https?:$/.test(url.protocol) ? url.href : null;
+  } catch { return null; }
+};
+
+const sanitizeInto = node => {
+  for (const child of [...node.childNodes]) {
+    if (child.nodeType === 3) continue;                       // text: always fine
+    if (child.nodeType !== 1) { child.remove(); continue; }   // comments and the rest
+    if (!RICH_TAGS.has(child.tagName)) {
+      // Unwrap rather than delete: the words inside are content, the tag is not.
+      sanitizeInto(child);
+      child.replaceWith(...child.childNodes);
+      continue;
+    }
+    // Read before stripping: the sweep below removes `href` too.
+    const rawHref = child.tagName === 'A' ? child.getAttribute('href') : null;
+    for (const attr of [...child.attributes]) child.removeAttribute(attr.name);
+    if (child.tagName === 'A') {
+      const href = safeHref(rawHref);
+      if (href) {
+        child.setAttribute('href', href);
+        child.setAttribute('target', '_blank');
+        child.setAttribute('rel', 'noopener noreferrer');
+        child.className = 'font-medium text-leaf-700 underline underline-offset-2 hover:text-leaf-800';
+      } else {
+        // A link we cannot vouch for still keeps its text.
+        child.replaceWith(...child.childNodes);
+        continue;
+      }
+    }
+    sanitizeInto(child);
+  }
+};
+
+const renderRich = raw => {
+  // A CSV import left doubled quotes behind in at least one definition
+  // (`href=""https://…""`), which the parser reads as an empty href followed by
+  // junk. Collapsing them first is what makes that link resolve at all.
+  const normalised = String(raw ?? '').replace(/=""([^"]*)""/g, '="$1"');
+  const tpl = document.createElement('template');
+  tpl.innerHTML = normalised;
+  sanitizeInto(tpl.content);
+  return tpl.innerHTML;
+};
+
+const hasRichMarkup = s => /<(br|a|b|strong|i|em|u|p|ul|ol|li|sup|sub)\b[^>]*>|&[a-z]+;/i.test(String(s ?? ''));
+
 /* ── boot ─────────────────────────────────────────────────────────── */
 (async function boot() {
   try {
@@ -659,8 +728,10 @@ function renderTable() {
         // turns ordinary names into one-word-per-line columns. No `title`
         // attribute any more — the text is fully visible, so a tooltip
         // repeating it is just noise.
-        return v.length > 45
-          ? `<td class="border-b border-slate-100 px-4 py-2.5 text-[13px] leading-relaxed text-slate-600"><div class="max-w-[560px] whitespace-normal break-words">${esc(v)}</div></td>`
+        // A value carrying markup always takes the wrapping branch: a line
+        // break inside `whitespace-nowrap` would render as nothing at all.
+        return v.length > 45 || hasRichMarkup(v)
+          ? `<td class="border-b border-slate-100 px-4 py-2.5 text-[13px] leading-relaxed text-slate-600"><div class="max-w-[560px] whitespace-normal break-words">${renderRich(v)}</div></td>`
           : `<td class="whitespace-nowrap border-b border-slate-100 px-4 py-2.5 text-[13px] text-slate-600">${esc(v)}</td>`;
       }).join('')}
     </tr>`).join('');
