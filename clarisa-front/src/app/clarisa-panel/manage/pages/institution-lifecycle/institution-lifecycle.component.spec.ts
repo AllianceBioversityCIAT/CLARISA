@@ -26,7 +26,7 @@ describe('InstitutionLifecycleComponent', () => {
           direction: 'successor' as const,
           predecessorCode: 1,
           successorCode: 2,
-          relationType: 'NEW' as const,
+          changeType: 'RENAME' as const,
           changeDate: '2025-12-31',
         },
       ],
@@ -49,7 +49,7 @@ describe('InstitutionLifecycleComponent', () => {
           direction: 'predecessor' as const,
           predecessorCode: 1,
           successorCode: 2,
-          relationType: 'NEW' as const,
+          changeType: 'RENAME' as const,
           changeDate: '2025-12-31',
         },
       ],
@@ -64,7 +64,7 @@ describe('InstitutionLifecycleComponent', () => {
   const edge = {
     predecessorCode: 221,
     successorCode: 10961,
-    relationType: 'SUCCESSOR' as const,
+    changeType: 'SUCCESSION' as const,
     changeDate: '2026-08-15',
   };
   const seenFromSmo = {
@@ -417,15 +417,31 @@ describe('InstitutionLifecycleComponent', () => {
     expect(component.lineageTooltip([legacy])).toBe('');
   });
 
-  it('should spell out every relation type as what happened', () => {
-    const label = (relationType?: 'NEW' | 'SUCCESSOR' | 'MERGE' | 'SPLIT') =>
-      component.lineageLabel([{ ...seenFromSmo, relationType }], 'successor');
+  it('should spell out every change type as what happened', () => {
+    const label = (changeType?: 'RENAME' | 'SUCCESSION' | 'MERGE' | 'SPLIT') =>
+      component.lineageLabel([{ ...seenFromSmo, changeType }], 'successor');
 
-    expect(label('NEW')).toBe('Succeeded by SO — renamed');
-    expect(label('SUCCESSOR')).toBe('Succeeded by SO — taken over');
+    expect(label('RENAME')).toBe('Succeeded by SO — renamed');
+    expect(label('SUCCESSION')).toBe('Succeeded by SO — taken over');
     expect(label('MERGE')).toBe('Succeeded by SO — merged');
     expect(label('SPLIT')).toBe('Succeeded by SO — split');
     expect(label(undefined)).toBe('Succeeded by SO');
+  });
+
+  it('translates the published change type back for the edit form', () => {
+    // The form writes the stored vocabulary. Leaving it on its default would
+    // overwrite a recorded SUCCESSOR relation with 'NEW' on the next save.
+    component.openEdit(component.institutions[0]);
+
+    expect(component.form.get('relationType')?.value).toBe('NEW');
+
+    // A copy: the rows are shared across tests, so mutating one leaks.
+    component.openEdit({
+      ...component.institutions[0],
+      replacedBy: [{ ...seenFromSmo }]
+    });
+
+    expect(component.form.get('relationType')?.value).toBe('SUCCESSOR');
   });
 
   it('should describe the relation identically on both of its ends', () => {
@@ -448,7 +464,7 @@ describe('InstitutionLifecycleComponent', () => {
         direction: 'successor' as const,
         predecessorCode: 221,
         successorCode: 10962,
-        relationType: 'SPLIT' as const,
+        changeType: 'SPLIT' as const,
         changeDate: '2026-08-15',
       },
     ];

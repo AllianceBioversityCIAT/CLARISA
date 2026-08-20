@@ -44,17 +44,26 @@ export class InstitutionLineageDto {
    *
    * The array already said this — `replacedBy` looks forward and `replaces`
    * looks back — but only if you kept track of which array you were in.
-   * Consumers flattening the response read `relationType` instead and find
-   * `SUCCESSOR` on both sides of the same edge, because `relationType`
-   * describes what KIND of change happened (a rename, a merge, a split), not
-   * who came first. That is a real report from a consumer, not a hypothetical.
+   * Consumers flattening the response read the kind of change instead and found
+   * `SUCCESSOR` on both sides of the same edge, because that field describes
+   * what KIND of change happened (a rename, a merge, a split), not who came
+   * first. That is a real report from a consumer, not a hypothetical.
    */
   @OpenSearchProperty({ type: 'keyword' })
   direction: 'predecessor' | 'successor';
 
-  /** MERGE | SPLIT | SUCCESSOR | NEW — 'NEW' means a plain rename */
+  /**
+   * RENAME | MERGE | SPLIT | SUCCESSION — the kind of change, as an event.
+   *
+   * Named for the event and not for a party to it. The stored column calls a
+   * succession `SUCCESSOR`, and that word one line under
+   * `direction: "predecessor"` reads as a second, contradicting answer to the
+   * question `direction` already answered — which is exactly how a consumer
+   * read it. `RENAME` is the same reasoning: the column stores a rename as
+   * `NEW`, which says nothing about what happened.
+   */
   @OpenSearchProperty({ type: 'keyword' })
-  relationType: string;
+  changeType: string;
 
   /** date of the real-world change, ISO yyyy-MM-dd */
   @OpenSearchProperty({ type: 'date' })

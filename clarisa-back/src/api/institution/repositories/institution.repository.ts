@@ -74,6 +74,15 @@ export class InstitutionRepository
    * and that table carries no change date at all. So what is proven in
    * production is the idea, not this pair of field names.
    *
+   * `changeType` publishes the KIND of change as an event and not as a role:
+   * the stored vocabulary calls a succession `SUCCESSOR`, and reading that word
+   * one line under `direction: "predecessor"` reads like a contradiction — the
+   * reader stops there and asks which of the two is true. They answer different
+   * questions, so the published value is `SUCCESSION`, and `NEW` — which is how
+   * the column stores a plain rename — is published as `RENAME`. The column and
+   * the vocabulary shared with `global_unit_lineage` are untouched: this is the
+   * response speaking plainly, not a schema change.
+   *
    * `previousAcronyms` and `previousNames` are lookup sets, NOT two columns of
    * the same table: a predecessor with no acronym contributes a name and no
    * acronym, so the two arrays can have different lengths and index `n` of one
@@ -90,7 +99,10 @@ export class InstitutionRepository
             "predecessorCode", edge_out.from_institution_id,
             "successorCode", edge_out.to_institution_id,
             "direction", "successor",
-            "relationType", edge_out.relation_type,
+            "changeType", case edge_out.relation_type
+              when 'NEW' then 'RENAME'
+              when 'SUCCESSOR' then 'SUCCESSION'
+              else edge_out.relation_type end,
             "changeDate", date_format(edge_out.change_date, '%Y-%m-%d')
           ))
           from institution_lineage edge_out
@@ -105,7 +117,10 @@ export class InstitutionRepository
             "predecessorCode", edge_in.from_institution_id,
             "successorCode", edge_in.to_institution_id,
             "direction", "predecessor",
-            "relationType", edge_in.relation_type,
+            "changeType", case edge_in.relation_type
+              when 'NEW' then 'RENAME'
+              when 'SUCCESSOR' then 'SUCCESSION'
+              else edge_in.relation_type end,
             "changeDate", date_format(edge_in.change_date, '%Y-%m-%d')
           ))
           from institution_lineage edge_in

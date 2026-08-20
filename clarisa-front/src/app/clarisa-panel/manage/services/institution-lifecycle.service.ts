@@ -26,6 +26,17 @@ export type InstitutionStatusFilter = 'active' | 'ended' | 'all';
 /** Which end of a lineage relation an institution sits on. */
 export type InstitutionLineageRole = 'predecessor' | 'successor';
 
+/**
+ * Kind of change published inside a lineage entry. Events, not roles — see
+ * `changeType` below. It is NOT `InstitutionRelationType`: that one is the
+ * stored vocabulary the edit form writes back.
+ */
+export type InstitutionLineageChangeType =
+  | 'RENAME'
+  | 'MERGE'
+  | 'SPLIT'
+  | 'SUCCESSION';
+
 /** Lineage edge returned in replacedBy[] / replaces[]. */
 export interface InstitutionLineageLink {
   code: number;
@@ -46,9 +57,27 @@ export interface InstitutionLineageLink {
    */
   predecessorCode?: number;
   successorCode?: number;
-  relationType?: InstitutionRelationType;
+  /**
+   * The kind of change, named as an event. The API deliberately does NOT reuse
+   * the stored vocabulary here: `SUCCESSOR` sitting one line under
+   * `direction: "predecessor"` reads as a contradiction, so the response says
+   * `SUCCESSION`, and a rename — stored as `NEW` — says `RENAME`.
+   * The write payload below still speaks the column's language.
+   */
+  changeType?: InstitutionLineageChangeType;
   changeDate?: string;
 }
+
+/** Maps a published change type back to the value the write payload expects. */
+export const CHANGE_TYPE_TO_RELATION_TYPE: Record<
+  InstitutionLineageChangeType,
+  InstitutionRelationType
+> = {
+  RENAME: 'NEW',
+  SUCCESSION: 'SUCCESSOR',
+  MERGE: 'MERGE',
+  SPLIT: 'SPLIT'
+};
 
 /** Raw institution shape returned by GET api/institutions. */
 export interface InstitutionApiResponse {
