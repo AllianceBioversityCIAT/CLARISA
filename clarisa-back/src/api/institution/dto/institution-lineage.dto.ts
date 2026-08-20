@@ -24,6 +24,20 @@ export class InstitutionLineageDto {
   acronym: string;
 
   /**
+   * The two ends of the relation, as absolute ids.
+   *
+   * Same pair in both records: the predecessor and the successor of the same
+   * edge each publish `predecessorCode: 221, successorCode: 10961`. That is the
+   * whole point — the direction of the change is readable without knowing which
+   * array the entry came from, so there is no way to read it backwards.
+   */
+  @OpenSearchProperty({ type: 'integer' })
+  predecessorCode: number;
+
+  @OpenSearchProperty({ type: 'integer' })
+  successorCode: number;
+
+  /**
    * Which end of the edge this institution sits on, seen from the record you
    * are reading: `predecessor` when it comes before, `successor` when it comes
    * after.

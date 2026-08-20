@@ -23,6 +23,9 @@ describe('InstitutionLifecycleComponent', () => {
           code: 2,
           name: 'New Institution',
           acronym: 'NEW',
+          direction: 'successor' as const,
+          predecessorCode: 1,
+          successorCode: 2,
           relationType: 'NEW' as const,
           changeDate: '2025-12-31',
         },
@@ -36,8 +39,48 @@ describe('InstitutionLifecycleComponent', () => {
       institutionType: { name: 'NGO' },
       endDate: null,
       validityStatus: 'active' as const,
+      // The other end of the very same relation, as the API publishes it on the
+      // successor: same absolute codes, opposite direction.
+      replaces: [
+        {
+          code: 1,
+          name: 'Old Institution',
+          acronym: 'OLD',
+          direction: 'predecessor' as const,
+          predecessorCode: 1,
+          successorCode: 2,
+          relationType: 'NEW' as const,
+          changeDate: '2025-12-31',
+        },
+      ],
     },
   ];
+
+  /**
+   * The relation Santi reported: SMO (221) is replaced by System Office
+   * (10961), recorded as SUCCESSOR. Both entries describe the same edge, one as
+   * each record publishes it.
+   */
+  const edge = {
+    predecessorCode: 221,
+    successorCode: 10961,
+    relationType: 'SUCCESSOR' as const,
+    changeDate: '2026-08-15',
+  };
+  const seenFromSmo = {
+    code: 10961,
+    name: 'System Office',
+    acronym: 'SO',
+    direction: 'successor' as const,
+    ...edge,
+  };
+  const seenFromSo = {
+    code: 221,
+    name: 'System Management Office',
+    acronym: 'SMO',
+    direction: 'predecessor' as const,
+    ...edge,
+  };
 
   const serviceMock = {
     getInstitutions: jest.fn().mockReturnValue(of(institutions)),
@@ -329,8 +372,154 @@ describe('InstitutionLifecycleComponent', () => {
   });
 
   it('should render a readable lineage label', () => {
-    expect(component.lineageLabel(component.institutions[0].replacedBy)).toBe('NEW (NEW)');
-    expect(component.lineageLabel([])).toBe('');
+    expect(component.lineageLabel(component.institutions[0].replacedBy, 'successor')).toBe('Succeeded by NEW — renamed');
+    expect(component.lineageLabel(component.institutions[1].replaces, 'predecessor')).toBe('Succeeds OLD — renamed');
+    expect(component.lineageLabel([], 'successor')).toBe('');
+  });
+
+  it('should never label both ends of a relation the same way', () => {
+    // The reported bug: the cell printed the relation type in parentheses, so
+    // `SMO (SUCCESSOR)` showed up on the predecessor row and on the successor
+    // row alike and the table never said which one came first.
+    const fromSmo = component.lineageLabel([seenFromSmo], 'successor');
+    const fromSo = component.lineageLabel([seenFromSo], 'predecessor');
+
+    expect(fromSmo).not.toBe(fromSo);
+    expect(fromSmo).not.toContain('SUCCESSOR');
+    expect(fromSo).not.toContain('SUCCESSOR');
+  });
+
+  it('should name the counterpart with the verb of its role', () => {
+    expect(component.lineageLabel([seenFromSmo], 'successor')).toBe('Succeeded by SO — taken over');
+    expect(component.lineageLabel([seenFromSo], 'predecessor')).toBe('Succeeds SMO — taken over');
+  });
+
+  it('should trust the absolute codes over the array the entry came from', () => {
+    // A column bound to the wrong array cannot flip the lineage: the entry
+    // names both ends of the relation, so its own role is not a guess.
+    expect(component.lineageLabel([seenFromSo], 'successor')).toBe('Succeeds SMO — taken over');
+    expect(component.lineageLabel([seenFromSmo], 'predecessor')).toBe('Succeeded by SO — taken over');
+  });
+
+  it('should fall back to direction when the absolute codes are missing', () => {
+    const { predecessorCode, successorCode, ...withoutCodes } = seenFromSo;
+
+    expect(component.lineageLabel([withoutCodes], 'successor')).toBe('Succeeds SMO — taken over');
+  });
+
+  it('should still read as a sentence when the API publishes none of the new fields', () => {
+    // Shape of production today: no direction, no absolute codes. The role then
+    // comes from the array, which is the only thing left to go on.
+    const legacy = { code: 10961, name: 'System Office', acronym: 'SO' };
+
+    expect(component.lineageLabel([legacy], 'successor')).toBe('Succeeded by SO');
+    expect(component.lineageLabel([{ code: 10961, name: '' }], 'predecessor')).toBe('Succeeds #10961');
+    expect(component.lineageTooltip([legacy])).toBe('');
+  });
+
+  it('should spell out every relation type as what happened', () => {
+    const label = (relationType?: 'NEW' | 'SUCCESSOR' | 'MERGE' | 'SPLIT') =>
+      component.lineageLabel([{ ...seenFromSmo, relationType }], 'successor');
+
+    expect(label('NEW')).toBe('Succeeded by SO — renamed');
+    expect(label('SUCCESSOR')).toBe('Succeeded by SO — taken over');
+    expect(label('MERGE')).toBe('Succeeded by SO — merged');
+    expect(label('SPLIT')).toBe('Succeeded by SO — split');
+    expect(label(undefined)).toBe('Succeeded by SO');
+  });
+
+  it('should describe the relation identically on both of its ends', () => {
+    // Built from the absolute ids alone, so the two rows quote the same
+    // relation. Tooltips that stop matching are two different relations.
+    expect(component.lineageTooltip([seenFromSmo])).toBe('221 → 10961 · taken over on 2026-08-15');
+    expect(component.lineageTooltip([seenFromSo])).toBe(component.lineageTooltip([seenFromSmo]));
+  });
+
+  it('should describe every edge the cell lists, not just the first', () => {
+    // A tooltip built from links[0] asserted one relation while the cell
+    // enumerated all of them. MERGE and SPLIT — both offered by the dialog —
+    // are exactly the shapes that produce more than one edge.
+    const split = [
+      seenFromSmo,
+      {
+        code: 10962,
+        name: 'Second Office',
+        acronym: 'SEC',
+        direction: 'successor' as const,
+        predecessorCode: 221,
+        successorCode: 10962,
+        relationType: 'SPLIT' as const,
+        changeDate: '2026-08-15',
+      },
+    ];
+
+    expect(component.lineageTooltip(split)).toBe(
+      '221 → 10961 · taken over on 2026-08-15; 221 → 10962 · split on 2026-08-15',
+    );
+    // Both ends named in the cell are named in the tooltip too.
+    expect(component.lineageLabel(split, 'successor')).toBe(
+      'Succeeded by SO — taken over, Succeeded by SEC — split',
+    );
+    expect(component.lineageTooltip([])).toBe('');
+  });
+
+  /**
+   * The three shapes the API can have while this panel is deployed, read as the
+   * two cells of the reported case: "Replaced by" on the SMO row (221) and
+   * "Replaces" on the System Office row (10961). In none of them may the same
+   * role land on both ends — that was the bug Santi reported.
+   */
+  describe('lineage cell across the deploy window', () => {
+    const cells = (replacedByEntry: any, replacesEntry: any) => ({
+      // 221, "Replaced by": the array holds successors.
+      replacedBy: component.lineageLabel([replacedByEntry], 'successor'),
+      // 10961, "Replaces": the array holds predecessors.
+      replaces: component.lineageLabel([replacesEntry], 'predecessor'),
+    });
+
+    it('reads the absolute codes when the API publishes them', () => {
+      const { replacedBy, replaces } = cells(seenFromSmo, seenFromSo);
+
+      expect(replacedBy).toBe('Succeeded by SO — taken over');
+      expect(replaces).toBe('Succeeds SMO — taken over');
+      expect(replacedBy).not.toBe(replaces);
+    });
+
+    it('falls back to direction when only that is published', () => {
+      const { predecessorCode: _p1, successorCode: _s1, ...smoOnlyDirection } = seenFromSmo;
+      const { predecessorCode: _p2, successorCode: _s2, ...soOnlyDirection } = seenFromSo;
+      const { replacedBy, replaces } = cells(smoOnlyDirection, soOnlyDirection);
+
+      expect(replacedBy).toBe('Succeeded by SO — taken over');
+      expect(replaces).toBe('Succeeds SMO — taken over');
+      expect(replacedBy).not.toBe(replaces);
+    });
+
+    it('still separates the two ends on production, which publishes neither', () => {
+      // No codes and no direction: the array the entry came from is all there
+      // is, which is why the caller is forced to state it.
+      const { direction: _d1, predecessorCode: _p1, successorCode: _s1, ...smoLegacy } = seenFromSmo;
+      const { direction: _d2, predecessorCode: _p2, successorCode: _s2, ...soLegacy } = seenFromSo;
+      const { replacedBy, replaces } = cells(smoLegacy, soLegacy);
+
+      expect(replacedBy).toBe('Succeeded by SO — taken over');
+      expect(replaces).toBe('Succeeds SMO — taken over');
+      expect(replacedBy).not.toBe(replaces);
+    });
+  });
+
+  it('should keep the absolute codes of the edge on the table rows', () => {
+    const link = component.institutions[0].replacedBy[0];
+
+    expect(link.predecessorCode).toBe(1);
+    expect(link.successorCode).toBe(2);
+    expect(link.direction).toBe('successor');
+  });
+
+  it('should let the global filter match what an institution replaces', () => {
+    // Only the previous names of a rename used to be searchable, so a successor
+    // could not be found by the name of the institution it took over.
+    expect(component.institutions[1].searchText).toContain('Old Institution');
   });
 
   it('should reload with the selected status filter', () => {
