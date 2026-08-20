@@ -800,6 +800,31 @@ describe('InstitutionRepository lifecycle invariants', () => {
       }
       expect(sql.match(/coalesce\(/g)).toHaveLength(4);
     });
+
+    it('names both ends of every lineage edge with absolute ids', async () => {
+      // `direction` describes the institution named INSIDE the entry, so the
+      // predecessor's own record reads `successor`. A consumer reading it as
+      // the record's own role inverts the lineage and nothing fails: every id
+      // still resolves and every name still looks plausible. `predecessorCode`
+      // and `successorCode` are taken from the edge row itself, so both records
+      // of one relation publish the same pair and there is nothing to read
+      // backwards.
+      const sql = await capture(FindAllOptions.SHOW_ALL);
+
+      for (const edge of ['edge_out', 'edge_in']) {
+        expect(sql).toContain(`"predecessorCode", ${edge}.from_institution_id`);
+        expect(sql).toContain(`"successorCode", ${edge}.to_institution_id`);
+      }
+    });
+
+    it('leaves `direction` exactly as it was published', async () => {
+      // The consumers who reported the ambiguity were already told about this
+      // field, so the absolute ids go next to it, never instead of it.
+      const sql = await capture(FindAllOptions.SHOW_ALL);
+
+      expect(sql).toContain('"direction", "successor"');
+      expect(sql).toContain('"direction", "predecessor"');
+    });
   });
 });
 

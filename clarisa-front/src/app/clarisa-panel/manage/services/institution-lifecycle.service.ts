@@ -23,11 +23,29 @@ export type InstitutionValidityStatus = 'active' | 'ending' | 'ended';
  */
 export type InstitutionStatusFilter = 'active' | 'ended' | 'all';
 
+/** Which end of a lineage relation an institution sits on. */
+export type InstitutionLineageRole = 'predecessor' | 'successor';
+
 /** Lineage edge returned in replacedBy[] / replaces[]. */
 export interface InstitutionLineageLink {
   code: number;
   name: string;
   acronym?: string;
+  /**
+   * Role of the institution NAMED IN THIS ENTRY, not of the record it was read
+   * from: `replacedBy` entries are successors, `replaces` entries are
+   * predecessors. Optional because it only reaches the panel from an API that
+   * already publishes it.
+   */
+  direction?: InstitutionLineageRole;
+  /**
+   * The two ends of the relation, as absolute ids: they carry the same pair of
+   * values in the predecessor record and in the successor one. They are what
+   * makes the direction impossible to read backwards, since neither depends on
+   * which array the entry was found in.
+   */
+  predecessorCode?: number;
+  successorCode?: number;
   relationType?: InstitutionRelationType;
   changeDate?: string;
 }

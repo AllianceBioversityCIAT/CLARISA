@@ -6,6 +6,7 @@ import {
   InstitutionLifecyclePayload,
   InstitutionLifecycleService,
   InstitutionLineageLink,
+  InstitutionLineageRole,
   InstitutionRelationType,
   InstitutionStatusFilter,
   InstitutionValidityStatus,
@@ -71,6 +72,18 @@ export class InstitutionLifecycleComponent implements OnInit {
     { label: 'MERGE', value: 'MERGE', hint: 'Merged into another institution' },
     { label: 'SPLIT', value: 'SPLIT', hint: 'Split into other institutions' }
   ];
+
+  /**
+   * Wording of each relation type. `SUCCESSOR` is the one that made the cell
+   * unreadable: printed raw it looks like the role of whichever institution it
+   * sits next to, which is exactly what it is not.
+   */
+  private static readonly RELATION_TEXT: Record<InstitutionRelationType, string> = {
+    NEW: 'renamed',
+    SUCCESSOR: 'taken over',
+    MERGE: 'merged',
+    SPLIT: 'split'
+  };
 
   form: FormGroup;
 
@@ -288,17 +301,109 @@ export class InstitutionLifecycleComponent implements OnInit {
     });
   }
 
-  /** Human readable "replaced by" cell. */
-  lineageLabel(links: InstitutionLineageLink[]): string {
+  /**
+   * Human readable lineage cell.
+   *
+   * Two facts used to be printed as one: the cell showed the relation type in
+   * parentheses, and `SUCCESSOR` there reads as a role. The same
+   * `SMO (SUCCESSOR)` then appeared on both ends of the relation, so the table
+   * never said which institution came first. The role of the counterpart now
+   * comes out in the verb, and the relation type is spelled as what happened.
+   *
+   * `arrayRole` is the role the entries of this array have by construction —
+   * `replacedBy` names successors, `replaces` names predecessors — and it is
+   * only a fallback: whenever the edge itself carries its direction that is
+   * what wins, so a column bound to the wrong array cannot flip the lineage.
+   *
+   * It has no default on purpose. A default is only ever reached by an API that
+   * publishes neither the codes nor the direction, which is exactly what
+   * production answers today — the deploy window this panel has to survive. A
+   * `replaces` column written without the argument would then print
+   * "Succeeded by SMO" on the successor row: the reported bug, back in silence.
+   * Making it required moves that mistake to compile time.
+   */
+  lineageLabel(links: InstitutionLineageLink[], arrayRole: InstitutionLineageRole): string {
     if (!links?.length) {
       return '';
     }
     return links
       .map((link) => {
         const name = link.acronym || link.name || `#${link.code}`;
-        return link.relationType ? `${name} (${link.relationType})` : name;
+        const verb = this.counterpartRole(link, arrayRole) === 'predecessor' ? 'Succeeds' : 'Succeeded by';
+        const change = this.relationText(link.relationType);
+        return change ? `${verb} ${name} — ${change}` : `${verb} ${name}`;
       })
       .join(', ');
+  }
+
+  /**
+   * The relations behind the cell, as the API states them.
+   *
+   * It takes the whole array, the same one `lineageLabel` prints. The tooltip
+   * used to be built from `links[0]` while the cell listed every edge, so a
+   * MERGE or a SPLIT — the two shapes the dialog itself offers — got a tooltip
+   * asserting one relation next to a cell naming several. Today's lineage is
+   * 1:1, so this is the cell and the tooltip agreeing by construction rather
+   * than by luck.
+   */
+  lineageTooltip(links: InstitutionLineageLink[]): string {
+    if (!links?.length) {
+      return '';
+    }
+    // `; ` separates edges because ` · ` is already the separator inside one.
+    // Edges the API cannot be quoted on contribute nothing instead of a blank.
+    return links
+      .map((link) => this.edgeTooltip(link))
+      .filter(Boolean)
+      .join('; ');
+  }
+
+  /**
+   * A single edge, with no room for a reader to invert it: it is built from the
+   * absolute ids only, so it comes out identical on the predecessor row and on
+   * the successor one. Two rows whose tooltips disagree are two rows describing
+   * different relations.
+   */
+  private edgeTooltip(link: InstitutionLineageLink): string {
+    const change = this.relationText(link.relationType);
+    const when = change && link.changeDate ? `${change} on ${link.changeDate}` : change || (link.changeDate ? `changed on ${link.changeDate}` : '');
+    if (!link.predecessorCode || !link.successorCode) {
+      // An API that does not publish the absolute ids yet cannot be quoted on
+      // the direction, so the tooltip states the change and nothing else.
+      return when;
+    }
+    const relation = `${link.predecessorCode} → ${link.successorCode}`;
+    return when ? `${relation} · ${when}` : relation;
+  }
+
+  /**
+   * Role of the institution named in the entry, relative to the row being read.
+   *
+   * The absolute ids are asked first because they are the only reading that
+   * survives being passed the wrong array: they name both ends of the relation
+   * with the same values in either record. `direction` is the API saying the
+   * same thing in one word, and the array the entry came from is the last
+   * resort, for a back end that publishes neither.
+   */
+  private counterpartRole(link: InstitutionLineageLink, arrayRole: InstitutionLineageRole): InstitutionLineageRole {
+    const { predecessorCode, successorCode } = link;
+    if (predecessorCode && successorCode && predecessorCode !== successorCode) {
+      if (link.code === successorCode) {
+        return 'successor';
+      }
+      if (link.code === predecessorCode) {
+        return 'predecessor';
+      }
+    }
+    if (link.direction === 'predecessor' || link.direction === 'successor') {
+      return link.direction;
+    }
+    return arrayRole;
+  }
+
+  /** The relation type as what happened, so no word in the cell reads as a role. */
+  private relationText(relationType: InstitutionRelationType | undefined): string {
+    return relationType ? InstitutionLifecycleComponent.RELATION_TEXT[relationType] ?? '' : '';
   }
 
   private mergeUpdatedRow(updated: InstitutionApiResponse): void {
@@ -362,7 +467,9 @@ export class InstitutionLifecycleComponent implements OnInit {
         raw.institutionType?.name,
         ...previousNames,
         ...previousAcronyms,
-        ...replacedBy.map((link) => `${link.acronym ?? ''} ${link.name ?? ''}`)
+        // Both ends, so a successor can be found by the name of what it
+        // replaced and not only through the previous names of a rename.
+        ...[...replacedBy, ...replaces].map((link) => `${link.acronym ?? ''} ${link.name ?? ''}`)
       ]
         .filter(Boolean)
         .join(' ')

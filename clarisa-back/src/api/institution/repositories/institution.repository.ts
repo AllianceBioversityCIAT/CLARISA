@@ -60,6 +60,20 @@ export class InstitutionRepository
    * `json_arrayagg` returns NULL and not an empty array when it matches no
    * rows, hence the coalesce: these arrays must never be null.
    *
+   * Every edge also carries `predecessorCode` and `successorCode`, the two ends
+   * of the relation as absolute ids. They are the same pair in both records —
+   * the predecessor and the successor publish `221` and `10961` alike — so a
+   * consumer can tell which way the change runs without knowing which array it
+   * is reading. `direction` cannot do that on its own: it names the end the
+   * institution INSIDE the entry sits on, so the predecessor's record says
+   * `successor`, and reading it as the record's own role silently inverts the
+   * lineage while every id still resolves and every name still looks plausible.
+   * `global_unit_lineage` already relies on the same INVARIANT in production —
+   * every edge names both of its ends — but not on the same VOCABULARY: there
+   * the two ends are the columns `from_global_unit_id` and `to_global_unit_id`,
+   * and that table carries no change date at all. So what is proven in
+   * production is the idea, not this pair of field names.
+   *
    * `previousAcronyms` and `previousNames` are lookup sets, NOT two columns of
    * the same table: a predecessor with no acronym contributes a name and no
    * acronym, so the two arrays can have different lengths and index `n` of one
@@ -73,6 +87,8 @@ export class InstitutionRepository
             "code", succ.id,
             "name", succ.name,
             "acronym", succ.acronym,
+            "predecessorCode", edge_out.from_institution_id,
+            "successorCode", edge_out.to_institution_id,
             "direction", "successor",
             "relationType", edge_out.relation_type,
             "changeDate", date_format(edge_out.change_date, '%Y-%m-%d')
@@ -86,6 +102,8 @@ export class InstitutionRepository
             "code", pred.id,
             "name", pred.name,
             "acronym", pred.acronym,
+            "predecessorCode", edge_in.from_institution_id,
+            "successorCode", edge_in.to_institution_id,
             "direction", "predecessor",
             "relationType", edge_in.relation_type,
             "changeDate", date_format(edge_in.change_date, '%Y-%m-%d')
