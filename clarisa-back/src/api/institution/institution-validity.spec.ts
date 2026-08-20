@@ -817,6 +817,25 @@ describe('InstitutionRepository lifecycle invariants', () => {
       }
     });
 
+    it('publishes the kind of change as an event, never as a role', async () => {
+      // A consumer read `direction: "predecessor"` and, one line below,
+      // `SUCCESSOR` — and stopped to ask which of the two was true. The stored
+      // vocabulary names a party to the change; the response names the change.
+      const sql = await capture(FindAllOptions.SHOW_ALL);
+
+      expect(sql).not.toContain('"relationType"');
+      for (const edge of ['edge_out', 'edge_in']) {
+        expect(sql).toContain(`"changeType", case ${edge}.relation_type`);
+      }
+      // 'NEW' says nothing about what happened, and 'SUCCESSOR' names a party.
+      expect(sql).toContain("when 'NEW' then 'RENAME'");
+      expect(sql).toContain("when 'SUCCESSOR' then 'SUCCESSION'");
+      // MERGE and SPLIT already name the event, so they fall through unchanged
+      // instead of being enumerated — a new value in the column reaches the
+      // response as itself rather than disappearing.
+      expect(sql).toMatch(/else edge_(out|in)\.relation_type end/);
+    });
+
     it('leaves `direction` exactly as it was published', async () => {
       // The consumers who reported the ambiguity were already told about this
       // field, so the absolute ids go next to it, never instead of it.

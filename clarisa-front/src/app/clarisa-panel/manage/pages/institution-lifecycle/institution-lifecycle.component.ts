@@ -6,8 +6,10 @@ import {
   InstitutionLifecyclePayload,
   InstitutionLifecycleService,
   InstitutionLineageLink,
+  InstitutionLineageChangeType,
   InstitutionLineageRole,
   InstitutionRelationType,
+  CHANGE_TYPE_TO_RELATION_TYPE,
   InstitutionStatusFilter,
   InstitutionValidityStatus,
 } from '../../services/institution-lifecycle.service';
@@ -74,13 +76,14 @@ export class InstitutionLifecycleComponent implements OnInit {
   ];
 
   /**
-   * Wording of each relation type. `SUCCESSOR` is the one that made the cell
-   * unreadable: printed raw it looks like the role of whichever institution it
-   * sits next to, which is exactly what it is not.
+   * Wording of each change type. Keyed by what the API publishes, which is the
+   * event (`SUCCESSION`) and not the party to it (`SUCCESSOR`) — printed raw,
+   * the latter looked like the role of whichever institution it sat next to,
+   * which is exactly what it is not.
    */
-  private static readonly RELATION_TEXT: Record<InstitutionRelationType, string> = {
-    NEW: 'renamed',
-    SUCCESSOR: 'taken over',
+  private static readonly CHANGE_TEXT: Record<InstitutionLineageChangeType, string> = {
+    RENAME: 'renamed',
+    SUCCESSION: 'taken over',
     MERGE: 'merged',
     SPLIT: 'split'
   };
@@ -160,7 +163,13 @@ export class InstitutionLifecycleComponent implements OnInit {
     this.form.reset({
       endDate: this.toDate(row.endDate),
       replacedByInstitutionId: currentLink ? currentLink.code : null,
-      relationType: currentLink?.relationType ?? 'NEW',
+      // The edge publishes the event (`SUCCESSION`); the dropdown and the write
+      // payload speak the stored vocabulary (`SUCCESSOR`), so it is translated
+      // back here instead of leaving the form on its default and overwriting a
+      // recorded relation with 'NEW' on the next save.
+      relationType: currentLink?.changeType
+        ? CHANGE_TYPE_TO_RELATION_TYPE[currentLink.changeType]
+        : 'NEW',
       // An edge that is already recorded keeps its date; a new one is offered
       // today, which is when the person filling the form is doing the change.
       changeDate: this.toDate(currentLink?.changeDate ?? null) ?? (currentLink ? null : new Date()),
@@ -330,7 +339,7 @@ export class InstitutionLifecycleComponent implements OnInit {
       .map((link) => {
         const name = link.acronym || link.name || `#${link.code}`;
         const verb = this.counterpartRole(link, arrayRole) === 'predecessor' ? 'Succeeds' : 'Succeeded by';
-        const change = this.relationText(link.relationType);
+        const change = this.changeText(link.changeType);
         return change ? `${verb} ${name} — ${change}` : `${verb} ${name}`;
       })
       .join(', ');
@@ -365,7 +374,7 @@ export class InstitutionLifecycleComponent implements OnInit {
    * different relations.
    */
   private edgeTooltip(link: InstitutionLineageLink): string {
-    const change = this.relationText(link.relationType);
+    const change = this.changeText(link.changeType);
     const when = change && link.changeDate ? `${change} on ${link.changeDate}` : change || (link.changeDate ? `changed on ${link.changeDate}` : '');
     if (!link.predecessorCode || !link.successorCode) {
       // An API that does not publish the absolute ids yet cannot be quoted on
@@ -401,9 +410,9 @@ export class InstitutionLifecycleComponent implements OnInit {
     return arrayRole;
   }
 
-  /** The relation type as what happened, so no word in the cell reads as a role. */
-  private relationText(relationType: InstitutionRelationType | undefined): string {
-    return relationType ? InstitutionLifecycleComponent.RELATION_TEXT[relationType] ?? '' : '';
+  /** The change type as what happened, so no word in the cell reads as a role. */
+  private changeText(changeType: InstitutionLineageChangeType | undefined): string {
+    return changeType ? InstitutionLifecycleComponent.CHANGE_TEXT[changeType] ?? '' : '';
   }
 
   private mergeUpdatedRow(updated: InstitutionApiResponse): void {
