@@ -3,9 +3,11 @@ import * as bodyparser from 'body-parser';
 import { AppModule } from './app.module';
 import { dataSource } from './ormconfig';
 import 'dotenv/config';
-import { VersioningType } from '@nestjs/common';
+import { INestApplication, VersioningType } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { versionExtractor } from './shared/interfaces/version-extractor';
 import { AppConfig } from './shared/utils/app-config';
+import { PUBLIC_OPENAPI_PATHS } from './shared/swagger/public-endpoints';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -19,6 +21,22 @@ async function bootstrap() {
   app.use(bodyparser.urlencoded({ limit: '100mb', extended: true }));
   app.use(bodyparser.json({ limit: '100mb' }));
   app.enableCors();
+
+  // El documento OpenAPI se genera durante el arranque, asi que un decorador
+  // invalido o una referencia circular en cualquier DTO lanza aqui. Sin este
+  // try/catch la excepcion sube por bootstrap(), queda como unhandled rejection
+  // y mata el proceso ANTES de app.listen(): caerian instituciones, glosario y
+  // todo el API por un fallo que solo afecta a la documentacion. La doc es
+  // prescindible, el API no.
+  try {
+    configurePublicOpenApi(app);
+  } catch (err) {
+    console.error(
+      'OpenAPI document generation failed. The API starts WITHOUT documentation; /api-docs and /api-docs-json will answer 404.',
+      err,
+    );
+  }
+
   await dataSource
     .initialize()
     .then(() => {
@@ -52,4 +70,83 @@ async function bootstrap() {
     })
     .filter((item) => item !== undefined);*/
 }
-bootstrap();
+/**
+ * Genera el documento OpenAPI publico y monta la UI.
+ *
+ * Vive aparte de bootstrap() para poder fallar sin arrastrar el arranque del
+ * API: es la unica parte del bootstrap que es prescindible en runtime.
+ */
+function configurePublicOpenApi(app: INestApplication): void {
+  // --- OpenAPI / Swagger ---
+  // El spec se autogenera desde los controllers/DTOs (plugin @nestjs/swagger
+  // ya activo en nest-cli.json). UI en /api-docs, spec JSON en /api-docs-json.
+  // El front custom (clarisa-panel/documentation) consume /api-docs-json.
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('CLARISA API')
+    .setDescription(
+      'CLARISA — the CGIAR catalogs-as-a-service. Official control lists of institutions, countries, regions, CGIAR entities, impact areas, SDGs, innovations, and more.',
+    )
+    .setVersion('2.0.0')
+    .addBearerAuth()
+    .build();
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+
+  // Exponer SOLO los endpoints publicos (control lists, GET de lectura).
+  // El resto del API (escritura, auth, admin) NO se documenta, aunque siga
+  // existiendo y protegido por sus guards. Ver shared/swagger/public-endpoints.
+  const allowed = new Set(PUBLIC_OPENAPI_PATHS);
+  const publicPaths: typeof swaggerDocument.paths = {};
+  for (const path of Object.keys(swaggerDocument.paths)) {
+    if (!allowed.has(path)) continue;
+    const ops = swaggerDocument.paths[path];
+    if (ops.get) {
+      // conservar unicamente el metodo GET de cada path publico
+      publicPaths[path] = { get: ops.get };
+    }
+  }
+  swaggerDocument.paths = publicPaths;
+
+  // Podar components.schemas a SOLO los DTOs referenciados (transitivamente)
+  // por los paths publicos. Asi el spec crudo no divulga modelos internos
+  // (UpdateUserDto, LoginDto, entidades de admin, etc.) -> "zero-leak".
+  const allSchemas = swaggerDocument.components?.schemas ?? {};
+  const usedSchemas = new Set<string>();
+  const collectRefs = (node: unknown): void => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      node.forEach(collectRefs);
+      return;
+    }
+    for (const [key, value] of Object.entries(node)) {
+      if (key === '$ref' && typeof value === 'string') {
+        const name = value.split('/').pop();
+        if (name && !usedSchemas.has(name)) {
+          usedSchemas.add(name);
+          collectRefs(allSchemas[name]); // resolver refs anidadas
+        }
+      } else {
+        collectRefs(value);
+      }
+    }
+  };
+  collectRefs(publicPaths);
+  if (swaggerDocument.components) {
+    const prunedSchemas: Record<string, unknown> = {};
+    for (const name of usedSchemas) {
+      if (allSchemas[name]) prunedSchemas[name] = allSchemas[name];
+    }
+    swaggerDocument.components.schemas = prunedSchemas as never;
+  }
+
+  SwaggerModule.setup('api-docs', app, swaggerDocument, {
+    jsonDocumentUrl: 'api-docs-json',
+    swaggerOptions: { persistAuthorization: true },
+  });
+}
+
+bootstrap().catch((err) => {
+  // Sin este catch, cualquier fallo del arranque queda como unhandled rejection
+  // y el proceso muere sin decir por que.
+  console.error('Fatal error during bootstrap', err);
+  process.exit(1);
+});

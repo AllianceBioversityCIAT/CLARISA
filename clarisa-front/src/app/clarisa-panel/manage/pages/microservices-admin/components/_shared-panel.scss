@@ -131,6 +131,30 @@
     color: #dc2626;
   }
 
+  /* Says out loud what each field expects, instead of leaving the absence of
+     an asterisk to mean "optional". */
+  .tag-req,
+  .tag-opt {
+    margin-left: 0.4rem;
+    border-radius: 999px;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
+
+  .tag-req {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .tag-opt {
+    background: #f1f5f9;
+    color: #94a3b8;
+  }
+
   .field-hint {
     display: block;
     margin-top: 0.25rem;
