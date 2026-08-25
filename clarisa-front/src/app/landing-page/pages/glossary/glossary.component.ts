@@ -16,6 +16,8 @@ const LOCALE = 'en';
 export class GlossaryComponent implements OnInit {
   /** Visible text per definition, so the search getter parses each one once. */
   private readonly visibleTextCache = new Map<string, string>();
+  /** Repaired markup per definition; the template asks once per change detection pass. */
+  private readonly renderableCache = new Map<string, string>();
 
   terms: GlossaryTerm[] = [];
   portfolios: any[] = [];
@@ -82,6 +84,35 @@ export class GlossaryComponent implements OnInit {
         return matchesSearch && matchesLetter;
       })
       .sort((a, b) => (a.term ?? '').localeCompare(b.term ?? '', LOCALE));
+  }
+
+  /**
+   * A definition as it can be handed to `[innerHTML]`.
+   *
+   * Angular sanitises the markup itself — scripts, event handlers and
+   * `javascript:` URLs never survive — so this only repairs an attribute the
+   * browser cannot parse: several definitions were imported from CSV with
+   * doubled quotes, `href=""https://…""`. The parser reads that as an empty
+   * `href` and the link silently leads nowhere, which is what "Climate change
+   * tag" does today on this page. The documentation viewer rebuilds the
+   * attribute in its own parser, so the same term reads correctly there and
+   * broken here.
+   *
+   * The stored value is the real defect and should be corrected in the admin
+   * panel; this keeps the page honest until it is, and for the next import that
+   * repeats it.
+   */
+  renderable(definition: string | null | undefined): string {
+    if (!definition) {
+      return '';
+    }
+    const cached = this.renderableCache.get(definition);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const repaired = definition.replace(/(\w+)=""([^"]*)""/g, '$1="$2"');
+    this.renderableCache.set(definition, repaired);
+    return repaired;
   }
 
   /**
