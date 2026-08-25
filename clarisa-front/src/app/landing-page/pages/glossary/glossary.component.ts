@@ -1,12 +1,22 @@
 import { Component, OnInit } from '@angular/core';
 import { GlossaryPageService, GlossaryTerm } from './services/glossary-page.service';
 
+/**
+ * Explicit locale for every comparison: with no argument, `localeCompare`
+ * follows the browser's, so the same glossary could order differently for two
+ * readers. The content is English.
+ */
+const LOCALE = 'en';
+
 @Component({
   selector: 'app-glossary',
   templateUrl: './glossary.component.html',
   styleUrls: ['./glossary.component.scss']
 })
 export class GlossaryComponent implements OnInit {
+  /** Visible text per definition, so the search getter parses each one once. */
+  private readonly visibleTextCache = new Map<string, string>();
+
   terms: GlossaryTerm[] = [];
   portfolios: any[] = [];
   searchText: string = '';
@@ -53,7 +63,7 @@ export class GlossaryComponent implements OnInit {
         letters.add(initial);
       }
     }
-    return Array.from(letters).sort((a, b) => a.localeCompare(b));
+    return Array.from(letters).sort((a, b) => a.localeCompare(b, LOCALE));
   }
 
   get filteredTerms(): GlossaryTerm[] {
@@ -61,11 +71,40 @@ export class GlossaryComponent implements OnInit {
     return this.portfolioFilteredTerms
       .filter(term => {
         const matchesSearch =
-          !search || term.term?.toLowerCase().includes(search) || term.definition?.toLowerCase().includes(search);
+          !search ||
+          term.term?.toLowerCase().includes(search) ||
+          // Definitions are stored with markup (`<br>`, `<a href>`, `&bull;`),
+          // so searching the raw string matched tag names and URLs the reader
+          // never sees: typing "href" or "br" returned hits. The comparison is
+          // against the visible text instead.
+          this.visibleText(term.definition).includes(search);
         const matchesLetter = this.selectedLetter == null || term.term?.trim().toUpperCase().startsWith(this.selectedLetter);
         return matchesSearch && matchesLetter;
       })
-      .sort((a, b) => (a.term ?? '').localeCompare(b.term ?? ''));
+      .sort((a, b) => (a.term ?? '').localeCompare(b.term ?? '', LOCALE));
+  }
+
+  /**
+   * The visible text of a definition, lowercased and cached.
+   *
+   * Definitions carry markup in the database, and parsing happens in an inert
+   * container: nothing is executed and nothing is attached to the document.
+   * Cached because this runs inside a getter that Angular re-evaluates on every
+   * change detection pass, once per term.
+   */
+  private visibleText(definition: string | null | undefined): string {
+    if (!definition) {
+      return '';
+    }
+    const cached = this.visibleTextCache.get(definition);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const holder = document.createElement('template');
+    holder.innerHTML = definition;
+    const text = (holder.content.textContent ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+    this.visibleTextCache.set(definition, text);
+    return text;
   }
 
   selectPortfolio(code: number | null) {
