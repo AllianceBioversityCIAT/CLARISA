@@ -14,6 +14,7 @@ import { InstitutionDictionary } from '../../institution-dictionary/entities/ins
 import { InstitutionType } from '../../institution-type/entities/institution-type.entity';
 import { PartnerRequest } from '../../partner-request/entities/partner-request.entity';
 import { InstitutionLocation } from './institution-location.entity';
+import { InstitutionLineage } from './institution-lineage.entity';
 import { Center } from '../../center/entities/center.entity';
 import { Project } from '../../project/entity/project.entity';
 
@@ -30,6 +31,17 @@ export class Institution {
 
   @Column({ type: 'text', nullable: true })
   website_link: string;
+
+  // validity period. `end_date` NULL means the institution is still valid and
+  // consumable; a date means it must no longer be used. Deliberately separate
+  // from `is_active`, which stays the generic soft-delete flag.
+  @Exclude()
+  @Column({ type: 'date', nullable: true })
+  start_date: string;
+
+  @Exclude()
+  @Column({ type: 'date', nullable: true })
+  end_date: string;
 
   //relations
 
@@ -75,6 +87,14 @@ export class Institution {
 
   @OneToMany(() => Project, (p) => p.funder_institution_object)
   funded_projects: Project[];
+
+  /** edges where this institution is the predecessor: who replaced it */
+  @OneToMany(() => InstitutionLineage, (il) => il.from_institution)
+  outgoing_lineages: InstitutionLineage[];
+
+  /** edges where this institution is the successor: who it replaced */
+  @OneToMany(() => InstitutionLineage, (il) => il.to_institution)
+  incoming_lineages: InstitutionLineage[];
 
   //auditable fields
 

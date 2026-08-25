@@ -94,7 +94,7 @@ export const endpointsInfo = [
             http_method: 'GET',
             request_json: 'null',
             response_json:
-              '{"type": "response", "order": null, "properties": {"term": {"type": "string", "order": 0, "properties": null, "column_name": "Term", "object_type": "field", "show_in_table": true}, "definition": {"type": "string", "order": 1, "properties": null, "column_name": "Definition", "object_type": "field", "show_in_table": true}}, "column_name": null, "object_type": "list", "show_in_table": false}',
+              '{"type": "response", "order": null, "properties": {"term": {"type": "string", "order": 0, "properties": null, "column_name": "Term", "object_type": "field", "show_in_table": true}, "definition": {"type": "string", "order": 1, "properties": null, "column_name": "Definition", "object_type": "field", "show_in_table": true}, "portfolios": {"type": "list", "order": 2, "properties": {"id": {"type": "number", "order": 0, "properties": null, "column_name": null, "object_type": "field", "show_in_table": false}, "name": {"type": "string", "order": 1, "properties": null, "column_name": "", "object_type": "field", "show_in_table": true}, "acronym": {"type": "string", "order": 2, "properties": null, "column_name": null, "object_type": "field", "show_in_table": false}}, "column_name": "Portfolios", "object_type": "chips", "show_in_table": true}}, "column_name": null, "object_type": "list", "show_in_table": false}',
           },
         ],
       },

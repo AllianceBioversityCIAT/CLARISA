@@ -12,18 +12,40 @@ import {
   UseInterceptors,
   ClassSerializerInterceptor,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { GlossaryService } from './glossary.service';
 import { UpdateGlossaryDto } from './dto/update-glossary.dto';
 import { Glossary } from './entities/glossary.entity';
 import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+@ApiTags('Glossary')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class GlossaryController {
   constructor(private readonly glossaryService: GlossaryService) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List glossary terms',
+    description:
+      'Each term includes a "portfolios" array with the CGIAR portfolios ' +
+      '(id, name, acronym) the term belongs to. ' +
+      "CLARISA Glossary is CGIAR's standardized glossary of terms used in " +
+      'performance management, planning, and reporting. It defines the common ' +
+      'vocabulary — covering structural concepts (Program, Accelerator, Area of ' +
+      'Work, Portfolio), results-framework terms (Output, Outcome, Impact, ' +
+      'Impact Area, Indicator, Theory of Change), and scaling/innovation terms ' +
+      '(Innovation Package, Scaling Readiness, IPSR) — so that Centers, ' +
+      'Programs & Accelerators use consistent definitions when planning work ' +
+      'and reporting results. Last updated August 2026.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
   findAll(@Query('show') show: FindAllOptions) {
     return this.glossaryService.findAll(show);
   }
