@@ -14,7 +14,13 @@
 <div class="glossary-filters">
   <span class="p-input-icon-left glossary-filters__search">
     <i class="pi pi-search"></i>
-    <input type="text" pInputText placeholder="Search term or definition" [(ngModel)]="search" (ngModelChange)="applyFilters()" />
+    <input
+      type="text"
+      pInputText
+      placeholder="Search term or definition"
+      aria-label="Search term or definition"
+      [(ngModel)]="search"
+      (ngModelChange)="applyFilters()" />
   </span>
 
   <p-dropdown
@@ -55,11 +61,11 @@
     responsiveLayout="scroll">
     <ng-template pTemplate="header">
       <tr>
-        <th style="width: 18rem">Term</th>
-        <th>Definition</th>
-        <th style="width: 14rem">Portfolios</th>
-        <th style="width: 7rem">Status</th>
-        <th style="width: 7rem">Actions</th>
+        <th scope="col" style="width: 18rem">Term</th>
+        <th scope="col">Definition</th>
+        <th scope="col" style="width: 14rem">Portfolios</th>
+        <th scope="col" style="width: 7rem">Status</th>
+        <th scope="col" style="width: 7rem">Actions</th>
       </tr>
     </ng-template>
 

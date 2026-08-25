@@ -53,7 +53,7 @@ export class GlossaryComponent implements OnInit {
         letters.add(initial);
       }
     }
-    return Array.from(letters).sort();
+    return Array.from(letters).sort((a, b) => a.localeCompare(b));
   }
 
   get filteredTerms(): GlossaryTerm[] {
