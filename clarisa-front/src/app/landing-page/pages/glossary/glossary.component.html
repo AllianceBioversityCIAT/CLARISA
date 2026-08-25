@@ -13,7 +13,7 @@
     <div class="glossary-toolbar">
       <div class="glossary-search">
         <i class="pi pi-search"></i>
-        <input type="text" [(ngModel)]="searchText" placeholder="Search a term or definition..." />
+        <input type="text" aria-label="Search a term or definition" [(ngModel)]="searchText" placeholder="Search a term or definition..." />
       </div>
 
       <div class="glossary-filters" *ngIf="filterPortfolios.length">

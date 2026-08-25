@@ -8,6 +8,14 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *
  * JSON_SET is additive and idempotent: it only writes the `portfolios`
  * property, preserving the rest of the JSON. down() removes that property.
+ *
+ * The row is admin-panel data, not something any migration seeds, and `route`
+ * carries no unique index — so an `UPDATE ... WHERE route = 'api/glossary'`
+ * matches zero rows **silently** if the endpoint was never registered, and the
+ * deploy still looks green while the panel renders no portfolios column. The
+ * statement below therefore checks what it affected and fails loudly instead.
+ * Verified on production before writing this: the row exists, with properties
+ * `term` and `definition`, so this guard is a safety net and not a wall.
  */
 export class AddPortfoliosToGlossaryDocsMetadata1784059095324
   implements MigrationInterface
@@ -15,7 +23,7 @@ export class AddPortfoliosToGlossaryDocsMetadata1784059095324
   name = 'AddPortfoliosToGlossaryDocsMetadata1784059095324';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
+    const result = await queryRunner.query(
       `UPDATE \`hp_clarisa_endpoints\`
        SET \`response_json\` = JSON_SET(
          \`response_json\`,
@@ -24,6 +32,17 @@ export class AddPortfoliosToGlossaryDocsMetadata1784059095324
        )
        WHERE \`route\` = 'api/glossary'`,
     );
+
+    if (Number(result?.affectedRows ?? 0) === 0) {
+      throw new Error(
+        "No row in hp_clarisa_endpoints has route = 'api/glossary', so the " +
+          'portfolios column was not added to the panel documentation. This ' +
+          'migration is metadata only and safe to re-run: register the ' +
+          'endpoint row for api/glossary and run the migration again. Failing ' +
+          'here on purpose — a silent no-op would leave the deploy looking ' +
+          'green with the column missing.',
+      );
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

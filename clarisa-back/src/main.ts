@@ -3,7 +3,7 @@ import * as bodyparser from 'body-parser';
 import { AppModule } from './app.module';
 import { dataSource } from './ormconfig';
 import 'dotenv/config';
-import { VersioningType } from '@nestjs/common';
+import { INestApplication, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { versionExtractor } from './shared/interfaces/version-extractor';
 import { AppConfig } from './shared/utils/app-config';
@@ -22,6 +22,61 @@ async function bootstrap() {
   app.use(bodyparser.json({ limit: '100mb' }));
   app.enableCors();
 
+  // El documento OpenAPI se genera durante el arranque, asi que un decorador
+  // invalido o una referencia circular en cualquier DTO lanza aqui. Sin este
+  // try/catch la excepcion sube por bootstrap(), queda como unhandled rejection
+  // y mata el proceso ANTES de app.listen(): caerian instituciones, glosario y
+  // todo el API por un fallo que solo afecta a la documentacion. La doc es
+  // prescindible, el API no.
+  try {
+    configurePublicOpenApi(app);
+  } catch (err) {
+    console.error(
+      'OpenAPI document generation failed. The API starts WITHOUT documentation; /api-docs and /api-docs-json will answer 404.',
+      err,
+    );
+  }
+
+  await dataSource
+    .initialize()
+    .then(() => {
+      console.log('Data Source has been initialized!');
+    })
+    .catch((err) => {
+      console.error('Error during Data Source initialization', err);
+    });
+  await app.listen(appConfig.appPort);
+  console.log(
+    `Our server is running on port ${appConfig.appPort} - Please go to "http://localhost:${appConfig.appPort}/" to access the application`,
+  );
+
+  /*TODO now that he know how to extract all the routes in the app
+    dynamically, we would need to update the "permissions" table
+    to have the most updated list of available endpoints
+  */
+  /*const server = app.getHttpServer();
+  const router = server._events.request._router;
+
+  const availableRoutes: [] = router.stack
+    .map((layer) => {
+      if (layer.route) {
+        return {
+          route: {
+            path: layer.route?.path,
+            method: layer.route?.stack[0].method,
+          },
+        };
+      }
+    })
+    .filter((item) => item !== undefined);*/
+}
+/**
+ * Genera el documento OpenAPI publico y monta la UI.
+ *
+ * Vive aparte de bootstrap() para poder fallar sin arrastrar el arranque del
+ * API: es la unica parte del bootstrap que es prescindible en runtime.
+ */
+function configurePublicOpenApi(app: INestApplication): void {
   // --- OpenAPI / Swagger ---
   // El spec se autogenera desde los controllers/DTOs (plugin @nestjs/swagger
   // ya activo en nest-cli.json). UI en /api-docs, spec JSON en /api-docs-json.
@@ -87,38 +142,11 @@ async function bootstrap() {
     jsonDocumentUrl: 'api-docs-json',
     swaggerOptions: { persistAuthorization: true },
   });
-
-  await dataSource
-    .initialize()
-    .then(() => {
-      console.log('Data Source has been initialized!');
-    })
-    .catch((err) => {
-      console.error('Error during Data Source initialization', err);
-    });
-  await app.listen(appConfig.appPort);
-  console.log(
-    `Our server is running on port ${appConfig.appPort} - Please go to "http://localhost:${appConfig.appPort}/" to access the application`,
-  );
-
-  /*TODO now that he know how to extract all the routes in the app
-    dynamically, we would need to update the "permissions" table
-    to have the most updated list of available endpoints
-  */
-  /*const server = app.getHttpServer();
-  const router = server._events.request._router;
-
-  const availableRoutes: [] = router.stack
-    .map((layer) => {
-      if (layer.route) {
-        return {
-          route: {
-            path: layer.route?.path,
-            method: layer.route?.stack[0].method,
-          },
-        };
-      }
-    })
-    .filter((item) => item !== undefined);*/
 }
-bootstrap();
+
+bootstrap().catch((err) => {
+  // Sin este catch, cualquier fallo del arranque queda como unhandled rejection
+  // y el proceso muere sin decir por que.
+  console.error('Fatal error during bootstrap', err);
+  process.exit(1);
+});

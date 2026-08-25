@@ -54,6 +54,7 @@
         pInputTextarea
         rows="8"
         class="paste-area"
+        aria-label="Spreadsheet rows to import"
         placeholder="term&#9;definition&#10;Impact Area&#9;One of the five CGIAR areas where impact is pursued."
         [(ngModel)]="pastedText"></textarea>
       <button
@@ -268,11 +269,11 @@
   <p-table [value]="reviewRows" [rows]="20" [paginator]="reviewRows.length > 20" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
     <ng-template pTemplate="header">
       <tr>
-        <th style="width: 4rem">Row</th>
-        <th style="width: 7rem">Action</th>
-        <th style="width: 16rem">Term</th>
-        <th>Definition to be saved</th>
-        <th style="width: 11rem">Portfolios</th>
+        <th scope="col" style="width: 4rem">Row</th>
+        <th scope="col" style="width: 7rem">Action</th>
+        <th scope="col" style="width: 16rem">Term</th>
+        <th scope="col">Definition to be saved</th>
+        <th scope="col" style="width: 11rem">Portfolios</th>
       </tr>
     </ng-template>
 

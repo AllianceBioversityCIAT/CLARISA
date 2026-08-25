@@ -162,7 +162,7 @@ export class InstitutionLifecycleComponent implements OnInit {
     const currentLink = row.replacedBy.length ? row.replacedBy[0] : null;
     this.form.reset({
       endDate: this.toDate(row.endDate),
-      replacedByInstitutionId: currentLink ? currentLink.code : null,
+      replacedByInstitutionId: this.toSuccessorOptionId(currentLink?.code),
       // The edge publishes the event (`SUCCESSION`); the dropdown and the write
       // payload speak the stored vocabulary (`SUCCESSOR`), so it is translated
       // back here instead of leaving the form on its default and overwriting a
@@ -178,7 +178,7 @@ export class InstitutionLifecycleComponent implements OnInit {
     // Remembered so `submit` can tell a row that never had a successor (nothing
     // to send) from one whose recorded successor was just cleared, which the
     // API only removes when the key travels as an explicit null.
-    this.recordedSuccessorId = currentLink ? currentLink.code : null;
+    this.recordedSuccessorId = this.toSuccessorOptionId(currentLink?.code);
     this.refreshSuccessorCandidates();
     this.editVisible = true;
   }
@@ -504,6 +504,25 @@ export class InstitutionLifecycleComponent implements OnInit {
     today.setHours(0, 0, 0, 0);
 
     return end > today ? 'ending' : 'ended';
+  }
+
+  /**
+   * Translates the `code` a lineage entry publishes into the `id` the dropdown
+   * and the API speak (`where: { id: dto.replacedByInstitutionId }`).
+   *
+   * They hold the same value on every row today, which is why prefilling with
+   * the code has worked. If they ever diverge, the dropdown would find no
+   * option matching the code and paint itself empty while the component still
+   * believed a successor was recorded — and the next save could send a PATCH
+   * for the wrong institution. Falls back to the code when the candidate list
+   * has not loaded yet, which is the behaviour this replaces.
+   */
+  private toSuccessorOptionId(code: number | null | undefined): number | null {
+    if (code == null) {
+      return null;
+    }
+    const match = this.successorOptions.find((option) => Number(option.code) === Number(code));
+    return match ? Number(match.id) : Number(code);
   }
 
   private toOption(row: InstitutionRow): InstitutionOption {
