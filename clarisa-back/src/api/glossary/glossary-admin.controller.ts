@@ -14,6 +14,7 @@ import {
 import { ApiExcludeController } from '@nestjs/swagger';
 import { GlossaryAdminService } from './glossary-admin.service';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { PermissionGuard } from '../../shared/guards/permission.guard';
 import { GetUserData } from '../../shared/decorators/user-data.decorator';
 import { UserData } from '../../shared/interfaces/user-data';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
@@ -36,7 +37,14 @@ import {
  */
 @ApiExcludeController()
 @Controller('admin')
-@UseGuards(JwtAuthGuard)
+// `JwtAuthGuard` solo prueba QUIEN llama; `PermissionGuard` prueba que ese
+// alguien tenga permiso. Con el primero a solas, cualquier usuario
+// autenticado de CLARISA podia crear, editar y desactivar terminos y correr
+// cargas masivas que aterrizan en la pagina publica del glosario. El endpoint
+// de ciclo de vida de instituciones ya pone los dos; esta superficie no.
+// El permiso `/api/glossary/admin` lo siembra la migracion
+// SeedGlossaryAdminPermission: sin esa fila el modulo responde 403 a todos.
+@UseGuards(JwtAuthGuard, PermissionGuard)
 @UsePipes(
   new ValidationPipe({
     whitelist: true,
