@@ -5,6 +5,7 @@ import { GlossaryAdminService } from './glossary-admin.service';
 import { GlossaryRepository } from './repositories/glossary.repository';
 import { Glossary } from './entities/glossary.entity';
 import { Portfolio } from '../portfolio/entities/portfolio.entity';
+import { GlossaryPortfolio } from './entities/glossary-portfolio.entity';
 import { UserData } from '../../shared/interfaces/user-data';
 import {
   GlossaryBulkConflictPolicy,
@@ -32,6 +33,8 @@ describe('GlossaryAdminService', () => {
   let storedPortfolios: Partial<Portfolio>[];
   /** Result of the case-insensitive title lookup used by create/update. */
   let titleLookupResult: Partial<Glossary> | null;
+  /** Rows the fake `manager.find(GlossaryPortfolio, …)` returns. */
+  let storedGlossaryPortfolios: any[];
 
   let manager: any;
   let savedEntities: any[];
@@ -47,6 +50,7 @@ describe('GlossaryAdminService', () => {
       portfolio(3, 'P25'),
     ];
     titleLookupResult = null;
+    storedGlossaryPortfolios = [];
     savedEntities = [];
 
     manager = {
@@ -61,6 +65,14 @@ describe('GlossaryAdminService', () => {
         }
         if (entity === Glossary) {
           return Promise.resolve(storedGlossary);
+        }
+        if (entity === GlossaryPortfolio) {
+          const glossaryId = Number(options?.where?.glossary_id);
+          return Promise.resolve(
+            storedGlossaryPortfolios.filter(
+              (gp) => Number(gp.glossary_id) === glossaryId,
+            ),
+          );
         }
         return Promise.resolve([]);
       }),
@@ -453,6 +465,80 @@ describe('GlossaryAdminService', () => {
 
       expect(result.summary.skipped).toBe(1);
       expect(manager.save).not.toHaveBeenCalled();
+    });
+
+    it('keeps the portfolios of a term when the upload maps no portfolio column', async () => {
+      // The regression this covers: `syncPortfolios` deactivates every
+      // association absent from the list it receives, and this path used to
+      // call it unconditionally. An upload meant to fix a definition, with no
+      // portfolio column mapped and no batch portfolio chosen, therefore
+      // stripped every term it touched out of the public page's filter.
+      const stored = {
+        id: 1,
+        title: 'Outcome',
+        definition: 'old',
+        auditableFields: { is_active: true } as any,
+      };
+      storedGlossary = [stored];
+      manager.findOne.mockResolvedValue(stored);
+      storedGlossaryPortfolios = [
+        {
+          glossary_id: 1,
+          portfolio_id: 2,
+          auditableFields: { is_active: true },
+        },
+      ];
+
+      await service.bulkImport(
+        {
+          rows: [{ term: 'Outcome', definition: 'new' }],
+          on_conflict: GlossaryBulkConflictPolicy.UPDATE,
+        },
+        userData,
+      );
+
+      expect(storedGlossaryPortfolios[0].auditableFields.is_active).toBe(true);
+      expect(
+        savedEntities.some(
+          (e) =>
+            e && e.portfolio_id === 2 && e.auditableFields?.is_active === false,
+        ),
+      ).toBe(false);
+    });
+
+    it('still syncs portfolios when the upload does ask for them', async () => {
+      const stored = {
+        id: 1,
+        title: 'Outcome',
+        definition: 'old',
+        auditableFields: { is_active: true } as any,
+      };
+      storedGlossary = [stored];
+      manager.findOne.mockResolvedValue(stored);
+      storedGlossaryPortfolios = [
+        {
+          glossary_id: 1,
+          portfolio_id: 2,
+          auditableFields: { is_active: true },
+        },
+      ];
+
+      await service.bulkImport(
+        {
+          rows: [{ term: 'Outcome', definition: 'new' }],
+          portfolio_ids: [3],
+          on_conflict: GlossaryBulkConflictPolicy.UPDATE,
+        },
+        userData,
+      );
+
+      // Asking for portfolio 3 does mean portfolio 2 is no longer wanted.
+      expect(storedGlossaryPortfolios[0].auditableFields.is_active).toBe(false);
+      expect(
+        savedEntities
+          .flat()
+          .some((e: any) => e && Number(e.portfolio_id) === 3),
+      ).toBe(true);
     });
   });
 });

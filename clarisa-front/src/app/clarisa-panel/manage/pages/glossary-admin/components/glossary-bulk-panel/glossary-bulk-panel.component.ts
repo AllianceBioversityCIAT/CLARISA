@@ -14,6 +14,12 @@ import { matchDropdownPanelToTrigger } from '../../../../utils/dropdown-panel-wi
 import { apiErrorMessage } from '../../utils/api-error-message';
 import { buildColumnOptions, ColumnOption, MAX_GENERATED_COLUMN_OPTIONS } from '../../utils/column-options';
 
+/**
+ * Hard ceiling for an uploaded spreadsheet, checked before parsing. The API
+ * caps the batch at 2000 rows, which is a few hundred KB of text.
+ */
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
 type WizardStep = 'source' | 'mapping' | 'review' | 'done';
 
 @Component({
@@ -105,9 +111,30 @@ export class GlossaryBulkPanelComponent implements OnInit {
       return;
     }
 
+    // Checked before reading a single byte. The row cap lives in the API DTO
+    // and the sheet is parsed in this tab, so a very large file froze the
+    // browser long before anything could tell the user it was too big. A
+    // glossary upload of the maximum 2000 rows weighs a few hundred KB, so this
+    // ceiling only ever catches a file that was never going to work.
+    if (file.size > MAX_UPLOAD_BYTES) {
+      this._messageService.add({
+        severity: 'warn',
+        summary: 'File too large',
+        detail: `${file.name} weighs ${this.asMegabytes(file.size)} MB. The limit is ${this.asMegabytes(
+          MAX_UPLOAD_BYTES
+        )} MB — export just the glossary sheet, or paste the rows instead.`
+      });
+      input.value = '';
+      return;
+    }
+
     await this.readSource(() => this._parser.parseFile(file));
     // Allow re-selecting the same file after a failed attempt.
     input.value = '';
+  }
+
+  private asMegabytes(bytes: number): string {
+    return (bytes / (1024 * 1024)).toFixed(1);
   }
 
   async usePastedText(): Promise<void> {

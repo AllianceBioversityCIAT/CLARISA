@@ -441,12 +441,23 @@ export class GlossaryAdminService {
           await manager.save(Glossary, glossary);
         }
 
-        await this.syncPortfolios(
-          manager,
-          row.glossary_id,
-          portfolioIds,
-          userData.userId,
-        );
+        // Una lista vacia aqui significa "esta carga no mapeo columna de
+        // portafolios y no se eligio portafolio de lote", no "quitale todos
+        // los portafolios". `syncPortfolios` desactiva toda asociacion que no
+        // venga en la lista, asi que llamarlo con [] borraba en silencio los
+        // portafolios de cada termino tocado: una carga hecha para corregir
+        // definiciones sacaba los terminos del filtro de la pagina publica.
+        // `update()` ya se protege con `if (dto.portfolio_ids !== undefined)`;
+        // esta ruta no lo hacia. Quitar todos los portafolios de un termino
+        // sigue siendo posible desde el CRUD individual.
+        if (portfolioIds.length) {
+          await this.syncPortfolios(
+            manager,
+            row.glossary_id,
+            portfolioIds,
+            userData.userId,
+          );
+        }
       }
 
       return {
