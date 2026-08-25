@@ -91,7 +91,16 @@ export class AddGlossaryPortfoliosTable1784048596207
       true,
     );
 
-    await queryRunner.createForeignKeys('glossary_portfolios', [
+    // MySQL hace commit implicito del DDL, asi que la transaccion de TypeORM no
+    // protege la tabla ya creada: si esta migracion falla a mitad y el pipeline
+    // reintenta, `createTable` pasa por su flag `ifNotExists` pero estas FKs
+    // morian con ER_FK_DUP_NAME. Se crean solo las que falten, igual que hacen
+    // las otras cuatro migraciones de esta entrega.
+    const table = await queryRunner.getTable('glossary_portfolios');
+    const existingFks = new Set(
+      (table?.foreignKeys ?? []).map((fk) => fk.name).filter(Boolean),
+    );
+    const desiredFks = [
       new TableForeignKey({
         name: 'fk_glossary_portfolios_glossary',
         columnNames: ['glossary_id'],
@@ -108,15 +117,27 @@ export class AddGlossaryPortfoliosTable1784048596207
         onDelete: 'NO ACTION',
         onUpdate: 'NO ACTION',
       }),
-    ]);
+    ];
+    const missingFks = desiredFks.filter((fk) => !existingFks.has(fk.name));
+    if (missingFks.length) {
+      await queryRunner.createForeignKeys('glossary_portfolios', missingFks);
+    }
 
     // Backfill: every pre-existing glossary term belongs to the CGIAR
     // portfolio 2022-2024 (portfolios.id = 2), mirroring the term's is_active.
     // The FK above makes this fail loudly if portfolio 2 does not exist.
+    // `WHERE NOT EXISTS` en vez de un INSERT pelado: un reintento tras un fallo
+    // parcial habria violado `uq_glossary_portfolio`. Tampoco reactiva ni pisa
+    // filas que un admin haya editado despues, que es lo que haria un
+    // `ON DUPLICATE KEY UPDATE`.
     await queryRunner.query(
       `INSERT INTO \`glossary_portfolios\` (\`glossary_id\`, \`portfolio_id\`, \`is_active\`, \`created_by\`)
        SELECT g.\`id\`, 2, g.\`is_active\`, COALESCE(g.\`created_by\`, 3043)
-       FROM \`glossary\` g`,
+       FROM \`glossary\` g
+       WHERE NOT EXISTS (
+         SELECT 1 FROM \`glossary_portfolios\` gp
+         WHERE gp.\`glossary_id\` = g.\`id\` AND gp.\`portfolio_id\` = 2
+       )`,
     );
   }
 
