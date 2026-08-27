@@ -569,7 +569,7 @@ async function selectEndpoint(gi, ci, route) {
     }
     const arr = Array.isArray(raw) ? raw : [raw];
     state.rows = arr.map(r => flatten(r));
-    state.columns = deriveColumns(state.rows);
+    state.columns = deriveColumns(state.rows, route);
     state.filtered = state.rows;
     // Small catalogues (the glossary, countries, ...) open with every record on
     // one page — no pager to fight with. Big ones keep the paginated default.
@@ -591,11 +591,54 @@ function flatten(obj, prefix = '', depth = 0, out = {}) {
   return out;
 }
 
-function deriveColumns(rows) {
+// Columns a given endpoint carries but nobody reading the catalogue needs.
+// Keyed by route; a route absent from here hides nothing — the default stays
+// "show everything the payload returns". Requested by Santiago Sánchez
+// 2026-08-27: presentation-only fields on the two Areas lists, and the internal
+// ids of the outcomes table (its real numbering is the SMO code next to them).
+const HIDDEN_COLUMNS = {
+  'api/action-areas': ['icon', 'color'],
+  'api/impact-areas': ['icon', 'color'],
+  'api/action-area-outcomes': ['id', 'actionAreaId', 'outcomeId', 'outcomeIndicatorId']
+};
+
+// Acronyms and compounds that splitting camelCase would mangle ("Iso alpha 2").
+// Deliberately short: a miss falls back to the derived label, never to an error.
+const LABEL_OVERRIDES = {
+  id: 'ID', code: 'Code', name: 'Name', acronym: 'Acronym',
+  isoAlpha2: 'ISO Alpha-2', isoAlpha3: 'ISO Alpha-3',
+  um49Code: 'UN M49 code', umCode: 'UN M49 code',
+  smoCode: 'SMO code', outcomeSMOcode: 'SMO code',
+  outcomeIndicatorSMOcode: 'Indicator SMO code',
+  financialCode: 'Financial code', websiteLink: 'Website',
+  latitude: 'Latitude', longitude: 'Longitude'
+};
+
+// `regionDTO.parentRegion.name` -> `Region · Parent region · Name`.
+// The raw key is never replaced by this, only accompanied by it: the header
+// prints both, because a developer must still see the field they will have to
+// write in their own code.
+function humanizeColumn(key) {
+  return String(key).split('.').map(seg => {
+    if (LABEL_OVERRIDES[seg]) return LABEL_OVERRIDES[seg];
+    const bare = seg.replace(/(DTO|Dto)$/, '') || seg;
+    if (LABEL_OVERRIDES[bare]) return LABEL_OVERRIDES[bare];
+    const words = bare
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/([A-Za-z])(\d)/g, '$1 $2')
+      .replace(/[_-]+/g, ' ')
+      .trim()
+      .toLowerCase();
+    return words ? words.charAt(0).toUpperCase() + words.slice(1) : seg;
+  }).join(' · ');
+}
+
+function deriveColumns(rows, route) {
+  const hidden = HIDDEN_COLUMNS[route] || [];
   const cols = [];
   const seen = new Set();
   rows.slice(0, 200).forEach(r => Object.keys(r).forEach(k => { if (!seen.has(k)) { seen.add(k); cols.push(k); } }));
-  return cols;
+  return cols.filter(c => !hidden.includes(c));
 }
 
 function renderEndpointShell(loading, error = null) {
@@ -708,9 +751,18 @@ function renderTable() {
 
   const ths = state.columns.map(c => {
     const on = state.sortKey === c;
+    const label = humanizeColumn(c);
+    // Two lines on purpose: the readable label for whoever is reading the
+    // table, and underneath the exact field path, because this page exists so a
+    // developer can see what the response actually returns. Not a tooltip — a
+    // tooltip is invisible on touch and impossible to copy.
     return `<th onclick="sortBy('${esc(c)}')"
-      class="cursor-pointer select-none whitespace-nowrap border-b border-slate-200 bg-leaf-700 px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white transition hover:bg-leaf-700">
-      ${esc(c)} <span class="${on ? 'text-leaf-300' : 'text-leaf-400/50'}">${on ? (state.sortDir > 0 ? '▲' : '▼') : '↕'}</span></th>`;
+      class="cursor-pointer select-none whitespace-nowrap border-b border-slate-200 bg-leaf-700 px-4 py-2.5 text-left align-bottom text-white transition hover:bg-leaf-700">
+      <span class="text-[11px] font-bold uppercase tracking-wider">${esc(label)}</span>
+      <span class="${on ? 'text-leaf-300' : 'text-leaf-400/50'}">${on ? (state.sortDir > 0 ? '▲' : '▼') : '↕'}</span>
+      ${label.toLowerCase() !== String(c).toLowerCase()
+        ? `<span class="mt-0.5 block font-mono text-[10px] font-normal normal-case leading-none tracking-normal text-leaf-200/80">${esc(c)}</span>`
+        : ''}</th>`;
   }).join('');
 
   const trs = rows.map((r, i) => `
@@ -1243,14 +1295,20 @@ function exportName(ext) {
   const d = new Date().toISOString().slice(0, 10);
   return `CLARISA_${state.current.endpoint.name.replace(/\s+/g, '_')}_${d}.${ext}`;
 }
+// Exports carry the visible columns, keyed by the raw field path: a hidden
+// column is noise in the file too, but a renamed header would break whatever
+// script already reads it.
+function exportRows() {
+  return state.filtered.map(r => Object.fromEntries(state.columns.map(c => [c, r[c]])));
+}
 function exportExcel() {
-  const ws = XLSX.utils.json_to_sheet(state.filtered);
+  const ws = XLSX.utils.json_to_sheet(exportRows());
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'data');
   XLSX.writeFile(wb, exportName('xlsx'));
 }
 function exportCSV() {
-  const ws = XLSX.utils.json_to_sheet(state.filtered);
+  const ws = XLSX.utils.json_to_sheet(exportRows());
   download(new Blob(['﻿' + XLSX.utils.sheet_to_csv(ws)], { type: 'text/csv;charset=utf-8' }), exportName('csv'));
 }
 function exportJSON() {
