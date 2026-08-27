@@ -26,4 +26,4 @@
 ## 5. Verification
 
 - [x] 5.1 Browser check on the dev front against `clarisatest-back`: `GET api/countries` filtered by `indo` renders `Region · Name` over `regionDTO.name` — capture a before/after screenshot for the ticket
-- [ ] 5.2 Share the after-screenshot with Santiago (the reporter) before closing
+- [x] 5.2 Shared with Santiago on the DM (2026-08-27 09:40) with the deployed result and direct links. He validated at 11:05: "ya quedó". He asked to review separately, later, which data each table should show
