@@ -183,8 +183,10 @@
 }
 
 .card-source__label {
+  /* The separating space lives in the markup, not here: a margin looks right on
+     screen but disappears when the line is copied or read aloud, leaving
+     "Source:CGIAR …". */
   font-weight: 600;
-  margin-right: 4px;
 }
 
 .card-source__date {
