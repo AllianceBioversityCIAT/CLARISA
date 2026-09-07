@@ -8,7 +8,9 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -55,11 +57,23 @@ export class GlossaryAdminDto {
   id: number;
   term: string;
   definition: string;
+  source: string | null;
+  source_url: string | null;
+  /** ISO day (`YYYY-MM-DD`), never a timestamp — see the entity. */
+  reference_date: string | null;
   is_active: boolean;
   show_in_dashboard: boolean;
   application_name: string;
   portfolios: GlossaryTermPortfolioDto[];
 }
+
+/**
+ * `YYYY-MM-DD`, the only shape accepted for a reference date.
+ *
+ * `@IsDateString()` would also take a full ISO timestamp and let a timezone
+ * shift the stored day, which is exactly what the `date` column avoids.
+ */
+export const REFERENCE_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export class CreateGlossaryTermDto {
   @IsString()
@@ -76,6 +90,22 @@ export class CreateGlossaryTermDto {
   @IsInt({ each: true })
   @Type(() => Number)
   portfolio_ids?: number[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  source?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  source_url?: string;
+
+  @IsOptional()
+  @Matches(REFERENCE_DATE_PATTERN, {
+    message: 'The reference date must be a calendar day in YYYY-MM-DD format',
+  })
+  reference_date?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -104,6 +134,28 @@ export class UpdateGlossaryTermDto {
   @IsInt({ each: true })
   @Type(() => Number)
   portfolio_ids?: number[];
+
+  /**
+   * The three provenance fields accept an empty string on update, which clears
+   * the stored value. Without it a source entered by mistake could only be
+   * replaced, never removed.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  source?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  source_url?: string;
+
+  @IsOptional()
+  @Matches(REFERENCE_DATE_PATTERN, {
+    message: 'The reference date must be a calendar day in YYYY-MM-DD format',
+  })
+  @ValidateIf((_, value) => value !== '' && value !== null)
+  reference_date?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -137,6 +189,31 @@ export class GlossaryBulkRowDto {
   @IsInt({ each: true })
   @Type(() => Number)
   portfolio_ids?: number[];
+
+  /**
+   * Provenance mapped column by column from the file. Optional per row: a
+   * spreadsheet that documents the source for half its terms still imports,
+   * and the rows without it simply carry no attribution.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  source?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  source_url?: string;
+
+  /**
+   * Validated but never rejected at the DTO level: an unreadable date in one
+   * row of a 2000-row file would fail the whole payload. The service marks
+   * that single row `invalid` instead, the way it already does for a missing
+   * term.
+   */
+  @IsOptional()
+  @IsString()
+  reference_date?: string;
 }
 
 export class GlossaryBulkDto {
@@ -176,6 +253,10 @@ export class GlossaryBulkRowResultDto {
   index: number;
   term: string;
   definition: string;
+  /** Provenance as it will be stored; `null` when the file did not map it. */
+  source: string | null;
+  source_url: string | null;
+  reference_date: string | null;
   action: GlossaryBulkRowAction;
   /** Id of the affected record. Null for `create` in preview mode. */
   glossary_id: number | null;

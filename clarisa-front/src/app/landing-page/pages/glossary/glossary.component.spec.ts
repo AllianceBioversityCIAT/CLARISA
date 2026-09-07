@@ -142,4 +142,44 @@ describe('GlossaryComponent', () => {
       expect(component.portfolioLabel('Something else')).toBe('Something else');
     });
   });
+
+  describe('safeSourceUrl', () => {
+    it('should keep http and https links', () => {
+      fixture.detectChanges();
+      expect(component.safeSourceUrl('https://www.cgiar.org/')).toBe('https://www.cgiar.org/');
+      expect(component.safeSourceUrl('http://www.cgiar.org/')).toBe('http://www.cgiar.org/');
+    });
+
+    it('should refuse a javascript or data URL instead of rendering a dead link', () => {
+      // The value is typed in the admin panel. Angular would bind it as
+      // `unsafe:javascript:…`, which looks like a working link and is not.
+      fixture.detectChanges();
+      expect(component.safeSourceUrl('javascript:alert(1)')).toBeNull();
+      expect(component.safeSourceUrl('data:text/html,<script>alert(1)</script>')).toBeNull();
+    });
+
+    it('should refuse anything that is not a URL at all', () => {
+      fixture.detectChanges();
+      expect(component.safeSourceUrl('www.cgiar.org')).toBeNull();
+      expect(component.safeSourceUrl('   ')).toBeNull();
+      expect(component.safeSourceUrl(null)).toBeNull();
+    });
+  });
+
+  describe('referenceDateLabel', () => {
+    it('should print the month of the stored day, not of the day before', () => {
+      // `new Date('2026-09-01')` is UTC midnight; formatted in Cali (UTC-5) it
+      // prints 31 August 2026 — the wrong month for the reader.
+      fixture.detectChanges();
+      expect(component.referenceDateLabel('2026-09-01')).toBe('September 2026');
+      expect(component.referenceDateLabel('2025-01-15')).toBe('January 2025');
+      expect(component.referenceDateLabel('2024-12-31')).toBe('December 2024');
+    });
+
+    it('should return an unrecognised value untouched instead of inventing a date', () => {
+      fixture.detectChanges();
+      expect(component.referenceDateLabel('Sept 2026')).toBe('Sept 2026');
+      expect(component.referenceDateLabel(null)).toBe('');
+    });
+  });
 });

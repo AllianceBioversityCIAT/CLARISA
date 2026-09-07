@@ -541,4 +541,176 @@ describe('GlossaryAdminService', () => {
       ).toBe(true);
     });
   });
+
+  // -------------------------------------------------------------- provenance
+
+  describe('source and reference date', () => {
+    it('stores the provenance sent on create', async () => {
+      manager.findOne.mockResolvedValue({
+        id: 99,
+        title: 'Impact Area',
+        auditableFields: { is_active: true },
+      });
+
+      await service.create(
+        {
+          term: 'Impact Area',
+          definition: 'A definition',
+          source: '  CGIAR 2025-2030 Portfolio Narrative  ',
+          source_url: 'https://www.cgiar.org/',
+          reference_date: '2025-01-15',
+        },
+        userData,
+      );
+
+      const created = savedEntities.find((e) => e && e.title === 'Impact Area');
+      expect(created.source).toBe('CGIAR 2025-2030 Portfolio Narrative');
+      expect(created.sourceUrl).toBe('https://www.cgiar.org/');
+      expect(created.referenceDate).toBe('2025-01-15');
+    });
+
+    it('stores an empty source as null, never as an empty string', async () => {
+      // An empty string would render a bare "Source:" line with nothing after
+      // it on the public page.
+      manager.findOne.mockResolvedValue({
+        id: 99,
+        title: 'Outcome',
+        auditableFields: { is_active: true },
+      });
+
+      await service.create(
+        {
+          term: 'Outcome',
+          definition: 'A definition',
+          source: '   ',
+          reference_date: '',
+        },
+        userData,
+      );
+
+      const created = savedEntities.find((e) => e && e.title === 'Outcome');
+      expect(created.source).toBeNull();
+      expect(created.referenceDate).toBeNull();
+    });
+
+    it('clears a stored source when the update sends it empty', async () => {
+      const stored = {
+        id: 1,
+        title: 'Outcome',
+        definition: 'A definition',
+        source: 'Wrong source',
+        sourceUrl: 'https://example.org/',
+        referenceDate: '2020-01-01',
+        auditableFields: { is_active: true } as any,
+      };
+      manager.findOne.mockResolvedValue(stored);
+
+      await service.update(1, { source: '', reference_date: '' }, userData);
+
+      expect(stored.source).toBeNull();
+      expect(stored.referenceDate).toBeNull();
+      // Not mentioned by the caller, so left exactly as it was.
+      expect(stored.sourceUrl).toBe('https://example.org/');
+    });
+
+    it('leaves the provenance untouched when the update does not mention it', async () => {
+      const stored = {
+        id: 1,
+        title: 'Outcome',
+        definition: 'old',
+        source: 'CGIAR 2025-2030 Portfolio Narrative',
+        referenceDate: '2025-01-15',
+        auditableFields: { is_active: true } as any,
+      };
+      manager.findOne.mockResolvedValue(stored);
+
+      await service.update(1, { definition: 'new' }, userData);
+
+      expect(stored.source).toBe('CGIAR 2025-2030 Portfolio Narrative');
+      expect(stored.referenceDate).toBe('2025-01-15');
+    });
+
+    it('keeps the stored source when a bulk upload maps no source column', async () => {
+      // Same trap as the portfolios above: an import that says nothing about
+      // the source must not strip the attribution of every term it touches.
+      const stored = {
+        id: 1,
+        title: 'Outcome',
+        definition: 'old',
+        source: 'CGIAR 2025-2030 Portfolio Narrative',
+        sourceUrl: 'https://www.cgiar.org/',
+        referenceDate: '2025-01-15',
+        auditableFields: { is_active: true } as any,
+      };
+      storedGlossary = [stored];
+      manager.findOne.mockResolvedValue(stored);
+
+      await service.bulkImport(
+        {
+          rows: [{ term: 'Outcome', definition: 'new' }],
+          on_conflict: GlossaryBulkConflictPolicy.UPDATE,
+        },
+        userData,
+      );
+
+      expect(stored.definition).toBe('new');
+      expect(stored.source).toBe('CGIAR 2025-2030 Portfolio Narrative');
+      expect(stored.sourceUrl).toBe('https://www.cgiar.org/');
+      expect(stored.referenceDate).toBe('2025-01-15');
+    });
+
+    it('overwrites the source when the bulk upload does bring one', async () => {
+      const stored = {
+        id: 1,
+        title: 'Outcome',
+        definition: 'old',
+        source: 'Old source',
+        referenceDate: null,
+        auditableFields: { is_active: true } as any,
+      };
+      storedGlossary = [stored];
+      manager.findOne.mockResolvedValue(stored);
+
+      await service.bulkImport(
+        {
+          rows: [
+            {
+              term: 'Outcome',
+              definition: 'new',
+              source: 'New source',
+              reference_date: '2026-09-07',
+            },
+          ],
+          on_conflict: GlossaryBulkConflictPolicy.UPDATE,
+        },
+        userData,
+      );
+
+      expect(stored.source).toBe('New source');
+      expect(stored.referenceDate).toBe('2026-09-07');
+    });
+
+    it('flags only the row whose reference date is unreadable, not the file', async () => {
+      // A single bad cell in a 2000-row file must not fail the whole payload.
+      const result = await service.bulkPreview({
+        rows: [
+          {
+            term: 'Good',
+            definition: 'A definition',
+            reference_date: '2026-09-07',
+          },
+          {
+            term: 'Bad',
+            definition: 'A definition',
+            reference_date: 'Sept 2026',
+          },
+        ],
+      });
+
+      expect(result.rows[0].action).not.toBe(GlossaryBulkRowAction.INVALID);
+      expect(result.rows[1].action).toBe(GlossaryBulkRowAction.INVALID);
+      expect(result.rows[1].message).toContain('Sept 2026');
+      expect(result.applied).toBe(false);
+    });
+  });
 });
