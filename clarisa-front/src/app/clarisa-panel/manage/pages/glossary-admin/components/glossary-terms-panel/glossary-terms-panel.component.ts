@@ -49,6 +49,11 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     this.form = this._formBuilder.group({
       term: ['', [Validators.required, Validators.maxLength(500)]],
       definition: ['', [Validators.required]],
+      source: ['', [Validators.maxLength(500)]],
+      source_url: ['', [Validators.maxLength(500)]],
+      // The API only accepts `YYYY-MM-DD`; the pattern rejects a mistyped day
+      // here instead of letting the request come back a 400.
+      reference_date: ['', [Validators.pattern(/^\d{4}-\d{2}-\d{2}$/)]],
       portfolio_ids: [[] as number[]],
       show_in_dashboard: [false]
     });
@@ -137,7 +142,15 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
 
   openCreate(): void {
     this.editingTerm = null;
-    this.form.reset({ term: '', definition: '', portfolio_ids: [], show_in_dashboard: false });
+    this.form.reset({
+      term: '',
+      definition: '',
+      source: '',
+      source_url: '',
+      reference_date: '',
+      portfolio_ids: [],
+      show_in_dashboard: false
+    });
     this.dialogVisible = true;
   }
 
@@ -146,6 +159,9 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     this.form.reset({
       term: term.term,
       definition: term.definition,
+      source: term.source ?? '',
+      source_url: term.source_url ?? '',
+      reference_date: term.reference_date ?? '',
       portfolio_ids: term.portfolios.map(portfolio => portfolio.id),
       show_in_dashboard: term.show_in_dashboard
     });
@@ -164,9 +180,15 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     }
 
     const value = this.form.value;
+    // The three provenance fields are always sent, empty string included: that
+    // is how the API is told to clear a source entered by mistake. Omitting
+    // them would leave the stored value untouched forever.
     const body = {
       term: (value.term ?? '').trim(),
       definition: (value.definition ?? '').trim(),
+      source: (value.source ?? '').trim(),
+      source_url: (value.source_url ?? '').trim(),
+      reference_date: (value.reference_date ?? '').trim(),
       portfolio_ids: value.portfolio_ids ?? [],
       show_in_dashboard: !!value.show_in_dashboard
     };

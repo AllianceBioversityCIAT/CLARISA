@@ -8,6 +8,22 @@ import { GlossaryPageService, GlossaryTerm } from './services/glossary-page.serv
  */
 const LOCALE = 'en';
 
+/** Fixed English month names: the glossary content is English regardless of the reader's locale. */
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December'
+];
+
 @Component({
   selector: 'app-glossary',
   templateUrl: './glossary.component.html',
@@ -136,6 +152,47 @@ export class GlossaryComponent implements OnInit {
     const text = (holder.content.textContent ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
     this.visibleTextCache.set(definition, text);
     return text;
+  }
+
+  /**
+   * The source link, only when it actually resolves to http(s).
+   *
+   * The value is typed in the admin panel, so it reaches this page as user
+   * input. Angular already refuses to bind a `javascript:` URL to `[href]`,
+   * but it does so by rewriting it to `unsafe:…`, which renders a link that
+   * looks real and leads nowhere. Checking here means a bad URL shows the
+   * source as plain text instead of a broken link.
+   */
+  safeSourceUrl(url: string | null | undefined): string | null {
+    const candidate = (url ?? '').trim();
+    if (!candidate) {
+      return null;
+    }
+    try {
+      const parsed = new URL(candidate);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? candidate : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * A reference date as a readable month and year, e.g. `2026-09-07` -> "September 2026".
+   *
+   * Parsed by parts and never with `new Date('2026-09-07')`: that form is read
+   * as UTC midnight, and formatting it in a timezone west of Greenwich — Cali
+   * included — prints the previous day, which for a date near a month boundary
+   * prints the previous month too.
+   */
+  referenceDateLabel(value: string | null | undefined): string {
+    const raw = (value ?? '').trim();
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+    if (!match) {
+      return raw;
+    }
+    const [, year, month] = match;
+    const monthName = MONTH_NAMES[Number(month) - 1];
+    return monthName ? `${monthName} ${year}` : raw;
   }
 
   selectPortfolio(code: number | null) {

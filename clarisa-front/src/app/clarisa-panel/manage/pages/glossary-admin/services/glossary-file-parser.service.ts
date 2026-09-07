@@ -296,7 +296,13 @@ export class GlossaryFileParserService {
    * Guesses which column holds the term and which one the definition, using
    * the usual header names. Returns -1 when nothing matches.
    */
-  detectColumns(headers: string[]): { termIndex: number; definitionIndex: number } {
+  detectColumns(headers: string[]): {
+    termIndex: number;
+    definitionIndex: number;
+    sourceIndex: number;
+    sourceUrlIndex: number;
+    referenceDateIndex: number;
+  } {
     const termNames = ['term', 'terms', 'concept', 'concepts', 'name', 'title', 'termino', 'término', 'concepto', 'nombre', 'acronym', 'word'];
     const definitionNames = [
       'definition',
@@ -337,6 +343,41 @@ export class GlossaryFileParserService {
       definitionIndex = -1;
     }
 
-    return { termIndex, definitionIndex };
+    const taken = [termIndex, definitionIndex];
+    const sourceUrlIndex = this.findOptionalColumn(normalized, ['source url', 'source link', 'url', 'link', 'enlace'], taken);
+    taken.push(sourceUrlIndex);
+    const sourceIndex = this.findOptionalColumn(normalized, ['source', 'reference', 'fuente', 'referencia'], taken);
+    taken.push(sourceIndex);
+    const referenceDateIndex = this.findOptionalColumn(
+      normalized,
+      ['reference date', 'source date', 'date', 'year', 'fecha', 'anio', 'año'],
+      taken
+    );
+
+    return { termIndex, definitionIndex, sourceIndex, sourceUrlIndex, referenceDateIndex };
+  }
+
+  /**
+   * Header lookup for the columns that are optional (source, link, date).
+   *
+   * Matched on whole words, unlike the term/definition lookup: a plain
+   * `includes` makes "Resource" match "source" and "Update" match "date", and
+   * an optional column guessed wrong is worse than one left unmapped — nothing
+   * on screen says the value came from the wrong column. Columns already
+   * claimed by another field are skipped, and -1 means "not in this file".
+   */
+  private findOptionalColumn(normalizedHeaders: string[], candidates: string[], taken: number[]): number {
+    const matches = (header: string, candidate: string): boolean =>
+      new RegExp(`(^|[^a-z\\u00e0-\\u00fc])${candidate.replace(/ /g, '[ _-]?')}([^a-z\\u00e0-\\u00fc]|$)`, 'i').test(header);
+
+    for (const candidate of candidates) {
+      const index = normalizedHeaders.findIndex(
+        (header, position) => !taken.includes(position) && position >= 0 && matches(header, candidate)
+      );
+      if (index !== -1) {
+        return index;
+      }
+    }
+    return -1;
   }
 }
