@@ -53,21 +53,13 @@ export class GlossaryAdminService {
   /**
    * A reference date as the calendar day it is, `YYYY-MM-DD`.
    *
-   * The column is `date`, but the mysql2 driver hands it back as a `Date` at
-   * local midnight. `toISOString()` would convert that to UTC and, west of
-   * Greenwich — Cali included — return the previous day. Reading the parts in
-   * local time keeps the day that was stored.
+   * TypeORM models a `date` column as a string, so the day is simply sliced —
+   * never parsed into a `Date` and formatted back. That round trip is what
+   * shifts the day: `new Date('2026-09-01')` is UTC midnight, and printing it
+   * west of Greenwich (Cali included) gives 31 August.
    */
-  private toIsoDay(value: Date | string | null | undefined): string | null {
-    if (!value) {
-      return null;
-    }
-    if (typeof value === 'string') {
-      return value.slice(0, 10);
-    }
-    const month = `${value.getMonth() + 1}`.padStart(2, '0');
-    const day = `${value.getDate()}`.padStart(2, '0');
-    return `${value.getFullYear()}-${month}-${day}`;
+  private toIsoDay(value: string | null | undefined): string | null {
+    return value ? value.slice(0, 10) : null;
   }
 
   /**
@@ -78,6 +70,31 @@ export class GlossaryAdminService {
   private toNullableText(value: string | null | undefined): string | null {
     const trimmed = (value ?? '').trim();
     return trimmed === '' ? null : trimmed;
+  }
+
+  /**
+   * Copies the provenance a caller actually sent onto the record.
+   *
+   * Each field is only touched when the key is present, so a partial update
+   * never clears one it did not mention. An empty string is sent on purpose
+   * and does clear the value.
+   */
+  private applyProvenance(
+    glossary: Glossary,
+    dto: Pick<
+      UpdateGlossaryTermDto,
+      'source' | 'source_url' | 'reference_date'
+    >,
+  ): void {
+    if (dto.source !== undefined) {
+      glossary.source = this.toNullableText(dto.source);
+    }
+    if (dto.source_url !== undefined) {
+      glossary.sourceUrl = this.toNullableText(dto.source_url);
+    }
+    if (dto.reference_date !== undefined) {
+      glossary.referenceDate = this.toNullableText(dto.reference_date);
+    }
   }
 
   private toPortfolioDto(portfolio: Portfolio): GlossaryTermPortfolioDto {
@@ -286,8 +303,7 @@ export class GlossaryAdminService {
         definition,
         source: this.toNullableText(dto.source),
         sourceUrl: this.toNullableText(dto.source_url),
-        referenceDate: (this.toNullableText(dto.reference_date) ??
-          null) as unknown as Date,
+        referenceDate: this.toNullableText(dto.reference_date),
         applicationName: dto.application_name ?? null,
         show_in_dashboard: dto.show_in_dashboard ?? false,
       });
@@ -348,21 +364,7 @@ export class GlossaryAdminService {
         glossary.definition = definition;
       }
 
-      // Each provenance field is only touched when the caller sent it, so a
-      // partial update never clears one it did not mention. An empty string is
-      // sent on purpose and clears the value.
-      if (dto.source !== undefined) {
-        glossary.source = this.toNullableText(dto.source);
-      }
-
-      if (dto.source_url !== undefined) {
-        glossary.sourceUrl = this.toNullableText(dto.source_url);
-      }
-
-      if (dto.reference_date !== undefined) {
-        glossary.referenceDate = (this.toNullableText(dto.reference_date) ??
-          null) as unknown as Date;
-      }
+      this.applyProvenance(glossary, dto);
 
       if (dto.show_in_dashboard !== undefined) {
         glossary.show_in_dashboard = dto.show_in_dashboard;
@@ -455,63 +457,14 @@ export class GlossaryAdminService {
         const portfolioIds = row.portfolios.map((p) => p.id);
 
         if (row.action === GlossaryBulkRowAction.CREATE) {
-          const glossary = manager.create(Glossary, {
-            title: row.term,
-            definition: row.definition,
-            source: row.source,
-            sourceUrl: row.source_url,
-            referenceDate: row.reference_date as unknown as Date,
-            applicationName: dto.application_name ?? null,
-            show_in_dashboard: dto.show_in_dashboard ?? false,
-          });
-          glossary.auditableFields = {
-            ...glossary.auditableFields,
-            is_active: true,
-            created_by: userData.userId,
-          } as Glossary['auditableFields'];
-
-          const saved = await manager.save(Glossary, glossary);
-          row.glossary_id = Number(saved.id);
+          row.glossary_id = await this.createFromBulkRow(
+            manager,
+            row,
+            dto,
+            userData,
+          );
         } else {
-          // UPDATE and REACTIVATE write the same way; they differ only in what
-          // the review screen told the user was going to happen.
-          const glossary = await manager.findOne(Glossary, {
-            where: { id: row.glossary_id },
-          });
-
-          // The plan is built inside this same transaction, so the row is
-          // there. Guard anyway: a silent crash mid-import would be far worse
-          // than a clear message.
-          if (!glossary) {
-            throw new BadRequestException(
-              `The term "${row.term}" (row ${row.index}) no longer exists. Run the preview again.`,
-            );
-          }
-
-          glossary.definition = row.definition;
-          glossary.title = row.term;
-
-          // Same trap as the portfolios below: a file that did not map a
-          // provenance column means "this import says nothing about the
-          // source", not "clear it". Overwriting with null would strip the
-          // attribution of every term touched by an import meant to fix
-          // definitions. Clearing a source stays possible from the CRUD.
-          if (row.source !== null) {
-            glossary.source = row.source;
-          }
-          if (row.source_url !== null) {
-            glossary.sourceUrl = row.source_url;
-          }
-          if (row.reference_date !== null) {
-            glossary.referenceDate = row.reference_date as unknown as Date;
-          }
-
-          glossary.auditableFields.is_active = true;
-          glossary.auditableFields.updated_by = userData.userId;
-          if (dto.show_in_dashboard !== undefined) {
-            glossary.show_in_dashboard = dto.show_in_dashboard;
-          }
-          await manager.save(Glossary, glossary);
+          await this.updateFromBulkRow(manager, row, dto, userData);
         }
 
         // Una lista vacia aqui significa "esta carga no mapeo columna de
@@ -557,6 +510,78 @@ export class GlossaryAdminService {
       skipped: count(GlossaryBulkRowAction.SKIP),
       invalid: count(GlossaryBulkRowAction.INVALID),
     };
+  }
+
+  /** Writes a planned CREATE row and returns the id it was stored under. */
+  private async createFromBulkRow(
+    manager: EntityManager,
+    row: GlossaryBulkRowResultDto,
+    dto: GlossaryBulkDto,
+    userData: UserData,
+  ): Promise<number> {
+    const glossary = manager.create(Glossary, {
+      title: row.term,
+      definition: row.definition,
+      source: row.source,
+      sourceUrl: row.source_url,
+      referenceDate: row.reference_date,
+      applicationName: dto.application_name ?? null,
+      show_in_dashboard: dto.show_in_dashboard ?? false,
+    });
+    glossary.auditableFields = {
+      ...glossary.auditableFields,
+      is_active: true,
+      created_by: userData.userId,
+    } as Glossary['auditableFields'];
+
+    const saved = await manager.save(Glossary, glossary);
+    return Number(saved.id);
+  }
+
+  /**
+   * Writes a planned UPDATE or REACTIVATE row. Both write the same way; they
+   * differ only in what the review screen told the user was going to happen.
+   */
+  private async updateFromBulkRow(
+    manager: EntityManager,
+    row: GlossaryBulkRowResultDto,
+    dto: GlossaryBulkDto,
+    userData: UserData,
+  ): Promise<void> {
+    const glossary = await manager.findOne(Glossary, {
+      where: { id: row.glossary_id },
+    });
+
+    // The plan is built inside this same transaction, so the row is there.
+    // Guard anyway: a silent crash mid-import would be far worse than a clear
+    // message.
+    if (!glossary) {
+      throw new BadRequestException(
+        `The term "${row.term}" (row ${row.index}) no longer exists. Run the preview again.`,
+      );
+    }
+
+    glossary.definition = row.definition;
+    glossary.title = row.term;
+
+    // Same trap as the portfolios: a file that did not map a provenance column
+    // means "this import says nothing about the source", not "clear it".
+    // Overwriting with null would strip the attribution of every term touched
+    // by an import meant to fix definitions. Clearing one stays possible from
+    // the CRUD.
+    this.applyProvenance(glossary, {
+      source: row.source ?? undefined,
+      source_url: row.source_url ?? undefined,
+      reference_date: row.reference_date ?? undefined,
+    });
+
+    glossary.auditableFields.is_active = true;
+    glossary.auditableFields.updated_by = userData.userId;
+    if (dto.show_in_dashboard !== undefined) {
+      glossary.show_in_dashboard = dto.show_in_dashboard;
+    }
+
+    await manager.save(Glossary, glossary);
   }
 
   /**

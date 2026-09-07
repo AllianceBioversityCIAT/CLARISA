@@ -89,7 +89,7 @@ describe('Glossary serialization', () => {
     const glossary = buildGlossary([]);
     glossary.source = 'CGIAR 2025-2030 Portfolio Narrative';
     glossary.sourceUrl = 'https://www.cgiar.org/';
-    glossary.referenceDate = '2025-01-15' as unknown as Date;
+    glossary.referenceDate = '2025-01-15';
 
     const plain = instanceToPlain(glossary);
     expect(plain.source).toBe('CGIAR 2025-2030 Portfolio Narrative');

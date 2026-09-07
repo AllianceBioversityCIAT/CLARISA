@@ -251,12 +251,20 @@ export class GlossaryBulkPanelComponent implements OnInit {
   }
 
   private buildBody(): GlossaryBulkBody {
+    // Read into locals so the mapping is narrowed once instead of asserted on
+    // every row: `mappingReady` already guarantees the two required ones.
+    const termColumn = this.termColumn ?? 0;
+    const definitionColumn = this.definitionColumn ?? 0;
+    const sourceColumn = this.sourceColumn;
+    const sourceUrlColumn = this.sourceUrlColumn;
+    const referenceDateColumn = this.referenceDateColumn;
+
     const rows: GlossaryBulkRow[] = (this.table?.rows ?? []).map(row => ({
-      term: row[this.termColumn as number] ?? '',
-      definition: row[this.definitionColumn as number] ?? '',
-      ...(this.sourceColumn !== null ? { source: row[this.sourceColumn] ?? '' } : {}),
-      ...(this.sourceUrlColumn !== null ? { source_url: row[this.sourceUrlColumn] ?? '' } : {}),
-      ...(this.referenceDateColumn !== null ? { reference_date: this.normalizeReferenceDate(row[this.referenceDateColumn]) } : {})
+      term: row[termColumn] ?? '',
+      definition: row[definitionColumn] ?? '',
+      ...(sourceColumn !== null ? { source: row[sourceColumn] ?? '' } : {}),
+      ...(sourceUrlColumn !== null ? { source_url: row[sourceUrlColumn] ?? '' } : {}),
+      ...(referenceDateColumn !== null ? { reference_date: this.normalizeReferenceDate(row[referenceDateColumn]) } : {})
     }));
 
     return {

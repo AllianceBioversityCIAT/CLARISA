@@ -38,10 +38,14 @@ export class Glossary {
    * Date of the referenced material, not of the database row: it tells the
    * reader how current the definition is. `date` and not `timestamp` — the
    * sources are dated by day at best, and a timezone would shift the day.
+   *
+   * Typed `string` because that is what a `date` column is in TypeORM's model:
+   * the day travels as `YYYY-MM-DD` end to end and is never rebuilt into a
+   * `Date`, which would reintroduce the timezone that the column type avoids.
    */
   @Expose({ name: 'referenceDate' })
   @Column({ name: 'reference_date', type: 'date', nullable: true })
-  referenceDate: Date;
+  referenceDate: string;
 
   @Exclude({ toPlainOnly: true })
   @Column({ type: 'tinyint', nullable: false, default: () => '0' })

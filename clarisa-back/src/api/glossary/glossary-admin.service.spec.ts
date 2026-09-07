@@ -639,7 +639,7 @@ describe('GlossaryAdminService', () => {
         definition: 'old',
         source: 'CGIAR 2025-2030 Portfolio Narrative',
         sourceUrl: 'https://www.cgiar.org/',
-        referenceDate: '2025-01-15' as any,
+        referenceDate: '2025-01-15',
         auditableFields: { is_active: true } as any,
       };
       storedGlossary = [stored];
@@ -665,7 +665,7 @@ describe('GlossaryAdminService', () => {
         title: 'Outcome',
         definition: 'old',
         source: 'Old source',
-        referenceDate: null as any,
+        referenceDate: null,
         auditableFields: { is_active: true } as any,
       };
       storedGlossary = [stored];
