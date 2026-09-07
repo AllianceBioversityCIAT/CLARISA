@@ -166,6 +166,46 @@ describe('GlossaryComponent', () => {
     });
   });
 
+  describe('the rendered source line', () => {
+    const withProvenance = [
+      {
+        term: 'Impact Area',
+        definition: 'A definition',
+        source: 'CGIAR 2025-2030 Portfolio Narrative',
+        sourceUrl: 'https://www.cgiar.org/',
+        referenceDate: '2025-01-15',
+        portfolios: []
+      },
+      { term: 'Plain term', definition: 'No provenance', portfolios: [] }
+    ];
+
+    beforeEach(() => {
+      mockService.getGlossary.mockReturnValue(of(withProvenance));
+      fixture.detectChanges();
+    });
+
+    it('should not pad the link with whitespace the underline would paint', () => {
+      // A line break inside the <a> in the template becomes whitespace inside the
+      // anchor, and the underline extends over it: the link read as
+      // "_ CGIAR 2025-2030 Portfolio Narrative _" on the published page.
+      const link: HTMLAnchorElement = fixture.nativeElement.querySelector('.card-source a');
+      expect(link).toBeTruthy();
+      expect(link.textContent).toBe('CGIAR 2025-2030 Portfolio Narrative');
+      expect(link.getAttribute('href')).toBe('https://www.cgiar.org/');
+      expect(link.getAttribute('rel')).toBe('noopener');
+    });
+
+    it('should read as one sentence with the date', () => {
+      const line: HTMLElement = fixture.nativeElement.querySelector('.card-source');
+      expect(line.textContent.replace(/\s+/g, ' ').trim()).toBe('Source: CGIAR 2025-2030 Portfolio Narrative · January 2025');
+    });
+
+    it('should show no source line at all for a term without provenance', () => {
+      const lines = fixture.nativeElement.querySelectorAll('.card-source');
+      expect(lines.length).toBe(1);
+    });
+  });
+
   describe('referenceDateLabel', () => {
     it('should print the month of the stored day, not of the day before', () => {
       // `new Date('2026-09-01')` is UTC midnight; formatted in Cali (UTC-5) it
