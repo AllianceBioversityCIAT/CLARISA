@@ -20,6 +20,7 @@ import {
   GlossaryBulkRowAction,
   GlossaryBulkRowResultDto,
   GlossaryTermPortfolioDto,
+  REFERENCE_DATE_PATTERN,
   UpdateGlossaryTermDto,
 } from './dto/glossary-admin.dto';
 
@@ -49,6 +50,36 @@ export class GlossaryAdminService {
     return this.normalizeTerm(term).toLowerCase();
   }
 
+  /**
+   * A reference date as the calendar day it is, `YYYY-MM-DD`.
+   *
+   * The column is `date`, but the mysql2 driver hands it back as a `Date` at
+   * local midnight. `toISOString()` would convert that to UTC and, west of
+   * Greenwich — Cali included — return the previous day. Reading the parts in
+   * local time keeps the day that was stored.
+   */
+  private toIsoDay(value: Date | string | null | undefined): string | null {
+    if (!value) {
+      return null;
+    }
+    if (typeof value === 'string') {
+      return value.slice(0, 10);
+    }
+    const month = `${value.getMonth() + 1}`.padStart(2, '0');
+    const day = `${value.getDate()}`.padStart(2, '0');
+    return `${value.getFullYear()}-${month}-${day}`;
+  }
+
+  /**
+   * Normalizes an incoming provenance value: trimmed text, or `null` when the
+   * caller sent it empty. Storing `''` would make an empty source render as a
+   * blank "Source:" line on the public page.
+   */
+  private toNullableText(value: string | null | undefined): string | null {
+    const trimmed = (value ?? '').trim();
+    return trimmed === '' ? null : trimmed;
+  }
+
   private toPortfolioDto(portfolio: Portfolio): GlossaryTermPortfolioDto {
     return {
       id: Number(portfolio.id),
@@ -66,6 +97,9 @@ export class GlossaryAdminService {
       id: Number(glossary.id),
       term: glossary.title,
       definition: glossary.definition,
+      source: glossary.source ?? null,
+      source_url: glossary.sourceUrl ?? null,
+      reference_date: this.toIsoDay(glossary.referenceDate),
       is_active: !!glossary.auditableFields?.is_active,
       show_in_dashboard: !!glossary.show_in_dashboard,
       application_name: glossary.applicationName,
@@ -250,6 +284,10 @@ export class GlossaryAdminService {
       const glossary = manager.create(Glossary, {
         title,
         definition,
+        source: this.toNullableText(dto.source),
+        sourceUrl: this.toNullableText(dto.source_url),
+        referenceDate: (this.toNullableText(dto.reference_date) ??
+          null) as unknown as Date,
         applicationName: dto.application_name ?? null,
         show_in_dashboard: dto.show_in_dashboard ?? false,
       });
@@ -308,6 +346,22 @@ export class GlossaryAdminService {
           throw new BadRequestException('The definition cannot be empty');
         }
         glossary.definition = definition;
+      }
+
+      // Each provenance field is only touched when the caller sent it, so a
+      // partial update never clears one it did not mention. An empty string is
+      // sent on purpose and clears the value.
+      if (dto.source !== undefined) {
+        glossary.source = this.toNullableText(dto.source);
+      }
+
+      if (dto.source_url !== undefined) {
+        glossary.sourceUrl = this.toNullableText(dto.source_url);
+      }
+
+      if (dto.reference_date !== undefined) {
+        glossary.referenceDate = (this.toNullableText(dto.reference_date) ??
+          null) as unknown as Date;
       }
 
       if (dto.show_in_dashboard !== undefined) {
@@ -404,6 +458,9 @@ export class GlossaryAdminService {
           const glossary = manager.create(Glossary, {
             title: row.term,
             definition: row.definition,
+            source: row.source,
+            sourceUrl: row.source_url,
+            referenceDate: row.reference_date as unknown as Date,
             applicationName: dto.application_name ?? null,
             show_in_dashboard: dto.show_in_dashboard ?? false,
           });
@@ -433,6 +490,22 @@ export class GlossaryAdminService {
 
           glossary.definition = row.definition;
           glossary.title = row.term;
+
+          // Same trap as the portfolios below: a file that did not map a
+          // provenance column means "this import says nothing about the
+          // source", not "clear it". Overwriting with null would strip the
+          // attribution of every term touched by an import meant to fix
+          // definitions. Clearing a source stays possible from the CRUD.
+          if (row.source !== null) {
+            glossary.source = row.source;
+          }
+          if (row.source_url !== null) {
+            glossary.sourceUrl = row.source_url;
+          }
+          if (row.reference_date !== null) {
+            glossary.referenceDate = row.reference_date as unknown as Date;
+          }
+
           glossary.auditableFields.is_active = true;
           glossary.auditableFields.updated_by = userData.userId;
           if (dto.show_in_dashboard !== undefined) {
@@ -537,10 +610,28 @@ export class GlossaryAdminService {
         index,
         term,
         definition,
+        source: this.toNullableText(row.source),
+        source_url: this.toNullableText(row.source_url),
+        reference_date: this.toNullableText(row.reference_date),
         action: GlossaryBulkRowAction.CREATE,
         glossary_id: null,
         portfolios: rowPortfolios,
       };
+
+      // Rejected here rather than by the DTO: a single unreadable date in a
+      // 2000-row file would otherwise fail the entire payload instead of
+      // pointing at the row that needs fixing.
+      if (
+        base.reference_date &&
+        !REFERENCE_DATE_PATTERN.test(base.reference_date)
+      ) {
+        plan.push({
+          ...base,
+          action: GlossaryBulkRowAction.INVALID,
+          message: `The reference date "${base.reference_date}" is not a calendar day in YYYY-MM-DD format`,
+        });
+        return;
+      }
 
       if (!term) {
         plan.push({

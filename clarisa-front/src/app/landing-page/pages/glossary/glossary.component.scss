@@ -164,6 +164,33 @@
   }
 }
 
+.card-source {
+  color: #6b7a68;
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 10px 0 0;
+  padding-top: 8px;
+  border-top: 1px dashed #e6eadf;
+
+  a {
+    color: #5c7800;
+    text-decoration: underline;
+  }
+
+  a:hover {
+    color: #739600;
+  }
+}
+
+.card-source__label {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.card-source__date {
+  white-space: nowrap;
+}
+
 .card-portfolios {
   display: flex;
   flex-wrap: wrap;

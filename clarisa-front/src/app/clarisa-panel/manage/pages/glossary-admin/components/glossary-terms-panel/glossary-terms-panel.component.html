@@ -63,6 +63,7 @@
       <tr>
         <th scope="col" style="width: 18rem">Term</th>
         <th scope="col">Definition</th>
+        <th scope="col" style="width: 16rem">Source</th>
         <th scope="col" style="width: 14rem">Portfolios</th>
         <th scope="col" style="width: 7rem">Status</th>
         <th scope="col" style="width: 7rem">Actions</th>
@@ -73,6 +74,11 @@
       <tr [class.row-inactive]="!term.is_active">
         <td class="cell-primary">{{ term.term }}</td>
         <td class="cell-definition">{{ term.definition }}</td>
+        <td class="cell-source">
+          <span class="cell-source__text" *ngIf="term.source; else noSource" [pTooltip]="term.source">{{ term.source }}</span>
+          <ng-template #noSource><span class="cell-source__empty">Not documented</span></ng-template>
+          <span class="cell-source__date" *ngIf="term.reference_date">{{ term.reference_date }}</span>
+        </td>
         <td>
           <span class="portfolio-chips" *ngIf="term.portfolios?.length; else noPortfolios">
             <span class="portfolio-chip" *ngFor="let portfolio of term.portfolios" [pTooltip]="portfolio.name">
@@ -103,7 +109,7 @@
 
     <ng-template pTemplate="emptymessage">
       <tr>
-        <td colspan="5" class="empty-cell">
+        <td colspan="6" class="empty-cell">
           {{ loading ? 'Loading terms…' : 'No glossary terms match the current filters.' }}
         </td>
       </tr>
@@ -136,6 +142,31 @@
         rows="5"
         placeholder="Definition shown in the public glossary"></textarea>
       <small class="field-error" *ngIf="isInvalid('definition')">The definition is required.</small>
+    </div>
+
+    <div class="field">
+      <label for="glossary-source">Source</label>
+      <input
+        id="glossary-source"
+        type="text"
+        pInputText
+        formControlName="source"
+        maxlength="500"
+        placeholder="e.g. CGIAR 2025-2030 Portfolio Narrative" />
+      <small class="field-hint">The document or body the definition comes from. Shown under the definition in the public glossary.</small>
+    </div>
+
+    <div class="field">
+      <label for="glossary-source-url">Source link</label>
+      <input id="glossary-source-url" type="url" pInputText formControlName="source_url" maxlength="500" placeholder="https://..." />
+      <small class="field-hint">Optional. When present, the source is shown as a link. Only http(s) links are rendered.</small>
+    </div>
+
+    <div class="field">
+      <label for="glossary-reference-date">Reference date</label>
+      <input id="glossary-reference-date" type="date" pInputText formControlName="reference_date" />
+      <small class="field-error" *ngIf="isInvalid('reference_date')">Use the format YYYY-MM-DD.</small>
+      <small class="field-hint">Date of the source material, not of this record. Displayed as month and year.</small>
     </div>
 
     <div class="field">

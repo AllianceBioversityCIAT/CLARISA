@@ -72,6 +72,18 @@
           </div>
         </div>
         <p [innerHTML]="renderable(item.definition)"></p>
+        <p class="card-source" *ngIf="item.source || item.referenceDate">
+          <span class="card-source__label">Source:</span>
+          <ng-container *ngIf="item.source">
+            <a *ngIf="safeSourceUrl(item.sourceUrl); else plainSource" [href]="safeSourceUrl(item.sourceUrl)" target="_blank" rel="noopener">
+              {{ item.source }}
+            </a>
+            <ng-template #plainSource>{{ item.source }}</ng-template>
+          </ng-container>
+          <span class="card-source__date" *ngIf="item.referenceDate">
+            <ng-container *ngIf="item.source"> · </ng-container>{{ referenceDateLabel(item.referenceDate) }}
+          </span>
+        </p>
       </article>
     </div>
   </div>
