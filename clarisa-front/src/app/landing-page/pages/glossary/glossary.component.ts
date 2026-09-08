@@ -8,6 +8,22 @@ import { GlossaryPageService, GlossaryTerm } from './services/glossary-page.serv
  */
 const LOCALE = 'en';
 
+/** Fixed English month names: the glossary content is English regardless of the reader's locale. */
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December'
+];
+
 @Component({
   selector: 'app-glossary',
   templateUrl: './glossary.component.html',
@@ -25,6 +41,12 @@ export class GlossaryComponent implements OnInit {
   selectedPortfolioCode: number | null = null;
   selectedLetter: string | null = null;
   loading: boolean = true;
+  /**
+   * True once the reader picks a pill themselves. The portfolio list arrives
+   * from its own request, so the default must not overwrite a choice made
+   * while that request was still in flight.
+   */
+  private portfolioChosenByReader = false;
 
   constructor(private _glossaryPageService: GlossaryPageService) {}
 
@@ -41,12 +63,37 @@ export class GlossaryComponent implements OnInit {
     });
     this._glossaryPageService.getPortfolios().subscribe(portfolios => {
       this.portfolios = portfolios ?? [];
+      this.applyDefaultPortfolio();
     });
   }
 
   // Every ACTIVE portfolio is offered as a filter (closed ones, e.g. 2016-2021, are hidden)
   get filterPortfolios(): any[] {
     return this.portfolios.filter(portfolio => portfolio.is_active !== 0 && portfolio.is_active !== false);
+  }
+
+  /**
+   * The page opens on the current portfolio's terms instead of on all of them:
+   * reading the 2022-2024 definitions next to the 2025-2030 ones made the table
+   * look self-contradictory (asked by Nicoleta on 2026-09-08).
+   *
+   * The portfolio is chosen by its start year among the active ones, never by a
+   * hardcoded code, so the day 2031-2036 is opened this default follows without
+   * a release. Portfolios with no start year ("CGIAR general") are skipped for
+   * the default but still offered as pills, and if none qualifies the page
+   * falls back to showing everything.
+   *
+   * Nothing is hidden for good: "All portfolios" is one click away, and the
+   * terms that belong only to an older portfolio are reachable from its pill.
+   */
+  private applyDefaultPortfolio(): void {
+    if (this.portfolioChosenByReader) {
+      return;
+    }
+    const newest = this.filterPortfolios
+      .filter(portfolio => typeof portfolio.start_date === 'number')
+      .sort((a, b) => b.start_date - a.start_date)[0];
+    this.selectedPortfolioCode = newest?.code ?? null;
   }
 
   // Terms matching the portfolio filter (base set for the letter index)
@@ -138,7 +185,49 @@ export class GlossaryComponent implements OnInit {
     return text;
   }
 
+  /**
+   * The source link, only when it actually resolves to http(s).
+   *
+   * The value is typed in the admin panel, so it reaches this page as user
+   * input. Angular already refuses to bind a `javascript:` URL to `[href]`,
+   * but it does so by rewriting it to `unsafe:…`, which renders a link that
+   * looks real and leads nowhere. Checking here means a bad URL shows the
+   * source as plain text instead of a broken link.
+   */
+  safeSourceUrl(url: string | null | undefined): string | null {
+    const candidate = (url ?? '').trim();
+    if (!candidate) {
+      return null;
+    }
+    try {
+      const parsed = new URL(candidate);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? candidate : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * A reference date as a readable month and year, e.g. `2026-09-07` -> "September 2026".
+   *
+   * Parsed by parts and never with `new Date('2026-09-07')`: that form is read
+   * as UTC midnight, and formatting it in a timezone west of Greenwich — Cali
+   * included — prints the previous day, which for a date near a month boundary
+   * prints the previous month too.
+   */
+  referenceDateLabel(value: string | null | undefined): string {
+    const raw = (value ?? '').trim();
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+    if (!match) {
+      return raw;
+    }
+    const [, year, month] = match;
+    const monthName = MONTH_NAMES[Number(month) - 1];
+    return monthName ? `${monthName} ${year}` : raw;
+  }
+
   selectPortfolio(code: number | null) {
+    this.portfolioChosenByReader = true;
     this.selectedPortfolioCode = this.selectedPortfolioCode === code ? null : code;
     if (this.selectedLetter && !this.availableLetters.includes(this.selectedLetter)) {
       this.selectedLetter = null;

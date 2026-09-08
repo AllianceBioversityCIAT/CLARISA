@@ -72,6 +72,21 @@
           </div>
         </div>
         <p [innerHTML]="renderable(item.definition)"></p>
+        <p class="card-source" *ngIf="item.source || item.referenceDate">
+          <!-- prettier-ignore -->
+          <span class="card-source__label">Source: </span>
+          <ng-container *ngIf="item.source">
+            <!-- The anchor stays on one line: a line break inside it becomes whitespace
+                 that the underline paints, so the link read as "_ CGIAR … Narrative _".
+                 prettier-ignore keeps a future format run from wrapping it back. -->
+            <!-- prettier-ignore -->
+            <a *ngIf="safeSourceUrl(item.sourceUrl); else plainSource" [href]="safeSourceUrl(item.sourceUrl)" target="_blank" rel="noopener">{{ item.source }}</a>
+            <ng-template #plainSource>{{ item.source }}</ng-template>
+          </ng-container>
+          <span class="card-source__date" *ngIf="item.referenceDate">
+            <ng-container *ngIf="item.source"> · </ng-container>{{ referenceDateLabel(item.referenceDate) }}
+          </span>
+        </p>
       </article>
     </div>
   </div>

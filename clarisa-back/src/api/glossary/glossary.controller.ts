@@ -38,7 +38,12 @@ export class GlossaryController {
       'Impact Area, Indicator, Theory of Change), and scaling/innovation terms ' +
       '(Innovation Package, Scaling Readiness, IPSR) — so that Centers, ' +
       'Programs & Accelerators use consistent definitions when planning work ' +
-      'and reporting results. Last updated August 2026.',
+      'and reporting results. ' +
+      'Each term may also carry its provenance: "source" (the document or body ' +
+      'the definition comes from), "sourceUrl" (a link to it, when public) and ' +
+      '"referenceDate" (the date of that material, as YYYY-MM-DD). The three are ' +
+      'null while a definition has not been attributed yet. ' +
+      'Last updated September 2026.',
   })
   @ApiQuery({
     name: 'show',

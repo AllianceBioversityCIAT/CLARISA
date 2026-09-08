@@ -143,6 +143,11 @@ export interface GlossaryAdminTerm {
   id: number;
   term: string;
   definition: string;
+  /** Document or body the definition comes from. Null until attributed. */
+  source: string | null;
+  source_url: string | null;
+  /** Date of the referenced material, `YYYY-MM-DD` — not the row's own date. */
+  reference_date: string | null;
   is_active: boolean;
   show_in_dashboard: boolean;
   application_name: string | null;
@@ -152,6 +157,10 @@ export interface GlossaryAdminTerm {
 export interface CreateGlossaryTermBody {
   term: string;
   definition: string;
+  source?: string;
+  source_url?: string;
+  /** `YYYY-MM-DD`. An empty string clears the stored date on update. */
+  reference_date?: string;
   portfolio_ids?: number[];
   show_in_dashboard?: boolean;
 }
@@ -165,6 +174,9 @@ export type GlossaryBulkRowAction = 'create' | 'update' | 'reactivate' | 'skip' 
 export interface GlossaryBulkRow {
   term: string;
   definition: string;
+  source?: string;
+  source_url?: string;
+  reference_date?: string;
   portfolio_ids?: number[];
 }
 
@@ -179,6 +191,9 @@ export interface GlossaryBulkRowResult {
   index: number;
   term: string;
   definition: string;
+  source: string | null;
+  source_url: string | null;
+  reference_date: string | null;
   action: GlossaryBulkRowAction;
   glossary_id: number | null;
   current_definition?: string;

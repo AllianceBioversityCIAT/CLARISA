@@ -192,23 +192,23 @@ describe('GlossaryFileParserService', () => {
 
   describe('detectColumns', () => {
     it('detects the usual English headers', () => {
-      expect(service.detectColumns(['term', 'definition'])).toEqual({ termIndex: 0, definitionIndex: 1 });
+      expect(service.detectColumns(['term', 'definition'])).toMatchObject({ termIndex: 0, definitionIndex: 1 });
     });
 
     it('detects headers regardless of case and order', () => {
-      expect(service.detectColumns(['Definition', 'Term'])).toEqual({ termIndex: 1, definitionIndex: 0 });
+      expect(service.detectColumns(['Definition', 'Term'])).toMatchObject({ termIndex: 1, definitionIndex: 0 });
     });
 
     it('detects Spanish headers', () => {
-      expect(service.detectColumns(['Concepto', 'Descripción'])).toEqual({ termIndex: 0, definitionIndex: 1 });
+      expect(service.detectColumns(['Concepto', 'Descripción'])).toMatchObject({ termIndex: 0, definitionIndex: 1 });
     });
 
     it('detects headers that only contain the keyword', () => {
-      expect(service.detectColumns(['Glossary term', 'Full definition'])).toEqual({ termIndex: 0, definitionIndex: 1 });
+      expect(service.detectColumns(['Glossary term', 'Full definition'])).toMatchObject({ termIndex: 0, definitionIndex: 1 });
     });
 
     it('falls back to the first two columns when headers say nothing', () => {
-      expect(service.detectColumns(['Column 1', 'Column 2'])).toEqual({ termIndex: 0, definitionIndex: 1 });
+      expect(service.detectColumns(['Column 1', 'Column 2'])).toMatchObject({ termIndex: 0, definitionIndex: 1 });
     });
 
     it('never maps term and definition to the same column', () => {
@@ -222,6 +222,42 @@ describe('GlossaryFileParserService', () => {
 
       expect(result.definitionIndex).toBe(0);
       expect(result.termIndex).toBe(1);
+    });
+
+    it('reports the optional columns as absent when the file has none', () => {
+      expect(service.detectColumns(['term', 'definition'])).toEqual({
+        termIndex: 0,
+        definitionIndex: 1,
+        sourceIndex: -1,
+        sourceUrlIndex: -1,
+        referenceDateIndex: -1
+      });
+    });
+
+    it('detects source, link and reference date', () => {
+      const result = service.detectColumns(['Term', 'Definition', 'Source', 'Source URL', 'Reference date']);
+
+      expect(result.sourceIndex).toBe(2);
+      expect(result.sourceUrlIndex).toBe(3);
+      expect(result.referenceDateIndex).toBe(4);
+    });
+
+    it('does not read "Resource" as a source nor "Last update" as a date', () => {
+      // Whole-word matching: an optional column guessed wrong shows nothing on
+      // screen, so the values would silently land in the wrong field.
+      const result = service.detectColumns(['Term', 'Definition', 'Resource', 'Last update']);
+
+      expect(result.sourceIndex).toBe(-1);
+      expect(result.referenceDateIndex).toBe(-1);
+    });
+
+    it('never maps an optional column onto the term or the definition', () => {
+      const result = service.detectColumns(['Source', 'Definition']);
+
+      // "Source" was taken as the term (no better candidate), so it cannot
+      // also be the source column.
+      expect(result.sourceIndex).not.toBe(result.termIndex);
+      expect(result.sourceIndex).not.toBe(result.definitionIndex);
     });
   });
 

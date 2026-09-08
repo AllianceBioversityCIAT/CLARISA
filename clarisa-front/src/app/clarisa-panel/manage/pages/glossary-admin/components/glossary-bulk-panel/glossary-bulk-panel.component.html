@@ -136,6 +136,75 @@
       </p-dropdown>
     </div>
 
+    <div class="field">
+      <label for="bulk-source-column">Which column holds the <strong>source</strong>?</label>
+      <p-dropdown
+        inputId="bulk-source-column"
+        appendTo="body"
+        panelStyleClass="admin-dropdown-panel column-dropdown-panel"
+        placeholder="Not in this file"
+        filterPlaceholder="Search a column…"
+        styleClass="full-width"
+        scrollHeight="288px"
+        filterBy="label"
+        [options]="columnOptions"
+        [(ngModel)]="sourceColumn"
+        [showClear]="true"
+        [filter]="true"
+        [resetFilterOnHide]="true"
+        [virtualScroll]="true"
+        [itemSize]="36"
+        (onShow)="onDropdownShow($event)">
+      </p-dropdown>
+      <small class="field-hint">Optional. Leaving it unmapped keeps the source already stored for the terms that get updated.</small>
+    </div>
+
+    <div class="field">
+      <label for="bulk-source-link-column">Which column holds the <strong>source link</strong>?</label>
+      <p-dropdown
+        inputId="bulk-source-link-column"
+        appendTo="body"
+        panelStyleClass="admin-dropdown-panel column-dropdown-panel"
+        placeholder="Not in this file"
+        filterPlaceholder="Search a column…"
+        styleClass="full-width"
+        scrollHeight="288px"
+        filterBy="label"
+        [options]="columnOptions"
+        [(ngModel)]="sourceUrlColumn"
+        [showClear]="true"
+        [filter]="true"
+        [resetFilterOnHide]="true"
+        [virtualScroll]="true"
+        [itemSize]="36"
+        (onShow)="onDropdownShow($event)">
+      </p-dropdown>
+      <small class="field-hint">Optional. Only http(s) links are shown on the public page.</small>
+    </div>
+
+    <div class="field">
+      <label for="bulk-reference-date-column">Which column holds the <strong>reference date</strong>?</label>
+      <p-dropdown
+        inputId="bulk-reference-date-column"
+        appendTo="body"
+        panelStyleClass="admin-dropdown-panel column-dropdown-panel"
+        placeholder="Not in this file"
+        filterPlaceholder="Search a column…"
+        styleClass="full-width"
+        scrollHeight="288px"
+        filterBy="label"
+        [options]="columnOptions"
+        [(ngModel)]="referenceDateColumn"
+        [showClear]="true"
+        [filter]="true"
+        [resetFilterOnHide]="true"
+        [virtualScroll]="true"
+        [itemSize]="36"
+        (onShow)="onDropdownShow($event)">
+      </p-dropdown>
+      <small class="field-hint">Optional. Must be a calendar day (YYYY-MM-DD); an Excel date cell already arrives that way.</small>
+    </div>
+
     <div class="field field--full">
       <label>Portfolios assigned to every term in this batch</label>
       <p-multiSelect

@@ -12,6 +12,12 @@ export interface GlossaryTermPortfolio {
 export interface GlossaryTerm {
   term: string;
   definition: string;
+  /** Document or body the definition comes from. Null until attributed. */
+  source?: string | null;
+  /** Link to the source, when it has a public one. */
+  sourceUrl?: string | null;
+  /** Date of the referenced material, `YYYY-MM-DD`. Not the row's own date. */
+  referenceDate?: string | null;
   portfolios: GlossaryTermPortfolio[];
 }
 

@@ -47,6 +47,14 @@ export class GlossaryBulkPanelComponent implements OnInit {
   readonly maxGeneratedColumns = MAX_GENERATED_COLUMN_OPTIONS;
   termColumn: number | null = null;
   definitionColumn: number | null = null;
+  /**
+   * Optional provenance columns. `null` means the file does not carry one, and
+   * the import then says nothing about that field — it never clears a source
+   * already stored (see the service's bulk update).
+   */
+  sourceColumn: number | null = null;
+  sourceUrlColumn: number | null = null;
+  referenceDateColumn: number | null = null;
   selectedPortfolioIds: number[] = [];
   conflictPolicy: GlossaryBulkConflictPolicy = 'update';
   showInDashboard = false;
@@ -150,8 +158,17 @@ export class GlossaryBulkPanelComponent implements OnInit {
       const detected = this._parser.detectColumns(table.headers);
       this.termColumn = detected.termIndex >= 0 ? detected.termIndex : null;
       this.definitionColumn = detected.definitionIndex >= 0 ? detected.definitionIndex : null;
+      this.sourceColumn = detected.sourceIndex >= 0 ? detected.sourceIndex : null;
+      this.sourceUrlColumn = detected.sourceUrlIndex >= 0 ? detected.sourceUrlIndex : null;
+      this.referenceDateColumn = detected.referenceDateIndex >= 0 ? detected.referenceDateIndex : null;
 
-      const columns = buildColumnOptions(table, [this.termColumn, this.definitionColumn]);
+      const columns = buildColumnOptions(table, [
+        this.termColumn,
+        this.definitionColumn,
+        this.sourceColumn,
+        this.sourceUrlColumn,
+        this.referenceDateColumn
+      ]);
       this.columnOptions = columns.options;
       this.hiddenColumnCount = columns.hiddenCount;
 
@@ -171,9 +188,9 @@ export class GlossaryBulkPanelComponent implements OnInit {
   /** Downloads a two-column starter file so nobody has to guess the format. */
   downloadTemplate(): void {
     const csv = [
-      'term,definition',
-      '"Impact Area","One of the five CGIAR areas where impact is pursued."',
-      '"Initiative","A CGIAR research portfolio investment."'
+      'term,definition,source,source url,reference date',
+      '"Impact Area","One of the five CGIAR areas where impact is pursued.","CGIAR 2025-2030 Portfolio Narrative","https://www.cgiar.org/","2025-01-15"',
+      '"Initiative","A CGIAR research portfolio investment.","CGIAR Research Initiatives",,"2022-03-01"'
     ].join('\n');
     const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -216,10 +233,38 @@ export class GlossaryBulkPanelComponent implements OnInit {
     }));
   }
 
+  /**
+   * Trims a reference date to the calendar day the API expects.
+   *
+   * Only the unambiguous shapes are converted: an Excel date cell already
+   * reaches here as `YYYY-MM-DD` (the parser formats it), and an ISO timestamp
+   * is cut at the day. Anything else — `07/09/2026`, `Sept 2026`, a bare year —
+   * is passed through untouched on purpose: `07/09/2026` is 7 September for
+   * whoever typed it in Cali and 9 July for a US locale, and guessing wrong
+   * writes a plausible date nobody would ever notice. The preview flags the
+   * row instead, naming the value, so the file gets fixed at the source.
+   */
+  private normalizeReferenceDate(value: string | null | undefined): string {
+    const raw = (value ?? '').trim();
+    const isoTimestamp = /^(\d{4}-\d{2}-\d{2})[T ]/.exec(raw);
+    return isoTimestamp ? isoTimestamp[1] : raw;
+  }
+
   private buildBody(): GlossaryBulkBody {
+    // Read into locals so the mapping is narrowed once instead of asserted on
+    // every row: `mappingReady` already guarantees the two required ones.
+    const termColumn = this.termColumn ?? 0;
+    const definitionColumn = this.definitionColumn ?? 0;
+    const sourceColumn = this.sourceColumn;
+    const sourceUrlColumn = this.sourceUrlColumn;
+    const referenceDateColumn = this.referenceDateColumn;
+
     const rows: GlossaryBulkRow[] = (this.table?.rows ?? []).map(row => ({
-      term: row[this.termColumn as number] ?? '',
-      definition: row[this.definitionColumn as number] ?? ''
+      term: row[termColumn] ?? '',
+      definition: row[definitionColumn] ?? '',
+      ...(sourceColumn !== null ? { source: row[sourceColumn] ?? '' } : {}),
+      ...(sourceUrlColumn !== null ? { source_url: row[sourceUrlColumn] ?? '' } : {}),
+      ...(referenceDateColumn !== null ? { reference_date: this.normalizeReferenceDate(row[referenceDateColumn]) } : {})
     }));
 
     return {
@@ -325,6 +370,9 @@ export class GlossaryBulkPanelComponent implements OnInit {
     this.hiddenColumnCount = 0;
     this.termColumn = null;
     this.definitionColumn = null;
+    this.sourceColumn = null;
+    this.sourceUrlColumn = null;
+    this.referenceDateColumn = null;
     this.selectedPortfolioIds = [];
     this.conflictPolicy = 'update';
     this.showInDashboard = false;

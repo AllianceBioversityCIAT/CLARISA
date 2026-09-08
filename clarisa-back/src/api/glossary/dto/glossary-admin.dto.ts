@@ -8,7 +8,9 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -55,27 +57,68 @@ export class GlossaryAdminDto {
   id: number;
   term: string;
   definition: string;
+  source: string | null;
+  source_url: string | null;
+  /** ISO day (`YYYY-MM-DD`), never a timestamp — see the entity. */
+  reference_date: string | null;
   is_active: boolean;
   show_in_dashboard: boolean;
   application_name: string;
   portfolios: GlossaryTermPortfolioDto[];
 }
 
-export class CreateGlossaryTermDto {
-  @IsString()
-  @IsNotEmpty({ message: 'The term is required' })
-  @MaxLength(500)
-  term: string;
+/**
+ * `YYYY-MM-DD`, the only shape accepted for a reference date.
+ *
+ * `@IsDateString()` would also take a full ISO timestamp and let a timezone
+ * shift the stored day, which is exactly what the `date` column avoids.
+ */
+export const REFERENCE_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-  @IsString()
-  @IsNotEmpty({ message: 'The definition is required' })
-  definition: string;
-
+/**
+ * Everything both admin payloads accept in exactly the same way: the
+ * portfolios, the three provenance fields and the two flags. Create and update
+ * only really differ on `term` and `definition` — required in one, optional in
+ * the other — so those are the only fields the subclasses declare.
+ *
+ * class-validator reads the decorators of the whole prototype chain, so the
+ * controller's `ValidationPipe({ whitelist, forbidNonWhitelisted })` keeps
+ * accepting these keys and keeps rejecting any other one.
+ */
+class GlossaryTermFieldsDto {
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
   @Type(() => Number)
   portfolio_ids?: number[];
+
+  /**
+   * The three provenance fields accept an empty string, which clears the
+   * stored value. Without it a source entered by mistake could only be
+   * replaced, never removed — and the panel sends all three on every save,
+   * `''` included, precisely so a blank field means "leave it empty".
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  source?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  source_url?: string;
+
+  /**
+   * `@IsOptional()` only skips `undefined`/`null`, so without the `@ValidateIf`
+   * the pattern would run on `''` and answer 400 to a plain "create term" —
+   * the common case, since these fields ship empty on purpose.
+   */
+  @IsOptional()
+  @Matches(REFERENCE_DATE_PATTERN, {
+    message: 'The reference date must be a calendar day in YYYY-MM-DD format',
+  })
+  @ValidateIf((_, value) => value !== '' && value !== null)
+  reference_date?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -87,7 +130,18 @@ export class CreateGlossaryTermDto {
   application_name?: string;
 }
 
-export class UpdateGlossaryTermDto {
+export class CreateGlossaryTermDto extends GlossaryTermFieldsDto {
+  @IsString()
+  @IsNotEmpty({ message: 'The term is required' })
+  @MaxLength(500)
+  term: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'The definition is required' })
+  definition: string;
+}
+
+export class UpdateGlossaryTermDto extends GlossaryTermFieldsDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty({ message: 'The term cannot be empty' })
@@ -98,21 +152,6 @@ export class UpdateGlossaryTermDto {
   @IsString()
   @IsNotEmpty({ message: 'The definition cannot be empty' })
   definition?: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsInt({ each: true })
-  @Type(() => Number)
-  portfolio_ids?: number[];
-
-  @IsOptional()
-  @IsBoolean()
-  show_in_dashboard?: boolean;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  application_name?: string;
 }
 
 export class UpdateGlossaryStatusDto {
@@ -137,6 +176,31 @@ export class GlossaryBulkRowDto {
   @IsInt({ each: true })
   @Type(() => Number)
   portfolio_ids?: number[];
+
+  /**
+   * Provenance mapped column by column from the file. Optional per row: a
+   * spreadsheet that documents the source for half its terms still imports,
+   * and the rows without it simply carry no attribution.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  source?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  source_url?: string;
+
+  /**
+   * Validated but never rejected at the DTO level: an unreadable date in one
+   * row of a 2000-row file would fail the whole payload. The service marks
+   * that single row `invalid` instead, the way it already does for a missing
+   * term.
+   */
+  @IsOptional()
+  @IsString()
+  reference_date?: string;
 }
 
 export class GlossaryBulkDto {
@@ -176,6 +240,10 @@ export class GlossaryBulkRowResultDto {
   index: number;
   term: string;
   definition: string;
+  /** Provenance as it will be stored; `null` when the file did not map it. */
+  source: string | null;
+  source_url: string | null;
+  reference_date: string | null;
   action: GlossaryBulkRowAction;
   /** Id of the affected record. Null for `create` in preview mode. */
   glossary_id: number | null;

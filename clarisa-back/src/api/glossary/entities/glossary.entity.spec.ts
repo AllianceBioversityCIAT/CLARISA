@@ -84,4 +84,24 @@ describe('Glossary serialization', () => {
     expect(plain.definition).toBe('A definition');
     expect(plain.id).toBeUndefined();
   });
+
+  it('should publish the provenance of a term that has one', () => {
+    const glossary = buildGlossary([]);
+    glossary.source = 'CGIAR 2025-2030 Portfolio Narrative';
+    glossary.sourceUrl = 'https://www.cgiar.org/';
+    glossary.referenceDate = '2025-01-15';
+
+    const plain = instanceToPlain(glossary);
+    expect(plain.source).toBe('CGIAR 2025-2030 Portfolio Narrative');
+    expect(plain.sourceUrl).toBe('https://www.cgiar.org/');
+    expect(plain.referenceDate).toBe('2025-01-15');
+  });
+
+  it('should not add provenance keys under a different name', () => {
+    // Consumers integrate against these exact names; the snake_case column
+    // names must never surface in the response.
+    const plain = instanceToPlain(buildGlossary([]));
+    expect(plain.source_url).toBeUndefined();
+    expect(plain.reference_date).toBeUndefined();
+  });
 });
