@@ -6,6 +6,12 @@ frameworkVersion: '3'
 provider:
   name: aws
   runtime: nodejs18.x
+  # The ToC API v3 guide recommends allowing >= 60 s for the largest ToCs and
+  # the sync itself writes thousands of rows. Note: API Gateway HTTP API still
+  # cuts the *client* connection at ~30 s; the Lambda keeps running to
+  # completion and Slack reports the outcome. Re-running a sync is idempotent.
+  timeout: 120
+  memorySize: 1024
 
 functions:
   api:

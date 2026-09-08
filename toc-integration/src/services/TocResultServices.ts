@@ -30,6 +30,16 @@ import { TocResultsMeliasCountry } from "../entities/tocResultsMeliasCountry";
 import { TocResultsMeliasContacts } from "../entities/tocResultsMeliasContacts";
 import { TocResultsMeliasRegion } from "../entities/tocResultsMeliasRegion";
 import { TocWorkPackages } from "../entities/tocWorkPackages";
+import { TocResultsRegions } from "../entities/tocResultsRegions";
+import { TocResultsCountries } from "../entities/tocResultsCountries";
+import {
+  computeBaselineSummary,
+  normalizeLocation,
+  parseFiniteNumber,
+  pickGeoArrays,
+  resolveIndicatorType,
+  resolveUnitOfMeasurement,
+} from "../utils/toc-v3";
 
 export class TocResultServices {
   public validatorType = new ValidatorTypes();
@@ -60,10 +70,14 @@ export class TocResultServices {
       let listRegionIndicator = [];
 
       if (this.validatorType.validatorIsArray(toc_results)) {
-        tocResultRepo.update(
-          { id_toc_initiative: id_toc_init, phase },
-          { is_active: false }
-        );
+        // Guard: never deactivate everything when the payload arrives empty
+        // (ToC v3 dashboard-result may be partial during migrations).
+        if (toc_results.length > 0) {
+          await tocResultRepo.update(
+            { id_toc_initiative: id_toc_init, phase },
+            { is_active: false }
+          );
+        }
 
         for (let tocResultItem of toc_results) {
           if (
@@ -97,8 +111,18 @@ export class TocResultServices {
                 ? tocResultItem.result_type
                 : null;
 
+            // v3 dashboard-result sends `wp_id` as the official code
+            // (e.g. "SP01-AOW05"); the numeric column only accepts numbers.
             tocResult.work_packages_id =
               typeof tocResultItem.wp_id == "number"
+                ? tocResultItem.wp_id
+                : typeof tocResultItem.wp_id == "string" &&
+                    /^\d+$/.test(tocResultItem.wp_id)
+                  ? Number(tocResultItem.wp_id)
+                  : null;
+            tocResult.wp_id =
+              typeof tocResultItem.wp_id == "string" &&
+              !/^\d+$/.test(tocResultItem.wp_id)
                 ? tocResultItem.wp_id
                 : null;
 
@@ -228,7 +252,12 @@ export class TocResultServices {
       let listCountries = [];
 
       if (this.validatorType.validatorIsArray(indicators)) {
-        tocResultRepo.update(
+        // Guard: ToC v3 dashboard-result always sends `indicators: []`.
+        // Deactivating on an empty list would wipe every legacy indicator.
+        if (indicators.length === 0) {
+          return { listResultsIndicator, listRegions, listCountries };
+        }
+        await tocResultRepo.update(
           { toc_results_id: tocresults.id },
           { is_active: false }
         );
@@ -762,7 +791,8 @@ export class TocResultServices {
       reporting_year?: number | null;
     },
     globalSdgResults: TocSdgResults[] = [],
-    globalImpactAreaResults: any[] = []
+    globalImpactAreaResults: any[] = [],
+    workPackageTocIdByNodeId?: Map<string, string>
   ) {
     try {
       console.info({ message: "Saving ToC results V2" });
@@ -864,7 +894,16 @@ export class TocResultServices {
 
       const workPackageScope = this.resolveWorkPackageScope(meta);
 
-      const workPackageMap = new Map<string, string>();
+      // Node uuid -> toc_work_packages.toc_id. Precedence (lowest to highest):
+      //  1. what saveWorkPackagesV2 just persisted for this sync,
+      //  2. the payload (`ost_wp.toc_id` on v2 snapshots, node id on v3),
+      //  3. rows already in the DB for this phase/year (the DB wins so a
+      //     kept-old-toc_id AOW from Phase 2025 keeps its join).
+      const workPackageMap = new Map<string, string>(
+        workPackageTocIdByNodeId
+          ? Array.from(workPackageTocIdByNodeId.entries())
+          : []
+      );
 
       for (const node of data) {
         if (!node) continue;
@@ -875,17 +914,16 @@ export class TocResultServices {
         if (nodeCategory !== "WP") continue;
 
         const ost = node?.ost_wp || {};
-        const tocId =
-          typeof ost?.toc_id === "string" || typeof ost?.toc_id === "number"
-            ? String(ost.toc_id)
-            : null;
         const nodeId =
           typeof node?.id === "string" || typeof node?.id === "number"
             ? String(node.id)
             : null;
-        if (nodeId && tocId) {
-          workPackageMap.set(nodeId, tocId);
-        }
+        if (!nodeId || workPackageMap.has(nodeId)) continue;
+        const tocId =
+          typeof ost?.toc_id === "string" || typeof ost?.toc_id === "number"
+            ? String(ost.toc_id)
+            : nodeId;
+        workPackageMap.set(nodeId, tocId);
       }
 
       if (groupIds.length) {
@@ -971,6 +1009,7 @@ export class TocResultServices {
                 ? item.responsible_organization.code
                 : null,
           is_global: true,
+          location: normalizeLocation(item?.location),
           is_active: true,
         };
 
@@ -1009,6 +1048,8 @@ export class TocResultServices {
 
         if (!saved) continue;
         listResultsToc.push(saved);
+
+        await this.saveResultGeoScopeV2(saved, item);
 
         const resultLinkId =
           typeof saved.related_node_id === "string" && saved.related_node_id !== ""
@@ -1170,23 +1211,10 @@ export class TocResultServices {
         if (!ind || (typeof ind.id !== "string" && typeof ind.id !== "number"))
           continue;
 
-        const baselineSource =
-          Array.isArray(ind?.baseline)
-            ? ind.baseline[0]
-            : Array.isArray(ind?.baselines)
-              ? ind.baselines[0]
-              : ind?.baseline;
-        const baselineRaw = baselineSource;
-        const baselineValue =
-          baselineRaw && baselineRaw.value != null
-            ? String(baselineRaw.value)
-            : null;
-        const baselineDate =
-          typeof baselineRaw?.name === "string"
-            ? baselineRaw.name
-            : typeof baselineRaw?.date === "string"
-              ? baselineRaw.date
-              : null;
+        // v3: `baselines[]` is a per-centre year grid (+ `baselines_totals`);
+        // v2: `baseline[0].value`. See computeBaselineSummary.
+        const baseline = computeBaselineSummary(ind);
+        const indicatorType = resolveIndicatorType(ind);
 
         const dto = new TocResultsIndicatorsDto();
         dto.toc_result_indicator_id =
@@ -1196,12 +1224,11 @@ export class TocResultServices {
         dto.toc_results_id = tocResultRow.id;
         dto.indicator_description =
           typeof ind?.description === "string" ? ind.description : "";
-        dto.unit_messurament =
-          typeof ind?.unit_of_measurement === "string"
-            ? ind.unit_of_measurement
-            : "";
-        dto.baseline_value = baselineValue ?? "";
-        dto.baseline_date = baselineDate ?? "";
+        dto.unit_messurament = resolveUnitOfMeasurement(
+          ind?.unit_of_measurement
+        );
+        dto.baseline_value = baseline.value;
+        dto.baseline_date = baseline.date;
         dto.target_value = "";
         dto.target_date = "";
 
@@ -1217,11 +1244,9 @@ export class TocResultServices {
           typeof ind?.data_collection_frequency === "string"
             ? ind.data_collection_frequency
             : "";
-        dto.type_value =
-          typeof ind?.type?.value === "string" ? ind.type.value : "";
-        dto.type_name =
-          typeof ind?.type?.name === "string" ? ind.type.name : "";
-        dto.location = typeof ind?.location === "string" ? ind.location : "";
+        dto.type_value = indicatorType.value;
+        dto.type_name = indicatorType.name;
+        dto.location = normalizeLocation(ind?.location) ?? "";
         dto.is_active = true;
         dto.toc_result_id_toc = id_result;
         dto.main = typeof ind?.main === "boolean" ? ind.main : false;
@@ -1273,13 +1298,11 @@ export class TocResultServices {
         });
         if (saved) listResultsIndicator.push(saved);
 
-        const geo = {
-          regions: ind?.region ?? ind?.regions ?? [],
-          country: ind?.country ?? ind?.countries ?? [],
-        };
+        // v3 uses plural `regions` / `countries`; v2 used singular.
+        const geo = pickGeoArrays(ind);
         const geoRes = await this.saveIndicatorGeoScopeV2(String(ind.id), {
-          region: Array.isArray(ind?.region) ? ind.region : [],
-          country: Array.isArray(ind?.country) ? ind.country : [],
+          region: geo.regions,
+          country: geo.countries,
         });
         listRegions.push(...geoRes.listRegios);
         listCountries.push(...geoRes.listCountries);
@@ -1297,6 +1320,71 @@ export class TocResultServices {
       return { listResultsIndicator, listRegions, listCountries };
     } catch (error) {
       throw new Error(`Error saving toc results indicators V2: ${error}`);
+    }
+  }
+
+  /**
+   * Persist result-level geography (ToC v3 `data[].location`, `region[]`,
+   * `country[]`) into toc_results_regions / toc_results_countries, keyed by
+   * the phase-specific toc_results.id. Delete-then-insert, like indicators.
+   */
+  async saveResultGeoScopeV2(tocResultRow: TocResults, item: any) {
+    try {
+      const dataSource: DataSource = await Database.getDataSource();
+      const regionRepo = dataSource.getRepository(TocResultsRegions);
+      const countryRepo = dataSource.getRepository(TocResultsCountries);
+
+      const tocResultsId = tocResultRow.id;
+      const tocResultIdToc =
+        typeof tocResultRow.related_node_id === "string" &&
+        tocResultRow.related_node_id !== ""
+          ? tocResultRow.related_node_id
+          : typeof tocResultRow.toc_result_id === "string"
+            ? tocResultRow.toc_result_id
+            : null;
+
+      await regionRepo.delete({ toc_results_id: tocResultsId });
+      await countryRepo.delete({ toc_results_id: tocResultsId });
+
+      const geo = pickGeoArrays(item);
+
+      const seenRegions = new Set<number>();
+      const regionRows: Partial<TocResultsRegions>[] = [];
+      for (const r of geo.regions) {
+        const um49 = parseFiniteNumber(r?.um49Code ?? r?.code ?? r?.id);
+        if (um49 == null || seenRegions.has(um49)) continue;
+        seenRegions.add(um49);
+        regionRows.push({
+          toc_results_id: tocResultsId,
+          toc_result_id_toc: tocResultIdToc,
+          um49_code: um49,
+          name: typeof r?.name === "string" ? r.name : null,
+          is_active: true,
+        });
+      }
+      if (regionRows.length) await regionRepo.insert(regionRows);
+
+      const seenCountries = new Set<number>();
+      const countryRows: Partial<TocResultsCountries>[] = [];
+      for (const c of geo.countries) {
+        const code = parseFiniteNumber(c?.code ?? c?.country_id);
+        if (code == null || seenCountries.has(code)) continue;
+        seenCountries.add(code);
+        countryRows.push({
+          toc_results_id: tocResultsId,
+          toc_result_id_toc: tocResultIdToc,
+          country_code: code,
+          name: typeof c?.name === "string" ? c.name : null,
+          iso_alpha2: typeof c?.isoAlpha2 === "string" ? c.isoAlpha2 : null,
+          iso_alpha3: typeof c?.isoAlpha3 === "string" ? c.isoAlpha3 : null,
+          is_active: true,
+        });
+      }
+      if (countryRows.length) await countryRepo.insert(countryRows);
+
+      return { regions: regionRows.length, countries: countryRows.length };
+    } catch (error) {
+      throw new Error(`Error saving result geo scope V2: ${error}`);
     }
   }
 
@@ -1602,6 +1690,7 @@ export class TocResultServices {
 
         const row = partnerRepo.create({
           toc_result_id_toc,
+          // v3 partners have no toc_id; `source` replaces `add_source`.
           toc_id: typeof p?.toc_id === "string" ? p.toc_id : null,
           name: typeof p?.name === "string" ? p.name : null,
           acronym: typeof p?.acronym === "string" ? p.acronym : null,
@@ -1609,7 +1698,12 @@ export class TocResultServices {
           website_link:
             typeof p?.websiteLink === "string" ? p.websiteLink : null,
           added: typeof p?.added === "string" ? p.added : null,
-          add_source: typeof p?.add_source === "string" ? p.add_source : null,
+          add_source:
+            typeof p?.source === "string"
+              ? p.source
+              : typeof p?.add_source === "string"
+                ? p.add_source
+                : null,
         });
 
         await partnerRepo.insert(row);
@@ -1644,8 +1738,17 @@ export class TocResultServices {
       for (const item of synergyPrograms) {
         if (!item) continue;
 
+        // v3: the other program comes as `program` (+ `program_id`);
+        // v2 snapshots used `flow` (+ `flow_id`). Same inner keys.
         const flow =
-          item?.flow && typeof item.flow === "object" ? item.flow : {};
+          item?.program && typeof item.program === "object"
+            ? item.program
+            : item?.flow && typeof item.flow === "object"
+              ? item.flow
+              : {};
+        const flowIdRaw = item?.program_id ?? item?.flow_id;
+        const initiativeIdRaw =
+          flow?.initiative_id ?? flow?.initiative?.code ?? null;
 
         const row = repo.create({
           toc_result_id_toc,
@@ -1660,8 +1763,8 @@ export class TocResultServices {
               ? item.related_node_id
               : null,
           flow_id:
-            typeof item?.flow_id === "string" || typeof item?.flow_id === "number"
-              ? String(item.flow_id)
+            typeof flowIdRaw === "string" || typeof flowIdRaw === "number"
+              ? String(flowIdRaw)
               : null,
           description:
             typeof item?.description === "string" ? item.description : null,
@@ -1675,10 +1778,10 @@ export class TocResultServices {
               ? String(flow.id)
               : null,
           initiative_id:
-            typeof flow?.initiative_id === "string"
-              ? flow.initiative_id
-              : typeof flow?.initiative_id === "number"
-                ? String(flow.initiative_id)
+            typeof initiativeIdRaw === "string"
+              ? initiativeIdRaw
+              : typeof initiativeIdRaw === "number"
+                ? String(initiativeIdRaw)
                 : null,
           flow_title: typeof flow?.title === "string" ? flow.title : null,
           flow_type: typeof flow?.type === "string" ? flow.type : null,
@@ -1705,8 +1808,13 @@ export class TocResultServices {
           flow_version:
             typeof flow?.version === "number" ? flow.version : null,
           flow_main: typeof flow?.main === "boolean" ? flow.main : null,
+          // v3 has no `last_update`; `version` is the closest publication counter.
           flow_last_update:
-            typeof flow?.last_update === "number" ? flow.last_update : null,
+            typeof flow?.last_update === "number"
+              ? flow.last_update
+              : typeof flow?.version === "number"
+                ? flow.version
+                : null,
         });
 
         await repo.insert(row);
@@ -1787,8 +1895,15 @@ export class TocResultServices {
       if (!meliaId) continue;
 
       const center = meliaItem?.center ?? {};
-      const meliaType = meliaItem?.melia_type ?? {};
-      const reportedIndicators = meliaItem?.reported_indicators_count ?? {};
+      // v3: `type: { id (number), name, description }`; v2: `melia_type: { id, title, ... }`.
+      const meliaType = meliaItem?.type ?? meliaItem?.melia_type ?? {};
+      // v3: `reported_indicators_count` is a number; v2: `{ low, high }`.
+      const reportedIndicatorsRaw = meliaItem?.reported_indicators_count;
+      const reportedIndicators =
+        typeof reportedIndicatorsRaw === "number"
+          ? { low: reportedIndicatorsRaw, high: reportedIndicatorsRaw }
+          : reportedIndicatorsRaw ?? {};
+      const meliaGeo = pickGeoArrays(meliaItem);
 
       const row = meliaRepo.create({
         melia_id: meliaId,
@@ -1831,9 +1946,16 @@ export class TocResultServices {
           typeof center?.acronym === "string" ? center.acronym : null,
         center_name: typeof center?.name === "string" ? center.name : null,
         center_code: typeof center?.code === "number" ? center.code : null,
-        melia_type_id: typeof meliaType?.id === "string" ? meliaType.id : null,
+        melia_type_id:
+          typeof meliaType?.id === "string" || typeof meliaType?.id === "number"
+            ? String(meliaType.id)
+            : null,
         melia_type_title:
-          typeof meliaType?.title === "string" ? meliaType.title : null,
+          typeof meliaType?.name === "string"
+            ? meliaType.name
+            : typeof meliaType?.title === "string"
+              ? meliaType.title
+              : null,
         melia_type_description:
           typeof meliaType?.description === "string"
             ? meliaType.description
@@ -1862,14 +1984,14 @@ export class TocResultServices {
       const countries = await this.saveMeliaCountriesV2(
         dataSource,
         meliaId,
-        meliaItem?.country
+        meliaGeo.countries
       );
       listCountries.push(...countries);
 
       const regions = await this.saveMeliaRegionsV2(
         dataSource,
         meliaId,
-        meliaItem?.region
+        meliaGeo.regions
       );
       listRegions.push(...regions);
 
@@ -1912,7 +2034,9 @@ export class TocResultServices {
         country_name:
           typeof country?.country_name === "string"
             ? country.country_name
-            : null,
+            : typeof country?.name === "string"
+              ? country.name
+              : null,
       });
 
       await repo.insert(row);
