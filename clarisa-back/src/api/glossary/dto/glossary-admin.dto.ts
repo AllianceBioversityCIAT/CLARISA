@@ -75,60 +75,17 @@ export class GlossaryAdminDto {
  */
 export const REFERENCE_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-export class CreateGlossaryTermDto {
-  @IsString()
-  @IsNotEmpty({ message: 'The term is required' })
-  @MaxLength(500)
-  term: string;
-
-  @IsString()
-  @IsNotEmpty({ message: 'The definition is required' })
-  definition: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsInt({ each: true })
-  @Type(() => Number)
-  portfolio_ids?: number[];
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  source?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  source_url?: string;
-
-  @IsOptional()
-  @Matches(REFERENCE_DATE_PATTERN, {
-    message: 'The reference date must be a calendar day in YYYY-MM-DD format',
-  })
-  reference_date?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  show_in_dashboard?: boolean;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  application_name?: string;
-}
-
-export class UpdateGlossaryTermDto {
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty({ message: 'The term cannot be empty' })
-  @MaxLength(500)
-  term?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty({ message: 'The definition cannot be empty' })
-  definition?: string;
-
+/**
+ * Everything both admin payloads accept in exactly the same way: the
+ * portfolios, the three provenance fields and the two flags. Create and update
+ * only really differ on `term` and `definition` — required in one, optional in
+ * the other — so those are the only fields the subclasses declare.
+ *
+ * class-validator reads the decorators of the whole prototype chain, so the
+ * controller's `ValidationPipe({ whitelist, forbidNonWhitelisted })` keeps
+ * accepting these keys and keeps rejecting any other one.
+ */
+class GlossaryTermFieldsDto {
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
@@ -136,9 +93,10 @@ export class UpdateGlossaryTermDto {
   portfolio_ids?: number[];
 
   /**
-   * The three provenance fields accept an empty string on update, which clears
-   * the stored value. Without it a source entered by mistake could only be
-   * replaced, never removed.
+   * The three provenance fields accept an empty string, which clears the
+   * stored value. Without it a source entered by mistake could only be
+   * replaced, never removed — and the panel sends all three on every save,
+   * `''` included, precisely so a blank field means "leave it empty".
    */
   @IsOptional()
   @IsString()
@@ -150,6 +108,11 @@ export class UpdateGlossaryTermDto {
   @MaxLength(500)
   source_url?: string;
 
+  /**
+   * `@IsOptional()` only skips `undefined`/`null`, so without the `@ValidateIf`
+   * the pattern would run on `''` and answer 400 to a plain "create term" —
+   * the common case, since these fields ship empty on purpose.
+   */
   @IsOptional()
   @Matches(REFERENCE_DATE_PATTERN, {
     message: 'The reference date must be a calendar day in YYYY-MM-DD format',
@@ -165,6 +128,30 @@ export class UpdateGlossaryTermDto {
   @IsString()
   @MaxLength(100)
   application_name?: string;
+}
+
+export class CreateGlossaryTermDto extends GlossaryTermFieldsDto {
+  @IsString()
+  @IsNotEmpty({ message: 'The term is required' })
+  @MaxLength(500)
+  term: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'The definition is required' })
+  definition: string;
+}
+
+export class UpdateGlossaryTermDto extends GlossaryTermFieldsDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty({ message: 'The term cannot be empty' })
+  @MaxLength(500)
+  term?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty({ message: 'The definition cannot be empty' })
+  definition?: string;
 }
 
 export class UpdateGlossaryStatusDto {
