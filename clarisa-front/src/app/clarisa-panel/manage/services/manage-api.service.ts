@@ -133,6 +133,87 @@ export interface UsageLogsPage {
   }[];
 }
 
+export interface GlossaryPortfolioRef {
+  id: number;
+  name: string;
+  acronym: string;
+}
+
+export interface GlossaryAdminTerm {
+  id: number;
+  term: string;
+  definition: string;
+  /** Document or body the definition comes from. Null until attributed. */
+  source: string | null;
+  source_url: string | null;
+  /** Date of the referenced material, `YYYY-MM-DD` — not the row's own date. */
+  reference_date: string | null;
+  is_active: boolean;
+  show_in_dashboard: boolean;
+  application_name: string | null;
+  portfolios: GlossaryPortfolioRef[];
+}
+
+export interface CreateGlossaryTermBody {
+  term: string;
+  definition: string;
+  source?: string;
+  source_url?: string;
+  /** `YYYY-MM-DD`. An empty string clears the stored date on update. */
+  reference_date?: string;
+  portfolio_ids?: number[];
+  show_in_dashboard?: boolean;
+}
+
+export type UpdateGlossaryTermBody = Partial<CreateGlossaryTermBody>;
+
+export type GlossaryBulkConflictPolicy = 'skip' | 'update';
+
+export type GlossaryBulkRowAction = 'create' | 'update' | 'reactivate' | 'skip' | 'invalid';
+
+export interface GlossaryBulkRow {
+  term: string;
+  definition: string;
+  source?: string;
+  source_url?: string;
+  reference_date?: string;
+  portfolio_ids?: number[];
+}
+
+export interface GlossaryBulkBody {
+  rows: GlossaryBulkRow[];
+  portfolio_ids?: number[];
+  on_conflict?: GlossaryBulkConflictPolicy;
+  show_in_dashboard?: boolean;
+}
+
+export interface GlossaryBulkRowResult {
+  index: number;
+  term: string;
+  definition: string;
+  source: string | null;
+  source_url: string | null;
+  reference_date: string | null;
+  action: GlossaryBulkRowAction;
+  glossary_id: number | null;
+  current_definition?: string;
+  portfolios: GlossaryPortfolioRef[];
+  message?: string;
+}
+
+export interface GlossaryBulkResult {
+  summary: {
+    total: number;
+    to_create: number;
+    to_update: number;
+    to_reactivate: number;
+    skipped: number;
+    invalid: number;
+  };
+  applied: boolean;
+  rows: GlossaryBulkRowResult[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -225,22 +306,45 @@ export class ManageApiService {
 
   getApiKeyUsageSummary(params: UsageQueryParams = {}) {
     return this.http.get<UsageSummary>(`${this.urlApi}api/api-keys/usage/summary`, {
-      params: this.cleanParams(params),
+      params: this.cleanParams(params)
     });
   }
 
   getApiKeyUsage(id: number, params: UsageQueryParams = {}) {
     const { api_key_id, mis_id, ...keyUsageParams } = params;
-    return this.http.get<ApiKeyUsageStats>(
-      `${this.urlApi}api/api-keys/${id}/usage`,
-      { params: this.cleanParams(keyUsageParams) },
-    );
+    return this.http.get<ApiKeyUsageStats>(`${this.urlApi}api/api-keys/${id}/usage`, { params: this.cleanParams(keyUsageParams) });
   }
 
   getApiKeyUsageLogs(params: UsageQueryParams = {}) {
     return this.http.get<UsageLogsPage>(`${this.urlApi}api/api-keys/usage/logs`, {
-      params: this.cleanParams(params),
+      params: this.cleanParams(params)
     });
+  }
+
+  // ------------------------------------------------------------- Glossary
+
+  getGlossaryTerms(show: 'active' | 'all' | 'inactive' = 'all') {
+    return this.http.get<GlossaryAdminTerm[]>(`${this.urlApi}api/glossary/admin/terms`, { params: { show } });
+  }
+
+  createGlossaryTerm(body: CreateGlossaryTermBody) {
+    return this.http.post<GlossaryAdminTerm>(`${this.urlApi}api/glossary/admin/terms`, body);
+  }
+
+  updateGlossaryTerm(id: number, body: UpdateGlossaryTermBody) {
+    return this.http.patch<GlossaryAdminTerm>(`${this.urlApi}api/glossary/admin/terms/${id}`, body);
+  }
+
+  setGlossaryTermStatus(id: number, isActive: boolean) {
+    return this.http.patch<GlossaryAdminTerm>(`${this.urlApi}api/glossary/admin/terms/${id}/status`, { is_active: isActive });
+  }
+
+  previewGlossaryBulk(body: GlossaryBulkBody) {
+    return this.http.post<GlossaryBulkResult>(`${this.urlApi}api/glossary/admin/bulk/preview`, body);
+  }
+
+  importGlossaryBulk(body: GlossaryBulkBody) {
+    return this.http.post<GlossaryBulkResult>(`${this.urlApi}api/glossary/admin/bulk/import`, body);
   }
 
   private cleanParams(params: UsageQueryParams): Record<string, string | number> {

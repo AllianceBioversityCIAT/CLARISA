@@ -12,12 +12,14 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { InstitutionTypeService } from './institution-type.service';
 import { UpdateInstitutionTypeDto } from './dto/update-institution-type.dto';
 import { Response } from 'express';
 import { InstitutionType } from './entities/institution-type.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 
+@ApiTags('Institution Type')
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class InstitutionTypeController {
@@ -26,6 +28,22 @@ export class InstitutionTypeController {
   ) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List institution types',
+    description:
+      'Hierarchical list of institution types used to classify the institutions registered in CLARISA.',
+  })
+  @ApiQuery({
+    name: 'show',
+    enum: FindAllOptions,
+    required: false,
+    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+  })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    description: 'Optional filter by parent institution type.',
+  })
   async findAll(
     @Query('show') show: FindAllOptions,
     @Query('type') type: string,

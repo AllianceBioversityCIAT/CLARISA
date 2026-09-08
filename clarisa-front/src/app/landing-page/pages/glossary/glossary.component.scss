@@ -1,0 +1,269 @@
+.glossary-section {
+  padding: 48px 0 72px;
+  background-color: #f7f8f5;
+}
+
+.glossary-intro {
+  margin-bottom: 28px;
+
+  h3 {
+    color: #436280;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  p {
+    color: #5f6b76;
+    font-size: 14px;
+    max-width: 720px;
+  }
+}
+
+.glossary-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.glossary-search {
+  position: relative;
+  flex: 1 1 320px;
+  max-width: 470px;
+
+  i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #739600;
+  }
+
+  input {
+    width: 100%;
+    padding: 8px 16px 8px 40px;
+    border: 1px solid #d8dfd0;
+    border-radius: 50px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus {
+      border-color: #739600;
+      box-shadow: 0 0 0 3px rgba(115, 150, 0, 0.15);
+    }
+  }
+}
+
+.glossary-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-pill {
+  border: 1px solid #d8dfd0;
+  background: transparent;
+  color: #5f6b76;
+  padding: 5px 13px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    border-color: #a8b3a0;
+    background-color: rgba(115, 150, 0, 0.08);
+  }
+
+  &.active {
+    background-color: #739600;
+    color: #fff;
+  }
+
+  &.active.chip-color-0 {
+    background-color: #6d28d9;
+    border-color: #6d28d9;
+  }
+  &.active.chip-color-1 {
+    background-color: #8a8f98;
+    border-color: #8a8f98;
+  }
+  &.active.chip-color-2 {
+    background-color: #739600;
+    border-color: #739600;
+  }
+  &.active.chip-color-3 {
+    background-color: #2563a8;
+    border-color: #2563a8;
+  }
+  &.active.chip-color-4 {
+    background-color: #c2701e;
+    border-color: #c2701e;
+  }
+}
+
+.glossary-loading,
+.glossary-empty {
+  text-align: center;
+  padding: 64px 0;
+  color: #5f6b76;
+
+  i {
+    font-size: 2.2rem;
+    color: #739600;
+    margin-bottom: 12px;
+    display: inline-block;
+  }
+}
+
+.glossary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 960px;
+}
+
+.glossary-card {
+  background: #fff;
+  border: 1px solid #e6eadf;
+  border-left: 4px solid #739600;
+  border-radius: 10px;
+  padding: 16px 22px;
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 8px 20px rgba(67, 98, 128, 0.12);
+  }
+
+  .card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+
+    h4 {
+      color: #436280;
+      font-size: 15px;
+      font-weight: 700;
+      margin: 0;
+    }
+  }
+
+  p {
+    color: #4c5560;
+    font-size: 13px;
+    line-height: 1.65;
+    margin: 0;
+    white-space: pre-line;
+  }
+}
+
+.card-source {
+  color: #6b7a68;
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 10px 0 0;
+  padding-top: 8px;
+  border-top: 1px dashed #e6eadf;
+
+  a {
+    color: #5c7800;
+    text-decoration: underline;
+  }
+
+  a:hover {
+    color: #739600;
+  }
+}
+
+.card-source__label {
+  /* The separating space lives in the markup, not here: a margin looks right on
+     screen but disappears when the line is copied or read aloud, leaving
+     "Source:CGIAR …". */
+  font-weight: 600;
+}
+
+.card-source__date {
+  white-space: nowrap;
+}
+
+.card-portfolios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+
+.portfolio-chip {
+  display: inline-block;
+  background-color: #739600;
+  color: #fff;
+  padding: 0.3rem 0.7rem;
+  border-radius: 1rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  // Paleta determinística por portfolio (id % 5)
+  &.chip-color-0 {
+    background-color: #6d28d9; // violeta
+  }
+  &.chip-color-1 {
+    background-color: #8a8f98; // gris (portfolios cerrados, ej. 2016-2021)
+  }
+  &.chip-color-2 {
+    background-color: #739600; // verde CGIAR (2022-2024)
+  }
+  &.chip-color-3 {
+    background-color: #2563a8; // azul (2025-2030)
+  }
+  &.chip-color-4 {
+    background-color: #c2701e; // naranja (CGIAR general)
+  }
+}
+
+@media (max-width: 576px) {
+  .glossary-card .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.glossary-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: -14px 0 28px;
+}
+
+.letter-circle {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #d8dfd0;
+  background: #fff;
+  color: #436280;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #739600;
+    color: #739600;
+  }
+
+  &.active {
+    background-color: #739600;
+    border-color: #739600;
+    color: #fff;
+  }
+}

@@ -1,0 +1,344 @@
+<div class="lifecycle-layout">
+  <main class="lifecycle-main">
+    <header class="panel-header">
+      <div>
+        <h1 class="panel-header__title">Institution Lifecycle</h1>
+        <p class="panel-header__desc">
+          Set the validity period of an institution and record which institution replaced it
+          (<code>renames</code>, successions, merges and splits).
+        </p>
+      </div>
+      <div class="panel-header__actions">
+        <p-dropdown
+          [options]="statusOptions"
+          [(ngModel)]="statusFilter"
+          optionLabel="label"
+          optionValue="value"
+          (onChange)="onStatusFilterChange()"
+          styleClass="filter-dropdown"
+        ></p-dropdown>
+        <button
+          pButton
+          type="button"
+          label="Refresh"
+          icon="pi pi-refresh"
+          class="p-button-outlined"
+          [disabled]="loading"
+          (click)="loadInstitutions()"
+        ></button>
+      </div>
+    </header>
+
+    <section class="panel-card">
+      <p-table
+        #lifecycleTable
+        [value]="institutions"
+        [loading]="loading"
+        [rows]="10"
+        [paginator]="true"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} institutions"
+        [globalFilterFields]="['name', 'acronym', 'code', 'typeName', 'searchText']"
+        styleClass="p-datatable-sm admin-table"
+        responsiveLayout="scroll"
+      >
+        <ng-template pTemplate="caption">
+          <div class="table-caption">
+            <span class="p-input-icon-left">
+              <i class="pi pi-search"></i>
+              <input
+                pInputText
+                type="text"
+                class="search-input"
+                placeholder="Search by name or acronym"
+                aria-label="Search by name or acronym"
+                (input)="lifecycleTable.filterGlobal($any($event.target).value, 'contains')"
+              />
+            </span>
+          </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+          <tr>
+            <th scope="col" pSortableColumn="code" style="width: 6rem">
+              Code <p-sortIcon field="code"></p-sortIcon>
+            </th>
+            <th scope="col" pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+            <th scope="col" pSortableColumn="acronym" style="width: 9rem">
+              Acronym <p-sortIcon field="acronym"></p-sortIcon>
+            </th>
+            <th scope="col" pSortableColumn="typeName" style="width: 12rem">
+              Type <p-sortIcon field="typeName"></p-sortIcon>
+            </th>
+            <th scope="col" pSortableColumn="endDate" style="width: 11rem">
+              Valid until <p-sortIcon field="endDate"></p-sortIcon>
+            </th>
+            <th scope="col" style="width: 16rem">Replaced by</th>
+            <th scope="col" style="width: 14rem">Replaces</th>
+            <th scope="col" style="width: 6rem">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-inst>
+          <tr>
+            <td><code class="key-prefix">{{ inst.code }}</code></td>
+            <td>
+              <span class="cell-primary">{{ inst.name }}</span>
+              <span class="cell-meta" *ngIf="inst.previousNames?.length">
+                formerly {{ inst.previousNames.join(', ') }}
+              </span>
+            </td>
+            <td>
+              {{ inst.acronym || '—' }}
+              <span class="cell-meta" *ngIf="inst.previousAcronyms?.length">
+                was {{ inst.previousAcronyms.join(', ') }}
+              </span>
+            </td>
+            <td>{{ inst.typeName || '—' }}</td>
+            <td>
+              <!-- An end date in the future is an announced retirement, not a
+                   retirement: the institution is still usable until that day. -->
+              <ng-container [ngSwitch]="inst.validityStatus">
+                <p-tag *ngSwitchCase="'ended'" [value]="inst.endDate" severity="danger" [pTooltip]="'Retired on ' + inst.endDate"></p-tag>
+                <p-tag
+                  *ngSwitchCase="'ending'"
+                  [value]="inst.endDate"
+                  severity="warning"
+                  [pTooltip]="'Still valid. Retires on ' + inst.endDate"
+                ></p-tag>
+                <p-tag *ngSwitchDefault value="Active" severity="success"></p-tag>
+              </ng-container>
+            </td>
+            <!-- The two ends of the relation, each in its own column: one cell
+                 saying "SMO (SUCCESSOR)" on both rows is what made the table
+                 unable to tell which institution came first. -->
+            <td>
+              <span class="lineage-cell" *ngIf="inst.replacedBy?.length; else noReplacedBy" [pTooltip]="lineageTooltip(inst.replacedBy)" tooltipPosition="top">
+                {{ lineageLabel(inst.replacedBy, 'successor') }}
+              </span>
+              <ng-template #noReplacedBy><span class="cell-muted">—</span></ng-template>
+            </td>
+            <td>
+              <span class="lineage-cell" *ngIf="inst.replaces?.length; else noReplaces" [pTooltip]="lineageTooltip(inst.replaces)" tooltipPosition="top">
+                {{ lineageLabel(inst.replaces, 'predecessor') }}
+              </span>
+              <ng-template #noReplaces><span class="cell-muted">—</span></ng-template>
+            </td>
+            <td>
+              <button
+                pButton
+                type="button"
+                icon="pi pi-pencil"
+                class="p-button-text p-button-sm"
+                pTooltip="Edit lifecycle"
+                tooltipPosition="top"
+                (click)="openEdit(inst)"
+              ></button>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="8" class="empty-cell">No institutions found for this filter.</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </section>
+  </main>
+</div>
+
+<p-dialog
+  [header]="selected ? 'Lifecycle — ' + selected.name : 'Lifecycle'"
+  [(visible)]="editVisible"
+  [modal]="true"
+  [style]="{ width: '42rem' }"
+  [contentStyle]="{ overflow: 'visible' }"
+  [draggable]="false"
+  [closable]="!submitting"
+  (onHide)="closeEdit()"
+  styleClass="admin-dialog"
+>
+  <form [formGroup]="form" class="admin-form" (ngSubmit)="submit()">
+    <!-- `added` is the day the row was created in CLARISA, not the day the
+         institution started operating. It is shown as a reference and never
+         written anywhere: the validity period is a real-world fact. -->
+    <p class="form-note" *ngIf="selected?.added">
+      <i class="pi pi-info-circle"></i>
+      In CLARISA since <strong>{{ selected?.added }}</strong>
+    </p>
+
+    <div class="field">
+      <label for="lifecycleEnd">
+        End of validity
+        <span class="tag-req" *ngIf="endDateRequired">Required</span>
+        <span class="tag-opt" *ngIf="!endDateRequired">Optional</span>
+      </label>
+      <p-calendar
+        inputId="lifecycleEnd"
+        formControlName="endDate"
+        dateFormat="yy-mm-dd"
+        [showIcon]="true"
+        [showButtonBar]="true"
+        appendTo="body"
+        styleClass="w-full"
+        panelStyleClass="admin-dropdown-panel"
+      ></p-calendar>
+      <small class="field-hint">
+        Leave empty to keep it active. Clearing it on a retired institution also removes its recorded successor.
+        <button
+          pButton
+          type="button"
+          label="Clear"
+          class="p-button-link p-0 inline-clear"
+          (click)="clearEndDate()"
+        ></button>
+      </small>
+      <small class="field-error" *ngIf="endDateRequired && !form.get('endDate')?.value">
+        A successor can only be recorded on an institution that has an end date.
+      </small>
+    </div>
+
+    <div class="field">
+      <label for="lifecycleSuccessor">
+        Replaced by
+        <span class="tag-opt">Optional</span>
+      </label>
+      <!-- Always virtualised, never conditionally: the catalogue holds close to
+           ten thousand institutions, and toggling the flag makes PrimeNG tear
+           down and rebuild its scroller. `scrollHeight` must be an explicit
+           multiple of `itemSize`, or the virtual scroller has no viewport to
+           measure against and paints an empty panel. -->
+      <p-dropdown
+        inputId="lifecycleSuccessor"
+        formControlName="replacedByInstitutionId"
+        [options]="availableSuccessors"
+        optionLabel="label"
+        optionValue="id"
+        [filter]="true"
+        filterBy="label,name,acronym,code"
+        [showClear]="true"
+        [virtualScroll]="true"
+        [itemSize]="44"
+        scrollHeight="352px"
+        placeholder="Search an institution (optional)"
+        filterPlaceholder="Type a name or acronym…"
+        appendTo="body"
+        [style]="{ width: '100%' }"
+        styleClass="w-full admin-dropdown"
+        panelStyleClass="admin-dropdown-panel"
+        (onShow)="onDropdownShow($event)"
+      >
+        <ng-template let-option pTemplate="item">
+          <div class="dd-option">
+            <span class="dd-option__title">{{ option.name }}</span>
+            <span class="dd-option__meta">
+              {{ option.acronym ? option.acronym + ' · ' : '' }}code {{ option.code }}
+            </span>
+          </div>
+        </ng-template>
+        <ng-template let-option pTemplate="selectedItem">
+          <span class="dd-selected">{{ option.label }}</span>
+        </ng-template>
+      </p-dropdown>
+      <small class="field-hint">
+        The institution that takes over. Leave empty if there is none — clearing it on a row that
+        already has one removes the recorded succession when you save.
+      </small>
+    </div>
+
+    <!-- Both fields belong to the succession edge, not to the institution:
+         with no successor there is no row to store them in, and today they
+         are collected only to be dropped before the request leaves. -->
+    <div class="field-grid" *ngIf="hasSuccessor">
+      <div class="field">
+        <label for="lifecycleRelation">
+          Relation type
+          <span class="tag-opt">Optional</span>
+        </label>
+        <p-dropdown
+          inputId="lifecycleRelation"
+          formControlName="relationType"
+          [options]="relationTypes"
+          optionLabel="label"
+          optionValue="value"
+          appendTo="body"
+          [style]="{ width: '100%' }"
+          styleClass="w-full admin-dropdown"
+          panelStyleClass="admin-dropdown-panel"
+          (onShow)="onDropdownShow($event)"
+        >
+          <ng-template let-type pTemplate="item">
+            <div class="dd-option">
+              <span class="dd-option__title">{{ type.label }}</span>
+              <span class="dd-option__meta">{{ type.hint }}</span>
+            </div>
+          </ng-template>
+          <ng-template let-type pTemplate="selectedItem">
+            <span class="dd-selected">{{ type.label }}</span>
+          </ng-template>
+        </p-dropdown>
+        <small class="field-hint">Defaults to NEW (rename of the same entity).</small>
+      </div>
+
+      <div class="field">
+        <label for="lifecycleChange">
+          Change date
+          <span class="tag-opt">Optional</span>
+        </label>
+        <p-calendar
+          inputId="lifecycleChange"
+          formControlName="changeDate"
+          dateFormat="yy-mm-dd"
+          [showIcon]="true"
+          [showButtonBar]="true"
+          appendTo="body"
+          styleClass="w-full"
+          panelStyleClass="admin-dropdown-panel"
+        ></p-calendar>
+        <small class="field-hint">When the change happened in the real world. Prefilled with today; change it if it was another day.</small>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="lifecycleNote">
+        Note
+        <span class="tag-opt">Optional</span>
+      </label>
+      <textarea
+        id="lifecycleNote"
+        pInputTextarea
+        formControlName="note"
+        rows="3"
+        class="w-full"
+        maxlength="5000"
+        placeholder="Why is this institution ending? Source of the information…"
+      ></textarea>
+      <small class="field-error" *ngIf="form.get('note')?.invalid && form.get('note')?.touched">
+        Note is limited to 5000 characters.
+      </small>
+    </div>
+
+    <div class="dialog-footer">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        class="p-button-text"
+        [disabled]="submitting"
+        (click)="closeEdit()"
+      ></button>
+      <button
+        pButton
+        type="submit"
+        [label]="submitting ? 'Saving…' : 'Save lifecycle'"
+        class="btn-brand"
+        [loading]="submitting"
+        [disabled]="submitting || form.invalid"
+      ></button>
+    </div>
+  </form>
+</p-dialog>
+
+<p-toast position="top-right"></p-toast>

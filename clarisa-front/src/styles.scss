@@ -92,6 +92,20 @@ html *:not(.fa, .fe, .pi, pre, code) {
   }
 }
 
+/* Virtualised column pickers: the rows must be exactly as tall as the `itemSize`
+   handed to p-dropdown, so an option that would otherwise wrap is clipped
+   instead of pushing the scroller out of sync with its own maths. */
+.column-dropdown-panel.p-dropdown-panel {
+  .p-dropdown-items .p-dropdown-item {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 .admin-dropdown .p-dropdown-label {
   font-size: 0.85rem;
 }

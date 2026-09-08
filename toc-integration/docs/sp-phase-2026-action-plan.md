@@ -30,6 +30,8 @@ Permitir que `toc-integration` almacene y exponga **coexistencia de fases** (202
 
 ---
 
+> **Actualización 2026-09-08 (ToC API v3).** El 4 sep 2026 el ToC cambió de backend. Dos supuestos de este plan cambiaron: (1) `phase` en el envelope ya no es un string sino un objeto `{ id, name, reporting_year, ... }`, así que `reporting_year` **sí** viene en la respuesta y `GET /phases` es solo fallback; (2) `ost_wp.toc_id` desapareció, y `toc_work_packages.toc_id` para filas nuevas es el uuid del nodo WP (las filas existentes conservan su `toc_id`). Detalle y estado en `docs/toc-api-v3-compat-gap.md`.
+
 ## Envelope del response ToC (raíz del JSON)
 
 Al final del payload de `GET LINK_TOC/api/toc/{spId}?phase_id={uuid}` llega metadata de contexto (ejemplo SP09 Phase 2026):

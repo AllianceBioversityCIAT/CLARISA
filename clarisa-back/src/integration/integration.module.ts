@@ -7,6 +7,7 @@ import { HttpModule } from '@nestjs/axios';
 import { HandlebarsTemplateModule } from '../api/handlebars-template/handlebars-template.module';
 import { ReportingModule } from './reporting/reporting.module';
 import { W3RegistryModule } from './w3/w3-registry.module';
+import { InnovationModule } from './innovation/innovation.module';
 
 @Module({
   imports: [
@@ -16,9 +17,10 @@ import { W3RegistryModule } from './w3/w3-registry.module';
     HandlebarsTemplateModule,
     ReportingModule,
     W3RegistryModule,
+    InnovationModule,
   ],
   providers: [QaApi],
   controllers: [IntegrationController],
-  exports: [QaApi, ReportingModule],
+  exports: [QaApi, ReportingModule, InnovationModule],
 })
 export class IntegrationModule {}

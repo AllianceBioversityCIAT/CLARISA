@@ -13,7 +13,7 @@ export class IndicatorsComponent implements OnInit {
       numberIndicator: '372',
     },
     {
-      name: 'Polices',
+      name: 'Policies',
       icon: 'fa fa-address-book',
       numberIndicator: '501',
     },
@@ -29,7 +29,7 @@ export class IndicatorsComponent implements OnInit {
     },
 
     {
-      name: 'Worckpackages',
+      name: 'Workpackages',
       icon: 'fa fa-newspaper-o',
       numberIndicator: '156',
     },

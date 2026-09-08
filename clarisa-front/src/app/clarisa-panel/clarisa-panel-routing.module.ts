@@ -8,28 +8,26 @@ const routes: Routes = [
     component: ClarisaPanelComponent,
     children: [
       {
-        path: 'documentation/:nameCategory',
+        // The public documentation keeps the URL hierarchy it has always had —
+        // `documentation/<group>/<category>/<endpoint>` — so every link already
+        // shared, and the legacy swagger redirects in routes-clarisa-legacy.ts,
+        // keep resolving. Only the renderer changed: these paths now serve the
+        // API Reference view instead of the old DocumentationModule, which
+        // stays in the codebase as reference but is no longer routed.
+        path: 'documentation',
         loadChildren: () =>
-          import('./documentation/documentation.module').then(
-            (m) => m.DocumentationModule
-          ),
-      },
-
-      {
-        path: 'documentation/:nameCategory/:namesubcategory/:nameEndpoint',
-        loadChildren: () =>
-          import('./documentation/documentation.module').then(
-            (m) => m.DocumentationModule
+          import('./api-reference/api-reference.module').then(
+            (m) => m.ApiReferenceModule
           ),
       },
       {
-        path: 'documentation/:nameCategory/:namesubcategory',
+        // Same view without naming a group: shows the whole catalog.
+        path: 'api-reference',
         loadChildren: () =>
-          import('./documentation/documentation.module').then(
-            (m) => m.DocumentationModule
+          import('./api-reference/api-reference.module').then(
+            (m) => m.ApiReferenceModule
           ),
       },
-
       {
         path: 'manage',
         loadChildren: () =>

@@ -20,7 +20,7 @@ export class TocResultPartners {
   @Column({ type: "int", nullable: true })
   code: number | null;
 
-  @Column({ type: "varchar", length: 300, nullable: true })
+  @Column({ type: "longtext", nullable: true })
   website_link: string | null;
 
   @Column({ type: "varchar", length: 50, nullable: true })

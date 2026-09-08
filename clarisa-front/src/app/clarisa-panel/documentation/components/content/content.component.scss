@@ -10,3 +10,45 @@
 pre{
     font-family: monospace !important;
 }
+
+.portfolio-chip {
+  display: inline-block;
+  background-color: #739600;
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  margin: 0.1rem 0.15rem 0.1rem 0;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.portfolio-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: 0;
+}
+
+.portfolio-filter-chip {
+  border: 1px solid #739600;
+  background: transparent;
+  color: #739600;
+  padding: 5px 12px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(115, 150, 0, 0.12);
+  }
+
+  &.active {
+    background-color: #739600;
+    color: #fff;
+  }
+}

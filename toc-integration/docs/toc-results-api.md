@@ -177,8 +177,8 @@ The response returns a JSON envelope containing the response data:
 - **`related_node_id`** *(string)*: GUID of the related node in ToC.
 - **`indicator_description`** *(string)*: Description/metric of the indicator.
 - **`unit_messurament`** *(string)*: Unit of measurement.
-- **`type_value`** / **`type_name`** *(string)*: Type of the indicator (e.g., `Number of knowledge products`).
-- **`location`** *(string)*: Scope of location (e.g., `global`).
+- **`type_value`** / **`type_name`** *(string)*: Type of the indicator. `type_name` is the ToC label (`Innovation Development`, `Knowledge Products`, `Capacity Sharing`, `Policy Change`, `Innovation Use`, `Other Outputs`, `Other Outcomes`); `type_value` is the legacy value space used for aggregation: `Number of innovations (innovation development)`, `Number of knowledge products`, `Number of people trained (capacity sharing for development)`, `Number of Policy (Policy Change)`, `Innovation Use`, and `custom` for both "Other" labels. Empty when the ToC sends no type.
+- **`location`** *(string)*: Scope of location, always lowercase (`global`, `regional`, `country`). Rows synced from the ToC API v3 (September 2026 onwards) are normalised to lowercase on save; the ToC itself now sends `Global` / `Country`.
 - **`targets`** *(array)*: All yearly target values associated with this indicator.
   - **`target_value`** *(string)*: Target value.
   - **`target_date`** *(string)*: The target year (e.g. `2026`).
@@ -190,3 +190,15 @@ The response returns a JSON envelope containing the response data:
 1. **Direct Data Source**: Queries data directly from the integration tables (no dependency on the main reporting platform database).
 2. **Catalog Scope**: Excludes fields linked to the PR reporting workspace such as `result_toc_result_id`, `planned_result`, `toc_progressive_narrative`, `result_toc_result_indicator_id`, `indicator_contributing`, and `status_id`.
 3. **Targets Scope**: Returns all yearly targets for each indicator rather than filtering for a single reporting year.
+
+---
+
+## 6. Data available in the database but not exposed by this endpoint
+
+Since the ToC API v3 adaptation (September 2026) the sync also persists result-level geography. This endpoint's response is **unchanged**; consumers that need these fields read the database directly:
+
+- **`toc_results.location`** *(varchar, nullable)*: `global` / `regional` / `country` in lowercase, or `NULL` when the ToC does not set it.
+- **`toc_results_regions`**: one row per result region — `toc_results_id` (FK to `toc_results.id`, phase-specific), `toc_result_id_toc` (ToC node uuid), `um49_code`, `name`, `is_active`.
+- **`toc_results_countries`**: one row per result country — `toc_results_id`, `toc_result_id_toc`, `country_code` (ISO numeric, CLARISA code), `name`, `iso_alpha2`, `iso_alpha3`, `is_active`.
+
+Both tables are rebuilt (delete + insert) for each result on every sync of that program and phase.
