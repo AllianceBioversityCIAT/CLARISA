@@ -67,6 +67,46 @@ describe('Glossary admin DTO validation', () => {
     );
   });
 
+  describe('the fields both payloads share', () => {
+    // They live on a common base class, so these cases prove the inherited
+    // decorators still run: class-validator reads the whole prototype chain,
+    // and a broken chain would silently accept everything below.
+    it('still enforces the length of an inherited field', async () => {
+      await expect(
+        run(CreateGlossaryTermDto, panelBody({ source: 'x'.repeat(501) })),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        run(UpdateGlossaryTermDto, panelBody({ source: 'x'.repeat(501) })),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('still transforms the portfolio ids a form sends as strings', async () => {
+      await expect(
+        run(CreateGlossaryTermDto, panelBody({ portfolio_ids: ['3'] })),
+      ).resolves.toMatchObject({ portfolio_ids: [3] });
+    });
+
+    it('still refuses an unknown key, so no other column can be reached', async () => {
+      await expect(
+        run(CreateGlossaryTermDto, panelBody({ is_active: false })),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('keeps the required fields required on create', async () => {
+      await expect(
+        run(CreateGlossaryTermDto, { definition: 'No term' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('lets update send only the field being edited', async () => {
+      await expect(
+        run(UpdateGlossaryTermDto, { definition: 'Just the definition' }),
+      ).resolves.toEqual({
+        definition: 'Just the definition',
+      });
+    });
+  });
+
   describe('UpdateGlossaryTermDto', () => {
     it('accepts a blank reference date, which is how a stored one is cleared', async () => {
       await expect(
