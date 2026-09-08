@@ -27,7 +27,17 @@ describe('GlossaryComponent', () => {
   beforeEach(async () => {
     mockService = {
       getGlossary: jest.fn().mockReturnValue(of(terms)),
-      getPortfolios: jest.fn().mockReturnValue(of([{ code: 2, name: 'P22' }, { code: 3, name: 'P25' }]))
+      // Shaped like `GET api/portfolios?show=all` really answers: the default
+      // portfolio is picked from `start_date`, so a mock without it would hide
+      // that behaviour from every test below.
+      getPortfolios: jest.fn().mockReturnValue(
+        of([
+          { code: 1, name: 'CGIAR portfolio 2016-2021', start_date: 2016, end_date: 2021, acronym: null, is_active: 0 },
+          { code: 2, name: 'CGIAR portfolio 2022-2024', start_date: 2022, end_date: 2024, acronym: 'P22', is_active: 1 },
+          { code: 3, name: 'CGIAR portfolio 2025-2030', start_date: 2025, end_date: 2030, acronym: 'P25', is_active: 1 },
+          { code: 4, name: 'CGIAR general', acronym: null, is_active: 1 }
+        ])
+      )
     };
 
     await TestBed.configureTestingModule({
@@ -40,20 +50,50 @@ describe('GlossaryComponent', () => {
     component = fixture.componentInstance;
   });
 
+  /** What a reader does when they want the whole glossary back. */
+  const showAllPortfolios = () => component.selectPortfolio(null);
+
   it('should create and load terms and portfolios', () => {
     fixture.detectChanges();
     expect(component.terms.length).toBe(4);
-    expect(component.portfolios.length).toBe(2);
+    expect(component.portfolios.length).toBe(4);
     expect(component.loading).toBe(false);
   });
 
-  it('should show every term by default', () => {
+  it('should open on the newest active portfolio instead of on every term', () => {
     fixture.detectChanges();
+    expect(component.selectedPortfolioCode).toBe(3);
+    expect(component.filteredTerms.map(t => t.term)).toEqual(['Innovation', 'Shared term']);
+  });
+
+  it('should show every term once the reader asks for all portfolios', () => {
+    fixture.detectChanges();
+    showAllPortfolios();
+    expect(component.selectedPortfolioCode).toBeNull();
+    expect(component.filteredTerms.length).toBe(4);
+  });
+
+  it('should pick the newest ACTIVE portfolio, not the newest one', () => {
+    mockService.getPortfolios.mockReturnValue(
+      of([
+        { code: 2, name: 'CGIAR portfolio 2022-2024', start_date: 2022, is_active: 1 },
+        { code: 3, name: 'CGIAR portfolio 2025-2030', start_date: 2025, is_active: 0 }
+      ])
+    );
+    fixture.detectChanges();
+    expect(component.selectedPortfolioCode).toBe(2);
+  });
+
+  it('should fall back to every term when no portfolio carries a start year', () => {
+    mockService.getPortfolios.mockReturnValue(of([{ code: 4, name: 'CGIAR general', is_active: 1 }]));
+    fixture.detectChanges();
+    expect(component.selectedPortfolioCode).toBeNull();
     expect(component.filteredTerms.length).toBe(4);
   });
 
   it('should filter by search text over term and definition (case-insensitive)', () => {
     fixture.detectChanges();
+    showAllPortfolios();
     component.searchText = 'ACTION';
     expect(component.filteredTerms.map(t => t.term)).toEqual(['Action Area']);
 
@@ -63,12 +103,14 @@ describe('GlossaryComponent', () => {
 
   it('should filter by portfolio id', () => {
     fixture.detectChanges();
+    showAllPortfolios();
     component.selectPortfolio(3);
     expect(component.filteredTerms.map(t => t.term)).toEqual(['Innovation', 'Shared term']);
   });
 
   it('should combine search and portfolio filter', () => {
     fixture.detectChanges();
+    showAllPortfolios();
     component.selectPortfolio(3);
     component.searchText = 'shared';
     expect(component.filteredTerms.map(t => t.term)).toEqual(['Shared term']);
@@ -76,6 +118,7 @@ describe('GlossaryComponent', () => {
 
   it('should toggle the portfolio selection off when clicked twice', () => {
     fixture.detectChanges();
+    showAllPortfolios();
     component.selectPortfolio(2);
     component.selectPortfolio(2);
     expect(component.selectedPortfolioCode).toBeNull();
@@ -92,12 +135,14 @@ describe('GlossaryComponent', () => {
 
   it('should return terms sorted alphabetically', () => {
     fixture.detectChanges();
+    showAllPortfolios();
     expect(component.filteredTerms.map(t => t.term)).toEqual(['Action Area', 'Innovation', 'Orphan', 'Shared term']);
   });
 
   describe('letter filter', () => {
     beforeEach(() => {
       fixture.detectChanges();
+      showAllPortfolios();
     });
 
     it('should expose only the initials that exist', () => {
@@ -181,6 +226,10 @@ describe('GlossaryComponent', () => {
 
     beforeEach(() => {
       mockService.getGlossary.mockReturnValue(of(withProvenance));
+      fixture.detectChanges();
+      // These fixtures carry no portfolio, so the default filter would hide
+      // them; the assertions below are about the source line, not the filter.
+      showAllPortfolios();
       fixture.detectChanges();
     });
 
