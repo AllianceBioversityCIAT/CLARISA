@@ -6,6 +6,27 @@ import {
   parseReportingYearInput,
 } from "../types/sp-sync-meta";
 
+/**
+ * Map a sync failure to an HTTP response. TocSyncError carries its own
+ * status (404 not published in phase, 409 guard/mismatch, 422 empty payload,
+ * 502/504 upstream); anything else is a 500. Plain `res.json(error)` on an
+ * Error instance serialises to `{}`, hence the explicit body.
+ */
+function respondSyncError(res: Response, error: any) {
+  console.error(error);
+  const statusCode =
+    typeof error?.statusCode === "number" ? error.statusCode : 500;
+  return res.status(statusCode).json({
+    message:
+      typeof error?.message === "string" && error.message
+        ? error.message
+        : "An error occurred while synchronizing with the ToC API.",
+    code: typeof error?.code === "string" ? error.code : null,
+    statusCode,
+    details: error?.details ?? undefined,
+  });
+}
+
 export class tocController {
   async getTocResultDashboard(req: Request, res: Response) {
     const id_toc = await req.body.id_toc;
@@ -16,8 +37,7 @@ export class tocController {
 
       res.json({ response: message });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json(error);
+      return respondSyncError(res, error);
     }
   }
 
@@ -35,8 +55,7 @@ export class tocController {
       const data = await servicesInformation.spSplitInformation(spIds, phaseId);
       res.json({ response: data });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json(error);
+      return respondSyncError(res, error);
     }
   }
   
@@ -62,8 +81,7 @@ export class tocController {
       );
       res.json({ response: data });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json(error);
+      return respondSyncError(res, error);
     }
   }
 
@@ -73,13 +91,14 @@ export class tocController {
    * New ToC Integration dashboard for Avisa
    */
   async bulkAvisaTocResultDashboard(req: Request, res: Response) {
+    const phaseId =
+      typeof req.body?.phaseId === "string" ? req.body.phaseId : undefined;
     try {
       let servicesInformation = new TocServicesResults();
-      const data = await servicesInformation.avisaSplitInformation();
+      const data = await servicesInformation.avisaSplitInformation(phaseId);
       res.json({ response: data });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json(error);
+      return respondSyncError(res, error);
     }
   }
 

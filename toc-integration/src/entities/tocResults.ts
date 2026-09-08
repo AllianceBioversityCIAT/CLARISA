@@ -29,6 +29,10 @@ export class TocResults {
   @Column()
   is_global: boolean;
 
+  /** ToC v3 result-level location (global / regional / country), lowercase. */
+  @Column({ name: "location", type: "varchar", length: 50, nullable: true })
+  location: string | null;
+
   @Column()
   is_active: boolean;
 

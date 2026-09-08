@@ -235,15 +235,21 @@ export class TocSdgsServices {
         typeof item?.id === "string" || typeof item?.id === "number"
           ? String(item.id)
           : null;
-      const sdg_id_raw = item?.type?.usndCode;
+      // ToC API v3: `type.smo_code`; v2 snapshots: `type.usndCode`.
+      const sdg_id_raw = item?.type?.smo_code ?? item?.type?.usndCode;
       const sdg_id =
         typeof sdg_id_raw === "number"
           ? sdg_id_raw
           : Number.isFinite(Number(sdg_id_raw))
           ? Number(sdg_id_raw)
           : null;
+      // ToC API v3: `type.full_name`; v2 snapshots: `type.fullName`.
       const sdg_contribution =
-        typeof item?.type?.fullName === "string" ? item.type.fullName : null;
+        typeof item?.type?.full_name === "string"
+          ? item.type.full_name
+          : typeof item?.type?.fullName === "string"
+            ? item.type.fullName
+            : null;
 
       if (!toc_result_id) continue;
 
@@ -356,11 +362,14 @@ export class TocSdgsServices {
     if (!this.validatorType.validatorIsArray(indicators)) return result;
 
     for (const ind of indicators) {
+      // ToC API v3: `indicators[].id` is the SDG indicator id (`sdgTargetId` is
+      // the parent target); v2 snapshots carried it as `target_id`.
+      const rawIndicatorId = ind?.target_id ?? ind?.id;
       const sdg_indicator_id =
-        typeof ind?.target_id === "number"
-          ? ind.target_id
-          : Number.isFinite(Number(ind?.target_id))
-          ? Number(ind.target_id)
+        typeof rawIndicatorId === "number"
+          ? rawIndicatorId
+          : Number.isFinite(Number(rawIndicatorId))
+          ? Number(rawIndicatorId)
           : null;
       if (!sdg_indicator_id) continue;
 
