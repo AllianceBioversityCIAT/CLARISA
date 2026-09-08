@@ -8,7 +8,10 @@ import {
 } from './dto/w3-registry-project.dto';
 import { Project } from '../../api/project/entity/project.entity';
 import { ProjectCountry } from '../../api/project/entity/project-country.entity';
-import { ProjectMapping } from '../../api/project/entity/project-mapping.entity';
+import {
+  MappingStatus,
+  ProjectMapping,
+} from '../../api/project/entity/project-mapping.entity';
 import { W3RegistrySync } from '../../api/project/entity/w3-registry-sync.entity';
 import { W3RegistryProjectSnapshot } from '../../api/project/entity/w3-registry-project-snapshot.entity';
 import { AuditableEntity } from '../../shared/entities/extends/auditable-entity.entity';
@@ -24,6 +27,16 @@ const PAGE_LIMIT = 100;
 interface ProcessResult {
   created: boolean;
   warnings: string[];
+}
+
+/**
+ * El W3 Registry publica solo mappings acordados por el comité y los marca
+ * `agreed`. Se traduce al enum de CLARISA; cualquier otro valor, o su
+ * ausencia, queda `Pending` para no dar por aprobado lo que el registro no
+ * confirmó.
+ */
+export function toMappingStatus(source?: string | null): MappingStatus {
+  return source?.trim().toLowerCase() === 'agreed' ? 'Confirmed' : 'Pending';
 }
 
 @Injectable()
@@ -294,7 +307,7 @@ export class W3RegistrySyncService {
       mapping.efficiencies = sourceMapping.efficiencyRating;
       mapping.source_program_code = sourceMapping.programCode;
       mapping.source_program_name = sourceMapping.programName;
-      mapping.status = 'Pending';
+      mapping.status = toMappingStatus(sourceMapping.status);
       mapping.auditableFields ??= new AuditableEntity();
       mapping.auditableFields.is_active = true;
       mapping.auditableFields.created_by ??= SYSTEM_USER_ID;

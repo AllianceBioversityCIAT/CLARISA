@@ -10,6 +10,8 @@ export interface W3RegistryMappingDto {
   efficiencyRating: 'low' | 'medium' | 'high';
   allocationPercentage: number;
   complementarityRating: 'low' | 'medium' | 'high';
+  /** Estado del mapping en el W3 Registry. Valor observado: 'agreed'. */
+  status?: string;
 }
 
 export interface W3RegistryProjectDto {
