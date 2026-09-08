@@ -73,9 +73,11 @@ export class UserService {
    */
   async findOneByEmail(email: string, isService = true): Promise<User> {
     const user: User = await this.usersRepository.findOneBy({ email });
-    if (user) {
-      user.permissions = await this.getUserPermissions(user);
+    if (!user) {
+      return null;
     }
+
+    user.permissions = await this.getUserPermissions(user);
 
     if (isService) {
       delete user.password;
@@ -93,9 +95,11 @@ export class UserService {
    */
   async findOneByUsername(username: string, isService = false): Promise<User> {
     const user: User = await this.usersRepository.findOneBy({ username });
-    if (user) {
-      user.permissions = await this.getUserPermissions(user);
+    if (!user) {
+      return null;
     }
+
+    user.permissions = await this.getUserPermissions(user);
 
     if (isService) {
       delete user.password;

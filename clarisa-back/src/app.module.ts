@@ -22,6 +22,7 @@ import { ExceptionsFilter } from './shared/filters/exceptions.filter';
 import { IntegrationModule } from './integration/integration.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { GlobalModule } from './global.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { GlobalModule } from './global.module';
     IntegrationModule,
     GuardsModule,
     GlobalModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [

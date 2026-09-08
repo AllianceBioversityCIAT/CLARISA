@@ -12,17 +12,21 @@ import {
   Patch,
 } from '@nestjs/common';
 import { GetUserData } from '../../shared/decorators/user-data.decorator';
+import { GetApiKeyAuth } from '../../shared/decorators/get-api-key-auth.decorator';
+import { RequireApiKeyScope } from '../../shared/decorators/require-api-key-scope.decorator';
 import { RespondRequestDto } from '../../shared/entities/dtos/respond-request.dto';
 import { ResponseDto } from '../../shared/entities/dtos/response.dto';
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
-import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { CompositeAuthGuard } from '../../shared/guards/composite-auth.guard';
+import { HybridAuthorizationGuard } from '../../shared/guards/hybrid-authorization.guard';
 import { UserData } from '../../shared/interfaces/user-data';
+import { ApiKeyAuthContext } from '../api-key/interfaces/api-key-auth-context';
 import { CreatePartnerRequestDto } from './dto/create-partner-request.dto';
 import { PartnerRequestDto } from './dto/partner-request.dto';
 import { UpdatePartnerRequestDto } from './dto/update-partner-request.dto';
 import { PartnerRequestService } from './partner-request.service';
 import { BulkPartnerRequestDto } from './dto/create-partner-dto';
 import { FindAllOptions } from 'src/shared/entities/enums/find-all-options';
+import { resolvePartnerRequestActor } from './utils/resolve-partner-request-actor';
 
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
@@ -54,15 +58,22 @@ export class PartnerRequestController {
   }
 
   @Post('create')
-  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @UseGuards(CompositeAuthGuard, HybridAuthorizationGuard)
+  @RequireApiKeyScope('partner-requests:create')
   async createPartnerRequest(
-    @GetUserData() userData: UserData,
+    @GetUserData() userData: UserData | undefined,
+    @GetApiKeyAuth() apiKeyAuth: ApiKeyAuthContext | undefined,
     @Body() newPartnerRequest: CreatePartnerRequestDto,
     @Query('mis') mis: string,
   ): Promise<ResponseDto<PartnerRequestDto>> {
+    const actor = resolvePartnerRequestActor(userData, apiKeyAuth, {
+      userId: newPartnerRequest.userId,
+      email: newPartnerRequest.externalUserMail,
+    });
+
     const userDataMis: UserData & { mis: string } = {
-      ...userData,
-      mis,
+      ...actor,
+      mis: mis || apiKeyAuth?.mis?.acronym || '',
     };
 
     return this.partnerRequestService.createPartnerRequest(
@@ -72,34 +83,47 @@ export class PartnerRequestController {
   }
 
   @Post('respond')
-  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @UseGuards(CompositeAuthGuard, HybridAuthorizationGuard)
+  @RequireApiKeyScope('partner-requests:create')
   async respondPartnerRequest(
-    @GetUserData() userData: UserData,
+    @GetUserData() userData: UserData | undefined,
+    @GetApiKeyAuth() apiKeyAuth: ApiKeyAuthContext | undefined,
     @Body() respondPartnerRequestDto: RespondRequestDto,
   ): Promise<PartnerRequestDto> {
+    const actor = resolvePartnerRequestActor(userData, apiKeyAuth, {
+      userId: respondPartnerRequestDto.userId,
+      email: respondPartnerRequestDto.externalUserMail,
+    });
+
     return this.partnerRequestService.respondPartnerRequest(
       respondPartnerRequestDto,
-      userData,
+      actor,
     );
   }
 
   @Patch('update')
-  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @UseGuards(CompositeAuthGuard, HybridAuthorizationGuard)
+  @RequireApiKeyScope('partner-requests:create')
   async updatePartnerRequest(
-    @GetUserData() userData: UserData,
+    @GetUserData() userData: UserData | undefined,
+    @GetApiKeyAuth() apiKeyAuth: ApiKeyAuthContext | undefined,
     @Body() updatePartnerRequest: UpdatePartnerRequestDto,
   ): Promise<ResponseDto<PartnerRequestDto>> {
+    const actor = resolvePartnerRequestActor(userData, apiKeyAuth, {
+      userId: updatePartnerRequest.userId,
+      email: updatePartnerRequest.externalUserMail,
+    });
+
     return this.partnerRequestService.updatePartnerRequest(
       updatePartnerRequest,
-      userData,
+      actor,
     );
   }
 
   @Post('create-bulk')
-  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @UseGuards(CompositeAuthGuard, HybridAuthorizationGuard)
+  @RequireApiKeyScope('partner-requests:create')
   async createBulk(@Body() createBulkPartner: BulkPartnerRequestDto) {
-    const result: any =
-      await this.partnerRequestService.createBulk(createBulkPartner);
-    return result;
+    return this.partnerRequestService.createBulk(createBulkPartner);
   }
 }

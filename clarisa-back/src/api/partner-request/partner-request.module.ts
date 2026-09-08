@@ -14,9 +14,15 @@ import { OpenSearchInstitutionApi } from '../../integration/opensearch/instituti
 import { MessagingMicroservice } from '../../integration/microservices/messaging/messaging.microservice';
 import { HandlebarsTemplateModule } from '../handlebars-template/handlebars-template.module';
 import { HandlebarsCompiler } from '../../shared/utils/handlebars-compiler';
+import { GuardsModule } from '../../shared/guards/guards.module';
 
 @Module({
-  imports: [OpenSearchModule, HttpModule, HandlebarsTemplateModule],
+  imports: [
+    OpenSearchModule,
+    HttpModule,
+    HandlebarsTemplateModule,
+    GuardsModule,
+  ],
   controllers: [PartnerRequestController],
   providers: [
     PartnerRequestService,

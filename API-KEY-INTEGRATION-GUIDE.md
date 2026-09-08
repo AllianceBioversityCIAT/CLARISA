@@ -385,7 +385,19 @@ Machine-to-machine consumers use `X-API-Key`. Human panel users continue using J
 
 ### 6.7 Current rollout status
 
-Hybrid infrastructure (`CompositeAuthGuard`, `HybridAuthorizationGuard`, `@RequireApiKeyScope`) is implemented. Endpoint-by-endpoint enablement is **progressive**. Before integrating a specific endpoint, confirm with the CLARISA team whether it already accepts `X-API-Key` or still requires JWT/AppSecret.
+Hybrid infrastructure is implemented. **Partner-request writes** already accept hybrid auth:
+
+| Endpoint | Auth |
+|----------|------|
+| `POST /api/partner-requests/create` | JWT **or** `X-API-Key` + scope `partner-requests:create` |
+| `PATCH /api/partner-requests/update` | JWT **or** `X-API-Key` + scope `partner-requests:create` |
+| `POST /api/partner-requests/respond` | JWT **or** `X-API-Key` + scope `partner-requests:create` |
+| `POST /api/partner-requests/create-bulk` | JWT **or** `X-API-Key` + scope `partner-requests:create` |
+| Partner-request `GET` routes | Still public |
+
+API-key callers must send a valid `userId` in the body (existing CLARISA user) because audit fields (`created_by` / `updated_by` / accept-reject actor) still reference `users.id`. JWT panel users continue unchanged.
+
+Other modules remain progressive — confirm with the CLARISA team before integrating.
 
 ---
 
