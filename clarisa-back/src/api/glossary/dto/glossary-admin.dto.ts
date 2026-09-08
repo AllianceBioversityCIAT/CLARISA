@@ -101,10 +101,18 @@ export class CreateGlossaryTermDto {
   @MaxLength(500)
   source_url?: string;
 
+  /**
+   * Empty string is accepted the same way the update DTO accepts it: the panel
+   * always sends the three provenance fields, `''` included, and the terms
+   * created without a reference date are the common case. `@IsOptional()` only
+   * skips `undefined`/`null`, so without this guard `@Matches` would run on
+   * `''` and answer 400 to a plain "create term".
+   */
   @IsOptional()
   @Matches(REFERENCE_DATE_PATTERN, {
     message: 'The reference date must be a calendar day in YYYY-MM-DD format',
   })
+  @ValidateIf((_, value) => value !== '' && value !== null)
   reference_date?: string;
 
   @IsOptional()
