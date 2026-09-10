@@ -144,4 +144,122 @@ describe('PartnerRequestService', () => {
       service.statisticsPartnerRequest('invalid_mis'),
     ).rejects.toThrow();
   });
+  describe('updatePartnerRequest with an absent institution type', () => {
+    // A PATCH from the admin panel only carries the type and the country when
+    // the user re-opens their dropdowns. Both fields are optional by
+    // inheritance, so an explicit null used to reach `findOneBy({ id: null })`,
+    // which TypeORM answers with the first row of the table -- institution type
+    // 3, "CGIAR Center". These tests fix the value the lookup is given.
+    const storedRequest = () => ({
+      id: 5873,
+      institution_type_id: 78,
+      country_id: 43,
+      auditableFields: { is_active: true, updated_by_object: undefined },
+    });
+
+    const payload = (extra: any = {}) => ({
+      id: 5873,
+      name: 'Happy Smala',
+      modification_justification: 'fixing the acronym',
+      ...extra,
+    });
+
+    beforeEach(() => {
+      mockUserRepository.findOneBy.mockResolvedValue({ id: 4372 });
+      mockInstitutionTypeRepository.findOneBy.mockResolvedValue({ id: 78 });
+      mockCountryRepository.findOneBy.mockResolvedValue({ id: 43 });
+      mockPartnerRequestRepository.updatePartnerRequest.mockResolvedValue({});
+    });
+
+    it('keeps the type the request already has when the payload omits it', async () => {
+      mockPartnerRequestRepository.findOneBy.mockResolvedValue(storedRequest());
+
+      await service.updatePartnerRequest(
+        payload() as any,
+        {
+          userId: 4372,
+          email: 'someone@cgiar.org',
+        } as any,
+      );
+
+      expect(mockInstitutionTypeRepository.findOneBy).toHaveBeenCalledWith({
+        id: 78,
+      });
+      expect(mockInstitutionTypeRepository.findOneBy).not.toHaveBeenCalledWith({
+        id: null,
+      });
+      expect(
+        mockPartnerRequestRepository.updatePartnerRequest,
+      ).toHaveBeenCalled();
+    });
+
+    it('keeps the type when the payload sends it as null', async () => {
+      mockPartnerRequestRepository.findOneBy.mockResolvedValue(storedRequest());
+
+      await service.updatePartnerRequest(
+        payload({ institutionTypeCode: null }) as any,
+        { userId: 4372, email: 'someone@cgiar.org' } as any,
+      );
+
+      expect(mockInstitutionTypeRepository.findOneBy).toHaveBeenCalledWith({
+        id: 78,
+      });
+    });
+
+    it('uses the incoming type when the payload does send one', async () => {
+      mockPartnerRequestRepository.findOneBy.mockResolvedValue(storedRequest());
+      mockInstitutionTypeRepository.findOneBy.mockResolvedValue({ id: 75 });
+
+      await service.updatePartnerRequest(
+        payload({ institutionTypeCode: 75 }) as any,
+        { userId: 4372, email: 'someone@cgiar.org' } as any,
+      );
+
+      expect(mockInstitutionTypeRepository.findOneBy).toHaveBeenCalledWith({
+        id: 75,
+      });
+    });
+
+    it('keeps the country the request already has when the payload omits it', async () => {
+      mockPartnerRequestRepository.findOneBy.mockResolvedValue(storedRequest());
+
+      await service.updatePartnerRequest(
+        payload() as any,
+        {
+          userId: 4372,
+          email: 'someone@cgiar.org',
+        } as any,
+      );
+
+      expect(mockCountryRepository.findOneBy).toHaveBeenCalledWith({ id: 43 });
+    });
+
+    it('uses the incoming country when the payload does send one', async () => {
+      mockPartnerRequestRepository.findOneBy.mockResolvedValue(storedRequest());
+
+      await service.updatePartnerRequest(
+        payload({ hqCountryIso: 'MA' }) as any,
+        { userId: 4372, email: 'someone@cgiar.org' } as any,
+      );
+
+      expect(mockCountryRepository.findOneBy).toHaveBeenCalledWith({
+        iso_alpha_2: 'MA',
+      });
+    });
+
+    it('still rejects a type code that does not exist', async () => {
+      mockPartnerRequestRepository.findOneBy.mockResolvedValue(storedRequest());
+      mockInstitutionTypeRepository.findOneBy.mockResolvedValue(null);
+
+      await expect(
+        service.updatePartnerRequest(
+          payload({ institutionTypeCode: 99999 }) as any,
+          { userId: 4372, email: 'someone@cgiar.org' } as any,
+        ),
+      ).rejects.toBeDefined();
+      expect(
+        mockPartnerRequestRepository.updatePartnerRequest,
+      ).not.toHaveBeenCalled();
+    });
+  });
 });
