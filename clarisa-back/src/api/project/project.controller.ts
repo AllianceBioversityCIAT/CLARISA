@@ -7,7 +7,7 @@ import {
   ParseIntPipe,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ProjectService } from './project.service';
 
 @ApiTags('Project')
@@ -22,8 +22,17 @@ export class ProjectController {
     description:
       'Official list of bilateral projects registered in CLARISA, with the CGIAR global unit that leads each one.',
   })
-  async findAll() {
-    return this.projectService.findAll();
+  @ApiQuery({
+    name: 'phase',
+    required: false,
+    type: Number,
+    description:
+      'Reporting phase (year) to filter by, e.g. `2026`. Omit to list every phase.',
+  })
+  async findAll(
+    @Query('phase', new ParseIntPipe({ optional: true })) phase?: number,
+  ) {
+    return this.projectService.findAll(phase);
   }
 
   @Get('by-global-unit/:officialCode')
