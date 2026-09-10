@@ -181,14 +181,24 @@ export class EditRequestComponent implements OnInit {
     if (this.group.valid) {
       this.loading = true;
       
-      if (typeof this.group.value.institutionTypeCode == 'object') {
+      if (
+        typeof this.group.value.institutionTypeCode == 'object' &&
+        this.group.value.institutionTypeCode != null
+      ) {
         codeInstitution = Number(this.group.value.institutionTypeCode.code);
       } else if (this.group.value.institutionTypeCode == '') {
-        if (typeof this.group.value.institutionHelpTwo == 'object') {
-          codeInstitution = Number(this.group.value.institutionHelpTwo.code);
-        } else {
-          codeInstitution = Number(this.group.value.institutionHelpOne.code);
-        }
+        // Every dropdown in this modal starts empty: the controls are only
+        // written when the user re-opens them. Reading `.code` off an untouched
+        // control produced NaN, which travelled as `institutionTypeCode: null`
+        // and made the API store the request as institution type 3, "CGIAR
+        // Center". Untouched means "keep the type the request already has".
+        const pickedType =
+          this.group.value.institutionHelpTwo ||
+          this.group.value.institutionHelpOne;
+
+        codeInstitution = Number(
+          pickedType?.code ?? this.informationContent.institutionTypeDTO.code,
+        );
       } else {
         codeInstitution = this.group.value.institutionTypeCode;
       }
@@ -202,7 +212,12 @@ export class EditRequestComponent implements OnInit {
         externalUserComments: this.group.value.externalUserComments,
         externalUserMail: this.group.value.externalUserMail,
         externalUserName: this.group.value.externalUserName,
-        hqCountryIso: this.group.value.hqCountryIso.isoAlpha2,
+        // Same reason as the type above: an untouched Country dropdown left this
+        // as `''`, so `.isoAlpha2` was undefined and the field never reached the
+        // API.
+        hqCountryIso:
+          this.group.value.hqCountryIso?.isoAlpha2 ??
+          this.informationContent.countryDTO.isoAlpha2,
         institutionTypeCode: codeInstitution,
         misAcronym: this.informationContent.mis,
         name: this.group.value.name,
@@ -212,19 +227,47 @@ export class EditRequestComponent implements OnInit {
     
       this._manageApiService
         .patchPartnerRequest(this.groupActualizar.value)
-        .subscribe((re) => {
-          console.log(re.response);
-          
-          this.addNewItem(re.response);
-          this.loading = false;
-          alert('Update parnert request');
+        .subscribe({
+          next: (re) => {
+            this.addNewItem(re.response);
+            this.loading = false;
+            alert('Update parnert request');
+          },
+          // Without this branch a rejected request left `loading` on for good:
+          // the spinner covered the modal and the edit looked like it had been
+          // refused with no reason given.
+          error: (err) => {
+            this.loading = false;
+            alert(this.buildErrorMessage(err));
+          },
         });
     } else {
       setTimeout(() => {
-        alert('Error validator');
+        alert(this.buildValidationMessage());
         //change this route when the new component is ready
       }, 100);
     }
+  }
+
+  /**
+   * Names the field that is holding the form back. `Justification` is the only
+   * control with a validator, so the old blanket 'Error validator' left the user
+   * hunting for a field that the form never marks.
+   */
+  buildValidationMessage(): string {
+    return this.group.controls['modification_justification'].invalid
+      ? 'Please fill in the Justification field before updating the request.'
+      : 'Please check the required fields before updating the request.';
+  }
+
+  /** Surfaces whatever the API rejected the update with, instead of a bare alert. */
+  buildErrorMessage(err: any): string {
+    const detail = err?.error?.response?.response ?? err?.error?.message;
+    const text = Array.isArray(detail) ? detail.join('\n') : detail;
+
+    return text
+      ? `The partner request could not be updated:\n${text}`
+      : 'The partner request could not be updated. Please try again.';
   }
 
   addNewItem(response:any) {
