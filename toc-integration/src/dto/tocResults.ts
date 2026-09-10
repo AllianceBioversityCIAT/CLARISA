@@ -17,6 +17,8 @@ export class TocResultsDto {
 
   is_global: boolean;
 
+  location: string | null;
+
   is_active: boolean;
 
   work_packages_id: number;

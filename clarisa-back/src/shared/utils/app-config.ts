@@ -193,6 +193,10 @@ export class AppConfig {
     return env.REPORTING_URL;
   }
 
+  get w3RegistryUrl() {
+    return env.W3_REGISTRY_URL;
+  }
+
   /**
    *  mqHost - The host address for the message queue service.
    */

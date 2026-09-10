@@ -43,7 +43,20 @@ describe('ProjectService', () => {
 
     const result = await service.findAll();
 
-    expect(projectRepositoryMock.findAllWithRelations).toHaveBeenCalled();
+    expect(projectRepositoryMock.findAllWithRelations).toHaveBeenCalledWith(
+      undefined,
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('should pass phase filter to the repository', async () => {
+    projectRepositoryMock.findAllWithRelations.mockResolvedValueOnce([]);
+
+    const result = await service.findAll(2026);
+
+    expect(projectRepositoryMock.findAllWithRelations).toHaveBeenCalledWith(
+      2026,
+    );
     expect(result).toEqual([]);
   });
 

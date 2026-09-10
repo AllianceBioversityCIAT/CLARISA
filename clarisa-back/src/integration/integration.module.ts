@@ -6,6 +6,7 @@ import { OpenSearchModule } from './opensearch/open-search.module';
 import { HttpModule } from '@nestjs/axios';
 import { HandlebarsTemplateModule } from '../api/handlebars-template/handlebars-template.module';
 import { ReportingModule } from './reporting/reporting.module';
+import { W3RegistryModule } from './w3/w3-registry.module';
 import { InnovationModule } from './innovation/innovation.module';
 
 @Module({
@@ -15,6 +16,7 @@ import { InnovationModule } from './innovation/innovation.module';
     HttpModule,
     HandlebarsTemplateModule,
     ReportingModule,
+    W3RegistryModule,
     InnovationModule,
   ],
   providers: [QaApi],

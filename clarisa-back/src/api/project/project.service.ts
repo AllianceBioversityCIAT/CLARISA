@@ -11,8 +11,8 @@ export class ProjectService {
     private readonly projectMappingRepository: ProjectMappingRepository,
   ) {}
 
-  async findAll(): Promise<Project[]> {
-    return this.projectRepository.findAllWithRelations();
+  async findAll(phase?: number): Promise<Project[]> {
+    return this.projectRepository.findAllWithRelations(phase);
   }
 
   async findByGlobalUnit(officialCode: string): Promise<ProjectMapping[]> {

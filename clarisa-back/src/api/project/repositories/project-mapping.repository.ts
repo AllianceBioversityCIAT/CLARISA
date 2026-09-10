@@ -9,34 +9,46 @@ export class ProjectMappingRepository extends Repository<ProjectMapping> {
   }
 
   async findFullByGlobalUnit(officialCode: string): Promise<ProjectMapping[]> {
-    return this.find({
-      where: {
-        auditableFields: { is_active: true },
-        project_object: {
-          auditableFields: { is_active: true },
-        },
-        global_unit_object: {
-          smo_code: officialCode,
-        },
-      },
-      relations: {
-        global_unit_object: {
-          cgiar_entity_type_object: true,
-          institution_object: true,
-          parent_object: true,
-          portfolio_object: true,
-        },
-        project_object: {
-          lead_institution_object: true,
-          funder_institution_object: true,
-          project_countries_array: {
-            country_object: true,
-          },
-        },
-      },
-      order: {
-        project_id: 'ASC',
-      },
-    });
+    return this.createQueryBuilder('project_mapping')
+      .innerJoinAndSelect(
+        'project_mapping.project_object',
+        'project',
+        'project.is_active = :active',
+        { active: true },
+      )
+      .innerJoinAndSelect(
+        'project_mapping.global_unit_object',
+        'global_unit',
+        'global_unit.smo_code = :officialCode',
+        { officialCode },
+      )
+      .leftJoinAndSelect(
+        'global_unit.cgiar_entity_type_object',
+        'global_unit_type',
+      )
+      .leftJoinAndSelect(
+        'global_unit.institution_object',
+        'global_unit_institution',
+      )
+      .leftJoinAndSelect('global_unit.parent_object', 'global_unit_parent')
+      .leftJoinAndSelect(
+        'global_unit.portfolio_object',
+        'global_unit_portfolio',
+      )
+      .leftJoinAndSelect('project.lead_institution_object', 'lead_institution')
+      .leftJoinAndSelect(
+        'project.funder_institution_object',
+        'funder_institution',
+      )
+      .leftJoinAndSelect(
+        'project.project_countries_array',
+        'project_country',
+        'project_country.is_active = :active',
+        { active: true },
+      )
+      .leftJoinAndSelect('project_country.country_object', 'country')
+      .where('project_mapping.is_active = :active', { active: true })
+      .orderBy('project_mapping.project_id', 'ASC')
+      .getMany();
   }
 }

@@ -26,6 +26,9 @@ export class ProjectCountry {
   @Column({ type: 'bigint', nullable: false })
   country_code: number;
 
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  allocation_percentage: string;
+
   // object relations
   @ManyToOne(() => Project, (p) => p.project_countries_array, {
     onDelete: 'CASCADE',
