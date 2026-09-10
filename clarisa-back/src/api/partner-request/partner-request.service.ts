@@ -287,13 +287,29 @@ export class PartnerRequestService {
         id: updatePartnerRequest.userId,
       });
 
-    partnerRequest.country_object = await this.countryRepository.findOneBy({
-      iso_alpha_2: updatePartnerRequest.hqCountryIso,
-    });
+    // A PATCH may legitimately omit the type and the country: the admin panel
+    // only sends them when the user re-opens their dropdowns, and every field of
+    // this DTO is optional by inheritance (`PartialType`), so the `@Min(1)` on
+    // `institutionTypeCode` never rejects an explicit null. Looking an absent
+    // value up anyway handed `findOneBy` a null id, and TypeORM answers that with
+    // the *first row of the table* -- institution type 3, "CGIAR Center" -- so
+    // editing a request without touching the Type dropdown silently reassigned
+    // it. Absent now means "keep what the request already has".
+    const incomingTypeCode =
+      updatePartnerRequest.institutionTypeCode ??
+      partnerRequest.institution_type_id;
+
+    partnerRequest.country_object = updatePartnerRequest.hqCountryIso
+      ? await this.countryRepository.findOneBy({
+          iso_alpha_2: updatePartnerRequest.hqCountryIso,
+        })
+      : await this.countryRepository.findOneBy({
+          id: partnerRequest.country_id,
+        });
 
     partnerRequest.institution_type_object =
       await this.institutionTypeRepository.findOneBy({
-        id: updatePartnerRequest.institutionTypeCode,
+        id: incomingTypeCode,
       });
 
     if (!partnerRequest) {
@@ -316,7 +332,7 @@ export class PartnerRequestService {
 
     if (!partnerRequest.institution_type_object) {
       validationErrors.push(
-        `An institution type with id '${updatePartnerRequest.institutionTypeCode}' could not be found`,
+        `An institution type with id '${incomingTypeCode}' could not be found`,
       );
     }
 

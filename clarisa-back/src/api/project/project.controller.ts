@@ -26,7 +26,8 @@ export class ProjectController {
     name: 'phase',
     required: false,
     type: Number,
-    description: 'Optional filter by reporting phase id.',
+    description:
+      'Reporting phase (year) to filter by, e.g. `2026`. Omit to list every phase.',
   })
   async findAll(
     @Query('phase', new ParseIntPipe({ optional: true })) phase?: number,
