@@ -33,6 +33,17 @@ const RAMP = [
   ['#EFF6FF', '#e3f3ed']
 ];
 
+/**
+ * Defects the vendor theme ships with, patched here so the generated file passes the
+ * SonarCloud reliability gate (css:S4649, css:S4656). Neither changes what renders:
+ * the icon font is always loaded, and the removed `background` was overridden two
+ * lines below by the one that wins.
+ */
+const FIXES = [
+  ['font-family: "PrimeIcons" !important;', 'font-family: "PrimeIcons", sans-serif !important;'],
+  ['.p-steps .p-steps-item .p-menuitem-link {\n  background: transparent;\n', '.p-steps .p-steps-item .p-menuitem-link {\n']
+];
+
 const BANNER =
   '/* GENERATED FILE - do not edit by hand.\n' +
   ' * Source: primeng/resources/themes/lara-light-blue/theme.css\n' +
@@ -40,7 +51,8 @@ const BANNER =
   ' */\n';
 
 function generate(css) {
-  return BANNER + RAMP.reduce((acc, [from, to]) => acc.replace(new RegExp(from, 'gi'), to), css);
+  const recoloured = RAMP.reduce((acc, [from, to]) => acc.replace(new RegExp(from, 'gi'), to), css);
+  return BANNER + FIXES.reduce((acc, [from, to]) => acc.split(from).join(to), recoloured);
 }
 
 module.exports = { generate, RAMP, SOURCE, TARGET };
