@@ -1,15 +1,225 @@
-.login{
-    margin-top: 50px;
-    width: 500px;
-    margin-bottom: 50px;
-}
-.container{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-image: url("../../../../assets/images/login-fon.jpg");
-    width: 100%;
-    height: 80vh;
+/**
+ * Access screen.
+ *
+ * The photograph used to run at full strength behind the form: every stem in
+ * focus, full saturation, and a flat white rectangle dropped on top of it. The
+ * eye had nowhere to rest and the form did not read as the subject of the
+ * screen. Here the image stays, but as atmosphere — darkened, slightly
+ * desaturated and closed in at the edges — so the only lit object is the card.
+ */
+
+$brand: #7ab800;
+$ink: #12200a;
+
+.container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 640px;
+  // Was a flat 80vh, which cut the photo at an arbitrary line and left the
+  // footer stuck to it. This fills what is left under the header instead.
+  height: calc(100vh - 92px);
+  padding: 3rem 1.25rem;
+  overflow: hidden;
+  background-color: #0a1305;
+
+  // The photograph. On its own layer so it can be treated without touching
+  // anything above it.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    // `display: block` is not decoration: the old Bootstrap theme in `assets/`
+    // still declares the clearfix `.container:before { display: table }`, and an
+    // absolutely positioned table box with no width shrinks to nothing — the
+    // photograph was being painted at zero size, which read as "the overlay is
+    // too dark" until it was measured.
+    display: block;
+    background-image: url('../../../../assets/images/login-fon.jpg');
     background-position: center;
     background-size: cover;
+    // Measured, not guessed: the first pass stacked brightness 0.62, a 0.88
+    // wash and a 55px vignette, and the photograph vanished into a flat dark
+    // green. The image has to stay legible — it is the only identity the
+    // screen carries.
+    filter: saturate(0.82) brightness(0.74);
+    transform: scale(1.04); // hides the edge the blur of the vignette reveals
+  }
+
+  // The dark wash and the vignette: light in the middle, closed at the edges,
+  // so the card sits in the one bright spot of the screen.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    display: block; // same clearfix trap as ::before
+    background: radial-gradient(115% 88% at 50% 46%, rgba(4, 12, 2, 0.24) 0%, rgba(4, 12, 2, 0.48) 52%, rgba(2, 7, 1, 0.8) 100%);
+    box-shadow: inset 0 0 170px 18px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.login {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 430px;
+  margin: 0;
+}
+
+// PrimeNG paints the panel, so its own chrome has to be taken out of the way:
+// the grey strip at the top of the card was its empty header, not a design.
+:host ::ng-deep .p-panel {
+  border: none;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  // One statement, not a border plus a halo: the card is lifted by the shadow.
+  box-shadow:
+    0 28px 60px -14px rgba(0, 0, 0, 0.62),
+    0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
+:host ::ng-deep .p-panel .p-panel-header {
+  display: none;
+}
+
+:host ::ng-deep .p-panel .p-panel-content {
+  border: none;
+  padding: 2.5rem 2.25rem 2.25rem;
+  background: #fff;
+  color: $ink;
+}
+
+@media (max-width: 480px) {
+  .container {
+    min-height: 560px;
+    padding: 2rem 1rem;
+  }
+
+  :host ::ng-deep .p-panel .p-panel-content {
+    padding: 2rem 1.5rem 1.75rem;
+  }
+}
+
+/* ---------------------------------------------------------------- the card */
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.login-card__head {
+  margin-bottom: 0.35rem;
+}
+
+// The brand line carries the green at full strength, small enough that its
+// contrast on white is not asked to do the work of body text.
+.login-card__brand {
+  margin: 0 0 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #4d7500;
+}
+
+// Was `<h2 style="color:#7ab800">` over white: ~2.3:1, the largest and least
+// legible element on the screen. The green moved to the line above and to the
+// button; the heading is ink.
+.login-card__title {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: $ink;
+}
+
+.login-card__subtitle {
+  margin: 0.3rem 0 0;
+  font-size: 0.86rem;
+  color: #55635c;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #3a4740;
+  }
+
+  &__error {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #b42318;
+  }
+}
+
+:host ::ng-deep .login-card input.p-inputtext {
+  width: 100%;
+  // The pill shape on a text field is the tic that dated this screen.
+  border-radius: 8px;
+  border: 1px solid #ccd5cd;
+  padding: 0.72rem 0.85rem;
+  font-size: 0.92rem;
+  color: $ink;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: #a9b8ab;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $brand;
+    box-shadow: 0 0 0 3px rgba(122, 184, 0, 0.22);
+  }
+}
+
+// Brand green at full strength with ink on top: 7.2:1, where white on the same
+// green is 2.4:1 and fails. The colour that identifies CGIAR stays, and the
+// button is finally readable.
+:host ::ng-deep .login-card .login-card__submit.p-button {
+  justify-content: center;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.78rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: $brand;
+  color: $ink;
+  font-size: 0.95rem;
+  font-weight: 700;
+  transition:
+    background 0.15s ease,
+    transform 0.08s ease;
+
+  &:enabled:hover {
+    background: #6aa100;
+  }
+
+  &:enabled:active {
+    transform: translateY(1px);
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(122, 184, 0, 0.45);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    background: #dfe6dc;
+    color: #8a978c;
+    opacity: 1;
+  }
 }
