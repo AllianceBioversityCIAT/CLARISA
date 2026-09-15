@@ -255,8 +255,26 @@ module.exports = {
   `tw-p-4` daría 10px en vez de 16px. O se configura `spacing` en px, o se acepta que toda la escala
   vale 62,5%.
 
-**Recomendación:** entrar solo si se va a usar de verdad en varias pantallas. Para el login y el
-glosario, el SCSS por componente con los tokens hizo el trabajo sin sumar una dependencia.
+### Lo que decide la pregunta, medido (15-sep-2026)
+
+Se preguntó otra vez si no sería más fácil con Tailwind. Se midió sobre este repositorio:
+
+| Hecho | Número | Consecuencia |
+|---|---|---|
+| Selectores de **2 o más niveles** en las hojas globales | **468** en `style-landing.css` (de 609 bloques, el **77 %**) y **461** en `bootstrap.css` | Una utilidad de Tailwind es **una sola clase: 0,1,0**. Contra `.navbar-default .navbar-nav > li > a` (0,2,2) **pierde siempre** |
+| Clases de Bootstrap 3 que Tailwind reutiliza con el mismo nombre | `.container`, `.hidden`, `.table` | `prefix: 'tw-'` deja de ser recomendación y pasa a ser obligatorio |
+| Angular / builder | 14 con `@angular-devkit/build-angular` 14 | Tailwind **v3** sí; **v4 no**, pide un pipeline más nuevo que este builder |
+| `postcss` y `autoprefixer` | no están en `package.json` | Entran como dependencias nuevas junto a Tailwind |
+
+**Y la barra pública es el caso de prueba:** lo que costó trabajo no fue escribir color, fue **ganarle
+a reglas globales de 2 y 3 niveles** y esquivar un `display: block !important` de Bootstrap. Tailwind
+no resuelve ninguna de las dos: para la primera haría falta `important: true` —que es peor que lo que
+hay— y contra la segunda pierde igual.
+
+**Recomendación:** entrar solo si se va a usar de verdad en varias pantallas. Para el login, el
+glosario y la barra, el SCSS por componente con los tokens hizo el trabajo sin sumar una dependencia.
+Lo que sí haría fácil el revamp es **sacar Bootstrap 3 del landing**, que es quien pone los `!important`
+y los selectores de tres niveles — pero eso es un proyecto aparte, no un `npm install`.
 
 ---
 
