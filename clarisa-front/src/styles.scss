@@ -2,6 +2,39 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
+/* Design tokens - the single source of colour for the application.
+   A literal hex outside this block is a review error; see DESIGN.md section 2.
+   PrimeNG is not recoloured from here: its theme writes the accent as a literal
+   hex 335 times and never reads --primary-color, so the accent is remapped where
+   it is actually written, in src/themes/clarisa-light-mint/. */
+:root {
+  /* Brand */
+  --cl-brand:        #0f8a63;  /* accent: links and focus over white */
+  --cl-brand-strong: #0b7554;  /* primary button surface. 5.70 with white on it */
+  --cl-brand-deep:   #0a6449;  /* brand bar. 7.16 with white on it */
+  --cl-brand-deeper: #08543e;  /* highlight text over --cl-brand-soft. 7.80 */
+  --cl-brand-soft:   #e3f3ed;  /* active item and chip surface */
+  --cl-brand-ring:   #bde3d4;  /* focus ring */
+
+  /* Ink and surfaces */
+  --cl-ink:       #10241c;     /* headings */
+  --cl-ink-2:     #46524c;     /* body */
+  --cl-ink-3:     #79847c;     /* support, never important text */
+  --cl-surface:   #ffffff;
+  --cl-surface-2: #f7f9f6;
+  --cl-line:      #d9e0da;
+
+  /* State, independent of the brand */
+  --cl-ok:    #2c6b3c;
+  --cl-warn:  #9a6b00;
+  --cl-error: #b42318;
+
+  /* Shape */
+  --cl-radius-card:    14px;
+  --cl-radius-control: 8px;
+  --cl-shadow-card: 0 28px 60px -14px rgba(0, 0, 0, 0.62), 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
 html *:not(.fa, .fe, .pi, pre, code) {
   font-family: 'Poppins', sans-serif !important;
 }

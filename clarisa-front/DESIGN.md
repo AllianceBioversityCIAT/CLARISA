@@ -58,6 +58,7 @@ No son impresiones. Cada línea se verificó en el código o en el navegador.
 | `#7ab800` sobre blanco da **2,42 : 1** | calculado con la fórmula WCAG | No sirve para texto (4,5) ni para texto grande (3,0). Hoy es el color de los enlaces |
 | **No hay Tailwind** | no existe `tailwind.config.*`, no está en `package.json` | Meterlo es una decisión nueva, no una continuación. Ver § 5 |
 | **No hay linter** en el front | sin script, sin config, sin binario | La verificación real son los tests de Jest y el build |
+| El tema **no lee sus propias variables**: `var(--primary-color)` aparece **0 veces** en `theme.css` y en `primeng.min.css` | medido sobre `lara-light-blue` | El acento está escrito como hex literal **335 veces**. Redefinir `--primary-color` no recolorea nada |
 | La foto del login pesa **7,16 MB** | `assets/images/login-fon.jpg`, 4608×3456 | Es lo primero que descarga quien entra. A 1920px en WebP bajaría de 300 KB |
 
 **Diagnóstico en una frase:** el problema no es que el verde sea feo — es que **no existe un sistema**,
@@ -75,7 +76,8 @@ componente vuelve a escribir un hex.
   /* Marca */
   --cl-brand:        #0f8a63;  /* acento: enlaces y foco sobre blanco */
   --cl-brand-strong: #0b7554;  /* fondo de botón primario */
-  --cl-brand-deep:   #0a6449;  /* barra de marca: 7,16 con blanco encima */
+  --cl-brand-deep:   #0a6449;  /* barra de marca y hover: 7,16 con blanco encima */
+  --cl-brand-deeper: #08543e;  /* texto de resalte sobre --cl-brand-soft: 7,80 */
   --cl-brand-soft:   #e3f3ed;  /* fondo del ítem activo y de los chips */
   --cl-brand-ring:   #bde3d4;  /* anillo de foco */
 
@@ -104,33 +106,53 @@ necesita un color que no está aquí, se agrega aquí primero.
 
 ---
 
-## 3. PrimeNG: se recolorea por variables, no componente por componente
+## 3. PrimeNG: se recolorea en el tema, no por variables
 
-Éste es el cambio de fondo. PrimeNG 14 **ya expone sus propias variables CSS** (`--primary-color`,
-`--primary-color-text`, `--surface-*`, `--text-color`…), y el tema `lara-light-blue` las define en
-azul. Redefinirlas en `styles.scss`, **después** de que el tema cargue, recolorea **toda la librería
-de un golpe**: botones, checkboxes, radios, dropdowns, paginadores, pestañas, tablas, calendarios y
-todos los estados de foco.
+🛑 **Este apartado decía lo contrario y estaba equivocado.** La versión anterior daba por hecho que
+redefinir `--primary-color` en `styles.scss` recolorearía la librería entera de un golpe. Se midió y
+es falso para PrimeNG 14:
 
-```scss
-/* styles.scss — después de los imports del tema */
-:root {
-  --primary-color:      var(--cl-brand-strong);
-  --primary-color-text: #ffffff;
-  --text-color:         var(--cl-ink-2);
-  --text-color-secondary: var(--cl-ink-3);
-  --font-family: 'Poppins', sans-serif;
-}
+```
+grep -c 'var(--primary-color)' node_modules/primeng/resources/themes/lara-light-blue/theme.css  -> 0
+grep -c 'var(--primary-color)' node_modules/primeng/resources/primeng.min.css                   -> 0
+grep -oiE '#3B82F6|#2563EB|#1D4ED8|#BFDBFE|#EFF6FF' theme.css | wc -l                           -> 335
 ```
 
-**Lo que eso reemplaza:** las decenas de `style="background-color:#7ab800"` y
-`style="color:#7ab800"` repartidas por las plantillas. Se borran a medida que se tocan las pantallas;
-no hace falta una cacería.
+El tema **declara** esas variables en su `:root` para que las consuma quien quiera, pero **él no las
+usa**: escribe el azul como hex literal 335 veces. Redefinirlas habría dejado la aplicación azul y
+la Fase 1 habría parecido hecha sin haber cambiado un pixel.
+
+**Lo que sí funciona:** el azul del tema son exactamente **cinco tonos** de una rampa, y cada uno
+tiene un papel único. Se remapean a la rampa Menta y con eso cambia toda la librería —botones,
+checkboxes, radios, dropdowns, paginadores, pestañas, tablas, calendarios y todos los estados de
+foco—, de forma verificable por conteo.
+
+| Azul | Papel en el tema | Menta | Contraste medido |
+|---|---|---|---|
+| `#3B82F6` ×108 | superficie primaria y texto de marca | `--cl-brand-strong` `#0b7554` | **5,70** con blanco encima (el azul daba **3,68**, que no pasaba) |
+| `#2563EB` ×26 | superficie de *hover* | `--cl-brand-deep` `#0a6449` | 7,16 con blanco encima |
+| `#1D4ED8` ×78 | texto de resalte sobre la superficie suave | `--cl-brand-deeper` `#08543e` | **7,80** sobre `#e3f3ed` (el azul daba 6,16) |
+| `#BFDBFE` ×80 | anillo de foco | `--cl-brand-ring` `#bde3d4` | — |
+| `#EFF6FF` ×43 | superficie de resalte | `--cl-brand-soft` `#e3f3ed` | — |
+
+El remapeo lo hace `scripts/generate-primeng-theme.js`, que escribe
+`src/themes/clarisa-light-mint/theme.css`; `angular.json` carga ese archivo en lugar del del paquete.
+El resultado se versiona.
+
+🛑 **Actualizar PrimeNG devuelve el azul en silencio**, porque nada más en el build define el acento.
+Por eso el archivo generado tiene un test que lo regenera y lo compara
+(`src/themes/clarisa-light-mint/theme.spec.ts`): tras un `npm update`, el paso es
+`npm run theme:build` y la suite vuelve a verde.
+
+⚠️ **`--primary-color` sigue importando**, pero para *nuestro* código: el tema generado la exporta ya
+en menta (`--primary-color:#0b7554`), así que cualquier SCSS propio que la lea recibe la marca.
 
 ### Reglas para tocar un componente de PrimeNG
 
-1. **Primero se intenta con las variables.** Si el cambio se puede lograr redefiniendo una variable
-   del tema, se hace ahí y sirve para toda la aplicación.
+1. **Primero se mira si ya lo resuelve el tema generado.** El acento, el hover, el resalte y el
+   anillo de foco ya salen en menta de `src/themes/clarisa-light-mint/`. Si lo que falta es otro tono
+   de la rampa, se agrega al mapa de `scripts/generate-primeng-theme.js` — nunca componente por
+   componente.
 2. **Si hay que llegar al interior, se usa `:host ::ng-deep`, nunca `::ng-deep` suelto.** Sin el
    `:host`, la regla se escapa del componente y pisa la aplicación entera.
    ```scss
@@ -289,6 +311,19 @@ glosario, el SCSS por componente con los tokens hizo el trabajo sin sumar una de
 - Inputs sin píldora (8px), con estado de foco real y etiquetas propias.
 - Escala corregida a 32/15/14/16/16 px tras descubrir el `1rem = 10px`.
 
-**Pendiente de decisión de Yeck:** la paleta y la línea gráfica definitivas — ver el comparador en
-`~/Desktop/clarisa/output/paletas-clarisa.html` (ocho paletas y tres líneas gráficas sobre las tres
-superficies reales de la plataforma).
+**Tema de PrimeNG en menta** (Fase 1 del apartado 8), 15-sep-2026:
+
+- `src/themes/clarisa-light-mint/theme.css`, generado desde el del paquete con
+  `npm run theme:build`. `angular.json:35` ya no apunta a `lara-light-blue`.
+- Tokens `--cl-*` declarados en `styles.scss`. El bundle compilado tiene **0** tonos del azul de
+  PrimeNG y 340 del menta.
+- El login pasó del lima `#7ab800` a la paleta decidida: fondo `--cl-brand-strong` con blanco encima
+  (5,70, donde el lima obligaba a poner tinta oscura porque el blanco daba 2,4), borde de foco
+  `--cl-brand` y anillo `--cl-brand-ring`. El componente ya no declara **ningún** hex de marca.
+- Verificado en el navegador con `getComputedStyle`, no solo por captura: botón `#0b7554` sobre
+  blanco a 52px de alto y 16px de texto, anillo `rgb(189,227,212)`, `html` en 10px (la trampa del
+  `62.5%` sigue viva).
+
+🛑 **Lo que sigue en el lima viejo:** la barra pública y todo lo que arrastra `style="color:#7ab800"`
+en las plantillas. En la pantalla de acceso se ve el choque de los dos verdes en la misma captura.
+Es la Fase 2 del apartado 8 y está esperando la decisión de la barra.
