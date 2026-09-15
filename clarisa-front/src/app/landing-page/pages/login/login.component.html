@@ -1,5 +1,18 @@
-<div class="container">
-  <div class="login">
+<div class="login-split">
+  <!--
+    Brand pane. The mark is knocked out to white and left very large and very
+    faint: it is texture, not a second logo, so it never competes with the bar
+    above or with the form beside it.
+  -->
+  <aside class="brand-pane">
+    <img class="brand-pane__ghost" src="../../../../assets/cgiar_logo.png" alt="" aria-hidden="true" />
+    <div class="brand-pane__copy">
+      <h2 class="brand-pane__title">The reference registry for One CGIAR</h2>
+      <p class="brand-pane__text">Institutions, portfolios and the controlled lists that the CGIAR reporting systems rely on.</p>
+    </div>
+  </aside>
+
+  <div class="form-pane">
     <form (ngSubmit)="onSubmit()" [formGroup]="loginForm">
       <p-panel>
         <div class="login-card">
