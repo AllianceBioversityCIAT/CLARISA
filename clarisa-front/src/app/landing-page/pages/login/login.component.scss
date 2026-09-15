@@ -54,6 +54,11 @@
   /* The mark ships in forest green, which over this background is 1.33 and would
      read as a stain. Knocked out to white it behaves as texture. */
   filter: brightness(0) invert(1);
+  /* The crop that hides the asset's own wordmark left a hard horizontal edge in
+     the middle of the pane, and a straight cut across a logo reads as a broken
+     image rather than as texture. The fade dissolves that edge. */
+  -webkit-mask-image: linear-gradient(180deg, #000 48%, transparent 92%);
+  mask-image: linear-gradient(180deg, #000 48%, transparent 92%);
 }
 
 .brand-pane__copy {

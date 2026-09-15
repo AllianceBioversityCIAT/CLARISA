@@ -10,35 +10,49 @@
 
 /* The panel header is `position: fixed` and 75px tall, so a sidebar starting at
    0 has its first 75px — the whole brand block — hidden underneath it. The offset
-   is declared once here and reused by the sticky top. */
+   is declared once here and reused by the fixed top.
+
+   `fixed` rather than `sticky`: the navigation stays put while a long table
+   scrolls, and it no longer needs the content column to be tall enough to hold
+   it. Being out of flow, the column next to it gets a matching `margin-left` in
+   `manage.component.scss` — the two numbers move together. */
 .admin-sidebar {
   --admin-header: 75px;
-  position: sticky;
+  position: fixed;
   top: var(--admin-header);
-  margin-top: var(--admin-header);
+  left: 0;
+  z-index: 1;
   width: 248px;
-  min-height: calc(100vh - var(--admin-header));
-  padding: 0 14px 28px;
+  /* Not `min-height`: a fixed box has to be capped at the viewport for
+     `overflow-y` to have anything to scroll when the list outgrows the screen. */
+  height: calc(100vh - var(--admin-header));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 0 24px;
   background: var(--cl-surface);
   border-right: 1px solid var(--cl-line);
 }
 
+/* The brand block is the heading of the panel, so it carries more weight than the
+   entries and a rule of its own that closes it off from the navigation. */
 .admin-sidebar__brand {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 20px 10px 22px;
+  margin-bottom: 18px;
+  padding: 18px 24px 20px;
+  border-bottom: 1px solid var(--cl-line);
   text-decoration: none;
 }
 
 .admin-sidebar__mark {
-  width: 32px;
+  width: 34px;
   height: auto;
 }
 
 .admin-sidebar__word {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.01em;
   color: var(--cl-ink);
@@ -46,7 +60,7 @@
 
 .admin-sidebar__word small {
   display: block;
-  margin-top: 2px;
+  margin-top: 3px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -55,15 +69,19 @@
   color: var(--cl-brand-deep);
 }
 
+/* A hairline, not just air: with three groups stacked, whitespace alone left the
+   headings floating and the column read as one long pile again. */
 .admin-sidebar__group + .admin-sidebar__group {
-  margin-top: 22px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--cl-line);
 }
 
 /* The group heading is a label, not a link: small, quiet and never clickable, so
    it never competes with the entries under it. */
 .admin-sidebar__title {
   margin: 0 0 6px;
-  padding: 0 10px;
+  padding: 0 24px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -77,10 +95,16 @@
   list-style: none;
 }
 
+/* The entries run to the left edge of the screen so the active marker can sit on
+   it; the right side keeps an inset, which is what still reads as a pill. */
 .admin-sidebar__list a {
-  display: block;
-  padding: 10px 12px;
-  border-radius: var(--cl-radius-control);
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  margin-right: 12px;
+  padding: 0 14px 0 24px;
+  border-radius: 0 var(--cl-radius-control) var(--cl-radius-control) 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--cl-ink-2);
@@ -105,20 +129,55 @@
   background: var(--cl-brand-soft);
 }
 
+/* The pill alone is easy to lose against a white column. The bar anchors the
+   current entry to the edge of the screen, where the eye returns to it. */
+.admin-sidebar__list a.is-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: var(--cl-brand-deep);
+}
+
 @media (max-width: 900px) {
+  /* Narrow screens have no room for a column, so the navigation goes back to a
+     row under the header — in flow, which is why the content column drops its
+     `margin-left` at this same breakpoint. */
   .admin-sidebar {
     position: static;
     width: 100%;
-    min-height: 0;
+    height: auto;
+    overflow-y: visible;
     margin-top: var(--admin-header);
-    padding-bottom: 16px;
+    padding: 0 14px 16px;
     border-right: none;
     border-bottom: 1px solid var(--cl-line);
+  }
+
+  .admin-sidebar__brand,
+  .admin-sidebar__title {
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .admin-sidebar__list {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
+  }
+
+  /* Laid out in a row there is no screen edge to anchor to, so the entries go
+     back to a rounded pill and the marker steps aside. */
+  .admin-sidebar__list a {
+    height: 36px;
+    margin-right: 0;
+    padding: 0 12px;
+    border-radius: var(--cl-radius-control);
+  }
+
+  .admin-sidebar__list a.is-active::before {
+    content: none;
   }
 }

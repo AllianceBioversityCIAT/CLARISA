@@ -1,28 +1,40 @@
 <div class="glossary-admin-layout">
-  <aside class="glossary-sidebar">
-    <div class="glossary-sidebar__head">
-      <h2 class="glossary-sidebar__title">Glossary</h2>
-      <p class="glossary-sidebar__hint">Manage the CLARISA glossary terms and their portfolios.</p>
+  <!--
+    The section picker used to be a card on the left. Next to the admin sidebar
+    that made two navigation columns in a row, so it is a horizontal segmented
+    control above the content instead: one column, one place to switch section.
+  -->
+  <header class="glossary-topbar">
+    <div class="glossary-topbar__head">
+      <h2 class="glossary-topbar__title">Glossary</h2>
+      <p class="glossary-topbar__hint">Manage the CLARISA glossary terms and their portfolios.</p>
     </div>
-    <nav class="glossary-sidebar__nav">
+
+    <nav class="glossary-segmented" role="tablist" aria-label="Glossary sections">
       <button
         type="button"
-        class="glossary-sidebar__link"
-        [class.glossary-sidebar__link--active]="activeSection === 'terms'"
+        role="tab"
+        id="glossary-tab-terms"
+        class="glossary-segmented__item"
+        [class.glossary-segmented__item--active]="activeSection === 'terms'"
+        [attr.aria-selected]="activeSection === 'terms'"
         (click)="setSection('terms')">
-        <span class="glossary-sidebar__label">Terms</span>
-        <span class="glossary-sidebar__desc">Browse, create and edit terms one by one</span>
+        <i class="pi pi-list" aria-hidden="true"></i>
+        <span>Terms</span>
       </button>
       <button
         type="button"
-        class="glossary-sidebar__link"
-        [class.glossary-sidebar__link--active]="activeSection === 'bulk'"
+        role="tab"
+        id="glossary-tab-bulk"
+        class="glossary-segmented__item"
+        [class.glossary-segmented__item--active]="activeSection === 'bulk'"
+        [attr.aria-selected]="activeSection === 'bulk'"
         (click)="setSection('bulk')">
-        <span class="glossary-sidebar__label">Bulk upload</span>
-        <span class="glossary-sidebar__desc">Load many terms from a file or a paste</span>
+        <i class="pi pi-upload" aria-hidden="true"></i>
+        <span>Bulk upload</span>
       </button>
     </nav>
-  </aside>
+  </header>
 
   <main class="glossary-main">
     <app-glossary-terms-panel *ngIf="activeSection === 'terms'" [reloadToken]="termsReloadToken"></app-glossary-terms-panel>
