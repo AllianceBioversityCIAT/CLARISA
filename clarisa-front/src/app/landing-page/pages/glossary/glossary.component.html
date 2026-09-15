@@ -4,10 +4,7 @@
   <div class="container">
     <div class="glossary-intro">
       <h3>CGIAR terms and definitions</h3>
-      <p>
-        Glossary of terms and their definitions used across CLARISA and CGIAR reporting. Filter by portfolio or search
-        any term below.
-      </p>
+      <p>Glossary of terms and their definitions used across CLARISA and CGIAR reporting. Filter by portfolio or search any term below.</p>
     </div>
 
     <div class="glossary-toolbar">
@@ -17,11 +14,7 @@
       </div>
 
       <div class="glossary-filters" *ngIf="filterPortfolios.length">
-        <button
-          type="button"
-          class="filter-pill"
-          [class.active]="selectedPortfolioCode == null"
-          (click)="selectPortfolio(null)">
+        <button type="button" class="filter-pill" [class.active]="selectedPortfolioCode == null" (click)="selectPortfolio(null)">
           All portfolios
         </button>
         <button
@@ -61,13 +54,43 @@
       <article class="glossary-card" *ngFor="let item of filteredTerms">
         <div class="card-header">
           <h4>{{ item.term }}</h4>
-          <div class="card-portfolios" *ngIf="item.portfolios?.length">
-            <span
-              class="portfolio-chip"
-              [ngClass]="portfolioColorClass(portfolio.id)"
-              *ngFor="let portfolio of item.portfolios"
-              [title]="portfolio.acronym || portfolio.name">
-              {{ portfolioLabel(portfolio.name) }}
+          <!--
+            Un solo riel para las dos situaciones. Antes un concepto con dos
+            definiciones salía como pestañas y uno con una sola como etiqueta de
+            color: dos tratamientos distintos para el mismo dato, que es lo que
+            se leía inconsistente.
+
+            Con varias versiones cada segmento es una definición y se puede
+            pulsar. Con una sola, los segmentos son los portafolios que cubre esa
+            definición —que pueden ser dos— y no se pulsan, porque no hay nada
+            a lo que cambiar. Se ven igual; lo único que cambia es si responden.
+          -->
+          <div class="version-rail" *ngIf="item.versions.length > 1" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              class="version-seg"
+              *ngFor="let version of item.versions; let i = index"
+              [class.is-active]="item.shown === i"
+              [attr.aria-selected]="item.shown === i"
+              [title]="portfolioOf(version)?.name || ''"
+              (click)="showVersion(item, i)">
+              <span class="version-seg__dot" [ngClass]="versionColorClass(version)" [class.is-current]="isCurrentVersion(version)"></span>
+              <span class="version-seg__label">
+                <span class="version-seg__wide">{{ versionLabel(version) }}</span>
+                <span class="version-seg__narrow">{{ versionShortLabel(version) }}</span>
+              </span>
+              <span class="version-seg__current" *ngIf="isCurrentVersion(version)">Current</span>
+            </button>
+          </div>
+
+          <div class="version-rail version-rail--static" *ngIf="item.versions.length === 1 && item.portfolios?.length">
+            <span class="version-seg is-active" *ngFor="let portfolio of item.portfolios" [title]="portfolio.acronym || portfolio.name">
+              <span class="version-seg__dot is-current" [ngClass]="portfolioColorClass(portfolio.id)"></span>
+              <span class="version-seg__label">
+                <span class="version-seg__wide">{{ portfolioLabel(portfolio.name) }}</span>
+                <span class="version-seg__narrow">{{ shortLabel(portfolio.name) }}</span>
+              </span>
             </span>
           </div>
         </div>

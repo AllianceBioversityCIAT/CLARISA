@@ -1,5 +1,46 @@
 import { Component, OnInit } from '@angular/core';
-import { GlossaryPageService, GlossaryTerm } from './services/glossary-page.service';
+import { GlossaryPageService, GlossaryTerm, GlossaryTermPortfolio } from './services/glossary-page.service';
+
+/**
+ * Un concepto tal como se dibuja: sus versiones, los portafolios que cubre
+ * entre todas, y cuál se está leyendo.
+ */
+export class GlossaryCard {
+  constructor(
+    public term: string,
+    /** Las versiones del concepto, del portafolio más reciente al más antiguo. */
+    public versions: GlossaryTerm[],
+    /** Todos los portafolios que cubre el concepto entre sus versiones. */
+    public portfolios: GlossaryTermPortfolio[],
+    /** Índice dentro de `versions` de la definición visible. */
+    public shown: number
+  ) {}
+
+  /**
+   * La versión que la tarjeta está mostrando. Cambiar `shown` —lo que hace una
+   * pestaña— cambia con ella la definición y la procedencia, sin reconstruir
+   * la tarjeta ni volver a agrupar.
+   */
+  private get visible(): GlossaryTerm {
+    return this.versions[this.shown] ?? this.versions[0];
+  }
+
+  get definition(): string {
+    return this.visible?.definition ?? '';
+  }
+
+  get source(): string | null | undefined {
+    return this.visible?.source;
+  }
+
+  get sourceUrl(): string | null | undefined {
+    return this.visible?.sourceUrl;
+  }
+
+  get referenceDate(): string | null | undefined {
+    return this.visible?.referenceDate;
+  }
+}
 
 /**
  * Explicit locale for every comparison: with no argument, `localeCompare`
@@ -9,20 +50,7 @@ import { GlossaryPageService, GlossaryTerm } from './services/glossary-page.serv
 const LOCALE = 'en';
 
 /** Fixed English month names: the glossary content is English regardless of the reader's locale. */
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December'
-];
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 @Component({
   selector: 'app-glossary',
@@ -36,6 +64,23 @@ export class GlossaryComponent implements OnInit {
   private readonly renderableCache = new Map<string, string>();
 
   terms: GlossaryTerm[] = [];
+  /**
+   * One card per concept, not per record.
+   *
+   * A term that means something different in each portfolio is published once
+   * per version, and drawing them as separate cards read as two unrelated
+   * entries with the same name. Each card shows the definition that applies —
+   * the one of the portfolio being filtered, or the most recent one — and the
+   * chips of every portfolio the concept covers.
+   *
+   * A field and not a getter: it is rebuilt when the data or the filter
+   * changes, so change detection never rebuilds 70 objects per pass.
+   */
+  cards: GlossaryCard[] = [];
+  /** Versions per concept, in the order the API returned them. */
+  private groups: GlossaryTerm[][] = [];
+  /** Start year per portfolio id, to tell which version is the current one. */
+  private portfolioStartYear = new Map<number, number>();
   portfolios: any[] = [];
   searchText: string = '';
   selectedPortfolioCode: number | null = null;
@@ -54,16 +99,24 @@ export class GlossaryComponent implements OnInit {
     this._glossaryPageService.getGlossary().subscribe({
       next: terms => {
         this.terms = terms ?? [];
+        this.buildGroups();
+        this.rebuildCards();
         this.loading = false;
       },
       error: () => {
         this.terms = [];
+        this.groups = [];
+        this.cards = [];
         this.loading = false;
       }
     });
     this._glossaryPageService.getPortfolios().subscribe(portfolios => {
       this.portfolios = portfolios ?? [];
+      this.portfolioStartYear = new Map(
+        this.portfolios.filter(portfolio => typeof portfolio.start_date === 'number').map(portfolio => [portfolio.code, portfolio.start_date])
+      );
       this.applyDefaultPortfolio();
+      this.rebuildCards();
     });
   }
 
@@ -90,24 +143,75 @@ export class GlossaryComponent implements OnInit {
     if (this.portfolioChosenByReader) {
       return;
     }
-    const newest = this.filterPortfolios
-      .filter(portfolio => typeof portfolio.start_date === 'number')
-      .sort((a, b) => b.start_date - a.start_date)[0];
+    const newest = this.filterPortfolios.filter(portfolio => typeof portfolio.start_date === 'number').sort((a, b) => b.start_date - a.start_date)[0];
     this.selectedPortfolioCode = newest?.code ?? null;
   }
 
-  // Terms matching the portfolio filter (base set for the letter index)
-  private get portfolioFilteredTerms(): GlossaryTerm[] {
-    return this.terms.filter(
-      term => this.selectedPortfolioCode == null || term.portfolios?.some(portfolio => portfolio.id === this.selectedPortfolioCode)
-    );
+  /**
+   * Groups the published entries by concept. An API that does not send
+   * `groupId` — or an entry that was never related — leaves every entry on its
+   * own, which is exactly how the page behaved before.
+   */
+  private buildGroups(): void {
+    const byGroup = new Map<string, GlossaryTerm[]>();
+    this.terms.forEach((term, index) => {
+      const key = term.groupId == null ? `single-${index}` : `group-${term.groupId}`;
+      byGroup.set(key, [...(byGroup.get(key) ?? []), term]);
+    });
+    this.groups = [...byGroup.values()];
+  }
+
+  /** The newest portfolio a version covers; 0 when none of them has a year. */
+  private recencyOf(version: GlossaryTerm): number {
+    return (version.portfolios ?? []).reduce((newest, portfolio) => Math.max(newest, this.portfolioStartYear.get(portfolio.id) ?? 0), 0);
+  }
+
+  /** Every portfolio of the concept, newest first, without repeating one. */
+  private portfoliosOf(versions: GlossaryTerm[]): GlossaryTermPortfolio[] {
+    const byId = new Map<number, GlossaryTermPortfolio>();
+    for (const version of versions) {
+      for (const portfolio of version.portfolios ?? []) {
+        byId.set(portfolio.id, portfolio);
+      }
+    }
+    return [...byId.values()].sort((a, b) => (this.portfolioStartYear.get(b.id) ?? 0) - (this.portfolioStartYear.get(a.id) ?? 0));
+  }
+
+  /**
+   * The card of a concept: the definition of the portfolio being filtered, or
+   * the most recent one when the reader is looking at all of them, carrying the
+   * chips of every portfolio the concept covers.
+   */
+  private cardFor(versions: GlossaryTerm[]): GlossaryCard | null {
+    const shown =
+      this.selectedPortfolioCode == null
+        ? versions.reduce((newest, version) => (this.recencyOf(version) > this.recencyOf(newest) ? version : newest), versions[0])
+        : versions.find(version => version.portfolios?.some(portfolio => portfolio.id === this.selectedPortfolioCode));
+
+    if (!shown) {
+      return null;
+    }
+
+    // Las versiones se ordenan del portafolio más reciente al más antiguo, para
+    // que las pestañas salgan en ese orden y la vigente quede primero.
+    const ordenadas = [...versions].sort((a, b) => this.recencyOf(b) - this.recencyOf(a));
+    return new GlossaryCard(shown.term, ordenadas, this.portfoliosOf(versions), Math.max(0, ordenadas.indexOf(shown)));
+  }
+
+  private rebuildCards(): void {
+    this.cards = this.groups.map(versions => this.cardFor(versions)).filter((card): card is GlossaryCard => card !== null);
+  }
+
+  // Concepts matching the portfolio filter (base set for the letter index)
+  private get portfolioFilteredTerms(): GlossaryCard[] {
+    return this.cards;
   }
 
   // Only the initials that exist among the current terms
   get availableLetters(): string[] {
     const letters = new Set<string>();
-    for (const term of this.portfolioFilteredTerms) {
-      const initial = term.term?.trim().charAt(0).toUpperCase();
+    for (const card of this.portfolioFilteredTerms) {
+      const initial = card.term?.trim().charAt(0).toUpperCase();
       if (initial) {
         letters.add(initial);
       }
@@ -115,19 +219,23 @@ export class GlossaryComponent implements OnInit {
     return Array.from(letters).sort((a, b) => a.localeCompare(b, LOCALE));
   }
 
-  get filteredTerms(): GlossaryTerm[] {
+  get filteredTerms(): GlossaryCard[] {
     const search = this.searchText.trim().toLowerCase();
     return this.portfolioFilteredTerms
-      .filter(term => {
+      .filter(card => {
+        const term = this.shownVersion(card);
         const matchesSearch =
           !search ||
-          term.term?.toLowerCase().includes(search) ||
+          card.term?.toLowerCase().includes(search) ||
+          // Se busca en todas las versiones: una palabra que solo aparece en la
+          // definición de 2022-2024 tiene que encontrar igual el concepto.
+          card.versions.some(version => this.visibleText(version.definition).includes(search)) ||
           // Definitions are stored with markup (`<br>`, `<a href>`, `&bull;`),
           // so searching the raw string matched tag names and URLs the reader
           // never sees: typing "href" or "br" returned hits. The comparison is
           // against the visible text instead.
           this.visibleText(term.definition).includes(search);
-        const matchesLetter = this.selectedLetter == null || term.term?.trim().toUpperCase().startsWith(this.selectedLetter);
+        const matchesLetter = this.selectedLetter == null || card.term?.trim().toUpperCase().startsWith(this.selectedLetter);
         return matchesSearch && matchesLetter;
       })
       .sort((a, b) => (a.term ?? '').localeCompare(b.term ?? '', LOCALE));
@@ -226,9 +334,41 @@ export class GlossaryComponent implements OnInit {
     return monthName ? `${monthName} ${year}` : raw;
   }
 
+  /** La definición que la tarjeta está mostrando ahora mismo. */
+  shownVersion(card: GlossaryCard): GlossaryTerm {
+    return card.versions[card.shown] ?? card.versions[0];
+  }
+
+  /**
+   * El portafolio de una versión, para etiquetar su pestaña. Una versión cubre
+   * uno solo cuando el concepto está dividido; si cubriera varios se muestra el
+   * más reciente, que es el que la pestaña representa.
+   */
+  portfolioOf(version: GlossaryTerm): GlossaryTermPortfolio | null {
+    const ordenados = [...(version.portfolios ?? [])].sort(
+      (a, b) => (this.portfolioStartYear.get(b.id) ?? 0) - (this.portfolioStartYear.get(a.id) ?? 0)
+    );
+    return ordenados[0] ?? null;
+  }
+
+  /**
+   * Si esa versión es la del portafolio vigente. Es lo que Héctor pidió marcar:
+   * mirando la tarjeta no se sabía cuál de las dos definiciones se estaba
+   * leyendo, ni cuál es la que rige hoy.
+   */
+  isCurrentVersion(version: GlossaryTerm): boolean {
+    const newest = Math.max(0, ...[...this.portfolioStartYear.values()]);
+    return newest > 0 && this.recencyOf(version) === newest;
+  }
+
+  showVersion(card: GlossaryCard, index: number): void {
+    card.shown = index;
+  }
+
   selectPortfolio(code: number | null) {
     this.portfolioChosenByReader = true;
     this.selectedPortfolioCode = this.selectedPortfolioCode === code ? null : code;
+    this.rebuildCards();
     if (this.selectedLetter && !this.availableLetters.includes(this.selectedLetter)) {
       this.selectedLetter = null;
     }
@@ -247,5 +387,49 @@ export class GlossaryComponent implements OnInit {
   // Deterministic color per portfolio (cycles a fixed palette by id)
   portfolioColorClass(id: number): string {
     return 'chip-color-' + (Math.abs(id ?? 0) % 5);
+  }
+
+  /**
+   * Etiqueta y color de la pestaña de una versión.
+   *
+   * Existen para que la plantilla no tenga que encadenar `portfolioOf(v)?.name`
+   * dentro de otra llamada: una versión sin portafolio devolvería `undefined` a
+   * un parámetro declarado obligatorio, y eso revienta la compilación de
+   * plantillas estrictas en vez de fallar en el navegador.
+   */
+  versionLabel(version: GlossaryTerm): string {
+    const portfolio = this.portfolioOf(version);
+    return portfolio ? this.portfolioLabel(portfolio.name) : 'No portfolio';
+  }
+
+  /**
+   * Si un portafolio es el vigente. Mismo criterio que `isCurrentVersion`: por
+   * año de inicio, no por código fijo, para que cuando exista 2031-2036 la marca
+   * se mueva sola.
+   */
+  /**
+   * La etiqueta sin la palabra «Portfolio», para pantallas estrechas. A 390px la
+   * versión larga desbordaba el riel y el segundo segmento salía cortado por la
+   * mitad, que se lee como un fallo de pintado. El periodo solo ya identifica el
+   * portafolio, y la palabra sigue estando en el filtro de arriba.
+   */
+  shortLabel(name: string): string {
+    return this.portfolioLabel(name).replace(/^Portfolio\s+/i, '');
+  }
+
+  versionShortLabel(version: GlossaryTerm): string {
+    const portfolio = this.portfolioOf(version);
+    return portfolio ? this.shortLabel(portfolio.name) : 'No portfolio';
+  }
+
+  /** La clase de color del portafolio de una versión, para el punto de su segmento. */
+  versionColorClass(version: GlossaryTerm): string {
+    const portfolio = this.portfolioOf(version);
+    return this.portfolioColorClass(portfolio?.id ?? 0);
+  }
+
+  isCurrentPortfolio(portfolio: GlossaryTermPortfolio): boolean {
+    const newest = Math.max(0, ...[...this.portfolioStartYear.values()]);
+    return newest > 0 && (this.portfolioStartYear.get(portfolio.id) ?? 0) === newest;
   }
 }

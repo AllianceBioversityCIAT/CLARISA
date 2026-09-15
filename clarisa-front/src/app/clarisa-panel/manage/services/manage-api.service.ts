@@ -141,6 +141,11 @@ export interface GlossaryPortfolioRef {
 
 export interface GlossaryAdminTerm {
   id: number;
+  /**
+   * The concept this row is a version of. Two rows that share it are the same
+   * term in two portfolios; a row that stands alone reports its own id.
+   */
+  group_id: number;
   term: string;
   definition: string;
   /** Document or body the definition comes from. Null until attributed. */
@@ -157,6 +162,8 @@ export interface GlossaryAdminTerm {
 export interface CreateGlossaryTermBody {
   term: string;
   definition: string;
+  /** Id of a term this one is a version of, so both are related on creation. */
+  group_of?: number;
   source?: string;
   source_url?: string;
   /** `YYYY-MM-DD`. An empty string clears the stored date on update. */
@@ -166,6 +173,25 @@ export interface CreateGlossaryTermBody {
 }
 
 export type UpdateGlossaryTermBody = Partial<CreateGlossaryTermBody>;
+
+/** Moves `portfolio_ids` out of a term into a version with its own definition. */
+export interface SplitGlossaryTermBody {
+  portfolio_ids: number[];
+  definition: string;
+  source?: string;
+  source_url?: string;
+  reference_date?: string;
+}
+
+export interface GlossarySplitResult {
+  source: GlossaryAdminTerm;
+  version: GlossaryAdminTerm;
+}
+
+export interface GlossaryMergeResult {
+  target: GlossaryAdminTerm;
+  merged: GlossaryAdminTerm;
+}
 
 export type GlossaryBulkConflictPolicy = 'skip' | 'update';
 
@@ -333,6 +359,25 @@ export class ManageApiService {
 
   updateGlossaryTerm(id: number, body: UpdateGlossaryTermBody) {
     return this.http.patch<GlossaryAdminTerm>(`${this.urlApi}api/glossary/admin/terms/${id}`, body);
+  }
+
+  /** Splits the given portfolios off a term into a version of their own. */
+  splitGlossaryTerm(id: number, body: SplitGlossaryTermBody) {
+    return this.http.post<GlossarySplitResult>(`${this.urlApi}api/glossary/admin/terms/${id}/versions`, body);
+  }
+
+  /** Moves a term's portfolios onto another one and deactivates the emptied row. */
+  mergeGlossaryTerm(id: number, intoId: number) {
+    return this.http.post<GlossaryMergeResult>(`${this.urlApi}api/glossary/admin/terms/${id}/merge`, { into_id: intoId });
+  }
+
+  /** Declares a term a version of another one. */
+  groupGlossaryTerm(id: number, intoId: number) {
+    return this.http.post<GlossaryAdminTerm>(`${this.urlApi}api/glossary/admin/terms/${id}/group`, { into_id: intoId });
+  }
+
+  ungroupGlossaryTerm(id: number) {
+    return this.http.delete<GlossaryAdminTerm>(`${this.urlApi}api/glossary/admin/terms/${id}/group`);
   }
 
   setGlossaryTermStatus(id: number, isActive: boolean) {
