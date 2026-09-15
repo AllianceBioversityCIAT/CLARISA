@@ -8,6 +8,43 @@ fuente de verdad del diseño y está escrito para poder **dárselo tal cual a qu
 
 ---
 
+## 0. Lo decidido
+
+| Decisión | Elegido | Fecha |
+|---|---|---|
+| Paleta | **Menta** — acento `#0f8a63`, fuerte `#0b7554`, **barra de marca `#0a6449`** | 2026-09-15 |
+| Barra de navegación | **N2 · De marca** (la barra entera toma el color) | 2026-09-15 |
+| Sidebar | **S3 · Agrupada por secciones** (`Administrar / Acceso / Sistema`) | 2026-09-15 |
+| Campos | **I1 · Borde completo**, radio 8px | 2026-09-15 |
+| Tabla | **T2 · Cebra** | 2026-09-15 |
+| Tratamiento del activo (barra y menú) | pendiente — ver `output/propuesta-barra-sidebar.html` | |
+
+🛑 **El acento no puede ser el fondo de la barra.** `#0f8a63` con blanco encima da **4,34**, por debajo
+del 4,5 exigido. La barra de marca va en `#0a6449` (**7,16**), que es el mismo verde dos pasos más
+profundo. El acento claro se reserva para los estados activos sobre fondo blanco, donde sí funciona.
+
+---
+
+## 0b. Cómo se hace una propuesta de rediseño aquí
+
+El formato que funcionó, para repetirlo tal cual en el siguiente componente:
+
+1. **Medir antes de dibujar.** Contraste con la fórmula WCAG y `getComputedStyle` sobre lo que ya
+   existe. Un número estimado invalida la propuesta entera.
+2. **Una página HTML local** (`output/*.html`), no capturas sueltas: se abre con doble clic, se manda
+   por correo y se compara de un vistazo.
+3. **Cinco variantes, cinco ideas distintas** — no cinco matices del mismo gesto. Si dos se pueden
+   describir con la misma frase, sobra una.
+4. **Cada variante sobre la superficie real**, con contenido real de CLARISA (los cinco ítems del
+   menú, términos del glosario, los chips P22/P25), nunca con texto de relleno.
+5. **Cada variante dice su costo, no solo su virtud.** «A cambio, con cinco secciones el menú se
+   llena de color» vale más que tres adjetivos.
+6. **El contraste medido se muestra en la propia tarjeta**, para que la elección sea por gusto y no
+   por riesgo.
+7. **Mirar el resultado renderizado y criticarlo** antes de entregarlo. Dos rondas mínimo.
+
+---
+
 ## 1. Lo que hay hoy, medido
 
 No son impresiones. Cada línea se verificó en el código o en el navegador.
@@ -36,14 +73,15 @@ componente vuelve a escribir un hex.
 ```scss
 :root {
   /* Marca */
-  --cl-brand:        #2f6b3f;  /* acento: enlaces, ítem activo, foco */
-  --cl-brand-strong: #245732;  /* fondo de botón primario */
-  --cl-brand-soft:   #e0eae2;  /* fondo del ítem activo y de los chips */
-  --cl-brand-ring:   #bcd2c2;  /* anillo de foco */
+  --cl-brand:        #0f8a63;  /* acento: enlaces y foco sobre blanco */
+  --cl-brand-strong: #0b7554;  /* fondo de botón primario */
+  --cl-brand-deep:   #0a6449;  /* barra de marca: 7,16 con blanco encima */
+  --cl-brand-soft:   #e3f3ed;  /* fondo del ítem activo y de los chips */
+  --cl-brand-ring:   #bde3d4;  /* anillo de foco */
 
   /* Tinta y superficies */
-  --cl-ink:      #16241a;      /* títulos */
-  --cl-ink-2:    #46514a;      /* cuerpo */
+  --cl-ink:      #10241c;      /* títulos */
+  --cl-ink-2:    #46524c;      /* cuerpo */
   --cl-ink-3:    #79847c;      /* apoyo, nunca texto importante */
   --cl-surface:  #ffffff;
   --cl-surface-2:#f7f9f6;
