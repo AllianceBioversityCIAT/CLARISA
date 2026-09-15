@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -23,6 +24,8 @@ import {
   GlossaryAdminDto,
   GlossaryBulkDto,
   GlossaryBulkResultDto,
+  GlossaryTermRelationDto,
+  SplitGlossaryTermDto,
   UpdateGlossaryStatusDto,
   UpdateGlossaryTermDto,
 } from './dto/glossary-admin.dto';
@@ -99,6 +102,52 @@ export class GlossaryAdminController {
       updateGlossaryStatusDto.is_active,
       userData,
     );
+  }
+
+  /**
+   * Moves the listed portfolios of a term into a version of their own, with its
+   * own definition. `PATCH terms/:id` keeps meaning "edit this row for every
+   * portfolio it covers", so no existing call changes behaviour.
+   */
+  @Post('terms/:id/versions')
+  splitVersion(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() splitGlossaryTermDto: SplitGlossaryTermDto,
+    @GetUserData() userData: UserData,
+  ) {
+    return this._glossaryAdminService.splitVersion(
+      id,
+      splitGlossaryTermDto,
+      userData,
+    );
+  }
+
+  /** Undoes a split: portfolios move to the target and this row is deactivated. */
+  @Post('terms/:id/merge')
+  merge(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() relation: GlossaryTermRelationDto,
+    @GetUserData() userData: UserData,
+  ) {
+    return this._glossaryAdminService.mergeInto(id, relation.into_id, userData);
+  }
+
+  /** Declares this term a version of another one; both groups become one. */
+  @Post('terms/:id/group')
+  group(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() relation: GlossaryTermRelationDto,
+    @GetUserData() userData: UserData,
+  ): Promise<GlossaryAdminDto> {
+    return this._glossaryAdminService.setGroup(id, relation.into_id, userData);
+  }
+
+  @Delete('terms/:id/group')
+  ungroup(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUserData() userData: UserData,
+  ): Promise<GlossaryAdminDto> {
+    return this._glossaryAdminService.clearGroup(id, userData);
   }
 
   /** Dry run: reports what a bulk load would do without writing anything. */

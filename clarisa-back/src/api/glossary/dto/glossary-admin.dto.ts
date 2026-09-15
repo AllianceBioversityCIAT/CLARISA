@@ -55,6 +55,8 @@ export class GlossaryTermPortfolioDto {
 /** Admin-facing representation of a glossary term (includes the id). */
 export class GlossaryAdminDto {
   id: number;
+  /** The concept this row is a version of. Equals `id` when it stands alone. */
+  group_id: number;
   term: string;
   definition: string;
   source: string | null;
@@ -139,6 +141,41 @@ export class CreateGlossaryTermDto extends GlossaryTermFieldsDto {
   @IsString()
   @IsNotEmpty({ message: 'The definition is required' })
   definition: string;
+
+  /**
+   * Id of a term this one is a version of. Sent by the panel when adding the
+   * version of an existing term for another portfolio, so the two are related
+   * in the same request instead of being left unlinked between two calls.
+   */
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  group_of?: number;
+}
+
+/**
+ * Splits the portfolios listed out of a term into a version of their own.
+ *
+ * Extends the shared field base, so `portfolio_ids` and the three provenance
+ * fields are declared once. `portfolio_ids` is required here in practice — the
+ * service rejects an empty list — but the inherited `@IsOptional()` cannot be
+ * undone from a subclass, and repeating the field only to re-decorate it is the
+ * duplication the quality gate already caught once on this DTO.
+ */
+export class SplitGlossaryTermDto extends GlossaryTermFieldsDto {
+  @IsString()
+  @IsNotEmpty({ message: 'The definition of the new version is required' })
+  definition: string;
+}
+
+/**
+ * The other end of a relation between two terms: the target of a merge, or the
+ * term whose group is being joined.
+ */
+export class GlossaryTermRelationDto {
+  @IsInt()
+  @Type(() => Number)
+  into_id: number;
 }
 
 export class UpdateGlossaryTermDto extends GlossaryTermFieldsDto {
