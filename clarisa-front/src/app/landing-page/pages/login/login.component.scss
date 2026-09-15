@@ -1,15 +1,287 @@
-.login{
-    margin-top: 50px;
-    width: 500px;
-    margin-bottom: 50px;
+/**
+ * Access screen — «L1 · panel partido».
+ *
+ * The photograph is gone. It was 7.16 MB at 4608x3456, the first thing anyone
+ * downloaded to reach a two-field form, and it forced the card to fight it with
+ * a radial wash and a 170px inner shadow. In its place the brand pane carries
+ * the mark and one line about what CLARISA is, and the form gets the calm half.
+ *
+ * Colour comes from the tokens in `styles.scss`; this file declares no hex of
+ * its own.
+ *
+ * 🛑 Sizes in px on purpose. The theme sets `html { font-size: 62.5% }`, so in
+ * this project **1rem = 10px**, not 16px: a scale written in rem lands at
+ * roughly half the intended size, which is exactly how this screen first
+ * shipped with 10px inputs.
+ */
+
+:host {
+  display: block;
 }
-.container{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-image: url("../../../../assets/images/login-fon.jpg");
-    width: 100%;
-    height: 80vh;
-    background-position: center;
-    background-size: cover;
+
+.login-split {
+  display: flex;
+  align-items: stretch;
+  /* 73px is the height of the public bar above. */
+  min-height: calc(100vh - 73px);
+}
+
+/* ---- brand pane ----------------------------------------------------------- */
+
+.brand-pane {
+  flex: 0 0 46%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 56px 52px;
+  background: var(--cl-brand-deep);
+}
+
+/* Cropped to the wings on purpose. At full height the asset's own «CGIAR»
+   wordmark came through and read as a second, giant logo competing with the one
+   in the bar; the box cuts it off and leaves only the shape. */
+.brand-pane__ghost {
+  position: absolute;
+  right: -70px;
+  top: -40px;
+  width: 500px;
+  height: 330px;
+  object-fit: cover;
+  object-position: center top;
+  opacity: 0.09;
+  /* The mark ships in forest green, which over this background is 1.33 and would
+     read as a stain. Knocked out to white it behaves as texture. */
+  filter: brightness(0) invert(1);
+  /* The crop that hides the asset's own wordmark left a hard horizontal edge in
+     the middle of the pane, and a straight cut across a logo reads as a broken
+     image rather than as texture. The fade dissolves that edge. */
+  -webkit-mask-image: linear-gradient(180deg, #000 48%, transparent 92%);
+  mask-image: linear-gradient(180deg, #000 48%, transparent 92%);
+}
+
+.brand-pane__copy {
+  position: relative;
+  max-width: 30ch;
+}
+
+.brand-pane__title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.16;
+  letter-spacing: -0.015em;
+  /* 7.16 over the pane. */
+  color: var(--cl-surface);
+}
+
+.brand-pane__text {
+  margin: 14px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  /* Still above 5:1 over the pane, so it stays body text and not decoration. */
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* ---- form pane ------------------------------------------------------------ */
+
+.form-pane {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 40px;
+  background: var(--cl-surface);
+}
+
+.form-pane form {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* The panel is PrimeNG chrome we do not use here: no border, no background of
+   its own, and the empty header hidden rather than filled with a fake title. */
+:host ::ng-deep .form-pane .p-panel .p-panel-header {
+  display: none;
+}
+
+:host ::ng-deep .form-pane .p-panel .p-panel-content {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--cl-ink-2);
+}
+
+/* ---- card ----------------------------------------------------------------- */
+
+.login-card__head {
+  margin: 0 0 22px;
+}
+
+.login-card__brand {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  /* 7.16 over white. */
+  color: var(--cl-brand-deep);
+}
+
+// Was `<h2 style="color:#7ab800">` over white: ~2.3:1, the largest and least
+// legible element on the screen. The green moved to the line above and to the
+// button; the heading is ink.
+.login-card__title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  color: var(--cl-ink);
+}
+
+.login-card__subtitle {
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: var(--cl-ink-3);
+}
+
+/* ---- fields --------------------------------------------------------------- */
+
+.field {
+  margin: 0 0 16px;
+}
+
+.field label {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cl-ink);
+}
+
+.field__error {
+  display: block;
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--cl-error);
+}
+
+/* `[hidden]` is only `display: none` at user-agent strength, so the rule above
+   was beating it and both messages showed on a pristine form. The template
+   hides them with `[hidden]`; this is what lets it. */
+.field__error[hidden] {
+  display: none;
+}
+
+/* «I1 · borde completo», radius 8. */
+:host ::ng-deep .login-card input.p-inputtext {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  // 16px is a floor, not a taste: below it iOS Safari zooms the page in when
+  // the field takes focus, and the login jumps under the user's thumb.
+  font-size: 16px;
+  color: var(--cl-ink);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: var(--cl-ink-3);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--cl-brand);
+    box-shadow: 0 0 0 3px var(--cl-brand-ring);
+  }
+}
+
+// The primary surface of the Menta palette, with white on top: 5.70:1. The old
+// lime needed dark ink because white on it gave 2.4:1 and failed; this green is
+// deep enough to carry white, which is what the rest of the library now does too.
+// Hover goes one step deeper rather than lighter, so the button never brightens
+// under the cursor.
+:host ::ng-deep .login-card .login-card__submit.p-button {
+  justify-content: center;
+  width: 100%;
+  margin-top: 6px;
+  padding: 14px 16px;
+  border: none;
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-brand-strong);
+  color: var(--cl-surface);
+  font-size: 16px;
+  font-weight: 700;
+  transition:
+    background 0.15s ease,
+    transform 0.08s ease;
+
+  &:enabled:hover {
+    background: var(--cl-brand-deep);
+  }
+
+  &:enabled:active {
+    transform: translateY(1px);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--cl-brand-ring);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    background: var(--cl-line);
+    color: var(--cl-ink-3);
+    opacity: 1;
+  }
+}
+
+/* ---- narrow --------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .brand-pane {
+    padding: 40px 34px;
+  }
+
+  .brand-pane__title {
+    font-size: 25px;
+  }
+}
+
+@media (max-width: 760px) {
+  .login-split {
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* A band, not half the screen: on a phone the form is what the person came for. */
+  .brand-pane {
+    flex: 0 0 auto;
+    min-height: 168px;
+    padding: 28px 22px;
+  }
+
+  .brand-pane__ghost {
+    right: -50px;
+    top: -26px;
+    width: 260px;
+    height: 170px;
+  }
+
+  .brand-pane__title {
+    font-size: 22px;
+  }
+
+  .brand-pane__text {
+    /* One line of value proposition is enough next to a form; more is noise. */
+    display: none;
+  }
+
+  .form-pane {
+    padding: 30px 22px 44px;
+  }
 }

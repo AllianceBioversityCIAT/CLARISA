@@ -1,16 +1,23 @@
 @import '../shared-panel';
 
+/* The page title is ink, not the old corporate blue: the blue belonged to a
+   palette this panel no longer uses. Declared after the shared import so it
+   wins on source order at the same specificity. */
+.panel-header__title {
+  color: var(--cl-ink);
+}
+
 .glossary-filters {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 0.9rem;
+  margin-bottom: 14px;
 }
 
 .glossary-filters__search {
-  flex: 1 1 18rem;
-  max-width: 26rem;
+  flex: 1 1 260px;
+  max-width: 360px;
 
   input {
     width: 100%;
@@ -19,23 +26,132 @@
 
 .glossary-filters__count {
   margin-left: auto;
-  font-size: 0.76rem;
-  color: #94a3b8;
+  font-size: 12px;
+  color: var(--cl-ink-3);
+}
+
+/* One height for every control of the filter row. The defaults come out around
+   46px, which is what made the row read as a stack of big boxes. */
+:host ::ng-deep .glossary-controls {
+  .p-inputtext,
+  .p-dropdown {
+    height: 40px;
+    font-size: 14px;
+    border: 1px solid var(--cl-line);
+    border-radius: var(--cl-radius-control);
+    box-shadow: none;
+  }
+
+  .p-inputtext {
+    padding: 0 12px;
+  }
+
+  .p-input-icon-left > i {
+    top: 50%;
+    left: 12px;
+    margin-top: 0;
+    transform: translateY(-50%);
+    font-size: 13px;
+    color: var(--cl-ink-3);
+  }
+
+  .p-input-icon-left > .p-inputtext {
+    padding-left: 34px;
+  }
+
+  .p-dropdown {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .p-dropdown .p-dropdown-label {
+    padding: 0 0 0 12px;
+    font-size: 14px;
+    line-height: 38px;
+    color: var(--cl-ink-2);
+  }
+
+  .p-dropdown .p-dropdown-label.p-placeholder {
+    color: var(--cl-ink-3);
+  }
+
+  .p-dropdown .p-dropdown-trigger {
+    width: 32px;
+    color: var(--cl-ink-3);
+  }
+
+  .p-dropdown:not(.p-disabled):hover,
+  .p-inputtext:enabled:hover {
+    border-color: var(--cl-brand-ring);
+  }
+
+  .p-dropdown:not(.p-disabled).p-focus,
+  .p-inputtext:enabled:focus {
+    border-color: var(--cl-brand);
+    box-shadow: 0 0 0 2px var(--cl-brand-ring);
+  }
+
+  .p-button.p-button-sm {
+    height: 40px;
+    font-size: 13px;
+  }
+}
+
+:host ::ng-deep .filter-dropdown {
+  min-width: 132px;
 }
 
 :host ::ng-deep .filter-dropdown--wide {
-  min-width: 14rem;
+  min-width: 176px;
+}
+
+/* Column widths and the clamp live together: the definition is the only column
+   allowed to grow, and it is capped at three lines so one long paragraph stops
+   stretching its row to a screenful. The full text stays in the `title`. */
+:host ::ng-deep .glossary-table {
+  /* `styleClass` lands on the wrapper, so the layout mode has to be set on the
+     table itself for the `th` widths to be honoured. */
+  .p-datatable-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .p-datatable-thead > tr > th {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cl-ink-3);
+    background: var(--cl-surface-2);
+    border-color: var(--cl-line);
+    padding: 10px 14px;
+  }
+
+  .p-datatable-tbody > tr > td {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--cl-ink-2);
+    border-color: var(--cl-line);
+    vertical-align: top;
+  }
 }
 
 .cell-definition {
-  color: #475569;
+  color: var(--cl-ink-2);
+}
+
+.cell-definition__text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   line-height: 1.45;
-  max-width: 40rem;
+  /* Guards the clamp on engines that ignore `-webkit-line-clamp`. */
+  max-height: calc(13px * 1.45 * 3);
 }
 
 .cell-source {
-  color: #475569;
-  font-size: 0.82rem;
+  color: var(--cl-ink-2);
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -47,13 +163,13 @@
 }
 
 .cell-source__empty {
-  color: #94a3b8;
+  color: var(--cl-ink-3);
   font-style: italic;
 }
 
 .cell-source__date {
   display: block;
-  color: #64748b;
+  color: var(--cl-ink-3);
   font-variant-numeric: tabular-nums;
   margin-top: 2px;
 }
@@ -70,9 +186,9 @@
 
 .portfolio-chip {
   display: inline-block;
-  background: #f1f8e6;
-  border: 1px solid #d5e8b0;
-  color: #4a6b00;
+  background: var(--cl-brand-soft);
+  border: 1px solid var(--cl-brand-ring);
+  color: var(--cl-brand-deeper);
   border-radius: 999px;
   padding: 0.1rem 0.5rem;
   font-size: 0.72rem;
@@ -81,8 +197,8 @@
 }
 
 .portfolio-empty {
-  font-size: 0.75rem;
-  color: #cbd5e1;
+  font-size: 12px;
+  color: var(--cl-ink-3);
   font-style: italic;
 }
 

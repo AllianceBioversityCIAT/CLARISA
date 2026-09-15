@@ -1,123 +1,136 @@
-// Offset for the fixed .app-header in manage, same value the microservices
-// admin uses. Without it the panel heading renders behind the top bar.
-$manage-header-height: 72px;
+/**
+ * Glossary admin shell. Colour comes only from the `--cl-*` tokens of
+ * `src/styles.scss`.
+ *
+ * Sizes in px: the theme sets `html { font-size: 62.5% }`, so a rem scale here
+ * would render at half the intended size.
+ *
+ * The page no longer owns a navigation column. The admin sidebar on the left is
+ * the only vertical navigation; the section picker is the segmented rail below
+ * the page title.
+ */
+
+/* Same offset the admin sidebar declares for the fixed panel header. */
+$manage-header: 75px;
 
 .glossary-admin-layout {
-  display: flex;
-  align-items: flex-start;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  padding-top: calc(#{$manage-header-height} + 1.5rem);
-  min-height: calc(100vh - #{$manage-header-height});
-  background: #f4f6f8;
+  display: block;
+  padding: 24px 28px 32px;
+  padding-top: calc(#{$manage-header} + 24px);
+  min-height: calc(100vh - #{$manage-header});
+  background: var(--cl-surface-2);
   box-sizing: border-box;
 }
 
-.glossary-sidebar {
-  flex: 0 0 15rem;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 1rem;
-  position: sticky;
-  // Sticks below the fixed header instead of sliding under it.
-  top: calc(#{$manage-header-height} + 1rem);
+.glossary-topbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+  margin-bottom: 20px;
 }
 
-.glossary-sidebar__head {
-  padding: 0 0.25rem 0.75rem;
-  border-bottom: 1px solid #f1f5f9;
-  margin-bottom: 0.75rem;
+.glossary-topbar__head {
+  min-width: 0;
 }
 
-.glossary-sidebar__title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #0065bd;
-  margin: 0 0 0.25rem;
+.glossary-topbar__title {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--cl-ink);
 }
 
-.glossary-sidebar__hint {
-  font-size: 0.76rem;
-  color: #94a3b8;
+.glossary-topbar__hint {
   margin: 0;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--cl-ink-3);
 }
 
-.glossary-sidebar__nav {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+/* Segmented control: one rounded rail, the active segment lifted in white.
+   Not a tab strip — there is no underline and no full-width border. */
+.glossary-segmented {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--cl-surface-2);
+  border: 1px solid var(--cl-line);
+  border-radius: 999px;
+  box-sizing: border-box;
 }
 
-.glossary-sidebar__link {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  width: 100%;
-  text-align: left;
-  background: transparent;
+.glossary-segmented__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 18px;
   border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 0.6rem 0.7rem;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--cl-ink-2);
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
+    background 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
 
-  &:hover {
-    background: #f8fafc;
+  i {
+    font-size: 13px;
+  }
+
+  &:hover:not(.glossary-segmented__item--active) {
+    background: var(--cl-surface);
+    color: var(--cl-ink);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cl-brand-ring);
+    outline-offset: 1px;
   }
 }
 
-.glossary-sidebar__link--active {
-  background: #f1f8e6;
-  border-color: #d5e8b0;
-}
-
-.glossary-sidebar__label {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.glossary-sidebar__desc {
-  font-size: 0.72rem;
-  color: #94a3b8;
-  line-height: 1.35;
+.glossary-segmented__item--active {
+  background: var(--cl-surface);
+  border-color: var(--cl-line);
+  color: var(--cl-brand-deeper);
+  box-shadow:
+    0 1px 2px rgba(16, 36, 28, 0.06),
+    0 2px 8px rgba(16, 36, 28, 0.08);
 }
 
 .glossary-main {
-  flex: 1 1 auto;
   min-width: 0;
 }
 
 @media (max-width: 991px) {
   .glossary-admin-layout {
-    padding-top: calc(60px + 1rem);
+    padding: 20px 16px 28px;
+    padding-top: calc(60px + 20px);
     min-height: calc(100vh - 60px);
   }
 }
 
-@media (max-width: 900px) {
-  .glossary-admin-layout {
-    flex-direction: column;
-    padding: 1rem;
-    padding-top: calc(60px + 1rem);
+@media (max-width: 600px) {
+  .glossary-topbar {
+    align-items: stretch;
   }
 
-  .glossary-sidebar {
-    flex: 1 1 auto;
+  .glossary-segmented {
+    display: flex;
     width: 100%;
-    position: static;
   }
 
-  .glossary-sidebar__nav {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .glossary-sidebar__link {
-    flex: 1 1 12rem;
+  .glossary-segmented__item {
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 0 10px;
   }
 }

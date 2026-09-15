@@ -1,95 +1,53 @@
-<div class="container">
-  <div class="login">
+<div class="login-split">
+  <!--
+    Brand pane. The mark is knocked out to white and left very large and very
+    faint: it is texture, not a second logo, so it never competes with the bar
+    above or with the form beside it.
+  -->
+  <aside class="brand-pane">
+    <img class="brand-pane__ghost" src="../../../../assets/cgiar_logo.png" alt="" aria-hidden="true" />
+    <div class="brand-pane__copy">
+      <h2 class="brand-pane__title">The reference registry for One CGIAR</h2>
+      <p class="brand-pane__text">Institutions, portfolios and the controlled lists that the CGIAR reporting systems rely on.</p>
+    </div>
+  </aside>
+
+  <div class="form-pane">
     <form (ngSubmit)="onSubmit()" [formGroup]="loginForm">
       <p-panel>
-        <div
-          class="ui-grid ui-grid-responsive ui-grid-pad ui-fluid"
-          style="margin: 10px 0px"
-        >
-          <div>
-            <h2 style="color: #7ab800">
-              Login to the request partners administrator
-            </h2>
+        <div class="login-card">
+          <header class="login-card__head">
+            <p class="login-card__brand">CLARISA</p>
+            <h1 class="login-card__title">Sign in</h1>
+            <p class="login-card__subtitle">Request partners administrator</p>
+          </header>
+
+          <div class="field">
+            <label for="login-user">Username or email</label>
+            <input id="login-user" pInputText type="text" formControlName="login" name="login" autocomplete="username" />
+            <small class="field__error" [hidden]="loginForm.controls['login'].valid || !loginForm.controls['login'].dirty">Login is required</small>
           </div>
-          <div class="ui-grid-row">
-            <div class="ui-grid-col-2" style="font-size: 13px; color: black">
-              Username or email:
-            </div>
-            <div class="ui-grid-col-6">
-              <input
-                pInputText
-                type="text"
-                formControlName="login"
-                class="form-control"
-                name="login"
-              />
-            </div>
-            <div class="ui-grid-col-4">
-              <div
-                [hidden]="
-                  loginForm.controls['login'].valid ||
-                  !loginForm.controls['login'].dirty
-                "
-                class="alert alert-danger"
-              >
-                Login is required
-              </div>
-            </div>
-          </div>
-          <div class="ui-grid-row">
-            <div class="ui-grid-col-2" style="font-size: 13px; color: black">
-              Password:
-            </div>
-            <div class="ui-grid-col-6">
-              <input
-                pInputText
-                type="password"
-                formControlName="password"
-                class="form-control"
-                name="password"
-              />
-            </div>
-            <div class="ui-grid-col-4">
-              <div
-                [hidden]="
-                  loginForm.controls['password'].valid ||
-                  !loginForm.controls['password'].dirty
-                "
-                class="alert alert-danger"
-              >
-                Password is required
-              </div>
-            </div>
-          </div>
-          <div class="ui-grid-row">
-            <div class="ui-grid-col-2"></div>
-            <div
-              class="ui-grid-col-6"
-              style="display: flex; justify-content: center"
+
+          <div class="field">
+            <label for="login-password">Password</label>
+            <input id="login-password" pInputText type="password" formControlName="password" name="password" autocomplete="current-password" />
+            <small class="field__error" [hidden]="loginForm.controls['password'].valid || !loginForm.controls['password'].dirty"
+              >Password is required</small
             >
-              <button
-                pButton
-                type="submit"
-                label="Login"
-                [disabled]="!loginForm.valid"
-                (click)="displayConfirm=true"
-                style="
-                  margin-top: 10px;
-                  border-radius: 30px;
-                  background-color: #7ab800;
-                  color: white;
-                  font-size: 14px;
-                "
-              ></button>
-            </div>
-            <div class="ui-grid-col-4"></div>
           </div>
+
+          <button
+            pButton
+            type="submit"
+            label="Sign in"
+            class="login-card__submit"
+            [disabled]="!loginForm.valid"
+            (click)="displayConfirm = true"></button>
         </div>
       </p-panel>
     </form>
   </div>
 </div>
-
 
 <p-dialog
   header="Loading"
@@ -98,22 +56,10 @@
   [style]="{ width: '50vw' }"
   [baseZIndex]="10000"
   [draggable]="false"
-  [resizable]="false"
->
-  
-    <h4>{{menssageValidate}}</h4>
-  
-  <div
-    style="
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    "
-  >
-    <img
-      src="../../assets/images/loadeer.gif"
-      style="width: 50px; height: 50px"
-    />
+  [resizable]="false">
+  <h4>{{ menssageValidate }}</h4>
+
+  <div style="width: 100%; display: flex; align-items: center; justify-content: center">
+    <img src="../../assets/images/loadeer.gif" alt="Loading" style="width: 50px; height: 50px" />
   </div>
 </p-dialog>

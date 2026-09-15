@@ -1,0 +1,29 @@
+.admin-shell {
+  display: flex;
+  align-items: flex-start;
+  background: var(--cl-surface);
+}
+
+.admin-shell__content {
+  flex: 1;
+  /* The sidebar is `position: fixed`, so it no longer reserves its own column:
+     without this offset the table slides underneath it. 248px is the sidebar
+     width declared in `admin-sidebar.component.scss`; the two move together. */
+  margin-left: 248px;
+  /* `min-width: 0` so a wide table scrolls inside the content column instead of
+     pushing the sidebar off the screen. */
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .admin-shell {
+    flex-direction: column;
+  }
+
+  /* Under 900px the sidebar goes back into the flow as a row on top, so the
+     offset has to go with it. */
+  .admin-shell__content {
+    width: 100%;
+    margin-left: 0;
+  }
+}
