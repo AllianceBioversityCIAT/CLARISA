@@ -48,7 +48,9 @@
     border-radius: 50px;
     font-size: 13px;
     outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
 
     &:focus {
       border-color: #739600;
@@ -72,7 +74,10 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 
   &:hover {
     border-color: #a8b3a0;
@@ -132,7 +137,7 @@
   border: 1px solid #e6eadf;
   border-left: 4px solid #739600;
   border-radius: 10px;
-  padding: 16px 22px;
+  padding: 18px 22px 20px;
   transition: box-shadow 0.15s ease;
 
   &:hover {
@@ -149,16 +154,22 @@
 
     h4 {
       color: #436280;
-      font-size: 15px;
+      /* 15px competía de tú a tú con la definición; el término es el título de
+         la tarjeta y tiene que ganarle. */
+      font-size: 16.5px;
       font-weight: 700;
+      line-height: 1.3;
+      letter-spacing: -0.01em;
       margin: 0;
     }
   }
 
   p {
     color: #4c5560;
-    font-size: 13px;
-    line-height: 1.65;
+    /* 13px para definiciones de hasta 1.740 caracteres era pedirle demasiado al
+       ojo; 14 con más interlínea es lo que hace legible el párrafo largo. */
+    font-size: 14px;
+    line-height: 1.7;
     margin: 0;
     white-space: pre-line;
   }
@@ -193,42 +204,151 @@
   white-space: nowrap;
 }
 
-.card-portfolios {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+/**
+ * Riel de portafolios de la tarjeta — el pedido de Héctor: «que estos tags se
+ * vean como tabs en esa esquina… que se vea cuál es el por defecto, que diga
+ * current».
+ *
+ * Es un segmentado propio, no un componente de librería: un `p-tabView` pelado
+ * trae su propia caja, su subrayado y su tipografía, y dentro de una tarjeta se
+ * come el encabezado entero.
+ *
+ * 🛑 El color ya no codifica el portafolio. Antes cada uno tenía el suyo por
+ * `id % 5` —violeta, gris, verde, azul, naranja— y no había leyenda en ninguna
+ * parte, así que el color no decía nada: había que saberlo de antes. Ahora lo
+ * único que el color distingue es lo que el lector sí necesita, y es lo que
+ * preguntó Héctor: cuál rige hoy. Punto lleno = vigente, punto hueco = anterior.
+ *
+ * 🛑 Tamaños en px. Este front arrastra `html { font-size: 62.5% }`, así que
+ * 1rem = 10px y una escala en rem sale a la mitad.
+ */
+.version-rail {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #f1f4ec;
+  /* En pantallas estrechas el riel se desliza en vez de romper la fila: dos
+     segmentos apilados parecen dos controles distintos. */
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
+.version-rail::-webkit-scrollbar {
+  display: none;
+}
 
-.portfolio-chip {
-  display: inline-block;
-  background-color: #739600;
-  color: #fff;
-  padding: 0.3rem 0.7rem;
-  border-radius: 1rem;
-  font-size: 0.72rem;
+.version-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  padding: 5px 11px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #5d6b5f;
+  font-family: inherit;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
 
-  // Paleta determinística por portfolio (id % 5)
-  &.chip-color-0 {
-    background-color: #6d28d9; // violeta
-  }
-  &.chip-color-1 {
-    background-color: #8a8f98; // gris (portfolios cerrados, ej. 2016-2021)
-  }
-  &.chip-color-2 {
-    background-color: #739600; // verde CGIAR (2022-2024)
-  }
-  &.chip-color-3 {
-    background-color: #2563a8; // azul (2025-2030)
-  }
-  &.chip-color-4 {
-    background-color: #c2701e; // naranja (CGIAR general)
-  }
+button.version-seg:hover {
+  color: #3a4a3f;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+/* Activo en blanco elevado: el segmento se despega del riel en vez de pintarse
+   de color, que es lo que volvía a mezclar «dónde estoy» con «qué portafolio es». */
+.version-seg.is-active {
+  color: #2f3d33;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(31, 45, 35, 0.14),
+    0 3px 10px rgba(67, 98, 128, 0.12);
+}
+
+.version-seg:focus-visible {
+  outline: 2px solid #739600;
+  outline-offset: 1px;
+}
+
+/* Un solo portafolio no se pulsa porque no hay nada a lo que cambiar; se ve
+   igual, para que la tarjeta no cambie de lenguaje entre un caso y otro. */
+.version-rail--static .version-seg {
+  cursor: default;
+}
+
+.version-seg__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: transparent;
+  border: 2px solid #b6c0b0;
+}
+
+.version-seg__dot.is-current {
+  background: #739600;
+  border-color: #739600;
+}
+
+.version-seg__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Una sola de las dos se pinta; la otra no ocupa caja, así que el segmento mide
+   exactamente lo que mide su etiqueta en ese ancho. */
+.version-seg__narrow {
+  display: none;
+}
+
+/* «Current» es la respuesta literal a lo que preguntó Héctor, y va dentro del
+   segmento y no en un aparte: la duda era cuál rige, y se contesta donde se mira. */
+.version-seg__current {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #e7f0d6;
+  color: #46610a;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
 }
 
 @media (max-width: 576px) {
+  /* A 390px los dos segmentos se salían del riel y el segundo quedaba cortado
+     por la mitad: un corte así se lee como un fallo de pintado, no como «hay
+     más a la derecha». Apretando el segmento caben los dos enteros, que es
+     mejor que enseñar medio. */
+  .version-seg {
+    gap: 6px;
+    padding: 5px 9px;
+    font-size: 11px;
+  }
+
+  .version-seg__current {
+    padding: 2px 5px;
+    font-size: 9px;
+  }
+
+  .version-seg__wide {
+    display: none;
+  }
+
+  .version-seg__narrow {
+    display: inline;
+  }
+
   .glossary-card .card-header {
     flex-direction: column;
     align-items: flex-start;

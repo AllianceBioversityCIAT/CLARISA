@@ -388,4 +388,42 @@ export class GlossaryComponent implements OnInit {
   portfolioColorClass(id: number): string {
     return 'chip-color-' + (Math.abs(id ?? 0) % 5);
   }
+
+  /**
+   * Etiqueta y color de la pestaña de una versión.
+   *
+   * Existen para que la plantilla no tenga que encadenar `portfolioOf(v)?.name`
+   * dentro de otra llamada: una versión sin portafolio devolvería `undefined` a
+   * un parámetro declarado obligatorio, y eso revienta la compilación de
+   * plantillas estrictas en vez de fallar en el navegador.
+   */
+  versionLabel(version: GlossaryTerm): string {
+    const portfolio = this.portfolioOf(version);
+    return portfolio ? this.portfolioLabel(portfolio.name) : 'No portfolio';
+  }
+
+  /**
+   * Si un portafolio es el vigente. Mismo criterio que `isCurrentVersion`: por
+   * año de inicio, no por código fijo, para que cuando exista 2031-2036 la marca
+   * se mueva sola.
+   */
+  /**
+   * La etiqueta sin la palabra «Portfolio», para pantallas estrechas. A 390px la
+   * versión larga desbordaba el riel y el segundo segmento salía cortado por la
+   * mitad, que se lee como un fallo de pintado. El periodo solo ya identifica el
+   * portafolio, y la palabra sigue estando en el filtro de arriba.
+   */
+  shortLabel(name: string): string {
+    return this.portfolioLabel(name).replace(/^Portfolio\s+/i, '');
+  }
+
+  versionShortLabel(version: GlossaryTerm): string {
+    const portfolio = this.portfolioOf(version);
+    return portfolio ? this.shortLabel(portfolio.name) : 'No portfolio';
+  }
+
+  isCurrentPortfolio(portfolio: GlossaryTermPortfolio): boolean {
+    const newest = Math.max(0, ...[...this.portfolioStartYear.values()]);
+    return newest > 0 && (this.portfolioStartYear.get(portfolio.id) ?? 0) === newest;
+  }
 }
