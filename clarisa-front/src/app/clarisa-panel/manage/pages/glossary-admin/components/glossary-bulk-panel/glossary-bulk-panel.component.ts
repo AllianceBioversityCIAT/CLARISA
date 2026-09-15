@@ -96,14 +96,13 @@ export class GlossaryBulkPanelComponent implements OnInit {
       next: (response: any) => {
         const list = Array.isArray(response) ? response : [];
         // The portfolios endpoint returns a BasicDto, so the id travels as `code`.
-        this.portfolioOptions = list.map(portfolio => {
-          const closed = portfolio.is_active === false || portfolio.is_active === 0;
-          const name = portfolio.acronym ? `${portfolio.acronym} — ${portfolio.name}` : portfolio.name;
-          return {
-            label: closed ? `${name} (closed)` : name,
+        // Only active portfolios are offered: a batch has no reason to link terms to a closed one.
+        this.portfolioOptions = list
+          .filter(portfolio => !(portfolio.is_active === false || portfolio.is_active === 0))
+          .map(portfolio => ({
+            label: portfolio.acronym ? `${portfolio.acronym} — ${portfolio.name}` : portfolio.name,
             value: Number(portfolio.code ?? portfolio.id)
-          };
-        });
+          }));
       },
       error: error => this.toastError(error)
     });
