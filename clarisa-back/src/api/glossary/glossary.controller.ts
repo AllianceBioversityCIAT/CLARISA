@@ -43,6 +43,11 @@ export class GlossaryController {
       'the definition comes from), "sourceUrl" (a link to it, when public) and ' +
       '"referenceDate" (the date of that material, as YYYY-MM-DD). The three are ' +
       'null while a definition has not been attributed yet. ' +
+      'A term whose meaning changed between portfolios is published once per ' +
+      'version, so the same "term" can appear more than once: each entry ' +
+      'carries the portfolios its definition applies to, and every entry of ' +
+      'the same concept shares a "groupId". Terms that were never versioned ' +
+      'return a single entry, as they always have. ' +
       'Last updated September 2026.',
   })
   @ApiQuery({
