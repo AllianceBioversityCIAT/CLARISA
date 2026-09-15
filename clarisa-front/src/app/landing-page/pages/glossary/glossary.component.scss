@@ -287,6 +287,10 @@ button.version-seg:hover {
   cursor: default;
 }
 
+/* El punto lleva el color de su portafolio —el mismo de siempre— y el relleno
+   dice cuál rige: lleno = vigente, hueco = periodo anterior. El color identifica,
+   el relleno informa; antes el color intentaba hacer las dos cosas y no hacía
+   ninguna. */
 .version-seg__dot {
   width: 9px;
   height: 9px;
@@ -294,11 +298,43 @@ button.version-seg:hover {
   flex: 0 0 auto;
   background: transparent;
   border: 2px solid #b6c0b0;
-}
 
-.version-seg__dot.is-current {
-  background: #739600;
-  border-color: #739600;
+  &.chip-color-0 {
+    border-color: #6d28d9; // violeta
+  }
+  &.chip-color-1 {
+    border-color: #8a8f98; // gris (portfolios cerrados, ej. 2016-2021)
+  }
+  &.chip-color-2 {
+    border-color: #739600; // verde CGIAR (2022-2024)
+  }
+  &.chip-color-3 {
+    border-color: #2563a8; // azul (2025-2030)
+  }
+  &.chip-color-4 {
+    border-color: #c2701e; // naranja (CGIAR general)
+  }
+
+  &.is-current {
+    background: currentColor;
+    color: #739600;
+
+    &.chip-color-0 {
+      color: #6d28d9;
+    }
+    &.chip-color-1 {
+      color: #8a8f98;
+    }
+    &.chip-color-2 {
+      color: #739600;
+    }
+    &.chip-color-3 {
+      color: #2563a8;
+    }
+    &.chip-color-4 {
+      color: #c2701e;
+    }
+  }
 }
 
 .version-seg__label {

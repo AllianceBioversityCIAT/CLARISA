@@ -75,7 +75,7 @@
               [attr.aria-selected]="item.shown === i"
               [title]="portfolioOf(version)?.name || ''"
               (click)="showVersion(item, i)">
-              <span class="version-seg__dot" [class.is-current]="isCurrentVersion(version)"></span>
+              <span class="version-seg__dot" [ngClass]="versionColorClass(version)" [class.is-current]="isCurrentVersion(version)"></span>
               <span class="version-seg__label">
                 <span class="version-seg__wide">{{ versionLabel(version) }}</span>
                 <span class="version-seg__narrow">{{ versionShortLabel(version) }}</span>
@@ -86,12 +86,11 @@
 
           <div class="version-rail version-rail--static" *ngIf="item.versions.length === 1 && item.portfolios?.length">
             <span class="version-seg is-active" *ngFor="let portfolio of item.portfolios" [title]="portfolio.acronym || portfolio.name">
-              <span class="version-seg__dot" [class.is-current]="isCurrentPortfolio(portfolio)"></span>
+              <span class="version-seg__dot is-current" [ngClass]="portfolioColorClass(portfolio.id)"></span>
               <span class="version-seg__label">
                 <span class="version-seg__wide">{{ portfolioLabel(portfolio.name) }}</span>
                 <span class="version-seg__narrow">{{ shortLabel(portfolio.name) }}</span>
               </span>
-              <span class="version-seg__current" *ngIf="isCurrentPortfolio(portfolio)">Current</span>
             </span>
           </div>
         </div>

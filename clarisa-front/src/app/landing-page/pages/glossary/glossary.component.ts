@@ -422,6 +422,12 @@ export class GlossaryComponent implements OnInit {
     return portfolio ? this.shortLabel(portfolio.name) : 'No portfolio';
   }
 
+  /** La clase de color del portafolio de una versión, para el punto de su segmento. */
+  versionColorClass(version: GlossaryTerm): string {
+    const portfolio = this.portfolioOf(version);
+    return this.portfolioColorClass(portfolio?.id ?? 0);
+  }
+
   isCurrentPortfolio(portfolio: GlossaryTermPortfolio): boolean {
     const newest = Math.max(0, ...[...this.portfolioStartYear.values()]);
     return newest > 0 && (this.portfolioStartYear.get(portfolio.id) ?? 0) === newest;
