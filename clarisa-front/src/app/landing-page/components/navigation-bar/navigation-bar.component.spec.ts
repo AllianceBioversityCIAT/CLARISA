@@ -41,7 +41,10 @@ describe('NavigationBarComponent', () => {
     // línea. El acceso va como hijo directo de la barra.
     it('no vive dentro del menú colapsable', () => {
       expect(boton().closest('.navbar-collapse')).toBeNull();
-      expect(boton().parentElement.classList.contains('navbar')).toBe(true);
+      // El rediseño movió el envoltorio de `.navbar` a `.cl-bar`; lo que la
+      // prueba garantiza sigue siendo lo mismo, que el acceso es hijo directo
+      // de la barra y no del menú que Bootstrap colapsa.
+      expect(boton().parentElement.classList.contains('cl-bar')).toBe(true);
     });
   });
 });
