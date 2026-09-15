@@ -45,7 +45,7 @@ html *:not(.fa, .fe, .pi, pre, code) {
   .p-datatable-thead {
     tr {
       th {
-        background-color: #00a63e !important;
+        background-color: var(--cl-brand-deep) !important;
         color: white !important;
         font-size: 13px !important;
         font-weight: 600 !important;
@@ -62,6 +62,23 @@ html *:not(.fa, .fe, .pi, pre, code) {
   .p-datatable-tbody {
     background-color: #1e1e1e !important;
   }
+}
+
+/* «T2 · cebra», decidido el 15-sep-2026. Declarado una vez aquí en lugar de
+   pasar `[stripedRows]` tabla por tabla: la alternancia es una decisión del
+   sistema visual, no de cada pantalla.
+   `--cl-surface-2` sobre blanco es un salto de luminosidad de apenas 3 %, que es
+   lo que hace seguir una fila larga con la vista sin que la tabla se vuelva un
+   enrejado. */
+.p-datatable .p-datatable-tbody > tr:nth-child(even) > td {
+  background: var(--cl-surface-2);
+}
+
+/* La fila resaltada y la seleccionada mandan sobre la cebra; si no, la alternancia
+   se come el resalte justo en las filas pares. */
+.p-datatable .p-datatable-tbody > tr.p-highlight > td,
+.p-datatable .p-datatable-tbody > tr:hover > td {
+  background: var(--cl-brand-soft);
 }
 
 .filters_container {
@@ -92,7 +109,7 @@ html *:not(.fa, .fe, .pi, pre, code) {
       font-size: 15px !important;
     }
     &:hover {
-      background-color: #008000 !important;
+      background-color: var(--cl-brand-deep) !important;
     }
   }
 }

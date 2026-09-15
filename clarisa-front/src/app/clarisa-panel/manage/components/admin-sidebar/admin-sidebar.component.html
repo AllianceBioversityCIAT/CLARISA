@@ -1,0 +1,15 @@
+<nav class="admin-sidebar" aria-label="Administration">
+  <a class="admin-sidebar__brand" routerLink="/landing-page/home">
+    <img src="../../../../assets/cgiar_logo.png" alt="CGIAR" class="admin-sidebar__mark" />
+    <span class="admin-sidebar__word">CLARISA<small>Administration</small></span>
+  </a>
+
+  <div class="admin-sidebar__group" *ngFor="let group of groups">
+    <h2 class="admin-sidebar__title">{{ group.title }}</h2>
+    <ul class="admin-sidebar__list">
+      <li *ngFor="let link of group.links">
+        <a [routerLink]="link.route" routerLinkActive="is-active">{{ link.label }}</a>
+      </li>
+    </ul>
+  </div>
+</nav>

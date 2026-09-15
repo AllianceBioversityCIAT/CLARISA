@@ -1,2 +1,14 @@
 <app-horizontal-menu></app-horizontal-menu>
-<router-outlet></router-outlet>
+
+<!--
+  The sidebar lives at the layout level, not inside one page. It used to be
+  declared inside `partner-request`, which is why signing in dropped you on that
+  module with no way to reach the rest of the panel.
+-->
+<div class="admin-shell">
+  <app-admin-sidebar></app-admin-sidebar>
+
+  <main class="admin-shell__content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

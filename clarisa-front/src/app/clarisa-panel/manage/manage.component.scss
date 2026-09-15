@@ -1,0 +1,22 @@
+.admin-shell {
+  display: flex;
+  align-items: flex-start;
+  background: var(--cl-surface);
+}
+
+.admin-shell__content {
+  flex: 1;
+  /* `min-width: 0` so a wide table scrolls inside the content column instead of
+     pushing the sidebar off the screen. */
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .admin-shell {
+    flex-direction: column;
+  }
+
+  .admin-shell__content {
+    width: 100%;
+  }
+}

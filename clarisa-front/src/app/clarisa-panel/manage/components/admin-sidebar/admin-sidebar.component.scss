@@ -1,0 +1,124 @@
+/**
+ * «S3 · agrupada por secciones». Colour comes from the tokens in `styles.scss`.
+ *
+ * Sizes in px: the theme sets `html { font-size: 62.5% }`, so 1rem is 10px here.
+ */
+
+:host {
+  display: block;
+}
+
+/* The panel header is `position: fixed` and 75px tall, so a sidebar starting at
+   0 has its first 75px — the whole brand block — hidden underneath it. The offset
+   is declared once here and reused by the sticky top. */
+.admin-sidebar {
+  --admin-header: 75px;
+  position: sticky;
+  top: var(--admin-header);
+  margin-top: var(--admin-header);
+  width: 248px;
+  min-height: calc(100vh - var(--admin-header));
+  padding: 0 14px 28px;
+  background: var(--cl-surface);
+  border-right: 1px solid var(--cl-line);
+}
+
+.admin-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 20px 10px 22px;
+  text-decoration: none;
+}
+
+.admin-sidebar__mark {
+  width: 32px;
+  height: auto;
+}
+
+.admin-sidebar__word {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--cl-ink);
+}
+
+.admin-sidebar__word small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  /* 7.16 over white. */
+  color: var(--cl-brand-deep);
+}
+
+.admin-sidebar__group + .admin-sidebar__group {
+  margin-top: 22px;
+}
+
+/* The group heading is a label, not a link: small, quiet and never clickable, so
+   it never competes with the entries under it. */
+.admin-sidebar__title {
+  margin: 0 0 6px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cl-ink-3);
+}
+
+.admin-sidebar__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-sidebar__list a {
+  display: block;
+  padding: 10px 12px;
+  border-radius: var(--cl-radius-control);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cl-ink-2);
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.admin-sidebar__list a:hover,
+.admin-sidebar__list a:focus {
+  color: var(--cl-ink);
+  background: var(--cl-surface-2);
+  text-decoration: none;
+}
+
+/* The soft pill, the same one the public bar uses for the current section: 7.80. */
+.admin-sidebar__list a.is-active,
+.admin-sidebar__list a.is-active:hover,
+.admin-sidebar__list a.is-active:focus {
+  color: var(--cl-brand-deeper);
+  background: var(--cl-brand-soft);
+}
+
+@media (max-width: 900px) {
+  .admin-sidebar {
+    position: static;
+    width: 100%;
+    min-height: 0;
+    margin-top: var(--admin-header);
+    padding-bottom: 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--cl-line);
+  }
+
+  .admin-sidebar__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+}
