@@ -45,6 +45,18 @@
                   </a>
                 </div>
 
+                <!--
+                  Puerta de entrada al panel (ticket 161964). Antes al login
+                  solo se llegaba escribiendo la URL o siendo expulsado por el
+                  guard desde "Institution Request".
+
+                  Hijo directo de la barra y NUNCA dentro de `.navbar-collapse`:
+                  desde 768px Bootstrap le fuerza `display: block !important` y
+                  el botón caería a una segunda línea. Después del
+                  `.navbar-header` para que en móvil quede bajo el logo.
+                -->
+                <a class="nav-signin" routerLink="/landing-page/login">Sign in</a>
+
                 <div
                   class="collapse navbar-collapse"
                   id="bs-example-navbar-collapse-1"

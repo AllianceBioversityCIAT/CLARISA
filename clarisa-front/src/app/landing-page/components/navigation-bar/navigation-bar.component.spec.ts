@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { NavigationBarComponent } from './navigation-bar.component';
 
@@ -8,9 +10,10 @@ describe('NavigationBarComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ NavigationBarComponent ]
-    })
-    .compileComponents();
+      imports: [RouterTestingModule],
+      declarations: [NavigationBarComponent],
+      schemas: [NO_ERRORS_SCHEMA]
+    }).compileComponents();
 
     fixture = TestBed.createComponent(NavigationBarComponent);
     component = fixture.componentInstance;
@@ -19,5 +22,26 @@ describe('NavigationBarComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  // Al login solo se llegaba escribiendo la URL o siendo expulsado por el guard
+  // desde "Institution Request" — la vía enredada que reportó Héctor en el
+  // ticket 161964. La barra tiene que ofrecer la puerta.
+  describe('el acceso al panel', () => {
+    const boton = () => fixture.nativeElement.querySelector('.nav-signin');
+
+    it('ofrece un enlace visible que lleva al login', () => {
+      expect(boton()).toBeTruthy();
+      expect(boton().textContent.trim()).toBe('Sign in');
+      expect(boton().getAttribute('href')).toBe('/landing-page/login');
+    });
+
+    // Bootstrap 3 fuerza `display: block !important` sobre `.navbar-collapse`
+    // a partir de 768px: cualquier cosa metida ahí dentro se cae a una segunda
+    // línea. El acceso va como hijo directo de la barra.
+    it('no vive dentro del menú colapsable', () => {
+      expect(boton().closest('.navbar-collapse')).toBeNull();
+      expect(boton().parentElement.classList.contains('navbar')).toBe(true);
+    });
   });
 });

@@ -1,0 +1,41 @@
+/**
+ * Acceso al panel de administración.
+ *
+ * El verde es `#427730`, el que la barra ya usa en el borde superior de sus
+ * desplegables: no se introduce un color nuevo. Con blanco encima da 5,37 : 1,
+ * mientras que el lima de marca (`#7ab800`) daría 2,42 y no serviría.
+ */
+.nav-signin {
+  float: right;
+  margin: 18px 0 0 14px;
+  padding: 8px 18px;
+  border-radius: 6px;
+  background: #427730;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: background 0.15s ease;
+
+  &:hover,
+  &:focus {
+    background: #365f27;
+    color: #fff;
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(66, 119, 48, 0.45);
+    outline-offset: 2px;
+  }
+}
+
+@media (max-width: 767px) {
+  .nav-signin {
+    float: none;
+    display: block;
+    margin: 0 0 12px;
+    text-align: center;
+  }
+}
