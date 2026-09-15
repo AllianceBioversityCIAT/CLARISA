@@ -107,11 +107,35 @@ describe('GlossaryTermsPanelComponent — terms with no portfolio', () => {
 
   it('offers to relate every term outside the concept, and never one of its own versions', () => {
     component.openVersions(component.terms.find(t => t.id === 5));
+    component.openRelate();
 
     const offered = component.relateOptions.map(option => option.value);
     expect(offered).not.toContain(5);
     expect(offered).not.toContain(6);
     expect(offered).toContain(1);
+  });
+
+  // The dialog froze on a workspace with ~300 terms: every one of these lists
+  // was a getter returning a new array, so Angular rebuilt and re-sorted them
+  // on every change detection pass — including each keystroke of the
+  // dropdown's own filter. They are computed on the opening event instead.
+  it('builds the relate list only when the picker is opened', () => {
+    component.openVersions(component.terms.find(t => t.id === 5));
+    expect(component.relateOptions).toEqual([]);
+
+    component.openRelate();
+    expect(component.relateOptions.length).toBeGreaterThan(0);
+
+    component.closeVersions();
+    expect(component.relateOptions).toEqual([]);
+  });
+
+  it('counts versions from an index instead of scanning the terms per row', () => {
+    const scan = jest.spyOn(component, 'versionsOf');
+
+    component.terms.forEach(term => component.versionCount(term));
+
+    expect(scan).not.toHaveBeenCalled();
   });
 
   it('only offers to split the portfolios the record actually holds', () => {

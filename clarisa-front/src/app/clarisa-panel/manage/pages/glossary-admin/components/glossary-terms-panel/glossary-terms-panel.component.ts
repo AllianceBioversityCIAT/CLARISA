@@ -68,6 +68,22 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
   /** Versions dialog: the concept being looked at and its rows. */
   versionsVisible = false;
   versionsAnchor: GlossaryAdminTerm | null = null;
+  /**
+   * Everything the dialogs read is a field, not a getter.
+   *
+   * Angular re-evaluates a getter on every change detection pass, and these
+   * returned a **new array** each time: the table asked for the version count
+   * of all ~300 terms on every pass (300 scans of 300 rows), the dialog ran a
+   * nested `*ngFor` over two freshly built arrays, and the relate dropdown
+   * rebuilt and re-sorted 300 labels on every keystroke of its own filter —
+   * which is where it froze. They are computed once, on the events that
+   * actually change them.
+   */
+  versionsInDialog: GlossaryAdminTerm[] = [];
+  relateOptions: { label: string; value: number }[] = [];
+  splitPortfolioOptions: PortfolioOption[] = [];
+  /** Rows per concept, so the badge of a table row is a lookup and not a scan. */
+  private versionsByGroup = new Map<number, number>();
 
   /** Split dialog: the row whose portfolios are being separated. */
   splitVisible = false;
@@ -120,6 +136,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     this._manageApiService.getGlossaryTerms('all').subscribe({
       next: response => {
         this.terms = Array.isArray(response) ? response : [];
+        this.countVersions();
         this.countUnassigned();
         this.applyFilters();
         this.loading = false;
@@ -328,36 +345,31 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     return this.terms.filter(candidate => candidate.group_id === term.group_id).sort((a, b) => a.id - b.id);
   }
 
+  /** One pass over the terms, so each row's badge costs a map lookup. */
+  private countVersions(): void {
+    this.versionsByGroup = new Map<number, number>();
+    for (const term of this.terms) {
+      this.versionsByGroup.set(term.group_id, (this.versionsByGroup.get(term.group_id) ?? 0) + 1);
+    }
+  }
+
   versionCount(term: GlossaryAdminTerm): number {
-    return this.versionsOf(term).length;
-  }
-
-  get versionsInDialog(): GlossaryAdminTerm[] {
-    return this.versionsAnchor ? this.versionsOf(this.versionsAnchor) : [];
-  }
-
-  /** Terms that could be related to the concept on screen: everything else. */
-  get relateOptions(): { label: string; value: number }[] {
-    const groupId = this.versionsAnchor?.group_id;
-    return this.terms
-      .filter(term => term.group_id !== groupId)
-      .map(term => ({
-        label: `${term.term} — ${term.portfolios.map(p => this.portfolioLabel(p)).join(', ') || 'no portfolio'}${
-          term.is_active ? '' : ' (inactive)'
-        }`,
-        value: term.id
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label, 'en'));
+    return this.versionsByGroup.get(term.group_id) ?? 1;
   }
 
   openVersions(term: GlossaryAdminTerm): void {
     this.versionsAnchor = term;
+    this.versionsInDialog = this.versionsOf(term);
+    this.relateVisible = false;
+    this.relateOptions = [];
     this.versionsVisible = true;
   }
 
   closeVersions(): void {
     this.versionsVisible = false;
     this.versionsAnchor = null;
+    this.versionsInDialog = [];
+    this.relateOptions = [];
   }
 
   /** Adds the version of this concept for a portfolio no version covers yet. */
@@ -384,8 +396,13 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
   /** Set while the create dialog is adding a version to an existing concept. */
   private groupOfForNewTerm: number | null = null;
 
+  /** Only the portfolios the record holds can move to the new version. */
   openSplit(term: GlossaryAdminTerm): void {
     this.splitSource = term;
+    this.splitPortfolioOptions = term.portfolios.map(portfolio => ({
+      label: this.portfolioLabel(portfolio),
+      value: portfolio.id
+    }));
     this.splitForm.reset({ portfolio_ids: [], definition: term.definition });
     this.versionsVisible = false;
     this.splitVisible = true;
@@ -394,14 +411,6 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
   closeSplit(): void {
     this.splitVisible = false;
     this.splitSource = null;
-  }
-
-  /** Portfolios of the row being split — only those can move to the new version. */
-  get splitPortfolioOptions(): PortfolioOption[] {
-    return (this.splitSource?.portfolios ?? []).map(portfolio => ({
-      label: this.portfolioLabel(portfolio),
-      value: portfolio.id
-    }));
   }
 
   submitSplit(): void {
@@ -422,8 +431,23 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     );
   }
 
+  /**
+   * Builds the terms that can join this concept — everything outside it — once,
+   * when the picker opens. The dropdown then filters that array in place;
+   * rebuilding it underneath its own filter is what hung the dialog.
+   */
   openRelate(): void {
     this.relateTargetId = null;
+    const groupId = this.versionsAnchor?.group_id;
+    this.relateOptions = this.terms
+      .filter(term => term.group_id !== groupId)
+      .map(term => ({
+        label: `${term.term} — ${term.portfolios.map(p => this.portfolioLabel(p)).join(', ') || 'no portfolio'}${
+          term.is_active ? '' : ' (inactive)'
+        }`,
+        value: term.id
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'en'));
     this.relateVisible = true;
   }
 
