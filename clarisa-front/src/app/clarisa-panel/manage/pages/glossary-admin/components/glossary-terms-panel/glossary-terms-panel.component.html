@@ -38,7 +38,7 @@
     panelStyleClass="admin-dropdown-panel"
     appendTo="body"
     placeholder="All portfolios"
-    [options]="portfolioOptions"
+    [options]="portfolioFilterOptions"
     [showClear]="true"
     [(ngModel)]="portfolioFilter"
     (onChange)="applyFilters()"
@@ -48,6 +48,17 @@
   <button pButton type="button" label="Clear" icon="pi pi-filter-slash" class="p-button-text p-button-sm" (click)="clearFilters()"></button>
 
   <span class="glossary-filters__count">{{ filteredTerms.length }} of {{ terms.length }} terms</span>
+</div>
+
+<div class="unlinked-banner" *ngIf="unassignedCount">
+  <i class="pi pi-exclamation-triangle"></i>
+  <span class="unlinked-banner__text">
+    <strong>{{ unassignedCount }}</strong> {{ unassignedCount === 1 ? 'term has' : 'terms have' }} no portfolio linked
+    <ng-container *ngIf="unassignedActiveCount">
+      — <strong>{{ unassignedActiveCount }}</strong> of them active</ng-container
+    >. An unlinked term does not show under any portfolio filter of the public glossary.
+  </span>
+  <button pButton type="button" label="Show them" icon="pi pi-filter" class="p-button-sm p-button-text" (click)="showUnassigned()"></button>
 </div>
 
 <div class="panel-card">
@@ -86,7 +97,11 @@
             </span>
           </span>
           <ng-template #noPortfolios>
-            <span class="portfolio-empty">Not assigned</span>
+            <span
+              class="portfolio-unlinked"
+              pTooltip="This term has no row in glossary_portfolios, so it does not show under any portfolio filter of the public glossary.">
+              <i class="pi pi-exclamation-triangle"></i> No portfolio
+            </span>
           </ng-template>
         </td>
         <td>
@@ -181,7 +196,10 @@
         [filter]="true"
         styleClass="full-width">
       </p-multiSelect>
-      <small class="field-hint">A term without portfolios still shows in the glossary, just without chips.</small>
+      <small class="field-hint">
+        Required in practice: the public glossary opens filtered by the current portfolio, so a term with no portfolio only shows under "All
+        portfolios".
+      </small>
     </div>
 
     <div class="field field--inline">

@@ -21,7 +21,24 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
 
   terms: GlossaryAdminTerm[] = [];
   filteredTerms: GlossaryAdminTerm[] = [];
+  /** Real portfolios. Used by the edit dialog, so it never carries a sentinel. */
   portfolioOptions: PortfolioOption[] = [];
+  /** The same list plus the "no portfolio" entry, used only by the filter. */
+  portfolioFilterOptions: PortfolioOption[] = [];
+
+  /**
+   * Sentinel for the filter that lists the terms with no portfolio linked.
+   *
+   * Negative on purpose: portfolio ids are positive, so it can never collide
+   * with a real one, and it lives only in `portfolioFilterOptions` — the
+   * dialog's multiselect keeps using `portfolioOptions`, so this value can
+   * never be saved as a portfolio.
+   */
+  readonly NO_PORTFOLIO = -1;
+
+  /** Terms with no portfolio linked, and how many of those are active. */
+  unassignedCount = 0;
+  unassignedActiveCount = 0;
 
   loading = false;
   saving = false;
@@ -77,6 +94,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     this._manageApiService.getGlossaryTerms('all').subscribe({
       next: response => {
         this.terms = Array.isArray(response) ? response : [];
+        this.countUnassigned();
         this.applyFilters();
         this.loading = false;
       },
@@ -100,6 +118,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
             value: Number(portfolio.code ?? portfolio.id)
           };
         });
+        this.portfolioFilterOptions = [{ label: 'No portfolio linked', value: this.NO_PORTFOLIO }, ...this.portfolioOptions];
       },
       error: error => this.toastError(error)
     });
@@ -117,7 +136,11 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
       if (this.statusFilter === 'inactive' && term.is_active) {
         return false;
       }
-      if (this.portfolioFilter !== null && !term.portfolios.some(portfolio => portfolio.id === this.portfolioFilter)) {
+      if (this.portfolioFilter === this.NO_PORTFOLIO) {
+        if (term.portfolios?.length) {
+          return false;
+        }
+      } else if (this.portfolioFilter !== null && !term.portfolios.some(portfolio => portfolio.id === this.portfolioFilter)) {
         return false;
       }
       if (!needle) {
@@ -125,6 +148,26 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
       }
       return `${term.term} ${term.definition}`.toLowerCase().includes(needle);
     });
+  }
+
+  /**
+   * A term with no row in `glossary_portfolios` is invisible on the public page:
+   * it opens filtered by the current portfolio, so an unlinked term only shows
+   * under "All portfolios". Rows written straight into the database arrive like
+   * this, so the panel counts them and offers to list them.
+   */
+  private countUnassigned(): void {
+    const unassigned = this.terms.filter(term => !term.portfolios?.length);
+    this.unassignedCount = unassigned.length;
+    this.unassignedActiveCount = unassigned.filter(term => term.is_active).length;
+  }
+
+  /** Lists every term with no portfolio, active and inactive alike. */
+  showUnassigned(): void {
+    this.search = '';
+    this.statusFilter = 'all';
+    this.portfolioFilter = this.NO_PORTFOLIO;
+    this.applyFilters();
   }
 
   clearFilters(): void {
