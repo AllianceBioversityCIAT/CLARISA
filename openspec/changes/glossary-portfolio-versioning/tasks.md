@@ -8,7 +8,16 @@
 - [x] 0.4 Correct the dialog hint, which claimed a term with no portfolio still shows in the glossary
 - [x] 0.5 Tests for the count, the filter and the sentinel
 
-## 1. Back — uniqueness per portfolio
+## 1. Back — grouping and uniqueness per portfolio
+
+- [ ] 1.0a Migration: nullable `group_id` on `glossary` with its index — `NULL` means the row is its
+      own group, so no existing row is touched
+- [ ] 1.0b `POST terms/:id/group` (relate to another term) and `DELETE terms/:id/group` (unrelate),
+      rejecting a group where an active member already holds one of the requested portfolios
+- [ ] 1.0c Expose `groupId` (`COALESCE(group_id, id)`) in the public read and in the admin DTO
+- [ ] 1.0d The split assigns the source row's group to the new row
+- [ ] 1.0e Tests: relate, unrelate, conflict rejected, split inherits the group, a row with no group
+      behaves as today
 
 - [ ] 1.1 Replace `findByTitle` with a lookup that returns every row sharing the normalized title,
       each with its active portfolio ids
@@ -78,8 +87,8 @@
 
 ## 7. Front — public page
 
-- [ ] 7.1 Verify a versioned term renders one card per version and that each portfolio filter shows
-      exactly one of them
+- [ ] 7.1 Render one card per group: the selected portfolio's definition when a filter is active,
+      and every version labelled by its portfolio under "All portfolios"
 - [ ] 7.2 Keep the letter index and the search consistent when a title appears more than once
 
 ## 8. Verification

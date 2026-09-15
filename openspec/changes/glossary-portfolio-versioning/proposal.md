@@ -5,8 +5,9 @@ way for the 2022-2024 portfolio and another for 2025-2030. The data model alread
 row per definition, each tagged with the portfolios it applies to — but the admin panel forbids it:
 `create()` rejects any title that already exists (`findByTitle`, case-insensitive, **not** scoped by
 portfolio and **not** filtered by `is_active`), so the only way to register a portfolio-specific
-definition today is to write it straight into the database, which is what has been happening in
-clarisatest.
+definition today is to write it straight into the database, which is what has been happening — in
+**production**: 16 rows carry an `updated_at` of 2026-09-15 with `updated_by` NULL, the fingerprint
+of a direct SQL write.
 
 Editing a shared term makes it worse: the panel overwrites the single row, so a correction meant for
 2025-2030 silently rewrites what 2022-2024 readers see. There is also no way to see, from outside
@@ -15,6 +16,10 @@ fields.
 
 ## What Changes
 
+- Versions of the same term are **related explicitly**, not guessed from the title. Two rows that are
+  versions of one concept share a group, so the panel lists them as one term and the public page
+  renders them as one entry instead of two unrelated cards — which is what happens today, because
+  the rows only have different ids in common.
 - A term may exist **once per portfolio**. Uniqueness stops being "one row per title" and becomes
   "no two active rows share a title *and* a portfolio". Terms whose definition is the same across
   portfolios stay as one row with several portfolio tags — nothing is duplicated for its own sake.
@@ -55,14 +60,15 @@ fields.
     the diagnostics response.
   - `api/glossary/glossary.service.ts`: public read unchanged in shape; documented as possibly
     returning repeated terms.
-  - **No migration.** The schema (`glossary` + `glossary_portfolios`) already supports one row per
-    version; only the guards change.
+  - One migration: a nullable `group_id` on `glossary` (`NULL` = the row is its own group), which
+    changes no existing row and no existing read.
 - **Front (`clarisa-front`)**
   - `clarisa-panel/manage/pages/glossary-admin`: versions of the same term shown together, the
     "add version for portfolio X" action, and the split prompt on edit.
-  - `landing-page/pages/glossary`: two cards with the same title are legitimate — each one shows
-    its portfolio; the portfolio filter already separates them.
+  - `landing-page/pages/glossary`: one card per group, not per row. Filtered by a portfolio it shows
+    that portfolio's definition; under "All portfolios" the versions of a concept are rendered
+    together, each labelled with its portfolio, instead of as unrelated cards.
 - **Consumers**: PRMS/MEL/MARLO read `GET api/glossary`. The repeated-term case has to be announced
   before any versioned term reaches production.
-- **Data**: the rows already written by hand in clarisatest are corrected from the panel once this
-  ships; the diagnostics endpoint is what lists them.
+- **Data**: the rows already written by hand in production are related and repaired from the panel
+  once this ships; the diagnostics endpoint is what lists them. Nothing is deleted.

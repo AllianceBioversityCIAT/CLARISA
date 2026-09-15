@@ -104,10 +104,31 @@ Every entry carries `id`, `title`, `is_active`, both active and inactive portfol
 
 ### D6. The panel shows versions grouped under one term
 
-The terms table groups rows by normalized title: one line per term, expandable into its versions,
+The terms table groups rows by their group: one line per term, expandable into its versions,
 each with its portfolio chips. Two actions: *Add version for a portfolio* (create path) and, when
 editing a term that spans several portfolios, a choice between *apply to all portfolios* (default,
 today's behaviour) and *apply only to …* (split path).
+
+### D6b. Versions are related by an explicit group, not by their title
+
+`glossary` gains a nullable `group_id`. `NULL` means the row is its own group, so **every existing
+row keeps working with no data migration**; the effective group of a row is `COALESCE(group_id, id)`.
+
+Grouping by normalized title was the obvious cheap option and it does not hold: the rows that need
+grouping right now are `Impact` 86/287, and `Non-IPSR pathway to report innovation use (outcome)`
+302/347 — whose titles differ by a **non-breaking space**. A term also has to survive being renamed
+in one portfolio and not the other. Two rows are versions of one concept because someone said so,
+not because two strings matched.
+
+- The panel relates one term to another ("this is the 2022-2024 version of that"), and can unrelate.
+- A split writes the group automatically: the new row joins the source row's group.
+- Guard: a row cannot join a group where another **active** member already holds one of its
+  portfolios — the same invariant as D2, now at group level.
+- The public payload gains `groupId`, so the page can render one entry per concept. It is additive;
+  every other key stays as it is.
+
+*Alternative rejected:* a `glossary_groups` table. A nullable self-referencing column carries the
+same information, needs no join to read and no backfill to deploy.
 
 ### D7. Nothing is destructive, and the panel can undo a split
 

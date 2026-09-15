@@ -106,6 +106,12 @@ keys SHALL NOT change.
 - **WHEN** a reader filters the public glossary page by a portfolio
 - **THEN** exactly one card is shown for a versioned term: the version tagged with that portfolio
 
+#### Scenario: The versions of a concept are not shown as unrelated cards
+
+- **WHEN** a reader opens the public glossary with no portfolio filter and a concept has two versions
+- **THEN** the concept is shown once, with each definition labelled by the portfolio it belongs to
+- **AND** two rows that were never related keep being shown as the separate terms they are
+
 ### Requirement: An unlinked term can be linked, and two versions can be merged, from the panel
 
 The panel SHALL allow assigning portfolios to a term that has none, and SHALL allow merging two rows
@@ -151,3 +157,38 @@ offers and the one the public page opens on. No portfolio identifier SHALL be ha
 - **THEN** it can be assigned to a term as a new version from the panel, with no release
 - **AND** the public glossary offers its filter and opens on it, since it is the active portfolio
   with the latest start year
+
+### Requirement: Versions of a term are related explicitly
+
+The system SHALL let an administrator declare that a term is a version of another one, and undo that
+declaration. Rows so related SHALL form a group, exposed to the public read so that a concept is
+rendered once instead of once per row. A row with no declared group SHALL be its own group, so every
+term that exists today keeps behaving exactly as it does.
+
+#### Scenario: Relating the two rows that already exist for one concept
+
+- **WHEN** an administrator declares that the 2022-2024 row of `Impact` is a version of the current one
+- **THEN** both rows report the same group
+- **AND** the panel lists them as one term with two versions
+- **AND** the public glossary shows one entry for `Impact` with the definition of each portfolio
+
+#### Scenario: Titles that differ by an invisible character
+
+- **WHEN** two rows differ only by a trailing non-breaking space in the title
+- **THEN** they can still be related, because the grouping is declared and not inferred from the title
+
+#### Scenario: A group cannot hold two versions of the same portfolio
+
+- **WHEN** relating a term to a group where an active member already holds one of its portfolios
+- **THEN** the request is rejected naming the portfolio in conflict
+- **AND** nothing is written
+
+#### Scenario: Unrelating a term
+
+- **WHEN** an administrator unrelates a term from its group
+- **THEN** the term becomes its own group again and no row is deleted
+
+#### Scenario: A split keeps the group
+
+- **WHEN** a term is split into a new version
+- **THEN** the new row belongs to the same group as the row it came from
