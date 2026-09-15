@@ -60,16 +60,22 @@ there can be opened and corrected without leaving the panel.
 
 ### Requirement: The terms table flags and lists the terms with no portfolio
 
-The glossary terms table of the admin panel SHALL show how many terms have no portfolio linked, SHALL
-mark each such term in its portfolio column as a warning rather than as an empty cell, and SHALL offer
-a filter that lists them — active and inactive alike, so a term can be linked or deactivated from the
-same screen.
+The glossary terms table of the admin panel SHALL warn when an **active** term has no portfolio
+linked, stating how many there are, SHALL mark each unlinked term in its portfolio column as a
+warning rather than as an empty cell, and SHALL offer a filter that lists them — active and inactive
+alike, so a term can be linked or deactivated from the same screen. The warning SHALL NOT be raised
+by inactive rows alone: the 2023 glossary replacement left around 240 of them in every environment.
 
 #### Scenario: A term written outside the panel is found from the panel
 
-- **WHEN** an administrator opens the glossary terms table and some terms have no portfolio linked
-- **THEN** a notice states how many there are and how many of those are active
-- **AND** choosing to list them shows exactly those terms, whatever their status
+- **WHEN** an administrator opens the glossary terms table and an active term has no portfolio linked
+- **THEN** a notice states how many active terms are in that state, and how many more are inactive
+- **AND** choosing to list them shows every unlinked term, whatever its status
+
+#### Scenario: Only deactivated rows are unlinked
+
+- **WHEN** every unlinked term is inactive
+- **THEN** no notice is raised, and the terms stay reachable through the filter
 
 #### Scenario: The filter sentinel is never saved as a portfolio
 

@@ -50,13 +50,14 @@
   <span class="glossary-filters__count">{{ filteredTerms.length }} of {{ terms.length }} terms</span>
 </div>
 
-<div class="unlinked-banner" *ngIf="unassignedCount">
+<div class="unlinked-banner" *ngIf="unassignedActiveCount">
   <i class="pi pi-exclamation-triangle"></i>
   <span class="unlinked-banner__text">
-    <strong>{{ unassignedCount }}</strong> {{ unassignedCount === 1 ? 'term has' : 'terms have' }} no portfolio linked
-    <ng-container *ngIf="unassignedActiveCount">
-      — <strong>{{ unassignedActiveCount }}</strong> of them active</ng-container
-    >. An unlinked term does not show under any portfolio filter of the public glossary.
+    <strong>{{ unassignedActiveCount }}</strong> published {{ unassignedActiveCount === 1 ? 'term has' : 'terms have' }} no portfolio linked, so
+    {{ unassignedActiveCount === 1 ? 'it does' : 'they do' }} not show under any portfolio filter of the public glossary.
+    <ng-container *ngIf="unassignedCount > unassignedActiveCount">
+      ({{ unassignedCount - unassignedActiveCount }} more are inactive — the rows the 2023 glossary replacement left behind.)
+    </ng-container>
   </span>
   <button pButton type="button" label="Show them" icon="pi pi-filter" class="p-button-sm p-button-text" (click)="showUnassigned()"></button>
 </div>

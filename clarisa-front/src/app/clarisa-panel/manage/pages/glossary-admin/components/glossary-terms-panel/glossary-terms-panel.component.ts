@@ -36,7 +36,14 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
    */
   readonly NO_PORTFOLIO = -1;
 
-  /** Terms with no portfolio linked, and how many of those are active. */
+  /**
+   * Terms with no portfolio linked, and how many of those are active.
+   *
+   * Only the active ones are worth a warning: the 2023 glossary replacement
+   * left ~240 deactivated rows with no portfolio in every environment, and
+   * counting those would turn the notice into permanent noise. They stay
+   * reachable through the filter.
+   */
   unassignedCount = 0;
   unassignedActiveCount = 0;
 
