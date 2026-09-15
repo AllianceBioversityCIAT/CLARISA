@@ -11,6 +11,13 @@ export interface GlossaryTermPortfolio {
 
 export interface GlossaryTerm {
   term: string;
+  /**
+   * The concept this entry belongs to. Two entries that share it are the same
+   * term defined for different portfolios; an entry that stands alone reports
+   * a value of its own. Absent on an older API, which the page treats as "each
+   * entry is its own concept".
+   */
+  groupId?: number;
   definition: string;
   /** Document or body the definition comes from. Null until attributed. */
   source?: string | null;

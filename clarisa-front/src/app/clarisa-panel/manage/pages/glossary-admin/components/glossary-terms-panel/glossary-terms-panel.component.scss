@@ -226,3 +226,20 @@
     margin-bottom: 0.35rem;
   }
 }
+
+// The other definitions of a concept, shown inside its row.
+.version-row {
+  background: #f8fafc;
+
+  &__id {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-right: 0.3rem;
+  }
+
+  &__term {
+    font-weight: 500;
+    color: #475569;
+  }
+}

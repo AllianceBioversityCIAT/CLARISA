@@ -47,7 +47,7 @@
 
   <button pButton type="button" label="Clear" icon="pi pi-filter-slash" class="p-button-text p-button-sm" (click)="clearFilters()"></button>
 
-  <span class="glossary-filters__count">{{ filteredTerms.length }} of {{ terms.length }} terms</span>
+  <span class="glossary-filters__count">{{ filteredTerms.length }} of {{ concepts.length }} terms · {{ terms.length }} records</span>
 </div>
 
 <div class="unlinked-banner" *ngIf="unassignedActiveCount">
@@ -70,9 +70,11 @@
     [paginator]="filteredTerms.length > 15"
     [rowsPerPageOptions]="[15, 30, 50, 100]"
     styleClass="p-datatable-sm admin-table"
+    dataKey="key"
     responsiveLayout="scroll">
     <ng-template pTemplate="header">
       <tr>
+        <th scope="col" style="width: 2.5rem"></th>
         <th scope="col" style="width: 18rem">Term</th>
         <th scope="col">Definition</th>
         <th scope="col" style="width: 16rem">Source</th>
@@ -82,23 +84,38 @@
       </tr>
     </ng-template>
 
-    <ng-template pTemplate="body" let-term>
-      <tr [class.row-inactive]="!term.is_active">
+    <ng-template pTemplate="body" let-concept let-expanded="expanded">
+      <tr [class.row-inactive]="!concept.current.is_active">
+        <td>
+          <button
+            pButton
+            type="button"
+            *ngIf="concept.versions.length > 1"
+            [pRowToggler]="concept"
+            [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+            class="p-button-text p-button-sm p-button-plain"
+            [pTooltip]="expanded ? 'Hide the other definitions' : 'Show the definition of each portfolio'"></button>
+        </td>
         <td class="cell-primary">
-          {{ term.term }}
-          <span class="version-badge" *ngIf="versionCount(term) > 1" pTooltip="This term has one definition per portfolio. Open Versions to see them."
-            >{{ versionCount(term) }} versions</span
+          {{ concept.current.term }}
+          <span
+            class="version-badge"
+            *ngIf="concept.versions.length > 1"
+            pTooltip="One definition per portfolio. The row shows the most recent one; open it to see the rest."
+            >{{ concept.versions.length }} versions</span
           >
         </td>
-        <td class="cell-definition">{{ term.definition }}</td>
+        <td class="cell-definition">{{ concept.current.definition }}</td>
         <td class="cell-source">
-          <span class="cell-source__text" *ngIf="term.source; else noSource" [pTooltip]="term.source">{{ term.source }}</span>
+          <span class="cell-source__text" *ngIf="concept.current.source; else noSource" [pTooltip]="concept.current.source">{{
+            concept.current.source
+          }}</span>
           <ng-template #noSource><span class="cell-source__empty">Not documented</span></ng-template>
-          <span class="cell-source__date" *ngIf="term.reference_date">{{ term.reference_date }}</span>
+          <span class="cell-source__date" *ngIf="concept.current.reference_date">{{ concept.current.reference_date }}</span>
         </td>
         <td>
-          <span class="portfolio-chips" *ngIf="term.portfolios?.length; else noPortfolios">
-            <span class="portfolio-chip" *ngFor="let portfolio of term.portfolios" [pTooltip]="portfolio.name">
+          <span class="portfolio-chips" *ngIf="concept.portfolios?.length; else noPortfolios">
+            <span class="portfolio-chip" *ngFor="let portfolio of concept.portfolios" [pTooltip]="portfolio.name">
               {{ portfolioLabel(portfolio) }}
             </span>
           </span>
@@ -111,25 +128,75 @@
           </ng-template>
         </td>
         <td>
-          <p-tag [value]="term.is_active ? 'Active' : 'Inactive'" [severity]="term.is_active ? 'success' : 'danger'"></p-tag>
+          <p-tag [value]="concept.current.is_active ? 'Active' : 'Inactive'" [severity]="concept.current.is_active ? 'success' : 'danger'"></p-tag>
         </td>
         <td>
           <div class="row-actions">
-            <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm" pTooltip="Edit" (click)="openEdit(term)"></button>
+            <button
+              pButton
+              type="button"
+              icon="pi pi-pencil"
+              class="p-button-text p-button-sm"
+              pTooltip="Edit"
+              (click)="openEdit(concept.current)"></button>
             <button
               pButton
               type="button"
               icon="pi pi-clone"
               class="p-button-text p-button-sm"
               pTooltip="Versions per portfolio"
-              (click)="openVersions(term)"></button>
+              (click)="openVersions(concept.current)"></button>
             <button
               pButton
               type="button"
-              [icon]="term.is_active ? 'pi pi-eye-slash' : 'pi pi-eye'"
+              [icon]="concept.current.is_active ? 'pi pi-eye-slash' : 'pi pi-eye'"
               class="p-button-text p-button-sm"
-              [pTooltip]="term.is_active ? 'Deactivate' : 'Activate'"
-              (click)="toggleStatus(term)"></button>
+              [pTooltip]="concept.current.is_active ? 'Deactivate' : 'Activate'"
+              (click)="toggleStatus(concept.current)"></button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <!-- The other definitions of the concept, each with the portfolio it applies to -->
+    <ng-template pTemplate="rowexpansion" let-concept>
+      <tr class="version-row" *ngFor="let version of concept.versions" [class.row-inactive]="!version.is_active">
+        <td></td>
+        <td class="cell-primary version-row__term">
+          <span class="version-row__id">#{{ version.id }}</span> {{ version.term }}
+        </td>
+        <td class="cell-definition">{{ version.definition }}</td>
+        <td class="cell-source">
+          <span class="cell-source__text" *ngIf="version.source; else noVersionSource">{{ version.source }}</span>
+          <ng-template #noVersionSource><span class="cell-source__empty">Not documented</span></ng-template>
+        </td>
+        <td>
+          <span class="portfolio-chips" *ngIf="version.portfolios?.length; else noVersionPortfolio">
+            <span class="portfolio-chip" *ngFor="let portfolio of version.portfolios">{{ portfolioLabel(portfolio) }}</span>
+          </span>
+          <ng-template #noVersionPortfolio>
+            <span class="portfolio-unlinked"><i class="pi pi-exclamation-triangle"></i> No portfolio</span>
+          </ng-template>
+        </td>
+        <td>
+          <p-tag [value]="version.is_active ? 'Active' : 'Inactive'" [severity]="version.is_active ? 'success' : 'danger'"></p-tag>
+        </td>
+        <td>
+          <div class="row-actions">
+            <button
+              pButton
+              type="button"
+              icon="pi pi-pencil"
+              class="p-button-text p-button-sm"
+              pTooltip="Edit this version"
+              (click)="openEdit(version)"></button>
+            <button
+              pButton
+              type="button"
+              [icon]="version.is_active ? 'pi pi-eye-slash' : 'pi pi-eye'"
+              class="p-button-text p-button-sm"
+              [pTooltip]="version.is_active ? 'Deactivate' : 'Activate'"
+              (click)="toggleStatus(version)"></button>
           </div>
         </td>
       </tr>
@@ -137,7 +204,7 @@
 
     <ng-template pTemplate="emptymessage">
       <tr>
-        <td colspan="6" class="empty-cell">
+        <td colspan="7" class="empty-cell">
           {{ loading ? 'Loading terms…' : 'No glossary terms match the current filters.' }}
         </td>
       </tr>

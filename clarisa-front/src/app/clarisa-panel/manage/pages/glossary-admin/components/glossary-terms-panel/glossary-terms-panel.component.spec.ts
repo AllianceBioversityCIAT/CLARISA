@@ -40,8 +40,8 @@ describe('GlossaryTermsPanelComponent — terms with no portfolio', () => {
   ];
 
   const portfolios = [
-    { code: 2, name: 'CGIAR portfolio 2022-2024', acronym: 'P22', is_active: 1 },
-    { code: 3, name: 'CGIAR portfolio 2025-2030', acronym: 'P25', is_active: 1 }
+    { code: 2, name: 'CGIAR portfolio 2022-2024', acronym: 'P22', is_active: 1, start_date: 2022 },
+    { code: 3, name: 'CGIAR portfolio 2025-2030', acronym: 'P25', is_active: 1, start_date: 2025 }
   ];
 
   beforeEach(() => {
@@ -73,7 +73,7 @@ describe('GlossaryTermsPanelComponent — terms with no portfolio', () => {
   it('lists the unlinked terms, active and inactive alike, so they can be fixed or deactivated', () => {
     component.showUnassigned();
 
-    expect(component.filteredTerms.map(t => t.term)).toEqual(['Santiago', 'Examplee']);
+    expect(component.filteredTerms.map(concept => concept.current.term)).toEqual(['Examplee', 'Santiago']);
     expect(component.statusFilter).toBe('all');
   });
 
@@ -81,14 +81,27 @@ describe('GlossaryTermsPanelComponent — terms with no portfolio', () => {
     component.portfolioFilter = 2;
     component.applyFilters();
 
-    expect(component.filteredTerms.map(t => t.term)).toEqual(['Impact', 'Non-IPSR pathway']);
+    expect(component.filteredTerms.map(concept => concept.current.term)).toEqual(['Impact', 'Non-IPSR pathway\u00a0']);
   });
 
-  it('shows every term again once the filters are cleared', () => {
+  it('shows every concept again once the filters are cleared', () => {
     component.showUnassigned();
     component.clearFilters();
 
-    expect(component.filteredTerms).toHaveLength(terms.length);
+    // Six records, five concepts: the Non-IPSR pair is one term with two
+    // definitions, so the table shows it on a single line.
+    expect(component.filteredTerms).toHaveLength(5);
+    expect(component.terms).toHaveLength(6);
+  });
+
+  it('shows the definition of the most recent portfolio on the line, and keeps the rest inside', () => {
+    const concept = component.filteredTerms.find(c => c.versions.length > 1);
+
+    // #6 carries 2025-2030 and #5 carries 2022-2024, so the line is #6.
+    expect(concept.current.id).toBe(6);
+    expect(concept.versions.map(v => v.id)).toEqual([6, 5]);
+    // And the line carries the chips of both portfolios, newest first.
+    expect(concept.portfolios.map(p => p.id)).toEqual([3, 2]);
   });
 
   it('counts the versions of a concept through the group, not the term', () => {

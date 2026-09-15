@@ -21,7 +21,21 @@ describe('GlossaryComponent', () => {
         { id: 3, name: 'CGIAR portfolio 2025-2030' }
       ]
     },
-    { term: 'Orphan', definition: 'No portfolios yet', portfolios: [] }
+    { term: 'Orphan', definition: 'No portfolios yet', portfolios: [] },
+    // One concept with a definition per portfolio, the way the API publishes it
+    // once a term is versioned: two entries sharing a `groupId`.
+    {
+      term: 'Impact',
+      groupId: 90,
+      definition: 'The 2022-2024 wording',
+      portfolios: [{ id: 2, name: 'CGIAR portfolio 2022-2024' }]
+    },
+    {
+      term: 'Impact',
+      groupId: 90,
+      definition: 'The 2025-2030 wording',
+      portfolios: [{ id: 3, name: 'CGIAR portfolio 2025-2030' }]
+    }
   ];
 
   beforeEach(async () => {
@@ -55,7 +69,10 @@ describe('GlossaryComponent', () => {
 
   it('should create and load terms and portfolios', () => {
     fixture.detectChanges();
-    expect(component.terms.length).toBe(4);
+    // Six published entries, five concepts: `Impact` is one term with a
+    // definition per portfolio and the page draws it once.
+    expect(component.terms.length).toBe(6);
+    expect(component.filteredTerms.length).toBe(3);
     expect(component.portfolios.length).toBe(4);
     expect(component.loading).toBe(false);
   });
@@ -63,14 +80,14 @@ describe('GlossaryComponent', () => {
   it('should open on the newest active portfolio instead of on every term', () => {
     fixture.detectChanges();
     expect(component.selectedPortfolioCode).toBe(3);
-    expect(component.filteredTerms.map(t => t.term)).toEqual(['Innovation', 'Shared term']);
+    expect(component.filteredTerms.map(t => t.term)).toEqual(['Impact', 'Innovation', 'Shared term']);
   });
 
   it('should show every term once the reader asks for all portfolios', () => {
     fixture.detectChanges();
     showAllPortfolios();
     expect(component.selectedPortfolioCode).toBeNull();
-    expect(component.filteredTerms.length).toBe(4);
+    expect(component.filteredTerms.length).toBe(5);
   });
 
   it('should pick the newest ACTIVE portfolio, not the newest one', () => {
@@ -88,7 +105,7 @@ describe('GlossaryComponent', () => {
     mockService.getPortfolios.mockReturnValue(of([{ code: 4, name: 'CGIAR general', is_active: 1 }]));
     fixture.detectChanges();
     expect(component.selectedPortfolioCode).toBeNull();
-    expect(component.filteredTerms.length).toBe(4);
+    expect(component.filteredTerms.length).toBe(5);
   });
 
   it('should filter by search text over term and definition (case-insensitive)', () => {
@@ -105,7 +122,7 @@ describe('GlossaryComponent', () => {
     fixture.detectChanges();
     showAllPortfolios();
     component.selectPortfolio(3);
-    expect(component.filteredTerms.map(t => t.term)).toEqual(['Innovation', 'Shared term']);
+    expect(component.filteredTerms.map(t => t.term)).toEqual(['Impact', 'Innovation', 'Shared term']);
   });
 
   it('should combine search and portfolio filter', () => {
@@ -122,7 +139,7 @@ describe('GlossaryComponent', () => {
     component.selectPortfolio(2);
     component.selectPortfolio(2);
     expect(component.selectedPortfolioCode).toBeNull();
-    expect(component.filteredTerms.length).toBe(4);
+    expect(component.filteredTerms.length).toBe(5);
   });
 
   it('should end loading and keep an empty list when the API fails', () => {
@@ -136,7 +153,7 @@ describe('GlossaryComponent', () => {
   it('should return terms sorted alphabetically', () => {
     fixture.detectChanges();
     showAllPortfolios();
-    expect(component.filteredTerms.map(t => t.term)).toEqual(['Action Area', 'Innovation', 'Orphan', 'Shared term']);
+    expect(component.filteredTerms.map(t => t.term)).toEqual(['Action Area', 'Impact', 'Innovation', 'Orphan', 'Shared term']);
   });
 
   describe('letter filter', () => {
@@ -153,7 +170,7 @@ describe('GlossaryComponent', () => {
       component.selectLetter('S');
       expect(component.filteredTerms.map(t => t.term)).toEqual(['Shared term']);
       component.selectLetter('S');
-      expect(component.filteredTerms.length).toBe(4);
+      expect(component.filteredTerms.length).toBe(5);
     });
 
     it('should recompute letters when a portfolio is selected and drop an orphan selection', () => {
@@ -269,6 +286,46 @@ describe('GlossaryComponent', () => {
       fixture.detectChanges();
       expect(component.referenceDateLabel('Sept 2026')).toBe('Sept 2026');
       expect(component.referenceDateLabel(null)).toBe('');
+    });
+  });
+
+  // A versioned term used to render as two cards with the same name and one
+  // chip each, which read as duplicates instead of as one concept.
+  describe('a term with one definition per portfolio', () => {
+    const cardsFor = (name: string) => component.filteredTerms.filter(card => card.term === name);
+
+    beforeEach(() => fixture.detectChanges());
+
+    it('is a single card carrying the chips of every portfolio', () => {
+      component.selectPortfolio(null);
+
+      const cards = cardsFor('Impact');
+      expect(cards).toHaveLength(1);
+      expect(cards[0].portfolios.map(p => p.id)).toEqual([3, 2]);
+    });
+
+    it('shows the definition of the most recent portfolio when no filter is set', () => {
+      component.selectPortfolio(null);
+
+      expect(cardsFor('Impact')[0].definition).toBe('The 2025-2030 wording');
+    });
+
+    it('shows the definition of the portfolio being filtered', () => {
+      component.selectPortfolio(2);
+
+      const cards = cardsFor('Impact');
+      expect(cards).toHaveLength(1);
+      expect(cards[0].definition).toBe('The 2022-2024 wording');
+      // The chips still say the term exists in both.
+      expect(cards[0].portfolios.map(p => p.id)).toEqual([3, 2]);
+    });
+
+    it('leaves every other term exactly as it was', () => {
+      component.selectPortfolio(null);
+
+      expect(cardsFor('Action Area')).toHaveLength(1);
+      expect(cardsFor('Action Area')[0].definition).toBe('Areas of work');
+      expect(cardsFor('Orphan')).toHaveLength(1);
     });
   });
 });

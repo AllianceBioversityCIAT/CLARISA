@@ -11,6 +11,22 @@ interface PortfolioOption {
   value: number;
 }
 
+/**
+ * A concept as the table shows it: one line, however many versions it has.
+ *
+ * Two rows with the same name and one portfolio each read as duplicates; what
+ * they are is one term defined differently per portfolio. The line carries the
+ * most recent version and opens into the rest.
+ */
+interface GlossaryConcept {
+  key: number;
+  /** The version of the newest portfolio — the one the line shows. */
+  current: GlossaryAdminTerm;
+  versions: GlossaryAdminTerm[];
+  /** Every portfolio the concept covers, newest first. */
+  portfolios: GlossaryPortfolioRef[];
+}
+
 @Component({
   selector: 'app-glossary-terms-panel',
   templateUrl: './glossary-terms-panel.component.html',
@@ -21,7 +37,9 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
   @Input() reloadToken = 0;
 
   terms: GlossaryAdminTerm[] = [];
-  filteredTerms: GlossaryAdminTerm[] = [];
+  /** One entry per concept; the table renders these, not the raw records. */
+  concepts: GlossaryConcept[] = [];
+  filteredTerms: GlossaryConcept[] = [];
   /** Real portfolios. Used by the edit dialog, so it never carries a sentinel. */
   portfolioOptions: PortfolioOption[] = [];
   /** The same list plus the "no portfolio" entry, used only by the filter. */
@@ -84,6 +102,8 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
   splitPortfolioOptions: PortfolioOption[] = [];
   /** Rows per concept, so the badge of a table row is a lookup and not a scan. */
   private versionsByGroup = new Map<number, number>();
+  /** Start year per portfolio, to tell which version is the current one. */
+  private portfolioStartYear = new Map<number, number>();
 
   /** Split dialog: the row whose portfolios are being separated. */
   splitVisible = false;
@@ -137,6 +157,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
       next: response => {
         this.terms = Array.isArray(response) ? response : [];
         this.countVersions();
+        this.buildConcepts();
         this.countUnassigned();
         this.applyFilters();
         this.loading = false;
@@ -162,6 +183,13 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
           };
         });
         this.portfolioFilterOptions = [{ label: 'No portfolio linked', value: this.NO_PORTFOLIO }, ...this.portfolioOptions];
+        this.portfolioStartYear = new Map(
+          list
+            .filter(portfolio => typeof portfolio.start_date === 'number')
+            .map(portfolio => [Number(portfolio.code ?? portfolio.id), portfolio.start_date])
+        );
+        this.buildConcepts();
+        this.applyFilters();
       },
       error: error => this.toastError(error)
     });
@@ -169,10 +197,48 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
 
   // --------------------------------------------------------------- filters
 
+  /**
+   * Turns the records into concepts: one line per group, showing the version of
+   * the newest portfolio. A record that was never related is a concept with a
+   * single version, so it renders exactly as it did before.
+   */
+  private buildConcepts(): void {
+    const byGroup = new Map<number, GlossaryAdminTerm[]>();
+    for (const term of this.terms) {
+      byGroup.set(term.group_id, [...(byGroup.get(term.group_id) ?? []), term]);
+    }
+
+    this.concepts = [...byGroup.entries()]
+      .map(([key, versions]) => ({
+        key,
+        versions: [...versions].sort((a, b) => this.recencyOf(b) - this.recencyOf(a) || a.id - b.id),
+        current: versions.reduce((newest, version) => (this.recencyOf(version) > this.recencyOf(newest) ? version : newest), versions[0]),
+        portfolios: this.portfoliosOf(versions)
+      }))
+      .sort((a, b) => a.current.term.localeCompare(b.current.term, 'en'));
+  }
+
+  /** The newest portfolio a record covers; 0 when none of them has a year. */
+  private recencyOf(term: GlossaryAdminTerm): number {
+    return (term.portfolios ?? []).reduce((newest, portfolio) => Math.max(newest, this.portfolioStartYear.get(portfolio.id) ?? 0), 0);
+  }
+
+  /** Every portfolio of the concept, newest first, without repeating one. */
+  private portfoliosOf(versions: GlossaryAdminTerm[]): GlossaryPortfolioRef[] {
+    const byId = new Map<number, GlossaryPortfolioRef>();
+    for (const version of versions) {
+      for (const portfolio of version.portfolios ?? []) {
+        byId.set(portfolio.id, portfolio);
+      }
+    }
+    return [...byId.values()].sort((a, b) => (this.portfolioStartYear.get(b.id) ?? 0) - (this.portfolioStartYear.get(a.id) ?? 0));
+  }
+
+  /** A concept stays when **any** of its versions matches the filters. */
   applyFilters(): void {
     const needle = this.search.trim().toLowerCase();
 
-    this.filteredTerms = this.terms.filter(term => {
+    const matches = (term: GlossaryAdminTerm): boolean => {
       if (this.statusFilter === 'active' && !term.is_active) {
         return false;
       }
@@ -190,7 +256,9 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
         return true;
       }
       return `${term.term} ${term.definition}`.toLowerCase().includes(needle);
-    });
+    };
+
+    this.filteredTerms = this.concepts.filter(concept => concept.versions.some(matches));
   }
 
   /**
