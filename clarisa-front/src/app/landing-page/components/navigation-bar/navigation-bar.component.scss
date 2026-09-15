@@ -1,0 +1,315 @@
+/**
+ * Public navigation bar — «N4 · blanca con costilla».
+ *
+ * White bar, hairline underneath, and a 6px rib of the brand green flush against
+ * the left edge. The brand asserts itself with one gesture and the menu keeps the
+ * full contrast of ink on white.
+ *
+ * Why the colour lives here and not in the bar itself: `assets/css/style-landing.css`
+ * paints every link `#7ab800`, which is 2.42 over white and fails as text. Those
+ * rules are global and shared, so they are overridden from inside this component
+ * rather than edited — see DESIGN.md section 3.
+ *
+ * Specificity note: the rules being overridden are things like
+ * `.navbar-default .navbar-nav > li > a` (0,2,2). Prefixing with `:host` clears
+ * them without a single `!important`.
+ *
+ * Sizes in px: the theme sets `html { font-size: 62.5% }`, so 1rem is 10px here
+ * and any scale written in rem lands at roughly half.
+ */
+
+:host {
+  display: block;
+}
+
+/* The rib. `.logo-wrapper` is already `position: relative` globally. */
+:host .logo-wrapper {
+  background: var(--cl-surface);
+  border-bottom: 1px solid var(--cl-line);
+}
+
+:host .logo-wrapper::before {
+  content: '';
+  /* Explicit `display: block`: the Bootstrap 3 sheet in `assets/` still declares
+     the clearfix `.container:before { display: table }`, and a table box with no
+     width shrinks to nothing and never paints. */
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: var(--cl-brand-deep);
+  z-index: 10;
+}
+
+:host .cl-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 72px;
+}
+
+/* ---- brand ---------------------------------------------------------------- */
+
+:host .cl-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 10px 0;
+  text-decoration: none;
+  /* Undoes `.logo-wrapper .logo { position: absolute; top: -11px }`, which is what
+     made the old lime box hang below the bar. */
+  position: static;
+}
+
+:host .cl-brand__mark {
+  display: block;
+  width: 36px;
+  height: auto;
+}
+
+:host .cl-brand__word {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--cl-ink);
+  white-space: nowrap;
+}
+
+/* ---- menu ----------------------------------------------------------------- */
+
+:host .cl-nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+  min-width: 0;
+  /* Static so the mobile sheet below anchors to `.logo-wrapper`, which spans the
+     whole width, and not to this box. */
+  position: static;
+}
+
+/* Not flex: Bootstrap forces `display: block !important` on this element at
+   >=768px, so it is laid out as a block and only pushed to the right. */
+:host .cl-nav .navbar-collapse {
+  float: none;
+  width: auto;
+  padding: 0;
+}
+
+:host .cl-nav .navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  float: none;
+  margin: 0;
+}
+
+:host .cl-nav .navbar-nav > li {
+  float: none;
+}
+
+/* The link. Sentence case on purpose: the uppercase came with the old theme and
+   costs width without adding hierarchy. */
+:host .navbar-default .navbar-nav > li > a {
+  padding: 9px 15px;
+  border-radius: var(--cl-radius-control);
+  color: var(--cl-ink-2);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: none;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+:host .navbar-default .navbar-nav > li:last-child > a {
+  padding-right: 15px;
+}
+
+:host .navbar-default .navbar-nav > li > a > i {
+  margin-left: 6px;
+  margin-top: 0;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+:host .navbar-default .navbar-nav > li > a:hover,
+:host .navbar-default .navbar-nav > li > a:focus,
+:host .navbar-default .navbar-nav.nav li:hover > a,
+:host .navbar-default .nav .open > a,
+:host .navbar-default .nav .open > a:focus,
+:host .navbar-default .nav .open > a:hover {
+  color: var(--cl-ink);
+  background: var(--cl-surface-2);
+}
+
+/* The soft pill: the section you are in. 6.24 of ink on the soft surface. */
+:host .navbar-default .navbar-nav > li.cl-active > a,
+:host .navbar-default .navbar-nav.nav li.cl-active:hover > a,
+:host .navbar-default .navbar-nav > li.cl-active > a:hover,
+:host .navbar-default .navbar-nav > li.cl-active > a:focus {
+  color: var(--cl-brand-deeper);
+  background: var(--cl-brand-soft);
+}
+
+/* ---- submenus ------------------------------------------------------------- */
+
+:host .navbar-nav > li > .dropdown-menu {
+  margin-top: 6px;
+  padding: 6px;
+  min-width: 232px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-card);
+  background: var(--cl-surface);
+  box-shadow: 0 18px 38px -16px rgba(16, 36, 28, 0.32);
+  text-transform: none;
+  font-size: 14px;
+}
+
+/* The global sheet draws a lime rule under every item and a sliding white bar
+   over it. Both go: a menu is a list of targets, not a striped table. */
+:host .navbar-default ul.nav.navbar-nav li ul li {
+  border-bottom: none;
+}
+
+:host .navbar-default ul.nav.navbar-nav li ul li:after,
+:host .navbar-default ul.nav.navbar-nav li ul li:hover:after {
+  display: none;
+}
+
+:host .dropdown-menu > li > a {
+  padding: 11px 13px;
+  border-radius: 9px;
+  color: var(--cl-ink-2);
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: none;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+:host .dropdown-menu > li > a:hover,
+:host .dropdown-menu > li > a:focus {
+  color: var(--cl-brand-deeper);
+  background: var(--cl-brand-soft);
+}
+
+/* ---- sign in -------------------------------------------------------------- */
+
+/* One solid primary at the right edge, which is where people look for it.
+   `--cl-brand-strong` with white on top is 5.70. */
+:host .cl-signin {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-brand-strong);
+  color: var(--cl-surface);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+:host .cl-signin:hover,
+:host .cl-signin:focus {
+  background: var(--cl-brand-deep);
+  color: var(--cl-surface);
+  text-decoration: none;
+}
+
+:host .cl-signin:focus-visible {
+  outline: 3px solid var(--cl-brand-ring);
+  outline-offset: 2px;
+}
+
+/* ---- mobile --------------------------------------------------------------- */
+
+:host .cl-nav .navbar-toggle {
+  float: none;
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface);
+}
+
+:host .cl-nav .navbar-toggle .icon-bar {
+  background: var(--cl-ink-2);
+}
+
+:host .cl-nav .navbar-toggle:hover,
+:host .cl-nav .navbar-toggle:focus {
+  background: var(--cl-surface-2);
+}
+
+@media (max-width: 767px) {
+  :host .cl-bar {
+    min-height: 64px;
+    /* The rib takes 6px on the left; the gutter starts after it. */
+    padding-left: 18px;
+    gap: 12px;
+  }
+
+  :host .cl-brand__word {
+    font-size: 16px;
+  }
+
+  :host .cl-nav {
+    flex: 0 0 auto;
+    /* Pulls the burger over to sit beside the button instead of leaving it
+       pinned against the wordmark. */
+    margin-left: auto;
+  }
+
+  /* Open, the menu is a full-width sheet under the bar. Anchored to
+     `.logo-wrapper` (already `position: relative`) so it spans the viewport
+     instead of the width of the burger. */
+  :host .cl-nav .navbar-collapse {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    z-index: 20;
+    /* 33px so the first label lines up with the mark in the bar above, which
+       starts after the rib and the container gutter. */
+    padding: 8px 33px 16px;
+    background: var(--cl-surface);
+    border-bottom: 1px solid var(--cl-line);
+    box-shadow: 0 18px 30px -18px rgba(16, 36, 28, 0.35);
+  }
+
+  :host .cl-nav .navbar-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    width: 100%;
+  }
+
+  :host .navbar-default .navbar-nav > li > a {
+    padding: 12px 14px;
+  }
+
+  /* Bootstrap floats submenus; inline and indented reads better in a sheet. */
+  :host .navbar-nav > li > .dropdown-menu {
+    position: static;
+    float: none;
+    width: 100%;
+    min-width: 0;
+    margin: 2px 0 6px 12px;
+    box-shadow: none;
+  }
+
+  :host .cl-signin {
+    height: 38px;
+    padding: 0 15px;
+  }
+}

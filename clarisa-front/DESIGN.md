@@ -13,11 +13,31 @@ fuente de verdad del diseño y está escrito para poder **dárselo tal cual a qu
 | Decisión | Elegido | Fecha |
 |---|---|---|
 | Paleta | **Menta** — acento `#0f8a63`, fuerte `#0b7554`, **barra de marca `#0a6449`** | 2026-09-15 |
-| Barra de navegación | **N2 · De marca** (la barra entera toma el color) | 2026-09-15 |
+| Barra de navegación | ~~N2 · De marca~~ → **N4 · Blanca con costilla** (barra blanca, hairline, costilla de 6px en `--cl-brand-deep` pegada al borde izquierdo) | 2026-09-15 |
+| Pantalla de acceso | **L1 · Panel partido** (panel de marca con la marca translúcida a la izquierda, formulario sobre blanco) | 2026-09-15 |
 | Sidebar | **S3 · Agrupada por secciones** (`Administrar / Acceso / Sistema`) | 2026-09-15 |
 | Campos | **I1 · Borde completo**, radio 8px | 2026-09-15 |
 | Tabla | **T2 · Cebra** | 2026-09-15 |
-| Tratamiento del activo (barra y menú) | pendiente — ver `output/propuesta-barra-sidebar.html` | |
+| Tratamiento del activo | **Pastilla suave** — `--cl-brand-soft` con `--cl-brand-deeper` encima, 7,80 | 2026-09-15 |
+
+🛑 **La decisión de «barra de marca» se cayó, y conviene saber por qué.** El 15-sep se eligió N2, la
+barra entera en color. Cinco variantes de encendido del activo sobre esa barra no convencieron
+(«muy planas, como institucional»), y al replantear el encabezado completo Yeck eligió **N4, la barra
+blanca**. El menta sigue siendo la paleta; lo que cambió es que el encabezado ya no es su soporte.
+
+🛑 **Y el motivo de fondo es el logo.** El CGIAR tiene **dos** verdes, los dos medidos muestreando los
+píxeles de los archivos del repositorio: la marca suelta (`assets/cgiar_logo.png`) es verde bosque
+`#387828` y la caja (`assets/images/CGIAR_Fondo_verde.png`) es lima `#78b800`.
+
+| Par | Ratio | |
+|---|---|---|
+| marca verde sobre blanco | **5,40** | ✓ es el que se usa |
+| marca verde sobre la barra menta `#0a6449` | **1,33** | ✕ desaparece |
+| caja lima sobre la barra menta | **2,95** | ✕ |
+| caja lima sobre tinta `#0d3d2e` | 5,02 | ✓ única salida de la caja |
+| **blanco sobre el lima — el logo publicado hoy** | **2,43** | ✕ falla por dentro, sin importar el fondo |
+
+Por eso el encabezado usa la **marca transparente sobre blanco**, no la caja lima colgante.
 
 🛑 **El acento no puede ser el fondo de la barra.** `#0f8a63` con blanco encima da **4,34**, por debajo
 del 4,5 exigido. La barra de marca va en `#0a6449` (**7,16**), que es el mismo verde dos pasos más
@@ -323,6 +343,30 @@ glosario, el SCSS por componente con los tokens hizo el trabajo sin sumar una de
 - Verificado en el navegador con `getComputedStyle`, no solo por captura: botón `#0b7554` sobre
   blanco a 52px de alto y 16px de texto, anillo `rgb(189,227,212)`, `html` en 10px (la trampa del
   `62.5%` sigue viva).
+
+**Barra pública** (`landing-page/components/navigation-bar/`), 15-sep-2026 — «N4 · blanca con costilla»:
+
+- Barra blanca de 73px con hairline y una costilla de 6px en `--cl-brand-deep` pegada al borde izquierdo.
+- La caja lima colgante de 120px se retiró: ahora van la marca transparente a 36px y el wordmark
+  **CLARISA** en tinta. El logo dejó de colgar por debajo de la barra.
+- Enlaces en `--cl-ink-2` sobre blanco (**8,17**, donde el lima daba 2,42) y en caja baja: las
+  mayúsculas venían del tema viejo y costaban ancho sin aportar jerarquía.
+- La sección actual se marca con la **pastilla suave** (`--cl-brand-soft` + `--cl-brand-deeper`,
+  **7,80**), resuelta con `routerLinkActive` sobre el `<li>` para que el padre se encienda cuando la
+  ruta activa está dentro de su submenú.
+- **Sign in** nuevo: botón sólido `--cl-brand-strong` con blanco (**5,70**) al extremo derecho.
+- Submenús con radio de tarjeta, sombra y pastilla suave al pasar; se apagaron las reglas lima y la
+  barra blanca deslizante que dibujaba el tema global.
+- 🛑 **El botón vive fuera de `.navbar-collapse` a propósito.** A ≥768px Bootstrap fuerza
+  `.navbar-collapse.collapse { display: block !important }`, así que nada dentro puede participar de
+  una fila flex: en el primer render el botón se cayó a una segunda línea. Como hijo directo de la
+  barra queda anclado a la derecha y en celular sigue visible junto al hamburguesa.
+- Todo el trabajo se hace desde el SCSS del componente con `:host`, sin tocar
+  `assets/css/style-landing.css` (global y compartido) y **sin un solo `!important`**.
+
+⚠️ **Lo que quedó fuera a propósito:** el `.container` de Bootstrap deja 174px de margen a cada lado
+en 1440px. Ensancharlo mejoraría el aprovechamiento, pero afecta a todas las secciones de la página,
+no solo al encabezado.
 
 🛑 **Lo que sigue en el lima viejo:** la barra pública y todo lo que arrastra `style="color:#7ab800"`
 en las plantillas. En la pantalla de acceso se ve el choque de los dos verdes en la misma captura.
