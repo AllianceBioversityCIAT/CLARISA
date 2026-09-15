@@ -12,10 +12,10 @@ describe('TawkToComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [TawkToComponent],
-      schemas: [NO_ERRORS_SCHEMA]
+      schemas: [NO_ERRORS_SCHEMA],
     })
       .overrideComponent(TawkToComponent, {
-        set: { template: '<div class="Tawk_API_container"></div>' }
+        set: { template: '<div class="Tawk_API_container"></div>' },
       })
       .compileComponents();
 

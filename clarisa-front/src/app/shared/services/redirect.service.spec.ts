@@ -29,7 +29,9 @@ describe('RedirectService', () => {
 
     const result = service.findRedirectTo(legacyUrl, origin);
 
-    expect(result).toBe(origin + '/clarisa-panel/documentation/One_CGIAR_Control_List/General_Control_List/CGIAR_entities');
+    expect(result).toBe(
+      origin + '/clarisa-panel/documentation/One_CGIAR_Control_List/General_Control_List/CGIAR_entities'
+    );
   });
 
   it('should return empty string for an unknown URL', () => {

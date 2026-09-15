@@ -8,8 +8,9 @@ describe('GoogleAnalyticsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [GoogleAnalyticsComponent]
-    }).compileComponents();
+      declarations: [ GoogleAnalyticsComponent ]
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(GoogleAnalyticsComponent);
     component = fixture.componentInstance;

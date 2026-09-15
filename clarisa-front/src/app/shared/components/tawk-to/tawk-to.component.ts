@@ -12,19 +12,18 @@ export class TawkToComponent implements OnInit {
   isVisibleTawk = true;
   currentUser: any;
   config = environment;
-  constructor(
-    private _renderer: Renderer2,
-    @Inject(DOCUMENT) private _document
-  ) {}
+  constructor(private _renderer: Renderer2, @Inject(DOCUMENT) private _document) {
+    
+  }
   ngOnInit() {
     setTimeout(() => {
       this.initializeTawkIo();
     }, 500);
   }
-  initializeTawkIo() {
+  initializeTawkIo(){
     // console.log("initializeTawkIo")
-    // console.log("Tawk_API")
-    this.script.text = `
+      // console.log("Tawk_API")
+      this.script.text = `
       var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
       (()=>{
       var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
@@ -35,9 +34,9 @@ export class TawkToComponent implements OnInit {
       s0.parentNode.insertBefore(s1,s0);
       })();
       `;
-    this._renderer.appendChild(document.querySelector('.Tawk_API_container'), this.script);
+      this._renderer.appendChild(document.querySelector('.Tawk_API_container'), this.script);
   }
-  get getUserInfo(): { email; name } {
+  get getUserInfo():{email,name}{
     return JSON.parse(localStorage.getItem('user'));
   }
   openChat() {
