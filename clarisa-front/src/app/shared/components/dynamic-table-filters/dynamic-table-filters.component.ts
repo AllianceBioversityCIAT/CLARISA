@@ -18,7 +18,6 @@ export class DynamicTableFiltersComponent implements OnInit {
   searchText: string = ''; // Searches in name, code, acronym, entity_type, portfolio (both parent and children)
   @ViewChild('dt') dt!: Table;
 
-
   // Expansion state for hierarchical table
   expandedRowKeys: { [s: string]: boolean } = {};
 
@@ -35,13 +34,11 @@ export class DynamicTableFiltersComponent implements OnInit {
   onChangePortfolio(event: any) {
     this.selectedPortfolio = event?.value || null;
     this.dt?.reset();
-
   }
 
-
   onSearchChange(searchValue: string) {
-     this.searchText = searchValue;
-     this.dt?.reset();
+    this.searchText = searchValue;
+    this.dt?.reset();
   }
 
   /**

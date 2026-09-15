@@ -18,9 +18,9 @@ describe('GeneralInterceptorService', () => {
         {
           provide: HTTP_INTERCEPTORS,
           useClass: GeneralInterceptorService,
-          multi: true,
-        },
-      ],
+          multi: true
+        }
+      ]
     });
     httpClient = TestBed.inject(HttpClient);
     httpMock = TestBed.inject(HttpTestingController);
@@ -56,5 +56,62 @@ describe('GeneralInterceptorService', () => {
     const req = httpMock.expectOne(`${environment.apiUrl}some-endpoint`);
     expect(req.request.headers.has('Authorization')).toBe(false);
     req.flush({});
+  });
+
+  describe('an expired session', () => {
+    // Nothing handled the 401 before: the token stayed in place, the panel
+    // stayed open and every screen failed on its own.
+    it('logs the user out when the API rejects the session', () => {
+      localStorage.setItem('token', 'expired-token');
+      const logoutSpy = jest.spyOn(authService, 'logout').mockImplementation(() => undefined);
+
+      httpClient.get(`${environment.apiUrl}api/glossary/admin/terms`).subscribe({
+        error: () => undefined
+      });
+
+      httpMock
+        .expectOne(`${environment.apiUrl}api/glossary/admin/terms`)
+        .flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
+
+      expect(logoutSpy).toHaveBeenCalled();
+    });
+
+    it('still reports the error to the caller', () => {
+      localStorage.setItem('token', 'expired-token');
+      jest.spyOn(authService, 'logout').mockImplementation(() => undefined);
+      let seen: any = null;
+
+      httpClient.get(`${environment.apiUrl}api/glossary/admin/terms`).subscribe({
+        error: error => (seen = error)
+      });
+
+      httpMock.expectOne(`${environment.apiUrl}api/glossary/admin/terms`).flush({}, { status: 401, statusText: 'Unauthorized' });
+
+      expect(seen?.status).toBe(401);
+    });
+
+    // A 401 from the login call means "wrong credentials" and belongs to the
+    // form; logging out there would reload the page and wipe its message.
+    it('does not log out when the rejected call is the login itself', () => {
+      const logoutSpy = jest.spyOn(authService, 'logout').mockImplementation(() => undefined);
+
+      httpClient.post(`${environment.apiUrl}auth/login`, {}).subscribe({
+        error: () => undefined
+      });
+
+      httpMock.expectOne(`${environment.apiUrl}auth/login`).flush({}, { status: 401, statusText: 'Unauthorized' });
+
+      expect(logoutSpy).not.toHaveBeenCalled();
+    });
+
+    it('leaves a successful call alone', () => {
+      localStorage.setItem('token', 'good-token');
+      const logoutSpy = jest.spyOn(authService, 'logout').mockImplementation(() => undefined);
+
+      httpClient.get(`${environment.apiUrl}api/glossary`).subscribe();
+      httpMock.expectOne(`${environment.apiUrl}api/glossary`).flush([]);
+
+      expect(logoutSpy).not.toHaveBeenCalled();
+    });
   });
 });

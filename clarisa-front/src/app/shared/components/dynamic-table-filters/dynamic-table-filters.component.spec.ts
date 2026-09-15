@@ -5,11 +5,11 @@ import * as FileSaver from 'file-saver';
 
 jest.mock('primeng/table', () => ({
   Table: class {},
-  TableModule: class {},
+  TableModule: class {}
 }));
 
 jest.mock('file-saver', () => ({
-  saveAs: jest.fn(),
+  saveAs: jest.fn()
 }));
 
 import { DynamicTableFiltersComponent } from './dynamic-table-filters.component';
@@ -37,10 +37,10 @@ describe('DynamicTableFiltersComponent', () => {
           acronym: null,
           portfolio_id: 10,
           portfolio: 'Research',
-          cgiar_entity_type: { code: 1, name: 'Center' },
-        },
+          cgiar_entity_type: { code: 1, name: 'Center' }
+        }
       ],
-      full_text: '',
+      full_text: ''
     },
     {
       id: 2,
@@ -52,7 +52,7 @@ describe('DynamicTableFiltersComponent', () => {
       cgiar_entity_type: { code: 2, name: 'Initiative' },
       acronym: 'CIP',
       children: [],
-      full_text: '',
+      full_text: ''
     },
     {
       id: 3,
@@ -64,18 +64,18 @@ describe('DynamicTableFiltersComponent', () => {
       cgiar_entity_type: { code: 1, name: 'Center' },
       acronym: null,
       children: [],
-      full_text: '',
-    },
+      full_text: ''
+    }
   ];
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       declarations: [DynamicTableFiltersComponent],
-      schemas: [NO_ERRORS_SCHEMA],
+      schemas: [NO_ERRORS_SCHEMA]
     })
       .overrideComponent(DynamicTableFiltersComponent, {
-        set: { template: '<div></div>' },
+        set: { template: '<div></div>' }
       })
       .compileComponents();
 
@@ -196,7 +196,7 @@ describe('DynamicTableFiltersComponent', () => {
       await component.exportExcel();
 
       // Give the dynamic import time to resolve
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 100));
 
       expect(FileSaver.saveAs).toHaveBeenCalled();
     });
@@ -224,7 +224,7 @@ describe('DynamicTableFiltersComponent', () => {
 
       // Access private method via exportExcel path - we test indirectly
       await component.exportExcel();
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 100));
       expect(FileSaver.saveAs).toHaveBeenCalled();
     });
 
@@ -234,7 +234,7 @@ describe('DynamicTableFiltersComponent', () => {
       component.selectedEntityType = null;
 
       await component.exportExcel();
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 100));
       expect(FileSaver.saveAs).toHaveBeenCalled();
     });
 
@@ -244,7 +244,7 @@ describe('DynamicTableFiltersComponent', () => {
       component.selectedEntityType = 2;
 
       await component.exportExcel();
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 100));
       expect(FileSaver.saveAs).toHaveBeenCalled();
     });
 
@@ -254,7 +254,7 @@ describe('DynamicTableFiltersComponent', () => {
       component.selectedEntityType = 1;
 
       await component.exportExcel();
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 100));
       expect(FileSaver.saveAs).toHaveBeenCalled();
     });
   });
@@ -267,7 +267,7 @@ describe('DynamicTableFiltersComponent', () => {
       component.selectedEntityType = null;
 
       await component.exportExcel();
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 100));
       expect(FileSaver.saveAs).toHaveBeenCalled();
     });
 
@@ -278,7 +278,7 @@ describe('DynamicTableFiltersComponent', () => {
       component.selectedEntityType = null;
 
       await component.exportExcel();
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 100));
       expect(FileSaver.saveAs).toHaveBeenCalled();
     });
 
@@ -289,7 +289,7 @@ describe('DynamicTableFiltersComponent', () => {
       component.selectedEntityType = null;
 
       await component.exportExcel();
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 100));
       expect(FileSaver.saveAs).toHaveBeenCalled();
     });
   });

@@ -1,10 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { environment } from 'src/environments/environment';
-import {
-  NavigationStart,
-  Router,
-  Event as NavigationEvent,
-} from '@angular/router';
+import { NavigationStart, Router, Event as NavigationEvent } from '@angular/router';
 declare let gtag: (property: string, value: any, configs: any) => {};
 
 @Component({
@@ -13,21 +9,19 @@ declare let gtag: (property: string, value: any, configs: any) => {};
   styleUrls: ['./router-events.component.scss']
 })
 export class RouterEventsComponent implements OnInit {
-
-  constructor(private router: Router) { }
+  constructor(private router: Router) {}
 
   ngOnInit(): void {
     this.startgoogleanalytics();
     this.listenRoute();
   }
 
-  listenRoute(){
+  listenRoute() {
     this.router.events.subscribe((event: NavigationEvent) => {
       if (event instanceof NavigationStart) {
-               
-        try {          
+        try {
           gtag('config', environment.googleAnalyticsId, {
-            page_path: event.url,
+            page_path: event.url
           });
         } catch (error) {
           console.log(error);
@@ -36,7 +30,7 @@ export class RouterEventsComponent implements OnInit {
     });
   }
 
-  startgoogleanalytics(){
+  startgoogleanalytics() {
     try {
       var script = document.createElement('script');
       script.onload = () => {
@@ -54,8 +48,7 @@ export class RouterEventsComponent implements OnInit {
       `;
       document.getElementsByTagName('head')[0].appendChild(script2);
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   }
-
 }

@@ -15,7 +15,7 @@ describe('HierarchicalFilterPipe', () => {
       cgiar_entity_type: { code: 1, name: 'Center' },
       acronym: 'ABI',
       children: [],
-      full_text: '',
+      full_text: ''
     },
     {
       id: 2,
@@ -27,7 +27,7 @@ describe('HierarchicalFilterPipe', () => {
       cgiar_entity_type: { code: 2, name: 'Initiative' },
       acronym: 'CIP',
       children: [],
-      full_text: '',
+      full_text: ''
     },
     {
       id: 3,
@@ -39,8 +39,8 @@ describe('HierarchicalFilterPipe', () => {
       cgiar_entity_type: { code: 1, name: 'Center' },
       acronym: 'WF',
       children: [],
-      full_text: '',
-    },
+      full_text: ''
+    }
   ];
 
   beforeEach(() => {
@@ -91,7 +91,7 @@ describe('HierarchicalFilterPipe', () => {
     it('should filter by portfolio_id', () => {
       const result = pipe.transform(mockList, '', 10, null);
       expect(result.length).toBe(2);
-      expect(result.every((item) => item.portfolio_id === 10)).toBe(true);
+      expect(result.every(item => item.portfolio_id === 10)).toBe(true);
     });
 
     it('should return empty when no items match portfolio', () => {

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { routedClarisaLegacy } from './routes-clarisa-legacy';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class RedirectService {
   constructor() {}

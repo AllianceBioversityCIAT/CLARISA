@@ -12,7 +12,7 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, RouterTestingModule],
+      imports: [HttpClientTestingModule, RouterTestingModule]
     });
     service = TestBed.inject(AuthService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -59,7 +59,7 @@ describe('AuthService', () => {
       const body = { login: 'admin', password: 'secret' };
       const mockResponse = { token: 'abc123' };
 
-      service.userAuth(body).subscribe((res) => {
+      service.userAuth(body).subscribe(res => {
         expect(res).toEqual(mockResponse);
       });
 
@@ -77,7 +77,7 @@ describe('AuthService', () => {
       const reloadMock = jest.fn();
       Object.defineProperty(window, 'location', {
         value: { ...window.location, reload: reloadMock },
-        writable: true,
+        writable: true
       });
 
       localStorage.setItem('token', 'some-token');
@@ -88,6 +88,65 @@ describe('AuthService', () => {
       expect(navigateSpy).toHaveBeenCalledWith(['landing-page/login']);
       expect(localStorage.getItem('token')).toBeNull();
       expect(localStorage.getItem('user')).toBeNull();
+    });
+  });
+
+  describe('isSessionExpired', () => {
+    /** A JWT shaped like the real one: only the payload has to be readable. */
+    const tokenExpiringIn = (seconds: number) => {
+      const payload = btoa(JSON.stringify({ login: 'y.zuniga', sub: 1, exp: Math.floor(Date.now() / 1000) + seconds }))
+        .replace(/=/g, '')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+      return `header.${payload}.signature`;
+    };
+
+    it('reports a token whose expiry has passed', () => {
+      service.localStorageToken = tokenExpiringIn(-3600);
+      expect(service.isSessionExpired()).toBe(true);
+    });
+
+    it('does not report a token that is still valid', () => {
+      service.localStorageToken = tokenExpiringIn(3600);
+      expect(service.isSessionExpired()).toBe(false);
+    });
+
+    // It only says yes when it can prove it: the API is the authority, and a
+    // 401 takes the user out anyway. Guessing would log out a valid session
+    // because of a payload shape nobody announced.
+    it('does not report a token it cannot read', () => {
+      service.localStorageToken = 'not-a-jwt';
+      expect(service.isSessionExpired()).toBe(false);
+
+      service.localStorageToken = 'header.%%%.signature';
+      expect(service.isSessionExpired()).toBe(false);
+    });
+
+    it('does not report a token without an expiry claim', () => {
+      const payload = btoa(JSON.stringify({ login: 'y.zuniga' })).replace(/=/g, '');
+      service.localStorageToken = `header.${payload}.signature`;
+      expect(service.isSessionExpired()).toBe(false);
+    });
+
+    it('does not report a missing session as expired', () => {
+      expect(service.isSessionExpired()).toBe(false);
+    });
+  });
+
+  describe('logout order', () => {
+    // The credentials used to be wiped after the redirect had been asked for,
+    // so whether the new page saw the old token depended on timing.
+    it('clears the session before navigating', () => {
+      localStorage.setItem('token', 'some-token');
+      let tokenWhenNavigating: string | null = 'not-called';
+      jest.spyOn(router, 'navigate').mockImplementation(() => {
+        tokenWhenNavigating = localStorage.getItem('token');
+        return Promise.resolve(true);
+      });
+
+      service.logout();
+
+      expect(tokenWhenNavigating).toBeNull();
     });
   });
 });
