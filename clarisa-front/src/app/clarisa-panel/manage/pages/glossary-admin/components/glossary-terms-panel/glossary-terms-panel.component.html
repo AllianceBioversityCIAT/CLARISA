@@ -11,7 +11,7 @@
   </div>
 </div>
 
-<div class="glossary-filters">
+<div class="glossary-filters glossary-controls">
   <span class="p-input-icon-left glossary-filters__search">
     <i class="pi pi-search"></i>
     <input
@@ -69,18 +69,18 @@
     [rows]="15"
     [paginator]="filteredTerms.length > 15"
     [rowsPerPageOptions]="[15, 30, 50, 100]"
-    styleClass="p-datatable-sm admin-table"
+    styleClass="p-datatable-sm admin-table glossary-table"
     dataKey="key"
     responsiveLayout="scroll">
     <ng-template pTemplate="header">
       <tr>
-        <th scope="col" style="width: 2.5rem"></th>
-        <th scope="col" style="width: 18rem">Term</th>
+        <th scope="col" style="width: 40px"></th>
+        <th scope="col" style="width: 200px">Term</th>
         <th scope="col">Definition</th>
-        <th scope="col" style="width: 16rem">Source</th>
-        <th scope="col" style="width: 14rem">Portfolios</th>
-        <th scope="col" style="width: 7rem">Status</th>
-        <th scope="col" style="width: 7rem">Actions</th>
+        <th scope="col" style="width: 160px">Source</th>
+        <th scope="col" style="width: 150px">Portfolios</th>
+        <th scope="col" style="width: 92px">Status</th>
+        <th scope="col" style="width: 116px">Actions</th>
       </tr>
     </ng-template>
 
@@ -105,7 +105,9 @@
             >{{ concept.versions.length }} versions</span
           >
         </td>
-        <td class="cell-definition">{{ concept.current.definition }}</td>
+        <td class="cell-definition">
+          <span class="cell-definition__text" [title]="concept.current.definition">{{ concept.current.definition }}</span>
+        </td>
         <td class="cell-source">
           <span class="cell-source__text" *ngIf="concept.current.source; else noSource" [pTooltip]="concept.current.source">{{
             concept.current.source
@@ -165,7 +167,9 @@
         <td class="cell-primary version-row__term">
           <span class="version-row__id">#{{ version.id }}</span> {{ version.term }}
         </td>
-        <td class="cell-definition">{{ version.definition }}</td>
+        <td class="cell-definition">
+          <span class="cell-definition__text" [title]="version.definition">{{ version.definition }}</span>
+        </td>
         <td class="cell-source">
           <span class="cell-source__text" *ngIf="version.source; else noVersionSource">{{ version.source }}</span>
           <ng-template #noVersionSource><span class="cell-source__empty">Not documented</span></ng-template>

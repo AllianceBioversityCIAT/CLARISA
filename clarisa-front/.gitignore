@@ -49,3 +49,4 @@ package-lock.json
 /src/environments/environment.prod.ts
 
 
+.dis/
