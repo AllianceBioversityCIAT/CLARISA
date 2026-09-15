@@ -2,6 +2,7 @@ import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/cor
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { GlossaryAdminTerm, GlossaryPortfolioRef, ManageApiService } from '../../../../services/manage-api.service';
+import { Observable } from 'rxjs';
 import { matchDropdownPanelToTrigger } from '../../../../utils/dropdown-panel-width';
 import { apiErrorMessage } from '../../utils/api-error-message';
 
@@ -21,7 +22,31 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
 
   terms: GlossaryAdminTerm[] = [];
   filteredTerms: GlossaryAdminTerm[] = [];
+  /** Real portfolios. Used by the edit dialog, so it never carries a sentinel. */
   portfolioOptions: PortfolioOption[] = [];
+  /** The same list plus the "no portfolio" entry, used only by the filter. */
+  portfolioFilterOptions: PortfolioOption[] = [];
+
+  /**
+   * Sentinel for the filter that lists the terms with no portfolio linked.
+   *
+   * Negative on purpose: portfolio ids are positive, so it can never collide
+   * with a real one, and it lives only in `portfolioFilterOptions` — the
+   * dialog's multiselect keeps using `portfolioOptions`, so this value can
+   * never be saved as a portfolio.
+   */
+  readonly NO_PORTFOLIO = -1;
+
+  /**
+   * Terms with no portfolio linked, and how many of those are active.
+   *
+   * Only the active ones are worth a warning: the 2023 glossary replacement
+   * left ~240 deactivated rows with no portfolio in every environment, and
+   * counting those would turn the notice into permanent noise. They stay
+   * reachable through the filter.
+   */
+  unassignedCount = 0;
+  unassignedActiveCount = 0;
 
   loading = false;
   saving = false;
@@ -40,6 +65,19 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
   editingTerm: GlossaryAdminTerm | null = null;
   form: FormGroup;
 
+  /** Versions dialog: the concept being looked at and its rows. */
+  versionsVisible = false;
+  versionsAnchor: GlossaryAdminTerm | null = null;
+
+  /** Split dialog: the row whose portfolios are being separated. */
+  splitVisible = false;
+  splitSource: GlossaryAdminTerm | null = null;
+  splitForm: FormGroup;
+
+  /** Relate dialog: the term that is about to join this concept. */
+  relateVisible = false;
+  relateTargetId: number | null = null;
+
   constructor(
     private readonly _manageApiService: ManageApiService,
     private readonly _formBuilder: FormBuilder,
@@ -56,6 +94,11 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
       reference_date: ['', [Validators.pattern(/^\d{4}-\d{2}-\d{2}$/)]],
       portfolio_ids: [[] as number[]],
       show_in_dashboard: [false]
+    });
+
+    this.splitForm = this._formBuilder.group({
+      portfolio_ids: [[] as number[], [Validators.required]],
+      definition: ['', [Validators.required]]
     });
   }
 
@@ -77,6 +120,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     this._manageApiService.getGlossaryTerms('all').subscribe({
       next: response => {
         this.terms = Array.isArray(response) ? response : [];
+        this.countUnassigned();
         this.applyFilters();
         this.loading = false;
       },
@@ -100,6 +144,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
             value: Number(portfolio.code ?? portfolio.id)
           };
         });
+        this.portfolioFilterOptions = [{ label: 'No portfolio linked', value: this.NO_PORTFOLIO }, ...this.portfolioOptions];
       },
       error: error => this.toastError(error)
     });
@@ -117,7 +162,11 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
       if (this.statusFilter === 'inactive' && term.is_active) {
         return false;
       }
-      if (this.portfolioFilter !== null && !term.portfolios.some(portfolio => portfolio.id === this.portfolioFilter)) {
+      if (this.portfolioFilter === this.NO_PORTFOLIO) {
+        if (term.portfolios?.length) {
+          return false;
+        }
+      } else if (this.portfolioFilter !== null && !term.portfolios.some(portfolio => portfolio.id === this.portfolioFilter)) {
         return false;
       }
       if (!needle) {
@@ -125,6 +174,26 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
       }
       return `${term.term} ${term.definition}`.toLowerCase().includes(needle);
     });
+  }
+
+  /**
+   * A term with no row in `glossary_portfolios` is invisible on the public page:
+   * it opens filtered by the current portfolio, so an unlinked term only shows
+   * under "All portfolios". Rows written straight into the database arrive like
+   * this, so the panel counts them and offers to list them.
+   */
+  private countUnassigned(): void {
+    const unassigned = this.terms.filter(term => !term.portfolios?.length);
+    this.unassignedCount = unassigned.length;
+    this.unassignedActiveCount = unassigned.filter(term => term.is_active).length;
+  }
+
+  /** Lists every term with no portfolio, active and inactive alike. */
+  showUnassigned(): void {
+    this.search = '';
+    this.statusFilter = 'all';
+    this.portfolioFilter = this.NO_PORTFOLIO;
+    this.applyFilters();
   }
 
   clearFilters(): void {
@@ -142,6 +211,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
 
   openCreate(): void {
     this.editingTerm = null;
+    this.groupOfForNewTerm = null;
     this.form.reset({
       term: '',
       definition: '',
@@ -171,6 +241,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
   closeDialog(): void {
     this.dialogVisible = false;
     this.editingTerm = null;
+    this.groupOfForNewTerm = null;
   }
 
   submit(): void {
@@ -190,7 +261,8 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
       source_url: (value.source_url ?? '').trim(),
       reference_date: (value.reference_date ?? '').trim(),
       portfolio_ids: value.portfolio_ids ?? [],
-      show_in_dashboard: !!value.show_in_dashboard
+      show_in_dashboard: !!value.show_in_dashboard,
+      ...(this.editingTerm || this.groupOfForNewTerm === null ? {} : { group_of: this.groupOfForNewTerm })
     };
 
     this.saving = true;
@@ -239,6 +311,174 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
           },
           error: error => this.toastError(error)
         });
+      }
+    });
+  }
+
+  // --------------------------------------------------------------- versions
+
+  /**
+   * The rows that are versions of the same concept.
+   *
+   * Grouped by `group_id` and not by title: the two pairs that need it in
+   * production differ by a non-breaking space in the term, so matching the
+   * strings would leave them apart exactly where it matters.
+   */
+  versionsOf(term: GlossaryAdminTerm): GlossaryAdminTerm[] {
+    return this.terms.filter(candidate => candidate.group_id === term.group_id).sort((a, b) => a.id - b.id);
+  }
+
+  versionCount(term: GlossaryAdminTerm): number {
+    return this.versionsOf(term).length;
+  }
+
+  get versionsInDialog(): GlossaryAdminTerm[] {
+    return this.versionsAnchor ? this.versionsOf(this.versionsAnchor) : [];
+  }
+
+  /** Terms that could be related to the concept on screen: everything else. */
+  get relateOptions(): { label: string; value: number }[] {
+    const groupId = this.versionsAnchor?.group_id;
+    return this.terms
+      .filter(term => term.group_id !== groupId)
+      .map(term => ({
+        label: `${term.term} — ${term.portfolios.map(p => this.portfolioLabel(p)).join(', ') || 'no portfolio'}${
+          term.is_active ? '' : ' (inactive)'
+        }`,
+        value: term.id
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'en'));
+  }
+
+  openVersions(term: GlossaryAdminTerm): void {
+    this.versionsAnchor = term;
+    this.versionsVisible = true;
+  }
+
+  closeVersions(): void {
+    this.versionsVisible = false;
+    this.versionsAnchor = null;
+  }
+
+  /** Adds the version of this concept for a portfolio no version covers yet. */
+  addVersion(): void {
+    if (!this.versionsAnchor) {
+      return;
+    }
+    const anchor = this.versionsAnchor;
+    this.editingTerm = null;
+    this.form.reset({
+      term: anchor.term,
+      definition: '',
+      source: anchor.source ?? '',
+      source_url: anchor.source_url ?? '',
+      reference_date: anchor.reference_date ?? '',
+      portfolio_ids: [],
+      show_in_dashboard: anchor.show_in_dashboard
+    });
+    this.groupOfForNewTerm = anchor.id;
+    this.versionsVisible = false;
+    this.dialogVisible = true;
+  }
+
+  /** Set while the create dialog is adding a version to an existing concept. */
+  private groupOfForNewTerm: number | null = null;
+
+  openSplit(term: GlossaryAdminTerm): void {
+    this.splitSource = term;
+    this.splitForm.reset({ portfolio_ids: [], definition: term.definition });
+    this.versionsVisible = false;
+    this.splitVisible = true;
+  }
+
+  closeSplit(): void {
+    this.splitVisible = false;
+    this.splitSource = null;
+  }
+
+  /** Portfolios of the row being split — only those can move to the new version. */
+  get splitPortfolioOptions(): PortfolioOption[] {
+    return (this.splitSource?.portfolios ?? []).map(portfolio => ({
+      label: this.portfolioLabel(portfolio),
+      value: portfolio.id
+    }));
+  }
+
+  submitSplit(): void {
+    if (this.splitForm.invalid || !this.splitSource) {
+      this.splitForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.splitForm.value;
+    this.runAndReload(
+      this._manageApiService.splitGlossaryTerm(this.splitSource.id, {
+        portfolio_ids: value.portfolio_ids ?? [],
+        definition: (value.definition ?? '').trim()
+      }),
+      'Version created',
+      `"${this.splitSource.term}" now has its own definition for the portfolios you moved`,
+      () => this.closeSplit()
+    );
+  }
+
+  openRelate(): void {
+    this.relateTargetId = null;
+    this.relateVisible = true;
+  }
+
+  submitRelate(): void {
+    if (!this.relateTargetId || !this.versionsAnchor) {
+      return;
+    }
+    this.runAndReload(
+      this._manageApiService.groupGlossaryTerm(this.relateTargetId, this.versionsAnchor.id),
+      'Terms related',
+      'Both rows are now versions of the same concept',
+      () => (this.relateVisible = false)
+    );
+  }
+
+  unrelate(term: GlossaryAdminTerm): void {
+    this._confirmationService.confirm({
+      header: 'Separate this version',
+      message: `"${term.term}" will stop being a version of this concept. Nothing is deleted.`,
+      acceptLabel: 'Separate',
+      accept: () =>
+        this.runAndReload(this._manageApiService.ungroupGlossaryTerm(term.id), 'Version separated', `"${term.term}" now stands on its own`)
+    });
+  }
+
+  merge(term: GlossaryAdminTerm, into: GlossaryAdminTerm): void {
+    this._confirmationService.confirm({
+      header: 'Merge versions',
+      message:
+        `The portfolios of record ${term.id} move to record ${into.id}, which keeps its own definition. ` +
+        `Record ${term.id} is deactivated — not deleted — so this can be undone.`,
+      acceptLabel: 'Merge',
+      accept: () =>
+        this.runAndReload(
+          this._manageApiService.mergeGlossaryTerm(term.id, into.id),
+          'Versions merged',
+          `Record ${term.id} was deactivated and its portfolios moved`
+        )
+    });
+  }
+
+  /** Every version action ends the same way: toast, reload, close. */
+  private runAndReload(request$: Observable<unknown>, summary: string, detail: string, onDone?: () => void): void {
+    this.saving = true;
+    request$.subscribe({
+      next: () => {
+        this.saving = false;
+        this._messageService.add({ severity: 'success', summary, detail });
+        onDone?.();
+        this.closeVersions();
+        this.loadTerms();
+      },
+      error: error => {
+        this.saving = false;
+        this.toastError(error);
       }
     });
   }
