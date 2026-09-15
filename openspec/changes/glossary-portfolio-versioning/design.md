@@ -21,11 +21,15 @@ Stakeholders: Nicoleta and Santi (content), Ángel (PRMS consumption), Yeck (del
 
 **Goals:**
 - A term carries one definition per portfolio, and only when the definition actually differs.
+- Purely additive: nothing is deleted and no consumer loses a field. Every repair is reachable from
+  the panel.
 - Every portfolio-specific definition is created and edited from the admin panel, with an audit
   trail.
 - The glossary can be inspected and repaired from the panel, without database access.
 
 **Non-Goals:**
+- Deleting rows. Nothing in this change removes a `glossary` or `glossary_portfolios` row; links are
+  deactivated, exactly as the rest of CLARISA does.
 - Historical versioning (who changed what, when, with rollback). A "version" here is *per
   portfolio*, not per date.
 - Per-portfolio translations or per-portfolio `show_in_dashboard`.
@@ -104,6 +108,28 @@ The terms table groups rows by normalized title: one line per term, expandable i
 each with its portfolio chips. Two actions: *Add version for a portfolio* (create path) and, when
 editing a term that spans several portfolios, a choice between *apply to all portfolios* (default,
 today's behaviour) and *apply only to …* (split path).
+
+### D7. Nothing is destructive, and the panel can undo a split
+
+Every write in this change either creates a row or flips an `is_active` flag. No `DELETE` is issued,
+no column is dropped or renamed, and no key disappears from the public payload — a consumer reading
+`GET api/glossary` today keeps reading the same keys tomorrow.
+
+The panel gains the two repairs the current data needs, both non-destructive:
+
+- **Link** — a term with no portfolio (the state a row written straight into the database ends up in)
+  is assigned its portfolios from the same screen that reports it.
+- **Merge** — when two rows share a title and their definitions turn out to be the same after all,
+  the portfolios of one are moved onto the other and the emptied row is **deactivated**, never
+  deleted. It is the exact inverse of the split, so a wrong split costs one click, not a ticket.
+
+### D8. Portfolios are data, never constants
+
+`P22` and `P25` appear nowhere in the code. The portfolios of a term, the options the panel offers
+and the default the public page opens on all come from the `portfolios` table — the page already
+picks the active portfolio with the highest start year. When 2031-2036 is created, a term gets its
+version for it from the panel, the new pill appears on its own and the default moves by itself. No
+release, no migration, no constant to update.
 
 ## Risks / Trade-offs
 

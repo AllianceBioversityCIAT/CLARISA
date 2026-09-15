@@ -32,6 +32,11 @@
 - [ ] 2.5 Expose `POST terms/:id/versions` in `GlossaryAdminController`
 - [ ] 2.6 Tests: successful split, non-subset rejected, full-set rejected, audit fields written,
       nothing written on rejection
+- [ ] 2.7 Implement `merge(id, intoId, userData)`: move the active portfolio links of one row onto
+      the other and deactivate the emptied row — never delete it
+- [ ] 2.8 Reject a merge between rows with different titles, and refuse to leave the target with two
+      links to the same portfolio
+- [ ] 2.9 Expose `POST terms/:id/merge` and test both directions (merge, then reactivate to undo)
 
 ## 3. Back — bulk import
 
@@ -65,7 +70,11 @@
       them (default) or only to one — the second calls the split endpoint
 - [ ] 6.4 Surface the `409`/`400` messages of the new guards in the dialog, naming the portfolio
 - [ ] 6.5 Diagnostics view inside the glossary module, each finding linking to the term it reports
-- [ ] 6.6 Front tests for the grouping, the split prompt and the diagnostics view
+- [ ] 6.6 "Link portfolios" action on a term reported with none, from the same row that reports it
+- [ ] 6.7 "Merge into…" action between two versions of the same term, stating which definition
+      survives before applying
+- [ ] 6.8 Front tests for the grouping, the split prompt, the link and merge actions and the
+      diagnostics view
 
 ## 7. Front — public page
 

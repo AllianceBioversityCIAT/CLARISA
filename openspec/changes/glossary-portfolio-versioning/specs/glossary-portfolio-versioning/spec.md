@@ -105,3 +105,49 @@ keys SHALL NOT change.
 
 - **WHEN** a reader filters the public glossary page by a portfolio
 - **THEN** exactly one card is shown for a versioned term: the version tagged with that portfolio
+
+### Requirement: An unlinked term can be linked, and two versions can be merged, from the panel
+
+The panel SHALL allow assigning portfolios to a term that has none, and SHALL allow merging two rows
+that share a title by moving the portfolios of one onto the other and deactivating the emptied row.
+Neither operation SHALL delete a row.
+
+#### Scenario: Linking a term written outside the panel
+
+- **WHEN** an administrator assigns a portfolio to a term that had none
+- **THEN** the term shows under that portfolio's filter on the public page
+- **AND** it stops being reported as unlinked
+
+#### Scenario: Merging two versions that turned out to say the same
+
+- **WHEN** an administrator merges two same-titled terms
+- **THEN** the surviving row holds the portfolios of both
+- **AND** the emptied row is deactivated, not deleted, and can be reactivated
+
+#### Scenario: A merge cannot silently drop a definition
+
+- **WHEN** the two rows have different definitions
+- **THEN** the panel states which definition survives before the merge is applied
+
+### Requirement: Nothing in this capability deletes data
+
+No write SHALL issue a delete: rows that stop applying are deactivated, and the public payload SHALL
+keep every key it publishes today.
+
+#### Scenario: A split, a merge and a deactivation leave the rows in place
+
+- **WHEN** a term is split, merged back and deactivated
+- **THEN** every `glossary` and `glossary_portfolios` row involved still exists, only with its
+  `is_active` flag changed
+
+### Requirement: A portfolio created later needs no code change
+
+The system SHALL read from the portfolios catalogue the versions of a term, the portfolios the panel
+offers and the one the public page opens on. No portfolio identifier SHALL be hardcoded.
+
+#### Scenario: A new portfolio is created
+
+- **WHEN** a portfolio for 2031-2036 is added to the catalogue and marked active
+- **THEN** it can be assigned to a term as a new version from the panel, with no release
+- **AND** the public glossary offers its filter and opens on it, since it is the active portfolio
+  with the latest start year
