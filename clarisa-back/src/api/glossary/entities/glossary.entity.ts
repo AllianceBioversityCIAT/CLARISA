@@ -13,6 +13,17 @@ export class Glossary {
   @Column({ type: 'varchar', length: 100, nullable: true })
   applicationName: string;
 
+  /**
+   * The concept this row is a version of, or `null` when the row is its own
+   * concept — which is what every row that predates the grouping is.
+   *
+   * Stored and never read directly by consumers: what travels is `groupId`,
+   * the resolved value, so the caller never has to know about the `null`.
+   */
+  @Exclude()
+  @Column({ name: 'group_id', type: 'bigint', nullable: true })
+  group_id: number;
+
   @Expose({ name: 'term' })
   @Column({ type: 'text', nullable: false })
   title: string;
@@ -56,6 +67,20 @@ export class Glossary {
   @Exclude()
   @OneToMany(() => GlossaryPortfolio, (gp) => gp.glossary_object)
   glossary_portfolio_array: GlossaryPortfolio[];
+
+  /**
+   * The concept this row belongs to. Two rows that share it are two versions of
+   * the same term — typically one per portfolio — and a reader can render them
+   * together instead of as unrelated entries.
+   *
+   * `COALESCE(group_id, id)`: a row that was never related is its own group, so
+   * this is always a number and every term published before the grouping keeps
+   * a stable, unique value.
+   */
+  @Expose()
+  get groupId(): number {
+    return Number(this.group_id ?? this.id);
+  }
 
   @Expose()
   get portfolios(): { id: number; name: string; acronym: string }[] {

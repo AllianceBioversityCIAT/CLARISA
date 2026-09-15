@@ -9,7 +9,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "update-dependencies": "npx npm-check-updates -u"
+    "update-dependencies": "npx npm-check-updates -u",
+    "theme:build": "node scripts/generate-primeng-theme.js"
   },
   "private": true,
   "dependencies": {

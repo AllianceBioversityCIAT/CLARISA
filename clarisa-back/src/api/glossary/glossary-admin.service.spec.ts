@@ -159,12 +159,99 @@ describe('GlossaryAdminService', () => {
       expect(saved.auditableFields.is_active).toBe(true);
     });
 
-    it('rejects a term that already exists, ignoring case', async () => {
-      titleLookupResult = { id: 1, title: 'Outcome' };
+    // A title is no longer unique on its own: a term means one thing in the
+    // 2022-2024 portfolio and another in 2025-2030, and each meaning is a row.
+    // What may not happen is two live versions claiming the same portfolio.
+    it('rejects a version for a portfolio another live version already covers', async () => {
+      storedGlossary = [
+        {
+          id: 1,
+          title: 'Outcome',
+          auditableFields: { is_active: true } as any,
+        },
+      ];
+      storedGlossaryPortfolios = [
+        {
+          glossary_id: 1,
+          portfolio_id: 3,
+          auditableFields: { is_active: true },
+        },
+      ];
 
       await expect(
-        service.create({ term: 'outcome', definition: 'A change' }, userData),
+        service.create(
+          { term: 'outcome', definition: 'A change', portfolio_ids: [3] },
+          userData,
+        ),
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('accepts a version of an existing term for a portfolio nobody covers', async () => {
+      storedGlossary = [
+        {
+          id: 1,
+          title: 'Outcome',
+          auditableFields: { is_active: true } as any,
+        },
+      ];
+      storedGlossaryPortfolios = [
+        {
+          glossary_id: 1,
+          portfolio_id: 3,
+          auditableFields: { is_active: true },
+        },
+      ];
+      manager.findOne.mockResolvedValue({
+        id: 99,
+        title: 'Outcome',
+        definition: 'The 2022-2024 meaning',
+        auditableFields: { is_active: true },
+        glossary_portfolio_array: [],
+      });
+
+      const result = await service.create(
+        {
+          term: 'Outcome',
+          definition: 'The 2022-2024 meaning',
+          portfolio_ids: [2],
+        },
+        userData,
+      );
+
+      expect(result.term).toBe('Outcome');
+    });
+
+    // The row retired in 2023 used to reserve its name forever, which is one of
+    // the reasons the content ended up being written straight into the database.
+    it('lets a deactivated term free its title', async () => {
+      storedGlossary = [
+        {
+          id: 1,
+          title: 'Outcome',
+          auditableFields: { is_active: false } as any,
+        },
+      ];
+      storedGlossaryPortfolios = [
+        {
+          glossary_id: 1,
+          portfolio_id: 3,
+          auditableFields: { is_active: true },
+        },
+      ];
+      manager.findOne.mockResolvedValue({
+        id: 99,
+        title: 'Outcome',
+        definition: 'A change',
+        auditableFields: { is_active: true },
+        glossary_portfolio_array: [],
+      });
+
+      await expect(
+        service.create(
+          { term: 'outcome', definition: 'A change', portfolio_ids: [3] },
+          userData,
+        ),
+      ).resolves.toMatchObject({ term: 'Outcome' });
     });
 
     it('rejects an empty term', async () => {
@@ -219,14 +306,28 @@ describe('GlossaryAdminService', () => {
       );
     });
 
-    it('rejects renaming a term onto another existing term', async () => {
+    it('rejects renaming a term onto a version that covers the same portfolio', async () => {
       manager.findOne.mockResolvedValue({
         id: 5,
         title: 'Outcome',
         definition: 'old',
         auditableFields: {},
       });
-      titleLookupResult = { id: 9, title: 'Output' };
+      storedGlossary = [
+        { id: 9, title: 'Output', auditableFields: { is_active: true } as any },
+      ];
+      storedGlossaryPortfolios = [
+        {
+          glossary_id: 9,
+          portfolio_id: 3,
+          auditableFields: { is_active: true },
+        },
+        {
+          glossary_id: 5,
+          portfolio_id: 3,
+          auditableFields: { is_active: true },
+        },
+      ];
 
       await expect(
         service.update(5, { term: 'Output' }, userData),
@@ -711,6 +812,261 @@ describe('GlossaryAdminService', () => {
       expect(result.rows[1].action).toBe(GlossaryBulkRowAction.INVALID);
       expect(result.rows[1].message).toContain('Sept 2026');
       expect(result.applied).toBe(false);
+    });
+  });
+
+  // ------------------------------------------------------- versions & groups
+
+  describe('versions of the same term', () => {
+    /**
+     * `findOne` answering by id, which the split/merge/group paths need: they
+     * read two different rows in the same transaction.
+     */
+    const term = (id: number, title: string, extra: any = {}) => ({
+      id,
+      title,
+      definition: `Definition of ${title}`,
+      show_in_dashboard: false,
+      applicationName: null,
+      glossary_portfolio_array: [],
+      auditableFields: { is_active: true },
+      ...extra,
+    });
+
+    const findOneById = () =>
+      manager.findOne.mockImplementation((_entity: any, options: any) => {
+        const id = Number(options?.where?.id);
+        const stored = storedGlossary.find((g) => Number(g.id) === id);
+        if (stored) {
+          return Promise.resolve(stored);
+        }
+        // 99 is the id the `save` mock hands to a freshly created row, which a
+        // split reads back before returning it.
+        return Promise.resolve(id === 99 ? term(99, 'Impact') : null);
+      });
+
+    const link = (
+      glossaryId: number,
+      portfolioId: number,
+      isActive = true,
+    ) => ({
+      glossary_id: glossaryId,
+      portfolio_id: portfolioId,
+      auditableFields: { is_active: isActive },
+    });
+
+    describe('splitVersion', () => {
+      beforeEach(() => {
+        storedGlossary = [term(1, 'Impact')];
+        storedGlossaryPortfolios = [link(1, 2), link(1, 3)];
+        findOneById();
+      });
+
+      it('moves the portfolio to a new row and leaves the other one alone', async () => {
+        const result = await service.splitVersion(
+          1,
+          { portfolio_ids: [3], definition: 'The 2025-2030 meaning' },
+          userData,
+        );
+
+        const created = manager.create.mock.calls.find(
+          (c: any[]) => c[0] === Glossary,
+        )[1];
+        expect(created.title).toBe('Impact');
+        expect(created.definition).toBe('The 2025-2030 meaning');
+        // The new row joins the concept of the row it came from.
+        expect(created.group_id).toBe(1);
+        expect(result.version.term).toBe('Impact');
+
+        // The link to the portfolio that moved is deactivated on the source,
+        // and the one that stayed is never touched.
+        const moved = storedGlossaryPortfolios.find(
+          (gp) => gp.glossary_id === 1 && gp.portfolio_id === 3,
+        );
+        const kept = storedGlossaryPortfolios.find(
+          (gp) => gp.glossary_id === 1 && gp.portfolio_id === 2,
+        );
+        expect(moved.auditableFields.is_active).toBe(false);
+        expect(kept.auditableFields.is_active).toBe(true);
+      });
+
+      it('records where the version came from', async () => {
+        await service.splitVersion(
+          1,
+          { portfolio_ids: [3], definition: 'The 2025-2030 meaning' },
+          userData,
+        );
+
+        const created = manager.create.mock.calls.find(
+          (c: any[]) => c[0] === Glossary,
+        )[1];
+        // The source row is saved first and the new version last; both carry
+        // the same title, so the justification lives on the last one.
+        const version = savedEntities
+          .filter((e: any) => e && e.title === 'Impact')
+          .pop();
+        expect(version.auditableFields.modification_justification).toContain(
+          'Split from glossary term 1',
+        );
+        expect(created.definition).toBe('The 2025-2030 meaning');
+      });
+
+      it('refuses a split that would take every portfolio', async () => {
+        await expect(
+          service.splitVersion(
+            1,
+            { portfolio_ids: [2, 3], definition: 'Everything' },
+            userData,
+          ),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      });
+
+      it('refuses a portfolio the term does not cover', async () => {
+        await expect(
+          service.splitVersion(
+            1,
+            { portfolio_ids: [1], definition: 'Elsewhere' },
+            userData,
+          ),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      });
+
+      it('refuses a split with no definition', async () => {
+        await expect(
+          service.splitVersion(
+            1,
+            { portfolio_ids: [3], definition: '  ' },
+            userData,
+          ),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      });
+    });
+
+    describe('mergeInto', () => {
+      beforeEach(() => {
+        storedGlossary = [term(1, 'Impact'), term(2, 'Impact')];
+        storedGlossaryPortfolios = [link(1, 2), link(2, 3)];
+        findOneById();
+      });
+
+      it('moves the portfolios and deactivates the emptied row instead of deleting it', async () => {
+        await service.mergeInto(1, 2, userData);
+
+        const source = storedGlossary.find((g) => g.id === 1);
+        expect(source.auditableFields.is_active).toBe(false);
+        expect(source.auditableFields.modification_justification).toContain(
+          '2',
+        );
+        // Nothing is removed: the row is still there, only hidden.
+        expect(storedGlossary).toHaveLength(2);
+
+        const moved = storedGlossaryPortfolios.find(
+          (gp) => gp.glossary_id === 1 && gp.portfolio_id === 2,
+        );
+        expect(moved.auditableFields.is_active).toBe(false);
+        const savedLinks = savedEntities
+          .flat()
+          .filter((e: any) => e?.portfolio_id);
+        expect(
+          savedLinks.some(
+            (gp: any) => gp.glossary_id === 2 && Number(gp.portfolio_id) === 2,
+          ),
+        ).toBe(true);
+      });
+
+      it('refuses to merge two versions that cover the same portfolio', async () => {
+        storedGlossaryPortfolios = [link(1, 3), link(2, 3)];
+
+        await expect(service.mergeInto(1, 2, userData)).rejects.toBeInstanceOf(
+          ConflictException,
+        );
+      });
+
+      it('refuses to merge a term into itself', async () => {
+        await expect(service.mergeInto(1, 1, userData)).rejects.toBeInstanceOf(
+          BadRequestException,
+        );
+      });
+    });
+
+    describe('setGroup / clearGroup', () => {
+      beforeEach(() => {
+        // The real pair: same concept, titles that differ by a non-breaking
+        // space, which is why the relation cannot be inferred from the title.
+        storedGlossary = [term(1, 'Impact'), term(2, 'Impact\u00a0')];
+        storedGlossaryPortfolios = [link(1, 2), link(2, 3)];
+        findOneById();
+      });
+
+      it('relates two rows whose titles do not match exactly', async () => {
+        const result = await service.setGroup(2, 1, userData);
+
+        expect(storedGlossary.find((g) => g.id === 2).group_id).toBe(1);
+        expect(result.group_id).toBe(1);
+      });
+
+      it('refuses to relate two rows that cover the same portfolio', async () => {
+        storedGlossaryPortfolios = [link(1, 3), link(2, 3)];
+
+        await expect(service.setGroup(2, 1, userData)).rejects.toBeInstanceOf(
+          ConflictException,
+        );
+      });
+
+      it('refuses to make a term a version of itself', async () => {
+        await expect(service.setGroup(1, 1, userData)).rejects.toBeInstanceOf(
+          BadRequestException,
+        );
+      });
+
+      it('takes a term out of its group without deleting anything', async () => {
+        storedGlossary = [
+          term(1, 'Impact'),
+          term(2, 'Impact', { group_id: 1 }),
+        ];
+        findOneById();
+
+        const result = await service.clearGroup(2, userData);
+
+        expect(storedGlossary.find((g) => g.id === 2).group_id).toBeNull();
+        expect(result.group_id).toBe(2);
+        expect(storedGlossary).toHaveLength(2);
+      });
+
+      it('publishes the group of a row that was never related as its own id', async () => {
+        findOneById();
+
+        const result = await service.findOneForAdmin(1);
+
+        expect(result.group_id).toBe(1);
+      });
+    });
+
+    describe('bulk import of a versioned term', () => {
+      beforeEach(() => {
+        storedGlossary = [term(1, 'Impact'), term(2, 'Impact')];
+        storedGlossaryPortfolios = [link(1, 2), link(2, 3)];
+      });
+
+      it('updates the version of the portfolio the file maps', async () => {
+        const result = await service.bulkPreview({
+          rows: [
+            { term: 'Impact', definition: 'New wording', portfolio_ids: [3] },
+          ],
+        });
+
+        expect(result.rows[0].action).toBe(GlossaryBulkRowAction.UPDATE);
+        expect(result.rows[0].glossary_id).toBe(2);
+      });
+
+      it('refuses a row that could refer to either version', async () => {
+        const result = await service.bulkPreview({
+          rows: [{ term: 'Impact', definition: 'New wording' }],
+        });
+
+        expect(result.rows[0].action).toBe(GlossaryBulkRowAction.INVALID);
+        expect(result.rows[0].message).toContain('2 versions');
+      });
     });
   });
 });

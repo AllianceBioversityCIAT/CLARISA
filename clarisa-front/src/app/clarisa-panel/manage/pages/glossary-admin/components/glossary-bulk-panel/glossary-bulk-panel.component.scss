@@ -1,5 +1,11 @@
 @import '../shared-panel';
 
+/* The page title is ink, not the old corporate blue. Declared after the shared
+   import so it wins on source order at the same specificity. */
+.panel-header__title {
+  color: var(--cl-ink);
+}
+
 .wizard-steps {
   display: flex;
   flex-wrap: wrap;
@@ -35,23 +41,23 @@
 }
 
 .wizard-steps__item--active {
-  color: #0065bd;
+  color: var(--cl-brand-deep);
   border-color: #bfdbfe;
   background: #eff6ff;
 
   .wizard-steps__num {
-    background: #0065bd;
+    background: var(--cl-brand-deep);
     color: #fff;
   }
 }
 
 .wizard-steps__item--done {
-  color: #4a6b00;
+  color: var(--cl-brand-deeper);
   border-color: #d5e8b0;
   background: #f1f8e6;
 
   .wizard-steps__num {
-    background: #7ab800;
+    background: var(--cl-brand-strong);
     color: #fff;
   }
 }
@@ -146,14 +152,14 @@
     background 0.15s ease;
 
   &:hover {
-    border-color: #7ab800;
+    border-color: var(--cl-brand-deep);
     background: #f1f8e6;
   }
 }
 
 .dropzone__icon {
   font-size: 1.8rem;
-  color: #7ab800;
+  color: var(--cl-brand-deep);
 }
 
 .dropzone__text {
@@ -180,7 +186,7 @@
   border-radius: 8px;
   padding: 0.55rem 0.85rem;
   font-size: 0.82rem;
-  color: #4a6b00;
+  color: var(--cl-brand-deeper);
   margin-bottom: 1.1rem;
 
   button {
@@ -333,7 +339,7 @@
   border-color: #d5e8b0;
 
   .summary-card__value {
-    color: #4a6b00;
+    color: var(--cl-brand-deeper);
   }
 }
 
@@ -342,7 +348,7 @@
   border-color: #bfdbfe;
 
   .summary-card__value {
-    color: #0065bd;
+    color: var(--cl-brand-deep);
   }
 }
 
@@ -459,7 +465,7 @@
   display: inline-block;
   background: #f1f8e6;
   border: 1px solid #d5e8b0;
-  color: #4a6b00;
+  color: var(--cl-brand-deeper);
   border-radius: 999px;
   padding: 0.1rem 0.5rem;
   font-size: 0.72rem;
@@ -486,7 +492,7 @@
 
 .done-block__icon {
   font-size: 2.5rem;
-  color: #7ab800;
+  color: var(--cl-brand-deep);
 }
 
 .done-block__title {
