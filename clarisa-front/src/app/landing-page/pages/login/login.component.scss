@@ -8,6 +8,10 @@
  * desaturated and closed in at the edges — so the only lit object is the card.
  */
 
+// 🛑 Sizes in px on purpose. The theme sets `html { font-size: 62.5% }`, so in
+// this project **1rem = 10px**, not 16px: a scale written in rem lands at
+// roughly half the intended size, which is exactly how this screen first
+// shipped with 10px inputs.
 $brand: #7ab800;
 $ink: #12200a;
 
@@ -21,7 +25,7 @@ $ink: #12200a;
   // Was a flat 80vh, which cut the photo at an arbitrary line and left the
   // footer stuck to it. This fills what is left under the header instead.
   height: calc(100vh - 92px);
-  padding: 3rem 1.25rem;
+  padding: 48px 20px;
   overflow: hidden;
   background-color: #0a1305;
 
@@ -87,7 +91,7 @@ $ink: #12200a;
 
 :host ::ng-deep .p-panel .p-panel-content {
   border: none;
-  padding: 2.5rem 2.25rem 2.25rem;
+  padding: 40px 36px 36px;
   background: #fff;
   color: $ink;
 }
@@ -95,11 +99,11 @@ $ink: #12200a;
 @media (max-width: 480px) {
   .container {
     min-height: 560px;
-    padding: 2rem 1rem;
+    padding: 32px 16px;
   }
 
   :host ::ng-deep .p-panel .p-panel-content {
-    padding: 2rem 1.5rem 1.75rem;
+    padding: 32px 24px 28px;
   }
 }
 
@@ -108,18 +112,18 @@ $ink: #12200a;
 .login-card {
   display: flex;
   flex-direction: column;
-  gap: 1.15rem;
+  gap: 20px;
 }
 
 .login-card__head {
-  margin-bottom: 0.35rem;
+  margin-bottom: 6px;
 }
 
 // The brand line carries the green at full strength, small enough that its
 // contrast on white is not asked to do the work of body text.
 .login-card__brand {
-  margin: 0 0 0.55rem;
-  font-size: 0.72rem;
+  margin: 0 0 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -131,33 +135,33 @@ $ink: #12200a;
 // button; the heading is ink.
 .login-card__title {
   margin: 0;
-  font-size: 1.65rem;
+  font-size: 32px;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.12;
   letter-spacing: -0.015em;
   color: $ink;
 }
 
 .login-card__subtitle {
-  margin: 0.3rem 0 0;
-  font-size: 0.86rem;
+  margin: 6px 0 0;
+  font-size: 15px;
   color: #55635c;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 7px;
 
   label {
-    font-size: 0.78rem;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.01em;
     color: #3a4740;
   }
 
   &__error {
-    font-size: 0.75rem;
+    font-size: 13px;
     font-weight: 500;
     color: #b42318;
   }
@@ -168,8 +172,10 @@ $ink: #12200a;
   // The pill shape on a text field is the tic that dated this screen.
   border-radius: 8px;
   border: 1px solid #ccd5cd;
-  padding: 0.72rem 0.85rem;
-  font-size: 0.92rem;
+  padding: 13px 14px;
+  // 16px is a floor, not a taste: below it iOS Safari zooms the page in when
+  // the field takes focus, and the login jumps under the user's thumb.
+  font-size: 16px;
   color: $ink;
   transition:
     border-color 0.15s ease,
@@ -192,13 +198,13 @@ $ink: #12200a;
 :host ::ng-deep .login-card .login-card__submit.p-button {
   justify-content: center;
   width: 100%;
-  margin-top: 0.35rem;
-  padding: 0.78rem 1rem;
+  margin-top: 6px;
+  padding: 14px 16px;
   border: none;
   border-radius: 8px;
   background: $brand;
   color: $ink;
-  font-size: 0.95rem;
+  font-size: 16px;
   font-weight: 700;
   transition:
     background 0.15s ease,
