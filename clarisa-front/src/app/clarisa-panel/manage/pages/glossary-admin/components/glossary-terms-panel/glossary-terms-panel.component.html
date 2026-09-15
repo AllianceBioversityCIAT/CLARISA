@@ -79,7 +79,10 @@
         <th scope="col">Definition</th>
         <th scope="col" style="width: 160px">Source</th>
         <th scope="col" style="width: 150px">Portfolios</th>
-        <th scope="col" style="width: 92px">Status</th>
+        <th scope="col" style="width: 104px">
+          Status <i class="pi pi-info-circle th-help" [pTooltip]="statusHelp" tooltipPosition="top" aria-label="What Active and Inactive mean"></i>
+        </th>
+        <th scope="col" style="width: 150px">Last change</th>
         <th scope="col" style="width: 116px">Actions</th>
       </tr>
     </ng-template>
@@ -130,7 +133,13 @@
           </ng-template>
         </td>
         <td>
-          <p-tag [value]="concept.current.is_active ? 'Active' : 'Inactive'" [severity]="concept.current.is_active ? 'success' : 'danger'"></p-tag>
+          <p-tag
+            [value]="concept.current.is_active ? 'Active' : 'Inactive'"
+            [severity]="concept.current.is_active ? 'success' : 'danger'"
+            [pTooltip]="statusHelp"></p-tag>
+        </td>
+        <td class="cell-source">
+          <ng-container *ngTemplateOutlet="lastChange; context: { $implicit: concept.current }"></ng-container>
         </td>
         <td>
           <div class="row-actions">
@@ -183,7 +192,13 @@
           </ng-template>
         </td>
         <td>
-          <p-tag [value]="version.is_active ? 'Active' : 'Inactive'" [severity]="version.is_active ? 'success' : 'danger'"></p-tag>
+          <p-tag
+            [value]="version.is_active ? 'Active' : 'Inactive'"
+            [severity]="version.is_active ? 'success' : 'danger'"
+            [pTooltip]="statusHelp"></p-tag>
+        </td>
+        <td class="cell-source">
+          <ng-container *ngTemplateOutlet="lastChange; context: { $implicit: version }"></ng-container>
         </td>
         <td>
           <div class="row-actions">
@@ -208,13 +223,22 @@
 
     <ng-template pTemplate="emptymessage">
       <tr>
-        <td colspan="7" class="empty-cell">
+        <td colspan="8" class="empty-cell">
           {{ loading ? 'Loading terms…' : 'No glossary terms match the current filters.' }}
         </td>
       </tr>
     </ng-template>
   </p-table>
 </div>
+
+<!-- Who changed a record last, and when: shared by the concept line and its versions -->
+<ng-template #lastChange let-record>
+  <ng-container *ngIf="record.last_modified_at; else noLastChange">
+    <span class="cell-source__text" [pTooltip]="record.last_modified_by?.email">{{ record.last_modified_by?.name || 'Unknown user' }}</span>
+    <span class="cell-source__date">{{ record.last_modified_at | date: 'yyyy-MM-dd' }}</span>
+  </ng-container>
+  <ng-template #noLastChange><span class="cell-source__empty">Not recorded</span></ng-template>
+</ng-template>
 
 <p-dialog
   [header]="dialogTitle"
@@ -275,7 +299,7 @@
         appendTo="body"
         display="chip"
         placeholder="Select the portfolios this term belongs to"
-        [options]="portfolioOptions"
+        [options]="dialogPortfolioOptions"
         formControlName="portfolio_ids"
         [filter]="true"
         styleClass="full-width">
@@ -286,9 +310,12 @@
       </small>
     </div>
 
-    <div class="field field--inline">
-      <p-checkbox inputId="glossary-dashboard" formControlName="show_in_dashboard" [binary]="true"></p-checkbox>
-      <label for="glossary-dashboard" class="field--inline__label">Show in dashboard</label>
+    <div class="field">
+      <div class="field--inline">
+        <p-checkbox inputId="glossary-dashboard" formControlName="show_in_dashboard" [binary]="true"></p-checkbox>
+        <label for="glossary-dashboard" class="field--inline__label">Show in dashboard</label>
+      </div>
+      <small class="field-hint">{{ dashboardHelp }}</small>
     </div>
   </form>
 

@@ -8,12 +8,14 @@ import { DataSource, EntityManager, In } from 'typeorm';
 import { Glossary } from './entities/glossary.entity';
 import { GlossaryPortfolio } from './entities/glossary-portfolio.entity';
 import { Portfolio } from '../portfolio/entities/portfolio.entity';
+import { User } from '../user/entities/user.entity';
 import { GlossaryRepository } from './repositories/glossary.repository';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UserData } from '../../shared/interfaces/user-data';
 import {
   CreateGlossaryTermDto,
   GlossaryAdminDto,
+  GlossaryAuditUserDto,
   GlossaryBulkConflictPolicy,
   GlossaryBulkDto,
   GlossaryBulkResultDto,
@@ -106,7 +108,10 @@ export class GlossaryAdminService {
     };
   }
 
-  private toAdminDto(glossary: Glossary): GlossaryAdminDto {
+  private toAdminDto(
+    glossary: Glossary,
+    users: Map<number, GlossaryAuditUserDto> = new Map(),
+  ): GlossaryAdminDto {
     const portfolios = (glossary.glossary_portfolio_array ?? [])
       .filter((gp) => gp.auditableFields?.is_active && gp.portfolio_object)
       .map((gp) => this.toPortfolioDto(gp.portfolio_object));
@@ -123,7 +128,68 @@ export class GlossaryAdminService {
       show_in_dashboard: !!glossary.show_in_dashboard,
       application_name: glossary.applicationName,
       portfolios,
+      last_modified_at: this.lastModifiedAt(glossary),
+      last_modified_by: users.get(this.lastModifiedById(glossary)) ?? null,
     };
+  }
+
+  /**
+   * The user behind the last change: `updated_by`, or the creator when nobody
+   * edited the record since. A row written straight into the database may carry
+   * neither, and then there is nobody to name.
+   */
+  private lastModifiedById(glossary: Glossary): number {
+    return Number(
+      glossary.auditableFields?.updated_by ??
+        glossary.auditableFields?.created_by,
+    );
+  }
+
+  private lastModifiedAt(glossary: Glossary): string | null {
+    const at =
+      glossary.auditableFields?.updated_at ??
+      glossary.auditableFields?.created_at;
+    return at ? new Date(at).toISOString() : null;
+  }
+
+  /**
+   * Resolves the authors of the last change of every term in one query, so the
+   * list costs one lookup and not one per row.
+   */
+  private async auditUsers(
+    manager: EntityManager,
+    terms: Glossary[],
+  ): Promise<Map<number, GlossaryAuditUserDto>> {
+    const ids = [
+      ...new Set(
+        terms
+          .map((term) => this.lastModifiedById(term))
+          .filter((id) => Number.isInteger(id) && id > 0),
+      ),
+    ];
+    if (!ids.length) {
+      return new Map();
+    }
+
+    const users = await manager.find(User, {
+      where: { id: In(ids) },
+      select: { id: true, first_name: true, last_name: true, email: true },
+    });
+
+    return new Map(
+      (users ?? []).map((user) => [
+        Number(user.id),
+        {
+          id: Number(user.id),
+          name:
+            [user.first_name, user.last_name]
+              .filter((part) => !!part?.trim())
+              .join(' ')
+              .trim() || user.email,
+          email: user.email,
+        },
+      ]),
+    );
   }
 
   /**
@@ -336,8 +402,9 @@ export class GlossaryAdminService {
     const terms = await this._glossaryRepository.find(
       this.buildFindOptions(show) as never,
     );
+    const users = await this.auditUsers(this._dataSource.manager, terms);
 
-    return terms.map((term) => this.toAdminDto(term));
+    return terms.map((term) => this.toAdminDto(term, users));
   }
 
   async findOneForAdmin(id: number): Promise<GlossaryAdminDto> {
@@ -347,7 +414,8 @@ export class GlossaryAdminService {
       throw new NotFoundException(`Glossary term ${id} was not found`);
     }
 
-    return this.toAdminDto(term);
+    const users = await this.auditUsers(this._dataSource.manager, [term]);
+    return this.toAdminDto(term, users);
   }
 
   // ------------------------------------------------------------------ write
@@ -627,6 +695,15 @@ export class GlossaryAdminService {
       }
       if (!target) {
         throw new NotFoundException(`Glossary term ${intoId} was not found`);
+      }
+      // The panel hides "Merge into" for an inactive term; this is the same rule
+      // for a caller that skips the panel. Portfolios moved onto an inactive row
+      // would vanish from the public glossary without any error.
+      if (!target.auditableFields?.is_active) {
+        throw new ConflictException(
+          `Glossary term ${intoId} is inactive. Activate it before merging into it, ` +
+            'or the portfolios that move there stop showing in the public glossary.',
+        );
       }
 
       const moving = await this.activePortfolioIds(manager, id);

@@ -40,6 +40,7 @@ describe('GlossaryTermsPanelComponent — terms with no portfolio', () => {
   ];
 
   const portfolios = [
+    { code: 1, name: 'CGIAR portfolio 2016-2021', acronym: null, is_active: 0, start_date: 2016 },
     { code: 2, name: 'CGIAR portfolio 2022-2024', acronym: 'P22', is_active: 1, start_date: 2022 },
     { code: 3, name: 'CGIAR portfolio 2025-2030', acronym: 'P25', is_active: 1, start_date: 2025 }
   ];
@@ -149,6 +150,22 @@ describe('GlossaryTermsPanelComponent — terms with no portfolio', () => {
     component.terms.forEach(term => component.versionCount(term));
 
     expect(scan).not.toHaveBeenCalled();
+  });
+
+  it('offers only the active portfolios, both to assign and to filter by', () => {
+    expect(component.portfolioOptions.map(option => option.value)).toEqual([2, 3]);
+    expect(component.portfolioFilterOptions.map(option => option.value)).toEqual([component.NO_PORTFOLIO, 2, 3]);
+  });
+
+  it('keeps a closed portfolio the edited term already carries, so saving never drops it', () => {
+    component.openEdit(term(9, 'Legacy', [1, 3]));
+
+    expect(component.dialogPortfolioOptions.map(option => option.value)).toEqual([2, 3, 1]);
+    expect(component.dialogPortfolioOptions.find(option => option.value === 1)?.label).toContain('(closed)');
+
+    // A new term starts from the active ones only.
+    component.openCreate();
+    expect(component.dialogPortfolioOptions.map(option => option.value)).toEqual([2, 3]);
   });
 
   it('only offers to split the portfolios the record actually holds', () => {

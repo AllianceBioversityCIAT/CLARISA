@@ -6,6 +6,7 @@ import { GlossaryRepository } from './repositories/glossary.repository';
 import { Glossary } from './entities/glossary.entity';
 import { Portfolio } from '../portfolio/entities/portfolio.entity';
 import { GlossaryPortfolio } from './entities/glossary-portfolio.entity';
+import { User } from '../user/entities/user.entity';
 import { UserData } from '../../shared/interfaces/user-data';
 import {
   GlossaryBulkConflictPolicy,
@@ -986,6 +987,96 @@ describe('GlossaryAdminService', () => {
         await expect(service.mergeInto(1, 1, userData)).rejects.toBeInstanceOf(
           BadRequestException,
         );
+      });
+
+      it('refuses to merge into an inactive term, so its portfolios cannot vanish from the public glossary', async () => {
+        storedGlossary = [
+          term(1, 'Impact'),
+          term(2, 'Impact', { auditableFields: { is_active: false } }),
+        ];
+
+        await expect(service.mergeInto(1, 2, userData)).rejects.toBeInstanceOf(
+          ConflictException,
+        );
+        // Nothing moved and nothing was deactivated.
+        expect(savedEntities).toHaveLength(0);
+        expect(
+          storedGlossary.find((g) => g.id === 1).auditableFields.is_active,
+        ).toBe(true);
+      });
+    });
+
+    describe('last change shown in the panel', () => {
+      const users = [
+        {
+          id: 7,
+          first_name: 'Ada',
+          last_name: 'Lovelace',
+          email: 'ada@cgiar.org',
+        },
+        { id: 8, first_name: null, last_name: null, email: 'editor@cgiar.org' },
+      ];
+
+      beforeEach(() => {
+        const findEntities = manager.find.getMockImplementation();
+        manager.find.mockImplementation((entity: any, options: any) => {
+          if (entity === User) {
+            const wanted: number[] = options?.where?.id?._value ?? [];
+            return Promise.resolve(users.filter((u) => wanted.includes(u.id)));
+          }
+          return findEntities(entity, options);
+        });
+      });
+
+      it('names who changed each term last, with one user lookup for the whole list', async () => {
+        mockGlossaryRepository.find.mockResolvedValueOnce([
+          term(1, 'Impact', {
+            auditableFields: {
+              is_active: true,
+              created_by: 7,
+              updated_by: 8,
+              created_at: new Date('2026-01-01T00:00:00Z'),
+              updated_at: new Date('2026-09-15T20:00:00Z'),
+            },
+          }),
+          term(2, 'Outcome', {
+            auditableFields: {
+              is_active: true,
+              created_by: 7,
+              updated_by: null,
+              created_at: new Date('2026-02-01T00:00:00Z'),
+              updated_at: null,
+            },
+          }),
+        ]);
+
+        const [impact, outcome] = await service.findAllForAdmin();
+
+        // A user without a name is shown by email.
+        expect(impact.last_modified_by).toEqual({
+          id: 8,
+          name: 'editor@cgiar.org',
+          email: 'editor@cgiar.org',
+        });
+        expect(impact.last_modified_at).toBe('2026-09-15T20:00:00.000Z');
+        // Never edited since it was created: the creator changed it last.
+        expect(outcome.last_modified_by.name).toBe('Ada Lovelace');
+        expect(outcome.last_modified_at).toBe('2026-02-01T00:00:00.000Z');
+        expect(
+          manager.find.mock.calls.filter(([entity]) => entity === User),
+        ).toHaveLength(1);
+      });
+
+      it('leaves the author empty when the id matches no user, instead of failing the list', async () => {
+        mockGlossaryRepository.find.mockResolvedValueOnce([
+          term(3, 'Result', {
+            auditableFields: { is_active: true, created_by: 404 },
+          }),
+        ]);
+
+        const [result] = await service.findAllForAdmin();
+
+        expect(result.last_modified_by).toBeNull();
       });
     });
 
