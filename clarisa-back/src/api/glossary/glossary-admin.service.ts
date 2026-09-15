@@ -21,6 +21,7 @@ import {
   GlossaryBulkRowResultDto,
   GlossaryTermPortfolioDto,
   REFERENCE_DATE_PATTERN,
+  SplitGlossaryTermDto,
   UpdateGlossaryTermDto,
 } from './dto/glossary-admin.dto';
 
@@ -112,6 +113,7 @@ export class GlossaryAdminService {
 
     return {
       id: Number(glossary.id),
+      group_id: this.groupOf(glossary),
       term: glossary.title,
       definition: glossary.definition,
       source: glossary.source ?? null,
@@ -122,6 +124,82 @@ export class GlossaryAdminService {
       application_name: glossary.applicationName,
       portfolios,
     };
+  }
+
+  /**
+   * The concept a row belongs to. A row that was never related is its own
+   * concept, which is the state every row starts in.
+   */
+  private groupOf(glossary: Pick<Glossary, 'id' | 'group_id'>): number {
+    return Number(glossary.group_id ?? glossary.id);
+  }
+
+  /** Rows that carry the same term, whatever their status. */
+  private async findSameTitle(
+    manager: EntityManager,
+    title: string,
+    excludeId?: number,
+  ): Promise<Glossary[]> {
+    const key = this.termKey(title);
+    const all = await manager.find(Glossary);
+    return all.filter(
+      (g) =>
+        this.termKey(g.title) === key &&
+        (excludeId === undefined || Number(g.id) !== Number(excludeId)),
+    );
+  }
+
+  /** Portfolio ids a row currently holds through an active link. */
+  private async activePortfolioIds(
+    manager: EntityManager,
+    glossaryId: number,
+  ): Promise<number[]> {
+    const links = await manager.find(GlossaryPortfolio, {
+      where: { glossary_id: glossaryId },
+    });
+    return links
+      .filter((gp) => gp.auditableFields?.is_active)
+      .map((gp) => Number(gp.portfolio_id));
+  }
+
+  /**
+   * The invariant that replaces "one row per title": two **active** versions of
+   * the same term may coexist as long as they do not claim the same portfolio.
+   *
+   * A version for a portfolio nobody else covers is legitimate — that is the
+   * whole point of this module. Two versions on the same portfolio are not:
+   * the public page would render both under the same filter with no way to
+   * tell which one applies.
+   *
+   * Deactivated rows do not reserve anything. The old behaviour let a row
+   * retired in 2023 block its own name forever, which is why the content ended
+   * up being written straight into the database.
+   */
+  private async assertPortfoliosFree(
+    manager: EntityManager,
+    title: string,
+    portfolioIds: number[],
+    excludeId?: number,
+  ): Promise<void> {
+    const wanted = [...new Set((portfolioIds ?? []).map((id) => Number(id)))];
+    if (!wanted.length) {
+      return;
+    }
+
+    const siblings = (
+      await this.findSameTitle(manager, title, excludeId)
+    ).filter((s) => s.auditableFields?.is_active);
+
+    for (const sibling of siblings) {
+      const held = await this.activePortfolioIds(manager, Number(sibling.id));
+      const clash = wanted.find((id) => held.includes(id));
+      if (clash !== undefined) {
+        throw new ConflictException(
+          `The term "${this.normalizeTerm(title)}" already has a version for portfolio ${clash} (record ${sibling.id}). ` +
+            'Two versions of the same term cannot share a portfolio.',
+        );
+      }
+    }
   }
 
   private buildFindOptions(show: FindAllOptions) {
@@ -291,15 +369,13 @@ export class GlossaryAdminService {
     return this._dataSource.transaction(async (manager) => {
       await this.resolvePortfolios(manager, dto.portfolio_ids);
 
-      const duplicate = await this.findByTitle(manager, title);
-      if (duplicate) {
-        throw new ConflictException(
-          `The term "${title}" already exists in the glossary`,
-        );
-      }
+      await this.assertPortfoliosFree(manager, title, dto.portfolio_ids);
+
+      const groupId = await this.resolveGroupTarget(manager, dto.group_of);
 
       const glossary = manager.create(Glossary, {
         title,
+        group_id: groupId,
         definition,
         source: this.toNullableText(dto.source),
         sourceUrl: this.toNullableText(dto.source_url),
@@ -346,12 +422,12 @@ export class GlossaryAdminService {
           throw new BadRequestException('The term cannot be empty');
         }
 
-        const duplicate = await this.findByTitle(manager, title);
-        if (duplicate && Number(duplicate.id) !== Number(id)) {
-          throw new ConflictException(
-            `The term "${title}" already exists in the glossary`,
-          );
-        }
+        await this.assertPortfoliosFree(
+          manager,
+          title,
+          dto.portfolio_ids ?? (await this.activePortfolioIds(manager, id)),
+          id,
+        );
 
         glossary.title = title;
       }
@@ -379,6 +455,12 @@ export class GlossaryAdminService {
 
       if (dto.portfolio_ids !== undefined) {
         await this.resolvePortfolios(manager, dto.portfolio_ids);
+        await this.assertPortfoliosFree(
+          manager,
+          glossary.title,
+          dto.portfolio_ids,
+          id,
+        );
         await this.syncPortfolios(
           manager,
           Number(id),
@@ -406,6 +488,267 @@ export class GlossaryAdminService {
       glossary.auditableFields.is_active = isActive;
       glossary.auditableFields.updated_by = userData.userId;
       await manager.save(Glossary, glossary);
+
+      return this.toAdminDto(await this.findOneWithRelations(manager, id));
+    });
+  }
+
+  /**
+   * Resolves the group a new row is born into. `undefined` leaves it standing
+   * alone; an id joins the group of that term, which is what the panel sends
+   * when it adds the version of an existing term for another portfolio.
+   */
+  private async resolveGroupTarget(
+    manager: EntityManager,
+    groupOf?: number,
+  ): Promise<number | null> {
+    if (groupOf === undefined || groupOf === null) {
+      return null;
+    }
+
+    const target = await manager.findOne(Glossary, {
+      where: { id: Number(groupOf) },
+    });
+    if (!target) {
+      throw new BadRequestException(`Glossary term ${groupOf} was not found`);
+    }
+
+    return this.groupOf(target);
+  }
+
+  /**
+   * Splits the listed portfolios out of a term into a version of their own.
+   *
+   * The correction that used to be impossible: editing the definition of a term
+   * that covers 2022-2024 and 2025-2030 rewrote both. Here the listed
+   * portfolios move to a new row with the new definition, the source row keeps
+   * the rest untouched, and the two stay related through the group.
+   */
+  async splitVersion(
+    id: number,
+    dto: SplitGlossaryTermDto,
+    userData: UserData,
+  ): Promise<{ source: GlossaryAdminDto; version: GlossaryAdminDto }> {
+    const definition = (dto.definition ?? '').trim();
+    if (!definition) {
+      throw new BadRequestException('The definition is required');
+    }
+
+    return this._dataSource.transaction(async (manager) => {
+      const source = await manager.findOne(Glossary, { where: { id } });
+      if (!source) {
+        throw new NotFoundException(`Glossary term ${id} was not found`);
+      }
+
+      const wanted = [
+        ...new Set((dto.portfolio_ids ?? []).map((pid) => Number(pid))),
+      ];
+      if (!wanted.length) {
+        throw new BadRequestException(
+          'At least one portfolio has to move to the new version',
+        );
+      }
+
+      const held = await this.activePortfolioIds(manager, id);
+      const foreign = wanted.filter((pid) => !held.includes(pid));
+      if (foreign.length) {
+        throw new BadRequestException(
+          `The term does not cover portfolio(s) ${foreign.join(', ')}, so they cannot be split off it. ` +
+            'Add a version for them instead.',
+        );
+      }
+      if (wanted.length >= held.length) {
+        throw new BadRequestException(
+          'The split would leave the term with no portfolio. Editing it applies to all of them, which is what you want here.',
+        );
+      }
+
+      const remaining = held.filter((pid) => !wanted.includes(pid));
+      source.auditableFields.updated_by = userData.userId;
+      await manager.save(Glossary, source);
+      await this.syncPortfolios(manager, id, remaining, userData.userId);
+
+      const version = manager.create(Glossary, {
+        title: source.title,
+        group_id: this.groupOf(source),
+        definition,
+        source: this.toNullableText(dto.source) ?? source.source,
+        sourceUrl: this.toNullableText(dto.source_url) ?? source.sourceUrl,
+        referenceDate:
+          this.toNullableText(dto.reference_date) ?? source.referenceDate,
+        applicationName: source.applicationName,
+        show_in_dashboard: source.show_in_dashboard,
+      });
+      version.auditableFields = {
+        ...version.auditableFields,
+        is_active: true,
+        created_by: userData.userId,
+        modification_justification: `Split from glossary term ${id} to hold its own definition for portfolio(s) ${wanted.join(', ')}`,
+      } as Glossary['auditableFields'];
+
+      const saved = await manager.save(Glossary, version);
+      await this.syncPortfolios(
+        manager,
+        Number(saved.id),
+        wanted,
+        userData.userId,
+      );
+
+      return {
+        source: this.toAdminDto(await this.findOneWithRelations(manager, id)),
+        version: this.toAdminDto(
+          await this.findOneWithRelations(manager, Number(saved.id)),
+        ),
+      };
+    });
+  }
+
+  /**
+   * Undoes a split: the portfolios of one row move onto another and the emptied
+   * row is **deactivated**, never deleted, so a merge decided by mistake is one
+   * reactivation away.
+   */
+  async mergeInto(
+    id: number,
+    intoId: number,
+    userData: UserData,
+  ): Promise<{ target: GlossaryAdminDto; merged: GlossaryAdminDto }> {
+    if (Number(id) === Number(intoId)) {
+      throw new BadRequestException('A term cannot be merged into itself');
+    }
+
+    return this._dataSource.transaction(async (manager) => {
+      const source = await manager.findOne(Glossary, { where: { id } });
+      const target = await manager.findOne(Glossary, {
+        where: { id: Number(intoId) },
+      });
+      if (!source) {
+        throw new NotFoundException(`Glossary term ${id} was not found`);
+      }
+      if (!target) {
+        throw new NotFoundException(`Glossary term ${intoId} was not found`);
+      }
+
+      const moving = await this.activePortfolioIds(manager, id);
+      const kept = await this.activePortfolioIds(manager, Number(intoId));
+      const clash = moving.filter((pid) => kept.includes(pid));
+      if (clash.length) {
+        throw new ConflictException(
+          `Both terms cover portfolio(s) ${clash.join(', ')}. Remove the overlap before merging, ` +
+            'so no definition is dropped without anyone noticing.',
+        );
+      }
+
+      await this.syncPortfolios(manager, id, [], userData.userId);
+      await this.syncPortfolios(
+        manager,
+        Number(intoId),
+        [...kept, ...moving],
+        userData.userId,
+      );
+
+      source.auditableFields.is_active = false;
+      source.auditableFields.updated_by = userData.userId;
+      source.auditableFields.modification_justification = `Merged into glossary term ${intoId}; its portfolio(s) ${moving.join(', ') || '(none)'} moved there`;
+      await manager.save(Glossary, source);
+
+      target.auditableFields.updated_by = userData.userId;
+      await manager.save(Glossary, target);
+
+      return {
+        target: this.toAdminDto(
+          await this.findOneWithRelations(manager, Number(intoId)),
+        ),
+        merged: this.toAdminDto(await this.findOneWithRelations(manager, id)),
+      };
+    });
+  }
+
+  /**
+   * Declares that a term is a version of another one.
+   *
+   * Both groups become one — every row already related to either side follows —
+   * so the relation cannot leave half a group pointing at a row that moved.
+   */
+  async setGroup(
+    id: number,
+    intoId: number,
+    userData: UserData,
+  ): Promise<GlossaryAdminDto> {
+    if (Number(id) === Number(intoId)) {
+      throw new BadRequestException('A term cannot be a version of itself');
+    }
+
+    return this._dataSource.transaction(async (manager) => {
+      const row = await manager.findOne(Glossary, { where: { id } });
+      const target = await manager.findOne(Glossary, {
+        where: { id: Number(intoId) },
+      });
+      if (!row) {
+        throw new NotFoundException(`Glossary term ${id} was not found`);
+      }
+      if (!target) {
+        throw new NotFoundException(`Glossary term ${intoId} was not found`);
+      }
+
+      const from = this.groupOf(row);
+      const to = this.groupOf(target);
+      if (from === to) {
+        return this.toAdminDto(await this.findOneWithRelations(manager, id));
+      }
+
+      const all = await manager.find(Glossary);
+      const moving = all.filter((g) => this.groupOf(g) === from);
+      const staying = all.filter((g) => this.groupOf(g) === to);
+
+      for (const incoming of moving.filter(
+        (g) => g.auditableFields?.is_active,
+      )) {
+        const wanted = await this.activePortfolioIds(
+          manager,
+          Number(incoming.id),
+        );
+        for (const member of staying.filter(
+          (g) => g.auditableFields?.is_active,
+        )) {
+          const held = await this.activePortfolioIds(
+            manager,
+            Number(member.id),
+          );
+          const clash = wanted.find((pid) => held.includes(pid));
+          if (clash !== undefined) {
+            throw new ConflictException(
+              `Term ${incoming.id} and term ${member.id} both cover portfolio ${clash}, so they cannot be two versions of the same concept.`,
+            );
+          }
+        }
+      }
+
+      for (const g of moving) {
+        g.group_id = to;
+        g.auditableFields.updated_by = userData.userId;
+      }
+      await manager.save(Glossary, moving);
+
+      return this.toAdminDto(await this.findOneWithRelations(manager, id));
+    });
+  }
+
+  /**
+   * Takes a term out of its group. A row that is the anchor of a group (the one
+   * the others point at) stays where it is: what is undone is the pointer, so
+   * the caller ungroups the versions instead.
+   */
+  async clearGroup(id: number, userData: UserData): Promise<GlossaryAdminDto> {
+    return this._dataSource.transaction(async (manager) => {
+      const row = await manager.findOne(Glossary, { where: { id } });
+      if (!row) {
+        throw new NotFoundException(`Glossary term ${id} was not found`);
+      }
+
+      row.group_id = null;
+      row.auditableFields.updated_by = userData.userId;
+      await manager.save(Glossary, row);
 
       return this.toAdminDto(await this.findOneWithRelations(manager, id));
     });
@@ -611,10 +954,31 @@ export class GlossaryAdminService {
     // Existing terms, indexed by their case-insensitive key. Inactive ones are
     // included on purpose so a re-uploaded file does not create a duplicate of
     // a term that is merely hidden.
+    //
+    // A list and not a single row: a term can now exist once per portfolio, and
+    // the old map kept whichever row the database happened to return last —
+    // which meant a file could update one version while the other, identical in
+    // name, was never touched and nobody could tell.
     const existing = await manager.find(Glossary);
-    const existingByKey = new Map<string, Glossary>();
+    const existingByKey = new Map<string, Glossary[]>();
     for (const term of existing) {
-      existingByKey.set(this.termKey(term.title), term);
+      const key = this.termKey(term.title);
+      existingByKey.set(key, [...(existingByKey.get(key) ?? []), term]);
+    }
+
+    // Portfolios held by each row of a versioned term, resolved up front
+    // because the per-row planning below is synchronous.
+    const heldByTerm = new Map<number, number[]>();
+    for (const rows of existingByKey.values()) {
+      if (rows.length < 2) {
+        continue;
+      }
+      for (const row of rows) {
+        heldByTerm.set(
+          Number(row.id),
+          await this.activePortfolioIds(manager, Number(row.id)),
+        );
+      }
     }
 
     const seenInFile = new Map<string, number>();
@@ -689,10 +1053,35 @@ export class GlossaryAdminService {
       }
       seenInFile.set(key, index);
 
-      const stored = existingByKey.get(key);
-      if (!stored) {
+      const candidates = existingByKey.get(key) ?? [];
+      if (!candidates.length) {
         plan.push(base);
         return;
+      }
+
+      let stored = candidates[0];
+      if (candidates.length > 1) {
+        const wanted = rowPortfolios.map((p) => p.id);
+        const matches = candidates.filter((candidate) =>
+          (heldByTerm.get(Number(candidate.id)) ?? []).some((pid) =>
+            wanted.includes(pid),
+          ),
+        );
+
+        if (matches.length !== 1) {
+          plan.push({
+            ...base,
+            action: GlossaryBulkRowAction.INVALID,
+            message:
+              `"${term}" exists in ${candidates.length} versions (records ${candidates
+                .map((c) => c.id)
+                .join(', ')}). ` +
+              'Map a portfolio column, or pick one for the whole batch, so the row updates the right version.',
+          });
+          return;
+        }
+
+        stored = matches[0];
       }
 
       const isInactive = !stored.auditableFields?.is_active;
@@ -724,15 +1113,5 @@ export class GlossaryAdminService {
     });
 
     return plan;
-  }
-
-  private async findByTitle(
-    manager: EntityManager,
-    title: string,
-  ): Promise<Glossary> {
-    return manager
-      .createQueryBuilder(Glossary, 'g')
-      .where('LOWER(TRIM(g.title)) = LOWER(:title)', { title })
-      .getOne();
   }
 }

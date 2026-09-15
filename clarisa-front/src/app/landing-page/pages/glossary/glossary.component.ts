@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { GlossaryPageService, GlossaryTerm } from './services/glossary-page.service';
+import { GlossaryPageService, GlossaryTerm, GlossaryTermPortfolio } from './services/glossary-page.service';
 
 /**
  * Explicit locale for every comparison: with no argument, `localeCompare`
@@ -9,20 +9,7 @@ import { GlossaryPageService, GlossaryTerm } from './services/glossary-page.serv
 const LOCALE = 'en';
 
 /** Fixed English month names: the glossary content is English regardless of the reader's locale. */
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December'
-];
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 @Component({
   selector: 'app-glossary',
@@ -36,6 +23,23 @@ export class GlossaryComponent implements OnInit {
   private readonly renderableCache = new Map<string, string>();
 
   terms: GlossaryTerm[] = [];
+  /**
+   * One card per concept, not per record.
+   *
+   * A term that means something different in each portfolio is published once
+   * per version, and drawing them as separate cards read as two unrelated
+   * entries with the same name. Each card shows the definition that applies —
+   * the one of the portfolio being filtered, or the most recent one — and the
+   * chips of every portfolio the concept covers.
+   *
+   * A field and not a getter: it is rebuilt when the data or the filter
+   * changes, so change detection never rebuilds 70 objects per pass.
+   */
+  cards: GlossaryTerm[] = [];
+  /** Versions per concept, in the order the API returned them. */
+  private groups: GlossaryTerm[][] = [];
+  /** Start year per portfolio id, to tell which version is the current one. */
+  private portfolioStartYear = new Map<number, number>();
   portfolios: any[] = [];
   searchText: string = '';
   selectedPortfolioCode: number | null = null;
@@ -54,16 +58,24 @@ export class GlossaryComponent implements OnInit {
     this._glossaryPageService.getGlossary().subscribe({
       next: terms => {
         this.terms = terms ?? [];
+        this.buildGroups();
+        this.rebuildCards();
         this.loading = false;
       },
       error: () => {
         this.terms = [];
+        this.groups = [];
+        this.cards = [];
         this.loading = false;
       }
     });
     this._glossaryPageService.getPortfolios().subscribe(portfolios => {
       this.portfolios = portfolios ?? [];
+      this.portfolioStartYear = new Map(
+        this.portfolios.filter(portfolio => typeof portfolio.start_date === 'number').map(portfolio => [portfolio.code, portfolio.start_date])
+      );
       this.applyDefaultPortfolio();
+      this.rebuildCards();
     });
   }
 
@@ -90,17 +102,61 @@ export class GlossaryComponent implements OnInit {
     if (this.portfolioChosenByReader) {
       return;
     }
-    const newest = this.filterPortfolios
-      .filter(portfolio => typeof portfolio.start_date === 'number')
-      .sort((a, b) => b.start_date - a.start_date)[0];
+    const newest = this.filterPortfolios.filter(portfolio => typeof portfolio.start_date === 'number').sort((a, b) => b.start_date - a.start_date)[0];
     this.selectedPortfolioCode = newest?.code ?? null;
   }
 
-  // Terms matching the portfolio filter (base set for the letter index)
+  /**
+   * Groups the published entries by concept. An API that does not send
+   * `groupId` — or an entry that was never related — leaves every entry on its
+   * own, which is exactly how the page behaved before.
+   */
+  private buildGroups(): void {
+    const byGroup = new Map<string, GlossaryTerm[]>();
+    this.terms.forEach((term, index) => {
+      const key = term.groupId == null ? `single-${index}` : `group-${term.groupId}`;
+      byGroup.set(key, [...(byGroup.get(key) ?? []), term]);
+    });
+    this.groups = [...byGroup.values()];
+  }
+
+  /** The newest portfolio a version covers; 0 when none of them has a year. */
+  private recencyOf(version: GlossaryTerm): number {
+    return (version.portfolios ?? []).reduce((newest, portfolio) => Math.max(newest, this.portfolioStartYear.get(portfolio.id) ?? 0), 0);
+  }
+
+  /** Every portfolio of the concept, newest first, without repeating one. */
+  private portfoliosOf(versions: GlossaryTerm[]): GlossaryTermPortfolio[] {
+    const byId = new Map<number, GlossaryTermPortfolio>();
+    for (const version of versions) {
+      for (const portfolio of version.portfolios ?? []) {
+        byId.set(portfolio.id, portfolio);
+      }
+    }
+    return [...byId.values()].sort((a, b) => (this.portfolioStartYear.get(b.id) ?? 0) - (this.portfolioStartYear.get(a.id) ?? 0));
+  }
+
+  /**
+   * The card of a concept: the definition of the portfolio being filtered, or
+   * the most recent one when the reader is looking at all of them, carrying the
+   * chips of every portfolio the concept covers.
+   */
+  private cardFor(versions: GlossaryTerm[]): GlossaryTerm | null {
+    const shown =
+      this.selectedPortfolioCode == null
+        ? versions.reduce((newest, version) => (this.recencyOf(version) > this.recencyOf(newest) ? version : newest), versions[0])
+        : versions.find(version => version.portfolios?.some(portfolio => portfolio.id === this.selectedPortfolioCode));
+
+    return shown ? { ...shown, portfolios: this.portfoliosOf(versions) } : null;
+  }
+
+  private rebuildCards(): void {
+    this.cards = this.groups.map(versions => this.cardFor(versions)).filter((card): card is GlossaryTerm => card !== null);
+  }
+
+  // Concepts matching the portfolio filter (base set for the letter index)
   private get portfolioFilteredTerms(): GlossaryTerm[] {
-    return this.terms.filter(
-      term => this.selectedPortfolioCode == null || term.portfolios?.some(portfolio => portfolio.id === this.selectedPortfolioCode)
-    );
+    return this.cards;
   }
 
   // Only the initials that exist among the current terms
@@ -229,6 +285,7 @@ export class GlossaryComponent implements OnInit {
   selectPortfolio(code: number | null) {
     this.portfolioChosenByReader = true;
     this.selectedPortfolioCode = this.selectedPortfolioCode === code ? null : code;
+    this.rebuildCards();
     if (this.selectedLetter && !this.availableLetters.includes(this.selectedLetter)) {
       this.selectedLetter = null;
     }
