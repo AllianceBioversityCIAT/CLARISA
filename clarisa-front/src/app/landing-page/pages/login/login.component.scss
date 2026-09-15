@@ -12,8 +12,9 @@
 // this project **1rem = 10px**, not 16px: a scale written in rem lands at
 // roughly half the intended size, which is exactly how this screen first
 // shipped with 10px inputs.
-$brand: #7ab800;
-$ink: #12200a;
+// Colour comes from the tokens in `styles.scss`; this file declares none of its
+// own. The screen shipped in the old CGIAR lime because it was built before the
+// Menta palette was chosen — see DESIGN.md section 0.
 
 .container {
   position: relative;
@@ -93,7 +94,7 @@ $ink: #12200a;
   border: none;
   padding: 40px 36px 36px;
   background: #fff;
-  color: $ink;
+  color: var(--cl-ink);
 }
 
 @media (max-width: 480px) {
@@ -127,7 +128,7 @@ $ink: #12200a;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #4d7500;
+  color: var(--cl-brand-deep);
 }
 
 // Was `<h2 style="color:#7ab800">` over white: ~2.3:1, the largest and least
@@ -139,7 +140,7 @@ $ink: #12200a;
   font-weight: 700;
   line-height: 1.12;
   letter-spacing: -0.015em;
-  color: $ink;
+  color: var(--cl-ink);
 }
 
 .login-card__subtitle {
@@ -176,7 +177,7 @@ $ink: #12200a;
   // 16px is a floor, not a taste: below it iOS Safari zooms the page in when
   // the field takes focus, and the login jumps under the user's thumb.
   font-size: 16px;
-  color: $ink;
+  color: var(--cl-ink);
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
@@ -187,14 +188,16 @@ $ink: #12200a;
 
   &:focus {
     outline: none;
-    border-color: $brand;
-    box-shadow: 0 0 0 3px rgba(122, 184, 0, 0.22);
+    border-color: var(--cl-brand);
+    box-shadow: 0 0 0 3px var(--cl-brand-ring);
   }
 }
 
-// Brand green at full strength with ink on top: 7.2:1, where white on the same
-// green is 2.4:1 and fails. The colour that identifies CGIAR stays, and the
-// button is finally readable.
+// The primary surface of the Menta palette, with white on top: 5.70:1. The old
+// lime needed dark ink because white on it gave 2.4:1 and failed; this green is
+// deep enough to carry white, which is what the rest of the library now does too.
+// Hover goes one step deeper rather than lighter, so the button never brightens
+// under the cursor.
 :host ::ng-deep .login-card .login-card__submit.p-button {
   justify-content: center;
   width: 100%;
@@ -202,8 +205,8 @@ $ink: #12200a;
   padding: 14px 16px;
   border: none;
   border-radius: 8px;
-  background: $brand;
-  color: $ink;
+  background: var(--cl-brand-strong);
+  color: var(--cl-surface);
   font-size: 16px;
   font-weight: 700;
   transition:
@@ -211,7 +214,7 @@ $ink: #12200a;
     transform 0.08s ease;
 
   &:enabled:hover {
-    background: #6aa100;
+    background: var(--cl-brand-deep);
   }
 
   &:enabled:active {
@@ -219,13 +222,13 @@ $ink: #12200a;
   }
 
   &:focus-visible {
-    outline: 3px solid rgba(122, 184, 0, 0.45);
+    outline: 3px solid var(--cl-brand-ring);
     outline-offset: 2px;
   }
 
   &:disabled {
-    background: #dfe6dc;
-    color: #8a978c;
+    background: var(--cl-line);
+    color: var(--cl-ink-3);
     opacity: 1;
   }
 }
