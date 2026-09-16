@@ -332,3 +332,110 @@
     font-size: 15px;
   }
 }
+
+/* ===================================================== pantalla de entrada ===
+   Cubre la vista entera mientras se entra. No es un diálogo encima del
+   formulario: es la pantalla, y por eso el formulario de debajo no necesita
+   bloquearse — no se puede tocar. */
+
+:host .splash {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #04140f;
+}
+
+:host .splash__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* El zoom se monta encima del bucle y aparece cuando empieza el cierre. Su
+   primer fotograma es la misma imagen del bucle, así que el relevo no se ve. */
+:host .splash__video--zoom {
+  opacity: 0;
+  transition: opacity 0.18s linear;
+}
+
+:host .splash.is-leaving .splash__video--zoom {
+  opacity: 1;
+}
+
+/* El negro final. Entra con retraso: primero se deja ver el zoom. */
+:host .splash__black {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.7s ease 1.6s;
+}
+
+:host .splash.is-leaving .splash__black {
+  opacity: 1;
+}
+
+:host .splash__foot {
+  position: absolute;
+  bottom: 13vh;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: min(380px, 70vw);
+  transform: translateX(-50%);
+  transition: opacity 0.3s ease;
+}
+
+/* Al cerrar, el texto se va antes que la imagen: lo último que se ve es la
+   planta, no una etiqueta de estado. */
+:host .splash.is-leaving .splash__foot {
+  opacity: 0;
+}
+
+:host .splash__track {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+
+  i {
+    display: block;
+    height: 100%;
+    width: 38%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--cl-brand, #0f8a63), #5fe3b4);
+    animation: cl-load 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes cl-load {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(330%);
+  }
+}
+
+:host .splash__foot span {
+  color: #cfe6dc;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host .splash__video {
+    display: none;
+  }
+}
