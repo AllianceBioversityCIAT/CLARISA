@@ -1,44 +1,118 @@
-<div class="banner-wrapper">
-  <div
-    class="carousel fade-carousel slide"
-    data-ride="carousel"
-    data-interval="4000"
-    id="bs-carousel"
-  >
-    <div class="overlay"></div>
-    <div class="carousel-inner">
-      <div class="item slides active">
-        <div class="slide-1">
-          <img
-            src="assets/images/bannertow.jpg"
-            style="object-fit: cover; height: 500px"
-            alt="Grow Landscape"
-          />
+<!--
+  Hero con recorrido: DOS vídeos encadenados que avanzan con el scroll.
+
+  `.cl-hero` es un carril alto y dentro vive `.cl-hero__stage`, que queda fijo
+  (`position: sticky`) ocupando la pantalla. Mientras el carril pasa, el
+  componente mueve el `currentTime` del vídeo que toque:
+
+    primera mitad  → `hero-sprout.mp4`  · la tierra está vacía, el brote emerge
+                     y crece hasta ser una mata de yuca frondosa
+    segunda mitad  → `hero-descent.mp4` · la cámara baja bajo tierra y descubre
+                     las raíces tuberosas ramificándose
+
+  🥇 El corte entre los dos es invisible porque el segundo clip se generó A PARTIR
+  DEL ÚLTIMO FOTOGRAMA del primero: mismo encuadre, misma luz, misma tierra. No
+  hay fundido que disimule nada — sencillamente es la misma escena que sigue.
+
+  Los textos cambian en cinco tramos, tres arriba y dos bajo tierra.
+
+  Los vídeos llevan un keyframe cada 4 fotogramas (`-g 4`), que es lo que hace
+  que el salto a cualquier instante sea inmediato. Sin eso el scrub va a tirones.
+  Ver `~/Desktop/claude/falai/knowledge/INDEX.md` → [r-scroll-video].
+
+  🛑 Los textos son PROVISIONALES: el copy del producto lo decide Yeck.
+-->
+<section class="cl-hero" #rail>
+  <div class="cl-hero__stage">
+    <video #video class="cl-hero__video" src="assets/video/hero-sprout.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
+
+    <video
+      #descent
+      class="cl-hero__video cl-hero__video--descent"
+      [class.is-on]="step >= 3"
+      src="assets/video/hero-descent.mp4"
+      muted
+      playsinline
+      preload="auto"
+      aria-hidden="true"></video>
+
+    <!-- Lavado lateral: el texto vive a la izquierda, la planta a la derecha -->
+    <div class="cl-hero__wash"></div>
+    <!-- Costura inferior: la tierra se oscurece antes de entrar bajo tierra -->
+    <div class="cl-hero__seam"></div>
+
+    <div class="cl-hero__copy">
+      <div class="cl-hero__steps">
+        <!-- 1 · quién es -->
+        <div class="cl-hero__step" [class.is-on]="step === 0">
+          <p class="cl-hero__kicker">CLARISA</p>
+          <h1 class="cl-hero__title">A web service supporting information management within One CGIAR</h1>
         </div>
 
-        <div class="hero">
-          <h1 class="hero--title">
-            CLARISA
-            <span>
-              A web service supporting information management within One CGIAR
-            </span>
-          </h1>
+        <!-- 2 · qué hace -->
+        <div class="cl-hero__step" [class.is-on]="step === 1">
+          <p class="cl-hero__kicker">Interoperability</p>
+          <h1 class="cl-hero__title">One shared vocabulary for every CGIAR system</h1>
+          <p class="cl-hero__text">
+            PRMS, MEL, MARLO, E-Contracts and Foresight all read the same control lists. That is why two centres can add up their results.
+          </p>
+        </div>
 
-          <button
-            class="btn btn-hero animated3 hero--button"
-            routerLink="/landing-page/contact-us"
-          >
-            Contact us
-          </button>
+        <!-- 3 · cuánto -->
+        <div class="cl-hero__step" [class.is-on]="step === 2">
+          <p class="cl-hero__kicker">What it holds today</p>
+          <h1 class="cl-hero__title">Open data, no key required</h1>
 
-          <button
-            class="btn btn-hero animated3 hero--button"
-            routerLink="/landing-page/api-services"
-          >
-            Services
-          </button>
+          <ul class="cl-hero__metrics">
+            <li><b>10,630</b><span>Institutions</span></li>
+            <li><b>1,210</b><span>Projects</span></li>
+            <li><b>248</b><span>Countries</span></li>
+            <li><b>41</b><span>Control lists</span></li>
+          </ul>
+        </div>
+
+        <!-- 4 · bajo tierra -->
+        <div class="cl-hero__step" [class.is-on]="step === 3">
+          <p class="cl-hero__kicker">Under the surface</p>
+          <h1 class="cl-hero__title">What you see are the dashboards</h1>
+          <p class="cl-hero__text">
+            CLARISA is the root. Every figure a CGIAR report shows was named here first — and that is why the numbers add up across centres.
+          </p>
+        </div>
+
+        <!-- 5 · la raíz se ramifica -->
+        <div class="cl-hero__step" [class.is-on]="step === 4">
+          <p class="cl-hero__kicker">The REST API</p>
+          <h1 class="cl-hero__title">One root, many branches</h1>
+
+          <ul class="cl-hero__nodes">
+            <li><span class="dot"></span><code>/institutions</code></li>
+            <li><span class="dot"></span><code>/projects</code></li>
+            <li><span class="dot"></span><code>/countries</code></li>
+            <li><span class="dot"></span><code>/glossary</code></li>
+          </ul>
         </div>
       </div>
+
+      <div class="cl-hero__actions">
+        <button class="cl-btn cl-btn--primary" routerLink="/landing-page/contact-us">Contact us</button>
+        <button class="cl-btn cl-btn--ghost" routerLink="/landing-page/api-services">Services</button>
+      </div>
+
+      <!-- Dónde va el recorrido -->
+      <div class="cl-hero__track" aria-hidden="true">
+        <span [class.is-on]="step === 0"></span>
+        <span [class.is-on]="step === 1"></span>
+        <span [class.is-on]="step === 2"></span>
+        <span [class.is-on]="step === 3"></span>
+        <span [class.is-on]="step === 4"></span>
+      </div>
+    </div>
+
+    <!-- Pista de que hay que bajar. Se apaga en cuanto el recorrido arranca. -->
+    <div class="cl-hero__hint" [class.is-hidden]="step > 0">
+      <span>Scroll</span>
+      <i></i>
     </div>
   </div>
-</div>
+</section>
