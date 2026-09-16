@@ -52,6 +52,14 @@ export class GlossaryTermPortfolioDto {
   acronym: string;
 }
 
+/** The user behind a change, as the panel shows it. */
+export class GlossaryAuditUserDto {
+  id: number;
+  /** First and last name; the email when the profile has no name. */
+  name: string;
+  email: string;
+}
+
 /** Admin-facing representation of a glossary term (includes the id). */
 export class GlossaryAdminDto {
   id: number;
@@ -67,6 +75,10 @@ export class GlossaryAdminDto {
   show_in_dashboard: boolean;
   application_name: string;
   portfolios: GlossaryTermPortfolioDto[];
+  /** When the record last changed; its creation when nobody edited it since. */
+  last_modified_at: string | null;
+  /** Who made that change. Null when the user id does not resolve to a user. */
+  last_modified_by: GlossaryAuditUserDto | null;
 }
 
 /**

@@ -231,9 +231,14 @@
       </p-dropdown>
     </div>
 
-    <div class="field field--checkbox">
-      <p-checkbox inputId="bulk-dashboard" [(ngModel)]="showInDashboard" [binary]="true"></p-checkbox>
-      <label for="bulk-dashboard">Show these terms in the dashboard</label>
+    <div class="field">
+      <div class="field--checkbox">
+        <p-checkbox inputId="bulk-dashboard" [(ngModel)]="showInDashboard" [binary]="true"></p-checkbox>
+        <label for="bulk-dashboard">Show these terms in the dashboard</label>
+      </div>
+      <small class="field-hint">
+        Also lists these terms in GET api/glossary/dashboard. It does not change the public glossary page, which shows every active term.
+      </small>
     </div>
   </div>
 
