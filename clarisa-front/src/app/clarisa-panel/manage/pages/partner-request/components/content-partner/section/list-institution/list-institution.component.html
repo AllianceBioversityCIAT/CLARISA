@@ -17,7 +17,8 @@
   <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
   <div>
     <strong>The institution catalogue could not be loaded.</strong>
-    <span>It is a large download and the connection dropped. Nothing was lost — try again.</span>
+    <span>It is a large download (about 4.7 MB) and it did not arrive. Nothing was lost — try again.</span>
+    <span class="list-error__reason" *ngIf="reason">{{ reason }}</span>
   </div>
   <button type="button" class="list-error__retry" (click)="load()">Try again</button>
 </div>

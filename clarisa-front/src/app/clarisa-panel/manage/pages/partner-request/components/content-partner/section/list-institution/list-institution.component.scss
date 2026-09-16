@@ -34,6 +34,14 @@
     font-size: 13px;
     color: var(--cl-ink-2);
   }
+
+  /* La causa concreta, en el tono de lo secundario: quien solo quiere reintentar
+     no la necesita, y quien tiene que reportarla la encuentra sin abrir nada. */
+  .list-error__reason {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--cl-ink-3);
+  }
 }
 
 .list-error__retry {
