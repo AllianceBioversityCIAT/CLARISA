@@ -285,3 +285,50 @@
     padding: 30px 22px 44px;
   }
 }
+
+/* ------------------------------------------------------ ver la contraseña ---
+   El botón se monta sobre el campo y este le reserva sitio con `padding-right`,
+   para que el texto nunca pase por debajo del icono. */
+
+:host .field__with-toggle {
+  position: relative;
+  display: block;
+
+  input {
+    width: 100%;
+    padding-right: 46px;
+  }
+}
+
+:host .field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--cl-ink-3);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition:
+    color 0.16s ease,
+    background-color 0.16s ease;
+
+  &:hover {
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--cl-brand-ring);
+    outline-offset: 1px;
+  }
+
+  i {
+    font-size: 15px;
+  }
+}
