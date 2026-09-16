@@ -71,7 +71,7 @@
           </ul>
         </div>
 
-        <!-- 4 · bajo tierra -->
+        <!-- 4 · bajo tierra · about us -->
         <div class="cl-hero__step" [class.is-on]="step === 3">
           <p class="cl-hero__kicker">Under the surface</p>
           <h1 class="cl-hero__title">What you see are the dashboards</h1>
@@ -80,17 +80,41 @@
           </p>
         </div>
 
-        <!-- 5 · la raíz se ramifica -->
+        <!-- 5 · la raíz se ramifica · el API -->
         <div class="cl-hero__step" [class.is-on]="step === 4">
           <p class="cl-hero__kicker">The REST API</p>
           <h1 class="cl-hero__title">One root, many branches</h1>
-
           <ul class="cl-hero__nodes">
             <li><span class="dot"></span><code>/institutions</code></li>
             <li><span class="dot"></span><code>/projects</code></li>
             <li><span class="dot"></span><code>/countries</code></li>
             <li><span class="dot"></span><code>/glossary</code></li>
           </ul>
+        </div>
+
+        <!-- 6 · indicadores -->
+        <div class="cl-hero__step" [class.is-on]="step === 5">
+          <p class="cl-hero__kicker">What the systems report</p>
+          <h1 class="cl-hero__title">Numbers that can be added up</h1>
+          <ul class="cl-hero__metrics">
+            <li><b>10,630</b><span>Institutions</span></li>
+            <li><b>344</b><span>Work packages</span></li>
+            <li><b>43</b><span>Initiatives</span></li>
+          </ul>
+        </div>
+
+        <!-- 7 · dashboards y servicios -->
+        <div class="cl-hero__step" [class.is-on]="step === 6">
+          <p class="cl-hero__kicker">Dashboards and services</p>
+          <h1 class="cl-hero__title">The same codes, everywhere</h1>
+          <p class="cl-hero__text">Control lists with unique identifiers let every adopting system be gathered and compiled at a CGIAR-wide level.</p>
+        </div>
+
+        <!-- 8 · quién la sostiene -->
+        <div class="cl-hero__step" [class.is-on]="step === 7">
+          <p class="cl-hero__kicker">Partners and collaborators</p>
+          <h1 class="cl-hero__title">Built and used across One CGIAR</h1>
+          <p class="cl-hero__text">CGIAR · Alliance of Bioversity International and CIAT · ICARDA · CIP</p>
         </div>
       </div>
 
@@ -101,11 +125,7 @@
 
       <!-- Dónde va el recorrido -->
       <div class="cl-hero__track" aria-hidden="true">
-        <span [class.is-on]="step === 0"></span>
-        <span [class.is-on]="step === 1"></span>
-        <span [class.is-on]="step === 2"></span>
-        <span [class.is-on]="step === 3"></span>
-        <span [class.is-on]="step === 4"></span>
+        <span *ngFor="let s of [0, 1, 2, 3, 4, 5, 6, 7]" [class.is-on]="step === s"></span>
       </div>
     </div>
 

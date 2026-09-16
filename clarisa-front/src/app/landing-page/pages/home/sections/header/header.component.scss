@@ -24,11 +24,11 @@
 /* ---------------------------------------------------------------- el carril */
 
 :host .cl-hero {
-  /* 190vh para DOS clips: cada uno se lleva ~0,45 de pantalla de recorrido, que
-     es el ritmo que Yeck aprobó cuando solo había uno (300 → 190 → 145 con un
-     clip). Añadir el descenso sin alargar el carril lo haría el doble de rápido. */
+  /* 260vh para 30 s de vídeo y ocho mensajes. El ritmo por segundo de clip es
+     el mismo que Yeck aprobó con uno solo (300 → 190 → 145 para 5 s); lo que
+     crece es el contenido, no la lentitud. */
   position: relative;
-  height: 190vh;
+  height: 260vh;
   background: #06231a;
 }
 
@@ -205,7 +205,7 @@
 
   span {
     display: block;
-    width: 30px;
+    width: 22px;
     height: 3px;
     border-radius: 2px;
     background: rgba(255, 255, 255, 0.24);
@@ -338,7 +338,7 @@
   :host .cl-hero {
     /* En el teléfono el recorrido se acorta todavía más: con el pulgar cada
        gesto avanza menos que una rueda de ratón. */
-    height: 170vh;
+    height: 230vh;
   }
 
   /* En vertical el lavado va de arriba abajo, no de lado: el texto ocupa la
