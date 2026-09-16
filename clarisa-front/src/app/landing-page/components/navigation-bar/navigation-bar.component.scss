@@ -363,3 +363,179 @@
     padding: 0 15px;
   }
 }
+
+/* ------------------------------------------------------------- el panel ---
+   Botón propio, y a propósito NO sólido: el sólido de marca está reservado para
+   una sola acción primaria por zona, y con sesión abierta la primaria ya no es
+   entrar. Contorno menta sobre fondo suave — se distingue del «Sign in» al que
+   sustituye y del disco de la cuenta que tiene al lado. */
+
+:host .cl-admin {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 1.5px solid var(--cl-brand-ring);
+  border-radius: 9px;
+  padding: 9px 18px;
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--cl-brand-strong);
+    background: #d3ece1;
+    color: var(--cl-brand-deeper);
+    text-decoration: none;
+  }
+
+  i {
+    font-size: 13px;
+  }
+}
+
+:host(.is-over) .cl-admin {
+  border-color: rgba(95, 227, 180, 0.42);
+  background: rgba(95, 227, 180, 0.14);
+  color: #5fe3b4;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #5fe3b4;
+    background: rgba(95, 227, 180, 0.24);
+  }
+}
+
+/* ------------------------------------------------------------ la cuenta ---
+   Mismo sitio y misma altura que «Sign in», para que la fila no dé un salto al
+   iniciar sesión. Menú propio, no el dropdown de Bootstrap: esquinas de tarjeta,
+   ítems de 42px y la salida separada del resto. */
+
+:host .cl-account {
+  position: relative;
+}
+
+:host .cl-account__btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--cl-line);
+  border-radius: 999px;
+  padding: 6px 14px 6px 6px;
+  background: var(--cl-surface);
+  color: var(--cl-ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+
+  &:hover {
+    border-color: var(--cl-brand-ring);
+    background: var(--cl-brand-soft);
+  }
+
+  i {
+    color: var(--cl-ink-3);
+    font-size: 12px;
+  }
+}
+
+:host .cl-account__disc {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--cl-brand-strong);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+:host .cl-account__name {
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:host .cl-account__menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 20;
+  min-width: 232px;
+  border: 1px solid var(--cl-line);
+  border-radius: 16px;
+  padding: 8px;
+  background: var(--cl-surface);
+  box-shadow: 0 18px 40px -16px rgba(16, 36, 28, 0.45);
+
+  a,
+  button {
+    display: block;
+    width: 100%;
+    border: 0;
+    border-radius: 10px;
+    padding: 0 14px;
+    background: none;
+    color: var(--cl-ink);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 42px;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--cl-brand-soft);
+      color: var(--cl-brand-deeper);
+    }
+  }
+}
+
+:host .cl-account__email {
+  margin: 6px 14px 8px;
+  color: var(--cl-ink-3);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:host .cl-account__out {
+  margin-top: 4px;
+  border-top: 1px solid var(--cl-line) !important;
+  border-radius: 0 0 10px 10px !important;
+  color: var(--cl-error) !important;
+
+  &:hover {
+    background: rgba(180, 35, 24, 0.08) !important;
+    color: var(--cl-error) !important;
+  }
+}
+
+/* Sobre el recorrido la cuenta se adapta igual que el resto de la barra. */
+:host(.is-over) .cl-account__btn {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.1);
+  color: #eaf5f1;
+
+  i {
+    color: #a9cbbe;
+  }
+
+  &:hover {
+    border-color: rgba(95, 227, 180, 0.5);
+    background: rgba(95, 227, 180, 0.16);
+  }
+}

@@ -30,7 +30,29 @@
 
           <div class="field">
             <label for="login-password">Password</label>
-            <input id="login-password" pInputText type="password" formControlName="password" name="password" autocomplete="current-password" />
+            <!--
+              El ojo va DENTRO del campo, no al lado: al lado empujaría el input
+              y rompería la altura de la fila. El botón es `type="button"` a
+              propósito — dentro de un formulario, un botón sin tipo envía.
+            -->
+            <div class="field__with-toggle">
+              <input
+                id="login-password"
+                pInputText
+                [type]="showPassword ? 'text' : 'password'"
+                formControlName="password"
+                name="password"
+                autocomplete="current-password" />
+              <button
+                type="button"
+                class="field__toggle"
+                (click)="showPassword = !showPassword"
+                [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+                [attr.aria-pressed]="showPassword"
+                tabindex="0">
+                <i class="fa" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" aria-hidden="true"></i>
+              </button>
+            </div>
             <small class="field__error" [hidden]="loginForm.controls['password'].valid || !loginForm.controls['password'].dirty"
               >Password is required</small
             >
