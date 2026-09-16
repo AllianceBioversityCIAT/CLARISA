@@ -1,25 +1,25 @@
 <nav class="admin-sidebar" aria-label="Administration">
+  <!--
+    La marca es la mitad izquierda de la franja superior del panel: mide lo
+    mismo que la barra y va del mismo color, así que las dos se leen como una
+    sola pieza de lado a lado en vez de como dos escalones (Yeck, 16-sep-2026).
+  -->
   <a class="admin-sidebar__brand" routerLink="/landing-page/home">
     <img src="../../../../assets/cgiar_logo.png" alt="CGIAR" class="admin-sidebar__mark" />
     <span class="admin-sidebar__word">CLARISA<small>Administration</small></span>
   </a>
 
-  <div class="admin-sidebar__group" *ngFor="let group of groups">
-    <h2 class="admin-sidebar__title">{{ group.title }}</h2>
-    <ul class="admin-sidebar__list">
-      <li *ngFor="let link of group.links">
-        <a [routerLink]="link.route" routerLinkActive="is-active">{{ link.label }}</a>
-      </li>
-    </ul>
+  <div class="admin-sidebar__nav">
+    <div class="admin-sidebar__group" *ngFor="let group of groups">
+      <h2 class="admin-sidebar__title">{{ group.title }}</h2>
+      <ul class="admin-sidebar__list">
+        <li *ngFor="let link of group.links">
+          <a [routerLink]="link.route" routerLinkActive="is-active">
+            <i class="admin-sidebar__icon {{ link.icon }}" aria-hidden="true"></i>
+            <span>{{ link.label }}</span>
+          </a>
+        </li>
+      </ul>
+    </div>
   </div>
-
-  <!--
-    Vuelta explícita al sitio público. El logo de arriba ya enlaza aquí, pero un
-    logo no se lee como una salida: quien entra al panel desde la barra necesita
-    ver por dónde se vuelve (Yeck, 16-sep-2026).
-  -->
-  <a class="admin-sidebar__back" routerLink="/landing-page/home">
-    <i class="fa fa-arrow-left" aria-hidden="true"></i>
-    Back to the site
-  </a>
 </nav>

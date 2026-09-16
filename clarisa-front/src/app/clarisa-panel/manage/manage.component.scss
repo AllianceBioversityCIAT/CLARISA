@@ -12,6 +12,13 @@
   display: flex;
   align-items: flex-start;
   background: var(--cl-surface);
+  /* El footer del panel (`clarisa-panel/components/footer`) es `position:
+     absolute` y de ancho completo, así que se planta justo donde acaba el
+     contenido: en una pantalla con poco que mostrar aterrizaba a media altura y
+     tapaba las primeras entradas del sidebar. Con el armazón ocupando la
+     ventana, cae abajo del todo. El footer en sí no se toca: lo usan también la
+     documentación y la referencia de API. */
+  min-height: calc(100vh - var(--cl-admin-header));
 }
 
 .admin-shell__content {
