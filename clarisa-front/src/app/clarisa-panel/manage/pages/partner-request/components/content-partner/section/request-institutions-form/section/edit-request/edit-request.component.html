@@ -20,10 +20,17 @@
     <div class="admin-form__grid">
       <div class="field">
         <label>Type<span class="tag-req">Required</span></label>
+        <!--
+          `appendTo="body"`: el panel se dibuja fuera del diálogo. Dentro, el
+          contenido del modal tiene scroll propio y le recorta la lista — el
+          mismo defecto que se comía las opciones del paginador (16-sep-2026).
+        -->
         <p-dropdown
           [options]="type"
           [(ngModel)]="selectedType"
           optionLabel="name"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
           (onChange)="selectType($event.value)"
           formControlName="institutionHelpOne"></p-dropdown>
 
@@ -33,6 +40,8 @@
             [options]="subTypeOne"
             [(ngModel)]="selectSubtypeOne"
             optionLabel="name"
+            appendTo="body"
+            panelStyleClass="admin-dropdown-panel"
             (onChange)="selectSubType($event.value)"
             formControlName="institutionHelpTwo"></p-dropdown>
         </ng-container>
@@ -43,13 +52,22 @@
             [options]="subTypeTwo"
             [(ngModel)]="selectSubTypeTwo"
             optionLabel="name"
+            appendTo="body"
+            panelStyleClass="admin-dropdown-panel"
             formControlName="institutionTypeCode"></p-dropdown>
         </ng-container>
       </div>
 
       <div class="field">
         <label>Country<span class="tag-req">Required</span></label>
-        <p-dropdown [options]="cities" [(ngModel)]="selectedCity" optionLabel="name" formControlName="hqCountryIso"></p-dropdown>
+        <!-- El más largo de todos: 249 países dentro de un modal con scroll. -->
+        <p-dropdown
+          [options]="cities"
+          [(ngModel)]="selectedCity"
+          optionLabel="name"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          formControlName="hqCountryIso"></p-dropdown>
       </div>
     </div>
 
