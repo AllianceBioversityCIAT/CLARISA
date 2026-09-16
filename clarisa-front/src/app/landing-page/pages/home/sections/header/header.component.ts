@@ -31,13 +31,26 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
 
   /**
    * Tramo visible del relato. 0-2 ocurren sobre la tierra mientras la yuca
-   * crece; 3 y 4 ya son bajo tierra. La plantilla usa `step >= 3` para decidir
-   * cuál de los dos vídeos se ve.
+   * crece; del 3 al 7 ya es bajo tierra, y son los bloques que la home cuenta
+   * hoy más abajo. La plantilla usa `step >= 3` para decidir cuál de los dos
+   * vídeos se ve.
    */
   step = 0;
 
-  /** Punto del recorrido donde termina el crecimiento y empieza el descenso. */
-  private readonly SPLIT = 0.55;
+  /**
+   * Dónde empieza cada tramo, en fracción del carril. Los tres primeros caben
+   * dentro del crecimiento (hasta SPLIT) y los cinco restantes se reparten el
+   * descenso, que es el doble de largo.
+   */
+  private readonly CUTS = [0, 0.14, 0.25, 0.36, 0.49, 0.62, 0.75, 0.88];
+
+  /**
+   * Punto del recorrido donde termina el crecimiento y empieza el descenso.
+   * No es la mitad: el clip de arriba dura 10 s y el de abajo 20 s, así que el
+   * reparto sigue esa proporción y ninguno de los dos va al doble de velocidad
+   * que el otro.
+   */
+  private readonly SPLIT = 0.36;
 
   private ticking = false;
   /**
@@ -46,9 +59,7 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
    * vale para cualquier render fuera de un navegador real.
    */
   private readonly reduceMotion =
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   private readonly onScroll = () => {
     if (this.ticking) return;
@@ -97,9 +108,14 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
     this.seek(this.video, Math.min(1, p / this.SPLIT));
     this.seek(this.descent, Math.max(0, (p - this.SPLIT) / (1 - this.SPLIT)));
 
-    // Cinco tramos de texto. Los tres primeros caen dentro del crecimiento y los
-    // dos últimos dentro del descenso, alineados con el corte de `SPLIT`.
-    const next = p < 0.2 ? 0 : p < 0.38 ? 1 : p < this.SPLIT ? 2 : p < 0.78 ? 3 : 4;
+    // El tramo es el último corte que ya hemos pasado.
+    let next = 0;
+    for (let i = this.CUTS.length - 1; i >= 0; i--) {
+      if (p >= this.CUTS[i]) {
+        next = i;
+        break;
+      }
+    }
     if (next !== this.step) {
       this.zone.run(() => (this.step = next));
     }
