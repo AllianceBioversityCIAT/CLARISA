@@ -57,6 +57,17 @@
   line-height: 1.5;
 }
 
+/* Un `code` dentro del apoyo: el tema del panel lo pinta rosa sobre rosa, que en
+   una línea de ayuda parece un error marcado. Aquí es solo un término literal. */
+.admin-page__hint code {
+  padding: 1px 6px;
+  border: 1px solid var(--cl-line);
+  border-radius: 5px;
+  background: var(--cl-surface-2);
+  color: var(--cl-ink-2);
+  font-size: 12px;
+}
+
 /* Lo que va a la derecha del título: pestañas, acciones o los dos. */
 .admin-page__aside {
   display: flex;

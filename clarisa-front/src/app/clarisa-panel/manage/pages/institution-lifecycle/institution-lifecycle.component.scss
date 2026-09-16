@@ -1,44 +1,46 @@
 @import '../microservices-admin/components/shared-panel';
 
-// El hueco de la barra fija lo reserva el armazón (`manage.component.scss`).
+// Ya no hay barra superior en el panel, así que no hay hueco que descontar.
 .lifecycle-layout {
-  min-height: calc(100vh - var(--cl-admin-header));
+  min-height: 100vh;
   background: var(--cl-surface-2);
   box-sizing: border-box;
 }
 
 .lifecycle-main {
-  padding: 1.5rem 2rem 2rem;
+  padding: 24px 28px 32px;
 }
 
-.table-caption {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.35rem 0.25rem;
+/* Esta tabla declara ocho columnas y la de nombre es la única sin ancho, así que
+   es la que paga cuando no cabe: con la maquetación fija de `.admin-table`, en
+   una ventana de 1440px se quedaba en cero y el nombre se apilaba letra a letra.
+   Con este mínimo la tarjeta se desplaza de lado —que es lo que se espera de una
+   tabla ancha— en vez de aplastar una columna. Las siete declaradas suman 816px,
+   así que en 1440 el nombre se queda con ~290 y la columna de acciones se ve sin
+   desplazar nada; por debajo de 1040 la tarjeta empieza a moverse de lado. */
+:host ::ng-deep .admin-table .p-datatable-table {
+  min-width: 1040px;
 }
 
-.search-input {
-  border-radius: 50px;
-  width: 26rem;
-  max-width: 100%;
-}
-
+// El encabezado, el buscador y el recuento salen de global (`_admin-page`,
+// `_admin-table`): aquí solo queda lo que es de esta pantalla.
+//
+// Los grises de esta hoja eran los de una plantilla ajena —#94a3b8 azulado,
+// #334155—, que sobre el verde del panel se veían morados. Ahora son tokens.
 .cell-meta {
   display: block;
-  font-size: 0.72rem;
-  color: #94a3b8;
-  margin-top: 0.15rem;
+  font-size: 11.5px;
+  color: var(--cl-ink-3);
+  margin-top: 2px;
 }
 
 .cell-muted {
-  color: #94a3b8;
+  color: var(--cl-ink-3);
 }
 
 .lineage-cell {
-  font-size: 0.82rem;
-  color: #334155;
+  font-size: 13px;
+  color: var(--cl-ink-2);
 }
 
 .field-grid {
@@ -61,13 +63,13 @@
 .form-note {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  margin: 0 0 1rem;
+  gap: 7px;
+  margin: 0 0 16px;
   border-radius: 8px;
-  background: #f8fafc;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
-  color: #64748b;
+  background: var(--cl-surface-2);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--cl-ink-3);
 }
 
 :host ::ng-deep .admin-form p-calendar {
