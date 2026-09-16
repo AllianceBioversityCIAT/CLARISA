@@ -26,31 +26,57 @@ import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, ViewChild } fr
 })
 export class HeaderComponent implements AfterViewInit, OnDestroy {
   @ViewChild('rail') rail!: ElementRef<HTMLElement>;
+  @ViewChild('story') story!: ElementRef<HTMLElement>;
   @ViewChild('video') video!: ElementRef<HTMLVideoElement>;
   @ViewChild('descent') descent!: ElementRef<HTMLVideoElement>;
 
   /**
-   * Tramo visible del relato. 0-2 ocurren sobre la tierra mientras la yuca
-   * crece; del 3 al 7 ya es bajo tierra, y son los bloques que la home cuenta
-   * hoy más abajo. La plantilla usa `step >= 3` para decidir cuál de los dos
-   * vídeos se ve.
+   * Tramo visible del hero. Solo existen tres, y solo arriba: bajo tierra no hay
+   * tramos porque el scroll vuelve a ser normal.
    */
   step = 0;
 
-  /**
-   * Dónde empieza cada tramo, en fracción del carril. Los tres primeros caben
-   * dentro del crecimiento (hasta SPLIT) y los cinco restantes se reparten el
-   * descenso, que es el doble de largo.
-   */
-  private readonly CUTS = [0, 0.14, 0.25, 0.36, 0.49, 0.62, 0.75, 0.88];
+  /** Dónde empieza cada tramo del hero, en fracción del carril. */
+  private readonly CUTS = [0, 0.34, 0.68];
 
   /**
-   * Punto del recorrido donde termina el crecimiento y empieza el descenso.
-   * No es la mitad: el clip de arriba dura 10 s y el de abajo 20 s, así que el
-   * reparto sigue esa proporción y ninguno de los dos va al doble de velocidad
-   * que el otro.
+   * El contenido que antes vivía en `app-indicators`, `app-publications` y
+   * `app-partners-collaborators`, traído aquí porque ahora se cuenta durante el
+   * descenso. 🛑 Las cifras siguen escritas a mano, como estaban: sin un endpoint
+   * de conteo no hay forma de tenerlas vivas, y eso es trabajo de back.
    */
-  private readonly SPLIT = 0.36;
+  /** Los endpoints que se listan bajo tierra. */
+  readonly endpoints = ['/institutions', '/projects', '/countries', '/workpackages', '/initiatives', '/glossary'];
+
+  readonly indicators = [
+    { value: '10,630', label: 'Institutions' },
+    { value: '1,210', label: 'Projects' },
+    { value: '344', label: 'Work packages' },
+    { value: '248', label: 'Countries' },
+    { value: '43', label: 'Initiatives' },
+    { value: '41', label: 'Control lists' }
+  ];
+
+  readonly publications = [
+    {
+      date: 'April 2020',
+      title: 'CGIAR Level Agricultural Results Interoperable System Architecture (CLARISA) factsheet',
+      cover: 'assets/images/documentOne.png'
+    },
+    { date: 'February 2021', title: 'CLARISA Institution request protocol', cover: 'assets/images/documentTwo.png' },
+    {
+      date: 'March 2022',
+      title: 'Exploring CGIAR Level Agricultural Results Interoperable System Architecture (CLARISA)',
+      cover: 'assets/images/documentTree.png'
+    }
+  ];
+
+  readonly partners = [
+    { name: 'CGIAR', logo: 'assets/images/CGIAR.png', url: 'https://www.cgiar.org/' },
+    { name: 'Alliance of Bioversity International and CIAT', logo: 'assets/images/logociat.png', url: 'https://alliancebioversityciat.org/' },
+    { name: 'ICARDA', logo: 'assets/images/ICARDA.png', url: 'https://icarda.org' },
+    { name: 'CIP', logo: 'assets/images/CIP.png', url: 'https://cipotato.org/' }
+  ];
 
   private ticking = false;
   /**
@@ -101,14 +127,21 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
     if (travel <= 0) return;
 
     const p = Math.min(1, Math.max(0, -rail.getBoundingClientRect().top / travel));
+    this.seek(this.video, p);
 
-    // Cada clip recorre su mitad del carril de principio a fin. El segundo se
-    // deja ya en su primer fotograma mientras aún se ve el primero, para que al
-    // aparecer no haya un parpadeo en negro.
-    this.seek(this.video, Math.min(1, p / this.SPLIT));
-    this.seek(this.descent, Math.max(0, (p - this.SPLIT) / (1 - this.SPLIT)));
+    // Bajo tierra el vídeo va pegado al fondo y avanza con lo que se lleve
+    // recorrido de la sección, pero el scroll es el normal: nada se queda
+    // atrapado esperando a que termine el clip.
+    const story = this.story?.nativeElement;
+    if (story) {
+      const run = story.offsetHeight - window.innerHeight;
+      if (run > 0) {
+        const q = Math.min(1, Math.max(0, -story.getBoundingClientRect().top / run));
+        this.seek(this.descent, q);
+      }
+    }
 
-    // El tramo es el último corte que ya hemos pasado.
+    // El tramo del hero es el último corte que ya hemos pasado.
     let next = 0;
     for (let i = this.CUTS.length - 1; i >= 0; i--) {
       if (p >= this.CUTS[i]) {
