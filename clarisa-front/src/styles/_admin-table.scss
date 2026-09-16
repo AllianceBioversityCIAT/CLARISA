@@ -35,8 +35,13 @@
   /* Una sombra de un solo píxel: levanta la tarjeta del fondo lo justo para que
      se lea como una pieza, sin el halo de las sombras de plantilla. */
   box-shadow: 0 1px 2px rgba(16, 36, 28, 0.05);
-  /* Recorta las esquinas de la cabecera y del paginador contra el radio. */
-  overflow: hidden;
+  /* 🛑 NADA de `overflow: hidden` aquí. Recortaba las esquinas de un golpe, pero
+     el selector de «filas por página» es un desplegable que PrimeNG dibuja DENTRO
+     del paginador, o sea dentro de esta caja: al abrirlo hacia abajo, el recorte
+     se comía todas las opciones menos la primera. Las tres estaban en el DOM;
+     ninguna se veía (Yeck, 16-sep-2026). Las esquinas se recortan pieza a pieza
+     —barra de filtros, primera fila de la cabecera y paginador—, que es lo único
+     que hay en los bordes de la tarjeta. */
 
   /* `styleClass` aterriza en el envoltorio, así que el modo de maquetación hay
      que ponerlo en la tabla para que los anchos de los `th` se respeten. */
@@ -141,16 +146,48 @@
     padding: 12px 14px 10px;
     background: var(--cl-surface);
     border-width: 0;
+    border-radius: var(--cl-radius-card) var(--cl-radius-card) 0 0;
+  }
+
+  /* Las dos esquinas de arriba las redondea la primera fila de la cabecera...
+     salvo que haya barra de filtros encima, que entonces le toca a ella y estas
+     vuelven a ser rectas. */
+  .p-datatable-wrapper thead > tr:first-child > th:first-child {
+    border-top-left-radius: var(--cl-radius-card);
+  }
+
+  .p-datatable-wrapper thead > tr:first-child > th:last-child {
+    border-top-right-radius: var(--cl-radius-card);
+  }
+
+  .p-datatable-header + .p-datatable-wrapper thead > tr:first-child > th {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
   }
 
   /* ---- paginador ---------------------------------------------------------- */
 
+  /* Y las de abajo, el paginador: es la última pieza de la tarjeta. */
   .p-paginator {
     padding: 8px 12px;
     background: var(--cl-surface);
     border-width: 1px 0 0 0;
     border-color: var(--cl-line);
+    border-radius: 0 0 var(--cl-radius-card) var(--cl-radius-card);
     font-size: 13px;
+  }
+
+  /* El selector de filas por página, a la altura del resto de controles: el tema
+     lo deja en 48px, catorce más que cualquier otro control de la pantalla. */
+  .p-paginator .p-dropdown {
+    height: 34px;
+    min-width: 72px;
+    align-items: center;
+  }
+
+  /* Y su desplegable, por encima de todo lo que haya alrededor. */
+  .p-paginator .p-dropdown-panel {
+    z-index: 1200;
   }
 
   .p-paginator .p-paginator-current {
