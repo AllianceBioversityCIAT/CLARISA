@@ -26,6 +26,10 @@
   /* Not `min-height`: a fixed box has to be capped at the viewport for
      `overflow-y` to have anything to scroll when the list outgrows the screen. */
   height: calc(100vh - var(--admin-header));
+  /* Columna flexible para que la salida del final se empuje abajo con
+     `margin-top: auto`. El `overflow-y` sigue funcionando igual. */
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0 0 24px;
@@ -179,5 +183,36 @@
 
   .admin-sidebar__list a.is-active::before {
     content: none;
+  }
+}
+
+/* La salida va al final y separada: no compite con la navegación del panel,
+   pero está donde se la busca cuando se quiere volver. */
+:host .admin-sidebar__back {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  border-top: 1px solid var(--cl-line);
+  /* El widget de chat vive fijo en la esquina inferior izquierda y tapaba el
+     texto; el relleno de abajo lo deja por encima de él. */
+  padding: 18px 20px 76px;
+  color: var(--cl-ink-3);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+    text-decoration: none;
+  }
+
+  i {
+    font-size: 12px;
   }
 }
