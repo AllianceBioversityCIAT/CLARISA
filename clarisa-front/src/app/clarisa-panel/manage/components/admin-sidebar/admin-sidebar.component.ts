@@ -96,6 +96,10 @@ export class AdminSidebarComponent {
     this.searchBox?.nativeElement.select();
   }
 
+  onLogOut(): void {
+    this.authService.logout();
+  }
+
   clear(): void {
     this.query = '';
     this.searchBox?.nativeElement.focus();

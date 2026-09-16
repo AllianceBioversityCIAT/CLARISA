@@ -34,25 +34,15 @@
   --cl-radius-control: 8px;
   --cl-shadow-card: 0 28px 60px -14px rgba(0, 0, 0, 0.62), 0 4px 14px rgba(0, 0, 0, 0.28);
 
-  /* Layout del panel de administración. Alto de la barra superior, borde
-     incluido: lo leen la barra, el sidebar (que la esquiva) y el hueco superior
-     de cada pantalla. Estaba escrito a mano en cinco archivos con tres valores
-     distintos (72, 74, 75), que es lo que abría una franja vacía entre la barra
-     y el contenido. Se cambia aquí y se mueve todo junto. */
+  /* Layout del panel de administración. */
+  /* Alto del bloque de marca de la columna. Fue el de la barra superior, que ya
+     no existe: sus dos botones y el nombre de la sección se fueron al pie del
+     sidebar y la franja entera sobraba. */
   --cl-admin-header: 60px;
   /* 264 y no 248: con el icono delante, la entrada más larga del panel
      —«Microservices & API keys»— se cortaba con puntos suspensivos, y un nombre
      de sección truncado es lo primero que delata una columna estrecha. */
   --cl-admin-sidebar: 264px;
-  /* La barra superior comparte el negro de la columna: dos oscuros distintos
-     pegados se leen como un error de pintado. Empezó siendo la tinta verde de la
-     barra pública sobre el recorrido de la home; el neutro la reemplazó al pedir
-     Yeck un panel «premium, más limpio» (16-sep-2026). */
-  --cl-admin-bar:        var(--cl-admin-nav);
-  --cl-admin-bar-ink:    var(--cl-admin-nav-ink);
-  --cl-admin-bar-muted:  var(--cl-admin-nav-muted);
-  --cl-admin-bar-line:   var(--cl-admin-nav-line);
-
   /* El armazón del panel —columna y barra— es negro NEUTRO, sin verde en las
      superficies: el menta sobre negro se veía «galáctico» (Yeck, 16-sep-2026,
      pidiendo algo «premium, tipo Vercel, más limpio»). El color de marca queda
