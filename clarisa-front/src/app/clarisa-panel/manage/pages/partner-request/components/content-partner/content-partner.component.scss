@@ -1,46 +1,20 @@
 /**
- * Pantalla de solicitudes de institución. Mismo esqueleto que el glosario:
- * fondo `--cl-surface-2`, título y apoyo arriba, selector de sección a la
- * derecha y el contenido a lo ancho de la columna.
+ * Pantalla de solicitudes de institución: fondo `--cl-surface-2`, encabezado
+ * arriba y el contenido a lo ancho de la columna.
  *
- * El hueco de la barra superior NO se declara aquí: lo reserva el armazón
- * (`manage.component.scss`) para todas las pantallas del panel a la vez.
+ * El encabezado ya no se dibuja aquí: lo pone `.admin-page`, declarado una vez
+ * en `src/styles/_admin-page.scss` para que todas las pantallas del panel lo
+ * escriban igual. Este archivo se quedó con lo que sí es de esta pantalla.
+ *
+ * Ya no hay barra superior en el panel, así que tampoco hay hueco que
+ * descontar de la altura.
  */
 
 .partner-layout {
   padding: 24px 28px 32px;
-  min-height: calc(100vh - var(--cl-admin-header));
+  min-height: 100vh;
   background: var(--cl-surface-2);
   box-sizing: border-box;
-}
-
-.partner-topbar {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px 24px;
-  margin-bottom: 20px;
-}
-
-.partner-topbar__head {
-  min-width: 0;
-}
-
-.partner-topbar__title {
-  margin: 0 0 4px;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--cl-ink);
-}
-
-.partner-topbar__hint {
-  margin: 0;
-  max-width: 62ch;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--cl-ink-3);
 }
 
 .partner-main {
@@ -86,11 +60,5 @@
 @media (max-width: 991px) {
   .partner-layout {
     padding: 20px 16px 28px;
-  }
-}
-
-@media (max-width: 600px) {
-  .partner-topbar {
-    align-items: stretch;
   }
 }

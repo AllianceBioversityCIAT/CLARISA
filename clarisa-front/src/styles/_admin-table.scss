@@ -32,6 +32,9 @@
   border: 1px solid var(--cl-line);
   border-radius: var(--cl-radius-card);
   background: var(--cl-surface);
+  /* Una sombra de un solo píxel: levanta la tarjeta del fondo lo justo para que
+     se lea como una pieza, sin el halo de las sombras de plantilla. */
+  box-shadow: 0 1px 2px rgba(16, 36, 28, 0.05);
   /* Recorta las esquinas de la cabecera y del paginador contra el radio. */
   overflow: hidden;
 
@@ -55,30 +58,38 @@
 
   /* ---- cabecera ---------------------------------------------------------- */
 
+  /* La cabecera va en el carbón de la columna de navegación, no en un gris que
+     se confunde con la primera fila. Dos motivos: la tabla deja de flotar como
+     una pieza de otra aplicación y se ata a la columna —«esa tabla no le da
+     honor al sidebar», Yeck, 16-sep-2026—, y la línea de títulos se separa de
+     los datos sin necesidad de rejilla. El texto claro sobre el carbón mide
+     12,35, muy por encima del 4,5 exigido; la cabecera lima que había antes del
+     rediseño medía 3,0. */
   .p-datatable-thead > tr > th {
     padding: 11px 14px;
-    background: var(--cl-surface-2);
-    color: var(--cl-ink-3);
+    background: var(--cl-admin-nav);
+    color: #d7d7dc;
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     line-height: 1.3;
     white-space: nowrap;
-    border-width: 0 0 1px 0;
-    border-color: var(--cl-line);
+    border-width: 0;
   }
 
-  /* Ordenable: el icono es apoyo, no un segundo título. Se enciende en la marca
-     solo cuando esa columna manda el orden. */
+  /* Ordenable: el icono es apoyo, no un segundo título. Se enciende en el menta
+     —el mismo acento que marca la sección abierta en la columna— solo cuando esa
+     columna manda el orden. */
   .p-datatable-thead > tr > th.p-sortable-column:hover {
-    background: var(--cl-brand-soft);
-    color: var(--cl-brand-deeper);
+    background: #232327;
+    color: #ffffff;
   }
 
-  .p-datatable-thead > tr > th.p-highlight {
-    background: var(--cl-brand-soft);
-    color: var(--cl-brand-deeper);
+  .p-datatable-thead > tr > th.p-highlight,
+  .p-datatable-thead > tr > th.p-highlight:hover {
+    background: #232327;
+    color: var(--cl-admin-nav-accent);
   }
 
   .p-sortable-column-icon {
@@ -96,7 +107,7 @@
 
   .p-datatable-thead > tr > th.p-sortable-column:focus {
     box-shadow: none;
-    outline: 2px solid var(--cl-brand-ring);
+    outline: 2px solid var(--cl-admin-nav-accent);
     outline-offset: -2px;
   }
 
@@ -125,11 +136,11 @@
 
   /* ---- barra superior (caption) ------------------------------------------ */
 
+  /* Sin raya inferior: debajo empieza la cabecera en carbón, que ya separa. */
   .p-datatable-header {
-    padding: 12px 14px;
+    padding: 12px 14px 10px;
     background: var(--cl-surface);
-    border-width: 0 0 1px 0;
-    border-color: var(--cl-line);
+    border-width: 0;
   }
 
   /* ---- paginador ---------------------------------------------------------- */
@@ -158,10 +169,12 @@
     color: var(--cl-ink-2);
   }
 
+  /* La página abierta, en el carbón de la cabecera: el paginador cierra la
+     tarjeta con el mismo color con el que la abre. */
   .p-paginator .p-paginator-pages .p-paginator-page.p-highlight {
-    background: var(--cl-brand-soft);
-    color: var(--cl-brand-deeper);
-    font-weight: 700;
+    background: var(--cl-admin-nav);
+    color: #ffffff;
+    font-weight: 600;
   }
 
   /* ---- vacío y carga ------------------------------------------------------ */
@@ -239,10 +252,17 @@
 }
 
 /* Cuenta de resultados: se empuja al extremo derecho de la barra. */
+/* El recuento, como pastilla: suelto al borde derecho se leía como una nota al
+   pie de la tabla, y es el dato que dice cuánto hay delante. */
 .admin-table-toolbar__count {
   margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--cl-surface-2);
+  border: 1px solid var(--cl-line);
   font-size: 12px;
-  color: var(--cl-ink-3);
+  font-weight: 600;
+  color: var(--cl-ink-2);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }

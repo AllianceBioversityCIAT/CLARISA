@@ -9,13 +9,19 @@
   selector de sección `.admin-tabs` (global) y el contenido debajo, a lo ancho.
 -->
 <div class="partner-layout">
-  <header class="partner-topbar">
-    <div class="partner-topbar__head">
-      <h2 class="partner-topbar__title">Institution requests</h2>
-      <p class="partner-topbar__hint">Look up the institutions already registered in CLARISA, request a new one and resolve the requests waiting for review.</p>
+  <!--
+    `admin-page` es el encabezado de pantalla del panel, declarado una vez en
+    global: línea de grupo en verde, título en el carbón de la columna y apoyo
+    debajo. Antes cada pantalla se escribía el suyo y ninguna coincidía.
+  -->
+  <header class="admin-page">
+    <div class="admin-page__head">
+      <span class="admin-page__eyebrow">Manage</span>
+      <h1 class="admin-page__title">Institution requests</h1>
+      <p class="admin-page__hint">Look up the institutions already registered in CLARISA, request a new one and resolve the requests waiting for review.</p>
     </div>
 
-    <nav class="admin-tabs" role="tablist" aria-label="Institution request sections">
+    <nav class="admin-tabs admin-page__aside" role="tablist" aria-label="Institution request sections">
       <button
         *ngFor="let tab of visibleTabs"
         type="button"
