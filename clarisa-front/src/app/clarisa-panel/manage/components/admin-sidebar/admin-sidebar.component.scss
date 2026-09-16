@@ -1,43 +1,42 @@
-/**
- * «S3 · agrupada por secciones». Colour comes from the tokens in `styles.scss`.
- *
- * Sizes in px: the theme sets `html { font-size: 62.5% }`, so 1rem is 10px here.
- */
+//
+// «S3 · agrupada por secciones». Colour comes from the tokens in `styles.scss`.
+//
+// Sizes in px: the theme sets `html { font-size: 62.5% }`, so 1rem is 10px here.
 
 :host {
   display: block;
 }
 
-/* The panel header is `position: fixed` and 75px tall, so a sidebar starting at
-   0 has its first 75px — the whole brand block — hidden underneath it. The offset
-   is declared once here and reused by the fixed top.
-
-   `fixed` rather than `sticky`: the navigation stays put while a long table
-   scrolls, and it no longer needs the content column to be tall enough to hold
-   it. Being out of flow, the column next to it gets a matching `margin-left` in
-   `manage.component.scss` — the two numbers move together. */
+// The panel header is `position: fixed` and 75px tall, so a sidebar starting at
+// 0 has its first 75px — the whole brand block — hidden underneath it. The offset
+// is declared once here and reused by the fixed top.
+//
+// `fixed` rather than `sticky`: the navigation stays put while a long table
+// scrolls, and it no longer needs the content column to be tall enough to hold
+// it. Being out of flow, the column next to it gets a matching `margin-left` in
+// `manage.component.scss` — the two numbers move together.
 .admin-sidebar {
   position: fixed;
-  /* Arriba del todo, no debajo de la barra. El sidebar es la columna del panel y
-     su marca es la identidad de la pantalla: la esquina superior izquierda le
-     pertenece. Antes empezaba bajo una barra de 75px cuya mitad izquierda estaba
-     vacía —«se ve pelado», Yeck, 16-sep-2026—, y la barra, que ya no lleva marca,
-     arranca ahora donde termina esta columna. */
+  // /* Arriba del todo, no debajo de la barra. El sidebar es la columna del panel y
+  // su marca es la identidad de la pantalla: la esquina superior izquierda le
+  // pertenece. Antes empezaba bajo una barra de 75px cuya mitad izquierda estaba
+  // vacía —«se ve pelado», Yeck, 16-sep-2026—, y la barra, que ya no lleva marca,
+  // arranca ahora donde termina esta columna.
   top: 0;
   left: 0;
-  /* Por encima de la barra (z-index 9 del tema): la columna cruza por delante y
-     el ángulo superior izquierdo es suyo. */
+  // /* Por encima de la barra (z-index 9 del tema): la columna cruza por delante y
+  // el ángulo superior izquierdo es suyo.
   z-index: 10;
   width: var(--cl-admin-sidebar);
-  /* Not `min-height`: a fixed box has to be capped at the viewport for
-     `overflow-y` to have anything to scroll when the list outgrows the screen. */
+  // /* Not `min-height`: a fixed box has to be capped at the viewport for
+  // `overflow-y` to have anything to scroll when the list outgrows the screen.
   height: 100vh;
-  /* La costilla de marca de «N4», ahora de arriba abajo. Como borde y no como
-     pseudo-elemento para que no se desplace con el contenido al hacer scroll. */
+  // /* La costilla de marca de «N4», ahora de arriba abajo. Como borde y no como
+  // pseudo-elemento para que no se desplace con el contenido al hacer scroll.
   border-left: var(--cl-admin-rib) solid var(--cl-brand-deep);
   box-sizing: border-box;
-  /* Columna flexible para que la salida del final se empuje abajo con
-     `margin-top: auto`. El `overflow-y` sigue funcionando igual. */
+  // /* Columna flexible para que la salida del final se empuje abajo con
+  // `margin-top: auto`. El `overflow-y` sigue funcionando igual.
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -47,11 +46,11 @@
   border-right: 1px solid var(--cl-line);
 }
 
-/* The brand block is the heading of the panel, so it carries more weight than the
-   entries and a rule of its own that closes it off from the navigation. */
-/* Exactamente el alto de la barra superior, borde incluido: así su línea
-   inferior y la de la barra son la misma raya y la cabecera del panel se lee
-   como una sola pieza en vez de dos escalones. */
+// The brand block is the heading of the panel, so it carries more weight than the
+// entries and a rule of its own that closes it off from the navigation.
+// Exactamente el alto de la barra superior, borde incluido: así su línea
+// inferior y la de la barra son la misma raya y la cabecera del panel se lee
+// como una sola pieza en vez de dos escalones.
 .admin-sidebar__brand {
   display: flex;
   flex: 0 0 auto;
@@ -85,20 +84,20 @@
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  /* 7.16 over white. */
+  // /* 7.16 over white.
   color: var(--cl-brand-deep);
 }
 
-/* A hairline, not just air: with three groups stacked, whitespace alone left the
-   headings floating and the column read as one long pile again. */
+// A hairline, not just air: with three groups stacked, whitespace alone left the
+// headings floating and the column read as one long pile again.
 .admin-sidebar__group + .admin-sidebar__group {
   margin-top: 18px;
   padding-top: 18px;
   border-top: 1px solid var(--cl-line);
 }
 
-/* The group heading is a label, not a link: small, quiet and never clickable, so
-   it never competes with the entries under it. */
+// The group heading is a label, not a link: small, quiet and never clickable, so
+// it never competes with the entries under it.
 .admin-sidebar__title {
   margin: 0 0 6px;
   padding: 0 18px;
@@ -115,8 +114,8 @@
   list-style: none;
 }
 
-/* The entries run to the left edge of the screen so the active marker can sit on
-   it; the right side keeps an inset, which is what still reads as a pill. */
+// The entries run to the left edge of the screen so the active marker can sit on
+// it; the right side keeps an inset, which is what still reads as a pill.
 .admin-sidebar__list a {
   position: relative;
   display: flex;
@@ -141,7 +140,7 @@
   text-decoration: none;
 }
 
-/* The soft pill, the same one the public bar uses for the current section: 7.80. */
+// The soft pill, the same one the public bar uses for the current section: 7.80.
 .admin-sidebar__list a.is-active,
 .admin-sidebar__list a.is-active:hover,
 .admin-sidebar__list a.is-active:focus {
@@ -149,8 +148,8 @@
   background: var(--cl-brand-soft);
 }
 
-/* The pill alone is easy to lose against a white column. The bar anchors the
-   current entry to the edge of the screen, where the eye returns to it. */
+// The pill alone is easy to lose against a white column. The bar anchors the
+// current entry to the edge of the screen, where the eye returns to it.
 .admin-sidebar__list a.is-active::before {
   content: '';
   position: absolute;
@@ -162,9 +161,9 @@
 }
 
 @media (max-width: 900px) {
-  /* Narrow screens have no room for a column, so the navigation goes back to a
-     row under the header — in flow, which is why the content column drops its
-     `margin-left` at this same breakpoint. */
+  // /* Narrow screens have no room for a column, so the navigation goes back to a
+  // row under the header — in flow, which is why the content column drops its
+  // `margin-left` at this same breakpoint.
   .admin-sidebar {
     position: static;
     width: 100%;
@@ -177,7 +176,7 @@
     border-bottom: 1px solid var(--cl-line);
   }
 
-  /* En fila, la marca ya no tiene que medir lo que la barra. */
+  // /* En fila, la marca ya no tiene que medir lo que la barra.
   .admin-sidebar__brand {
     height: auto;
     padding: 14px 10px;
@@ -195,8 +194,8 @@
     gap: 4px;
   }
 
-  /* Laid out in a row there is no screen edge to anchor to, so the entries go
-     back to a rounded pill and the marker steps aside. */
+  // /* Laid out in a row there is no screen edge to anchor to, so the entries go
+  // back to a rounded pill and the marker steps aside.
   .admin-sidebar__list a {
     height: 36px;
     margin-right: 0;
@@ -209,16 +208,16 @@
   }
 }
 
-/* La salida va al final y separada: no compite con la navegación del panel,
-   pero está donde se la busca cuando se quiere volver. */
+// La salida va al final y separada: no compite con la navegación del panel,
+// pero está donde se la busca cuando se quiere volver.
 :host .admin-sidebar__back {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: auto;
   border-top: 1px solid var(--cl-line);
-  /* El widget de chat vive fijo en la esquina inferior izquierda y tapaba el
-     texto; el relleno de abajo lo deja por encima de él. */
+  // /* El widget de chat vive fijo en la esquina inferior izquierda y tapaba el
+  // texto; el relleno de abajo lo deja por encima de él.
   padding: 18px 20px 76px;
   color: var(--cl-ink-3);
   font-size: 14px;
