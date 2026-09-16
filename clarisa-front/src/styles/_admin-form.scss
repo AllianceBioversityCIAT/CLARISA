@@ -1,0 +1,353 @@
+/**
+ * `.admin-form` — EL formulario del panel. Una sola definición, como la tabla.
+ *
+ * Reúne lo que estaba repartido: las etiquetas y las marcas de obligatorio vivían
+ * en `microservices-admin/components/_shared-panel.scss` (y solo las veían las
+ * tres pantallas que importaban ese archivo), mientras las solicitudes de
+ * institución se dibujaban con `style="width: 50%"` a mano en cada fila, campos
+ * de alturas distintas y un botón naranja de PrimeNG «warning» como acción
+ * principal.
+ *
+ * Aquí va SOLO la piel: rejilla, etiquetas, alturas y color. Ni un binding, ni
+ * una validación, ni una regla de negocio.
+ *
+ * Tamaños en px: el tema del panel deja `html { font-size: 16px }`; la landing
+ * usa `62.5%`. En px el formulario mide lo mismo en las dos.
+ */
+
+/* ---- bloque y rejilla ------------------------------------------------------ */
+
+/* Tarjeta blanca sobre el fondo del panel. Lo que antes era un `div` suelto
+   sobre gris. */
+.admin-card {
+  padding: 22px 24px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-card);
+  background: var(--cl-surface);
+}
+
+.admin-card + .admin-card {
+  margin-top: 16px;
+}
+
+/* Un formulario no se estira con la pantalla: un campo de texto de 1.500px se
+   lee peor que uno de 500. La tabla sí ocupa todo el ancho, porque ahí cada
+   píxel es un dato más. */
+.admin-card--form {
+  max-width: 1120px;
+}
+
+.admin-card__title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--cl-ink);
+}
+
+.admin-card__hint {
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cl-ink-3);
+}
+
+/* Nota de ayuda. Antes era una barra gris `rgb(199,199,199)` a lo ancho, que en
+   una pantalla sin más color se leía como un aviso de error. */
+.admin-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--cl-brand-ring);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 13px;
+  line-height: 1.5;
+
+  i {
+    margin-top: 2px;
+    font-size: 14px;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+/* Dos columnas en escritorio, una en cuanto no quepan: el 50% a mano no se
+   entera de que la pantalla se hizo pequeña. */
+.admin-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+
+.admin-form__grid--wide {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+.admin-form__span {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 760px) {
+  .admin-form__grid,
+  .admin-form__grid--wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Barra de acciones: el primario abajo a la derecha, que es donde se busca. */
+.admin-form__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--cl-line);
+}
+
+/* ---- campos ---------------------------------------------------------------- */
+
+.admin-form .field {
+  margin-bottom: 16px;
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cl-ink-2);
+    margin-bottom: 6px;
+  }
+
+  .req {
+    color: var(--cl-error);
+  }
+
+  /* Dice en voz alta qué espera cada campo, en vez de dejar que la ausencia de
+     un asterisco signifique «opcional». */
+  .tag-req,
+  .tag-opt {
+    margin-left: 6px;
+    border-radius: 999px;
+    padding: 1px 7px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
+
+  .tag-req {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .tag-opt {
+    background: var(--cl-surface-2);
+    color: var(--cl-ink-3);
+  }
+
+  .field-hint {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: var(--cl-ink-3);
+  }
+
+  .field-error {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: var(--cl-error);
+  }
+}
+
+/* Una sola altura para todo lo que se pueda escribir o desplegar: los tamaños
+   por defecto de PrimeNG rondan los 46px y dejaban cada fila a una altura. */
+.admin-form {
+  .p-inputtext,
+  .p-dropdown,
+  .p-multiselect {
+    width: 100%;
+    /* `min-height`, no `height`: un multiselect con varias pastillas dentro
+       crece, y fijarle el alto le recorta las de la segunda fila. */
+    min-height: 40px;
+    height: 40px;
+    font-size: 14px;
+    color: var(--cl-ink-2);
+    border: 1px solid var(--cl-line);
+    border-radius: var(--cl-radius-control);
+    box-shadow: none;
+  }
+
+  .p-inputtext {
+    padding: 0 12px;
+  }
+
+  /* El área de texto es la excepción: crece. */
+  textarea.p-inputtext {
+    height: auto;
+    min-height: 96px;
+    padding: 10px 12px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+
+  .p-dropdown,
+  .p-multiselect {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .p-multiselect {
+    height: auto;
+  }
+
+  .p-dropdown .p-dropdown-label,
+  .p-multiselect .p-multiselect-label {
+    padding: 0 0 0 12px;
+    font-size: 14px;
+    line-height: 38px;
+    color: var(--cl-ink-2);
+  }
+
+  .p-dropdown .p-dropdown-label.p-placeholder,
+  .p-multiselect .p-multiselect-label.p-placeholder {
+    color: var(--cl-ink-3);
+  }
+
+  .p-dropdown .p-dropdown-trigger,
+  .p-dropdown .p-dropdown-clear-icon {
+    width: 32px;
+    color: var(--cl-ink-3);
+  }
+
+  .p-inputtext:enabled:hover,
+  .p-dropdown:not(.p-disabled):hover,
+  .p-multiselect:not(.p-disabled):hover {
+    border-color: var(--cl-brand-ring);
+  }
+
+  .p-inputtext:enabled:focus,
+  .p-dropdown:not(.p-disabled).p-focus,
+  .p-multiselect:not(.p-disabled).p-focus {
+    border-color: var(--cl-brand);
+    box-shadow: 0 0 0 2px var(--cl-brand-ring);
+  }
+}
+
+/* ---- botones ---------------------------------------------------------------- */
+
+/* Un solo primario por zona (DESIGN.md § p-button). El resto, contorno o texto.
+   Hasta hoy convivían en la misma pantalla un naranja «warning» como acción
+   principal, un lima `#7ab800` de la paleta vieja y un rojo `#eb5b47` para
+   «Cancel», que no destruye nada. */
+.btn-brand.p-button {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-brand-strong);
+  border-color: var(--cl-brand-strong);
+  color: var(--cl-surface);
+  font-size: 14px;
+  font-weight: 700;
+
+  &:enabled:hover,
+  &:enabled:focus {
+    background: var(--cl-brand-deep);
+    border-color: var(--cl-brand-deep);
+  }
+}
+
+.btn-ghost.p-button {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-line);
+  color: var(--cl-ink-2);
+  font-size: 14px;
+  font-weight: 600;
+
+  &:enabled:hover,
+  &:enabled:focus {
+    background: var(--cl-surface-2);
+    border-color: var(--cl-brand-ring);
+    color: var(--cl-ink);
+  }
+}
+
+/* Destructivo: contorno, no un bloque rojo. Solo se pinta sólido cuando el
+   usuario ya está dentro del diálogo que confirma el rechazo.
+   🛑 No se llama `.btn-danger`: esa clase ya existe en el Bootstrap 3 que el
+   panel carga (`assets/bootstrap/css/bootstrap.css:3344`) y pinta su propio rojo
+   `#dc3545` por encima del contorno. */
+.btn-caution.p-button {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-error);
+  color: var(--cl-error);
+  font-size: 14px;
+  font-weight: 700;
+
+  &:enabled:hover,
+  &:enabled:focus {
+    background: var(--cl-error);
+    border-color: var(--cl-error);
+    color: var(--cl-surface);
+  }
+}
+
+.btn-caution-solid.p-button {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-error);
+  border-color: var(--cl-error);
+  color: var(--cl-surface);
+  font-size: 14px;
+  font-weight: 700;
+
+  &:enabled:hover,
+  &:enabled:focus {
+    background: #8f2013;
+    border-color: #8f2013;
+  }
+}
+
+/* ---- diálogos --------------------------------------------------------------- */
+
+.admin-dialog.p-dialog {
+  border-radius: var(--cl-radius-card);
+  overflow: hidden;
+  box-shadow: 0 24px 60px -18px rgba(16, 36, 28, 0.38);
+
+  .p-dialog-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--cl-line);
+    background: var(--cl-surface);
+    color: var(--cl-ink);
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .p-dialog-content {
+    padding: 22px;
+    color: var(--cl-ink-2);
+    font-size: 14px;
+  }
+
+  .p-dialog-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--cl-line);
+    background: var(--cl-surface);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+}

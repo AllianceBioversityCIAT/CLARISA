@@ -1,9 +1,9 @@
 /**
  * Panel top bar — the same «N4 · blanca con costilla» as the public one.
  *
- * White bar, hairline underneath, a 6px rib of the brand green flush against the
- * left edge, ink links in sentence case, the soft pill on the section you are in
- * and one solid primary at the right. The only difference with
+ * White bar, hairline underneath, ink links in sentence case, the soft pill on the
+ * section you are in and one solid primary at the right. La costilla de 6px sigue
+ * pegada al borde izquierdo de la pantalla, pero la dibuja el sidebar (ver abajo). The only difference with
  * `landing-page/components/navigation-bar` is what that primary does: here it is
  * Logout, there it is Sign in.
  *
@@ -21,9 +21,14 @@
  * `html { font-size: 16px }`, so rem values here are not halved. Everything is
  * written in px so the bar does not change meaning if that root ever moves.
  *
- * Height: 74px plus the hairline = the 75px `app-admin-sidebar` offsets itself by
- * (`--admin-header`). Changing it here without changing it there opens a gap
- * between the bar and the sidebar.
+ * Alto y posición: los dos salen de `--cl-admin-header` y `--cl-admin-sidebar`
+ * (`styles.scss`), que es lo único que hay que tocar para moverlos. La barra ya
+ * no cruza la pantalla entera: **arranca donde termina el sidebar**, porque el
+ * sidebar sube hasta arriba del todo. Antes la barra se quedaba con los primeros
+ * 75px de ancho completo y su mitad izquierda estaba vacía —el logo vive abajo,
+ * en el sidebar—, así que la esquina se leía pelada y la barra, gruesa por nada
+ * (Yeck, 16-sep-2026: «que el panel suba y use el espacio de arriba del nav para
+ * que no se vea pelado, y el navbar muy grueso verticalmente»).
  */
 
 :host {
@@ -34,37 +39,34 @@
 
 :host .app-header {
   /* The theme pads the header 285px on the left at >=992px to clear its own
-     sidebar, which this panel does not use; the brand belongs at the edge. */
+     sidebar, which this panel does not use. */
   padding: 0;
   background: var(--cl-surface);
   border-bottom: 1px solid var(--cl-line);
+  /* La barra empieza a la derecha del sidebar, que ahora ocupa la columna
+     entera. `width: auto` porque el tema le pone `width: 100%` a `.sticky`. */
+  left: var(--cl-admin-sidebar);
+  right: 0;
+  width: auto;
 }
 
-/* The rib. The header is already `position: fixed`, so it is the containing block.
-   Absolute on purpose: the header is a flex container and a static pseudo-element
-   would become a flex item and push the bar to the right. */
-:host .app-header::before {
-  content: '';
-  display: block;
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  background: var(--cl-brand-deep);
-  z-index: 10;
-}
+/* La costilla de marca ya no se dibuja aquí: pasó al borde izquierdo del
+   sidebar, donde recorre toda la altura de la pantalla. Un trozo de 6px de verde
+   de 75px de alto, colgando en una esquina vacía, se leía como un error de
+   pintado y no como la marca. */
 
-/* 24px so the mark lines up with the sidebar's, which sits right underneath. */
+/* 20px de canal: el contenido de las pantallas del panel usa el mismo. */
 :host .main-container {
-  padding-left: 24px;
-  padding-right: 24px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
+/* El borde inferior es parte del alto: 59 + 1 = `--cl-admin-header`. Así la
+   línea de la barra y la que cierra la marca del sidebar son la misma. */
 :host .cl-bar {
   align-items: center;
   gap: 18px;
-  min-height: 74px;
+  min-height: calc(var(--cl-admin-header) - 1px);
 }
 
 /* Con la marca fuera de esta barra —la lleva el sidebar— el orden del DOM dejaba
@@ -285,9 +287,31 @@
   vertical-align: middle;
 }
 
+/* Por debajo de 900px el sidebar vuelve al flujo como una fila bajo la barra
+   (ver `admin-sidebar.component.scss`), así que la barra recupera el ancho
+   completo y con él la costilla en el borde izquierdo. */
+@media (max-width: 900px) {
+  :host .app-header {
+    left: 0;
+    width: 100%;
+  }
+
+  :host .app-header::before {
+    content: '';
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--cl-admin-rib);
+    background: var(--cl-brand-deep);
+    z-index: 10;
+  }
+}
+
 @media (max-width: 991px) {
   :host .main-container {
-    /* The rib takes 6px on the left; the gutter starts after it. */
+    /* La costilla se lleva 6px a la izquierda; el canal empieza después. */
     padding-left: 18px;
     padding-right: 18px;
   }
@@ -300,10 +324,13 @@
     font-size: 16px;
   }
 
-  /* Open, the menu is a full-width sheet pinned under the bar. The theme fixes it
-     at `margin-top: 72px !important`, 3px short of the 75px the bar occupies, so
-     the first row is padded down instead of fighting that `!important`. */
+  /* Abierto, el menú es una hoja de ancho completo anclada bajo la barra. El tema
+     la fija en `margin-top: 72px !important`, que sobre una barra de 60px deja
+     una franja de 12px por la que se ve el contenido pasando por detrás. Es el
+     único `!important` de este archivo y va contra otro `!important` del tema:
+     sin él no hay especificidad que valga (DESIGN.md § reglas de PrimeNG). */
   :host .cl-nav .responsive-navbar .navbar-collapse {
+    margin-top: var(--cl-admin-header) !important;
     padding: 9px 18px 14px;
     background: var(--cl-surface);
     border-bottom: 1px solid var(--cl-line);

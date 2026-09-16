@@ -1,91 +1,67 @@
-<div
-  style="
-    width: 100%;
-    background-color: rgb(199, 199, 199);
-    color: black;
-    border-radius: 20px;
-  "
->
-  <p style="font-size: 14px; padding: 20px">
-    Please enter the instiitution as the legal entity.
+<!--
+  Solo se rehízo la maquetación: cada `formControlName`, cada `[(ngModel)]`,
+  cada `*ngIf` y el `(ngSubmit)` son exactamente los de antes. Lo que cambió es
+  que las anchuras dejaron de escribirse a mano en `style="width: 50%"` —no se
+  enteraban de que la pantalla se hacía pequeña—, los campos comparten altura y
+  la acción principal dejó de ser un botón naranja «warning» de PrimeNG.
+-->
+<div class="admin-note">
+  <i class="pi pi-info-circle" aria-hidden="true"></i>
+  <p>
+    Please enter the institution as the legal entity.
     <br />
-    The name of the institution should be in its language.(e.g. For CIAT)
+    The name of the institution should be in its language (e.g. for CIAT).
   </p>
 </div>
 
-<form [formGroup]="group" (ngSubmit)="onSubmit(group.value)">
-  <div style="margin-top: 50px">
-    <div>
-      <span>Name:<span style="color: red">*</span></span>
-      <input
-        type="text"
-        pInputText
-        style="width: 100%"
-        [required]="true"
-        formControlName="name"
-      />
-    </div>
-    <div
-      style="margin-top: 10px; width: 100%; display: flex; flex-direction: row"
-    >
-      <div style="width: 50%">
-        <span>Type:<span style="color: red">*</span></span>
-        <br />
+<form class="admin-form" [formGroup]="group" (ngSubmit)="onSubmit(group.value)">
+  <div class="admin-card admin-card--form">
+    <div class="admin-form__grid">
+      <div class="field admin-form__span">
+        <label for="new-institution-name">Name<span class="tag-req">Required</span></label>
+        <input id="new-institution-name" type="text" pInputText [required]="true" formControlName="name" />
+      </div>
+
+      <div class="field">
+        <label>Type<span class="tag-req">Required</span></label>
         <p-dropdown
           [options]="type[0]"
           [(ngModel)]="selectedType"
           optionLabel="name"
-          [style]="{ width: '90%' }"
-          placeholder="Select a Type"
+          placeholder="Select a type"
           (onChange)="selectType($event.value)"
           [showClear]="true"
           [required]="true"
-          formControlName="institutionHelpOne"
-        ></p-dropdown>
-        <span *ngIf="isArray(subType) && subType.length > 0">
-          <br />
-          <br />
-          <span style="margin-top: 50px"
-            >Subtype:<span style="color: red">*</span></span
-          >
-          <br />
+          formControlName="institutionHelpOne"></p-dropdown>
+
+        <ng-container *ngIf="isArray(subType) && subType.length > 0">
+          <label class="field-stack">Subtype<span class="tag-req">Required</span></label>
           <p-dropdown
             [options]="subType"
             [(ngModel)]="selectSubtype"
             optionLabel="name"
-            [style]="{ width: '90%' }"
-            placeholder="Select a Type"
+            placeholder="Select a subtype"
             (onChange)="selectSubType($event.value)"
             [showClear]="true"
             [required]="true"
-            formControlName="institutionHelpTwo"
-          ></p-dropdown>
-        </span>
+            formControlName="institutionHelpTwo"></p-dropdown>
+        </ng-container>
 
-        <span
-          *ngIf="isArray(subsType) && subsType.length > 0"
-          style="margin-top: 30px"
-        >
-          <br />
-          <br />
-          <span>Subtype:<span style="color: red">*</span></span>
-          <br />
+        <ng-container *ngIf="isArray(subsType) && subsType.length > 0">
+          <label class="field-stack">Subtype<span class="tag-req">Required</span></label>
           <p-dropdown
             [options]="subsType"
             [(ngModel)]="selectSubstype"
             optionLabel="name"
-            [style]="{ width: '90%' }"
-            placeholder="Select a Type"
+            placeholder="Select a subtype"
             [showClear]="true"
             [required]="true"
-            formControlName="institutionTypeCode"
-          ></p-dropdown>
-        </span>
+            formControlName="institutionTypeCode"></p-dropdown>
+        </ng-container>
       </div>
-      <div style="width: 50%">
-        <span>Country:<span style="color: red">*</span></span>
-        <br />
 
+      <div class="field">
+        <label>Country<span class="tag-req">Required</span></label>
         <p-dropdown
           [options]="cities[0]"
           [(ngModel)]="selectedCity"
@@ -93,11 +69,9 @@
           [filter]="true"
           filterBy="name"
           [showClear]="true"
-          placeholder="Select a Country"
-          [style]="{ width: '90%' }"
+          placeholder="Select a country"
           [required]="true"
-          formControlName="hqCountryIso"
-        >
+          formControlName="hqCountryIso">
           <ng-template pTemplate="selectedItem">
             <div class="country-item country-item-value" *ngIf="selectedCity">
               <div>{{ selectedCity.name }}</div>
@@ -111,97 +85,56 @@
         </p-dropdown>
       </div>
     </div>
-    <div
-      style="margin-top: 10px; width: 100%; display: flex; flex-direction: row"
-    >
-      <div style="width: 70%">
-        <span>Website:</span>
-        <input
-          type="text"
-          pInputText
-          style="width: 100%"
-          formControlName="websiteLink"
-        />
+
+    <div class="admin-form__grid admin-form__grid--wide">
+      <div class="field">
+        <label for="new-institution-website">Website <span class="tag-opt">Optional</span></label>
+        <input id="new-institution-website" type="text" pInputText formControlName="websiteLink" />
       </div>
-      <div style="width: 30%; margin-left: 20px">
-        <span>Acronym:</span>
-        <input
-          type="text"
-          pInputText
-          style="width: 100%"
-          formControlName="acronym"
-        />
+
+      <div class="field">
+        <label for="new-institution-acronym">Acronym <span class="tag-opt">Optional</span></label>
+        <input id="new-institution-acronym" type="text" pInputText formControlName="acronym" />
       </div>
     </div>
-    <div
-      style="margin-top: 10px; width: 100%; display: flex; flex-direction: row"
-    >
-      <div style="width: 50%">
-        <span>Category 1:</span>
-        <input
-          type="text"
-          pInputText
-          style="width: 100%"
-          formControlName="category_1"
-        />
+
+    <div class="admin-form__grid">
+      <div class="field">
+        <label for="new-institution-category-1">Category 1 <span class="tag-opt">Optional</span></label>
+        <input id="new-institution-category-1" type="text" pInputText formControlName="category_1" />
       </div>
-      <div style="width: 50%; margin-left: 20px">
-        <span>Category 2:</span>
-        <input
-          type="text"
-          pInputText
-          style="width: 100%"
-          formControlName="category_2"
-        />
+
+      <div class="field">
+        <label for="new-institution-category-2">Category 2 <span class="tag-opt">Optional</span></label>
+        <input id="new-institution-category-2" type="text" pInputText formControlName="category_2" />
       </div>
     </div>
-    <div style="margin-top: 10px">
-      <span>Comments:</span><br />
-      <textarea
-        [rows]="5"
-        pInputTextarea
-        style="width: 100%"
-        formControlName="externalUserComments"
-      ></textarea>
+
+    <div class="field">
+      <label for="new-institution-comments">Comments <span class="tag-opt">Optional</span></label>
+      <textarea id="new-institution-comments" [rows]="5" pInputTextarea formControlName="externalUserComments"></textarea>
     </div>
-    <div
-      style="
-        margin-top: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      "
-    >
-      <p-confirmDialog
-        [style]="{ width: '50vw' }"
-        [baseZIndex]="10000"
-      ></p-confirmDialog>
-      <button
-        pButton
-        label="Request New institution"
-        class="p-button-warning"
-        style="border-radius: 30px"
-        type="submit"
-      ></button>
+
+    <!-- La acción principal, abajo a la derecha. -->
+    <div class="admin-form__actions">
+      <p-confirmDialog [style]="{ width: '50vw' }" [baseZIndex]="10000" styleClass="admin-dialog"></p-confirmDialog>
+      <button pButton label="Request new institution" class="btn-brand" type="submit"></button>
     </div>
   </div>
 </form>
 
 <p-dialog
-  header="Header"
+  header="Missing information"
   [(visible)]="display"
   [modal]="true"
-  [style]="{ width: '50vw' }"
+  [style]="{ width: '32rem' }"
   [baseZIndex]="10000"
   [draggable]="false"
   [resizable]="false"
->
-  <p class="m-0">Check that one of the required fields is empty.</p>
-  <br />
-  <br />
-  <p-button
-    icon="pi pi-times"
-    (click)="display = false"
-    label="Close"
-  ></p-button>
+  styleClass="admin-dialog">
+  <p>Check that one of the required fields is empty.</p>
+
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Close" class="btn-ghost" (click)="display = false"></button>
+  </ng-template>
 </p-dialog>

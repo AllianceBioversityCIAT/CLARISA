@@ -1,0 +1,321 @@
+/**
+ * `.admin-table` — LA tabla del panel de administración. Una sola definición.
+ *
+ * Por qué vive aquí y no en cada componente: hasta hoy cada pantalla del panel
+ * se pintaba su propia tabla (`:host ::ng-deep .admin-table` en
+ * `microservices-admin/components/_shared-panel.scss`, `.glossary-table` en el
+ * glosario, y estilos en línea con la cabecera lima `#739600` en la lista de
+ * instituciones). Tres dibujos para el mismo dato. Ahora la clase se declara una
+ * vez, en global, y cualquier `p-table` del panel la recibe con
+ * `styleClass="p-datatable-sm admin-table"`.
+ *
+ * Decisiones de `DESIGN.md`:
+ *   · T2 · Cebra — la alternancia la pone la regla global de `styles.scss`.
+ *   · Cabecera en `--cl-ink-3`, mayúsculas discretas; línea de 1px, sin rejilla
+ *     vertical: la rejilla convierte una tabla en una hoja de cálculo.
+ *   · Cero hex literal: todo sale de los tokens `--cl-*`.
+ *
+ * `table-layout: fixed` es el otro motivo de existir de este archivo: con el
+ * ancho automático una columna de URLs se lleva media tabla y empuja a las
+ * demás fuera de la pantalla. Fijo, cada columna vale lo que su `th` declare, y
+ * el texto largo se recorta donde se le diga (`.cell-clamp`, `.cell-ellipsis`).
+ *
+ * Tamaños en px: el tema del panel deja `html { font-size: 16px }`, pero la
+ * landing usa `62.5%`; en px la tabla mide lo mismo en las dos.
+ */
+
+/* El selector lleva `.p-datatable` a propósito: `angular.json` carga
+   `styles.scss` ANTES del tema de PrimeNG, así que una regla de la misma
+   especificidad que la del tema pierde. Con las dos clases del propio envoltorio
+   (`p-datatable admin-table`) gana sin un solo `!important`. */
+.admin-table.p-datatable {
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-card);
+  background: var(--cl-surface);
+  /* Recorta las esquinas de la cabecera y del paginador contra el radio. */
+  overflow: hidden;
+
+  /* `styleClass` aterriza en el envoltorio, así que el modo de maquetación hay
+     que ponerlo en la tabla para que los anchos de los `th` se respeten. */
+  .p-datatable-table {
+    table-layout: fixed;
+    width: 100%;
+    /* Con maquetación fija, si el contenedor es más estrecho que la suma de los
+       anchos declarados, la columna sin ancho se queda en cero y las demás se
+       pintan encima. Con un mínimo, la tabla se desplaza de lado dentro de su
+       tarjeta, que es lo que se espera de una tabla de datos en un teléfono. */
+    min-width: 880px;
+  }
+
+  /* El desbordamiento se resuelve DENTRO de la tarjeta: una tabla ancha se
+     desplaza sola en vez de empujar la página entera. */
+  .p-datatable-wrapper {
+    overflow-x: auto;
+  }
+
+  /* ---- cabecera ---------------------------------------------------------- */
+
+  .p-datatable-thead > tr > th {
+    padding: 11px 14px;
+    background: var(--cl-surface-2);
+    color: var(--cl-ink-3);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1.3;
+    white-space: nowrap;
+    border-width: 0 0 1px 0;
+    border-color: var(--cl-line);
+  }
+
+  /* Ordenable: el icono es apoyo, no un segundo título. Se enciende en la marca
+     solo cuando esa columna manda el orden. */
+  .p-datatable-thead > tr > th.p-sortable-column:hover {
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+  }
+
+  .p-datatable-thead > tr > th.p-highlight {
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+  }
+
+  .p-sortable-column-icon {
+    margin-left: 6px;
+    width: 12px;
+    height: 12px;
+    font-size: 12px;
+    color: inherit;
+    opacity: 0.55;
+  }
+
+  .p-datatable-thead > tr > th.p-highlight .p-sortable-column-icon {
+    opacity: 1;
+  }
+
+  .p-datatable-thead > tr > th.p-sortable-column:focus {
+    box-shadow: none;
+    outline: 2px solid var(--cl-brand-ring);
+    outline-offset: -2px;
+  }
+
+  /* ---- filas -------------------------------------------------------------- */
+
+  .p-datatable-tbody > tr > td {
+    padding: 11px 14px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--cl-ink-2);
+    vertical-align: middle;
+    border-width: 0 0 1px 0;
+    border-color: var(--cl-line);
+    /* Una URL sin espacios no puede ensanchar su columna. */
+    overflow-wrap: anywhere;
+  }
+
+  .p-datatable-tbody > tr:last-child > td {
+    border-bottom: 0;
+  }
+
+  .p-datatable-tbody > tr:focus {
+    outline: 2px solid var(--cl-brand-ring);
+    outline-offset: -2px;
+  }
+
+  /* ---- barra superior (caption) ------------------------------------------ */
+
+  .p-datatable-header {
+    padding: 12px 14px;
+    background: var(--cl-surface);
+    border-width: 0 0 1px 0;
+    border-color: var(--cl-line);
+  }
+
+  /* ---- paginador ---------------------------------------------------------- */
+
+  .p-paginator {
+    padding: 8px 12px;
+    background: var(--cl-surface);
+    border-width: 1px 0 0 0;
+    border-color: var(--cl-line);
+    font-size: 13px;
+  }
+
+  .p-paginator .p-paginator-current {
+    color: var(--cl-ink-3);
+    font-size: 12px;
+  }
+
+  .p-paginator .p-paginator-pages .p-paginator-page,
+  .p-paginator .p-paginator-first,
+  .p-paginator .p-paginator-prev,
+  .p-paginator .p-paginator-next,
+  .p-paginator .p-paginator-last {
+    min-width: 32px;
+    height: 32px;
+    border-radius: var(--cl-radius-control);
+    color: var(--cl-ink-2);
+  }
+
+  .p-paginator .p-paginator-pages .p-paginator-page.p-highlight {
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+    font-weight: 700;
+  }
+
+  /* ---- vacío y carga ------------------------------------------------------ */
+
+  .p-datatable-emptymessage > td {
+    padding: 34px 14px;
+    text-align: center;
+    color: var(--cl-ink-3);
+    font-size: 13px;
+  }
+
+  .p-datatable-loading-overlay {
+    background: rgba(255, 255, 255, 0.72);
+  }
+}
+
+/* ---- barra de filtros de una tabla ---------------------------------------- */
+
+/* Una sola altura para todo lo que viva en la fila de filtros: los tamaños por
+   defecto de PrimeNG rondan los 46px y hacían que la fila se leyera como una
+   pila de cajas. */
+.admin-table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  .p-input-icon-left {
+    flex: 1 1 260px;
+    max-width: 380px;
+  }
+
+  .p-input-icon-left > i {
+    top: 50%;
+    left: 12px;
+    margin-top: 0;
+    transform: translateY(-50%);
+    font-size: 13px;
+    color: var(--cl-ink-3);
+  }
+
+  .p-input-icon-left > .p-inputtext {
+    width: 100%;
+    padding-left: 34px;
+  }
+
+  .p-inputtext,
+  .p-dropdown {
+    height: 40px;
+    font-size: 14px;
+    border: 1px solid var(--cl-line);
+    border-radius: var(--cl-radius-control);
+    box-shadow: none;
+  }
+
+  .p-inputtext {
+    padding: 0 12px;
+    color: var(--cl-ink-2);
+  }
+
+  .p-inputtext::placeholder {
+    color: var(--cl-ink-3);
+  }
+
+  .p-inputtext:enabled:hover,
+  .p-dropdown:not(.p-disabled):hover {
+    border-color: var(--cl-brand-ring);
+  }
+
+  .p-inputtext:enabled:focus,
+  .p-dropdown:not(.p-disabled).p-focus {
+    border-color: var(--cl-brand);
+    box-shadow: 0 0 0 2px var(--cl-brand-ring);
+  }
+}
+
+/* Cuenta de resultados: se empuja al extremo derecho de la barra. */
+.admin-table-toolbar__count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--cl-ink-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- ayudas de celda ------------------------------------------------------ */
+
+/* El dato que identifica la fila pesa más que el resto. */
+.cell-primary {
+  font-weight: 600;
+  color: var(--cl-ink);
+}
+
+/* Números que se leen en columna: mismo ancho de dígito. */
+.cell-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--cl-ink-3);
+}
+
+/* Texto largo, recortado a dos líneas con el completo en el `title`. Sin esto
+   una definición de 1.700 caracteres estira su fila hasta una pantalla. */
+.cell-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* Respaldo para los motores que ignoran `-webkit-line-clamp`. */
+  max-height: calc(13px * 1.45 * 2);
+}
+
+.cell-ellipsis {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cell-link {
+  color: var(--cl-brand);
+  text-decoration: none;
+
+  &:hover,
+  &:focus {
+    color: var(--cl-brand-deeper);
+    text-decoration: underline;
+  }
+}
+
+/* El hueco de un dato que no existe se dice, no se deja en blanco: una celda
+   vacía se lee como un fallo de carga. */
+.cell-empty {
+  color: var(--cl-ink-3);
+}
+
+/* Etiqueta corta dentro de una celda (códigos de país, portafolios, estados). */
+.cell-chip {
+  display: inline-block;
+  margin: 1px 4px 1px 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cl-brand-ring);
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .admin-table {
+    .p-datatable-thead > tr > th,
+    .p-datatable-tbody > tr > td {
+      padding: 10px;
+    }
+  }
+}

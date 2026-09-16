@@ -33,7 +33,25 @@
   --cl-radius-card:    14px;
   --cl-radius-control: 8px;
   --cl-shadow-card: 0 28px 60px -14px rgba(0, 0, 0, 0.62), 0 4px 14px rgba(0, 0, 0, 0.28);
+
+  /* Layout del panel de administración. Alto de la barra superior, borde
+     incluido: lo leen la barra, el sidebar (que la esquiva) y el hueco superior
+     de cada pantalla. Estaba escrito a mano en cinco archivos con tres valores
+     distintos (72, 74, 75), que es lo que abría una franja vacía entre la barra
+     y el contenido. Se cambia aquí y se mueve todo junto. */
+  --cl-admin-header: 60px;
+  --cl-admin-sidebar: 248px;
+  /* La costilla de marca de «N4 · barra blanca con costilla». */
+  --cl-admin-rib: 6px;
 }
+
+/* Los dos componentes compartidos del panel: la tabla y el selector de sección.
+   Viven en global porque su razón de ser es que TODAS las pantallas dibujen el
+   mismo control; declararlos dentro de un componente es lo que llevó a tener
+   tres tablas distintas para el mismo dato. */
+@import 'styles/admin-table';
+@import 'styles/admin-tabs';
+@import 'styles/admin-form';
 
 html *:not(.fa, .fe, .pi, pre, code) {
   font-family: 'Poppins', sans-serif !important;
