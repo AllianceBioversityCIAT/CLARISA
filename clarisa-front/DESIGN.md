@@ -118,8 +118,37 @@ componente vuelve a escribir un hex.
   --cl-radius-card:    14px;
   --cl-radius-control:  8px;
   --cl-shadow-card: 0 28px 60px -14px rgba(0, 0, 0, 0.62), 0 4px 14px rgba(0, 0, 0, 0.28);
+
+  /* Armazón del panel — el carbón y su acento (16-sep-2026) */
+  --cl-admin-nav:        #18181b;  /* columna, cabecera de tabla, títulos de sección */
+  --cl-admin-nav-2:      #212124;  /* superficie dentro del carbón: buscador, avatar */
+  --cl-admin-nav-line:   #2e2e33;  /* la única línea que se dibuja sobre carbón */
+  --cl-admin-nav-ink:    #fafafa;  /* texto sobre carbón: 16,97 */
+  --cl-admin-nav-muted:  #a8a8b0;  /* texto secundario sobre carbón: 7,50 */
+  --cl-admin-nav-dim:    #7d7d87;  /* etiquetas sobre carbón: 4,35 */
+  --cl-admin-nav-accent: #5fe3b4;  /* menta: SOLO acento, nunca superficie */
 }
 ```
+
+### El carbón `#18181b` y el menta `#5fe3b4` — cuándo se usa cada uno
+
+Decidido con Yeck el 16-sep-2026, después de tres vueltas: barra blanca (sin jerarquía), tinta verde,
+negro con menta por todas partes («se ve galáctico») y por fin esto.
+
+| Se usa | Para |
+|---|---|
+| `--cl-admin-nav` (carbón) | la columna de navegación, la **cabecera de las tablas**, el **título de cada sección** y la página activa del paginador |
+| `--cl-admin-nav-accent` (menta) | la entrada abierta del menú y su icono, el chip de rol, el disco de la cuenta, la columna que ordena la tabla y el foco |
+| `--cl-brand-deep` (verde de marca) | la línea de grupo encima del título de sección; **nunca** sobre carbón, donde no se distingue (2,29) |
+
+🛑 **El menta jamás pinta una superficie grande.** Pintar la columna de menta —o de negro con menta por
+todos lados— es exactamente lo que se rechazó: el color marca *dónde estás*, no decora el mueble.
+
+🛑 **Negro puro `#0a0a0a` tampoco**: se leyó como «tan tinta». El carbón es dos peldaños más arriba y
+mantiene el mismo aire.
+
+🛑 **Nada de dos oscuros distintos pegados.** Cuando convivían una barra tinta verde y una columna
+negra, el encuentro se leía como un error de pintado. Un solo oscuro en todo el armazón.
 
 🛑 **Regla dura:** un hex literal fuera de este bloque es un error de revisión. Si un componente
 necesita un color que no está aquí, se agrega aquí primero.

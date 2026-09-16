@@ -66,6 +66,7 @@
    Viven en global porque su razón de ser es que TODAS las pantallas dibujen el
    mismo control; declararlos dentro de un componente es lo que llevó a tener
    tres tablas distintas para el mismo dato. */
+@import 'styles/admin-page';
 @import 'styles/admin-table';
 @import 'styles/admin-tabs';
 @import 'styles/admin-form';

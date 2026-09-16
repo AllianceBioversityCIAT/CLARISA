@@ -1,0 +1,18 @@
+<!--
+  Favicon de CLARISA: los dos colores del panel — carbón #18181b y menta #5fe3b4
+  (Yeck, 16-sep-2026). Dibujado a mano, no generado: a 16px lo único que
+  sobrevive es una forma gruesa y un contraste alto, y un SVG de 400 bytes se
+  reescala sin pixelarse en cualquier pestaña o marcador.
+
+  La C es un arco abierto a la derecha, con el mismo grosor que el trazo del
+  logotipo a tamaño pequeño.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="CLARISA">
+  <rect width="64" height="64" rx="15" fill="#18181b" />
+  <path
+    d="M43.5 21.5a17 17 0 1 0 0 21"
+    fill="none"
+    stroke="#5fe3b4"
+    stroke-width="7.5"
+    stroke-linecap="round" />
+</svg>
