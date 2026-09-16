@@ -44,29 +44,11 @@
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-:host ::ng-deep .admin-table {
-  .p-datatable-thead > tr > th {
-    background: #f8fafc;
-    color: #475569;
-    font-size: 0.72rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    border-color: #e2e8f0;
-    padding: 0.65rem 1rem;
-  }
-
-  .p-datatable-tbody > tr > td {
-    padding: 0.7rem 1rem;
-    font-size: 0.85rem;
-    border-color: #f1f5f9;
-    color: #334155;
-  }
-
-  .p-datatable-tbody > tr:hover {
-    background: #fafdfb;
-  }
-}
+/* `.admin-table` ya no se dibuja aquí. La tabla del panel es una sola y vive en
+   `src/styles/_admin-table.scss`, en global: mientras cada pantalla se pintaba la
+   suya, la misma columna salía gris en el glosario, blanca en microservicios y
+   lima en la lista de instituciones. Lo que quede en un componente son sus
+   anchos de columna y sus celdas, nunca la piel de la tabla. */
 
 .cell-primary {
   font-weight: 500;
@@ -102,73 +84,15 @@
   padding: 2rem !important;
 }
 
-:host ::ng-deep .btn-brand.p-button {
-  background: #7ab800;
-  border-color: #6a9f00;
-
-  &:hover {
-    background: #6a9f00;
-    border-color: #5d8a00;
-  }
-}
-
 :host ::ng-deep .filter-dropdown {
   min-width: 7rem;
 }
 
-.admin-form .field {
-  margin-bottom: 1rem;
-
-  label {
-    display: block;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #475569;
-    margin-bottom: 0.35rem;
-  }
-
-  .req {
-    color: #dc2626;
-  }
-
-  /* Says out loud what each field expects, instead of leaving the absence of
-     an asterisk to mean "optional". */
-  .tag-req,
-  .tag-opt {
-    margin-left: 0.4rem;
-    border-radius: 999px;
-    padding: 0.1rem 0.45rem;
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    vertical-align: middle;
-  }
-
-  .tag-req {
-    background: #fee2e2;
-    color: #b91c1c;
-  }
-
-  .tag-opt {
-    background: #f1f5f9;
-    color: #94a3b8;
-  }
-
-  .field-hint {
-    display: block;
-    margin-top: 0.25rem;
-    font-size: 0.72rem;
-    color: #94a3b8;
-  }
-
-  .field-error {
-    display: block;
-    margin-top: 0.25rem;
-    font-size: 0.72rem;
-    color: #dc2626;
-  }
-}
+/* `.btn-brand` y `.admin-form .field` tampoco se dibujan aquí: son el botón y el
+   campo del panel, y viven en `src/styles/_admin-form.scss`, en global. Los tenía
+   solo quien importara este archivo, así que las solicitudes de institución —que
+   no lo importaban— acabaron con campos de otra altura y un botón naranja.
+   De paso, `.btn-brand` estaba en el lima `#7ab800` de la paleta vieja. */
 
 .dialog-footer {
   display: flex;

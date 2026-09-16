@@ -1,7 +1,14 @@
-<app-header></app-header>
-<app-about-us id="about-us"></app-about-us>
-<app-indicators></app-indicators>
-<app-publications></app-publications>
-<app-info-dashboards-api-services></app-info-dashboards-api-services>
-<app-partners-collaborators></app-partners-collaborators>
+<!--
+  La home es un solo recorrido.
 
+  `app-header` ya no es el encabezado: es la página. Dentro lleva el vídeo que
+  avanza con el scroll y, encima, las cinco secciones que antes se declaraban
+  aquí abajo —about us, indicadores, publicaciones, dashboards y servicios,
+  partners—, servidas como tramos del descenso.
+
+  🛑 Por eso esas cinco etiquetas ya no están: dejarlas duplicaría el contenido,
+  una vez sobre el vídeo y otra debajo. Los componentes siguen en el repositorio
+  y sus módulos los siguen declarando, así que recuperarlos es volver a poner su
+  etiqueta aquí.
+-->
+<app-header></app-header>

@@ -1,28 +1,77 @@
-/**
- * Public navigation bar — «N4 · blanca con costilla».
- *
- * White bar, hairline underneath, and a 6px rib of the brand green flush against
- * the left edge. The brand asserts itself with one gesture and the menu keeps the
- * full contrast of ink on white.
- *
- * Why the colour lives here and not in the bar itself: `assets/css/style-landing.css`
- * paints every link `#7ab800`, which is 2.42 over white and fails as text. Those
- * rules are global and shared, so they are overridden from inside this component
- * rather than edited — see DESIGN.md section 3.
- *
- * Specificity note: the rules being overridden are things like
- * `.navbar-default .navbar-nav > li > a` (0,2,2). Prefixing with `:host` clears
- * them without a single `!important`.
- *
- * Sizes in px: the theme sets `html { font-size: 62.5% }`, so 1rem is 10px here
- * and any scale written in rem lands at roughly half.
- */
+//
+// Public navigation bar — «N4 · blanca con costilla».
+//
+// White bar, hairline underneath, and a 6px rib of the brand green flush against
+// the left edge. The brand asserts itself with one gesture and the menu keeps the
+// full contrast of ink on white.
+//
+// Why the colour lives here and not in the bar itself: `assets/css/style-landing.css`
+// paints every link `#7ab800`, which is 2.42 over white and fails as text. Those
+// rules are global and shared, so they are overridden from inside this component
+// rather than edited — see DESIGN.md section 3.
+//
+// Specificity note: the rules being overridden are things like
+// `.navbar-default .navbar-nav > li > a` (0,2,2). Prefixing with `:host` clears
+// them without a single `!important`.
+//
+// Sizes in px: the theme sets `html { font-size: 62.5% }`, so 1rem is 10px here
+// and any scale written in rem lands at roughly half.
 
 :host {
   display: block;
+  // /* Fija para poder volver con un gesto de subida en mitad del recorrido.
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  transition: transform 0.32s ease;
 }
 
-/* The rib. `.logo-wrapper` is already `position: relative` globally. */
+// Apartada: se ha bajado y nadie ha pedido el menú.
+:host(.is-away) {
+  transform: translateY(-100%);
+}
+
+// ---------------------------------------------------------------------------
+// Sobre el recorrido de la home la barra deja de ser blanca. Un bloque blanco
+// sólido encima de un vídeo oscuro es un tajo; aquí se vuelve tinta con
+// desenfoque, y al salir del recorrido recupera su blanco. Todo con transición
+// — «que no le cambie el color tan fuerte» (Yeck, 16-sep-2026).
+// ---------------------------------------------------------------------------
+
+:host .logo-wrapper {
+  transition:
+    background-color 0.4s ease,
+    border-color 0.4s ease;
+}
+
+:host(.is-over) .logo-wrapper {
+  background: rgba(4, 26, 19, 0.58);
+  backdrop-filter: blur(14px);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+// La costilla se aclara: el verde profundo sobre tinta no se distingue.
+:host(.is-over) .logo-wrapper::before {
+  background: #5fe3b4;
+}
+
+:host(.is-over) .cl-brand__word,
+:host(.is-over) .cl-nav .navbar-nav > li > a {
+  color: #eaf5f1;
+}
+
+// El logo del CGIAR es verde bosque sobre blanco; sobre tinta necesita ayuda.
+:host(.is-over) .cl-brand__mark {
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+
+:host(.is-over) .cl-nav .navbar-nav > li.cl-active > a {
+  background: rgba(95, 227, 180, 0.16);
+  color: #5fe3b4;
+}
+
+// The rib. `.logo-wrapper` is already `position: relative` globally.
 :host .logo-wrapper {
   background: var(--cl-surface);
   border-bottom: 1px solid var(--cl-line);
@@ -30,9 +79,9 @@
 
 :host .logo-wrapper::before {
   content: '';
-  /* Explicit `display: block`: the Bootstrap 3 sheet in `assets/` still declares
-     the clearfix `.container:before { display: table }`, and a table box with no
-     width shrinks to nothing and never paints. */
+  // /* Explicit `display: block`: the Bootstrap 3 sheet in `assets/` still declares
+  // the clearfix `.container:before { display: table }`, and a table box with no
+  // width shrinks to nothing and never paints.
   display: block;
   position: absolute;
   left: 0;
@@ -51,7 +100,7 @@
   min-height: 72px;
 }
 
-/* ---- brand ---------------------------------------------------------------- */
+// ---- brand ----------------------------------------------------------------
 
 :host .cl-brand {
   display: flex;
@@ -59,8 +108,8 @@
   gap: 13px;
   padding: 10px 0;
   text-decoration: none;
-  /* Undoes `.logo-wrapper .logo { position: absolute; top: -11px }`, which is what
-     made the old lime box hang below the bar. */
+  // /* Undoes `.logo-wrapper .logo { position: absolute; top: -11px }`, which is what
+  // made the old lime box hang below the bar.
   position: static;
 }
 
@@ -78,7 +127,7 @@
   white-space: nowrap;
 }
 
-/* ---- menu ----------------------------------------------------------------- */
+// ---- menu -----------------------------------------------------------------
 
 :host .cl-nav {
   display: flex;
@@ -86,13 +135,13 @@
   justify-content: flex-end;
   flex: 1;
   min-width: 0;
-  /* Static so the mobile sheet below anchors to `.logo-wrapper`, which spans the
-     whole width, and not to this box. */
+  // /* Static so the mobile sheet below anchors to `.logo-wrapper`, which spans the
+  // whole width, and not to this box.
   position: static;
 }
 
-/* Not flex: Bootstrap forces `display: block !important` on this element at
-   >=768px, so it is laid out as a block and only pushed to the right. */
+// Not flex: Bootstrap forces `display: block !important` on this element at
+// >=768px, so it is laid out as a block and only pushed to the right.
 :host .cl-nav .navbar-collapse {
   float: none;
   width: auto;
@@ -111,8 +160,8 @@
   float: none;
 }
 
-/* The link. Sentence case on purpose: the uppercase came with the old theme and
-   costs width without adding hierarchy. */
+// The link. Sentence case on purpose: the uppercase came with the old theme and
+// costs width without adding hierarchy.
 :host .navbar-default .navbar-nav > li > a {
   padding: 9px 15px;
   border-radius: var(--cl-radius-control);
@@ -147,7 +196,7 @@
   background: var(--cl-surface-2);
 }
 
-/* The soft pill: the section you are in. 6.24 of ink on the soft surface. */
+// The soft pill: the section you are in. 6.24 of ink on the soft surface.
 :host .navbar-default .navbar-nav > li.cl-active > a,
 :host .navbar-default .navbar-nav.nav li.cl-active:hover > a,
 :host .navbar-default .navbar-nav > li.cl-active > a:hover,
@@ -156,7 +205,7 @@
   background: var(--cl-brand-soft);
 }
 
-/* ---- submenus ------------------------------------------------------------- */
+// ---- submenus -------------------------------------------------------------
 
 :host .navbar-nav > li > .dropdown-menu {
   margin-top: 6px;
@@ -170,8 +219,8 @@
   font-size: 14px;
 }
 
-/* The global sheet draws a lime rule under every item and a sliding white bar
-   over it. Both go: a menu is a list of targets, not a striped table. */
+// The global sheet draws a lime rule under every item and a sliding white bar
+// over it. Both go: a menu is a list of targets, not a striped table.
 :host .navbar-default ul.nav.navbar-nav li ul li {
   border-bottom: none;
 }
@@ -200,10 +249,10 @@
   background: var(--cl-brand-soft);
 }
 
-/* ---- sign in -------------------------------------------------------------- */
+// ---- sign in --------------------------------------------------------------
 
-/* One solid primary at the right edge, which is where people look for it.
-   `--cl-brand-strong` with white on top is 5.70. */
+// One solid primary at the right edge, which is where people look for it.
+// `--cl-brand-strong` with white on top is 5.70.
 :host .cl-signin {
   display: inline-flex;
   align-items: center;
@@ -231,7 +280,7 @@
   outline-offset: 2px;
 }
 
-/* ---- mobile --------------------------------------------------------------- */
+// ---- mobile ---------------------------------------------------------------
 
 :host .cl-nav .navbar-toggle {
   float: none;
@@ -254,7 +303,7 @@
 @media (max-width: 767px) {
   :host .cl-bar {
     min-height: 64px;
-    /* The rib takes 6px on the left; the gutter starts after it. */
+    // /* The rib takes 6px on the left; the gutter starts after it.
     padding-left: 18px;
     gap: 12px;
   }
@@ -265,22 +314,22 @@
 
   :host .cl-nav {
     flex: 0 0 auto;
-    /* Pulls the burger over to sit beside the button instead of leaving it
-       pinned against the wordmark. */
+    // /* Pulls the burger over to sit beside the button instead of leaving it
+    // pinned against the wordmark.
     margin-left: auto;
   }
 
-  /* Open, the menu is a full-width sheet under the bar. Anchored to
-     `.logo-wrapper` (already `position: relative`) so it spans the viewport
-     instead of the width of the burger. */
+  // /* Open, the menu is a full-width sheet under the bar. Anchored to
+  // `.logo-wrapper` (already `position: relative`) so it spans the viewport
+  // instead of the width of the burger.
   :host .cl-nav .navbar-collapse {
     position: absolute;
     left: 0;
     right: 0;
     top: 100%;
     z-index: 20;
-    /* 33px so the first label lines up with the mark in the bar above, which
-       starts after the rib and the container gutter. */
+    // /* 33px so the first label lines up with the mark in the bar above, which
+    // starts after the rib and the container gutter.
     padding: 8px 33px 16px;
     background: var(--cl-surface);
     border-bottom: 1px solid var(--cl-line);
@@ -298,7 +347,7 @@
     padding: 12px 14px;
   }
 
-  /* Bootstrap floats submenus; inline and indented reads better in a sheet. */
+  // /* Bootstrap floats submenus; inline and indented reads better in a sheet.
   :host .navbar-nav > li > .dropdown-menu {
     position: static;
     float: none;
@@ -311,5 +360,181 @@
   :host .cl-signin {
     height: 38px;
     padding: 0 15px;
+  }
+}
+
+// ------------------------------------------------------------- el panel ---
+// Botón propio, y a propósito NO sólido: el sólido de marca está reservado para
+// una sola acción primaria por zona, y con sesión abierta la primaria ya no es
+// entrar. Contorno menta sobre fondo suave — se distingue del «Sign in» al que
+// sustituye y del disco de la cuenta que tiene al lado.
+
+:host .cl-admin {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 1.5px solid var(--cl-brand-ring);
+  border-radius: 9px;
+  padding: 9px 18px;
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--cl-brand-strong);
+    background: #d3ece1;
+    color: var(--cl-brand-deeper);
+    text-decoration: none;
+  }
+
+  i {
+    font-size: 13px;
+  }
+}
+
+:host(.is-over) .cl-admin {
+  border-color: rgba(95, 227, 180, 0.42);
+  background: rgba(95, 227, 180, 0.14);
+  color: #5fe3b4;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #5fe3b4;
+    background: rgba(95, 227, 180, 0.24);
+  }
+}
+
+// ------------------------------------------------------------ la cuenta ---
+// Mismo sitio y misma altura que «Sign in», para que la fila no dé un salto al
+// iniciar sesión. Menú propio, no el dropdown de Bootstrap: esquinas de tarjeta,
+// ítems de 42px y la salida separada del resto.
+
+:host .cl-account {
+  position: relative;
+}
+
+:host .cl-account__btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--cl-line);
+  border-radius: 999px;
+  padding: 6px 14px 6px 6px;
+  background: var(--cl-surface);
+  color: var(--cl-ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+
+  &:hover {
+    border-color: var(--cl-brand-ring);
+    background: var(--cl-brand-soft);
+  }
+
+  i {
+    color: var(--cl-ink-3);
+    font-size: 12px;
+  }
+}
+
+:host .cl-account__disc {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--cl-brand-strong);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+:host .cl-account__name {
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:host .cl-account__menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 20;
+  min-width: 232px;
+  border: 1px solid var(--cl-line);
+  border-radius: 16px;
+  padding: 8px;
+  background: var(--cl-surface);
+  box-shadow: 0 18px 40px -16px rgba(16, 36, 28, 0.45);
+
+  a,
+  button {
+    display: block;
+    width: 100%;
+    border: 0;
+    border-radius: 10px;
+    padding: 0 14px;
+    background: none;
+    color: var(--cl-ink);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 42px;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--cl-brand-soft);
+      color: var(--cl-brand-deeper);
+    }
+  }
+}
+
+:host .cl-account__email {
+  margin: 6px 14px 8px;
+  color: var(--cl-ink-3);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:host .cl-account__out {
+  margin-top: 4px;
+  border-top: 1px solid var(--cl-line) !important;
+  border-radius: 0 0 10px 10px !important;
+  color: var(--cl-error) !important;
+
+  &:hover {
+    background: rgba(180, 35, 24, 0.08) !important;
+    color: var(--cl-error) !important;
+  }
+}
+
+// Sobre el recorrido la cuenta se adapta igual que el resto de la barra.
+:host(.is-over) .cl-account__btn {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.1);
+  color: #eaf5f1;
+
+  i {
+    color: #a9cbbe;
+  }
+
+  &:hover {
+    border-color: rgba(95, 227, 180, 0.5);
+    background: rgba(95, 227, 180, 0.16);
   }
 }
