@@ -80,7 +80,7 @@
   border-radius: 5px;
   font-size: 10.5px;
   font-weight: 500;
-  color: var(--cl-admin-nav-dim);
+  color: var(--cl-admin-nav-accent);
   white-space: nowrap;
 }
 
@@ -94,7 +94,7 @@
   align-items: center;
   gap: 8px;
   height: 34px;
-  margin: 12px 12px 6px;
+  margin: 8px 12px 6px;
   padding: 0 8px;
   border: 1px solid var(--cl-admin-nav-line);
   border-radius: 6px;
@@ -102,7 +102,7 @@
   transition: border-color 0.15s ease;
 
   &:focus-within {
-    border-color: #4b4b54;
+    border-color: var(--cl-admin-nav-accent);
   }
 
   > i {
@@ -279,18 +279,21 @@
   outline-offset: -1px;
 }
 
-// La abierta se distingue por peso y por tono, no por color: relleno un punto
-// más claro que el fondo, texto en blanco y el icono con él.
+// La abierta lleva el acento: relleno de menta al 15 %, un contorno que la
+// separa del carbón y el icono en menta puro. Es el único sitio de la columna
+// donde el color dice algo — «estás aquí» — y por eso se ve sin buscarlo.
+// Sobre la pastilla ya resuelta (#233632): 12.25 el texto y 7.98 el icono.
 .admin-sidebar__list a.is-active,
 .admin-sidebar__list a.is-active:hover,
 .admin-sidebar__list a.is-active:focus {
-  background: #2b2b31;
-  color: var(--cl-admin-nav-ink);
+  background: rgba(95, 227, 180, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(95, 227, 180, 0.3);
+  color: #eafff7;
   font-weight: 500;
 }
 
 .admin-sidebar__list a.is-active .admin-sidebar__icon {
-  color: var(--cl-admin-nav-ink);
+  color: var(--cl-admin-nav-accent);
 }
 
 .admin-sidebar__empty {
@@ -327,12 +330,11 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid var(--cl-admin-nav-line);
   border-radius: 6px;
-  background: var(--cl-admin-nav-2);
-  color: var(--cl-admin-nav-ink);
+  background: var(--cl-admin-nav-accent);
+  color: var(--cl-admin-nav);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .admin-sidebar__who {
@@ -360,22 +362,17 @@
   }
 }
 
-// Las dos salidas, en una fila: volver al sitio pesa menos que cerrar sesión, y
-// ninguna de las dos compite con la navegación de arriba.
-.admin-sidebar__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+// Sin contorno, a diferencia del buscador que tiene justo debajo: dos cajas
+// idénticas apiladas se leen como dos campos, y esto es un enlace.
 .admin-sidebar__back {
-  display: inline-flex;
-  flex: 1 1 auto;
+  display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 8px;
-  height: 32px;
+  height: 30px;
+  margin: 10px 12px 0;
   padding: 0 10px;
-  border: 1px solid var(--cl-admin-nav-line);
+  border: 0;
   border-radius: 6px;
   color: var(--cl-admin-nav-muted);
   font-size: 12.5px;
@@ -399,7 +396,6 @@
 
   &:hover,
   &:focus {
-    border-color: #4b4b54;
     background: #232327;
     color: var(--cl-admin-nav-ink);
     text-decoration: none;
@@ -411,32 +407,45 @@
   }
 }
 
-// La única pieza de color del panel, y por eso funciona: el verde sólido de
-// marca. `--cl-brand-strong` con blanco encima es 5.70.
+// Cerrar sesión no es la acción que se viene a hacer aquí, así que no lleva el
+// verde sólido que tenía: contorno, icono delante y el mismo peso que el resto
+// de la columna. El acento se reserva para decir dónde estás.
 .admin-sidebar__out {
-  display: inline-flex;
-  flex: 0 0 auto;
+  display: flex;
   align-items: center;
-  height: 32px;
-  padding: 0 14px;
+  gap: 9px;
+  height: 34px;
+  margin-top: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--cl-admin-nav-line);
   border-radius: 6px;
-  background: var(--cl-brand-strong);
-  color: var(--cl-surface);
+  background: var(--cl-admin-nav-2);
+  color: var(--cl-admin-nav-muted);
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
-  transition: background 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+
+  i {
+    width: 15px;
+    font-size: 13px;
+    text-align: center;
+  }
 
   &:hover,
   &:focus {
-    background: var(--cl-brand);
-    color: var(--cl-surface);
+    border-color: #4b4b54;
+    background: #2b2b31;
+    color: var(--cl-admin-nav-ink);
     text-decoration: none;
   }
 
   &:focus-visible {
-    outline: 1px solid var(--cl-admin-nav-ink);
-    outline-offset: 2px;
+    outline: 1px solid var(--cl-admin-nav-accent);
+    outline-offset: 1px;
   }
 }
 

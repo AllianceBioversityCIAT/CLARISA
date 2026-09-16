@@ -11,6 +11,15 @@
   </a>
 
   <!--
+    La vuelta al sitio, justo bajo la marca: es de dónde se viene, así que vive
+    arriba con ella y no al final de todo (Yeck, 16-sep-2026).
+  -->
+  <a class="admin-sidebar__back" routerLink="/landing-page/home">
+    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+    <span>Back to the site</span>
+  </a>
+
+  <!--
     Busca dentro de la navegación y nada más: no hay backend detrás ni pretende
     haberlo. Con seis entradas parece de sobra, pero es el atajo de quien ya sabe
     a dónde va y no quiere leer la columna.
@@ -55,7 +64,7 @@
   </div>
 
   <!--
-    El pie: con qué sesión se trabaja y las dos salidas. Estaban en una barra
+    El pie: con qué sesión se trabaja y cómo cerrarla. Vivían en una barra
     superior que no hacía nada más, así que la barra sobraba y el espacio que se
     llevaba, también.
   -->
@@ -68,12 +77,9 @@
       </span>
     </div>
 
-    <div class="admin-sidebar__actions">
-      <a class="admin-sidebar__back" routerLink="/landing-page/home">
-        <i class="fa fa-arrow-left" aria-hidden="true"></i>
-        <span>Back to the site</span>
-      </a>
-      <a class="admin-sidebar__out" routerLink="/landing-page/login" (click)="onLogOut()">Logout</a>
-    </div>
+    <a class="admin-sidebar__out" routerLink="/landing-page/login" (click)="onLogOut()">
+      <i class="fa fa-sign-out" aria-hidden="true"></i>
+      <span>Logout</span>
+    </a>
   </div>
 </nav>
