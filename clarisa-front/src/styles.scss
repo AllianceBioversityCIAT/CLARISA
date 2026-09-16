@@ -44,20 +44,26 @@
      —«Microservices & API keys»— se cortaba con puntos suspensivos, y un nombre
      de sección truncado es lo primero que delata una columna estrecha. */
   --cl-admin-sidebar: 264px;
-  /* La costilla de marca de «N4 · barra blanca con costilla». */
-  --cl-admin-rib: 6px;
+  /* La barra superior comparte el negro de la columna: dos oscuros distintos
+     pegados se leen como un error de pintado. Empezó siendo la tinta verde de la
+     barra pública sobre el recorrido de la home; el neutro la reemplazó al pedir
+     Yeck un panel «premium, más limpio» (16-sep-2026). */
+  --cl-admin-bar:        var(--cl-admin-nav);
+  --cl-admin-bar-ink:    var(--cl-admin-nav-ink);
+  --cl-admin-bar-muted:  var(--cl-admin-nav-muted);
+  --cl-admin-bar-line:   var(--cl-admin-nav-line);
 
-  /* La franja superior del panel —marca del sidebar y barra— va del color que
-     la barra pública toma sobre el recorrido de la home: tinta verde, texto casi
-     blanco y menta para lo que se acentúa (Yeck, 16-sep-2026: «usemos la barra
-     del color del home»). Allí es translúcida sobre vídeo, `rgba(4, 26, 19,
-     0.58)`; aquí no hay nada detrás, así que es el mismo tono ya resuelto en
-     sólido. Los tres de texto se miden contra ella: 14.68, 9.47 y 10.24. */
-  --cl-admin-bar:        #0b241b;
-  --cl-admin-bar-ink:    #eaf5f1;
-  --cl-admin-bar-muted:  #b7c9c1;
-  --cl-admin-bar-accent: #5fe3b4;
-  --cl-admin-bar-line:   rgba(234, 245, 241, 0.16);
+  /* El armazón del panel —columna y barra— es negro NEUTRO, sin verde en las
+     superficies: el menta sobre negro se veía «galáctico» (Yeck, 16-sep-2026,
+     pidiendo algo «premium, tipo Vercel, más limpio»). El color de marca queda
+     para una sola acción sólida, no para pintar el mueble. Texto sobre el
+     negro: 18.42 el claro, 8.11 el apagado y 4.83 el de las etiquetas. */
+  --cl-admin-nav:        #0a0a0a;
+  --cl-admin-nav-2:      #141414;
+  --cl-admin-nav-line:   #242424;
+  --cl-admin-nav-ink:    #fafafa;
+  --cl-admin-nav-muted:  #a1a1a4;
+  --cl-admin-nav-dim:    #72727a;
 }
 
 /* Los dos componentes compartidos del panel: la tabla y el selector de sección.
