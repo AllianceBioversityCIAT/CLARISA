@@ -44,11 +44,9 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
   underground = false;
 
   /**
-   * El texto del hero se apaga ANTES que el cambio de vídeo. Son dos momentos
-   * distintos a propósito: el contenido de abajo empieza a subir por la pantalla
-   * mucho antes de llegar al borde superior, y si el hero siguiera encendido los
-   * dos textos se pisarían. El relevo de vídeo, en cambio, sí espera al borde,
-   * que es cuando el crecimiento ha terminado de verdad.
+   * Alias de `underground` para la plantilla: el texto del hero y el relevo de
+   * vídeo ocurren ahora en el MISMO instante, cuando el contenido de abajo
+   * asoma. Separarlos dejaba a la planta congelada esperando.
    */
   heroOff = false;
 
@@ -155,13 +153,17 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
       const run = story.offsetHeight - window.innerHeight;
       // El relevo ocurre cuando el contenido de abajo toca el borde superior,
       // que es exactamente el momento en que el crecimiento ya terminó.
-      below = rect.top <= 1;
-      const off = rect.top < window.innerHeight * 0.92;
-      if (off !== this.heroOff) {
-        this.zone.run(() => (this.heroOff = off));
+      // 🛑 El descenso arranca cuando el contenido ASOMA, no cuando toca arriba.
+      // Midiendo desde `-rect.top` el vídeo se quedaba congelado en su primer
+      // fotograma toda la subida del bloque: la planta quieta y un hueco donde
+      // no pasaba nada (Yeck, 16-sep-2026).
+      const vh = window.innerHeight;
+      below = rect.top < vh * 0.88;
+      if (below !== this.heroOff) {
+        this.zone.run(() => (this.heroOff = below));
       }
       if (run > 0) {
-        const q = Math.min(1, Math.max(0, -rect.top / run));
+        const q = Math.min(1, Math.max(0, (vh - rect.top) / (vh + run)));
         this.seek(this.descent, q);
       }
     }
