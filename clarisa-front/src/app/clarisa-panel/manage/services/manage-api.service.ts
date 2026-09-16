@@ -157,6 +157,10 @@ export interface GlossaryAdminTerm {
   show_in_dashboard: boolean;
   application_name: string | null;
   portfolios: GlossaryPortfolioRef[];
+  /** When the record last changed (ISO timestamp); its creation if never edited. */
+  last_modified_at?: string | null;
+  /** Who made that change. Null when the user is unknown. */
+  last_modified_by?: { id: number; name: string; email: string } | null;
 }
 
 export interface CreateGlossaryTermBody {

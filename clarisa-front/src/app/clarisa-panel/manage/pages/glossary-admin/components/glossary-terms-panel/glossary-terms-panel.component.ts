@@ -40,8 +40,19 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
   /** One entry per concept; the table renders these, not the raw records. */
   concepts: GlossaryConcept[] = [];
   filteredTerms: GlossaryConcept[] = [];
-  /** Real portfolios. Used by the edit dialog, so it never carries a sentinel. */
+  /** Active portfolios, the only ones offered to assign. Never carries a sentinel. */
   portfolioOptions: PortfolioOption[] = [];
+  /** What the edit dialog offers: the active portfolios plus any closed one the term already carries. */
+  dialogPortfolioOptions: PortfolioOption[] = [];
+  /** Every portfolio, closed ones included, so a link that already exists can still be shown. */
+  private allPortfolioOptions: PortfolioOption[] = [];
+
+  readonly statusHelp =
+    'Active: published in the public glossary and returned by GET api/glossary. Inactive: hidden from both. ' +
+    'Nothing is deleted, and an inactive term can be activated again.';
+
+  readonly dashboardHelp =
+    'Also lists the term in GET api/glossary/dashboard. It does not change the public glossary page, which shows every active term.';
   /** The same list plus the "no portfolio" entry, used only by the filter. */
   portfolioFilterOptions: PortfolioOption[] = [];
 
@@ -173,15 +184,18 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     this._manageApiService.getAllPortfolios().subscribe({
       next: (response: any) => {
         const list = Array.isArray(response) ? response : [];
+        const isOpen = (portfolio: any): boolean => !(portfolio.is_active === false || portfolio.is_active === 0);
         // The portfolios endpoint returns a BasicDto, so the id travels as `code`.
-        this.portfolioOptions = list.map(portfolio => {
-          const closed = portfolio.is_active === false || portfolio.is_active === 0;
+        const toOption = (portfolio: any): PortfolioOption => {
           const name = portfolio.acronym ? `${portfolio.acronym} — ${portfolio.name}` : portfolio.name;
           return {
-            label: closed ? `${name} (closed)` : name,
+            label: isOpen(portfolio) ? name : `${name} (closed)`,
             value: Number(portfolio.code ?? portfolio.id)
           };
-        });
+        };
+        this.allPortfolioOptions = list.map(toOption);
+        this.portfolioOptions = list.filter(isOpen).map(toOption);
+        this.dialogPortfolioOptions = this.portfolioOptions;
         this.portfolioFilterOptions = [{ label: 'No portfolio linked', value: this.NO_PORTFOLIO }, ...this.portfolioOptions];
         this.portfolioStartYear = new Map(
           list
@@ -297,6 +311,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
   openCreate(): void {
     this.editingTerm = null;
     this.groupOfForNewTerm = null;
+    this.dialogPortfolioOptions = this.portfolioOptions;
     this.form.reset({
       term: '',
       definition: '',
@@ -311,6 +326,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
 
   openEdit(term: GlossaryAdminTerm): void {
     this.editingTerm = term;
+    this.dialogPortfolioOptions = this.dialogOptionsFor(term);
     this.form.reset({
       term: term.term,
       definition: term.definition,
@@ -456,6 +472,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
       portfolio_ids: [],
       show_in_dashboard: anchor.show_in_dashboard
     });
+    this.dialogPortfolioOptions = this.portfolioOptions;
     this.groupOfForNewTerm = anchor.id;
     this.versionsVisible = false;
     this.dialogVisible = true;
@@ -576,6 +593,18 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
   }
 
   // ---------------------------------------------------------------- helpers
+
+  /**
+   * Only active portfolios are offered, but a closed one the term already
+   * carries stays in the list: the multiselect would otherwise show a chip it
+   * has no option for, and saving would drop a link nobody asked to remove.
+   */
+  private dialogOptionsFor(term: GlossaryAdminTerm): PortfolioOption[] {
+    const linked = new Set(term.portfolios.map(portfolio => portfolio.id));
+    const offered = new Set(this.portfolioOptions.map(option => option.value));
+    const keptClosed = this.allPortfolioOptions.filter(option => linked.has(option.value) && !offered.has(option.value));
+    return [...this.portfolioOptions, ...keptClosed];
+  }
 
   portfolioLabel(portfolio: GlossaryPortfolioRef): string {
     return portfolio.acronym || portfolio.name;

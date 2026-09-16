@@ -178,6 +178,14 @@
   opacity: 0.62;
 }
 
+.th-help {
+  margin-left: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--cl-ink-3);
+  cursor: help;
+  vertical-align: middle;
+}
+
 .portfolio-chips {
   display: flex;
   flex-wrap: wrap;
