@@ -29,14 +29,32 @@
   🛑 Los textos y las cifras son los de la página actual o marcadores: el copy del
   producto lo decide Yeck.
 -->
-<section class="cl-hero" #rail>
-  <div class="cl-hero__stage">
+<section class="cl-page" #page>
+  <!--
+    UN solo escenario pegado al fondo para toda la página. Antes eran dos —uno
+    para el hero y otro para el descenso— y entre que el primero se despegaba y
+    el segundo se pegaba quedaba una banda muerta: el corte que Yeck vio.
+  -->
+  <div class="cl-stage">
     <video #video class="cl-hero__video" src="assets/video/hero-sprout.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
 
-    <div class="cl-hero__wash"></div>
-    <div class="cl-hero__seam"></div>
+    <!--
+      El descenso se monta encima y aparece cuando el de arriba ha terminado. Su
+      primer fotograma ES el último del otro, así que el relevo no se ve.
+    -->
+    <video
+      #descent
+      class="cl-hero__video cl-hero__video--descent"
+      [class.is-on]="underground"
+      src="assets/video/hero-descent.mp4"
+      muted
+      playsinline
+      preload="auto"
+      aria-hidden="true"></video>
 
-    <div class="cl-hero__copy">
+    <div class="cl-hero__wash" [class.is-deep]="underground"></div>
+
+    <div class="cl-hero__copy" [class.is-off]="heroOff">
       <div class="cl-hero__steps">
         <div class="cl-hero__step" [class.is-on]="step === 0">
           <p class="cl-hero__kicker">CLARISA</p>
@@ -73,17 +91,12 @@
       <i></i>
     </div>
   </div>
-</section>
 
-<!-- ===================== bajo tierra · scroll normal ===================== -->
-<section class="cl-story" #story>
-  <!-- El vídeo se queda pegado al fondo; el contenido pasa por encima -->
-  <div class="cl-story__bg">
-    <video #descent class="cl-story__video" src="assets/video/hero-descent.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
-    <div class="cl-story__veil"></div>
-  </div>
+  <!-- El recorrido del hero: espacio vacío que da el scroll del crecimiento -->
+  <div class="cl-rail" #rail></div>
 
-  <div class="cl-story__flow">
+  <!-- De aquí abajo, scroll normal sobre el mismo escenario -->
+  <div class="cl-story__flow" #story>
     <!-- about us -->
     <article class="cl-block">
       <p class="cl-kicker">Information about us</p>

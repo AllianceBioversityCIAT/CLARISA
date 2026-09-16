@@ -36,6 +36,22 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
    */
   step = 0;
 
+  /**
+   * true en cuanto el crecimiento ha terminado. Cambia el vídeo que se ve, apaga
+   * el texto del hero y oscurece el velo — todo a la vez, para que el relevo
+   * ocurra en un solo instante y no en tres.
+   */
+  underground = false;
+
+  /**
+   * El texto del hero se apaga ANTES que el cambio de vídeo. Son dos momentos
+   * distintos a propósito: el contenido de abajo empieza a subir por la pantalla
+   * mucho antes de llegar al borde superior, y si el hero siguiera encendido los
+   * dos textos se pisarían. El relevo de vídeo, en cambio, sí espera al borde,
+   * que es cuando el crecimiento ha terminado de verdad.
+   */
+  heroOff = false;
+
   /** Dónde empieza cada tramo del hero, en fracción del carril. */
   private readonly CUTS = [0, 0.34, 0.68];
 
@@ -129,16 +145,29 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
     const p = Math.min(1, Math.max(0, -rail.getBoundingClientRect().top / travel));
     this.seek(this.video, p);
 
-    // Bajo tierra el vídeo va pegado al fondo y avanza con lo que se lleve
-    // recorrido de la sección, pero el scroll es el normal: nada se queda
-    // atrapado esperando a que termine el clip.
+    // Bajo tierra el escenario es el mismo; lo único que cambia es qué vídeo se
+    // ve y que el scroll vuelve a ser el normal: nada se queda atrapado
+    // esperando a que termine el clip.
     const story = this.story?.nativeElement;
+    let below = false;
     if (story) {
+      const rect = story.getBoundingClientRect();
       const run = story.offsetHeight - window.innerHeight;
+      // El relevo ocurre cuando el contenido de abajo toca el borde superior,
+      // que es exactamente el momento en que el crecimiento ya terminó.
+      below = rect.top <= 1;
+      const off = rect.top < window.innerHeight * 0.92;
+      if (off !== this.heroOff) {
+        this.zone.run(() => (this.heroOff = off));
+      }
       if (run > 0) {
-        const q = Math.min(1, Math.max(0, -story.getBoundingClientRect().top / run));
+        const q = Math.min(1, Math.max(0, -rect.top / run));
         this.seek(this.descent, q);
       }
+    }
+
+    if (below !== this.underground) {
+      this.zone.run(() => (this.underground = below));
     }
 
     // El tramo del hero es el último corte que ya hemos pasado.
