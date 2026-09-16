@@ -15,16 +15,27 @@
   <div class="form-pane">
     <form (ngSubmit)="onSubmit()" [formGroup]="loginForm">
       <p-panel>
-        <div class="login-card">
+        <div class="login-card" [class.is-working]="signingIn">
           <header class="login-card__head">
             <p class="login-card__brand">CLARISA</p>
+
+            <!--
+              Qué se puede hacer una vez dentro, una frase cada vez. Va ENCIMA del
+              título y no suelto por la pantalla: es lo primero que se lee al
+              llegar, y es la única pantalla donde alguien se detiene sin saber
+              todavía qué hay al otro lado.
+            -->
+            <div class="login-card__claims" aria-live="polite">
+              <p *ngFor="let c of claims; let i = index" [class.is-on]="i === claim">{{ c }}</p>
+            </div>
+
             <h1 class="login-card__title">Sign in</h1>
             <p class="login-card__subtitle">Request partners administrator</p>
           </header>
 
           <div class="field">
             <label for="login-user">Username or email</label>
-            <input id="login-user" pInputText type="text" formControlName="login" name="login" autocomplete="username" />
+            <input id="login-user" pInputText type="text" formControlName="login" name="login" autocomplete="username" [readonly]="signingIn" />
             <small class="field__error" [hidden]="loginForm.controls['login'].valid || !loginForm.controls['login'].dirty">Login is required</small>
           </div>
 
@@ -42,7 +53,8 @@
                 [type]="showPassword ? 'text' : 'password'"
                 formControlName="password"
                 name="password"
-                autocomplete="current-password" />
+                autocomplete="current-password"
+                [readonly]="signingIn" />
               <button
                 type="button"
                 class="field__toggle"
@@ -58,38 +70,20 @@
             >
           </div>
 
-          <button pButton type="submit" label="Sign in" class="login-card__submit" [disabled]="!loginForm.valid || phase !== 'idle'"></button>
+          <!--
+            La espera vive EN el botón: una barra que recorre su base. Sin
+            diálogo encima del formulario y sin la ruedecita azul de PrimeNG,
+            que además venía de un GIF.
+          -->
+          <button
+            pButton
+            type="submit"
+            [label]="signingIn ? 'Signing in' : 'Sign in'"
+            class="login-card__submit"
+            [disabled]="!loginForm.valid || signingIn"
+            [class.is-working]="signingIn"></button>
         </div>
       </p-panel>
     </form>
-  </div>
-</div>
-
-<!--
-  La pantalla de entrada. Sustituye al `p-dialog` que tapaba medio formulario con
-  una ruedecita azul.
-
-  Dos clips encadenados sobre el mismo fondo:
-    · `login-loop.mp4`  el viento mueve los cultivos dentro de las letras, en
-                        bucle — empieza y acaba en el mismo fotograma, así que
-                        no se ve el corte. Corre MIENTRAS el API responde.
-    · `login-zoom.mp4`  el API ya contestó: la cámara entra en una letra hasta
-                        que solo queda la textura, y el velo cierra a negro.
-
-  🛑 Sobre ese negro es donde ocurre la navegación al panel, así que el cambio de
-  vista no se ve (Yeck, 16-sep-2026: «combinamos ese negro para hacer la
-  transición con la plataforma»).
--->
-<div class="splash" *ngIf="phase !== 'idle'" [class.is-leaving]="phase === 'leaving'">
-  <video class="splash__video" src="assets/video/login-loop.mp4" autoplay muted loop playsinline aria-hidden="true"></video>
-  <video #zoom class="splash__video splash__video--zoom" src="assets/video/login-zoom.mp4" muted playsinline aria-hidden="true"></video>
-
-  <!-- El negro del final: es un velo, no un fotograma, para que el momento del
-       corte lo decida el componente y no el vídeo. -->
-  <div class="splash__black"></div>
-
-  <div class="splash__foot">
-    <div class="splash__track"><i></i></div>
-    <span>Loading CLARISA</span>
   </div>
 </div>

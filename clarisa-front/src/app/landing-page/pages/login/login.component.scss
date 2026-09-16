@@ -333,109 +333,90 @@
   }
 }
 
-/* ===================================================== pantalla de entrada ===
-   Cubre la vista entera mientras se entra. No es un diálogo encima del
-   formulario: es la pantalla, y por eso el formulario de debajo no necesita
-   bloquearse — no se puede tocar. */
+/* ------------------------------------------------ qué se puede hacer dentro -
+   Las frases se apilan en la misma caja y solo cambia cuál está encendida: si
+   se sucedieran en el flujo, el título y todo el formulario darían un salto
+   cada 2,8 segundos. La altura la fija la frase más larga. */
 
-:host .splash {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: #04140f;
+:host .login-card__claims {
+  position: relative;
+  /* Alto de DOS líneas: las frases más largas ocupan dos, y con 44px la de
+     abajo se metía debajo del título. Lo fija la frase más alta, no la media. */
+  min-height: 52px;
+  margin: 12px 0 18px;
 }
 
-:host .splash__video {
+/* La que sale se apaga más rápido que la que entra, para que el cruce no se
+   lea como texto fantasma sobre texto. */
+:host .login-card__claims p {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* El zoom se monta encima del bucle y aparece cuando empieza el cierre. Su
-   primer fotograma es la misma imagen del bucle, así que el relevo no se ve. */
-:host .splash__video--zoom {
+  margin: 0;
+  color: var(--cl-ink-2);
+  font-size: 15px;
+  line-height: 1.45;
   opacity: 0;
-  transition: opacity 0.18s linear;
-}
-
-:host .splash.is-leaving .splash__video--zoom {
-  opacity: 1;
-}
-
-/* El negro final. Entra con retraso: primero se deja ver el zoom. */
-:host .splash__black {
-  position: absolute;
-  inset: 0;
-  background: #000;
-  opacity: 0;
+  transform: translateY(6px);
+  /* 0,3 s de fundido: lo justo para que no parpadee y no se haga esperar. */
+  transition:
+    opacity 0.18s ease,
+    transform 0.3s ease;
   pointer-events: none;
-  transition: opacity 0.7s ease 1.6s;
 }
 
-:host .splash.is-leaving .splash__black {
+:host .login-card__claims p.is-on {
   opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.34s ease 0.1s,
+    transform 0.34s ease 0.1s;
 }
 
-:host .splash__foot {
+/* ------------------------------------------------------ la espera del botón -
+   La barra recorre la base del propio botón. No hay nada que tapar ni ningún
+   sitio nuevo donde mirar: la espera ocurre donde se hizo clic. */
+
+:host .login-card__submit {
+  position: relative;
+  overflow: hidden;
+}
+
+:host .login-card__submit.is-working::after {
+  content: '';
   position: absolute;
-  bottom: 13vh;
-  left: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  width: min(380px, 70vw);
-  transform: translateX(-50%);
-  transition: opacity 0.3s ease;
-}
-
-/* Al cerrar, el texto se va antes que la imagen: lo último que se ve es la
-   planta, no una etiqueta de estado. */
-:host .splash.is-leaving .splash__foot {
-  opacity: 0;
-}
-
-:host .splash__track {
-  width: 100%;
+  bottom: 0;
+  left: 0;
+  width: 40%;
   height: 3px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.18);
-  overflow: hidden;
-
-  i {
-    display: block;
-    height: 100%;
-    width: 38%;
-    border-radius: 2px;
-    background: linear-gradient(90deg, var(--cl-brand, #0f8a63), #5fe3b4);
-    animation: cl-load 1.5s ease-in-out infinite;
-  }
+  background: rgba(255, 255, 255, 0.85);
+  animation: cl-signing 1.15s ease-in-out infinite;
 }
 
-@keyframes cl-load {
+@keyframes cl-signing {
   0% {
     transform: translateX(-110%);
   }
   100% {
-    transform: translateX(330%);
+    transform: translateX(360%);
   }
 }
 
-:host .splash__foot span {
-  color: #cfe6dc;
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+/* Mientras se entra, el formulario se apaga sin desaparecer: se ve que sigue
+   ahí y que no admite cambios. */
+:host .login-card.is-working .field {
+  opacity: 0.55;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :host .splash__video {
-    display: none;
+  :host .login-card__claims p {
+    transition: none;
+  }
+
+  :host .login-card__submit.is-working::after {
+    animation: none;
+    width: 100%;
   }
 }

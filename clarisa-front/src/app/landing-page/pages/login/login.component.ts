@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Validators, FormControl, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from 'src/app/shared/services/auth.service';
@@ -9,7 +9,7 @@ import { UserAuth } from '../../../shared/interfaces/user-auth';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, OnDestroy {
   /**
    * Si la contraseña se ve o no. Empieza oculta: mostrarla es una decisión de
    * quien escribe, no el estado por defecto — puede haber alguien mirando.
@@ -17,20 +17,30 @@ export class LoginComponent implements OnInit {
   showPassword = false;
 
   /**
-   * En qué punto va la entrada.
+   * `true` mientras el API responde. El formulario se bloquea y el botón se
+   * convierte en su propia barra de progreso — sin diálogo encima, sin GIF.
    *
-   *   idle     · el formulario, sin nada encima
-   *   loading  · el bucle con viento y «Loading CLARISA», MIENTRAS el API responde
-   *   leaving  · el API ya contestó: el zoom entra en una letra y funde a negro
-   *
-   * 🛑 `loading` dura lo que tarde la petición, ni un milisegundo más. La
-   * animación no se espera a sí misma: si el API contesta en 300 ms, se ven
-   * 300 ms. Lo único que se reserva tiempo es `leaving`, y porque ahí ya no se
-   * está esperando a nadie — es el cierre.
+   * 🛑 Dura lo que tarde la petición, ni un milisegundo más: no hay temporizador
+   * que lo alargue para que la espera «se vea».
    */
-  phase: 'idle' | 'loading' | 'leaving' = 'idle';
+  signingIn = false;
 
-  @ViewChild('zoom') zoom?: ElementRef<HTMLVideoElement>;
+  /**
+   * Lo que se puede hacer una vez dentro, en frases de una línea. El formulario
+   * de acceso es la única pantalla donde alguien se detiene sin saber todavía
+   * qué hay al otro lado; el carrusel lo cuenta sin ocupar sitio.
+   *
+   * 🛑 Provisional: el copy del producto lo decide Yeck.
+   */
+  readonly claims = [
+    'Request a new partner institution and follow its review',
+    'Keep the glossary the CGIAR reporting systems read',
+    'Manage the lifecycle of the 10,630 institutions in the registry',
+    'Issue and revoke the API keys other platforms sign with'
+  ];
+
+  claim = 0;
+  private rotator?: ReturnType<typeof setInterval>;
 
   constructor(
     private authService: AuthService,
@@ -52,18 +62,24 @@ export class LoginComponent implements OnInit {
       login: new FormControl('', Validators.required),
       password: new FormControl('', Validators.required)
     });
+
+    // 2,8 s por frase: a 4,5 s se hacía lento y la gente ya había dejado de
+    // mirar (lección de alohados, 15-sep-2026).
+    this.rotator = setInterval(() => (this.claim = (this.claim + 1) % this.claims.length), 2800);
+  }
+
+  ngOnDestroy(): void {
+    clearInterval(this.rotator);
   }
 
   onSubmit() {
-    if (this.loginForm.invalid || this.phase !== 'idle') {
+    if (this.loginForm.invalid || this.signingIn) {
       return;
     }
 
     const authData: UserAuth = { ...this.loginForm.value };
 
-    // La pantalla entra ANTES de la petición, no después: es lo que hace que el
-    // tiempo de espera sea el de la animación y no uno añadido encima.
-    this.phase = 'loading';
+    this.signingIn = true;
     this.menssageValidate = '';
 
     this.authService.userAuth(authData).subscribe({
@@ -72,31 +88,14 @@ export class LoginComponent implements OnInit {
         this.authService.localStorageToken = access_token;
         this.authService.localStorageUser = user;
         this.successLogin = true;
-        this.leave();
+        this.router.navigate(['/clarisa-panel/manage/partner-request']);
       },
       error: () => {
-        // Un error devuelve el formulario de inmediato: nadie espera una
-        // animación para enterarse de que se equivocó de contraseña.
-        this.phase = 'idle';
+        // El formulario vuelve de inmediato: nadie debería esperar para
+        // enterarse de que se equivocó de contraseña.
+        this.signingIn = false;
         this.menssageValidate = 'Username or password is incorrect please validate it';
       }
     });
-  }
-
-  /**
-   * El cierre: el zoom entra en una letra, la pantalla se va a negro y de ahí
-   * arranca el panel. La navegación ocurre CON la pantalla ya negra, así que el
-   * cambio de vista no se ve.
-   */
-  private leave(): void {
-    this.phase = 'leaving';
-
-    const video = this.zoom?.nativeElement;
-    if (video) {
-      video.currentTime = 0;
-      void video.play();
-    }
-
-    setTimeout(() => this.router.navigate(['/clarisa-panel/manage/partner-request']), 2600);
   }
 }
