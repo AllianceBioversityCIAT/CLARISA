@@ -1,14 +1,15 @@
-input[type=file]::file-selector-button {
-    margin-right: 20px;
-    border: none;
-    background: #084cdf;
-    padding: 10px 20px;
-    border-radius: 10px;
-    color: #fff;
-    cursor: pointer;
-    transition: background .2s ease-in-out;
-  }
-  
-  input[type=file]::file-selector-button:hover {
-    background: #0d45a5;
-  }
+/* La piel de los campos y del botón sale de `.admin-form` y `.btn-brand`
+   (`src/styles/_admin-form.scss`). Aquí solo queda lo propio de esta pantalla. */
+
+/* Un subtipo aparece DEBAJO del tipo, dentro del mismo campo: necesita su
+   respiro sin convertirse en otra columna. */
+.field .field-stack {
+  margin-top: 14px;
+}
+
+/* La nota se alinea con la tarjeta del formulario, no con el ancho de la
+   pantalla: dos bloques del mismo tema no pueden medir distinto. */
+.admin-note {
+  max-width: 1120px;
+  margin-bottom: 16px;
+}

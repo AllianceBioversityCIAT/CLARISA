@@ -1,156 +1,85 @@
-<div class="main-content app-content mt-0">
-  <div class="side-app">
-    <div class="main-container container-fluid">
-      <!-- PAGE-HEADER -->
-      <div class="page-header">
-        <h1 class="page-title">Tabs</h1>
-        <div>
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-              <a href="javascript:void(0)">Bootstrap</a>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">Tabs</li>
-          </ol>
-        </div>
-      </div>
-      <!-- PAGE-HEADER END -->
+<!--
+  Esta pantalla vivía dentro de la plantilla de demostración del tema: un
+  `page-header` que decía «Tabs», un breadcrumb «Bootstrap / Tabs» y una tarjeta
+  con `ul.panel-tabs` dentro de otra tarjeta. Encima arrastraba un margen de
+  320px heredado del menú lateral que esta página ya no dibuja, así que el
+  contenido empezaba a 600px del borde con la tabla cortada por la derecha.
 
-      <!-- ROW-1 OPEN -->
-      <div class="row">
-        <!-- COL-END -->
-        <div class="col-xl-12">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Institution request</h3>
-            </div>
-            <div class="card-body">
-              <div class="panel panel-primary">
-                <div class="tab-menu-heading tab-menu-heading-boxed">
-                  <div class="tabs-menu-boxed">
-                    <!-- Tabs -->
-                    <ul class="nav panel-tabs" style="font-size: 15px;">
-                      <li>
-                        <a href="#tab25" class="active" data-bs-toggle="tab"
-                          >List</a
-                        >
-                      </li>
-                      <li
-                        *ngIf="
-                          miStorage.hasOwnProperty('permissions') &&
-                          miStorage.permissions.indexOf(
-                            '/api/partner-requests/create'
-                          ) != -1
-                        "
-                      >
-                        <a href="#tab26" data-bs-toggle="tab"
-                          >Request new institution</a
-                        >
-                      </li>
-                      <!--
-                      <li>
-                        <a href="#tab27" data-bs-toggle="tab"
-                          >Request new country office(s)</a
-                        >
-                      </li>-->
-                      <li
-                        *ngIf="
-                          miStorage.hasOwnProperty('permissions') &&
-                          miStorage.permissions.indexOf(
-                            '/api/partner-requests/update'
-                          ) != -1 &&
-                          miStorage.permissions.indexOf(
-                            '/api/partner-requests/respond'
-                          ) != -1
-                        "
-                      >
-                        <a href="#tab28" data-bs-toggle="tab"
-                          >Pending Institution request(s)<i pBadge value="{{informationParnertRequest.length}}"  severity="success"></i></a
-                        >
-                      </li>
-                      <li
-                        *ngIf="
-                          miStorage.hasOwnProperty('permissions') &&
-                          miStorage.permissions.indexOf(
-                            '/api/partner-requests/create-bulk'
-                          ) != -1
-                        "
-                      >
-                        <a href="#tab29" data-bs-toggle="tab"
-                          >Create Partner request Bulk</a
-                        >
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                <div class="panel-body tabs-menu-body">
-                  <div class="tab-content">
-                    <div class="tab-pane active" id="tab25">
-                      <app-list-institution></app-list-institution>
-                    </div>
-                    <div class="tab-pane" id="tab26">
-                      <app-form-new-institution></app-form-new-institution>
-                    </div>
-                    <div class="tab-pane" id="tab27">
-                      <app-form-country-office></app-form-country-office>
-                    </div>
-                    <div class="tab-pane" id="tab28">
-                      <div
-                        class="alert alert-success"
-                        role="alert"
-                        *ngIf="
-                          informationParnertRequest == '' ||
-                          informationParnertRequest == null ||
-                          informationParnertRequest == []
-                        "
-                      >
-                        <span class="alert-inner--icon"
-                          ><i class="fe fe-thumbs-up"></i
-                        ></span>
-                        <span class="alert-inner--text"
-                          ><strong> </strong> There are no partner requests
-                          pending. Good Job!</span
-                        >
-                      </div>
-
-                      <app-request-institutions-form
-                        [informationContent]="item"
-                        [codeContent]="indexList(p,i)"
-                        *ngFor="
-                          let item of informationParnertRequest
-                            | paginate : { itemsPerPage: 10, currentPage: p }; let i = index
-                        "
-                        (codePartnerResolver)="partnerResolve($event)"
-                      ></app-request-institutions-form>
-                      <div
-                        style="
-                          display: flex;
-                          align-items: center;
-                          justify-content: center;
-                          font-size: 17px;
-                        "
-                      >
-                        <pagination-controls
-                          (pageChange)="p = $event"
-                          previousLabel="Previous"
-                          nextLabel="Next"
-                        ></pagination-controls>
-                      </div>
-                    </div>
-                    <div class="tab-pane" id="tab29">
-                      <app-partner-bulk></app-partner-bulk>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- ROW-1 CLOSED -->
+  Ahora usa el mismo lenguaje que el resto del panel: título + apoyo arriba,
+  selector de sección `.admin-tabs` (global) y el contenido debajo, a lo ancho.
+-->
+<div class="partner-layout">
+  <header class="partner-topbar">
+    <div class="partner-topbar__head">
+      <h2 class="partner-topbar__title">Institution requests</h2>
+      <p class="partner-topbar__hint">Look up the institutions already registered in CLARISA, request a new one and resolve the requests waiting for review.</p>
     </div>
-  </div>
-</div>
 
+    <nav class="admin-tabs" role="tablist" aria-label="Institution request sections">
+      <button
+        *ngFor="let tab of visibleTabs"
+        type="button"
+        role="tab"
+        class="admin-tabs__item"
+        [class.is-active]="activeTab === tab.id"
+        [attr.aria-selected]="activeTab === tab.id"
+        [attr.aria-controls]="'partner-pane-' + tab.id"
+        (click)="activeTab = tab.id">
+        <span>{{ tab.label }}</span>
+        <!--
+          El contador va DENTRO del botón. Antes era un `pBadge` absoluto que
+          caía encima de la última palabra de «Pending Institution request(s)».
+        -->
+        <span class="admin-tabs__count" *ngIf="tab.id === 'pending' && pendingCount">{{ pendingCount }}</span>
+      </button>
+    </nav>
+  </header>
+
+  <!--
+    Las cuatro secciones se quedan montadas y solo se oculta la que no toca: la
+    lista descarga el catálogo entero de instituciones y los formularios llevan
+    lo que el usuario ya escribió. Con `*ngIf` cambiar de pestaña y volver
+    costaría la descarga otra vez y borraría el formulario a medias.
+  -->
+  <main class="partner-main">
+    <section id="partner-pane-list" role="tabpanel" [class.is-hidden]="activeTab !== 'list'">
+      <app-list-institution></app-list-institution>
+    </section>
+
+    <section id="partner-pane-new" role="tabpanel" [class.is-hidden]="activeTab !== 'new'">
+      <app-form-new-institution></app-form-new-institution>
+    </section>
+
+    <section id="partner-pane-pending" role="tabpanel" [class.is-hidden]="activeTab !== 'pending'">
+      <!--
+        `?.` en la longitud: mientras la petición está en vuelo —o cuando responde
+        401— la propiedad es `undefined` y la plantilla lanzaba un error por cada
+        ciclo de detección de cambios.
+      -->
+      <div class="partner-empty" *ngIf="!pendingCount">
+        <i class="fe fe-thumbs-up" aria-hidden="true"></i>
+        <div>
+          <strong>Nothing pending.</strong>
+          <span>There are no institution requests waiting for review.</span>
+        </div>
+      </div>
+
+      <app-request-institutions-form
+        [informationContent]="item"
+        [codeContent]="indexList(p, i)"
+        *ngFor="let item of informationParnertRequest | paginate: { itemsPerPage: 10, currentPage: p }; let i = index"
+        (codePartnerResolver)="partnerResolve($event)"></app-request-institutions-form>
+
+      <div class="partner-pagination" *ngIf="pendingCount > 10">
+        <pagination-controls (pageChange)="p = $event" previousLabel="Previous" nextLabel="Next"></pagination-controls>
+      </div>
+    </section>
+
+    <section id="partner-pane-bulk" role="tabpanel" [class.is-hidden]="activeTab !== 'bulk'">
+      <app-partner-bulk></app-partner-bulk>
+    </section>
+  </main>
+</div>
 
 <p-dialog
   header="Process status"
@@ -160,20 +89,10 @@
   [baseZIndex]="10000"
   [draggable]="false"
   [resizable]="false"
->
-  <p class="m-0"></p>
-  <div>
-    <p>{{menssageConfirmProcess}}</p>
-  </div>
+  styleClass="admin-dialog">
+  <p>{{ menssageConfirmProcess }}</p>
 
   <ng-template pTemplate="footer">
-    
-    <button
-      pButton
-      type="button"
-      label="Close"
-      style="border-radius: 30px; background-color: #eb5b47; color: white"
-      (click)="statusProcess = false"
-    ></button>
+    <button pButton type="button" label="Close" class="p-button-text" (click)="statusProcess = false"></button>
   </ng-template>
 </p-dialog>

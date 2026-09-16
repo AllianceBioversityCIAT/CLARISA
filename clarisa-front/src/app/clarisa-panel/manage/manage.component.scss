@@ -1,3 +1,13 @@
+/**
+ * Armazón del panel: costilla + columna fija a la izquierda, barra arriba a la
+ * derecha y el contenido debajo de la barra.
+ *
+ * El hueco de la barra se reserva UNA vez aquí, no en cada pantalla: antes cada
+ * página declaraba su propio `padding-top` (72px en microservicios y ciclo de
+ * vida, 75px en el glosario) y bastaba con mover la barra para abrir una franja
+ * vacía distinta en cada una.
+ */
+
 .admin-shell {
   display: flex;
   align-items: flex-start;
@@ -6,10 +16,12 @@
 
 .admin-shell__content {
   flex: 1;
-  /* The sidebar is `position: fixed`, so it no longer reserves its own column:
-     without this offset the table slides underneath it. 248px is the sidebar
-     width declared in `admin-sidebar.component.scss`; the two move together. */
-  margin-left: 248px;
+  /* El sidebar es `position: fixed`, así que ya no reserva su columna: sin este
+     desplazamiento la tabla se le mete por debajo. Los dos leen la misma
+     variable, así que se mueven juntos. */
+  margin-left: var(--cl-admin-sidebar);
+  /* Y este es el hueco de la barra superior, también fija. */
+  padding-top: var(--cl-admin-header);
   /* `min-width: 0` so a wide table scrolls inside the content column instead of
      pushing the sidebar off the screen. */
   min-width: 0;
@@ -20,10 +32,11 @@
     flex-direction: column;
   }
 
-  /* Under 900px the sidebar goes back into the flow as a row on top, so the
-     offset has to go with it. */
+  /* Bajo 900px el sidebar vuelve al flujo como una fila arriba —y con él se
+     lleva el hueco de la barra—, así que aquí no queda ni margen ni relleno. */
   .admin-shell__content {
     width: 100%;
     margin-left: 0;
+    padding-top: 0;
   }
 }

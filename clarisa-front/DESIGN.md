@@ -4,7 +4,7 @@ Cómo se maneja el color, la tipografía y los componentes en `clarisa-front`. E
 fuente de verdad del diseño y está escrito para poder **dárselo tal cual a quien vaya a implementar**
 —persona o agente— sin que tenga que adivinar nada.
 
-Última revisión: 2026-09-15.
+Última revisión: 2026-09-16.
 
 ---
 
@@ -186,11 +186,66 @@ en menta (`--primary-color:#0b7554`), así que cualquier SCSS propio que la lea 
    `p-panel` del login pintaba una franja gris que era su header vacío — `display: none`, no un
    título de mentira.
 
+### Los tres componentes propios del panel — se declaran UNA vez, en global
+
+🛑 **Regla nueva (Yeck, 16-sep-2026: «define un estilo de tabla fija ya de una vez por todas»).**
+Un componente que se repite en varias pantallas se declara **una sola vez** en `src/styles/`, no
+dentro del componente que lo estrena. Hasta hoy la misma tabla se dibujaba de tres maneras —gris en
+microservicios y el glosario (`:host ::ng-deep .admin-table`), lima `#739600` con estilos en línea en
+la lista de instituciones— y ninguna sabía de las otras.
+
+| Clase | Archivo | Qué resuelve |
+|---|---|---|
+| `admin-table` | `src/styles/_admin-table.scss` | La tabla: cabecera, filas, paginador, barra de filtros (`admin-table-toolbar`) y las ayudas de celda (`cell-primary`, `cell-clamp`, `cell-chip`, `cell-link`, `cell-empty`) |
+| `admin-tabs` | `src/styles/_admin-tabs.scss` | El selector de sección: riel redondeado, activo en blanco elevado y el contador **dentro** del botón (`admin-tabs__count`) |
+| `admin-form` | `src/styles/_admin-form.scss` | Campos, rejilla (`admin-form__grid`), barra de acciones, tarjetas (`admin-card`), notas (`admin-note`), diálogos (`admin-dialog`) y los tres botones: `btn-brand`, `btn-ghost`, `btn-caution` |
+
+Cómo se usan:
+
+```html
+<p-table styleClass="p-datatable-sm admin-table"> … </p-table>
+
+<nav class="admin-tabs" role="tablist">
+  <button class="admin-tabs__item" [class.is-active]="…">List<span class="admin-tabs__count">24</span></button>
+</nav>
+
+<form class="admin-form">
+  <div class="admin-card admin-card--form">
+    <div class="admin-form__grid">
+      <div class="field"><label>Name <span class="tag-req">Required</span></label> … </div>
+```
+
+Tres cosas que hay que saber antes de tocar estos archivos:
+
+1. 🛑 **El selector lleva `.p-datatable` pegado** (`.admin-table.p-datatable`). `angular.json` carga
+   `styles.scss` **antes** del tema de PrimeNG, así que una regla global de la misma especificidad
+   que la del tema **pierde**. Con las dos clases del propio envoltorio gana sin `!important`.
+2. 🛑 **`.btn-danger` no se puede usar como nombre**: ya existe en el Bootstrap 3 que el panel carga
+   (`assets/bootstrap/css/bootstrap.css:3344`) y pinta su propio rojo por encima. Por eso el
+   destructivo se llama `btn-caution`.
+3. **`table-layout: fixed` con `min-width: 880px`.** Sin el mínimo, en un teléfono la columna sin
+   ancho declarado se queda en cero y las demás se pintan una encima de otra; con él, la tabla se
+   desplaza de lado dentro de su tarjeta.
+
+### Medidas del armazón del panel
+
+Viven en `:root` (`styles.scss`) y las leen la barra, el sidebar y el hueco superior de cada
+pantalla: `--cl-admin-header: 60px`, `--cl-admin-sidebar: 248px`, `--cl-admin-rib: 6px`.
+
+🛑 **El sidebar sube hasta arriba del todo y la barra empieza donde él termina** (Yeck, 16-sep-2026:
+*«que el panel suba y use el espacio de arriba del nav para que no se vea pelado, y el navbar muy
+grueso verticalmente»*). La barra no lleva marca —la lleva el sidebar—, así que cruzándola entera
+dejaba su mitad izquierda vacía: 75px de alto para no decir nada. Ahora la marca del sidebar mide
+exactamente `--cl-admin-header`, de modo que su línea inferior y la de la barra son la misma raya, y
+la costilla de 6px recorre la columna de arriba abajo en vez de ser un trozo de verde colgando en una
+esquina. El hueco de la barra se reserva **una sola vez**, en `.admin-shell__content`; antes cada
+pantalla declaraba el suyo y había tres valores distintos (72, 74 y 75).
+
 ### Componentes en uso y su tratamiento
 
 | Componente | Dónde | Tratamiento |
 |---|---|---|
-| `p-table` | glosario, instituciones, usuarios, roles | Cabecera en `--cl-ink-3` y mayúsculas discretas; filas con línea de 1px, sin cebra; fila expandible para las versiones de un concepto |
+| `p-table` | glosario, instituciones, ciclo de vida, microservicios | **Clase `admin-table`, definida una sola vez en `src/styles/_admin-table.scss`.** Cabecera en `--cl-ink-3` y mayúsculas discretas, línea de 1px sin rejilla vertical, cebra de la regla global, maquetación **fija** con anchos por columna |
 | `p-dialog` | formularios y confirmaciones | Radio de tarjeta, cabecera sin fondo de color, pie con el primario a la derecha |
 | `p-dropdown` / `p-multiSelect` | filtros y formularios | `[filter]` cuando pasa de 15 opciones; **`[virtualScroll]` cuando pasa de 100** |
 | `p-button` | todo | Primario: `--cl-brand-strong` con texto blanco. Secundario: texto con borde. Nunca dos primarios en la misma fila |

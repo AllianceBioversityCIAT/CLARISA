@@ -1,14 +1,84 @@
-input[type=file]::file-selector-button {
-    margin-right: 20px;
-    border: none;
-    background: #084cdf;
-    padding: 10px 20px;
-    border-radius: 10px;
-    color: #fff;
-    cursor: pointer;
-    transition: background .2s ease-in-out;
+/* Zona de carga propia. El `input[type=file]` nativo se queda en el marcado —es
+   el que lleva el `accept` y el `(change)`— pero se saca de la vista: su botón
+   es azul, dice «Choose File» y no admite color. La etiqueta de arriba lo
+   activa, así que el teclado y el lector de pantalla siguen llegando a él. */
+
+/* `.admin-form .field label` es `display: block` y gana por especificidad: la
+   zona de carga ES una etiqueta, así que hay que nombrarla igual de fuerte o el
+   icono y el texto se apilan. */
+.admin-form .field label.bulk-drop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px dashed var(--cl-brand-ring);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface-2);
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease;
+
+  &:hover {
+    border-color: var(--cl-brand);
+    background: var(--cl-brand-soft);
   }
-  
-  input[type=file]::file-selector-button:hover {
-    background: #0d45a5;
+
+  i {
+    font-size: 20px;
+    color: var(--cl-brand);
   }
+}
+
+.bulk-drop__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cl-ink);
+  }
+
+  small {
+    font-size: 12px;
+    color: var(--cl-ink-3);
+  }
+}
+
+/* Fuera de la vista, no `display: none`: escondido del todo, el navegador deja
+   de poder enfocarlo y el `click` de la etiqueta no siempre lo alcanza. */
+.bulk-drop__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.bulk-drop__input:focus-visible + .bulk-drop,
+.bulk-drop__input:focus + .bulk-drop {
+  border-color: var(--cl-brand);
+  box-shadow: 0 0 0 2px var(--cl-brand-ring);
+}
+
+.bulk-loading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  img {
+    width: 40px;
+    height: 40px;
+  }
+
+  p {
+    margin: 0;
+  }
+}

@@ -17,15 +17,25 @@
    it. Being out of flow, the column next to it gets a matching `margin-left` in
    `manage.component.scss` — the two numbers move together. */
 .admin-sidebar {
-  --admin-header: 75px;
   position: fixed;
-  top: var(--admin-header);
+  /* Arriba del todo, no debajo de la barra. El sidebar es la columna del panel y
+     su marca es la identidad de la pantalla: la esquina superior izquierda le
+     pertenece. Antes empezaba bajo una barra de 75px cuya mitad izquierda estaba
+     vacía —«se ve pelado», Yeck, 16-sep-2026—, y la barra, que ya no lleva marca,
+     arranca ahora donde termina esta columna. */
+  top: 0;
   left: 0;
-  z-index: 1;
-  width: 248px;
+  /* Por encima de la barra (z-index 9 del tema): la columna cruza por delante y
+     el ángulo superior izquierdo es suyo. */
+  z-index: 10;
+  width: var(--cl-admin-sidebar);
   /* Not `min-height`: a fixed box has to be capped at the viewport for
      `overflow-y` to have anything to scroll when the list outgrows the screen. */
-  height: calc(100vh - var(--admin-header));
+  height: 100vh;
+  /* La costilla de marca de «N4», ahora de arriba abajo. Como borde y no como
+     pseudo-elemento para que no se desplace con el contenido al hacer scroll. */
+  border-left: var(--cl-admin-rib) solid var(--cl-brand-deep);
+  box-sizing: border-box;
   /* Columna flexible para que la salida del final se empuje abajo con
      `margin-top: auto`. El `overflow-y` sigue funcionando igual. */
   display: flex;
@@ -39,23 +49,29 @@
 
 /* The brand block is the heading of the panel, so it carries more weight than the
    entries and a rule of its own that closes it off from the navigation. */
+/* Exactamente el alto de la barra superior, borde incluido: así su línea
+   inferior y la de la barra son la misma raya y la cabecera del panel se lee
+   como una sola pieza en vez de dos escalones. */
 .admin-sidebar__brand {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 11px;
-  margin-bottom: 18px;
-  padding: 18px 24px 20px;
+  height: var(--cl-admin-header);
+  margin-bottom: 14px;
+  padding: 0 18px;
   border-bottom: 1px solid var(--cl-line);
   text-decoration: none;
+  box-sizing: border-box;
 }
 
 .admin-sidebar__mark {
-  width: 34px;
+  width: 30px;
   height: auto;
 }
 
 .admin-sidebar__word {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.01em;
@@ -85,7 +101,7 @@
    it never competes with the entries under it. */
 .admin-sidebar__title {
   margin: 0 0 6px;
-  padding: 0 24px;
+  padding: 0 18px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -107,7 +123,7 @@
   align-items: center;
   height: 40px;
   margin-right: 12px;
-  padding: 0 14px 0 24px;
+  padding: 0 14px 0 18px;
   border-radius: 0 var(--cl-radius-control) var(--cl-radius-control) 0;
   font-size: 14px;
   font-weight: 600;
@@ -154,10 +170,17 @@
     width: 100%;
     height: auto;
     overflow-y: visible;
-    margin-top: var(--admin-header);
+    margin-top: var(--cl-admin-header);
     padding: 0 14px 16px;
+    border-left: none;
     border-right: none;
     border-bottom: 1px solid var(--cl-line);
+  }
+
+  /* En fila, la marca ya no tiene que medir lo que la barra. */
+  .admin-sidebar__brand {
+    height: auto;
+    padding: 14px 10px;
   }
 
   .admin-sidebar__brand,

@@ -10,14 +10,12 @@
  * the page title.
  */
 
-/* Same offset the admin sidebar declares for the fixed panel header. */
-$manage-header: 75px;
-
+/* El hueco de la barra fija lo reserva el armazón (`manage.component.scss`), no
+   la pantalla: aquí solo va el relleno propio de la página. */
 .glossary-admin-layout {
   display: block;
   padding: 24px 28px 32px;
-  padding-top: calc(#{$manage-header} + 24px);
-  min-height: calc(100vh - #{$manage-header});
+  min-height: calc(100vh - var(--cl-admin-header));
   background: var(--cl-surface-2);
   box-sizing: border-box;
 }
@@ -113,8 +111,6 @@ $manage-header: 75px;
 @media (max-width: 991px) {
   .glossary-admin-layout {
     padding: 20px 16px 28px;
-    padding-top: calc(60px + 20px);
-    min-height: calc(100vh - 60px);
   }
 }
 

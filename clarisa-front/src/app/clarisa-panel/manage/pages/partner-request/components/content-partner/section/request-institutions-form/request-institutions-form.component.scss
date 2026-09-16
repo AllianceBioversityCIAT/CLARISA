@@ -1,0 +1,233 @@
+/* Tarjeta de una solicitud pendiente. Los botones y los campos salen del kit del
+   panel (`src/styles/_admin-form.scss`); aquí solo vive la ficha. */
+
+.request-card {
+  display: block;
+  padding: 20px 22px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-card);
+  background: var(--cl-surface);
+}
+
+/* Entre dos solicitudes seguidas: el componente se repite con `*ngFor`, así que
+   el aire va en el anfitrión y no en la tarjeta. */
+:host {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.request-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px 18px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--cl-line);
+}
+
+.request-card__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--cl-ink);
+}
+
+/* El acrónimo delante del nombre, en su pastilla: antes iba pegado con un guion
+   («- Ministry of…» cuando venía vacío). */
+.request-card__acronym {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.request-card__source {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cl-ink-3);
+  white-space: nowrap;
+}
+
+.request-card__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 24px;
+  margin: 0 0 18px;
+}
+
+.request-fact {
+  min-width: 0;
+
+  dt {
+    margin-bottom: 2px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cl-ink-3);
+  }
+
+  dd {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--cl-ink-2);
+    overflow-wrap: anywhere;
+  }
+}
+
+.request-fact__mail {
+  display: block;
+  color: var(--cl-brand);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.request-card__notes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* Lo que escribió quien pide. Caja propia, no una franja gris a lo ancho con un
+   `h4` pegado al borde. */
+.request-note {
+  padding: 12px 14px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface-2);
+
+  h4 {
+    margin: 0 0 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cl-ink-3);
+  }
+
+  p {
+    margin: 0;
+    /* Un comentario de PRMS trae el volcado entero del usuario y estiraba la
+       ficha a media pantalla: se le da alto propio y se desplaza dentro. */
+    max-height: 9.5em;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--cl-ink-2);
+    white-space: pre-line;
+  }
+}
+
+.request-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cl-line);
+}
+
+/* ---- diálogo de rechazo ---------------------------------------------------- */
+
+.request-recap {
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface-2);
+}
+
+.request-recap__title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cl-ink);
+}
+
+.request-recap .request-note {
+  background: var(--cl-surface);
+}
+
+.request-reject .field--inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  label {
+    margin: 0;
+    font-weight: 500;
+    cursor: pointer;
+  }
+}
+
+/* Seis párrafos de ejemplos no pueden estar abiertos por defecto: empujaban el
+   botón de rechazar fuera de la pantalla. */
+.request-reasons {
+  margin-top: 4px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface-2);
+
+  summary {
+    padding: 11px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cl-ink-2);
+    cursor: pointer;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0 18px 14px 32px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--cl-ink-2);
+  }
+
+  li + li {
+    margin-top: 8px;
+  }
+
+  b {
+    color: var(--cl-ink);
+  }
+}
+
+@media (max-width: 900px) {
+  .request-card__facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .request-card__notes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .request-card__facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .request-card__actions {
+    flex-wrap: wrap;
+
+    button {
+      flex: 1 1 auto;
+    }
+  }
+}
