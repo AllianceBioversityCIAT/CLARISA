@@ -1,11 +1,12 @@
 /**
- * Panel top bar — the same «N4 · blanca con costilla» as the public one.
+ * Panel top bar — tinta, como la barra pública sobre el recorrido de la home.
  *
- * White bar, hairline underneath, ink links in sentence case, the soft pill on the
- * section you are in and one solid primary at the right. La costilla de 6px sigue
- * pegada al borde izquierdo de la pantalla, pero la dibuja el sidebar (ver abajo). The only difference with
- * `landing-page/components/navigation-bar` is what that primary does: here it is
- * Logout, there it is Sign in.
+ * Todo lo que había aquí era blanco sobre blanco: barra blanca, sidebar blanco
+ * y contenido casi blanco, sin una sola jerarquía que dijera dónde termina la
+ * navegación y dónde empieza la pantalla. La franja superior toma ahora el color
+ * que la barra ya tiene en la home, y lo comparte con el bloque de marca del
+ * sidebar, que mide exactamente lo mismo: las dos piezas se leen como una sola
+ * cabecera de lado a lado (Yeck, 16-sep-2026).
  *
  * Why the colour lives here and not in the theme: the panel loads
  * `assets/css/style.css` plus `assets/colors/color1.css`, which paint every link
@@ -21,14 +22,9 @@
  * `html { font-size: 16px }`, so rem values here are not halved. Everything is
  * written in px so the bar does not change meaning if that root ever moves.
  *
- * Alto y posición: los dos salen de `--cl-admin-header` y `--cl-admin-sidebar`
- * (`styles.scss`), que es lo único que hay que tocar para moverlos. La barra ya
- * no cruza la pantalla entera: **arranca donde termina el sidebar**, porque el
- * sidebar sube hasta arriba del todo. Antes la barra se quedaba con los primeros
- * 75px de ancho completo y su mitad izquierda estaba vacía —el logo vive abajo,
- * en el sidebar—, así que la esquina se leía pelada y la barra, gruesa por nada
- * (Yeck, 16-sep-2026: «que el panel suba y use el espacio de arriba del nav para
- * que no se vea pelado, y el navbar muy grueso verticalmente»).
+ * Alto y posición salen de `--cl-admin-header` y `--cl-admin-sidebar`
+ * (`styles.scss`), que es lo único que hay que tocar para moverlos. La barra
+ * arranca donde termina el sidebar, porque el sidebar sube hasta arriba del todo.
  */
 
 :host {
@@ -41,19 +37,17 @@
   /* The theme pads the header 285px on the left at >=992px to clear its own
      sidebar, which this panel does not use. */
   padding: 0;
-  background: var(--cl-surface);
-  border-bottom: 1px solid var(--cl-line);
-  /* La barra empieza a la derecha del sidebar, que ahora ocupa la columna
-     entera. `width: auto` porque el tema le pone `width: 100%` a `.sticky`. */
+  background: var(--cl-admin-bar);
+  border-bottom: none;
+  /* La barra empieza a la derecha del sidebar, que ocupa la columna entera.
+     `width: auto` porque el tema le pone `width: 100%` a `.sticky`. */
   left: var(--cl-admin-sidebar);
   right: 0;
   width: auto;
 }
 
-/* La costilla de marca ya no se dibuja aquí: pasó al borde izquierdo del
-   sidebar, donde recorre toda la altura de la pantalla. Un trozo de 6px de verde
-   de 75px de alto, colgando en una esquina vacía, se leía como un error de
-   pintado y no como la marca. */
+/* La costilla de marca no se dibuja aquí: pasó al borde izquierdo del sidebar,
+   donde recorre toda la altura de la pantalla. */
 
 /* 20px de canal: el contenido de las pantallas del panel usa el mismo. */
 :host .main-container {
@@ -61,187 +55,88 @@
   padding-right: 20px;
 }
 
-/* El borde inferior es parte del alto: 59 + 1 = `--cl-admin-header`. Así la
-   línea de la barra y la que cierra la marca del sidebar son la misma. */
 :host .cl-bar {
   align-items: center;
-  gap: 18px;
-  min-height: calc(var(--cl-admin-header) - 1px);
+  gap: 14px;
+  min-height: var(--cl-admin-header);
 }
 
-/* Con la marca fuera de esta barra —la lleva el sidebar— el orden del DOM dejaba
-   el Logout pegado al borde izquierdo, que es donde el ojo busca la identidad y
-   no una acción. `order` lo manda al extremo derecho sin tocar el marcado: la
-   navegación primero, la acción primaria al final. */
-:host .cl-bar .cl-nav {
-  order: 1;
-  margin-left: auto;
-}
+/* ---- sección -------------------------------------------------------------- */
 
-:host .cl-bar .cl-logout {
-  order: 2;
-}
-
-/* ---- brand ---------------------------------------------------------------- */
-
-:host .cl-brand {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 13px;
-  padding: 10px 0;
-  text-decoration: none;
-}
-
-:host .cl-brand:hover,
-:host .cl-brand:focus {
-  text-decoration: none;
-}
-
-:host .cl-brand__mark {
-  display: block;
-  width: 36px;
-  height: auto;
-}
-
-:host .cl-brand__word {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--cl-ink);
-  white-space: nowrap;
-}
-
-/* ---- menu ----------------------------------------------------------------- */
-
-:host .cl-nav {
-  align-items: center;
+/* El título no compite con el h1 de la pantalla: es una etiqueta de ubicación,
+   del tamaño del texto de la barra y en el tono medio de la franja. */
+:host .cl-section {
+  margin: 0;
+  margin-right: auto;
   min-width: 0;
-}
-
-/* The theme gives this wrapper `flex-basis: 100%`, which stretches it across the
-   bar and drags the menu away from the button. */
-:host .cl-nav .responsive-navbar {
-  flex: 0 0 auto;
-  min-height: 0;
-}
-
-:host .cl-nav .navbar-collapse {
-  flex-basis: auto;
-  flex-grow: 0;
-}
-
-:host .cl-links {
-  align-items: center;
-  gap: 2px;
-}
-
-:host .cl-nav .cl-item {
-  align-items: center;
-}
-
-/* The link. Sentence case on purpose: the uppercase and the lime came with the
-   dashboard theme and neither adds hierarchy. */
-:host .cl-nav .cl-link {
-  display: flex;
-  align-items: center;
-  padding: 9px 15px;
-  border-radius: var(--cl-radius-control);
-  color: var(--cl-ink-2);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   line-height: 1.2;
-  text-transform: none;
+  letter-spacing: -0.01em;
+  color: var(--cl-admin-bar-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- back to the site ----------------------------------------------------- */
+
+/* Contorneado, no sólido: la salida es secundaria frente al Logout, que es la
+   única acción sólida de la franja. Es el gesto simétrico del botón «Admin» de
+   la barra pública — se entra al panel con un contorno y se vuelve con otro. */
+:host .cl-back {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9px;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--cl-admin-bar-line);
+  border-radius: var(--cl-radius-control);
+  background: transparent;
+  color: var(--cl-admin-bar-muted);
+  font-size: 13px;
+  font-weight: 600;
   white-space: nowrap;
   text-decoration: none;
   transition:
     background 0.15s ease,
+    border-color 0.15s ease,
     color 0.15s ease;
 }
 
-:host .cl-nav .cl-link > i {
-  margin-left: 6px;
+:host .cl-back i {
   font-size: 11px;
-  opacity: 0.6;
 }
 
-:host .cl-nav .cl-link:hover,
-:host .cl-nav .cl-link:focus,
-:host .cl-nav .cl-link.show,
-:host .cl-nav .cl-item.show > .cl-link {
-  color: var(--cl-ink);
-  background: var(--cl-surface-2);
+:host .cl-back:hover,
+:host .cl-back:focus {
+  border-color: var(--cl-admin-bar-accent);
+  background: rgba(95, 227, 180, 0.12);
+  color: var(--cl-admin-bar-accent);
   text-decoration: none;
 }
 
-/* The soft pill: the section you are in. 7.80 of `--cl-brand-deeper` on it. */
-:host .cl-nav .cl-item.cl-active > .cl-link,
-:host .cl-nav .cl-item.cl-active > .cl-link:hover,
-:host .cl-nav .cl-item.cl-active > .cl-link:focus {
-  color: var(--cl-brand-deeper);
-  background: var(--cl-brand-soft);
-}
-
-:host .cl-nav .cl-link:focus-visible {
-  outline: 3px solid var(--cl-brand-ring);
+:host .cl-back:focus-visible {
+  outline: 3px solid var(--cl-admin-bar-accent);
   outline-offset: 2px;
-}
-
-/* ---- submenus ------------------------------------------------------------- */
-
-:host .cl-nav .dropdown-menu {
-  margin-top: 6px;
-  padding: 6px;
-  min-width: 232px;
-  border: 1px solid var(--cl-line);
-  border-radius: var(--cl-radius-card);
-  background: var(--cl-surface);
-  box-shadow: 0 18px 38px -16px rgba(16, 36, 28, 0.32);
-  font-size: 14px;
-}
-
-/* The theme hangs a white diamond off the top of the card. The public bar has
-   none: the menu already points at its trigger by sitting under it. */
-:host .cl-nav .dropdown-menu-arrow::before,
-:host .cl-nav .dropdown-menu-arrow::after {
-  display: none;
-}
-
-:host .cl-nav .dropdown-menu .dropdown-item {
-  padding: 11px 13px;
-  border-radius: 9px;
-  color: var(--cl-ink-2);
-  font-size: 14px;
-  font-weight: 500;
-  text-transform: none;
-  white-space: nowrap;
-  text-decoration: none;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
-}
-
-:host .cl-nav .dropdown-menu .dropdown-item:hover,
-:host .cl-nav .dropdown-menu .dropdown-item:focus,
-:host .cl-nav .dropdown-menu .dropdown-item:active {
-  color: var(--cl-brand-deeper);
-  background: var(--cl-brand-soft);
 }
 
 /* ---- logout --------------------------------------------------------------- */
 
-/* One solid primary at the right edge, which is where people look for it.
-   `--cl-brand-strong` with white on top is 5.70. */
+/* One solid primary at the right edge, which is where people look for it. El
+   mismo verde sólido que lleva el botón primario de la home sobre su vídeo
+   oscuro: `--cl-brand-strong` con blanco encima es 5.70. */
 :host .cl-logout {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  height: 40px;
-  padding: 0 20px;
+  height: 36px;
+  padding: 0 18px;
   border-radius: var(--cl-radius-control);
   background: var(--cl-brand-strong);
   color: var(--cl-surface);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
   text-decoration: none;
@@ -250,46 +145,22 @@
 
 :host .cl-logout:hover,
 :host .cl-logout:focus {
-  background: var(--cl-brand-deep);
+  background: var(--cl-brand);
   color: var(--cl-surface);
   text-decoration: none;
 }
 
 :host .cl-logout:focus-visible {
-  outline: 3px solid var(--cl-brand-ring);
+  outline: 3px solid var(--cl-admin-bar-ink);
   outline-offset: 2px;
 }
 
 /* ---- mobile --------------------------------------------------------------- */
 
-:host .cl-nav .navbar-toggler {
-  padding: 8px 10px;
-  border: 1px solid var(--cl-line);
-  border-radius: var(--cl-radius-control);
-  background: var(--cl-surface);
-  box-shadow: none;
-}
-
-:host .cl-nav .navbar-toggler:hover,
-:host .cl-nav .navbar-toggler:focus {
-  background: var(--cl-surface-2);
-  box-shadow: none;
-}
-
-:host .cl-nav .navbar-toggler:focus-visible {
-  outline: 3px solid var(--cl-brand-ring);
-  outline-offset: 2px;
-}
-
-:host .cl-nav .navbar-toggler .navbar-toggler-icon {
-  margin-top: 0;
-  color: var(--cl-ink-2);
-  vertical-align: middle;
-}
-
 /* Por debajo de 900px el sidebar vuelve al flujo como una fila bajo la barra
    (ver `admin-sidebar.component.scss`), así que la barra recupera el ancho
-   completo y con él la costilla en el borde izquierdo. */
+   completo y con él la costilla en el borde izquierdo. La marca del sidebar se
+   esconde a ese ancho, de modo que aquí la franja vuelve a llevarla. */
 @media (max-width: 900px) {
   :host .app-header {
     left: 0;
@@ -307,9 +178,7 @@
     background: var(--cl-brand-deep);
     z-index: 10;
   }
-}
 
-@media (max-width: 991px) {
   :host .main-container {
     /* La costilla se lleva 6px a la izquierda; el canal empieza después. */
     padding-left: 18px;
@@ -317,35 +186,24 @@
   }
 
   :host .cl-bar {
-    gap: 12px;
-  }
-
-  :host .cl-brand__word {
-    font-size: 16px;
-  }
-
-  /* Abierto, el menú es una hoja de ancho completo anclada bajo la barra. El tema
-     la fija en `margin-top: 72px !important`, que sobre una barra de 60px deja
-     una franja de 12px por la que se ve el contenido pasando por detrás. Es el
-     único `!important` de este archivo y va contra otro `!important` del tema:
-     sin él no hay especificidad que valga (DESIGN.md § reglas de PrimeNG). */
-  :host .cl-nav .responsive-navbar .navbar-collapse {
-    margin-top: var(--cl-admin-header) !important;
-    padding: 9px 18px 14px;
-    background: var(--cl-surface);
-    border-bottom: 1px solid var(--cl-line);
-    box-shadow: 0 18px 30px -18px rgba(16, 36, 28, 0.35);
-  }
-
-  :host .cl-links {
-    flex-wrap: wrap;
-    width: 100%;
+    gap: 10px;
   }
 }
 
-@media (max-width: 400px) {
-  /* Below this the wordmark and the button start fighting for the same row. */
-  :host .cl-brand__word {
+/* Debajo de esto los dos botones y el título se pelean por la misma fila: la
+   etiqueta de la salida se va y queda su flecha, que es lo que se pulsa. El
+   `aria-label` del enlace es lo que la sustituye para quien no la ve. */
+@media (max-width: 560px) {
+  :host .cl-back {
+    padding: 0 12px;
+    gap: 0;
+  }
+
+  :host .cl-back span {
     display: none;
+  }
+
+  :host .cl-back i {
+    font-size: 13px;
   }
 }

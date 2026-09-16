@@ -7,21 +7,16 @@
   display: block;
 }
 
-// The panel header is `position: fixed` and 75px tall, so a sidebar starting at
-// 0 has its first 75px — the whole brand block — hidden underneath it. The offset
-// is declared once here and reused by the fixed top.
-//
 // `fixed` rather than `sticky`: the navigation stays put while a long table
 // scrolls, and it no longer needs the content column to be tall enough to hold
 // it. Being out of flow, the column next to it gets a matching `margin-left` in
 // `manage.component.scss` — the two numbers move together.
+//
+// Arriba del todo, no debajo de la barra: el sidebar es la columna del panel y
+// los primeros 60px de esta columna son su bloque de marca, que continúa la
+// franja oscura de la barra.
 .admin-sidebar {
   position: fixed;
-  // /* Arriba del todo, no debajo de la barra. El sidebar es la columna del panel y
-  // su marca es la identidad de la pantalla: la esquina superior izquierda le
-  // pertenece. Antes empezaba bajo una barra de 75px cuya mitad izquierda estaba
-  // vacía —«se ve pelado», Yeck, 16-sep-2026—, y la barra, que ya no lleva marca,
-  // arranca ahora donde termina esta columna.
   top: 0;
   left: 0;
   // /* Por encima de la barra (z-index 9 del tema): la columna cruza por delante y
@@ -31,79 +26,106 @@
   // /* Not `min-height`: a fixed box has to be capped at the viewport for
   // `overflow-y` to have anything to scroll when the list outgrows the screen.
   height: 100vh;
-  // /* La costilla de marca de «N4», ahora de arriba abajo. Como borde y no como
-  // pseudo-elemento para que no se desplace con el contenido al hacer scroll.
-  border-left: var(--cl-admin-rib) solid var(--cl-brand-deep);
   box-sizing: border-box;
-  // /* Columna flexible para que la salida del final se empuje abajo con
-  // `margin-top: auto`. El `overflow-y` sigue funcionando igual.
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 0 24px;
-  background: var(--cl-surface);
+  // /* La costilla de marca, de arriba abajo, pintada como fondo y no como borde:
+  // el verde profundo desaparecía contra la tinta de la franja de arriba, y un
+  // fondo puede cambiar de tono a la altura exacta en que la franja termina —el
+  // mismo gesto que hace la barra de la home, que aclara su costilla cuando se
+  // pone oscura. Como fondo del propio elemento tampoco se desplaza al scrollear
+  // la lista, que es por lo que antes era un borde y no un pseudo-elemento.
+  padding-left: var(--cl-admin-rib);
+  background:
+    linear-gradient(
+        to bottom,
+        var(--cl-admin-bar-accent) 0,
+        var(--cl-admin-bar-accent) var(--cl-admin-header),
+        var(--cl-brand-deep) var(--cl-admin-header)
+      )
+      left top / var(--cl-admin-rib) 100% no-repeat,
+    var(--cl-surface);
   border-right: 1px solid var(--cl-line);
 }
 
-// The brand block is the heading of the panel, so it carries more weight than the
-// entries and a rule of its own that closes it off from the navigation.
-// Exactamente el alto de la barra superior, borde incluido: así su línea
-// inferior y la de la barra son la misma raya y la cabecera del panel se lee
-// como una sola pieza en vez de dos escalones.
+// ---------------------------------------------------------------------------
+// Marca — la mitad izquierda de la franja superior
+// ---------------------------------------------------------------------------
+//
+// Mide exactamente lo que la barra y va del mismo color que ella, que es el de
+// la barra sobre el recorrido de la home: así la cabecera del panel es una sola
+// pieza oscura de lado a lado, y no una marca blanca pegada a una barra
+// (Yeck, 16-sep-2026: «usemos la barra del color del home»).
 .admin-sidebar__brand {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
   gap: 11px;
   height: var(--cl-admin-header);
-  margin-bottom: 14px;
   padding: 0 18px;
-  border-bottom: 1px solid var(--cl-line);
+  background: var(--cl-admin-bar);
   text-decoration: none;
   box-sizing: border-box;
+  // /* Se queda arriba cuando la lista es larga y la columna scrollea: es el
+  // techo de la franja, no una entrada más.
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
+// El logo del CGIAR es verde bosque sobre blanco; sobre tinta necesita ayuda —
+// el mismo tratamiento que en la barra de la home.
 .admin-sidebar__mark {
-  width: 30px;
+  width: 28px;
   height: auto;
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
 }
 
 .admin-sidebar__word {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.01em;
-  color: var(--cl-ink);
+  color: var(--cl-admin-bar-ink);
 }
 
 .admin-sidebar__word small {
   display: block;
   margin-top: 3px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  // /* 7.16 over white.
-  color: var(--cl-brand-deep);
+  color: var(--cl-admin-bar-accent);
 }
 
-// A hairline, not just air: with three groups stacked, whitespace alone left the
-// headings floating and the column read as one long pile again.
+// ---------------------------------------------------------------------------
+// Navegación
+// ---------------------------------------------------------------------------
+
+.admin-sidebar__nav {
+  flex: 1 1 auto;
+  padding: 18px 0 32px;
+}
+
+// Aire en vez de rayas: con una línea entre cada grupo, seis entradas y tres
+// títulos, la columna eran nueve reglas horizontales y el ojo no sabía cuál
+// separaba qué.
 .admin-sidebar__group + .admin-sidebar__group {
-  margin-top: 18px;
-  padding-top: 18px;
-  border-top: 1px solid var(--cl-line);
+  margin-top: 22px;
 }
 
 // The group heading is a label, not a link: small, quiet and never clickable, so
 // it never competes with the entries under it.
 .admin-sidebar__title {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   padding: 0 18px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--cl-ink-3);
 }
@@ -120,6 +142,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  gap: 11px;
   height: 40px;
   margin-right: 12px;
   padding: 0 14px 0 18px;
@@ -133,11 +156,42 @@
     color 0.15s ease;
 }
 
+// El icono da a la entrada un ancla fija a la izquierda: sin él, los seis
+// nombres eran seis líneas de texto suelto y la columna se leía como una lista
+// de la compra. Ancho fijo para que las etiquetas arranquen todas en la misma x.
+.admin-sidebar__icon {
+  flex: 0 0 16px;
+  width: 16px;
+  font-size: 14px;
+  text-align: center;
+  color: var(--cl-ink-3);
+  transition: color 0.15s ease;
+}
+
+.admin-sidebar__list a span {
+  min-width: 0;
+  // /* Una entrada larga («Microservices & API keys») se corta antes que partirse
+  // en dos líneas y descuadrar la altura de la fila.
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .admin-sidebar__list a:hover,
 .admin-sidebar__list a:focus {
   color: var(--cl-ink);
   background: var(--cl-surface-2);
   text-decoration: none;
+}
+
+.admin-sidebar__list a:hover .admin-sidebar__icon,
+.admin-sidebar__list a:focus .admin-sidebar__icon {
+  color: var(--cl-ink-2);
+}
+
+.admin-sidebar__list a:focus-visible {
+  outline: 3px solid var(--cl-brand-ring);
+  outline-offset: -3px;
 }
 
 // The soft pill, the same one the public bar uses for the current section: 7.80.
@@ -146,6 +200,10 @@
 .admin-sidebar__list a.is-active:focus {
   color: var(--cl-brand-deeper);
   background: var(--cl-brand-soft);
+}
+
+.admin-sidebar__list a.is-active .admin-sidebar__icon {
+  color: var(--cl-brand-deep);
 }
 
 // The pill alone is easy to lose against a white column. The bar anchors the
@@ -170,19 +228,24 @@
     height: auto;
     overflow-y: visible;
     margin-top: var(--cl-admin-header);
-    padding: 0 14px 16px;
-    border-left: none;
+    // /* En fila no hay columna que marcar: la costilla la dibuja la barra, que a
+    // este ancho vuelve a cruzar la pantalla entera.
+    padding-left: 0;
+    background: var(--cl-surface);
     border-right: none;
     border-bottom: 1px solid var(--cl-line);
   }
 
-  // /* En fila, la marca ya no tiene que medir lo que la barra.
+  // /* En fila, la marca ya no encabeza ninguna columna: la franja oscura es la
+  // barra, que arriba ocupa el ancho entero.
   .admin-sidebar__brand {
-    height: auto;
-    padding: 14px 10px;
+    display: none;
   }
 
-  .admin-sidebar__brand,
+  .admin-sidebar__nav {
+    padding: 14px;
+  }
+
   .admin-sidebar__title {
     padding-left: 10px;
     padding-right: 10px;
@@ -205,36 +268,5 @@
 
   .admin-sidebar__list a.is-active::before {
     content: none;
-  }
-}
-
-// La salida va al final y separada: no compite con la navegación del panel,
-// pero está donde se la busca cuando se quiere volver.
-:host .admin-sidebar__back {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: auto;
-  border-top: 1px solid var(--cl-line);
-  // /* El widget de chat vive fijo en la esquina inferior izquierda y tapaba el
-  // texto; el relleno de abajo lo deja por encima de él.
-  padding: 18px 20px 76px;
-  color: var(--cl-ink-3);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  transition:
-    background-color 0.16s ease,
-    color 0.16s ease;
-
-  &:hover,
-  &:focus-visible {
-    background: var(--cl-brand-soft);
-    color: var(--cl-brand-deeper);
-    text-decoration: none;
-  }
-
-  i {
-    font-size: 12px;
   }
 }

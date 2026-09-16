@@ -40,9 +40,24 @@
      distintos (72, 74, 75), que es lo que abría una franja vacía entre la barra
      y el contenido. Se cambia aquí y se mueve todo junto. */
   --cl-admin-header: 60px;
-  --cl-admin-sidebar: 248px;
+  /* 264 y no 248: con el icono delante, la entrada más larga del panel
+     —«Microservices & API keys»— se cortaba con puntos suspensivos, y un nombre
+     de sección truncado es lo primero que delata una columna estrecha. */
+  --cl-admin-sidebar: 264px;
   /* La costilla de marca de «N4 · barra blanca con costilla». */
   --cl-admin-rib: 6px;
+
+  /* La franja superior del panel —marca del sidebar y barra— va del color que
+     la barra pública toma sobre el recorrido de la home: tinta verde, texto casi
+     blanco y menta para lo que se acentúa (Yeck, 16-sep-2026: «usemos la barra
+     del color del home»). Allí es translúcida sobre vídeo, `rgba(4, 26, 19,
+     0.58)`; aquí no hay nada detrás, así que es el mismo tono ya resuelto en
+     sólido. Los tres de texto se miden contra ella: 14.68, 9.47 y 10.24. */
+  --cl-admin-bar:        #0b241b;
+  --cl-admin-bar-ink:    #eaf5f1;
+  --cl-admin-bar-muted:  #b7c9c1;
+  --cl-admin-bar-accent: #5fe3b4;
+  --cl-admin-bar-line:   rgba(234, 245, 241, 0.16);
 }
 
 /* Los dos componentes compartidos del panel: la tabla y el selector de sección.

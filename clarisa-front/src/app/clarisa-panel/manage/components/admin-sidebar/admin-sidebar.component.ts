@@ -1,14 +1,6 @@
 import { Component } from '@angular/core';
 
-interface AdminLink {
-  label: string;
-  route: string;
-}
-
-interface AdminGroup {
-  title: string;
-  links: AdminLink[];
-}
+import { ADMIN_GROUPS, AdminGroup } from '../../admin-nav';
 
 /**
  * Left-hand navigation for the administration panel.
@@ -19,9 +11,8 @@ interface AdminGroup {
  * the login screen. They belong here, where everything behind the session lives
  * together.
  *
- * Grouped rather than flat («S3» in DESIGN.md): six entries in a single column
- * read as a pile, and the three groups answer different questions — what I
- * curate, who can get in, what the platform talks to.
+ * La lista vive en `admin-nav.ts` porque la barra de arriba la lee para titular
+ * la sección actual.
  */
 @Component({
   selector: 'app-admin-sidebar',
@@ -29,25 +20,5 @@ interface AdminGroup {
   styleUrls: ['./admin-sidebar.component.scss']
 })
 export class AdminSidebarComponent {
-  readonly groups: AdminGroup[] = [
-    {
-      title: 'Manage',
-      links: [
-        { label: 'Institution requests', route: '/clarisa-panel/manage/partner-request' },
-        { label: 'Institution lifecycle', route: '/clarisa-panel/manage/institution-lifecycle' },
-        { label: 'Glossary', route: '/clarisa-panel/manage/glossary-admin' }
-      ]
-    },
-    {
-      title: 'Access',
-      links: [
-        { label: 'Users', route: '/clarisa-panel/manage/manage-user' },
-        { label: 'Roles', route: '/clarisa-panel/manage/manage-role' }
-      ]
-    },
-    {
-      title: 'System',
-      links: [{ label: 'Microservices & API keys', route: '/clarisa-panel/manage/microservices-admin' }]
-    }
-  ];
+  readonly groups: AdminGroup[] = ADMIN_GROUPS;
 }
