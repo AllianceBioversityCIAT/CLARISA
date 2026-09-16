@@ -1,5 +1,6 @@
 import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
-import { Subscription, retry, timer } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Subscription, retry, timeout, timer } from 'rxjs';
 
 import { EndpointsInformationService } from '../../../../../../../documentation/services/endpoints-information.service';
 
@@ -27,11 +28,26 @@ export class ListInstitutionComponent implements OnInit, OnDestroy {
   slow = false;
 
   /**
+   * Qué falló exactamente, en una línea. Se enseña porque «no se pudo cargar» a
+   * secas obliga a abrir las herramientas del navegador para saber si fue la red,
+   * la sesión o el servidor.
+   */
+  reason = '';
+
+  /**
    * Cuánto se espera antes de admitir que va lento. No es un tiempo de espera
    * máximo: la petición sigue viva, porque con una conexión lenta cortarla sería
    * romper lo único que estaba funcionando.
    */
   private static readonly SLOW_AFTER_MS = 6000;
+
+  /**
+   * Y este sí corta. No es un tiempo de espera ajustado a la descarga —4,7 MB
+   * por una conexión mala tardan de sobra—, sino el punto a partir del cual una
+   * petición que ni responde ni falla es un cuelgue: sin él, el girador vuelve a
+   * ser eterno por otro camino.
+   */
+  private static readonly GIVE_UP_AFTER_MS = 90000;
 
   private request?: Subscription;
   private slowTimer?: ReturnType<typeof setTimeout>;
@@ -71,23 +87,46 @@ export class ListInstitutionComponent implements OnInit, OnDestroy {
     this.request?.unsubscribe();
     this.loading = true;
     this.failed = false;
+    this.reason = '';
     this.startWaiting();
 
     this.request = this._manageApiService
       .getAnyEndpoint('api/institutions')
-      .pipe(retry({ count: 1, delay: () => timer(1200) }))
+      .pipe(timeout(ListInstitutionComponent.GIVE_UP_AFTER_MS), retry({ count: 1, delay: () => timer(1200) }))
       .subscribe({
         next: resp => {
           this.informationEndpoint = resp;
           this.loading = false;
           this.stopWaiting();
         },
-        error: () => {
+        error: error => {
           this.loading = false;
           this.failed = true;
+          this.reason = ListInstitutionComponent.describe(error);
           this.stopWaiting();
         }
       });
+  }
+
+  /**
+   * Traduce el fallo a una línea que se pueda leer sin abrir la consola. El
+   * `status: 0` de Angular no significa «error 0»: significa que la petición no
+   * llegó a tener respuesta —red caída, servidor inalcanzable o petición
+   * cancelada—, y decirlo así ahorra media hora de búsqueda.
+   */
+  private static describe(error: unknown): string {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 0) {
+        return 'The request never reached the server (network, VPN or a cancelled request).';
+      }
+      return `The server answered ${error.status}${error.statusText ? ' ' + error.statusText : ''}.`;
+    }
+
+    if (error && (error as { name?: string }).name === 'TimeoutError') {
+      return 'The server did not answer within 90 seconds.';
+    }
+
+    return 'Unexpected error while downloading the catalogue.';
   }
 
   /**

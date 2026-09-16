@@ -83,6 +83,43 @@ describe('ListInstitutionComponent', () => {
     expect(component.informationEndpoint.length).toBe(1);
   }));
 
+  // La causa concreta se enseña en pantalla para no tener que abrir la consola
+  // del navegador: es lo que distingue «se cayó la red» de «el servidor dijo que
+  // no» y de «no contestó nunca».
+  it('names what went wrong', fakeAsync(() => {
+    fixture.detectChanges();
+    http.expectOne(ENDPOINT).error(new ProgressEvent('error'), { status: 0 });
+    tick(1200);
+    http.expectOne(ENDPOINT).error(new ProgressEvent('error'), { status: 0 });
+    tick();
+    expect(component.reason).toContain('never reached the server');
+
+    // El 503 también se reintenta una vez antes de rendirse, como cualquier otro fallo.
+    component.load();
+    http.expectOne(ENDPOINT).flush('nope', { status: 503, statusText: 'Service Unavailable' });
+    tick(1200);
+    http.expectOne(ENDPOINT).flush('nope', { status: 503, statusText: 'Service Unavailable' });
+    tick();
+    expect(component.reason).toContain('503');
+  }));
+
+  // Una petición que ni responde ni falla volvía a dejar el girador eterno por
+  // otro camino; a los 90 segundos se da por perdida.
+  it('gives up on a request that never answers', fakeAsync(() => {
+    fixture.detectChanges();
+    http.expectOne(ENDPOINT);
+
+    tick(90000);
+    tick(1200);
+    http.expectOne(ENDPOINT);
+    tick(90000);
+    tick();
+
+    expect(component.loading).toBe(false);
+    expect(component.failed).toBe(true);
+    expect(component.reason).toContain('90 seconds');
+  }));
+
   it('drops the request when the screen goes away', () => {
     fixture.detectChanges();
     const open = http.expectOne(ENDPOINT);
