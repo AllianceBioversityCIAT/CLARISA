@@ -71,6 +71,22 @@
           </div>
 
           <!--
+            Lo que falló, encima del botón y no en un toast que se va solo: es la
+            respuesta a lo que se acaba de pulsar, así que vive donde estaba la
+            mano. `role="alert"` para que un lector de pantalla lo anuncie sin
+            tener que buscarlo.
+
+            🛑 Este bloque es el que faltaba: el componente ya calculaba el
+            mensaje y la plantilla no lo pintaba en ninguna parte, así que una
+            contraseña incorrecta no decía absolutamente nada
+            (Yeck, 16-sep-2026).
+          -->
+          <p class="login-card__error" *ngIf="menssageValidate" role="alert">
+            <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+            <span>{{ menssageValidate }}</span>
+          </p>
+
+          <!--
             La espera vive EN el botón: una barra que recorre su base. Sin
             diálogo encima del formulario y sin la ruedecita azul de PrimeNG,
             que además venía de un GIF.
