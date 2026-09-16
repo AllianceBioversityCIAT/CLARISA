@@ -1,44 +1,207 @@
-<div class="banner-wrapper">
-  <div
-    class="carousel fade-carousel slide"
-    data-ride="carousel"
-    data-interval="4000"
-    id="bs-carousel"
-  >
-    <div class="overlay"></div>
-    <div class="carousel-inner">
-      <div class="item slides active">
-        <div class="slide-1">
-          <img
-            src="assets/images/bannertow.jpg"
-            style="object-fit: cover; height: 500px"
-            alt="Grow Landscape"
-          />
+<!--
+  La home en dos mitades, y la diferencia entre ellas es deliberada.
+
+  ARRIBA · `.cl-hero` secuestra el scroll: el escenario se queda fijo
+  (`position: sticky`) mientras el carril pasa, y el componente mueve el
+  `currentTime` del vídeo. Llueve sobre la tierra desnuda, brota una yuca y
+  crece. Tres tramos de texto, y se acabó.
+
+  ABAJO · `.cl-story` NO secuestra nada: es scroll normal de toda la vida. Las
+  secciones —about us, el API, indicadores, publicaciones, dashboards y
+  servicios, partners— suben una detrás de otra como en cualquier página. Lo
+  único que se queda quieto es el vídeo del descenso, pegado al fondo, avanzando
+  según lo que se lleve recorrido.
+
+  🛑 Y eso último es una regla, no un detalle de implementación (Yeck,
+  16-sep-2026): *«solo al principio con estos tabs, luego que sea scroll normal
+  para que mi jefe no llore que no entiende»*. Un recorrido pinneado durante
+  toda la página se lee como una web que no obedece.
+
+  🥇 La costura entre los dos vídeos es invisible porque el segundo se generó A
+  PARTIR DEL ÚLTIMO FOTOGRAMA del primero, y los tres tramos del descenso se
+  encadenaron igual con Kling O1 (primer y último fotograma fijados). No hay
+  fundido que disimule un corte: es la misma toma que sigue.
+
+  Los vídeos llevan un keyframe cada 4 fotogramas (`-g 4`), que es lo que hace
+  inmediato el salto a cualquier instante.
+  Ver `~/Desktop/claude/falai/knowledge/INDEX.md` → [r-scroll-video].
+
+  🛑 Los textos y las cifras son los de la página actual o marcadores: el copy del
+  producto lo decide Yeck.
+-->
+<section class="cl-page" #page>
+  <!--
+    UN solo escenario pegado al fondo para toda la página. Antes eran dos —uno
+    para el hero y otro para el descenso— y entre que el primero se despegaba y
+    el segundo se pegaba quedaba una banda muerta: el corte que Yeck vio.
+  -->
+  <div class="cl-stage">
+    <video #video class="cl-hero__video" src="assets/video/hero-sprout.mp4" muted playsinline preload="auto" aria-hidden="true"></video>
+
+    <!--
+      El descenso se monta encima y aparece cuando el de arriba ha terminado. Su
+      primer fotograma ES el último del otro, así que el relevo no se ve.
+    -->
+    <video
+      #descent
+      class="cl-hero__video cl-hero__video--descent"
+      [class.is-on]="underground"
+      src="assets/video/hero-descent.mp4"
+      muted
+      playsinline
+      preload="auto"
+      aria-hidden="true"></video>
+
+    <div class="cl-hero__wash" [class.is-deep]="underground"></div>
+
+    <div class="cl-hero__copy" [class.is-off]="heroOff">
+      <div class="cl-hero__steps">
+        <div class="cl-hero__step" [class.is-on]="step === 0">
+          <p class="cl-hero__kicker">CLARISA</p>
+          <h1 class="cl-hero__title">A web service supporting information management within One CGIAR</h1>
         </div>
 
-        <div class="hero">
-          <h1 class="hero--title">
-            CLARISA
-            <span>
-              A web service supporting information management within One CGIAR
-            </span>
-          </h1>
+        <div class="cl-hero__step" [class.is-on]="step === 1">
+          <p class="cl-hero__kicker">Interoperability</p>
+          <h1 class="cl-hero__title">One shared vocabulary for every CGIAR system</h1>
+          <p class="cl-hero__text">
+            PRMS, MEL, MARLO, E-Contracts and Foresight all read the same control lists. That is why two centres can add up their results.
+          </p>
+        </div>
 
-          <button
-            class="btn btn-hero animated3 hero--button"
-            routerLink="/landing-page/contact-us"
-          >
-            Contact us
-          </button>
-
-          <button
-            class="btn btn-hero animated3 hero--button"
-            routerLink="/landing-page/api-services"
-          >
-            Services
-          </button>
+        <div class="cl-hero__step" [class.is-on]="step === 2">
+          <p class="cl-hero__kicker">Under the surface</p>
+          <h1 class="cl-hero__title">What you see are the dashboards</h1>
+          <p class="cl-hero__text">CLARISA is the root. Keep scrolling to see what holds it all up.</p>
         </div>
       </div>
+
+      <div class="cl-hero__actions">
+        <button class="cl-btn cl-btn--primary" routerLink="/landing-page/contact-us">Contact us</button>
+        <button class="cl-btn cl-btn--ghost" routerLink="/landing-page/api-services">Services</button>
+      </div>
+
+      <div class="cl-hero__track" aria-hidden="true">
+        <span *ngFor="let s of [0, 1, 2]" [class.is-on]="step === s"></span>
+      </div>
+    </div>
+
+    <div class="cl-hero__hint" [class.is-hidden]="step > 0">
+      <span>Scroll</span>
+      <i></i>
     </div>
   </div>
-</div>
+
+  <!-- El recorrido del hero: espacio vacío que da el scroll del crecimiento -->
+  <div class="cl-rail" #rail></div>
+
+  <!-- De aquí abajo, scroll normal sobre el mismo escenario -->
+  <div class="cl-story__flow" #story>
+    <!-- about us -->
+    <article class="cl-block">
+      <p class="cl-kicker">Information about us</p>
+      <h2 class="cl-block__title">What CLARISA is</h2>
+      <div class="cl-panel cl-panel--split">
+        <img class="cl-panel__figure" src="assets/images/clarisa-about.png" alt="How CLARISA connects CGIAR systems" />
+        <div class="cl-panel__body">
+          <p class="cl-text">
+            CLARISA is the CGIAR Level Agricultural Results Interoperable System Architecture, a web service that helps collect and transform raw data
+            of CGIAR research and activities into standardized and aggregated information.
+          </p>
+          <p class="cl-text">
+            In programming terms it is a REST-API that lets Management Information Systems and Centre specific systems communicate in the language
+            needed for CGIAR system-level reporting.
+          </p>
+          <a class="cl-link" href="https://hdl.handle.net/10568/117371" target="_blank" rel="noopener noreferrer">
+            Discover more about CLARISA in this report →
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <!-- el API -->
+    <article class="cl-block">
+      <p class="cl-kicker">The REST API</p>
+      <h2 class="cl-block__title">One root, many branches</h2>
+      <p class="cl-text">Open control lists, no key required. Every resource with its own parameters, types and versions.</p>
+      <ul class="cl-nodes">
+        <li *ngFor="let e of endpoints">
+          <span class="dot"></span><code>{{ e }}</code>
+        </li>
+      </ul>
+    </article>
+
+    <!-- indicadores · la escala es el dato -->
+    <article class="cl-block cl-block--flip">
+      <div class="cl-block__intro">
+        <p class="cl-kicker">Indicators of data collected</p>
+        <h2 class="cl-block__title">Numbers that can be added up</h2>
+        <p class="cl-text">
+          The bars are to scale against each other: there are roughly 250 institutions for every control list. That difference is the point — the
+          catalogue is wide at the bottom and narrow at the top.
+        </p>
+      </div>
+
+      <ul class="cl-bars">
+        <li *ngFor="let m of indicators; let first = first" [class.is-lead]="first">
+          <div class="cl-bars__head">
+            <span class="cl-bars__label">{{ m.label }}</span>
+            <b class="cl-bars__value">{{ m.display }}</b>
+          </div>
+          <div class="cl-bars__track"><i [style.width.%]="m.share * 100"></i></div>
+          <span class="cl-bars__note" *ngIf="m.note">{{ m.note }}</span>
+        </li>
+      </ul>
+    </article>
+
+    <!-- publicaciones -->
+    <article class="cl-block">
+      <p class="cl-kicker">Publications</p>
+      <h2 class="cl-block__title">About CLARISA</h2>
+      <ul class="cl-cards cl-cards--docs">
+        <li *ngFor="let d of publications">
+          <img [src]="d.cover" [alt]="d.title" />
+          <div>
+            <span class="cl-cards__date">{{ d.date }}</span>
+            <p>{{ d.title }}</p>
+          </div>
+        </li>
+      </ul>
+    </article>
+
+    <!-- dashboards y servicios -->
+    <article class="cl-block">
+      <p class="cl-kicker">Information on</p>
+      <h2 class="cl-block__title">Dashboards and services</h2>
+      <div class="cl-cards cl-cards--two">
+        <div class="cl-panel">
+          <h3 class="cl-panel__title">Dashboards</h3>
+          <p class="cl-text">
+            Control lists with unique identifiers let data on common indicators be gathered from every adopting system and compiled at a CGIAR-wide
+            level.
+          </p>
+          <button class="cl-btn cl-btn--ghost" routerLink="/landing-page/dashboards">See the dashboards</button>
+        </div>
+        <div class="cl-panel">
+          <h3 class="cl-panel__title">Services</h3>
+          <p class="cl-text">
+            A REST architecture that lets computer systems work together over the Internet, unifying the language across platforms and overcoming
+            non-standardized information.
+          </p>
+          <button class="cl-btn cl-btn--ghost" routerLink="/landing-page/api-services">See the services</button>
+        </div>
+      </div>
+    </article>
+
+    <!-- partners -->
+    <article class="cl-block">
+      <p class="cl-kicker">Lead partners and collaborators</p>
+      <h2 class="cl-block__title">Built and used across One CGIAR</h2>
+      <ul class="cl-logos">
+        <li *ngFor="let p of partners">
+          <a [href]="p.url" target="_blank" rel="noopener noreferrer"><img [src]="p.logo" [alt]="p.name" /></a>
+        </li>
+      </ul>
+    </article>
+  </div>
+</section>
