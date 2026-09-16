@@ -8,7 +8,22 @@
   automático —la columna de URLs se llevaba media tabla y empujaba a las demás
   fuera de la pantalla— y el buscador dentro de una franja gris.
 -->
+<!--
+  La descarga no llegó. Antes de esto, un fallo de red dejaba el girador puesto
+  para siempre sobre «0 institutions», sin una palabra de lo que pasaba: la
+  pantalla que reportó Yeck el 16-sep-2026.
+-->
+<div class="list-error" *ngIf="failed">
+  <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+  <div>
+    <strong>The institution catalogue could not be loaded.</strong>
+    <span>It is a large download and the connection dropped. Nothing was lost — try again.</span>
+  </div>
+  <button type="button" class="list-error__retry" (click)="load()">Try again</button>
+</div>
+
 <p-table
+  *ngIf="!failed"
   #dt1
   [value]="informationEndpoint"
   [paginator]="true"
@@ -77,6 +92,14 @@
         <span class="cell-empty" *ngIf="!institution.websiteLink">—</span>
       </td>
     </tr>
+  </ng-template>
+
+  <!--
+    Tarda de más: se dice por qué. El catálogo entero son 4,7 MB y el endpoint no
+    pagina, así que la espera es real y callarla parece que se colgó.
+  -->
+  <ng-template pTemplate="summary">
+    <p class="list-slow" *ngIf="slow">Still downloading the full institution catalogue (about 4.7 MB). It only takes this long the first time.</p>
   </ng-template>
 
   <ng-template pTemplate="emptymessage">
