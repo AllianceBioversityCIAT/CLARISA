@@ -56,6 +56,10 @@
   --cl-admin-nav-ink:    #fafafa;
   --cl-admin-nav-muted:  #a8a8b0;
   --cl-admin-nav-dim:    #7d7d87;
+  /* El menta vuelve, pero SOLO como acento: la sección abierta, su icono, el
+     disco de la cuenta y el foco. Pintar con él las superficies es lo que se veía
+     «galáctico»; marcar con él dónde estás es para lo que sirve. */
+  --cl-admin-nav-accent: #5fe3b4;
 }
 
 /* Los dos componentes compartidos del panel: la tabla y el selector de sección.
