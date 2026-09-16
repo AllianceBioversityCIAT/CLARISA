@@ -1,12 +1,12 @@
 /**
- * Panel top bar — tinta, como la barra pública sobre el recorrido de la home.
+ * Panel top bar — el mismo negro neutro de la columna.
  *
  * Todo lo que había aquí era blanco sobre blanco: barra blanca, sidebar blanco
- * y contenido casi blanco, sin una sola jerarquía que dijera dónde termina la
- * navegación y dónde empieza la pantalla. La franja superior toma ahora el color
- * que la barra ya tiene en la home, y lo comparte con el bloque de marca del
- * sidebar, que mide exactamente lo mismo: las dos piezas se leen como una sola
- * cabecera de lado a lado (Yeck, 16-sep-2026).
+ * y contenido casi blanco, sin una sola jerarquía. Pasó por una tinta verde
+ * —la que la barra pública toma sobre el recorrido de la home— y terminó en
+ * neutro al pedir Yeck un panel «premium, tipo Vercel, más limpio»: el color de
+ * marca aparece una sola vez, en el botón sólido del extremo derecho, y el resto
+ * lo resuelven el negro, una línea de 1px y el blanco del texto.
  *
  * Why the colour lives here and not in the theme: the panel loads
  * `assets/css/style.css` plus `assets/colors/color1.css`, which paint every link
@@ -38,7 +38,7 @@
      sidebar, which this panel does not use. */
   padding: 0;
   background: var(--cl-admin-bar);
-  border-bottom: none;
+  border-bottom: 1px solid var(--cl-admin-bar-line);
   /* La barra empieza a la derecha del sidebar, que ocupa la columna entera.
      `width: auto` porque el tema le pone `width: 100%` a `.sticky`. */
   left: var(--cl-admin-sidebar);
@@ -64,13 +64,13 @@
 /* ---- sección -------------------------------------------------------------- */
 
 /* El título no compite con el h1 de la pantalla: es una etiqueta de ubicación,
-   del tamaño del texto de la barra y en el tono medio de la franja. */
+   del tamaño del texto de la barra. */
 :host .cl-section {
   margin: 0;
   margin-right: auto;
   min-width: 0;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.01em;
   color: var(--cl-admin-bar-ink);
@@ -88,15 +88,15 @@
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 9px;
-  height: 36px;
-  padding: 0 16px;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
   border: 1px solid var(--cl-admin-bar-line);
-  border-radius: var(--cl-radius-control);
+  border-radius: 6px;
   background: transparent;
   color: var(--cl-admin-bar-muted);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 500;
   white-space: nowrap;
   text-decoration: none;
   transition:
@@ -111,33 +111,33 @@
 
 :host .cl-back:hover,
 :host .cl-back:focus {
-  border-color: var(--cl-admin-bar-accent);
-  background: rgba(95, 227, 180, 0.12);
-  color: var(--cl-admin-bar-accent);
+  border-color: #3f3f46;
+  background: #151515;
+  color: var(--cl-admin-bar-ink);
   text-decoration: none;
 }
 
 :host .cl-back:focus-visible {
-  outline: 3px solid var(--cl-admin-bar-accent);
-  outline-offset: 2px;
+  outline: 1px solid #52525b;
+  outline-offset: 1px;
 }
 
 /* ---- logout --------------------------------------------------------------- */
 
-/* One solid primary at the right edge, which is where people look for it. El
-   mismo verde sólido que lleva el botón primario de la home sobre su vídeo
-   oscuro: `--cl-brand-strong` con blanco encima es 5.70. */
+/* La única pieza de color de todo el panel, y por eso funciona: el verde sólido
+   de marca al extremo derecho, que es donde se busca la acción.
+   `--cl-brand-strong` con blanco encima es 5.70. */
 :host .cl-logout {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  height: 36px;
-  padding: 0 18px;
-  border-radius: var(--cl-radius-control);
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 6px;
   background: var(--cl-brand-strong);
   color: var(--cl-surface);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 600;
   white-space: nowrap;
   text-decoration: none;
   transition: background 0.15s ease;
@@ -151,7 +151,7 @@
 }
 
 :host .cl-logout:focus-visible {
-  outline: 3px solid var(--cl-admin-bar-ink);
+  outline: 1px solid var(--cl-admin-bar-ink);
   outline-offset: 2px;
 }
 
@@ -167,20 +167,7 @@
     width: 100%;
   }
 
-  :host .app-header::before {
-    content: '';
-    display: block;
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: var(--cl-admin-rib);
-    background: var(--cl-brand-deep);
-    z-index: 10;
-  }
-
   :host .main-container {
-    /* La costilla se lleva 6px a la izquierda; el canal empieza después. */
     padding-left: 18px;
     padding-right: 18px;
   }
