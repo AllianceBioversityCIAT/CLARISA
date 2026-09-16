@@ -694,10 +694,10 @@
   padding: 0 clamp(24px, 5vw, 80px);
 }
 
-/* El primer bloque arranca a una pantalla de distancia: es lo que le da al
-   hero espacio para apagarse sin que los dos textos se crucen. */
+/* Sin hueco de cortesía: el primer bloque entra mientras el descenso ya está
+   corriendo. Un espacio en blanco aquí es tiempo en el que no pasa nada. */
 :host .cl-story__flow > .cl-block:first-child {
-  padding-top: 30vh;
+  padding-top: 12vh;
 }
 
 :host .cl-block {
