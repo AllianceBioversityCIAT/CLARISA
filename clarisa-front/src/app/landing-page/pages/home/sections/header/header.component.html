@@ -131,14 +131,25 @@
       </ul>
     </article>
 
-    <!-- indicadores -->
-    <article class="cl-block">
-      <p class="cl-kicker">Indicators of data collected</p>
-      <h2 class="cl-block__title">Numbers that can be added up</h2>
-      <ul class="cl-cards cl-cards--metrics">
-        <li *ngFor="let m of indicators">
-          <b>{{ m.value }}</b>
-          <span>{{ m.label }}</span>
+    <!-- indicadores · la escala es el dato -->
+    <article class="cl-block cl-block--flip">
+      <div class="cl-block__intro">
+        <p class="cl-kicker">Indicators of data collected</p>
+        <h2 class="cl-block__title">Numbers that can be added up</h2>
+        <p class="cl-text">
+          The bars are to scale against each other: there are roughly 250 institutions for every control list. That difference is the point — the
+          catalogue is wide at the bottom and narrow at the top.
+        </p>
+      </div>
+
+      <ul class="cl-bars">
+        <li *ngFor="let m of indicators; let first = first" [class.is-lead]="first">
+          <div class="cl-bars__head">
+            <span class="cl-bars__label">{{ m.label }}</span>
+            <b class="cl-bars__value">{{ m.display }}</b>
+          </div>
+          <div class="cl-bars__track"><i [style.width.%]="m.share * 100"></i></div>
+          <span class="cl-bars__note" *ngIf="m.note">{{ m.note }}</span>
         </li>
       </ul>
     </article>
