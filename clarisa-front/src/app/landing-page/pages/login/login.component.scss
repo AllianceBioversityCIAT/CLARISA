@@ -419,3 +419,38 @@
     width: 100%;
   }
 }
+
+// ---------------------------------------------------------------------------
+// El aviso de que el intento falló
+// ---------------------------------------------------------------------------
+//
+// Encima del botón, dentro de la tarjeta: es la respuesta a lo que se acaba de
+// pulsar. Rojo apagado sobre fondo muy suave —no el bloque saturado de la
+// plantilla—, porque el mensaje tiene que leerse, no asustar: quien se equivoca
+// de contraseña ya sabe que algo salió mal.
+//
+// 7,80 de contraste sobre su propio fondo.
+:host .login-card__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #f3c9c5;
+  border-radius: var(--cl-radius-control);
+  background: #fdeceb;
+  color: #8f1d15;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+
+  i {
+    margin-top: 1px;
+    font-size: 14px;
+    flex: 0 0 auto;
+  }
+
+  span {
+    min-width: 0;
+  }
+}
