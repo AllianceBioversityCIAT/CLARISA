@@ -111,14 +111,14 @@
 
 :host .cl-back:hover,
 :host .cl-back:focus {
-  border-color: #3f3f46;
-  background: #151515;
+  border-color: #4b4b54;
+  background: #232327;
   color: var(--cl-admin-bar-ink);
   text-decoration: none;
 }
 
 :host .cl-back:focus-visible {
-  outline: 1px solid #52525b;
+  outline: 1px solid #5c5c66;
   outline-offset: 1px;
 }
 

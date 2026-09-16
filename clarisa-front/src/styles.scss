@@ -57,13 +57,15 @@
      superficies: el menta sobre negro se veía «galáctico» (Yeck, 16-sep-2026,
      pidiendo algo «premium, tipo Vercel, más limpio»). El color de marca queda
      para una sola acción sólida, no para pintar el mueble. Texto sobre el
-     negro: 18.42 el claro, 8.11 el apagado y 4.83 el de las etiquetas. */
-  --cl-admin-nav:        #0a0a0a;
-  --cl-admin-nav-2:      #141414;
-  --cl-admin-nav-line:   #242424;
+     carbón: 16.97 el claro, 7.50 el apagado y 4.35 el de las etiquetas.
+     🛑 Carbón y no negro puro: con #0a0a0a el panel se veía «tan tinta»
+     (Yeck, 16-sep-2026). Es el mismo sistema, dos peldaños más arriba. */
+  --cl-admin-nav:        #18181b;
+  --cl-admin-nav-2:      #212124;
+  --cl-admin-nav-line:   #2e2e33;
   --cl-admin-nav-ink:    #fafafa;
-  --cl-admin-nav-muted:  #a1a1a4;
-  --cl-admin-nav-dim:    #72727a;
+  --cl-admin-nav-muted:  #a8a8b0;
+  --cl-admin-nav-dim:    #7d7d87;
 }
 
 /* Los dos componentes compartidos del panel: la tabla y el selector de sección.
