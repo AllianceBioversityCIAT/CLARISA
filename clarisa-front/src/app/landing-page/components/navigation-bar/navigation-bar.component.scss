@@ -20,6 +20,56 @@
 
 :host {
   display: block;
+  /* Fija para poder volver con un gesto de subida en mitad del recorrido. */
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  transition: transform 0.32s ease;
+}
+
+/* Apartada: se ha bajado y nadie ha pedido el menú. */
+:host(.is-away) {
+  transform: translateY(-100%);
+}
+
+/* ---------------------------------------------------------------------------
+   Sobre el recorrido de la home la barra deja de ser blanca. Un bloque blanco
+   sólido encima de un vídeo oscuro es un tajo; aquí se vuelve tinta con
+   desenfoque, y al salir del recorrido recupera su blanco. Todo con transición
+   — «que no le cambie el color tan fuerte» (Yeck, 16-sep-2026).
+--------------------------------------------------------------------------- */
+
+:host .logo-wrapper {
+  transition:
+    background-color 0.4s ease,
+    border-color 0.4s ease;
+}
+
+:host(.is-over) .logo-wrapper {
+  background: rgba(4, 26, 19, 0.58);
+  backdrop-filter: blur(14px);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+/* La costilla se aclara: el verde profundo sobre tinta no se distingue. */
+:host(.is-over) .logo-wrapper::before {
+  background: #5fe3b4;
+}
+
+:host(.is-over) .cl-brand__word,
+:host(.is-over) .cl-nav .navbar-nav > li > a {
+  color: #eaf5f1;
+}
+
+/* El logo del CGIAR es verde bosque sobre blanco; sobre tinta necesita ayuda. */
+:host(.is-over) .cl-brand__mark {
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+
+:host(.is-over) .cl-nav .navbar-nav > li.cl-active > a {
+  background: rgba(95, 227, 180, 0.16);
+  color: #5fe3b4;
 }
 
 /* The rib. `.logo-wrapper` is already `position: relative` globally. */

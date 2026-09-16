@@ -26,6 +26,10 @@
 :host .cl-page {
   position: relative;
   background: #03140f;
+  /* El hero se mete DEBAJO de la barra en vez de empezar después de ella: la
+     barra es translúcida sobre el recorrido, así que el vídeo se ve a través y
+     se recuperan los 73px que quedaban como franja muerta. */
+  margin-top: -73px;
 }
 
 /* El escenario se queda pegado toda la página. El margen negativo es lo que
@@ -126,7 +130,8 @@
   height: 100%;
   max-width: 1440px;
   margin: 0 auto;
-  padding: 0 clamp(24px, 5vw, 80px);
+  /* 73px arriba: lo que mide la barra, para que el titular no nazca debajo. */
+  padding: 73px clamp(24px, 5vw, 80px) 0;
 }
 
 /* Los tres mensajes se apilan en la misma caja para que el bloque no cambie de
