@@ -1,11 +1,12 @@
 /**
- * Armazón del panel: costilla + columna fija a la izquierda, barra arriba a la
- * derecha y el contenido debajo de la barra.
+ * Armazón del panel: una columna fija a la izquierda y el contenido a su
+ * derecha, de arriba abajo.
  *
- * El hueco de la barra se reserva UNA vez aquí, no en cada pantalla: antes cada
- * página declaraba su propio `padding-top` (72px en microservicios y ciclo de
- * vida, 75px en el glosario) y bastaba con mover la barra para abrir una franja
- * vacía distinta en cada una.
+ * Ya no hay barra superior, así que tampoco hay hueco que reservar para ella.
+ * Ese hueco se declaraba aquí una sola vez y no en cada pantalla: antes cada
+ * página traía su propio `padding-top` (72px en microservicios y ciclo de vida,
+ * 75px en el glosario) y bastaba con mover la barra para abrir una franja vacía
+ * distinta en cada una.
  */
 
 .admin-shell {
@@ -27,8 +28,6 @@
      desplazamiento la tabla se le mete por debajo. Los dos leen la misma
      variable, así que se mueven juntos. */
   margin-left: var(--cl-admin-sidebar);
-  /* Y este es el hueco de la barra superior, también fija. */
-  padding-top: var(--cl-admin-header);
   /* `min-width: 0` so a wide table scrolls inside the content column instead of
      pushing the sidebar off the screen. */
   min-width: 0;
@@ -39,11 +38,10 @@
     flex-direction: column;
   }
 
-  /* Bajo 900px el sidebar vuelve al flujo como una fila arriba —y con él se
-     lleva el hueco de la barra—, así que aquí no queda ni margen ni relleno. */
+  /* Bajo 900px el sidebar vuelve al flujo como una fila arriba, así que aquí no
+     queda margen que compensar. */
   .admin-shell__content {
     width: 100%;
     margin-left: 0;
-    padding-top: 0;
   }
 }

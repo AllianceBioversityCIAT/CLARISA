@@ -304,17 +304,20 @@
 // Cuenta
 // ---------------------------------------------------------------------------
 
+// El pie entero: cuenta y salidas. El widget de chat vive fijo en la esquina
+// inferior izquierda, y este margen lo deja por debajo.
+.admin-sidebar__foot {
+  flex: 0 0 auto;
+  margin: 0 12px 68px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cl-admin-nav-line);
+}
+
 .admin-sidebar__account {
   display: flex;
-  flex: 0 0 auto;
   align-items: center;
   gap: 9px;
-  // /* El widget de chat vive fijo en la esquina inferior izquierda; este margen
-  // deja la tarjeta por encima de él.
-  margin: 0 12px 72px;
-  padding: 8px;
-  border-top: 1px solid var(--cl-admin-nav-line);
-  padding-top: 12px;
+  padding: 0 4px 10px;
 }
 
 .admin-sidebar__disc {
@@ -357,6 +360,86 @@
   }
 }
 
+// Las dos salidas, en una fila: volver al sitio pesa menos que cerrar sesión, y
+// ninguna de las dos compite con la navegación de arriba.
+.admin-sidebar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-sidebar__back {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--cl-admin-nav-line);
+  border-radius: 6px;
+  color: var(--cl-admin-nav-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+
+  i {
+    font-size: 11px;
+  }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &:hover,
+  &:focus {
+    border-color: #4b4b54;
+    background: #232327;
+    color: var(--cl-admin-nav-ink);
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: 1px solid #5c5c66;
+    outline-offset: 1px;
+  }
+}
+
+// La única pieza de color del panel, y por eso funciona: el verde sólido de
+// marca. `--cl-brand-strong` con blanco encima es 5.70.
+.admin-sidebar__out {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background: var(--cl-brand-strong);
+  color: var(--cl-surface);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.12s ease;
+
+  &:hover,
+  &:focus {
+    background: var(--cl-brand);
+    color: var(--cl-surface);
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--cl-admin-nav-ink);
+    outline-offset: 2px;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Ancho de celular
 // ---------------------------------------------------------------------------
@@ -369,15 +452,8 @@
     position: static;
     width: 100%;
     height: auto;
-    margin-top: var(--cl-admin-header);
     border-right: none;
     border-bottom: 1px solid var(--cl-admin-nav-line);
-  }
-
-  // /* En fila, la marca ya no encabeza ninguna columna: la lleva la barra, que a
-  // este ancho vuelve a cruzar la pantalla entera.
-  .admin-sidebar__brand {
-    display: none;
   }
 
   .admin-sidebar__nav {
@@ -396,7 +472,7 @@
     margin: 0;
   }
 
-  .admin-sidebar__account {
+  .admin-sidebar__foot {
     margin: 0 12px 16px;
   }
 }

@@ -55,15 +55,25 @@
   </div>
 
   <!--
-    La cuenta al pie, separada de la navegación: dice con qué sesión se está
-    trabajando, que es lo que no decía ninguna pantalla del panel. La salida no
-    vive aquí —está arriba, en la barra— así que esto no es un menú.
+    El pie: con qué sesión se trabaja y las dos salidas. Estaban en una barra
+    superior que no hacía nada más, así que la barra sobraba y el espacio que se
+    llevaba, también.
   -->
-  <div class="admin-sidebar__account" *ngIf="user">
-    <span class="admin-sidebar__disc">{{ initials }}</span>
-    <span class="admin-sidebar__who">
-      <strong>{{ displayName }}</strong>
-      <small *ngIf="email">{{ email }}</small>
-    </span>
+  <div class="admin-sidebar__foot">
+    <div class="admin-sidebar__account" *ngIf="user">
+      <span class="admin-sidebar__disc">{{ initials }}</span>
+      <span class="admin-sidebar__who">
+        <strong>{{ displayName }}</strong>
+        <small *ngIf="email">{{ email }}</small>
+      </span>
+    </div>
+
+    <div class="admin-sidebar__actions">
+      <a class="admin-sidebar__back" routerLink="/landing-page/home">
+        <i class="fa fa-arrow-left" aria-hidden="true"></i>
+        <span>Back to the site</span>
+      </a>
+      <a class="admin-sidebar__out" routerLink="/landing-page/login" (click)="onLogOut()">Logout</a>
+    </div>
   </div>
 </nav>
