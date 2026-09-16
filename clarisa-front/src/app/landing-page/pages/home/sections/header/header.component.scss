@@ -681,6 +681,108 @@
   }
 }
 
+/* ---------------------------------------------- indicadores como barras ---
+   Seis tarjetas iguales no dicen nada; la proporción sí. La barra se dibuja
+   contra el mayor, así que se ve de un golpe que hay 250 instituciones por
+   cada lista de control. */
+
+:host .cl-bars {
+  display: grid;
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    gap: 8px;
+  }
+}
+
+:host .cl-bars__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+:host .cl-bars__label {
+  color: #a9cbbe;
+  font-size: 14px;
+}
+
+:host .cl-bars__value {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+:host .cl-bars__track {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+
+  i {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #0f8a63, #5fe3b4);
+    /* Un mínimo visible: 41 sobre 10.630 es el 0,4 % y sin esto no se pinta. */
+    min-width: 3px;
+  }
+}
+
+:host .cl-bars__note {
+  color: #7fa294;
+  font-size: 12.5px;
+}
+
+/* La primera manda: es el dato que define el tamaño del catálogo. */
+:host .cl-bars li.is-lead {
+  .cl-bars__value {
+    font-size: 38px;
+  }
+
+  .cl-bars__label {
+    color: #5fe3b4;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .cl-bars__track {
+    height: 10px;
+    border-radius: 5px;
+  }
+}
+
+/* ---------------------------------------------------- ritmo de los bloques -
+   Alternar la composición evita que seis secciones seguidas se lean como una
+   lista. El bloque «flip» pone el texto a la izquierda y el dato a la derecha. */
+
+:host .cl-block--flip {
+  display: grid;
+  grid-template-columns: 0.85fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+
+:host .cl-block__intro .cl-text {
+  max-width: 44ch;
+}
+
+@media (max-width: 900px) {
+  :host .cl-block--flip {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+
 /* ======================================================= bajo tierra ======
    Scroll normal. El vídeo se queda pegado al fondo con `sticky` y el margen
    negativo, que es lo que permite que el contenido pase por encima sin que el

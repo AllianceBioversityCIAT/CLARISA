@@ -62,14 +62,22 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
   /** Los endpoints que se listan bajo tierra. */
   readonly endpoints = ['/institutions', '/projects', '/countries', '/workpackages', '/initiatives', '/glossary'];
 
+  /**
+   * Los mismos conteos, pero con la escala dentro: `share` es la proporción
+   * contra el mayor, y es lo que dibuja la barra. Sin eso son seis cajas
+   * idénticas que no dicen que hay 250 instituciones por cada lista de control.
+   *
+   * 🛑 Escrito a mano, como estaba. Sin endpoint de conteo no hay forma de
+   * tenerlo vivo, y eso es trabajo de back.
+   */
   readonly indicators = [
-    { value: '10,630', label: 'Institutions' },
-    { value: '1,210', label: 'Projects' },
-    { value: '344', label: 'Work packages' },
-    { value: '248', label: 'Countries' },
-    { value: '43', label: 'Initiatives' },
-    { value: '41', label: 'Control lists' }
-  ];
+    { value: 10630, label: 'Institutions', note: 'every organisation the CGIAR reports with' },
+    { value: 1210, label: 'Projects', note: 'bilateral and portfolio' },
+    { value: 344, label: 'Work packages' },
+    { value: 248, label: 'Countries' },
+    { value: 43, label: 'Initiatives' },
+    { value: 41, label: 'Control lists' }
+  ].map((m, i, all) => ({ ...m, share: m.value / all[0].value, display: m.value.toLocaleString('en-US') }));
 
   readonly publications = [
     {
