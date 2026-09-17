@@ -71,6 +71,12 @@ export class GlossaryBulkPanelComponent implements OnInit {
   preview: GlossaryBulkResult | null = null;
   result: GlossaryBulkResult | null = null;
   actionFilter: 'all' | GlossaryBulkRowAction = 'all';
+  /**
+   * The rows the review table shows. Materialised instead of derived on every
+   * change detection cycle: the table sorts the array it is given, and a getter
+   * handing back a new array each cycle would undo the reader's sort.
+   */
+  reviewRows: GlossaryBulkRowResult[] = [];
 
   readonly actionFilterOptions = [
     { label: 'All rows', value: 'all' },
@@ -285,6 +291,7 @@ export class GlossaryBulkPanelComponent implements OnInit {
         this.previewing = false;
         this.preview = response;
         this.actionFilter = 'all';
+        this.applyActionFilter();
         this.step = 'review';
       },
       error: error => {
@@ -296,12 +303,10 @@ export class GlossaryBulkPanelComponent implements OnInit {
 
   // ------------------------------------------------------------- step 3
 
-  get reviewRows(): GlossaryBulkRowResult[] {
+  /** Recomputed when the preview arrives or the action filter changes. */
+  applyActionFilter(): void {
     const rows = this.preview?.rows ?? [];
-    if (this.actionFilter === 'all') {
-      return rows;
-    }
-    return rows.filter(row => row.action === this.actionFilter);
+    this.reviewRows = this.actionFilter === 'all' ? [...rows] : rows.filter(row => row.action === this.actionFilter);
   }
 
   get hasInvalidRows(): boolean {
@@ -376,6 +381,7 @@ export class GlossaryBulkPanelComponent implements OnInit {
     this.conflictPolicy = 'update';
     this.showInDashboard = false;
     this.actionFilter = 'all';
+    this.reviewRows = [];
   }
 
   onDropdownShow(event: any): void {

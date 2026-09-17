@@ -33,6 +33,8 @@
   <p-table
     [value]="mises"
     [loading]="loading"
+    sortField="acronym"
+    [sortOrder]="1"
     [rows]="10"
     [paginator]="mises.length > 10"
     styleClass="p-datatable-sm admin-table"
@@ -40,10 +42,10 @@
   >
     <ng-template pTemplate="header">
       <tr>
-        <th>Acronym</th>
-        <th>Name</th>
-        <th>Environment</th>
-        <th>Status</th>
+        <th scope="col" pSortableColumn="acronym">Acronym <p-sortIcon field="acronym"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="environment">Environment <p-sortIcon field="environment"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="is_active">Status <p-sortIcon field="is_active"></p-sortIcon></th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-mis>

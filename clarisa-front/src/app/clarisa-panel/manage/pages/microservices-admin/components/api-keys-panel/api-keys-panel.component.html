@@ -33,6 +33,8 @@
   <p-table
     [value]="keys"
     [loading]="loading"
+    sortField="name"
+    [sortOrder]="1"
     [rows]="10"
     [paginator]="keys.length > 10"
     styleClass="p-datatable-sm admin-table"
@@ -40,14 +42,14 @@
   >
     <ng-template pTemplate="header">
       <tr>
-        <th>Name</th>
-        <th>Prefix</th>
-        <th>MIS</th>
-        <th>Env</th>
-        <th>Scopes</th>
-        <th>Usage</th>
-        <th>Status</th>
-        <th style="width: 9rem">Actions</th>
+        <th scope="col" pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="key_prefix">Prefix <p-sortIcon field="key_prefix"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="environment">Env <p-sortIcon field="environment"></p-sortIcon></th>
+        <th scope="col">Scopes</th>
+        <th scope="col" pSortableColumn="usage_count">Usage <p-sortIcon field="usage_count"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="status_label">Status <p-sortIcon field="status_label"></p-sortIcon></th>
+        <th scope="col" style="width: 9rem">Actions</th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-key>
