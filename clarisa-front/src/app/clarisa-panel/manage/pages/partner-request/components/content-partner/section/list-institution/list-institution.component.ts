@@ -95,7 +95,7 @@ export class ListInstitutionComponent implements OnInit, OnDestroy {
       .pipe(timeout(ListInstitutionComponent.GIVE_UP_AFTER_MS), retry({ count: 1, delay: () => timer(1200) }))
       .subscribe({
         next: resp => {
-          this.informationEndpoint = resp;
+          this.informationEndpoint = ListInstitutionComponent.withOfficeSortKey(resp);
           this.loading = false;
           this.stopWaiting();
         },
@@ -106,6 +106,24 @@ export class ListInstitutionComponent implements OnInit, OnDestroy {
           this.stopWaiting();
         }
       });
+  }
+
+  /**
+   * La columna «Office location» pinta una etiqueta por país, y una lista no se
+   * puede comparar: se le cuelga a cada fila el primer código en alfabético,
+   * que es por lo que se ordena. Se escribe sobre la misma fila a propósito —
+   * el catálogo son ~10.000 instituciones y copiarlas duplicaría 4,7 MB.
+   */
+  private static withOfficeSortKey(resp: unknown): any[] {
+    const rows = Array.isArray(resp) ? resp : [];
+    for (const row of rows) {
+      const codes = (row?.countryOfficeDTO ?? [])
+        .map((office: any) => office?.isoAlpha2)
+        .filter(Boolean)
+        .sort();
+      row.officeSort = codes.length ? codes[0] : null;
+    }
+    return rows;
   }
 
   /**

@@ -38,6 +38,22 @@ describe('ListInstitutionComponent', () => {
     expect(component.failed).toBe(false);
   });
 
+  // La columna «Office location» es una lista de etiquetas, y una lista no se
+  // puede comparar: la tabla ordena por esta clave. Sin ella la flecha del
+  // encabezado no movería nada, que es el defecto que ya tenía «Institution
+  // type» cuando ordenaba por el objeto.
+  it('gives each row the first country office in alphabetical order, to sort by', () => {
+    fixture.detectChanges();
+    http.expectOne(ENDPOINT).flush([
+      { code: 1, name: 'Three offices', countryOfficeDTO: [{ isoAlpha2: 'LB' }, { isoAlpha2: 'SY' }, { isoAlpha2: 'EG' }] },
+      { code: 2, name: 'Two offices', countryOfficeDTO: [{ isoAlpha2: 'IT' }, { isoAlpha2: 'CO' }] },
+      { code: 3, name: 'No office', countryOfficeDTO: [] },
+      { code: 4, name: 'Field missing' }
+    ]);
+
+    expect(component.informationEndpoint.map((row: any) => row.officeSort)).toEqual(['EG', 'CO', null, null]);
+  });
+
   // El caso que reportó Yeck: la descarga se corta y la pantalla se queda
   // girando para siempre sobre «0 institutions».
   it('stops spinning and says so when the download never arrives', fakeAsync(() => {
