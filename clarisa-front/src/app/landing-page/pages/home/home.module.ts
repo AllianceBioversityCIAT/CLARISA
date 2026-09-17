@@ -4,35 +4,18 @@ import { CommonModule } from '@angular/common';
 import { HomeRoutingModule } from './home-routing.module';
 import { HomeComponent } from './home.component';
 import { HeaderComponent } from './sections/header/header.component';
-import { AboutUsComponent } from './sections/about-us/about-us.component';
-import { IndicatorsComponent } from './sections/indicators/indicators.component';
-import { CardIndicatorComponent } from './sections/indicators/components/card-indicator/card-indicator.component';
-import { PartnersCollaboratorsComponent } from './sections/partners-collaborators/partners-collaborators.component';
-import { PublicationsComponent } from './sections/publications/publications.component';
-import { CardPublicationComponent } from './sections/publications/components/card-publication/card-publication.component';
-import { InfoDashboardsApiServicesComponent } from './sections/info-dashboards-api-services/info-dashboards-api-services.component';
 
-
-
-
+/**
+ * 🛑 Aquí se declaraban además `AboutUs`, `Indicators`, `CardIndicator`,
+ * `PartnersCollaborators`, `Publications`, `CardPublication` e
+ * `InfoDashboardsApiServices`. Su contenido vive desde el revamp dentro de
+ * `sections/header/header.component.html`, ninguna plantilla los invocaba y
+ * ninguna ruta los cargaba: eran siete componentes que Angular compilaba en
+ * cada build para no pintarlos nunca. Si alguna vez hacen falta, están en el
+ * historial de git — borrarlos no pierde nada, mantenerlos sí costaba.
+ */
 @NgModule({
-  declarations: [
-    HomeComponent,
-    HeaderComponent,
-    AboutUsComponent,
-    IndicatorsComponent,
-    CardIndicatorComponent,
-    PartnersCollaboratorsComponent,
-    PublicationsComponent,
-    CardPublicationComponent,
-    InfoDashboardsApiServicesComponent,
-    
-    
-  ],
-  imports: [
-    CommonModule,
-    HomeRoutingModule,
-    
-  ]
+  declarations: [HomeComponent, HeaderComponent],
+  imports: [CommonModule, HomeRoutingModule]
 })
-export class HomeModule { }
+export class HomeModule {}
