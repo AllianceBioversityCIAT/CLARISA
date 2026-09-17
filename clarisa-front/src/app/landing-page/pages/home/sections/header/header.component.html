@@ -164,16 +164,29 @@
         </p>
       </div>
 
-      <ul class="cl-bars">
+      <!--
+        🥇 Las cifras salen de `GET api/metrics`, no del código. Antes estaban
+        escritas a mano y envejecieron a la vista: decían 32 iniciativas cuando
+        hay 43. Suben contando desde cero la primera vez que este bloque asoma.
+
+        🛑 Y si el API no responde NO se enseña un número de reserva: se quedan
+        las seis etiquetas —que siguen siendo ciertas— con el hueco a la vista y
+        una línea que lo explica. Un número viejo es peor que ninguno.
+      -->
+      <ul class="cl-bars" #bars [class.is-waiting]="metricsState !== 'ready'">
         <li *ngFor="let m of indicators; let first = first" [class.is-lead]="first">
           <div class="cl-bars__head">
             <span class="cl-bars__label">{{ m.label }}</span>
-            <b class="cl-bars__value">{{ m.display }}</b>
+            <b class="cl-bars__value">{{ m.display ?? '—' }}</b>
           </div>
           <div class="cl-bars__track"><i [style.width.%]="m.share * 100"></i></div>
           <span class="cl-bars__note" *ngIf="m.note">{{ m.note }}</span>
         </li>
       </ul>
+
+      <p class="cl-bars__offline" *ngIf="metricsState === 'unavailable'">
+        Live figures are not reachable right now. The catalogues below are still there — only the counts are missing.
+      </p>
     </article>
 
     <!-- publicaciones -->

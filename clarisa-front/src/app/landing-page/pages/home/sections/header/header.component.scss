@@ -657,6 +657,25 @@
   font-size: 12.5px;
 }
 
+// Mientras no hay dato, la barra no finge: se queda en su carril vacío y la
+// cifra es una raya. Nada de animación de carga parpadeando seis veces.
+:host .cl-bars.is-waiting .cl-bars__value {
+  color: #6d8d81;
+}
+
+:host .cl-bars__offline {
+  margin: 18px 0 0;
+  color: #9ab5aa;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+// La barra crece hasta su valor en vez de aparecer ya dibujada: acompaña al
+// número que está contando al lado.
+:host .cl-bars__track i {
+  transition: width 0.95s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 // La primera manda: es el dato que define el tamaño del catálogo.
 :host .cl-bars li.is-lead {
   .cl-bars__value {
