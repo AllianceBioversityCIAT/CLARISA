@@ -1,0 +1,96 @@
+//
+// Cabecera del glosario — la banda de marca, no la foto de plantilla.
+//
+// Este archivo estaba VACÍO: todo el aspecto venía de `assets/css/style-landing.css`
+// (§ 16), que pinta `.inner-banner` con una foto de archivo (`bannerDash.jpg`) y
+// le echa encima un negro al 60 % para poder leer el título. Con la barra, el
+// home y el acceso ya rehechos, esa banda era lo primero que se veía al entrar al
+// glosario y era lo único que seguía siendo de la plantilla comprada.
+//
+// La banda pasa a ser la misma superficie del panel de marca del acceso:
+// `--cl-brand-deep` con blanco encima (7,16). Un color plano en lugar de una
+// fotografía es además una descarga menos en la pantalla de entrada.
+//
+// 🛑 Respaldo en cada `var(--cl-*)` por la misma razón que en el resto del
+// revamp: los tokens llegaron con esta rama y sin el respaldo la banda saldría
+// transparente en una rama que no los traiga.
+//
+// Especificidad: las reglas que se pisan son `.inner-banner h2` (0,1,1) y
+// `.inner-breadcrumb li a` (0,1,2). `:host` suma (0,1,0) y las gana sin un solo
+// `!important`.
+
+:host {
+  display: block;
+}
+
+:host .inner-banner {
+  // /* La foto se va entera: `background-image` a `none` y el degradado deja de
+  // tener nada que oscurecer.
+  background-image: none;
+  background-color: var(--cl-brand-deep, #0a6449);
+  padding: 46px 0 42px;
+  // /* Centrado era de la plantilla. El home y el acceso alinean a la izquierda,
+  // y el título de una página de contenido se lee donde empieza el contenido.
+  text-align: left;
+}
+
+// El velo negro al 60 % existía solo para rescatar el texto de encima de la foto.
+// Sin foto es una capa que oscurece la marca sin motivo.
+:host .inner-banner::before {
+  display: none;
+}
+
+:host .inner-banner h2 {
+  margin: 0 0 8px;
+  color: var(--cl-surface, #ffffff);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  // /* `style-landing.css` pone en mayúsculas los títulos del landing.
+  text-transform: none;
+}
+
+:host .inner-breadcrumb {
+  margin: 0;
+  padding: 0;
+}
+
+:host .inner-breadcrumb li {
+  // /* 4,9 sobre la banda: sigue siendo texto, no decoración.
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+:host .inner-breadcrumb li:last-child {
+  // /* Era `#dcffaa`, el lima de la plantilla: 14,9 sobre la banda pero un verde
+  // que ya no es de nadie. La página en la que estás se marca con el peso.
+  color: var(--cl-surface, #ffffff);
+  font-weight: 600;
+}
+
+:host .inner-breadcrumb li a {
+  color: var(--cl-brand-ring, #bde3d4);
+
+  &:hover,
+  &:focus {
+    color: var(--cl-surface, #ffffff);
+    text-decoration: underline;
+  }
+}
+
+:host .inner-breadcrumb li a:focus-visible {
+  outline: 2px solid var(--cl-brand-ring, #bde3d4);
+  outline-offset: 2px;
+}
+
+@media (max-width: 576px) {
+  :host .inner-banner {
+    padding: 30px 0 28px;
+  }
+
+  :host .inner-banner h2 {
+    font-size: 25px;
+  }
+}

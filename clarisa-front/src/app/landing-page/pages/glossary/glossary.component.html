@@ -4,37 +4,59 @@
   <div class="container">
     <div class="glossary-intro">
       <h3>CGIAR terms and definitions</h3>
-      <p>Glossary of terms and their definitions used across CLARISA and CGIAR reporting. Filter by portfolio or search any term below.</p>
+      <!--
+        La última frase ES la leyenda, y es lo único que se necesita leer una vez:
+        la pastilla del ejemplo es exactamente la misma que llevan las tarjetas y
+        el filtro, así que el lector la reconoce después sin aprenderse nada.
+        Ocupa media línea de un párrafo que ya existía.
+      -->
+      <!--
+        La pastilla va EN MEDIO de la frase, no al final: pegada al punto, el
+        relleno de la píldora deja un hueco y el punto se lee suelto.
+      -->
+      <p>
+        Glossary of terms and their definitions used across CLARISA and CGIAR reporting. Filter by portfolio or search any term below; the portfolio
+        tagged <span class="version-seg__now version-seg__now--inline">Current</span> is the one in force today.
+      </p>
     </div>
 
     <div class="glossary-toolbar">
       <div class="glossary-search">
-        <i class="pi pi-search"></i>
-        <input type="text" aria-label="Search a term or definition" [(ngModel)]="searchText" placeholder="Search a term or definition..." />
+        <i class="pi pi-search" aria-hidden="true"></i>
+        <input type="search" aria-label="Search a term or definition" [(ngModel)]="searchText" placeholder="Search a term or definition..." />
       </div>
 
-      <div class="glossary-filters" *ngIf="filterPortfolios.length">
+      <div class="glossary-filters" *ngIf="filterPortfolios.length" role="group" aria-label="Filter by portfolio">
         <button type="button" class="filter-pill" [class.active]="selectedPortfolioCode == null" (click)="selectPortfolio(null)">
-          All portfolios
+          <span class="filter-pill__wide">All portfolios</span>
+          <span class="filter-pill__narrow">All</span>
         </button>
         <button
           type="button"
           class="filter-pill"
-          [ngClass]="selectedPortfolioCode === portfolio.code ? portfolioColorClass(portfolio.code) : ''"
           *ngFor="let portfolio of filterPortfolios"
           [class.active]="selectedPortfolioCode === portfolio.code"
+          [attr.aria-pressed]="selectedPortfolioCode === portfolio.code"
           (click)="selectPortfolio(portfolio.code)">
-          {{ portfolioLabel(portfolio.name) }}
+          <span class="filter-pill__wide">{{ portfolioLabel(portfolio.name) }}</span>
+          <span class="filter-pill__narrow">{{ shortLabel(portfolio.name) }}</span>
+          <!--
+            La marca también aquí, y no por adorno: la página abre con ESTE
+            portafolio ya elegido, y sin la palabra el lector no tiene manera de
+            saber por qué está viendo un subconjunto.
+          -->
+          <span class="version-seg__now" *ngIf="isCurrentPortfolioId(portfolio.code)">Current</span>
         </button>
       </div>
     </div>
 
-    <div class="glossary-letters" *ngIf="!loading && availableLetters.length">
+    <div class="glossary-letters" *ngIf="!loading && availableLetters.length" role="group" aria-label="Filter by initial">
       <button
         type="button"
         class="letter-circle"
         *ngFor="let letter of availableLetters"
         [class.active]="selectedLetter === letter"
+        [attr.aria-pressed]="selectedLetter === letter"
         (click)="selectLetter(letter)">
         {{ letter }}
       </button>
@@ -65,7 +87,7 @@
             definición —que pueden ser dos— y no se pulsan, porque no hay nada
             a lo que cambiar. Se ven igual; lo único que cambia es si responden.
           -->
-          <div class="version-rail" *ngIf="item.versions.length > 1" role="tablist">
+          <div class="version-rail" *ngIf="item.versions.length > 1" role="tablist" aria-label="Definitions by portfolio">
             <button
               type="button"
               role="tab"
@@ -75,25 +97,31 @@
               [attr.aria-selected]="item.shown === i"
               [title]="portfolioOf(version)?.name || ''"
               (click)="showVersion(item, i)">
-              <span class="version-seg__dot" [ngClass]="versionColorClass(version)" [class.is-current]="isCurrentVersion(version)"></span>
               <span class="version-seg__label">
                 <span class="version-seg__wide">{{ versionLabel(version) }}</span>
                 <span class="version-seg__narrow">{{ versionShortLabel(version) }}</span>
               </span>
+              <span class="version-seg__now" *ngIf="isCurrentVersion(version)">Current</span>
             </button>
           </div>
 
           <div class="version-rail version-rail--static" *ngIf="item.versions.length === 1 && item.portfolios?.length">
             <span class="version-seg is-active" *ngFor="let portfolio of item.portfolios" [title]="portfolio.acronym || portfolio.name">
-              <span class="version-seg__dot is-current" [ngClass]="portfolioColorClass(portfolio.id)"></span>
               <span class="version-seg__label">
                 <span class="version-seg__wide">{{ portfolioLabel(portfolio.name) }}</span>
                 <span class="version-seg__narrow">{{ shortLabel(portfolio.name) }}</span>
               </span>
+              <!--
+                🛑 Aquí el punto relleno mentía: se pintaba `is-current` para TODOS
+                los portafolios de la tarjeta, así que el de 2022-2024 se anunciaba
+                como vigente igual que el de 2025-2030. `isCurrentPortfolio` ya
+                existía en el componente y no la llamaba nadie.
+              -->
+              <span class="version-seg__now" *ngIf="isCurrentPortfolio(portfolio)">Current</span>
             </span>
           </div>
         </div>
-        <p [innerHTML]="renderable(item.definition)"></p>
+        <p class="card-definition" [innerHTML]="renderable(item.definition)"></p>
         <p class="card-source" *ngIf="item.source || item.referenceDate">
           <!-- prettier-ignore -->
           <span class="card-source__label">Source: </span>
