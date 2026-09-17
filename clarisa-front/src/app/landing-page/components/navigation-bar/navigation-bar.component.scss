@@ -60,6 +60,33 @@
   color: #eaf5f1;
 }
 
+// 🛑 Y el contenedor de Bootstrap que lo envuelve. `.navbar-header` viene con
+// `background: #fff` de la hoja del tema: sobre la barra blanca no se nota, pero
+// sobre el hero pinta un ladrillo blanco de 74×64 pegado al «Sign in». Se deja
+// transparente SIEMPRE — donde la barra es blanca, el blanco lo pone
+// `.logo-wrapper`, así que fuera del hero no cambia nada.
+:host .cl-nav .navbar-header {
+  background: transparent;
+}
+
+// 🛑 El botón de hamburguesa también. Se queda con `background: var(--cl-surface)`
+// —blanco— y sobre la barra de tinta del hero se lee como una caja blanca pegada
+// al lado del «Sign in»: es lo primero que se ve al abrir la home en un teléfono,
+// porque la hamburguesa solo existe por debajo de 768px (JC, 16-sep-2026).
+:host(.is-over) .cl-nav .navbar-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+:host(.is-over) .cl-nav .navbar-toggle .icon-bar {
+  background: #eaf5f1;
+}
+
+:host(.is-over) .cl-nav .navbar-toggle:hover,
+:host(.is-over) .cl-nav .navbar-toggle:focus {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 // El logo del CGIAR es verde bosque sobre blanco; sobre tinta necesita ayuda.
 :host(.is-over) .cl-brand__mark {
   filter: brightness(0) invert(1);
@@ -360,6 +387,18 @@
   :host .cl-signin {
     height: 38px;
     padding: 0 15px;
+  }
+
+  // /* 34px de alto se quedaba por debajo del mínimo de toque cómodo, y al lado
+  // de un «Sign in» de 38 se leía descuadrado. Los dos a la misma altura.
+  :host .cl-nav .navbar-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    height: 38px;
+    margin: 0;
+    padding: 0 12px;
   }
 }
 
