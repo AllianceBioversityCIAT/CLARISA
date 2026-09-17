@@ -33,6 +33,20 @@
             <p class="login-card__subtitle">Request partners administrator</p>
           </header>
 
+          <!--
+            Por qué se está aquí, cuando no se vino por voluntad propia. Va
+            ARRIBA del formulario y no junto al botón: no es la respuesta a nada
+            que se acabe de pulsar, es el contexto de la pantalla, y se lee antes
+            de empezar a escribir.
+
+            En verde de marca y no en rojo: que una sesión caduque no es un
+            fallo de quien la tenía. `role="status"` porque informa, no alerta.
+          -->
+          <p class="login-card__notice" *ngIf="sessionExpired" role="status">
+            <i class="fa fa-clock-o" aria-hidden="true"></i>
+            <span>Your session expired. Please sign in again to continue.</span>
+          </p>
+
           <div class="field">
             <label for="login-user">Username or email</label>
             <input id="login-user" pInputText type="text" formControlName="login" name="login" autocomplete="username" [readonly]="signingIn" />

@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { ReactiveFormsModule } from '@angular/forms';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
@@ -142,4 +143,92 @@ describe('LoginComponent · el 500 que en realidad es una contraseña mal escrit
   });
 
   afterEach(() => http.verify());
+});
+
+/**
+ * La sesión que vence.
+ *
+ * 🛑 Lo que hacía la aplicación: al caducar el token, el guard y el interceptor
+ * llevaban a la persona a `landing-page/login` **sin decir nada**, a media tarea
+ * y con el formulario vacío. Se lee como una expulsión, no como un tiempo
+ * agotado. El motivo viaja ahora en la URL, y esta pantalla es quien lo cuenta.
+ */
+describe('LoginComponent · la sesión que venció', () => {
+  const LOGIN_URL = `${environment.apiUrl}auth/login`;
+
+  /** Monta la pantalla como si se hubiera llegado con esos query params. */
+  const screenWith = async (params: Record<string, string>) => {
+    TestBed.resetTestingModule();
+
+    await TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule, RouterTestingModule, ReactiveFormsModule],
+      declarations: [LoginComponent],
+      providers: [
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { queryParamMap: convertToParamMap(params) } }
+        }
+      ],
+      schemas: [NO_ERRORS_SCHEMA]
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+    return fixture;
+  };
+
+  const notice = (fixture: ComponentFixture<LoginComponent>): string =>
+    (fixture.nativeElement.querySelector('.login-card__notice')?.textContent ?? '').trim();
+
+  it('dice por qué se está aquí cuando la sesión venció', async () => {
+    const fixture = await screenWith({ reason: 'session-expired' });
+
+    expect(notice(fixture)).toContain('Your session expired');
+    // El aviso informa, no alarma: no puede ocupar el sitio del error del intento.
+    expect(fixture.nativeElement.querySelector('.login-card__error')).toBeNull();
+  });
+
+  // La otra mitad, y la que impide «avisar siempre»: quien entra por su pie no
+  // ha perdido ninguna sesión, y decirle que sí lo confunde.
+  it('no dice nada a quien entra normalmente', async () => {
+    const fixture = await screenWith({});
+
+    expect(fixture.nativeElement.querySelector('.login-card__notice')).toBeNull();
+  });
+
+  it('no dice nada con un motivo que no es el de la expiración', async () => {
+    const fixture = await screenWith({ reason: 'logout' });
+
+    expect(fixture.nativeElement.querySelector('.login-card__notice')).toBeNull();
+  });
+
+  // Al reintentar, la noticia es el intento nuevo: dejar colgado el aviso de la
+  // sesión anterior mientras aparece un error hace leer dos cosas a la vez.
+  it('se retira en cuanto se vuelve a intentar entrar', async () => {
+    const fixture = await screenWith({ reason: 'session-expired' });
+    const http = TestBed.inject(HttpTestingController);
+    const component = fixture.componentInstance;
+
+    component.loginForm.setValue({ login: 'y.zuniga', password: 'secret' });
+    component.onSubmit();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.login-card__notice')).toBeNull();
+
+    http.expectOne(LOGIN_URL).flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.login-card__error').textContent).toContain('Username or password is incorrect');
+    expect(fixture.nativeElement.querySelector('.login-card__notice')).toBeNull();
+    http.verify();
+  });
+
+  it('el aviso lleva el tono del sitio, no el del error', async () => {
+    const fixture = await screenWith({ reason: 'session-expired' });
+    const element: HTMLElement = fixture.nativeElement.querySelector('.login-card__notice');
+
+    // Se anuncia como información, no como alerta: no ha fallado nada.
+    expect(element.getAttribute('role')).toBe('status');
+    // El icono es decorativo; el texto ya lo dice todo.
+    expect(element.querySelector('i')?.getAttribute('aria-hidden')).toBe('true');
+  });
 });

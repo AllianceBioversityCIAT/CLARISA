@@ -454,3 +454,43 @@
     min-width: 0;
   }
 }
+
+// ---------------------------------------------------------------------------
+// El aviso de que la sesión caducó
+// ---------------------------------------------------------------------------
+//
+// Mismo esqueleto que el error de arriba —icono, texto, una caja— pero en el
+// verde de la marca: una sesión que expira no es culpa de nadie, y pintarla de
+// rojo pone cara de avería a algo que es rutina. Así se distinguen de un
+// vistazo: rojo = el intento falló, verde = esto es contexto.
+//
+// Los tres colores salen de los tokens. `--cl-brand-deeper` sobre
+// `--cl-brand-soft` es 7,80 de contraste, el par que el tema declara para
+// exactamente esto.
+:host .login-card__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 0 18px;
+  padding: 10px 12px;
+  border: 1px solid var(--cl-brand-ring);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+
+  i {
+    margin-top: 1px;
+    font-size: 14px;
+    // /* El icono no se encoge cuando el texto pasa a dos líneas, que es lo que
+    // ocurre a 390px: sin esto la caja lo aplasta a una raya.
+    flex: 0 0 auto;
+  }
+
+  span {
+    // /* Deja que el texto parta dentro del flex en vez de desbordar la tarjeta.
+    min-width: 0;
+  }
+}

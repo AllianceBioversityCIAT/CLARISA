@@ -3,7 +3,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { HTTP_INTERCEPTORS, HttpClient } from '@angular/common/http';
 import { RouterTestingModule } from '@angular/router/testing';
 import { GeneralInterceptorService } from './auth-interceptor.service';
-import { AuthService } from '../services/auth.service';
+import { AuthService, SESSION_EXPIRED } from '../services/auth.service';
 import { environment } from 'src/environments/environment';
 
 describe('GeneralInterceptorService', () => {
@@ -74,6 +74,9 @@ describe('GeneralInterceptorService', () => {
         .flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
 
       expect(logoutSpy).toHaveBeenCalled();
+      // Con el motivo, que es lo que la pantalla de entrada necesita para no
+      // dejar a la persona delante de un formulario vacío y sin explicación.
+      expect(logoutSpy).toHaveBeenCalledWith(SESSION_EXPIRED);
     });
 
     it('still reports the error to the caller', () => {

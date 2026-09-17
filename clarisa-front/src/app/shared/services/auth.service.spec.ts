@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Router } from '@angular/router';
-import { AuthService } from './auth.service';
+import { AuthService, SESSION_EXPIRED } from './auth.service';
 import { environment } from 'src/environments/environment';
 
 describe('AuthService', () => {
@@ -148,5 +148,47 @@ describe('AuthService', () => {
 
       expect(tokenWhenNavigating).toBeNull();
     });
+  });
+});
+
+describe('AuthService · por qué se cerró la sesión', () => {
+  let service: AuthService;
+  let router: Router;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule, RouterTestingModule]
+    });
+    service = TestBed.inject(AuthService);
+    router = TestBed.inject(Router);
+    httpMock = TestBed.inject(HttpTestingController);
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+    localStorage.clear();
+  });
+
+  // El motivo viaja en la URL a propósito: la navegación destruye el componente
+  // que podría haberlo guardado, y un F5 en el login lo perdería igual.
+  it('lleva el motivo a la pantalla de entrada cuando la sesión venció', () => {
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    service.logout(SESSION_EXPIRED);
+
+    expect(navigateSpy).toHaveBeenCalledWith(['landing-page/login'], { queryParams: { reason: 'session-expired' } });
+  });
+
+  // Pulsar «Sign out» no es un incidente: nadie ha perdido nada y la pantalla no
+  // tiene que decir lo contrario.
+  it('no inventa un motivo cuando la salida es voluntaria', () => {
+    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    service.logout();
+
+    expect(navigateSpy).toHaveBeenCalledWith(['landing-page/login']);
+    expect(JSON.stringify(navigateSpy.mock.calls)).not.toContain('session-expired');
   });
 });

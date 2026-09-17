@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivate, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { Observable } from 'rxjs';
-import { AuthService } from './auth.service';
+import { AuthService, SESSION_EXPIRED } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -26,7 +26,7 @@ export class LoginGuardGuard implements CanActivate {
     // still opened the panel: the screens loaded empty, every request answered
     // 401 and the user stayed inside with no way to tell what was wrong.
     if (this.authService.isSessionExpired()) {
-      this.authService.logout();
+      this.authService.logout(SESSION_EXPIRED);
       return false;
     }
 
