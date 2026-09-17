@@ -66,6 +66,8 @@
   <p-table
     [value]="filteredTerms"
     [loading]="loading"
+    sortField="current.term"
+    [sortOrder]="1"
     [rows]="15"
     [paginator]="filteredTerms.length > 15"
     [rowsPerPageOptions]="[15, 30, 50, 100]"
@@ -75,14 +77,18 @@
     <ng-template pTemplate="header">
       <tr>
         <th scope="col" style="width: 40px"></th>
-        <th scope="col" style="width: 200px">Term</th>
-        <th scope="col">Definition</th>
-        <th scope="col" style="width: 160px">Source</th>
-        <th scope="col" style="width: 150px">Portfolios</th>
-        <th scope="col" style="width: 104px">
+        <th scope="col" pSortableColumn="current.term" style="width: 200px">Term <p-sortIcon field="current.term"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="current.definition">Definition <p-sortIcon field="current.definition"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="current.source" style="width: 160px">Source <p-sortIcon field="current.source"></p-sortIcon></th>
+        <!-- Ordered by the newest portfolio of the concept, not by the chip text -->
+        <th scope="col" pSortableColumn="portfolioYear" style="width: 150px">Portfolios <p-sortIcon field="portfolioYear"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="current.is_active" style="width: 132px">
           Status <i class="pi pi-info-circle th-help" [pTooltip]="statusHelp" tooltipPosition="top" aria-label="What Active and Inactive mean"></i>
+          <p-sortIcon field="current.is_active"></p-sortIcon>
         </th>
-        <th scope="col" style="width: 150px">Last change</th>
+        <th scope="col" pSortableColumn="current.last_modified_at" style="width: 150px">
+          Last change <p-sortIcon field="current.last_modified_at"></p-sortIcon>
+        </th>
         <th scope="col" style="width: 116px">Actions</th>
       </tr>
     </ng-template>

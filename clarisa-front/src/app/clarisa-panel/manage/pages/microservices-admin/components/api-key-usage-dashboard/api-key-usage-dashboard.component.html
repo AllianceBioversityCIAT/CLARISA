@@ -169,10 +169,10 @@
   <p-table [value]="summary.by_mis_microservice" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
     <ng-template pTemplate="header">
       <tr>
-        <th>MIS</th>
-        <th>Environment</th>
-        <th>Microservice</th>
-        <th>Requests</th>
+        <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="environment">Environment <p-sortIcon field="environment"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="microservice_name">Microservice <p-sortIcon field="microservice_name"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="total_requests">Requests <p-sortIcon field="total_requests"></p-sortIcon></th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-row>
@@ -198,11 +198,11 @@
     <p-table [value]="summary.by_mis" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
       <ng-template pTemplate="header">
         <tr>
-          <th>MIS</th>
-          <th>Environment</th>
-          <th>Requests</th>
-          <th>Keys</th>
-          <th>Microservices</th>
+          <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="environment">Environment <p-sortIcon field="environment"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="total_requests">Requests <p-sortIcon field="total_requests"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="api_key_count">Keys <p-sortIcon field="api_key_count"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="microservices_used">Microservices <p-sortIcon field="microservices_used"></p-sortIcon></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-row>
@@ -235,11 +235,11 @@
     >
       <ng-template pTemplate="header">
         <tr>
-          <th>Key</th>
-          <th>MIS</th>
-          <th>Period</th>
-          <th>Lifetime</th>
-          <th>Last used</th>
+          <th scope="col" pSortableColumn="name">Key <p-sortIcon field="name"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="requests_in_period">Period <p-sortIcon field="requests_in_period"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="usage_count">Lifetime <p-sortIcon field="usage_count"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="last_used_at">Last used <p-sortIcon field="last_used_at"></p-sortIcon></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-row>
@@ -295,7 +295,11 @@
     <header class="table-card__head"><h3>Top endpoints / patterns</h3></header>
     <p-table [value]="keyDetail.top_endpoints" styleClass="p-datatable-sm admin-table">
       <ng-template pTemplate="header">
-        <tr><th>Endpoint</th><th>Requests</th><th>Share</th></tr>
+        <tr>
+          <th scope="col" pSortableColumn="label">Endpoint <p-sortIcon field="label"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="total_requests">Requests <p-sortIcon field="total_requests"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="percentage">Share <p-sortIcon field="percentage"></p-sortIcon></th>
+        </tr>
       </ng-template>
       <ng-template pTemplate="body" let-row>
         <tr>
@@ -321,13 +325,13 @@
   >
     <ng-template pTemplate="header">
       <tr>
-        <th>Time</th>
-        <th>MIS</th>
-        <th>Key</th>
-        <th>Microservice</th>
-        <th>Endpoint</th>
-        <th>Status</th>
-        <th>Latency</th>
+        <th scope="col" pSortableColumn="created_at">Time <p-sortIcon field="created_at"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="key_prefix">Key <p-sortIcon field="key_prefix"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="microservice_name">Microservice <p-sortIcon field="microservice_name"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="endpoint_accessed">Endpoint <p-sortIcon field="endpoint_accessed"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="status_code">Status <p-sortIcon field="status_code"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="response_time_ms">Latency <p-sortIcon field="response_time_ms"></p-sortIcon></th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-row>

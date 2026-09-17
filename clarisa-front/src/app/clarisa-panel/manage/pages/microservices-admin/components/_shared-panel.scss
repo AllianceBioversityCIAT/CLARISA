@@ -56,6 +56,13 @@
     padding: 0.65rem 1rem;
   }
 
+  // A sortable header keeps its label and its arrows on the same line: in a
+  // narrow column the icon was dropping underneath and the row grew a second
+  // line for nothing.
+  .p-datatable-thead > tr > th.p-sortable-column {
+    white-space: nowrap;
+  }
+
   .p-datatable-tbody > tr > td {
     padding: 0.7rem 1rem;
     font-size: 0.85rem;

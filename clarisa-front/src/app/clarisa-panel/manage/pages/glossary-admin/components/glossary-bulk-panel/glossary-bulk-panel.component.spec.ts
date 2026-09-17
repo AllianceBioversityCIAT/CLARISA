@@ -63,4 +63,49 @@ describe('GlossaryBulkPanelComponent', () => {
     expect(component.hiddenColumnCount).toBe(0);
     expect(component.emptyColumnCount).toBe(0);
   });
+
+  /**
+   * The review table is sortable, and the table orders the very array it is
+   * given. Handing it a new array on every change detection cycle would put the
+   * rows back in file order a moment after the reader clicked a column.
+   */
+  describe('rows of the review table', () => {
+    const rows = [
+      { index: 2, action: 'create', term: 'Outcome', definition: 'A change' },
+      { index: 3, action: 'invalid', term: '', definition: '' }
+    ];
+
+    beforeEach(() => {
+      component.preview = { rows, summary: {} } as any;
+      component.actionFilter = 'all';
+      component.applyActionFilter();
+    });
+
+    it('keeps the same array between reads, so a sort is not undone', () => {
+      expect(component.reviewRows).toBe(component.reviewRows);
+      expect(component.reviewRows.map(row => row.index)).toEqual([2, 3]);
+    });
+
+    it('survives being reordered in place, the way the table sorts it', () => {
+      component.reviewRows.reverse();
+
+      expect(component.reviewRows.map(row => row.index)).toEqual([3, 2]);
+    });
+
+    it('narrows to one action when the filter changes, and comes back', () => {
+      component.actionFilter = 'invalid';
+      component.applyActionFilter();
+      expect(component.reviewRows.map(row => row.index)).toEqual([3]);
+
+      component.actionFilter = 'all';
+      component.applyActionFilter();
+      expect(component.reviewRows.map(row => row.index)).toEqual([2, 3]);
+    });
+
+    it('empties the list when the wizard starts over', () => {
+      component.startOver();
+
+      expect(component.reviewRows).toEqual([]);
+    });
+  });
 });
