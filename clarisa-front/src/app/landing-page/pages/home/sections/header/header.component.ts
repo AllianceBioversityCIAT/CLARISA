@@ -62,6 +62,17 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
    */
   heroOff = false;
 
+  /**
+   * true cuando el clip del descenso ya tiene fotogramas que enseñar.
+   *
+   * 🛑 El relevo NO se hace solo con `underground`. El descenso ahora se
+   * descarga tarde (ver `primeDescent`), así que puede llegar el momento del
+   * relevo con el clip todavía vacío: mostrarlo sería un rectángulo negro donde
+   * estaba la planta. Mientras no tenga datos se deja el último fotograma del
+   * clip de arriba, que ES el primero de este — la costura no se ve igual.
+   */
+  descentReady = false;
+
   /** Dónde empieza cada tramo del hero, en fracción del carril. */
   private readonly CUTS = [0, 0.34, 0.68];
 
@@ -136,6 +147,30 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
     requestAnimationFrame(() => this.update());
   };
 
+  /** Vídeos ya arrancados. `play()`/`pause()` se pide una vez, no en cada evento. */
+  private readonly primed = new Set<HTMLVideoElement>();
+
+  /**
+   * Arranca el clip del descenso, y no antes de tiempo.
+   *
+   * 🛑 Los dos clips pesan 8 MB juntos (3,0 + 5,0) y antes se bajaban los dos al
+   * abrir la página, hubiera o no intención de bajar. Ahora el descenso espera
+   * al PRIMER SCROLL: quien abre la home y no se mueve —o la abre para pinchar
+   * «Sign in»— se ahorra los 5,0 MB enteros, y quien sí baja todavía tiene ~600px
+   * de recorrido por delante antes de que haga falta. Por eso su `preload` es
+   * `none` en la plantilla: hasta aquí no se baja ni un byte.
+   *
+   * 🛑 Y NO se ata a `canplaythrough` del clip de arriba: eso se cumple solo en
+   * cualquier conexión decente, así que el descenso se bajaba igual y el ahorro
+   * era cero. Medido, 16-sep-2026.
+   */
+  private readonly primeDescent = () => {
+    const video = this.descent?.nativeElement;
+    if (!video || this.primed.has(video)) return;
+    video.preload = 'auto';
+    this.prime(video);
+  };
+
   /** Reintento del arranque de los vídeos si la política del navegador lo pidió. */
   private readonly onFirstTouch = () => {
     this.primeAll();
@@ -154,10 +189,7 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
       const video = ref?.nativeElement;
       if (!video) continue;
 
-      video.addEventListener('loadedmetadata', () => {
-        this.prime(video);
-        this.update();
-      });
+      video.addEventListener('loadedmetadata', () => this.update());
 
       // Safari: al acabar una búsqueda se atiende el último objetivo pedido
       // mientras estaba ocupado. Sin esto el vídeo se queda un fotograma atrás
@@ -172,9 +204,23 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
       });
     }
 
-    this.primeAll();
+    const sprout = this.video?.nativeElement;
+    if (sprout) {
+      // El de arriba, ya: es el que se ve en el primer fotograma de la página.
+      this.prime(sprout);
+    }
+
+    const descent = this.descent?.nativeElement;
+    if (descent) {
+      // El relevo solo se permite cuando hay algo que enseñar.
+      descent.addEventListener('loadeddata', () => {
+        if (!this.descentReady) this.zone.run(() => (this.descentReady = true));
+      });
+    }
 
     this.zone.runOutsideAngular(() => {
+      // El primer gesto de bajar es lo que lo arranca.
+      window.addEventListener('scroll', this.primeDescent, { passive: true, once: true });
       window.addEventListener('scroll', this.onScroll, { passive: true });
       window.addEventListener('resize', this.onScroll, { passive: true });
       window.addEventListener('orientationchange', this.onScroll, { passive: true });
@@ -196,7 +242,9 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
     window.removeEventListener('orientationchange', this.onScroll);
     window.removeEventListener('touchstart', this.onFirstTouch);
     window.removeEventListener('pointerdown', this.onFirstTouch);
+    window.removeEventListener('scroll', this.primeDescent);
     this.queued.clear();
+    this.primed.clear();
   }
 
   /**
@@ -214,7 +262,9 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
     // Sin soporte declarado para el formato no hay nada que precargar — y es
     // además lo que distingue un navegador de verdad de jsdom, donde `play()`
     // no está implementado y solo ensucia la salida de los tests.
+    if (this.primed.has(video)) return;
     if (typeof video.canPlayType !== 'function' || !video.canPlayType('video/mp4')) return;
+    this.primed.add(video);
 
     try {
       const started = video.play();
