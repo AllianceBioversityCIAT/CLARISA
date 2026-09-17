@@ -19,6 +19,8 @@ interface ApiKeyRow {
   is_active: boolean;
   expires_at?: string;
   last_used_at?: string;
+  /** What the Status column shows, kept on the row so it can be sorted by it. */
+  status_label?: string;
 }
 
 @Component({
@@ -86,7 +88,10 @@ export class ApiKeysPanelComponent implements OnInit {
     this.loading = true;
     this.api.getAllApiKeys(this.showFilter).subscribe({
       next: (resp: any) => {
-        this.keys = Array.isArray(resp) ? resp : [];
+        const rows: ApiKeyRow[] = Array.isArray(resp) ? resp : [];
+        // Status is not a stored field: it comes from is_active plus the expiry
+        // date, so ordering by either one alone would not match the tag shown.
+        this.keys = rows.map((key) => ({ ...key, status_label: this.statusLabel(key) }));
         this.loading = false;
       },
       error: (err) => {
