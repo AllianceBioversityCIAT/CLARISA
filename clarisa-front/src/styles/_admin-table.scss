@@ -97,25 +97,32 @@
     color: var(--cl-admin-nav-accent);
   }
 
-  /* El icono al 55 % sobre el carbón se leía apagado —«se ve oscuro», Yeck,
-     17-sep-2026—: quedaba en un gris medio y había que buscarlo para saber que
-     la columna se podía ordenar. Sube a 0,8 y gana medio punto de tamaño, que
-     es lo que hace falta para que se vea sin robarle el turno al título. */
-  .p-sortable-column-icon {
+  /* 🛑 El icono venía del tema de PrimeNG en `#343a40`, un gris de pizarra
+     pensado para cabecera clara, y sobre el carbón medía **1,39 de contraste**:
+     invisible, no tenue —«yo sigo viendo eso oscuro», Yeck, 17-sep-2026—. El
+     `color: inherit` que había aquí no lo tocaba: el selector del tema
+     (`.p-datatable .p-sortable-column .p-sortable-column-icon`) pesa más, así
+     que hay que nombrar la cabecera para ganarle. Subir la opacidad sobre un
+     color oscuro no aclara nada; lo que faltaba era el color. */
+  .p-datatable-thead > tr > th.p-sortable-column .p-sortable-column-icon {
     margin-left: 6px;
     width: 13px;
     height: 13px;
     font-size: 13px;
-    color: inherit;
-    opacity: 0.8;
+    /* Mismo tono del título, un punto por debajo: se ve sin gritar más que él.
+       Medido, 7,6 de contraste contra el carbón (el mínimo exigible a un icono
+       de interfaz es 3). */
+    color: #d7d7dc;
+    opacity: 0.7;
   }
 
-  /* Al pasar por encima ya no hay duda de que se puede ordenar. */
+  /* Al pasar por encima, y en la columna que manda el orden, a fondo. */
   .p-datatable-thead > tr > th.p-sortable-column:hover .p-sortable-column-icon {
     opacity: 1;
   }
 
-  .p-datatable-thead > tr > th.p-highlight .p-sortable-column-icon {
+  .p-datatable-thead > tr > th.p-sortable-column.p-highlight .p-sortable-column-icon {
+    color: var(--cl-admin-nav-accent);
     opacity: 1;
   }
 
