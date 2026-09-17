@@ -3,13 +3,13 @@ import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, ViewChild } fr
 /**
  * Hero cuyos vídeos avanzan con el scroll en lugar de reproducirse solos.
  *
- * El cálculo es una regla de tres: cuánto del carril (`.cl-hero`) ha pasado ya
+ * El cálculo es una regla de tres: cuánto del carril (`.cl-rail`) ha pasado ya
  * por la pantalla. Ese 0..1 se reparte entre los dos clips —la primera mitad
  * hace crecer la yuca, la segunda baja a la raíz— y dentro de cada mitad se
  * multiplica por la duración del clip y se escribe en `currentTime`. Al llegar a
  * 1 el carril se acaba, el `sticky` se suelta y la página sigue.
  *
- * Tres cosas que no son adorno:
+ * Cinco cosas que no son adorno:
  *
  * 1. El listener va fuera de la zona de Angular. Un `scroll` dispara decenas de
  *    veces por segundo y cada entrada en la zona lanza un ciclo de detección de
@@ -18,6 +18,17 @@ import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, ViewChild } fr
  *    cinco veces en todo el recorrido, no en cada píxel.
  * 3. Sin `loadedmetadata` no hay `duration`, y asignar `currentTime` antes de que
  *    el vídeo tenga metadatos se pierde en silencio.
+ * 4. 🛑 **La altura de referencia es la del escenario, no `window.innerHeight`.**
+ *    En Safari de iOS la barra de direcciones se encoge al bajar y `innerHeight`
+ *    cambia A MITAD del recorrido: el mismo scroll daba dos progresos distintos
+ *    y el vídeo pegaba un salto. El escenario mide `100svh`, que es un valor que
+ *    no se mueve, así que CSS y JS hablan de lo mismo por construcción.
+ * 5. 🛑 **Safari no carga el vídeo hasta que se reproduce.** `preload="auto"` se
+ *    ignora en iOS: el elemento se queda en `HAVE_METADATA` y escribir
+ *    `currentTime` no pinta nada — vídeo congelado en negro, que es justo lo que
+ *    se veía. Se fuerza con un `play()` + `pause()` inmediato (permitido sin
+ *    gesto porque es `muted` + `playsinline`) y, si la política lo rechaza, se
+ *    reintenta al primer toque. Ver `prime()`.
  */
 @Component({
   selector: 'app-header',
@@ -26,6 +37,7 @@ import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, ViewChild } fr
 })
 export class HeaderComponent implements AfterViewInit, OnDestroy {
   @ViewChild('rail') rail!: ElementRef<HTMLElement>;
+  @ViewChild('stage') stage!: ElementRef<HTMLElement>;
   @ViewChild('story') story!: ElementRef<HTMLElement>;
   @ViewChild('video') video!: ElementRef<HTMLVideoElement>;
   @ViewChild('descent') descent!: ElementRef<HTMLVideoElement>;
@@ -101,6 +113,15 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
   ];
 
   private ticking = false;
+
+  /**
+   * El último instante pedido para cada vídeo que Safari dejó sin atender.
+   * Safari descarta un `currentTime` nuevo si llega mientras hay una búsqueda en
+   * curso: el clip se queda clavado en el fotograma anterior aunque el scroll
+   * siga. Se guarda el objetivo y se aplica al terminar (`seeked`).
+   */
+  private readonly queued = new Map<HTMLVideoElement, number>();
+
   /**
    * 🛑 `matchMedia` se comprueba, no se da por hecho: jsdom —donde corre Jest— no
    * lo implementa, y el componente reventaba al instanciarse en el test. Lo mismo
@@ -115,28 +136,103 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
     requestAnimationFrame(() => this.update());
   };
 
+  /** Reintento del arranque de los vídeos si la política del navegador lo pidió. */
+  private readonly onFirstTouch = () => {
+    this.primeAll();
+    window.removeEventListener('touchstart', this.onFirstTouch);
+    window.removeEventListener('pointerdown', this.onFirstTouch);
+  };
+
   constructor(private zone: NgZone) {}
 
   ngAfterViewInit(): void {
-    // Con `reduce`, el carril mide `auto` y el escenario no se fija: se dejan
-    // los vídeos quietos en su primer fotograma y no se engancha nada al scroll.
+    // Con `reduce`, el escenario no se fija y el carril desaparece: se dejan los
+    // vídeos quietos en su primer fotograma y no se engancha nada al scroll.
     if (this.reduceMotion) return;
 
     for (const ref of [this.video, this.descent]) {
-      ref?.nativeElement?.addEventListener('loadedmetadata', () => this.update());
+      const video = ref?.nativeElement;
+      if (!video) continue;
+
+      video.addEventListener('loadedmetadata', () => {
+        this.prime(video);
+        this.update();
+      });
+
+      // Safari: al acabar una búsqueda se atiende el último objetivo pedido
+      // mientras estaba ocupado. Sin esto el vídeo se queda un fotograma atrás
+      // de forma permanente en cuanto el dedo va rápido.
+      video.addEventListener('seeked', () => {
+        const target = this.queued.get(video);
+        if (target === undefined) return;
+        this.queued.delete(video);
+        if (Math.abs(target - video.currentTime) > 0.02) {
+          video.currentTime = target;
+        }
+      });
     }
+
+    this.primeAll();
 
     this.zone.runOutsideAngular(() => {
       window.addEventListener('scroll', this.onScroll, { passive: true });
       window.addEventListener('resize', this.onScroll, { passive: true });
+      window.addEventListener('orientationchange', this.onScroll, { passive: true });
+      window.addEventListener('touchstart', this.onFirstTouch, { passive: true, once: true });
+      window.addEventListener('pointerdown', this.onFirstTouch, { passive: true, once: true });
     });
 
-    this.update();
+    // 🛑 El primer cálculo va en el siguiente fotograma, no aquí. `update()`
+    // escribe `step`, `heroOff` y `underground`, y hacerlo dentro de
+    // `ngAfterViewInit` es escribir sobre una vista que Angular acaba de
+    // comprobar: `NG0100 ExpressionChangedAfterItHasBeenChecked`. Antes no
+    // saltaba solo porque la salida temprana por recorrido negativo lo tapaba.
+    requestAnimationFrame(() => this.update());
   }
 
   ngOnDestroy(): void {
     window.removeEventListener('scroll', this.onScroll);
     window.removeEventListener('resize', this.onScroll);
+    window.removeEventListener('orientationchange', this.onScroll);
+    window.removeEventListener('touchstart', this.onFirstTouch);
+    window.removeEventListener('pointerdown', this.onFirstTouch);
+    this.queued.clear();
+  }
+
+  /**
+   * Obliga al navegador a decodificar y bufferear el clip.
+   *
+   * 🛑 Es lo que hace que el scroll del vídeo funcione en Safari. iOS ignora
+   * `preload="auto"` y solo baja los metadatos; `readyState` se queda en 1, y
+   * `currentTime` sobre un vídeo sin datos no pinta un solo fotograma. Con
+   * `muted` + `playsinline` la reproducción está permitida sin gesto, así que un
+   * `play()` seguido de `pause()` arranca la descarga y deja el primer fotograma
+   * en pantalla. Si la política lo rechaza igualmente, queda el reintento al
+   * primer toque (`onFirstTouch`).
+   */
+  private prime(video: HTMLVideoElement): void {
+    // Sin soporte declarado para el formato no hay nada que precargar — y es
+    // además lo que distingue un navegador de verdad de jsdom, donde `play()`
+    // no está implementado y solo ensucia la salida de los tests.
+    if (typeof video.canPlayType !== 'function' || !video.canPlayType('video/mp4')) return;
+
+    try {
+      const started = video.play();
+      if (started && typeof started.then === 'function') {
+        started.then(() => video.pause()).catch(() => undefined);
+      } else {
+        video.pause();
+      }
+    } catch {
+      // Un navegador que no deja ni intentarlo no debe tumbar el hero.
+    }
+  }
+
+  private primeAll(): void {
+    for (const ref of [this.video, this.descent]) {
+      const video = ref?.nativeElement;
+      if (video) this.prime(video);
+    }
   }
 
   private update(): void {
@@ -145,12 +241,28 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
     const rail = this.rail?.nativeElement;
     if (!rail) return;
 
-    const travel = rail.offsetHeight - window.innerHeight;
-    if (travel <= 0) return;
+    // Alto de referencia: el del ESCENARIO, no `window.innerHeight`. Ver nota 4.
+    // 🛑 Y se lee en cada pasada, no se cachea. Cachearlo y refrescarlo solo en
+    // `resize` deja el valor viejo en cuanto la altura cambia sin ese evento, y
+    // entonces el progreso sale disparado: medido, un alto viejo de ~1020 contra
+    // una pantalla de 664 daba el crecimiento por terminado a un tercio del
+    // recorrido. No cuesta nada: ya se fuerza el cálculo de estilo dos líneas más
+    // abajo con `getBoundingClientRect()`.
+    const vh = this.stage?.nativeElement?.offsetHeight || window.innerHeight;
 
-    const p = Math.min(1, Math.max(0, -rail.getBoundingClientRect().top / travel));
+    // ---------------------------------------------------------- crecimiento
+    // 🛑 Un carril más corto que la pantalla da recorrido negativo. Antes eso
+    // hacía `return` aquí mismo y con ello se apagaba TODO lo de abajo: el
+    // descenso no arrancaba, `step` no pasaba de 0 y el texto del hero se
+    // quedaba encima de la página entera. Pasó en el teléfono, donde el carril
+    // medía 65vh contra 100vh de pantalla (JC, 16-sep-2026). Ahora el tramo sin
+    // recorrido se resuelve a 0 ó 1 y la función sigue.
+    const railTop = rail.getBoundingClientRect().top;
+    const travel = rail.offsetHeight - vh;
+    const p = travel > 0 ? Math.min(1, Math.max(0, -railTop / travel)) : railTop <= 0 ? 1 : 0;
     this.seek(this.video, p);
 
+    // ------------------------------------------------------------- descenso
     // Bajo tierra el escenario es el mismo; lo único que cambia es qué vídeo se
     // ve y que el scroll vuelve a ser el normal: nada se queda atrapado
     // esperando a que termine el clip.
@@ -158,26 +270,18 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
     let below = false;
     if (story) {
       const rect = story.getBoundingClientRect();
-      const run = story.offsetHeight - window.innerHeight;
+      const run = story.offsetHeight - vh;
       // El relevo ocurre cuando el contenido de abajo toca el borde superior,
       // que es exactamente el momento en que el crecimiento ya terminó.
       // 🛑 El descenso arranca cuando el contenido ASOMA, no cuando toca arriba.
       // Midiendo desde `-rect.top` el vídeo se quedaba congelado en su primer
       // fotograma toda la subida del bloque: la planta quieta y un hueco donde
       // no pasaba nada (Yeck, 16-sep-2026).
-      const vh = window.innerHeight;
       below = rect.top < vh * 0.88;
-      if (below !== this.heroOff) {
-        this.zone.run(() => (this.heroOff = below));
-      }
       if (run > 0) {
         const q = Math.min(1, Math.max(0, (vh - rect.top) / (vh + run)));
         this.seek(this.descent, q);
       }
-    }
-
-    if (below !== this.underground) {
-      this.zone.run(() => (this.underground = below));
     }
 
     // El tramo del hero es el último corte que ya hemos pasado.
@@ -188,8 +292,15 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
         break;
       }
     }
-    if (next !== this.step) {
-      this.zone.run(() => (this.step = next));
+
+    // Una sola entrada en la zona para los tres estados: el relevo es un
+    // instante, no tres ciclos de detección de cambios seguidos.
+    if (below !== this.underground || next !== this.step) {
+      this.zone.run(() => {
+        this.underground = below;
+        this.heroOff = below;
+        this.step = next;
+      });
     }
   }
 
@@ -202,6 +313,16 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
 
     // Se deja un pelo antes del final: exactamente en `duration` algunos
     // navegadores devuelven el fotograma en negro del cierre.
-    video.currentTime = Math.min(1, Math.max(0, t)) * (video.duration - 0.05);
+    const target = Math.min(1, Math.max(0, t)) * (video.duration - 0.05);
+
+    // Safari ignora un `currentTime` que llegue con una búsqueda en curso. Se
+    // apunta el último y se atiende en `seeked`.
+    if (video.seeking) {
+      this.queued.set(video, target);
+      return;
+    }
+
+    this.queued.delete(video);
+    video.currentTime = target;
   }
 }
