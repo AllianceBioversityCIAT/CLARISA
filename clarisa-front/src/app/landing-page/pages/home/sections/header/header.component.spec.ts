@@ -1,16 +1,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 
 import { HeaderComponent } from './header.component';
+import { environment } from 'src/environments/environment';
 
 describe('HeaderComponent', () => {
   let component: HeaderComponent;
   let fixture: ComponentFixture<HeaderComponent>;
+  let http: HttpTestingController;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [HeaderComponent]
+      declarations: [HeaderComponent],
+      imports: [HttpClientTestingModule]
     }).compileComponents();
 
+    http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(HeaderComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -47,5 +52,61 @@ describe('HeaderComponent', () => {
     expect(component.underground).toBe(true);
     // Sin recorrido, el crecimiento se da por terminado en vez de por empezar.
     expect(component.step).toBe(2);
+  });
+
+  /**
+   * 🛑 Las seis cifras de la home estuvieron escritas a mano hasta septiembre de
+   * 2026 y envejecieron a la vista de todos: la página decía 32 iniciativas
+   * cuando ya había 43. Estas pruebas fijan que ahora salgan del API.
+   */
+  describe('las cifras vienen del API', () => {
+    const payload = {
+      institutions: 10630,
+      projects: 1210,
+      workPackages: 344,
+      countries: 248,
+      initiatives: 43,
+      controlLists: 41,
+      generatedAt: '2026-09-17T00:00:00.000Z'
+    };
+
+    it('pide api/metrics al arrancar', () => {
+      const req = http.expectOne(`${environment.apiUrl}api/metrics`);
+      expect(req.request.method).toBe('GET');
+      req.flush(payload);
+    });
+
+    it('reparte cada conteo en su indicador y calcula la escala contra el mayor', () => {
+      http.expectOne(`${environment.apiUrl}api/metrics`).flush(payload);
+
+      const porClave = Object.fromEntries(component.indicators.map(i => [i.key, i]));
+
+      expect(porClave['institutions'].value).toBe(10630);
+      expect(porClave['initiatives'].value).toBe(43);
+      expect(porClave['controlLists'].value).toBe(41);
+      // La barra más larga es la del mayor; el resto, proporcional.
+      expect(porClave['institutions'].share).toBe(1);
+      expect(porClave['projects'].share).toBeCloseTo(1210 / 10630, 5);
+      expect(component.metricsState).toBe('ready');
+    });
+
+    /**
+     * 🛑 Lo que NO puede pasar: que un fallo del API devuelva a la página los
+     * números viejos, o un cero. Las etiquetas se quedan —esos catálogos
+     * existen— y el número se queda en blanco.
+     */
+    it('si el API falla no inventa cifras', () => {
+      http.expectOne(`${environment.apiUrl}api/metrics`).error(new ProgressEvent('error'));
+
+      expect(component.metricsState).toBe('unavailable');
+      expect(component.indicators.every(i => i.value === null)).toBe(true);
+      expect(component.indicators.every(i => i.display === null)).toBe(true);
+    });
+
+    it('no pinta nada hasta que llega la respuesta', () => {
+      expect(component.metricsState).toBe('loading');
+      expect(component.indicators.every(i => i.display === null)).toBe(true);
+      http.expectOne(`${environment.apiUrl}api/metrics`).flush(payload);
+    });
   });
 });
