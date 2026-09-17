@@ -54,16 +54,24 @@
     <!--
       El descenso se monta encima y aparece cuando el de arriba ha terminado. Su
       primer fotograma ES el último del otro, así que el relevo no se ve.
+
+      🛑 `preload="none"`, no `auto`: son 5,0 MB que no hacen falta hasta ~600px
+      más abajo, y bajándolos a la vez que los 3,0 MB del de arriba le roban el
+      ancho de banda al único que se está viendo. Lo arranca el componente
+      cuando el de arriba ya está cómodo — ver `primeDescent`.
+
+      Y el relevo pide `descentReady`: sin fotogramas, este vídeo sería un
+      rectángulo negro tapando la planta.
     -->
     <video
       #descent
       class="cl-hero__video cl-hero__video--descent"
-      [class.is-on]="underground"
+      [class.is-on]="underground && descentReady"
       src="assets/video/hero-descent.mp4"
       muted
       playsinline
       webkit-playsinline
-      preload="auto"
+      preload="none"
       aria-hidden="true"></video>
 
     <div class="cl-hero__wash" [class.is-deep]="underground"></div>

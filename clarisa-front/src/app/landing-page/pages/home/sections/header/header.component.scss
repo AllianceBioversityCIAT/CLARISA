@@ -799,10 +799,6 @@
     grid-template-columns: 1fr;
   }
 
-  :host .cl-cards--metrics {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   :host .cl-cards--docs,
   :host .cl-cards--two {
     grid-template-columns: 1fr;
