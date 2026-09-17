@@ -295,12 +295,22 @@ function icontext() {
 // ______________ICON-TEXT JS end
 
 
+// 🛑 Estos dos botones viven dentro de un componente de ruta perezosa
+// (`partner-request`), así que al cargar la página NO existen todavía. Sin la
+// comprobación, `slideLeft.addEventListener` reventaba con
+// «null is not an object» — y como el error corta la ejecución del script,
+// TODO lo que va debajo de esta línea dejaba de registrarse. No era ruido de
+// consola: era media hoja de comportamiento que nunca llegaba a enchufarse.
 let slideLeft = document.querySelector(".slide-left");
 let slideRight = document.querySelector(".slide-right");
-slideLeft.addEventListener("click", () => {
-    slideClick()
-}, true)
-slideRight.addEventListener("click", () => { slideClick() }, true)
+if (slideLeft) {
+    slideLeft.addEventListener("click", () => {
+        slideClick()
+    }, true)
+}
+if (slideRight) {
+    slideRight.addEventListener("click", () => { slideClick() }, true)
+}
 
 // used to remove is-expanded class and remove class on clicking arrow buttons
 function slideClick() {
