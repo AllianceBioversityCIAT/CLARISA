@@ -11,7 +11,7 @@
     "test:coverage": "jest --coverage",
     "update-dependencies": "npx npm-check-updates -u",
     "theme:build": "node scripts/generate-primeng-theme.js",
-    "build:api-reference-css": "tailwindcss -c tailwind.config.js -i src/assets/api-reference/_src/tailwind.input.css -o src/assets/api-reference/tailwind.css --minify"
+    "build:api-reference-css": "npx --yes tailwindcss@3.4.17 -c tailwind.config.js -i src/assets/api-reference/_src/tailwind.input.css -o src/assets/api-reference/tailwind.css --minify"
   },
   "private": true,
   "dependencies": {
@@ -51,7 +51,6 @@
     "jest": "^28.1.3",
     "jest-preset-angular": "^12.2.6",
     "ts-jest": "^28.0.8",
-    "typescript": "~4.7.2",
-    "tailwindcss": "^3.4.17"
+    "typescript": "~4.7.2"
   }
 }
