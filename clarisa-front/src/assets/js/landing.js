@@ -226,7 +226,13 @@
 })(jQuery);
 
 // FOOTER
-document.getElementById("year").innerHTML = new Date().getFullYear();
+// 🛑 Igual que en `plugins/sidemenu/sidemenu.js`: ninguna plantilla pinta un
+// `#year`. Sin la comprobación, este archivo del tema se corta aquí y todo lo
+// que venga debajo deja de registrarse.
+const anioEl = document.getElementById("year");
+if (anioEl) {
+    anioEl.innerHTML = new Date().getFullYear();
+}
 
 window.addEventListener("scroll", reveal);
 

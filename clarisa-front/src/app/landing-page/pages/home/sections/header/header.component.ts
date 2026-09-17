@@ -1,4 +1,6 @@
-import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
+
+import { ClarisaMetrics, MetricsService } from '../../../../../shared/services/metrics.service';
 
 /**
  * Hero cuyos vídeos avanzan con el scroll en lugar de reproducirse solos.
@@ -35,10 +37,11 @@ import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, ViewChild } fr
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss']
 })
-export class HeaderComponent implements AfterViewInit, OnDestroy {
+export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('rail') rail!: ElementRef<HTMLElement>;
   @ViewChild('stage') stage!: ElementRef<HTMLElement>;
   @ViewChild('story') story!: ElementRef<HTMLElement>;
+  @ViewChild('bars') bars!: ElementRef<HTMLElement>;
   @ViewChild('video') video!: ElementRef<HTMLVideoElement>;
   @ViewChild('descent') descent!: ElementRef<HTMLVideoElement>;
 
@@ -86,21 +89,49 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
   readonly endpoints = ['/institutions', '/projects', '/countries', '/workpackages', '/initiatives', '/glossary'];
 
   /**
-   * Los mismos conteos, pero con la escala dentro: `share` es la proporción
-   * contra el mayor, y es lo que dibuja la barra. Sin eso son seis cajas
-   * idénticas que no dicen que hay 250 instituciones por cada lista de control.
+   * Los seis catálogos, con su cifra VIVA.
    *
-   * 🛑 Escrito a mano, como estaba. Sin endpoint de conteo no hay forma de
-   * tenerlo vivo, y eso es trabajo de back.
+   * 🛑 Antes estaban escritas a mano y envejecieron a la vista de todos: decían
+   * 32 iniciativas cuando hay 43, y 7.060 instituciones cuando hay 10.630. Un
+   * producto que ES un API no puede presentarse con números pegados, así que
+   * ahora salen de `GET api/metrics` (ver `MetricsService`).
+   *
+   * `share` es la proporción contra el mayor y es lo que dibuja la barra: sin
+   * eso son seis cajas idénticas que no cuentan que hay ~250 instituciones por
+   * cada lista de control.
+   *
+   * `display` es lo que se pinta, y sube contando desde cero cuando el bloque
+   * asoma. Mientras no haya dato es `null`, y la plantilla enseña el hueco en
+   * vez de inventarse un número.
    */
-  readonly indicators = [
-    { value: 10630, label: 'Institutions', note: 'every organisation the CGIAR reports with' },
-    { value: 1210, label: 'Projects', note: 'bilateral and portfolio' },
-    { value: 344, label: 'Work packages' },
-    { value: 248, label: 'Countries' },
-    { value: 43, label: 'Initiatives' },
-    { value: 41, label: 'Control lists' }
-  ].map((m, i, all) => ({ ...m, share: m.value / all[0].value, display: m.value.toLocaleString('en-US') }));
+  indicators: {
+    key: keyof Omit<ClarisaMetrics, 'generatedAt'>;
+    label: string;
+    note?: string;
+    value: number | null;
+    display: string | null;
+    share: number;
+  }[] = [
+    { key: 'institutions', label: 'Institutions', note: 'every organisation the CGIAR reports with', value: null, display: null, share: 0 },
+    { key: 'projects', label: 'Projects', note: 'bilateral and portfolio', value: null, display: null, share: 0 },
+    { key: 'workPackages', label: 'Work packages', value: null, display: null, share: 0 },
+    { key: 'countries', label: 'Countries', value: null, display: null, share: 0 },
+    { key: 'initiatives', label: 'Initiatives', value: null, display: null, share: 0 },
+    { key: 'controlLists', label: 'Control lists', value: null, display: null, share: 0 }
+  ];
+
+  /**
+   * En qué punto está la petición de las cifras.
+   *
+   * 🛑 `unavailable` NO es un estado de error que haya que disimular: es la
+   * verdad. Si el API no responde se enseñan las seis etiquetas sin número y
+   * una línea que lo dice, porque las etiquetas siguen siendo información
+   * cierta —esos catálogos existen— y un número viejo de reserva sería mentir.
+   */
+  metricsState: 'loading' | 'ready' | 'unavailable' = 'loading';
+
+  /** Se cuenta una sola vez, la primera que el bloque entra en pantalla. */
+  private counted = false;
 
   readonly publications = [
     {
@@ -178,7 +209,91 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
     window.removeEventListener('pointerdown', this.onFirstTouch);
   };
 
-  constructor(private zone: NgZone) {}
+  constructor(
+    private zone: NgZone,
+    private cdr: ChangeDetectorRef,
+    private metrics: MetricsService
+  ) {}
+
+  ngOnInit(): void {
+    // Las cifras se piden ya, aunque el bloque esté tres pantallas más abajo:
+    // así están listas cuando el lector llegue y el contador arranca al
+    // instante en vez de quedarse en cero esperando la red.
+    this.metrics.find().subscribe({
+      next: m => this.applyMetrics(m),
+      error: () => (this.metricsState = 'unavailable')
+    });
+  }
+
+  /** Reparte la respuesta del API entre los seis indicadores. */
+  private applyMetrics(m: ClarisaMetrics): void {
+    const mayor = Math.max(...this.indicators.map(i => m[i.key] ?? 0), 1);
+
+    this.indicators = this.indicators.map(i => ({
+      ...i,
+      value: m[i.key],
+      share: (m[i.key] ?? 0) / mayor
+    }));
+
+    this.metricsState = 'ready';
+
+    // Si el bloque ya está a la vista cuando llega el dato, se cuenta ahora.
+    if (this.barsVisible()) this.countUp();
+  }
+
+  /** ¿El bloque de cifras está dentro de la pantalla? */
+  private barsVisible(): boolean {
+    const bars = this.bars?.nativeElement;
+    if (!bars) return false;
+    const rect = bars.getBoundingClientRect();
+    return rect.top < window.innerHeight && rect.bottom > 0;
+  }
+
+  /**
+   * Sube las seis cifras desde cero.
+   *
+   * No es adorno: una cifra que aparece ya escrita se lee como un número pegado,
+   * que es justo lo que esto vino a sustituir. Verla contar dice «esto lo
+   * acabamos de preguntar».
+   *
+   * 🛑 Corre FUERA de la zona de Angular y refresca solo esta vista con
+   * `detectChanges()`. Sesenta ciclos de detección sobre la home entera para
+   * animar un número sería exactamente el tipo de cosa que hace que una página
+   * se sienta pesada.
+   */
+  private countUp(): void {
+    if (this.counted || this.metricsState !== 'ready') return;
+    this.counted = true;
+
+    const destino = this.indicators.map(i => i.value ?? 0);
+
+    if (this.reduceMotion) {
+      this.escribir(destino);
+      return;
+    }
+
+    const DURACION = 950;
+    const inicio = performance.now();
+
+    this.zone.runOutsideAngular(() => {
+      const paso = (ahora: number) => {
+        const t = Math.min(1, (ahora - inicio) / DURACION);
+        // Desacelera al final: los últimos dígitos se leen, no se adivinan.
+        const suave = 1 - Math.pow(1 - t, 3);
+        this.escribir(destino.map(v => Math.round(v * suave)));
+        this.cdr.detectChanges();
+        if (t < 1) requestAnimationFrame(paso);
+      };
+      requestAnimationFrame(paso);
+    });
+  }
+
+  private escribir(valores: number[]): void {
+    this.indicators = this.indicators.map((i, n) => ({
+      ...i,
+      display: valores[n].toLocaleString('en-US')
+    }));
+  }
 
   ngAfterViewInit(): void {
     // Con `reduce`, el escenario no se fija y el carril desaparece: se dejan los
@@ -332,6 +447,12 @@ export class HeaderComponent implements AfterViewInit, OnDestroy {
         const q = Math.min(1, Math.max(0, (vh - rect.top) / (vh + run)));
         this.seek(this.descent, q);
       }
+    }
+
+    // Las cifras empiezan a contar cuando su bloque asoma, no al cargar: si
+    // contaran tres pantallas más arriba, nadie las vería moverse.
+    if (!this.counted && this.barsVisible()) {
+      this.zone.run(() => this.countUp());
     }
 
     // El tramo del hero es el último corte que ya hemos pasado.

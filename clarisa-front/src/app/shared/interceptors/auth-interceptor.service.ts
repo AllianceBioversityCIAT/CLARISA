@@ -2,7 +2,7 @@ import { HttpErrorResponse, HttpEvent, HttpHandler, HttpHeaders, HttpInterceptor
 import { Injectable } from '@angular/core';
 import { Observable, catchError, throwError } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { AuthService } from '../services/auth.service';
+import { AuthService, SESSION_EXPIRED } from '../services/auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -26,7 +26,7 @@ export class GeneralInterceptorService implements HttpInterceptor {
     return next.handle(reqClone).pipe(
       catchError((error: HttpErrorResponse) => {
         if (this.isExpiredSession(req, error)) {
-          this.authService.logout();
+          this.authService.logout(SESSION_EXPIRED);
         }
         return throwError(() => error);
       })

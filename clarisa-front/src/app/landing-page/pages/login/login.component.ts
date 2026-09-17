@@ -1,9 +1,9 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Validators, FormControl, FormGroup } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { AuthService } from 'src/app/shared/services/auth.service';
+import { AuthService, SESSION_EXPIRED } from 'src/app/shared/services/auth.service';
 import { UserAuth } from '../../../shared/interfaces/user-auth';
 
 @Component({
@@ -45,9 +45,24 @@ export class LoginComponent implements OnInit, OnDestroy {
   private rotator?: ReturnType<typeof setInterval>;
   private typing?: Subscription;
 
+  /**
+   * Si a esta pantalla se llegó porque la sesión venció.
+   *
+   * 🛑 Era el agujero: al caducar el token, el guard y el interceptor sacaban a
+   * la persona a `landing-page/login` **sin una palabra**, a media tarea y con
+   * el formulario vacío. Eso no se lee como «se acabó el tiempo», se lee como
+   * «me han echado» — o peor, como que la aplicación se rompió.
+   *
+   * Solo se enciende con el motivo explícito (`?reason=session-expired`): quien
+   * entra por su pie, o quien pulsa «Sign out», no ha perdido ninguna sesión y
+   * no tiene por qué leer un aviso de algo que no le ha pasado.
+   */
+  sessionExpired = false;
+
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     this.authService.inLogin = true;
     if (!!this.authService.localStorageUser) {
@@ -72,6 +87,11 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   displayConfirm = false;
   ngOnInit() {
+    // El motivo viaja en la URL y no en un servicio: la navegación que saca a la
+    // persona destruye el componente que hubiera guardado el dato, y un F5 en la
+    // pantalla de entrada volvería a dejarla sin explicación.
+    this.sessionExpired = this.route.snapshot.queryParamMap.get('reason') === SESSION_EXPIRED;
+
     this.loginForm = new FormGroup({
       login: new FormControl('', Validators.required),
       password: new FormControl('', Validators.required)
@@ -104,6 +124,9 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     this.signingIn = true;
     this.menssageValidate = '';
+    // Ya se está volviendo a entrar: el aviso de la sesión anterior deja de ser
+    // la noticia, y la respuesta de este intento ocupa su sitio.
+    this.sessionExpired = false;
 
     this.authService.userAuth(authData).subscribe({
       next: resp => {

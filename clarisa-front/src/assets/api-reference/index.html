@@ -6,31 +6,30 @@
   <title>CLARISA · API Documentation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            leaf: {
-              50: '#f7fbe9', 100: '#ebf4d9', 200: '#d8eaae', 300: '#bcdb78',
-              400: '#a0c94a', 500: '#7ab800', 600: '#669a00', 700: '#4e7600',
-              800: '#405e06', 900: '#37500a',
-            },
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
-          },
-          boxShadow: {
-            card: '0 1px 2px rgba(7,39,74,.06), 0 4px 16px rgba(7,39,74,.07)',
-            pop: '0 8px 30px rgba(7,39,74,.14)',
-          },
-        },
-      },
-    };
-  </script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <!--
+    🛑 Tailwind COMPILADO, no el CDN de desarrollo.
+
+    Aquí había una etiqueta `<script>` apuntando al CDN de Tailwind, con la
+    configuración del tema escrita en línea justo debajo. Tres cosas estaban
+    mal: el propio Tailwind documenta ese CDN como solo para desarrollo, la URL
+    no fijaba versión —cualquier cambio suyo llegaba a producción sin que nadie
+    lo aprobara— y las clases se compilaban en el navegador de cada visitante.
+
+    Ahora es una hoja estática de ~20 KB generada aquí con las clases que ESTA
+    página usa de verdad. Se regenera con `npm run build:api-reference-css`; el
+    tema (paleta `leaf`, tipografías, sombras) vive en `tailwind.config.js` en
+    la raíz del front.
+  -->
+  <link rel="stylesheet" href="tailwind.css" />
+  <!--
+    Versión fijada + SRI: si el archivo del CDN cambiara un solo byte, el
+    navegador se niega a ejecutarlo en vez de correr algo que nadie revisó.
+  -->
+  <script
+    src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"
+    integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"></script>
   <style>
     ::-webkit-scrollbar { width: 9px; height: 9px; }
     ::-webkit-scrollbar-track { background: transparent; }

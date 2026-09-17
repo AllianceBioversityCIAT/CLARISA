@@ -1,10 +1,13 @@
-(function($) {
-    "use strict";
+(function ($) {
+  'use strict';
 
-    const ps11 = new PerfectScrollbar('.sidebar-right', {
-        useBothWheelAxes: true,
-        suppressScrollX: true,
-    });
+  // 🛑 Misma guarda que en `pscroll.js`: `.sidebar-right` no existe en el panel
+  // desde el revamp, y sin comprobarlo PerfectScrollbar tira un error en cada
+  // carga. Ver la nota larga en ese archivo.
+  if (!document.querySelector('.sidebar-right')) return;
 
-
+  new PerfectScrollbar('.sidebar-right', {
+    useBothWheelAxes: true,
+    suppressScrollX: true,
+  });
 })(jQuery);
