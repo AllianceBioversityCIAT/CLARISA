@@ -494,3 +494,15 @@
     min-width: 0;
   }
 }
+
+/* En teléfono el botón de ver la contraseña sube de 36 a 44px. Es un control,
+   no un adorno del campo, y está en la pantalla que todo el mundo toca primero;
+   36px se falla con el pulgar y el intento fallido cae dentro del campo, que
+   abre el teclado. El icono no crece: crece el área que lo acierta. */
+@media (max-width: 720px) {
+  :host .field__toggle {
+    width: 44px;
+    height: 44px;
+    right: 4px;
+  }
+}
