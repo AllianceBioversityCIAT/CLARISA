@@ -540,6 +540,20 @@
       content: none;
     }
 
+    /* …y si además está vacía, desaparece. En una tabla la celda del desplegable
+       de versiones ocupa una columna de 40px que en la mayoría de las filas no
+       lleva nada; convertida en ficha, esa nada pasaba a ser una franja muerta
+       de ~50px ARRIBA de cada tarjeta, antes del término. Multiplicado por los
+       305 conceptos del glosario, media pantalla de aire. */
+    /* 🛑 `:empty` NO vale: el `*ngIf` de Angular deja su comentario ancla y los
+       saltos de línea del template dentro del `<td>`, así que la celda nunca
+       está «vacía» para el selector. Lo que sí distingue es no tener ningún
+       elemento hijo: la celda de acciones siempre lleva botones, la del
+       desplegable no lleva nada cuando el término tiene una sola versión. */
+    .p-datatable-tbody > tr > td:not([data-label]):not(:has(*)) {
+      display: none;
+    }
+
     /* Los botones de acción de la ficha —editar, desactivar, ver versiones—
        venían con el alto compacto de una celda de tabla (28–32px). En una
        pantalla táctil ese alto se falla con el pulgar, y aquí ya no hay razón
