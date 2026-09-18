@@ -434,52 +434,117 @@
       min-width: 0;
     }
 
-    /* ---- el encabezado, convertido en riel de orden ---------------------- */
+    /* ---- el encabezado, convertido en BARRA DE ORDEN ----------------------
+
+       🛑 No bastaba con que el `thead` se desplazara: seguía siendo el
+       encabezado de la tabla —negro, en versalitas— colgado encima de unas
+       tarjetas («sigo viendo el header de la tabla», Yeck, 18-sep-2026). En una
+       lista de fichas el nombre de una columna no significa nada: lo único que
+       hace falta es poder ORDENAR, y en un teléfono eso es un control con
+       nombre propio, no una fila de tabla estirada.
+
+       Se queda el mismo `<th>` —es lo que dispara el orden de PrimeNG— con la
+       piel de un control: la barra se anuncia con «Sort by», cada columna es
+       una pastilla clara y la que manda el orden se enciende en verde. */
 
     .p-datatable-thead {
       display: block;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      margin-bottom: 10px;
-      border-radius: 999px;
-      overflow: hidden;
+      margin-bottom: 12px;
+      border-radius: 0;
+      overflow: visible;
+      position: static;
+      background: transparent;
     }
 
     .p-datatable-thead > tr {
       display: flex;
-      gap: 2px;
+      align-items: center;
+      gap: 6px;
       overflow-x: auto;
-      background: var(--cl-admin-nav);
+      background: transparent;
       scrollbar-width: none;
+      /* Se desvanece al final: una barra cortada a ras se lee como recorte y no
+         como algo que sigue. Misma pista que el riel de pestañas. */
+      -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
+      mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
 
       &::-webkit-scrollbar {
         display: none;
       }
+
+      /* La barra dice para qué sirve. Sin esto son cuatro palabras sueltas
+         sobre la lista y vuelve a leerse como un encabezado de tabla. */
+      &::before {
+        content: 'Sort by';
+        flex: 0 0 auto;
+        padding-right: 2px;
+        color: var(--cl-ink-3);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
     }
 
-    /* Solo viajan al riel las columnas por las que se puede ordenar. Un
+    /* Solo viajan a la barra las columnas por las que se puede ordenar. Un
        encabezado que no ordena —«Actions», un icono— sería una pastilla muerta
        ocupando el sitio de una que sí sirve. */
     .p-datatable-thead > tr > th {
       display: none;
-      flex: 0 0 auto;
-      padding: 10px 14px;
-      border-radius: 0;
     }
 
     .p-datatable-thead > tr > th.p-sortable-column {
       display: inline-flex;
       align-items: center;
+      flex: 0 0 auto;
       /* Alto de dedo: la pastilla es ahora el único modo de ordenar. */
-      min-height: 44px;
+      min-height: 38px;
+      padding: 0 12px;
+      border: 1px solid var(--cl-line);
+      /* Las cuatro esquinas: en escritorio la primera y la última celda de la
+         cabecera redondean solo su lado para seguir la tarjeta, y esa regla
+         dejaba las pastillas con el borde de arriba recto. */
+      border-radius: 999px !important;
+      background: var(--cl-surface);
+      color: var(--cl-ink-2);
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0;
+      /* En versalitas se lee como encabezado de tabla; en caja normal, como la
+         etiqueta de un control. */
+      text-transform: none;
     }
 
-    /* Ninguna columna ordena en esta tabla: entonces el riel no tiene nada que
-       ofrecer y desaparece, en vez de dejar una barra negra vacía. */
+    .p-datatable-thead > tr > th.p-sortable-column:hover {
+      background: var(--cl-surface-2);
+      color: var(--cl-ink);
+    }
+
+    /* La columna que manda el orden se enciende: es el estado del control, no
+       un resalte decorativo. */
+    .p-datatable-thead > tr > th.p-sortable-column.p-highlight,
+    .p-datatable-thead > tr > th.p-sortable-column.p-highlight:hover {
+      border-color: var(--cl-brand-ring);
+      background: var(--cl-brand-soft);
+      color: var(--cl-brand-deeper);
+    }
+
+    /* Sobre fondo claro el icono necesita su propio color: el del tema es para
+       la cabecera carbón del escritorio. */
+    .p-datatable-thead > tr > th.p-sortable-column .p-sortable-column-icon {
+      color: var(--cl-ink-3);
+    }
+
+    .p-datatable-thead > tr > th.p-sortable-column.p-highlight .p-sortable-column-icon {
+      color: var(--cl-brand-strong);
+    }
+
+    /* Ninguna columna ordena en esta tabla: la barra no tiene nada que ofrecer
+       y desaparece entera, «Sort by» incluido. */
     .p-datatable-thead:not(:has(.p-sortable-column)) {
       display: none;
     }
+
 
     /* ---- las filas, convertidas en fichas -------------------------------- */
 
