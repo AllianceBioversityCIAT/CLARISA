@@ -34,14 +34,20 @@
 }
 
 @media (max-width: 900px) {
+  /* Bajo 900px el sidebar es un cajón que se abre encima: no ocupa columna, así
+     que no hay margen que compensar y el contenido usa la pantalla entera.
+     Antes de eso la navegación se metía en el flujo como una fila y había que
+     recorrerla entera para llegar a la pantalla. */
   .admin-shell {
-    flex-direction: column;
+    display: block;
   }
 
-  /* Bajo 900px el sidebar vuelve al flujo como una fila arriba, así que aquí no
-     queda margen que compensar. */
   .admin-shell__content {
     width: 100%;
     margin-left: 0;
+    /* El armazón ya no es flex, así que `min-width: 0` no basta: lo que impide
+       que una tabla ancha estire la página es contener su desbordamiento aquí. */
+    max-width: 100%;
+    overflow-x: hidden;
   }
 }
