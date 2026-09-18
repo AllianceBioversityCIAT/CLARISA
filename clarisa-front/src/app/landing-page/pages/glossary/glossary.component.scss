@@ -589,3 +589,15 @@ button.version-seg:hover:not(.is-active) {
     transition: none;
   }
 }
+
+/* En teléfono la pastilla «Current» sube de 10,5 a 11,5px y crece dos píxeles
+   de alto. A 10,5 era el texto más pequeño de todo el sitio público, y es
+   justamente el que explica cuál de los portafolios está vigente: si se lee con
+   esfuerzo, la tabla entera se lee mal. */
+@media (max-width: 720px) {
+  .version-seg__now {
+    height: 20px;
+    padding: 0 8px;
+    font-size: 11.5px;
+  }
+}
