@@ -487,14 +487,20 @@
       display: block;
     }
 
+    /* Columna flex y no `block`: así la celda que hace de cabecera puede subir
+       al tope de la ficha con `order`, sin tocar el orden del DOM —que es el de
+       la tabla y del que depende el encabezado de cada columna—. */
     .p-datatable-tbody > tr {
-      display: block;
+      display: flex;
+      flex-direction: column;
       margin-bottom: 10px;
-      padding: 4px 2px;
+      /* Sin relleno propio: la cabecera llega a los bordes de la tarjeta. */
+      padding: 0;
       border: 1px solid var(--cl-line);
       border-radius: var(--cl-radius-card);
       background: var(--cl-surface);
       box-shadow: 0 1px 2px rgba(16, 36, 28, 0.05);
+      overflow: hidden;
     }
 
     /* 🛑 La cebra y el resalte pintan el `td`, no el `tr` (`styles.scss`), así
@@ -515,8 +521,39 @@
       text-align: left;
     }
 
-    .p-datatable-tbody > tr > td + td {
-      border-top: 1px solid var(--cl-surface-2);
+    /* ---- la cabecera de la ficha -----------------------------------------
+
+       Una ficha sin cabecera es una lista de pares «etiqueta: valor» donde el
+       dato que la identifica —el término, el nombre de la institución— pesa lo
+       mismo que su fecha de cambio: hay que leerla entera para saber de qué es
+       («toca como cards, pero no mostramos el header», Yeck, 18-sep-2026).
+
+       La celda marcada con `data-card-title` sube al tope, ocupa el ancho, se
+       pinta sobre la superficie de apoyo y NO repite su etiqueta: un título que
+       necesita que le digan «TERM» encima no es un título. */
+    .p-datatable-tbody > tr > td[data-card-title] {
+      order: -1;
+      padding: 12px 14px;
+      background: var(--cl-surface-2);
+      border-bottom: 1px solid var(--cl-line);
+      color: var(--cl-ink);
+      font-size: 15.5px;
+      font-weight: 650;
+      line-height: 1.3;
+
+      &::before {
+        content: none;
+      }
+    }
+
+    /* El separador va abajo y no arriba: con `order` en juego, `td + td` sigue
+       el DOM y habría dibujado la línea en el sitio equivocado. */
+    .p-datatable-tbody > tr > td {
+      border-bottom: 1px solid var(--cl-surface-2);
+    }
+
+    .p-datatable-tbody > tr > td:last-child {
+      border-bottom: 0;
     }
 
     /* El encabezado de la columna, encima del dato y no a su lado: una

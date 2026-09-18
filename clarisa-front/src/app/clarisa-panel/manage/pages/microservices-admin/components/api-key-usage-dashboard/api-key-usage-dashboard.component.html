@@ -177,7 +177,7 @@
     </ng-template>
     <ng-template pTemplate="body" let-row>
       <tr>
-        <td data-label="MIS">
+        <td data-card-title data-label="MIS">
           <span class="cell-primary">{{ row.mis_acronym }}</span>
           <span class="cell-sub">{{ row.mis_name }}</span>
         </td>
@@ -207,7 +207,7 @@
       </ng-template>
       <ng-template pTemplate="body" let-row>
         <tr>
-          <td data-label="MIS">
+          <td data-card-title data-label="MIS">
             <span class="cell-primary">{{ row.mis_acronym }}</span>
             <span class="cell-sub">{{ row.mis_name }}</span>
           </td>
@@ -244,7 +244,7 @@
       </ng-template>
       <ng-template pTemplate="body" let-row>
         <tr [class.is-selected]="filterApiKeyId === row.id" (click)="selectApiKey(row.id)">
-          <td data-label="Key">
+          <td data-card-title data-label="Key">
             <span class="cell-primary">{{ row.name }}</span>
             <code class="key-prefix">{{ row.key_prefix }}…</code>
           </td>
@@ -303,7 +303,7 @@
       </ng-template>
       <ng-template pTemplate="body" let-row>
         <tr>
-          <td data-label="Endpoint"><code>{{ row.label }}</code></td>
+          <td data-card-title data-label="Endpoint"><code>{{ row.label }}</code></td>
           <td data-label="Requests">{{ formatNumber(row.total_requests) }}</td>
           <td data-label="Share">{{ row.percentage }}%</td>
         </tr>
@@ -338,7 +338,7 @@
       <tr>
         <td data-label="Time">{{ formatDate(row.created_at) }}</td>
         <td data-label="MIS">{{ row.mis_acronym || '—' }}</td>
-        <td data-label="Key"><code>{{ row.key_prefix }}…</code></td>
+        <td data-card-title data-label="Key"><code>{{ row.key_prefix }}…</code></td>
         <td data-label="Microservice">{{ row.microservice_name }}</td>
         <td data-label="Endpoint"><code>{{ row.endpoint_accessed }}</code></td>
         <td data-label="Status">{{ row.status_code ?? '—' }}</td>

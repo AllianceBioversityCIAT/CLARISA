@@ -51,7 +51,7 @@
     <ng-template pTemplate="body" let-mis>
       <tr>
         <td data-label="Acronym"><code class="key-prefix">{{ mis.acronym }}</code></td>
-        <td data-label="Name"><span class="cell-primary">{{ mis.name }}</span></td>
+        <td data-card-title data-label="Name"><span class="cell-primary">{{ mis.name }}</span></td>
         <td data-label="Environment">
           <span *ngIf="mis.environment; else noEnv">
             {{ mis.environment }}

@@ -54,7 +54,7 @@
     </ng-template>
     <ng-template pTemplate="body" let-key>
       <tr>
-        <td data-label="Name"><span class="cell-primary">{{ key.name }}</span></td>
+        <td data-card-title data-label="Name"><span class="cell-primary">{{ key.name }}</span></td>
         <td data-label="Prefix"><code class="key-prefix">{{ key.key_prefix }}…</code></td>
         <td data-label="MIS">{{ key.mis_acronym || '—' }}</td>
         <td data-label="Env">{{ key.environment || '—' }}</td>
