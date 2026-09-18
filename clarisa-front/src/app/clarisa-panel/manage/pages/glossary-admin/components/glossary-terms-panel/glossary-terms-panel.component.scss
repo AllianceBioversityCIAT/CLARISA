@@ -299,3 +299,26 @@
     color: #475569;
   }
 }
+
+/* 🛑 La columna «Definition» medía CERO píxeles —en teléfono, en tableta y en
+   escritorio— y su encabezado se pintaba encima del de «Source»: se leía
+   «DOEFUINRCIETION». No es un defecto de tamaño de pantalla, es aritmética: con
+   `table-layout: fixed` los siete anchos declarados en los `th` suman 948px, y
+   el mínimo que pone `_admin-table.scss` es 880, así que la tabla se queda en
+   948 y la única columna SIN ancho —justo la que lleva el texto principal— se
+   queda con lo que sobra, que es nada.
+
+   Con un mínimo de 1180 la definición recibe los ~230px que le faltaban y la
+   tarjeta se desplaza de lado, que es lo que hace cualquier tabla ancha.
+   Medido: 948 declarados + 232 para la definición. */
+:host ::ng-deep .admin-table .p-datatable-table {
+  min-width: 1180px;
+}
+
+/* En teléfono manda el modo ficha de `_admin-table.scss`: no hay tabla que
+   ensanchar y este mínimo dejaría la pantalla deslizándose de lado en vano. */
+@media (max-width: 720px) {
+  :host ::ng-deep .admin-table .p-datatable-table {
+    min-width: 0;
+  }
+}

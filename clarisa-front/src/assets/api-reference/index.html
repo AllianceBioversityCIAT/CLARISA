@@ -77,10 +77,24 @@
       }
       .doc-navbar { display: flex; }
       .doc-scrim.is-open { display: block; }
-      /* La tabla de datos sigue siendo ancha: se desplaza dentro de su tarjeta
-         en vez de estirar la página. */
-      .doc-main table { min-width: 640px; }
-      .doc-main .doc-table-scroll { overflow-x: auto; }
+      /* 🛑 El mínimo es SOLO para la tabla de datos (`table.data`), que es la
+         única que vive dentro de un contenedor con `overflow: auto` y por tanto
+         la única que puede deslizarse. Aplicado a todas las tablas —como estuvo
+         un rato— las dos de la pestaña Doc (parámetros y campos) quedaban
+         recortadas a 356px de 640 por un ancestro con `overflow: hidden`: media
+         tabla inalcanzable, cuando antes eran `w-full` y cabían solas. */
+      .doc-main table.data { min-width: 640px; }
+
+      /* Las tablas de la pestaña Doc —parámetros y campos— viven dentro de una
+         tarjeta que usa `overflow-hidden` para redondearles las esquinas. Con
+         356px de ancho útil eso recorta 94px de la tabla de parámetros y no hay
+         forma de alcanzarlos. En teléfono la tarjeta deja deslizar: se pierde
+         el redondeo de la esquina de la tabla y se gana la columna que faltaba.
+         (Antes de este bloque la página entera desbordaba y de esa tabla se
+         veían 36px de 422.) */
+      .doc-main div.overflow-hidden:has(> table) {
+        overflow-x: auto;
+      }
     }
     @media (prefers-reduced-motion: reduce) {
       .doc-aside { transition: none; }
