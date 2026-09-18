@@ -100,3 +100,68 @@
     color: #7ab800;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Teléfono — la columna pasa a ser una fila de secciones
+
+   Son tres secciones, no un menú: en horizontal caben, se ven todas a la vez y
+   dejan la pantalla entera al contenido. La columna de 260px fijos que había
+   aquí se comía dos tercios del ancho de un teléfono.
+   --------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .admin-sidebar {
+    width: auto;
+    border-right: 0;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem 1rem 0.75rem;
+  }
+
+  /* El rótulo se queda con el nombre de la pantalla; la explicación larga es
+     para quien tiene sitio para leerla al lado del contenido, no encima. */
+  .admin-sidebar__brand {
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.9rem;
+  }
+
+  .admin-sidebar__subtitle {
+    display: none;
+  }
+
+  .admin-sidebar__nav {
+    flex-direction: row;
+    gap: 0.4rem;
+    /* Si una etiqueta crece, la fila se desliza en vez de partirse. */
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .admin-sidebar__link {
+    flex: 0 0 auto;
+    /* La regla base declara `width: 100%`, que en una fila deja a la primera
+       pastilla ocupando el riel entero y a las otras dos fuera de la pantalla. */
+    width: auto;
+    /* Alto de dedo. */
+    min-height: 44px;
+    justify-content: center;
+    padding: 0.5rem 0.9rem;
+    border-color: #e2e8f0;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  /* La pista de cada sección sobra en una pastilla: es la segunda línea de un
+     control que ahora se lee de un vistazo. */
+  .admin-sidebar__link-hint {
+    display: none;
+  }
+
+  .admin-sidebar__footer {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+  }
+}
