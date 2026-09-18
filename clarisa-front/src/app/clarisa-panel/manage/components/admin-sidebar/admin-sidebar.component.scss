@@ -473,12 +473,10 @@
     // /* 86vw con tope: deja ver un borde del contenido detrás, que es lo que
     // dice «esto está encima, no es otra página».
     width: min(86vw, 320px);
-    max-width: 320px;
     transform: translateX(-100%);
     transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
     // /* Por encima del velo, que va en 40.
     z-index: 41;
-    box-shadow: none;
 
     &.is-open {
       transform: translateX(0);
@@ -574,26 +572,30 @@
     cursor: pointer;
   }
 
-  // La marca del cajón ya no duplica a la de la barra: dentro basta con el
-  // nombre, y el hueco lo gana la navegación.
-  .admin-sidebar__brand {
-    height: var(--cl-admin-header);
-  }
-
-  // Dentro del cajón la lista sigue siendo una lista, una entrada por línea:
-  // el envoltorio en fila que había antes existía para ahorrar alto en una
-  // columna que estaba en el flujo, y aquí ya no lo está.
-  .admin-sidebar__nav {
-    overflow-y: auto;
-    padding: 4px 4px 12px;
-  }
-
-  // Alto de dedo también en el menú: las entradas eran de 32px.
-  .admin-sidebar__list a {
+  // Alto de dedo en lo que se toca para ir a algún sitio: las entradas medían
+  // 34px y la vuelta al sitio 30.
+  .admin-sidebar__list a,
+  .admin-sidebar__back {
     min-height: 44px;
   }
 
+  // El encabezado de grupo no es un destino, solo pliega: 36px se acierta con
+  // el pulgar y no se lleva el sitio de una entrada.
+  .admin-sidebar__title {
+    min-height: 36px;
+  }
+
+  // 🛑 El buscador se va. Filtra seis entradas que aquí caben todas a la vez,
+  // y anuncia un atajo —⌘K / Ctrl+K— que en un teléfono no existe: una tecla
+  // dibujada que nadie puede pulsar. Los ~50px que ocupaba son los que hacían
+  // que la última entrada, «Microservices & API keys», quedara bajo el pliegue.
+  .admin-sidebar__search {
+    display: none;
+  }
+
+  // El hueco de 68px del pie lo reservaba el botón de chat, que en teléfono se
+  // fue al lado derecho.
   .admin-sidebar__foot {
-    margin: 0 12px 16px;
+    margin-bottom: 16px;
   }
 }
