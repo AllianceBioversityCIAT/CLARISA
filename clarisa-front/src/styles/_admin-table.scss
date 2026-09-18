@@ -540,6 +540,16 @@
       content: none;
     }
 
+    /* Los botones de acción de la ficha —editar, desactivar, ver versiones—
+       venían con el alto compacto de una celda de tabla (28–32px). En una
+       pantalla táctil ese alto se falla con el pulgar, y aquí ya no hay razón
+       para apretarlos: la ficha tiene el alto que necesite. */
+    .p-datatable-tbody .row-actions .p-button,
+    .p-datatable-tbody > tr > td .p-button.p-button-icon-only {
+      min-width: 40px;
+      min-height: 40px;
+    }
+
     /* Recortar a dos líneas tenía sentido en una celda de ancho fijo; en una
        ficha el texto es el contenido y cabe entero. */
     .cell-clamp,

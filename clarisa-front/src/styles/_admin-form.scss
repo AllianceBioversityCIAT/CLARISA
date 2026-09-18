@@ -351,3 +351,48 @@
     gap: 10px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Teléfono — el diálogo cabe en la pantalla
+
+   Ninguno de los catorce diálogos del panel declara `[breakpoints]`, y todos
+   traen un ancho fijo entre 32rem y 52rem (512–832px), más un `50vw` heredado.
+   En un teléfono de 390px eso es un formulario que se sale por los dos lados:
+   el título se corta y los botones de guardar quedan fuera.
+
+   Se resuelve aquí y no diálogo por diálogo porque es una decisión del sistema
+   —un diálogo nuevo nace con el mismo problema— y porque `[breakpoints]` de
+   PrimeNG genera una hoja por componente para lo mismo.
+
+   🛑 `!important` es obligatorio: PrimeNG escribe el ancho del `[style]` como
+   atributo en línea, y nada que venga de una hoja le gana sin él.
+   --------------------------------------------------------------------------- */
+@media (max-width: 720px) {
+  .p-dialog {
+    width: 94vw !important;
+    max-width: 94vw !important;
+    /* Con el teclado abierto el alto útil se parte por la mitad: el contenido
+       se desplaza dentro del diálogo en vez de empujar los botones fuera. */
+    max-height: 88vh;
+    margin: 0;
+
+    .p-dialog-content {
+      max-height: 68vh;
+      overflow-y: auto;
+    }
+
+    /* Los botones reparten el ancho y ganan alto de dedo. No se apilan: en
+       varios diálogos el pie envuelve sus botones en un `div` propio, así que
+       una columna en el pie deja ese `div` estirado y los botones dentro
+       siguen en fila — la mitad de las pantallas quedaría a medio arreglar. */
+    .p-dialog-footer {
+      flex-wrap: wrap;
+
+      .p-button {
+        flex: 1 1 auto;
+        justify-content: center;
+        min-height: 44px;
+      }
+    }
+  }
+}
