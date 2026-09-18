@@ -392,3 +392,179 @@
     }
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Teléfono — la tabla se lee como fichas, no por una rendija
+
+   Una tabla de 880px dentro de una tarjeta de 350px se desplaza de lado, sí,
+   pero lo que se ve es un tercio de una fila sin su encabezado: hay que
+   arrastrar a ciegas y recordar qué columna era cada cosa. Medido en
+   clarisatest sobre un iPhone 13 (390px): el glosario dejaba 346px útiles de
+   920, el ciclo de vida 322 de 1040 y microservicios **54** de 880.
+
+   Bajo 720px cada fila pasa a ser una ficha y cada celda dice su propio
+   encabezado, que sale del atributo `data-label` del `<td>`. Una celda sin
+   `data-label` simplemente se pinta sin título: la tabla no se rompe, solo se
+   lee peor, así que al añadir una columna hay que añadirle su etiqueta.
+
+   🛑 El encabezado NO se esconde: las columnas ordenables siguen a la vista
+   como un riel de pastillas sobre las fichas. Esconderlo habría devuelto a cero
+   el trabajo de ordenar las tablas del panel (CLR-57, pedido de Héctor) justo
+   en la pantalla donde menos se puede compensar a mano.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  .admin-table.p-datatable {
+    /* El marco pasa a cada ficha: una tarjeta alrededor de una pila de tarjetas
+       son dos bordes diciendo lo mismo. */
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+
+    .p-datatable-wrapper {
+      /* Ya no hay nada más ancho que la pantalla que desplazar. */
+      overflow-x: visible;
+    }
+
+    .p-datatable-table {
+      display: block;
+      /* Sin `table-layout: fixed` ni el mínimo de 880: los anchos por columna
+         no significan nada cuando cada celda ocupa su propia línea. */
+      table-layout: auto;
+      min-width: 0;
+    }
+
+    /* ---- el encabezado, convertido en riel de orden ---------------------- */
+
+    .p-datatable-thead {
+      display: block;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      margin-bottom: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .p-datatable-thead > tr {
+      display: flex;
+      gap: 2px;
+      overflow-x: auto;
+      background: var(--cl-admin-nav);
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    /* Solo viajan al riel las columnas por las que se puede ordenar. Un
+       encabezado que no ordena —«Actions», un icono— sería una pastilla muerta
+       ocupando el sitio de una que sí sirve. */
+    .p-datatable-thead > tr > th {
+      display: none;
+      flex: 0 0 auto;
+      padding: 10px 14px;
+      border-radius: 0;
+    }
+
+    .p-datatable-thead > tr > th.p-sortable-column {
+      display: inline-flex;
+      align-items: center;
+      /* Alto de dedo: la pastilla es ahora el único modo de ordenar. */
+      min-height: 44px;
+    }
+
+    /* Ninguna columna ordena en esta tabla: entonces el riel no tiene nada que
+       ofrecer y desaparece, en vez de dejar una barra negra vacía. */
+    .p-datatable-thead:not(:has(.p-sortable-column)) {
+      display: none;
+    }
+
+    /* ---- las filas, convertidas en fichas -------------------------------- */
+
+    .p-datatable-tbody {
+      display: block;
+    }
+
+    .p-datatable-tbody > tr {
+      display: block;
+      margin-bottom: 10px;
+      padding: 4px 2px;
+      border: 1px solid var(--cl-line);
+      border-radius: var(--cl-radius-card);
+      background: var(--cl-surface);
+      box-shadow: 0 1px 2px rgba(16, 36, 28, 0.05);
+    }
+
+    /* 🛑 La cebra y el resalte pintan el `td`, no el `tr` (`styles.scss`), así
+       que hay que apagarlos ahí. Dos fichas seguidas de distinto color se leen
+       como dos estados distintos, y en una pantalla táctil el `:hover` se queda
+       pegado a la última fila tocada: la ficha se quedaba verde sin que nada la
+       hubiera seleccionado. */
+    .p-datatable-tbody > tr:nth-child(even) > td,
+    .p-datatable-tbody > tr:hover > td {
+      background: transparent;
+    }
+
+    .p-datatable-tbody > tr > td {
+      display: block;
+      width: auto !important;
+      padding: 9px 14px;
+      border: 0;
+      text-align: left;
+    }
+
+    .p-datatable-tbody > tr > td + td {
+      border-top: 1px solid var(--cl-surface-2);
+    }
+
+    /* El encabezado de la columna, encima del dato y no a su lado: una
+       definición de tres líneas alineada a la derecha contra su etiqueta se lee
+       peor que el mismo texto en bloque, y aquí las celdas largas son la norma
+       (definiciones, nombres de institución, listas de portafolios). */
+    .p-datatable-tbody > tr > td::before {
+      content: attr(data-label);
+      display: block;
+      margin-bottom: 3px;
+      color: var(--cl-ink-3);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* Una celda sin etiqueta —la de acciones, la del desplegable de versiones—
+       no estrena título: se pinta tal cual. */
+    .p-datatable-tbody > tr > td:not([data-label])::before {
+      content: none;
+    }
+
+    /* Recortar a dos líneas tenía sentido en una celda de ancho fijo; en una
+       ficha el texto es el contenido y cabe entero. */
+    .cell-clamp,
+    .cell-ellipsis {
+      display: block;
+      overflow: visible;
+      white-space: normal;
+      text-overflow: clip;
+      -webkit-line-clamp: none;
+      word-break: break-word;
+    }
+
+    /* La fila de «no hay nada» no es una ficha de datos. */
+    .p-datatable-tbody > tr.admin-table__empty-row,
+    .p-datatable-tbody > tr:has(> td[colspan]) {
+      border-style: dashed;
+
+      > td {
+        display: block;
+        text-align: center;
+
+        &::before {
+          content: none;
+        }
+      }
+    }
+  }
+}

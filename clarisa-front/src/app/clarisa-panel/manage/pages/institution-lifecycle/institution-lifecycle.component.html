@@ -92,21 +92,21 @@
 
         <ng-template pTemplate="body" let-inst>
           <tr>
-            <td class="cell-num">{{ inst.code }}</td>
-            <td>
+            <td data-label="Code" class="cell-num">{{ inst.code }}</td>
+            <td data-label="Name">
               <span class="cell-primary">{{ inst.name }}</span>
               <span class="cell-meta" *ngIf="inst.previousNames?.length">
                 formerly {{ inst.previousNames.join(', ') }}
               </span>
             </td>
-            <td>
+            <td data-label="Acronym">
               {{ inst.acronym || '—' }}
               <span class="cell-meta" *ngIf="inst.previousAcronyms?.length">
                 was {{ inst.previousAcronyms.join(', ') }}
               </span>
             </td>
-            <td>{{ inst.typeName || '—' }}</td>
-            <td>
+            <td data-label="Type">{{ inst.typeName || '—' }}</td>
+            <td data-label="End date">
               <!-- An end date in the future is an announced retirement, not a
                    retirement: the institution is still usable until that day. -->
               <ng-container [ngSwitch]="inst.validityStatus">
@@ -123,13 +123,13 @@
             <!-- The two ends of the relation, each in its own column: one cell
                  saying "SMO (SUCCESSOR)" on both rows is what made the table
                  unable to tell which institution came first. -->
-            <td>
+            <td data-label="Replaced by">
               <span class="lineage-cell" *ngIf="inst.replacedBy?.length; else noReplacedBy" [pTooltip]="lineageTooltip(inst.replacedBy)" tooltipPosition="top">
                 {{ lineageLabel(inst.replacedBy, 'successor') }}
               </span>
               <ng-template #noReplacedBy><span class="cell-muted">—</span></ng-template>
             </td>
-            <td>
+            <td data-label="Replaces">
               <span class="lineage-cell" *ngIf="inst.replaces?.length; else noReplaces" [pTooltip]="lineageTooltip(inst.replaces)" tooltipPosition="top">
                 {{ lineageLabel(inst.replaces, 'predecessor') }}
               </span>

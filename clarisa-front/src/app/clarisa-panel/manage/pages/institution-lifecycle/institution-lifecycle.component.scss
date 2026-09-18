@@ -22,6 +22,15 @@
   min-width: 1040px;
 }
 
+/* En teléfono no hay tabla que ensanchar: `_admin-table.scss` convierte cada
+   fila en una ficha, y este mínimo —declarado aquí, así que gana al global—
+   dejaba la pantalla desplazándose 650px de lado con las fichas ya apiladas. */
+@media (max-width: 720px) {
+  :host ::ng-deep .admin-table .p-datatable-table {
+    min-width: 0;
+  }
+}
+
 // El encabezado, el buscador y el recuento salen de global (`_admin-page`,
 // `_admin-table`): aquí solo queda lo que es de esta pantalla.
 //

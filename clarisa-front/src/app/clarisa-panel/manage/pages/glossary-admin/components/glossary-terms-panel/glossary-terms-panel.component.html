@@ -103,7 +103,7 @@
             class="p-button-text p-button-sm p-button-plain"
             [pTooltip]="expanded ? 'Hide the other definitions' : 'Show the definition of each portfolio'"></button>
         </td>
-        <td class="cell-primary">
+        <td data-label="Term" class="cell-primary">
           {{ concept.current.term }}
           <span
             class="version-badge"
@@ -112,17 +112,17 @@
             >{{ concept.versions.length }} versions</span
           >
         </td>
-        <td class="cell-definition">
+        <td data-label="Definition" class="cell-definition">
           <span class="cell-definition__text" [title]="concept.current.definition">{{ concept.current.definition }}</span>
         </td>
-        <td class="cell-source">
+        <td data-label="Source" class="cell-source">
           <span class="cell-source__text" *ngIf="concept.current.source; else noSource" [pTooltip]="concept.current.source">{{
             concept.current.source
           }}</span>
           <ng-template #noSource><span class="cell-source__empty">Not documented</span></ng-template>
           <span class="cell-source__date" *ngIf="concept.current.reference_date">{{ concept.current.reference_date }}</span>
         </td>
-        <td>
+        <td data-label="Portfolios">
           <span class="portfolio-chips" *ngIf="concept.portfolios?.length; else noPortfolios">
             <span class="portfolio-chip" *ngFor="let portfolio of concept.portfolios" [pTooltip]="portfolio.name">
               {{ portfolioLabel(portfolio) }}
@@ -136,13 +136,13 @@
             </span>
           </ng-template>
         </td>
-        <td>
+        <td data-label="Status">
           <p-tag
             [value]="concept.current.is_active ? 'Active' : 'Inactive'"
             [severity]="concept.current.is_active ? 'success' : 'danger'"
             [pTooltip]="statusHelp"></p-tag>
         </td>
-        <td class="cell-source">
+        <td data-label="Last change" class="cell-source">
           <ng-container *ngTemplateOutlet="lastChange; context: { $implicit: concept.current }"></ng-container>
         </td>
         <td>
@@ -177,17 +177,17 @@
     <ng-template pTemplate="rowexpansion" let-concept>
       <tr class="version-row" *ngFor="let version of concept.versions" [class.row-inactive]="!version.is_active">
         <td></td>
-        <td class="cell-primary version-row__term">
+        <td data-label="Term" class="cell-primary version-row__term">
           <span class="version-row__id">#{{ version.id }}</span> {{ version.term }}
         </td>
-        <td class="cell-definition">
+        <td data-label="Definition" class="cell-definition">
           <span class="cell-definition__text" [title]="version.definition">{{ version.definition }}</span>
         </td>
-        <td class="cell-source">
+        <td data-label="Source" class="cell-source">
           <span class="cell-source__text" *ngIf="version.source; else noVersionSource">{{ version.source }}</span>
           <ng-template #noVersionSource><span class="cell-source__empty">Not documented</span></ng-template>
         </td>
-        <td>
+        <td data-label="Portfolios">
           <span class="portfolio-chips" *ngIf="version.portfolios?.length; else noVersionPortfolio">
             <span class="portfolio-chip" *ngFor="let portfolio of version.portfolios">{{ portfolioLabel(portfolio) }}</span>
           </span>
@@ -195,13 +195,13 @@
             <span class="portfolio-unlinked"><i class="pi pi-exclamation-triangle"></i> No portfolio</span>
           </ng-template>
         </td>
-        <td>
+        <td data-label="Status">
           <p-tag
             [value]="version.is_active ? 'Active' : 'Inactive'"
             [severity]="version.is_active ? 'success' : 'danger'"
             [pTooltip]="statusHelp"></p-tag>
         </td>
-        <td class="cell-source">
+        <td data-label="Last change" class="cell-source">
           <ng-container *ngTemplateOutlet="lastChange; context: { $implicit: version }"></ng-container>
         </td>
         <td>
