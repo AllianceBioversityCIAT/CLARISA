@@ -253,8 +253,8 @@
       </thead>
       <tbody>
         <tr *ngFor="let row of mappingPreviewRows">
-          <td class="cell-primary">{{ row.term || '—' }}</td>
-          <td>{{ row.definition || '—' }}</td>
+          <td data-label="Term" class="cell-primary">{{ row.term || '—' }}</td>
+          <td data-label="Definition">{{ row.definition || '—' }}</td>
         </tr>
       </tbody>
     </table>
@@ -354,17 +354,17 @@
 
     <ng-template pTemplate="body" let-row>
       <tr [class.row-invalid]="row.action === 'invalid'">
-        <td>{{ row.index }}</td>
-        <td><p-tag [value]="actionLabel(row.action)" [severity]="actionSeverity(row.action)"></p-tag></td>
-        <td class="cell-primary">{{ row.term || '—' }}</td>
-        <td>
+        <td data-label="Row">{{ row.index }}</td>
+        <td data-label="Action"><p-tag [value]="actionLabel(row.action)" [severity]="actionSeverity(row.action)"></p-tag></td>
+        <td data-label="Term" class="cell-primary">{{ row.term || '—' }}</td>
+        <td data-label="Definition to be saved">
           <div>{{ row.definition || '—' }}</div>
           <div class="cell-previous" *ngIf="row.action === 'update' && row.current_definition">
             <span class="cell-previous__label">Currently:</span> {{ row.current_definition }}
           </div>
           <div class="cell-message" *ngIf="row.message">{{ row.message }}</div>
         </td>
-        <td>
+        <td data-label="Portfolios">
           <span class="portfolio-chips" *ngIf="row.portfolios?.length; else noRowPortfolios">
             <span class="portfolio-chip" *ngFor="let portfolio of row.portfolios">{{ portfolio.acronym || portfolio.name }}</span>
           </span>

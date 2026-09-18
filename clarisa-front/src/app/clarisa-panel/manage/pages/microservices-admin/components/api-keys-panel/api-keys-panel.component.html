@@ -54,18 +54,18 @@
     </ng-template>
     <ng-template pTemplate="body" let-key>
       <tr>
-        <td><span class="cell-primary">{{ key.name }}</span></td>
-        <td><code class="key-prefix">{{ key.key_prefix }}…</code></td>
-        <td>{{ key.mis_acronym || '—' }}</td>
-        <td>{{ key.environment || '—' }}</td>
-        <td>
+        <td data-label="Name"><span class="cell-primary">{{ key.name }}</span></td>
+        <td data-label="Prefix"><code class="key-prefix">{{ key.key_prefix }}…</code></td>
+        <td data-label="MIS">{{ key.mis_acronym || '—' }}</td>
+        <td data-label="Env">{{ key.environment || '—' }}</td>
+        <td data-label="Scopes">
           <span class="scopes-cell" [pTooltip]="(key.scopes || []).join(', ')" tooltipPosition="top">
             {{ (key.scopes || []).length ? (key.scopes | slice:0:2).join(', ') : '—' }}
             <span *ngIf="(key.scopes || []).length > 2" class="scopes-more">+{{ key.scopes.length - 2 }}</span>
           </span>
         </td>
-        <td>{{ key.usage_count ?? 0 }}</td>
-        <td>
+        <td data-label="Usage">{{ key.usage_count ?? 0 }}</td>
+        <td data-label="Status">
           <p-tag [value]="statusLabel(key)" [severity]="statusSeverity(key)"></p-tag>
         </td>
         <td>

@@ -50,16 +50,16 @@
     </ng-template>
     <ng-template pTemplate="body" let-mis>
       <tr>
-        <td><code class="key-prefix">{{ mis.acronym }}</code></td>
-        <td><span class="cell-primary">{{ mis.name }}</span></td>
-        <td>
+        <td data-label="Acronym"><code class="key-prefix">{{ mis.acronym }}</code></td>
+        <td data-label="Name"><span class="cell-primary">{{ mis.name }}</span></td>
+        <td data-label="Environment">
           <span *ngIf="mis.environment; else noEnv">
             {{ mis.environment }}
             <span class="env-name" *ngIf="mis.environmentName"> · {{ mis.environmentName }}</span>
           </span>
           <ng-template #noEnv>—</ng-template>
         </td>
-        <td>
+        <td data-label="Status">
           <p-tag
             [value]="mis.is_active === false ? 'Inactive' : 'Active'"
             [severity]="mis.is_active === false ? 'danger' : 'success'"

@@ -70,22 +70,22 @@
 
   <ng-template pTemplate="body" let-institution>
     <tr>
-      <td class="cell-num">{{ institution.code }}</td>
-      <td class="cell-primary">{{ institution.acronym || '—' }}</td>
-      <td>
+      <td data-label="Code" class="cell-num">{{ institution.code }}</td>
+      <td data-label="Acronym" class="cell-primary">{{ institution.acronym || '—' }}</td>
+      <td data-label="Name">
         <span class="cell-clamp" [title]="institution.name">{{ institution.name }}</span>
       </td>
-      <td>
+      <td data-label="Institution type">
         <span class="cell-clamp" [title]="institution.institutionType?.name">{{ institution.institutionType?.name || '—' }}</span>
       </td>
-      <td>
+      <td data-label="Office location">
         <!--
           Cada país en su etiqueta. La versión anterior los concatenaba con una
           coma detrás de cada uno y dejaba «NL, DE,» colgando. -->
         <span class="cell-chip" *ngFor="let office of institution.countryOfficeDTO">{{ office.isoAlpha2 }}</span>
         <span class="cell-empty" *ngIf="!institution.countryOfficeDTO?.length">—</span>
       </td>
-      <td>
+      <td data-label="Website">
         <a
           *ngIf="institution.websiteLink"
           class="cell-link cell-ellipsis"
