@@ -103,7 +103,7 @@
             class="p-button-text p-button-sm p-button-plain"
             [pTooltip]="expanded ? 'Hide the other definitions' : 'Show the definition of each portfolio'"></button>
         </td>
-        <td data-label="Term" class="cell-primary">
+        <td data-card-title data-label="Term" class="cell-primary">
           {{ concept.current.term }}
           <span
             class="version-badge"
@@ -177,7 +177,7 @@
     <ng-template pTemplate="rowexpansion" let-concept>
       <tr class="version-row" *ngFor="let version of concept.versions" [class.row-inactive]="!version.is_active">
         <td></td>
-        <td data-label="Term" class="cell-primary version-row__term">
+        <td data-card-title data-label="Term" class="cell-primary version-row__term">
           <span class="version-row__id">#{{ version.id }}</span> {{ version.term }}
         </td>
         <td data-label="Definition" class="cell-definition">

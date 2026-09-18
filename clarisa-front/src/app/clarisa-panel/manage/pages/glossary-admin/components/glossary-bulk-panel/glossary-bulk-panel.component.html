@@ -253,7 +253,7 @@
       </thead>
       <tbody>
         <tr *ngFor="let row of mappingPreviewRows">
-          <td data-label="Term" class="cell-primary">{{ row.term || '—' }}</td>
+          <td data-card-title data-label="Term" class="cell-primary">{{ row.term || '—' }}</td>
           <td data-label="Definition">{{ row.definition || '—' }}</td>
         </tr>
       </tbody>
@@ -356,7 +356,7 @@
       <tr [class.row-invalid]="row.action === 'invalid'">
         <td data-label="Row">{{ row.index }}</td>
         <td data-label="Action"><p-tag [value]="actionLabel(row.action)" [severity]="actionSeverity(row.action)"></p-tag></td>
-        <td data-label="Term" class="cell-primary">{{ row.term || '—' }}</td>
+        <td data-card-title data-label="Term" class="cell-primary">{{ row.term || '—' }}</td>
         <td data-label="Definition to be saved">
           <div>{{ row.definition || '—' }}</div>
           <div class="cell-previous" *ngIf="row.action === 'update' && row.current_definition">
