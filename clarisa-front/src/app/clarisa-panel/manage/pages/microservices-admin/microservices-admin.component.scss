@@ -11,3 +11,17 @@
   min-width: 0;
   padding: 1.5rem 2rem 2rem;
 }
+
+/* En teléfono las dos columnas no caben: el aside de 260px fijos dejaba 130px
+   al contenido —la tabla se veía por una rendija de 54px, medido en un iPhone
+   13—. La navegación de la pantalla pasa arriba, en una fila, y el contenido se
+   queda con el ancho entero. */
+@media (max-width: 900px) {
+  .ms-admin-layout {
+    display: block;
+  }
+
+  .ms-admin-main {
+    padding: 1rem 1rem 2rem;
+  }
+}
