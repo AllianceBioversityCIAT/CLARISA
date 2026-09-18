@@ -573,9 +573,12 @@
   }
 
   // Alto de dedo en lo que se toca para ir a algún sitio: las entradas medían
-  // 34px y la vuelta al sitio 30.
+  // 34px, la vuelta al sitio 30, el cierre de sesión 34 y la marca de la barra
+  // —que también lleva a la web— 33.
   .admin-sidebar__list a,
-  .admin-sidebar__back {
+  .admin-sidebar__back,
+  .admin-sidebar__out,
+  .admin-topbar__brand {
     min-height: 44px;
   }
 

@@ -211,3 +211,50 @@
     outline-offset: 1px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Teléfono — alto de dedo y campos que no disparan el zoom de iOS
+
+   Esta hoja no tenía ninguna consulta de medios: los controles del panel medían
+   lo mismo en un ratón que en un pulgar. Medido en un iPhone 13: botones y
+   desplegables a 34px, los de solo icono a 30 — por debajo de los 44 que un
+   dedo acierta sin apuntar.
+
+   🛑 Y el que no se ve hasta que se toca: Safari en iOS **amplía la página
+   entera** al enfocar un campo cuyo texto mide menos de 16px, y al salir la
+   deja descuadrada. Los buscadores del panel estaban en 13. El tamaño se sube
+   solo en el campo, que es lo que dispara el zoom; las etiquetas se quedan.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  .admin-shell {
+    .p-button,
+    .p-dropdown,
+    .p-multiselect {
+      height: auto;
+      min-height: 44px;
+    }
+
+    /* Los de solo icono no necesitan el ancho de una etiqueta, pero sí el alto:
+       40px es el mínimo con el que una fila de tres iconos deja de fallarse. */
+    .p-button.p-button-icon-only,
+    .p-button.p-button-rounded.p-button-text,
+    .p-button.p-button-sm {
+      height: auto;
+      min-height: 40px;
+      min-width: 40px;
+    }
+
+    .p-input-icon-left > .p-inputtext,
+    .admin-search,
+    input.p-inputtext,
+    textarea.p-inputtext {
+      min-height: 44px;
+      /* 16px exactos: es el umbral de Safari, no una preferencia. */
+      font-size: 16px;
+    }
+
+    /* La etiqueta de estado no se toca, así que se queda como está: subirla
+       solo la volvería un botón que no lo es. */
+  }
+}
