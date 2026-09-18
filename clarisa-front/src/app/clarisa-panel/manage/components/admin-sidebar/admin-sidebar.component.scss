@@ -450,35 +450,147 @@
 }
 
 // ---------------------------------------------------------------------------
+// Barra y velo del teléfono
+// ---------------------------------------------------------------------------
+
+// Ambas piezas no existen en escritorio: allí la columna está siempre a la
+// vista y una barra encima sería una franja que no dice nada nuevo.
+.admin-topbar,
+.admin-scrim {
+  display: none;
+}
+
+// ---------------------------------------------------------------------------
 // Ancho de celular
 // ---------------------------------------------------------------------------
 
 @media (max-width: 900px) {
-  // /* Narrow screens have no room for a column, so the navigation goes back to a
-  // row under the header — in flow, which is why the content column drops its
-  // `margin-left` at this same breakpoint.
+  // /* La columna deja de ocupar la pantalla y pasa a ser un cajón: sigue siendo
+  // `fixed`, pero se guarda a la izquierda y vuelve cuando se pide. Lo que había
+  // antes —la columna entera en el flujo, arriba— obligaba a bajar el menú
+  // completo en cada navegación para llegar al contenido.
   .admin-sidebar {
-    position: static;
-    width: 100%;
-    height: auto;
-    border-right: none;
+    // /* 86vw con tope: deja ver un borde del contenido detrás, que es lo que
+    // dice «esto está encima, no es otra página».
+    width: min(86vw, 320px);
+    max-width: 320px;
+    transform: translateX(-100%);
+    transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+    // /* Por encima del velo, que va en 40.
+    z-index: 41;
+    box-shadow: none;
+
+    &.is-open {
+      transform: translateX(0);
+      box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.001), 24px 0 48px rgba(0, 0, 0, 0.45);
+    }
+  }
+
+  // Quien prefiere no ver movimiento recibe el mismo cajón, sin el deslizamiento.
+  @media (prefers-reduced-motion: reduce) {
+    .admin-sidebar {
+      transition: none;
+    }
+  }
+
+  .admin-topbar {
+    display: flex;
+    position: sticky;
+    top: 0;
+    // /* Sobre el contenido de la página, bajo el cajón y su velo.
+    z-index: 30;
+    align-items: center;
+    gap: 12px;
+    height: var(--cl-admin-header);
+    padding: 0 8px 0 4px;
+    box-sizing: border-box;
+    background: var(--cl-admin-nav);
     border-bottom: 1px solid var(--cl-admin-nav-line);
   }
 
+  // 44px de lado: el mínimo que un pulgar acierta sin apuntar.
+  .admin-topbar__burger {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--cl-admin-nav-ink);
+    font-size: 18px;
+    cursor: pointer;
+
+    &:active {
+      background: var(--cl-admin-nav-2);
+    }
+  }
+
+  // La sección manda en la barra: es el dato que se consulta, no la marca.
+  .admin-topbar__where {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--cl-admin-nav-ink);
+  }
+
+  .admin-topbar__brand {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--cl-admin-nav-muted);
+
+    .admin-sidebar__mark {
+      width: 18px;
+    }
+  }
+
+  .admin-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(9, 9, 11, 0.55);
+    // /* Safari en iOS pinta el velo sin esto cuando el cajón ya está compuesto.
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+  }
+
+  // La marca del cajón ya no duplica a la de la barra: dentro basta con el
+  // nombre, y el hueco lo gana la navegación.
+  .admin-sidebar__brand {
+    height: var(--cl-admin-header);
+  }
+
+  // Dentro del cajón la lista sigue siendo una lista, una entrada por línea:
+  // el envoltorio en fila que había antes existía para ahorrar alto en una
+  // columna que estaba en el flujo, y aquí ya no lo está.
   .admin-sidebar__nav {
-    overflow-y: visible;
+    overflow-y: auto;
     padding: 4px 4px 12px;
   }
 
-  .admin-sidebar__list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
+  // Alto de dedo también en el menú: las entradas eran de 32px.
   .admin-sidebar__list a {
-    height: 32px;
-    margin: 0;
+    min-height: 44px;
   }
 
   .admin-sidebar__foot {
