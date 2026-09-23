@@ -6,18 +6,22 @@
     </p>
   </div>
   <div class="panel-header__actions">
-    <p-dropdown
-      [options]="[
-        { label: 'Active', value: 'active' },
-        { label: 'All', value: 'all' },
-        { label: 'Inactive', value: 'inactive' }
-      ]"
-      [(ngModel)]="showFilter"
-      optionLabel="label"
-      optionValue="value"
-      (onChange)="loadKeys()"
-      styleClass="filter-dropdown"
-    ></p-dropdown>
+    <div class="panel-header__filter">
+      <label id="apiKeysStatusLabel">Status</label>
+      <p-dropdown
+        [options]="[
+          { label: 'Active', value: 'active' },
+          { label: 'All', value: 'all' },
+          { label: 'Inactive', value: 'inactive' }
+        ]"
+        [(ngModel)]="showFilter"
+        optionLabel="label"
+        optionValue="value"
+        (onChange)="loadKeys()"
+        styleClass="filter-dropdown"
+        ariaLabelledBy="apiKeysStatusLabel"
+      ></p-dropdown>
+    </div>
     <button
       pButton
       type="button"
