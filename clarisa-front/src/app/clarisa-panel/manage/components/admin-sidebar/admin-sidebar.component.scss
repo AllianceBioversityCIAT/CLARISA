@@ -212,11 +212,6 @@
   &:hover {
     color: var(--cl-admin-nav-muted);
   }
-
-  &:focus-visible {
-    outline: 1px solid #4b4b54;
-    outline-offset: -1px;
-  }
 }
 
 .admin-sidebar__list {
@@ -225,7 +220,11 @@
   list-style: none;
 }
 
-.admin-sidebar__list a {
+// El link normal y el que pliega pestañas (más abajo) comparten toda su
+// geometría — mismo alto, margen, radio, tipografía — así que se declaran
+// juntos y cada uno agrega solo lo que lo distingue (el toggle es un botón).
+.admin-sidebar__list a,
+.admin-sidebar__list-toggle {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -263,35 +262,35 @@
 }
 
 .admin-sidebar__list a:hover,
-.admin-sidebar__list a:focus {
+.admin-sidebar__list a:focus,
+.admin-sidebar__list-toggle:hover,
+.admin-sidebar__list-toggle:focus {
   background: #232327;
   color: var(--cl-admin-nav-ink);
   text-decoration: none;
 }
 
 .admin-sidebar__list a:hover .admin-sidebar__icon,
-.admin-sidebar__list a:focus .admin-sidebar__icon {
+.admin-sidebar__list a:focus .admin-sidebar__icon,
+.admin-sidebar__list-toggle:hover .admin-sidebar__icon,
+.admin-sidebar__list-toggle:focus .admin-sidebar__icon {
   color: var(--cl-admin-nav-muted);
 }
 
-.admin-sidebar__list a:focus-visible {
+// El mismo anillo de foco en cualquier control plano de la columna: link,
+// toggle, sub-link y encabezado de grupo (más abajo).
+.admin-sidebar__list a:focus-visible,
+.admin-sidebar__list-toggle:focus-visible,
+.admin-sidebar__sublist a:focus-visible,
+.admin-sidebar__title:focus-visible {
   outline: 1px solid #4b4b54;
   outline-offset: -1px;
 }
 
 // La abierta lleva el acento: relleno de menta al 15 %, un contorno que la
-// separa del carbón y el icono en menta puro. Es el único sitio de la columna
-// donde el color dice algo — «estás aquí» — y por eso se ve sin buscarlo.
+// separa del carbón y el icono en menta puro (el par background+box-shadow
+// vive junto al de la sub-entrada, más abajo, con el mismo valor).
 // Sobre la pastilla ya resuelta (#233632): 12.25 el texto y 7.98 el icono.
-.admin-sidebar__list a.is-active,
-.admin-sidebar__list a.is-active:hover,
-.admin-sidebar__list a.is-active:focus {
-  background: rgba(95, 227, 180, 0.15);
-  box-shadow: inset 0 0 0 1px rgba(95, 227, 180, 0.3);
-  color: #eafff7;
-  font-weight: 500;
-}
-
 .admin-sidebar__list a.is-active .admin-sidebar__icon {
   color: var(--cl-admin-nav-accent);
 }
@@ -312,46 +311,17 @@
 // no un mueble aparte (Yeck, 23-sep-2026).
 // ---------------------------------------------------------------------------
 
+// Geometría y hover ya salen de la regla compartida con `.admin-sidebar__list
+// a` (arriba). Aquí solo lo que lo hace un botón, y el resaltado tenue de
+// «estás en esta zona» — la pestaña en sí, más abajo, lleva el acento de menta.
 .admin-sidebar__list-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   width: calc(100% - 24px);
-  height: 34px;
-  margin: 1px 12px;
-  padding: 0 8px;
   border: 0;
-  border-radius: 6px;
   background: transparent;
-  color: var(--cl-admin-nav-muted);
-  font-size: 13px;
-  font-weight: 450;
   cursor: pointer;
-  transition:
-    background 0.12s ease,
-    color 0.12s ease;
 
-  &:hover,
-  &:focus {
-    background: #232327;
-    color: var(--cl-admin-nav-ink);
-  }
-
-  &:hover .admin-sidebar__icon,
-  &:focus .admin-sidebar__icon {
-    color: var(--cl-admin-nav-muted);
-  }
-
-  // /* Resaltado tenue: cualquiera de sus tres pestañas está abierta. La pestaña
-  // en sí, más abajo, es la que lleva el acento de menta — este solo dice
-  // «estás en esta zona».
   &.is-active {
     color: var(--cl-admin-nav-ink);
-  }
-
-  &:focus-visible {
-    outline: 1px solid #4b4b54;
-    outline-offset: -1px;
   }
 }
 
@@ -428,17 +398,21 @@
   color: var(--cl-admin-nav-ink);
 }
 
-.admin-sidebar__sublist a:focus-visible {
-  outline: 1px solid #4b4b54;
-  outline-offset: -1px;
-}
-
-// La pestaña abierta, mismo acento de menta que una entrada normal activa.
+// El mismo acento de menta que una entrada normal activa — una sola regla
+// para las dos, en vez de repetir el par background+box-shadow.
+.admin-sidebar__list a.is-active,
+.admin-sidebar__list a.is-active:hover,
+.admin-sidebar__list a.is-active:focus,
 .admin-sidebar__sublist a.is-active,
 .admin-sidebar__sublist a.is-active:hover,
 .admin-sidebar__sublist a.is-active:focus {
   background: rgba(95, 227, 180, 0.15);
   box-shadow: inset 0 0 0 1px rgba(95, 227, 180, 0.3);
+}
+
+.admin-sidebar__list a.is-active {
+  color: #eafff7;
+  font-weight: 500;
 }
 
 .admin-sidebar__sublist a.is-active .admin-sidebar__sublink-label {
