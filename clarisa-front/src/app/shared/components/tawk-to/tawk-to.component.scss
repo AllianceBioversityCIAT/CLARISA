@@ -12,3 +12,24 @@
     border-radius: 100px;
     i{color: white; font-size: 20px;}
 }
+
+/* En teléfono el botón se pasa al lado derecho. Abajo a la izquierda se comía
+   la primera palabra de cada párrafo —el texto se alinea a ese borde—: tapaba
+   una letra del índice alfabético del glosario, dos líneas del texto de
+   Services y la casilla de contraseña del login. A la derecha queda sobre el
+   margen, que es donde no hay nada que leer, y es además donde la costumbre lo
+   busca.
+
+   `env(safe-area-inset-*)` lo levanta por encima de la barra de gestos del
+   iPhone, que si no se le monta encima. */
+@media (max-width: 720px) {
+  .tawk-to-button {
+    left: auto;
+    right: 0;
+    height: 46px;
+    width: 46px;
+    margin: 0 calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) 0;
+
+    i { font-size: 18px; }
+  }
+}

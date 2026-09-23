@@ -35,8 +35,39 @@
   overflow-x: auto;
   scrollbar-width: none;
 
+  /* 🛑 Obligatorio, y por eso está escrito: en `partner-request` el mismo nodo
+     lleva también `.admin-page__aside`, que declara `flex-wrap: wrap`. Como el
+     riel no declaraba nada, el `wrap` ganaba y las cuatro pestañas se partían
+     en DOS FILAS dentro de la píldora —«estos botones los veo colapsados»,
+     Yeck, 18-sep-2026—. En escritorio no se notaba porque caben. */
+  flex-wrap: nowrap;
+
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* En teléfono el riel toma el ancho entero y avisa de que sigue: sin la pista,
+   un riel cortado a ras del borde se lee como una pestaña mal recortada y no
+   como algo que se desliza. La máscara se apaga al llegar al final. */
+@media (max-width: 720px) {
+  .admin-tabs {
+    display: flex;
+    width: 100%;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+
+    /* Sin desplazamiento pendiente no hay nada que insinuar. */
+    &:not(:has(.admin-tabs__item:last-child:not(:first-child))) {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+  }
+
+  .admin-tabs__item {
+    /* Alto de dedo, como el resto de controles del panel en teléfono. */
+    min-height: 44px;
+    padding: 0 14px;
   }
 }
 

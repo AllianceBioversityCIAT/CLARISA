@@ -304,6 +304,152 @@
 }
 
 // ---------------------------------------------------------------------------
+// Link con pestañas propias (Microservices & API keys)
+//
+// Antes era una segunda columna blanca al lado de esta: propia marca, propio
+// «CLARISA Admin», propio buscador implícito. Aquí es un link más que en vez
+// de navegar pliega, con el mismo chevron que un grupo — un nivel más adentro,
+// no un mueble aparte (Yeck, 23-sep-2026).
+// ---------------------------------------------------------------------------
+
+.admin-sidebar__list-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: calc(100% - 24px);
+  height: 34px;
+  margin: 1px 12px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cl-admin-nav-muted);
+  font-size: 13px;
+  font-weight: 450;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+
+  &:hover,
+  &:focus {
+    background: #232327;
+    color: var(--cl-admin-nav-ink);
+  }
+
+  &:hover .admin-sidebar__icon,
+  &:focus .admin-sidebar__icon {
+    color: var(--cl-admin-nav-muted);
+  }
+
+  // /* Resaltado tenue: cualquiera de sus tres pestañas está abierta. La pestaña
+  // en sí, más abajo, es la que lleva el acento de menta — este solo dice
+  // «estás en esta zona».
+  &.is-active {
+    color: var(--cl-admin-nav-ink);
+  }
+
+  &:focus-visible {
+    outline: 1px solid #4b4b54;
+    outline-offset: -1px;
+  }
+}
+
+.admin-sidebar__list-toggle-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-sidebar__chevron {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--cl-admin-nav-dim);
+  transition: transform 0.18s ease;
+
+  &.is-collapsed {
+    transform: rotate(-90deg);
+  }
+}
+
+.admin-sidebar__sublist {
+  margin: 2px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+// /* 41px: el padding del botón (8) más el ancho del icono (15) más el gap (10)
+// más el margen de la fila (12) — arranca justo bajo la etiqueta del padre, no
+// bajo su icono.
+.admin-sidebar__sublist a {
+  // /* `.admin-sidebar__list a` (arriba) fija `height: 34px` y `align-items:
+  // center` para una fila de una sola línea; con la misma especificidad, lo que
+  // esta regla no repite lo hereda de esa. Sin pisar las dos, un icono/texto de
+  // dos líneas quedaba comprimido en 34px y las líneas se montaban una sobre
+  // otra.
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: auto;
+  gap: 2px;
+  margin: 3px 12px 3px 41px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.12s ease;
+}
+
+.admin-sidebar__sublink-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--cl-admin-nav-muted);
+  transition: color 0.12s ease;
+}
+
+.admin-sidebar__sublink-hint {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--cl-admin-nav-dim);
+  transition: color 0.12s ease;
+}
+
+.admin-sidebar__sublist a:hover,
+.admin-sidebar__sublist a:focus {
+  background: #232327;
+  text-decoration: none;
+}
+
+.admin-sidebar__sublist a:hover .admin-sidebar__sublink-label,
+.admin-sidebar__sublist a:focus .admin-sidebar__sublink-label {
+  color: var(--cl-admin-nav-ink);
+}
+
+.admin-sidebar__sublist a:focus-visible {
+  outline: 1px solid #4b4b54;
+  outline-offset: -1px;
+}
+
+// La pestaña abierta, mismo acento de menta que una entrada normal activa.
+.admin-sidebar__sublist a.is-active,
+.admin-sidebar__sublist a.is-active:hover,
+.admin-sidebar__sublist a.is-active:focus {
+  background: rgba(95, 227, 180, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(95, 227, 180, 0.3);
+}
+
+.admin-sidebar__sublist a.is-active .admin-sidebar__sublink-label {
+  color: #eafff7;
+}
+
+.admin-sidebar__sublist a.is-active .admin-sidebar__sublink-hint {
+  color: rgba(234, 255, 247, 0.75);
+}
+
+// ---------------------------------------------------------------------------
 // Cuenta
 // ---------------------------------------------------------------------------
 
@@ -450,38 +596,164 @@
 }
 
 // ---------------------------------------------------------------------------
+// Barra y velo del teléfono
+// ---------------------------------------------------------------------------
+
+// Ambas piezas no existen en escritorio: allí la columna está siempre a la
+// vista y una barra encima sería una franja que no dice nada nuevo.
+.admin-topbar,
+.admin-scrim {
+  display: none;
+}
+
+// ---------------------------------------------------------------------------
 // Ancho de celular
 // ---------------------------------------------------------------------------
 
 @media (max-width: 900px) {
-  // /* Narrow screens have no room for a column, so the navigation goes back to a
-  // row under the header — in flow, which is why the content column drops its
-  // `margin-left` at this same breakpoint.
+  // /* La columna deja de ocupar la pantalla y pasa a ser un cajón: sigue siendo
+  // `fixed`, pero se guarda a la izquierda y vuelve cuando se pide. Lo que había
+  // antes —la columna entera en el flujo, arriba— obligaba a bajar el menú
+  // completo en cada navegación para llegar al contenido.
   .admin-sidebar {
-    position: static;
-    width: 100%;
-    height: auto;
-    border-right: none;
+    // /* 86vw con tope: deja ver un borde del contenido detrás, que es lo que
+    // dice «esto está encima, no es otra página».
+    width: min(86vw, 320px);
+    transform: translateX(-100%);
+    transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+    // /* Por encima del velo, que va en 40.
+    z-index: 41;
+
+    &.is-open {
+      transform: translateX(0);
+      box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.001), 24px 0 48px rgba(0, 0, 0, 0.45);
+    }
+  }
+
+  // Quien prefiere no ver movimiento recibe el mismo cajón, sin el deslizamiento.
+  @media (prefers-reduced-motion: reduce) {
+    .admin-sidebar {
+      transition: none;
+    }
+  }
+
+  .admin-topbar {
+    display: flex;
+    position: sticky;
+    top: 0;
+    // /* Sobre el contenido de la página, bajo el cajón y su velo.
+    z-index: 30;
+    align-items: center;
+    gap: 12px;
+    height: var(--cl-admin-header);
+    padding: 0 8px 0 4px;
+    box-sizing: border-box;
+    background: var(--cl-admin-nav);
     border-bottom: 1px solid var(--cl-admin-nav-line);
   }
 
-  .admin-sidebar__nav {
-    overflow-y: visible;
-    padding: 4px 4px 12px;
+  // 44px de lado: el mínimo que un pulgar acierta sin apuntar.
+  .admin-topbar__burger {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--cl-admin-nav-ink);
+    font-size: 18px;
+    cursor: pointer;
+
+    &:active {
+      background: var(--cl-admin-nav-2);
+    }
   }
 
-  .admin-sidebar__list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+  // La sección manda en la barra: es el dato que se consulta, no la marca.
+  .admin-topbar__where {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--cl-admin-nav-ink);
   }
 
-  .admin-sidebar__list a {
-    height: 32px;
-    margin: 0;
+  .admin-topbar__brand {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--cl-admin-nav-muted);
+
+    .admin-sidebar__mark {
+      width: 18px;
+    }
   }
 
+  .admin-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(9, 9, 11, 0.55);
+    // /* Safari en iOS pinta el velo sin esto cuando el cajón ya está compuesto.
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+  }
+
+  // Alto de dedo en lo que se toca para ir a algún sitio: las entradas medían
+  // 34px, la vuelta al sitio 30, el cierre de sesión 34 y la marca de la barra
+  // —que también lleva a la web— 33.
+  .admin-sidebar__list a,
+  .admin-sidebar__back,
+  .admin-sidebar__out,
+  .admin-topbar__brand {
+    min-height: 44px;
+  }
+
+  // Igual que una entrada normal: aunque lleve dos líneas de texto, el área
+  // de toque no puede ser menor a un dedo.
+  .admin-sidebar__sublist a {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  // El encabezado de grupo y el link con pestañas no son un destino, solo
+  // pliegan: 36px se acierta con el pulgar y no se lleva el sitio de una
+  // entrada.
+  .admin-sidebar__title,
+  .admin-sidebar__list-toggle {
+    min-height: 36px;
+  }
+
+  // 🛑 El buscador se va. Filtra seis entradas que aquí caben todas a la vez,
+  // y anuncia un atajo —⌘K / Ctrl+K— que en un teléfono no existe: una tecla
+  // dibujada que nadie puede pulsar. Los ~50px que ocupaba son los que hacían
+  // que la última entrada, «Microservices & API keys», quedara bajo el pliegue.
+  .admin-sidebar__search {
+    display: none;
+  }
+
+  // El hueco de 68px del pie lo reservaba el botón de chat, que en teléfono se
+  // fue al lado derecho.
   .admin-sidebar__foot {
-    margin: 0 12px 16px;
+    margin-bottom: 16px;
   }
 }

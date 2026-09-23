@@ -1,7 +1,9 @@
-import { Component, ElementRef, HostListener, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, ViewChild } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
+import { Subscription, filter } from 'rxjs';
 
 import { AuthService } from '../../../../shared/services/auth.service';
-import { ADMIN_GROUPS, AdminGroup } from '../../admin-nav';
+import { ADMIN_GROUPS, AdminGroup, AdminLink, adminSectionLabel } from '../../admin-nav';
 
 /**
  * Lo que de verdad guarda `localStorage.user`, que no es lo que declara
@@ -33,15 +35,86 @@ interface StoredUser {
   templateUrl: './admin-sidebar.component.html',
   styleUrls: ['./admin-sidebar.component.scss']
 })
-export class AdminSidebarComponent {
+export class AdminSidebarComponent implements OnDestroy {
   /** Lo escrito en el buscador. Filtra la navegación, no llama a nadie. */
   query = '';
+
+  /**
+   * En teléfono la columna es un cajón que se abre sobre el contenido. En
+   * escritorio este estado no se usa: allí la columna está siempre a la vista y
+   * el CSS ignora la clase.
+   *
+   * Antes de esto, bajo 900px la columna volvía al flujo como una fila arriba:
+   * el menú entero —marca, buscador, tres grupos, la cuenta y el logout— ocupaba
+   * kilómetro y medio de alto ANTES del contenido, y había que atravesarlo en
+   * cada navegación para ver la pantalla a la que se acababa de entrar.
+   */
+  drawerOpen = false;
+
+  /** Qué sección se está viendo, para titular la barra del teléfono. */
+  sectionLabel: string | null = null;
 
   @ViewChild('search') private searchBox?: ElementRef<HTMLInputElement>;
 
   private readonly collapsed = new Set<string>();
 
-  constructor(private authService: AuthService) {}
+  /**
+   * Links con `children` (hoy solo «Microservices & API keys») que el usuario
+   * plegó a mano, por `route`. Al revés que `collapsed`: ahí vive el título de
+   * un grupo, aquí la ruta de un link, porque son dos niveles de plegado
+   * independientes y un link puede repetir el título de ningún grupo.
+   */
+  private readonly collapsedLinks = new Set<string>();
+
+  private readonly navigation: Subscription;
+
+  constructor(private authService: AuthService, private router: Router) {
+    this.sectionLabel = adminSectionLabel(this.router.url);
+
+    // Navegar cierra el cajón: quien toca una entrada quiere la pantalla, no
+    // seguir mirando el menú que la tapa.
+    this.navigation = this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe(event => {
+        this.sectionLabel = adminSectionLabel(event.urlAfterRedirects);
+        this.closeDrawer();
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.navigation.unsubscribe();
+    // El panel se abandona con el cajón abierto (logout, «back to the site»):
+    // el candado del scroll vive en <body>, así que sobrevive al componente si
+    // no se suelta aquí.
+    this.lockScroll(false);
+  }
+
+  toggleDrawer(): void {
+    this.drawerOpen ? this.closeDrawer() : this.openDrawer();
+  }
+
+  openDrawer(): void {
+    this.drawerOpen = true;
+    this.lockScroll(true);
+  }
+
+  closeDrawer(): void {
+    this.drawerOpen = false;
+    this.lockScroll(false);
+  }
+
+  /**
+   * Con el cajón abierto, el dedo tiene que mover el cajón y no la tabla que hay
+   * detrás. La clase la pone el componente en <body> porque el cajón es `fixed`
+   * y su scroll es independiente del de la página.
+   */
+  private lockScroll(locked: boolean): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    document.body.classList.toggle('admin-drawer-open', locked);
+  }
 
   /**
    * Los grupos que quedan tras el filtro. Un grupo sin entradas que coincidan
@@ -56,7 +129,11 @@ export class AdminSidebarComponent {
 
     return ADMIN_GROUPS.map(group => ({
       ...group,
-      links: group.links.filter(link => link.label.toLowerCase().includes(needle))
+      links: group.links.filter(
+        link =>
+          link.label.toLowerCase().includes(needle) ||
+          (link.children?.some(child => child.label.toLowerCase().includes(needle)) ?? false)
+      )
     })).filter(group => group.links.length > 0);
   }
 
@@ -87,6 +164,12 @@ export class AdminSidebarComponent {
    */
   @HostListener('document:keydown', ['$event'])
   onKeydown(event: KeyboardEvent): void {
+    // Escape cierra el cajón antes que nada: es la salida que se busca a ciegas.
+    if (event.key === 'Escape' && this.drawerOpen) {
+      this.closeDrawer();
+      return;
+    }
+
     if (event.key?.toLowerCase() !== 'k' || !(event.metaKey || event.ctrlKey)) {
       return;
     }
@@ -111,6 +194,31 @@ export class AdminSidebarComponent {
     } else {
       this.collapsed.add(group.title);
     }
+  }
+
+  /**
+   * Abierto por defecto, igual que un grupo: la columna blanca que esto
+   * reemplaza mostraba sus tres pestañas siempre a la vista, y buscando se
+   * fuerza abierto por la misma razón que un grupo — esconder la coincidencia
+   * detrás de un pliegue contesta «no hay nada» a una pregunta que sí tenía
+   * respuesta.
+   */
+  isLinkCollapsed(link: AdminLink): boolean {
+    return !this.query.trim() && this.collapsedLinks.has(link.route);
+  }
+
+  toggleLink(link: AdminLink): void {
+    if (this.collapsedLinks.has(link.route)) {
+      this.collapsedLinks.delete(link.route);
+    } else {
+      this.collapsedLinks.add(link.route);
+    }
+  }
+
+  /** El link padre se resalta si cualquiera de sus pestañas está abierta. */
+  isLinkActive(link: AdminLink): boolean {
+    const path = this.router.url.split('?')[0];
+    return path === link.route || path.startsWith(`${link.route}/`);
   }
 
   /** La sesión, o `null` si no hay ninguna utilizable. */

@@ -384,21 +384,23 @@
     box-shadow: none;
   }
 
+  // /* 44px y no 38: son los dos controles más tocados del sitio —el menú y el
+  // acceso— y 38 seguía por debajo del mínimo que un pulgar acierta sin
+  // apuntar. Venían de 34; el salto a 38 arregló el descuadre entre ambos pero
+  // se quedó corto para el dedo. Los dos a la misma altura, como ya estaban.
   :host .cl-signin {
-    height: 38px;
-    padding: 0 15px;
+    height: 44px;
+    padding: 0 16px;
   }
 
-  // /* 34px de alto se quedaba por debajo del mínimo de toque cómodo, y al lado
-  // de un «Sign in» de 38 se leía descuadrado. Los dos a la misma altura.
   :host .cl-nav .navbar-toggle {
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: 4px;
-    height: 38px;
+    height: 44px;
     margin: 0;
-    padding: 0 12px;
+    padding: 0 14px;
   }
 }
 

@@ -225,3 +225,15 @@ html *:not(.fa, .fe, .pi, pre, code) {
   white-space: nowrap;
   max-width: 100%;
 }
+
+/* ---------------------------------------------------------------------------
+   Cajón de navegación del panel — candado del scroll
+
+   Con el cajón abierto en teléfono, el dedo tiene que mover el cajón y no la
+   tabla que queda detrás: sin esto la página de atrás sigue corriendo bajo un
+   menú que la tapa, y al cerrar se vuelve a un sitio distinto del que se dejó.
+   La clase la pone y la quita `AdminSidebarComponent`.
+   --------------------------------------------------------------------------- */
+body.admin-drawer-open {
+  overflow: hidden;
+}

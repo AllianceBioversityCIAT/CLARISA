@@ -42,6 +42,89 @@
     .skeleton { animation: pulse 1.4s ease-in-out infinite; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
     table.data th { position: sticky; top: 0; z-index: 5; }
+
+    /* Con sitio para las dos columnas, ni la barra ni el velo existen. La
+       declaración va ANTES de la consulta de medios: puesta después ganaba por
+       orden y escondía la barra también en el teléfono. */
+    .doc-navbar, .doc-scrim { display: none; }
+
+    /* ░░ TELÉFONO Y TABLETA ░░
+       La columna de la izquierda es `fixed` y mide 288px: en una pantalla de
+       390px dejaba 102px al contenido, y lo que se leía era el texto partido
+       letra por letra («Ex / CL / of / co»). Medido en clarisatest sobre un
+       iPhone 13.
+
+       Bajo 1024px la columna pasa a ser un cajón que se abre sobre el
+       contenido, y el contenido se queda con el ancho entero. Va en CSS a mano
+       y no en clases de Tailwind porque la hoja del catálogo se compila aparte
+       (`npm run build:api-reference-css`) y el layout no puede depender de que
+       esa compilación se acuerde de estas clases. */
+    @media (max-width: 1023px) {
+      .doc-aside {
+        width: min(86vw, 320px);
+        transform: translateX(-100%);
+        transition: transform .24s cubic-bezier(.32,.72,0,1);
+        box-shadow: none;
+      }
+      .doc-aside.is-open {
+        transform: translateX(0);
+        box-shadow: 18px 0 40px rgba(15,23,42,.22);
+      }
+      .doc-main {
+        margin-left: 0;
+        /* Sitio para la barra del cajón, que va fija arriba. */
+        padding: 64px 16px 32px;
+      }
+      .doc-navbar { display: flex; }
+      .doc-scrim.is-open { display: block; }
+      /* 🛑 El mínimo es SOLO para la tabla de datos (`table.data`), que es la
+         única que vive dentro de un contenedor con `overflow: auto` y por tanto
+         la única que puede deslizarse. Aplicado a todas las tablas —como estuvo
+         un rato— las dos de la pestaña Doc (parámetros y campos) quedaban
+         recortadas a 356px de 640 por un ancestro con `overflow: hidden`: media
+         tabla inalcanzable, cuando antes eran `w-full` y cabían solas. */
+      .doc-main table.data { min-width: 640px; }
+
+      /* Las tablas de la pestaña Doc —parámetros y campos— viven dentro de una
+         tarjeta que usa `overflow-hidden` para redondearles las esquinas. Con
+         356px de ancho útil eso recorta 94px de la tabla de parámetros y no hay
+         forma de alcanzarlos. En teléfono la tarjeta deja deslizar: se pierde
+         el redondeo de la esquina de la tabla y se gana la columna que faltaba.
+         (Antes de este bloque la página entera desbordaba y de esa tabla se
+         veían 36px de 422.) */
+      .doc-main div.overflow-hidden:has(> table) {
+        overflow-x: auto;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .doc-aside { transition: none; }
+    }
+    .doc-navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 25;
+      align-items: center; gap: 10px;
+      height: 52px; padding: 0 8px;
+      background: rgba(255,255,255,.92);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgb(226 232 240 / .8);
+    }
+    .doc-navbar__burger {
+      display: inline-flex; align-items: center; justify-content: center;
+      /* 44px: el mínimo que un pulgar acierta sin apuntar. */
+      width: 44px; height: 44px;
+      border: 0; border-radius: 10px; background: transparent;
+      color: #334155; cursor: pointer;
+    }
+    .doc-navbar__burger:active { background: #f1f5f9; }
+    .doc-navbar__where {
+      flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px; font-weight: 700; color: #4e7600;
+    }
+    .doc-scrim {
+      position: fixed; inset: 0; z-index: 20;
+      width: 100%; height: 100%; padding: 0; border: 0;
+      background: rgba(15,23,42,.45); cursor: pointer;
+    }
     .docpill { border-radius: .375rem; background: #f2f7e4; padding: .075rem .35rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; color: #4e7600; }
   </style>
 </head>
@@ -52,10 +135,21 @@
        and a second bar stacked below it read as duplicated chrome. The search
        box now lives at the top of the sidebar, which is what it actually
        filters. -->
+  <!-- Barra del teléfono: abre el catálogo y dice en qué grupo se está. Sólo
+       existe bajo 1024px; con sitio para las dos columnas sobra. -->
+  <header class="doc-navbar">
+    <button type="button" class="doc-navbar__burger" onclick="toggleDocNav()" aria-controls="docAside" aria-expanded="false" aria-label="Open the endpoint catalog">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <span class="doc-navbar__where" id="docNavbarWhere">API Documentation</span>
+  </header>
+
+  <button type="button" class="doc-scrim" id="docScrim" onclick="closeDocNav()" aria-label="Close the endpoint catalog"></button>
+
   <div class="flex">
 
     <!-- SIDEBAR -->
-    <aside class="fixed bottom-0 left-0 top-0 z-30 w-72 overflow-y-auto border-r border-slate-200/80 bg-white px-3 py-5">
+    <aside id="docAside" class="doc-aside fixed bottom-0 left-0 top-0 z-30 w-72 overflow-y-auto border-r border-slate-200/80 bg-white px-3 py-5">
       <div class="mb-4 px-1">
         <button onclick="goHome()" class="mb-2 block w-full truncate text-left text-[13px] font-extrabold tracking-tight text-leaf-700 transition hover:text-leaf-800">
           <span id="sidebarContext">API Documentation</span>
@@ -70,7 +164,7 @@
     </aside>
 
     <!-- MAIN -->
-    <main class="ml-72 min-h-screen min-w-0 flex-1 px-8 py-8">
+    <main class="doc-main ml-72 min-h-screen min-w-0 flex-1 px-8 py-8">
       <!-- No width cap here: the data table needs the full width available.
            Prose-heavy views (home, Get Started, the Doc tab) carry their own
            `mx-auto max-w-*` so long paragraphs never go full-bleed. -->
@@ -111,6 +205,15 @@ const toSegment = s => String(s ?? '').trim().replace(/\s+/g, '_');
 /* Tells the Angular host which path is being shown, so the address bar keeps
    up with in-page navigation without reloading this frame. */
 function announcePath(segments) {
+  // Toda navegación pasa por aquí, así que es el sitio donde el cajón se cierra
+  // solo: quien toca un endpoint quiere verlo, no seguir mirando el catálogo
+  // que lo tapa. Y la barra del teléfono, que es lo único visible del catálogo
+  // cuando está cerrado, dice dónde se está.
+  const where = segments.filter(Boolean);
+  const bar = document.getElementById('docNavbarWhere');
+  if (bar) bar.textContent = where.length ? where[where.length - 1] : 'API Documentation';
+  if (typeof closeDocNav === 'function') closeDocNav();
+
   try {
     parent.postMessage(
       { type: 'clarisa-docs:navigate', path: segments.filter(Boolean).map(toSegment) },
@@ -359,8 +462,28 @@ function highlightActive() {
   }
 }
 
+
+/* ── cajón del catálogo (teléfono y tableta) ──────────────────────── */
+function toggleDocNav() {
+  $('#docAside').classList.contains('is-open') ? closeDocNav() : openDocNav();
+}
+function openDocNav() {
+  $('#docAside').classList.add('is-open');
+  $('#docScrim').classList.add('is-open');
+  $('.doc-navbar__burger').setAttribute('aria-expanded', 'true');
+  document.body.style.overflow = 'hidden';
+}
+function closeDocNav() {
+  $('#docAside').classList.remove('is-open');
+  $('#docScrim').classList.remove('is-open');
+  $('.doc-navbar__burger').setAttribute('aria-expanded', 'false');
+  document.body.style.overflow = '';
+}
+
 $('#globalSearch').addEventListener('input', e => renderSidebar(e.target.value));
 document.addEventListener('keydown', e => {
+  // Escape cierra el cajón antes que nada: es la salida que se busca a ciegas.
+  if (e.key === 'Escape' && $('#docAside').classList.contains('is-open')) { closeDocNav(); return; }
   if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#globalSearch').focus(); }
 });
 
@@ -421,7 +544,7 @@ function goHome() {
             ${heroDescription ? esc(heroDescription) + '<br class="hidden md:block" />' : ''}
             Browse every public list as a <b class="text-white">live table</b>, download it to
             <b class="text-white">Excel</b> in one click, or grab the <b class="text-white">JSON / code snippets</b>
-            if you are integrating a system. Pick a category on the left to start.
+            if you are integrating a system. Pick a category from the catalog to start.
           </p>
           <div class="mt-7 flex flex-wrap gap-3">
             ${stats.map(([n, l]) => `
