@@ -5,11 +5,27 @@
  * está: con dos listas separadas, renombrar una entrada dejaba el título de la
  * barra diciendo otra cosa que la columna de la izquierda.
  */
+/**
+ * Una sub-sección de un link, cuando el link en sí es un panel con pestañas
+ * propias (hoy solo «Microservices & API keys») en vez de una pantalla única.
+ * Vivía como una columna blanca aparte, un segundo sidebar al lado del negro;
+ * ahora es un desplegable más dentro de la misma columna (Yeck, 23-sep-2026).
+ */
+export interface AdminSubLink {
+  label: string;
+  /** Segunda línea, chica: lo que antes explicaba la tarjeta en la columna blanca. */
+  hint: string;
+  /** Query params que seleccionan la pestaña, sobre la ruta del link padre. */
+  queryParams: Record<string, string>;
+}
+
 export interface AdminLink {
   label: string;
   route: string;
   /** Clase de Font Awesome 4, que es la que carga el tema del panel. */
   icon: string;
+  /** Si existen, el link no navega directo: pliega/despliega estas pestañas. */
+  children?: AdminSubLink[];
 }
 
 export interface AdminGroup {
@@ -64,7 +80,24 @@ export const ADMIN_GROUPS: AdminGroup[] = [
       {
         label: 'Microservices & API keys',
         route: '/clarisa-panel/manage/microservices-admin',
-        icon: 'fa fa-plug'
+        icon: 'fa fa-plug',
+        children: [
+          {
+            label: 'API Keys',
+            hint: 'Create, rotate, and revoke keys',
+            queryParams: { section: 'api-keys' }
+          },
+          {
+            label: 'Usage & Analytics',
+            hint: 'Metrics, timelines, and activity logs',
+            queryParams: { section: 'usage' }
+          },
+          {
+            label: 'MIS Registry',
+            hint: 'Manage microservice identities',
+            queryParams: { section: 'mises' }
+          }
+        ]
       }
     ]
   }

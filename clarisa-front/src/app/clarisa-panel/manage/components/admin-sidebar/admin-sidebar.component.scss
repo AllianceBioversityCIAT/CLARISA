@@ -304,6 +304,152 @@
 }
 
 // ---------------------------------------------------------------------------
+// Link con pestañas propias (Microservices & API keys)
+//
+// Antes era una segunda columna blanca al lado de esta: propia marca, propio
+// «CLARISA Admin», propio buscador implícito. Aquí es un link más que en vez
+// de navegar pliega, con el mismo chevron que un grupo — un nivel más adentro,
+// no un mueble aparte (Yeck, 23-sep-2026).
+// ---------------------------------------------------------------------------
+
+.admin-sidebar__list-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: calc(100% - 24px);
+  height: 34px;
+  margin: 1px 12px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cl-admin-nav-muted);
+  font-size: 13px;
+  font-weight: 450;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+
+  &:hover,
+  &:focus {
+    background: #232327;
+    color: var(--cl-admin-nav-ink);
+  }
+
+  &:hover .admin-sidebar__icon,
+  &:focus .admin-sidebar__icon {
+    color: var(--cl-admin-nav-muted);
+  }
+
+  // /* Resaltado tenue: cualquiera de sus tres pestañas está abierta. La pestaña
+  // en sí, más abajo, es la que lleva el acento de menta — este solo dice
+  // «estás en esta zona».
+  &.is-active {
+    color: var(--cl-admin-nav-ink);
+  }
+
+  &:focus-visible {
+    outline: 1px solid #4b4b54;
+    outline-offset: -1px;
+  }
+}
+
+.admin-sidebar__list-toggle-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-sidebar__chevron {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--cl-admin-nav-dim);
+  transition: transform 0.18s ease;
+
+  &.is-collapsed {
+    transform: rotate(-90deg);
+  }
+}
+
+.admin-sidebar__sublist {
+  margin: 2px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+// /* 41px: el padding del botón (8) más el ancho del icono (15) más el gap (10)
+// más el margen de la fila (12) — arranca justo bajo la etiqueta del padre, no
+// bajo su icono.
+.admin-sidebar__sublist a {
+  // /* `.admin-sidebar__list a` (arriba) fija `height: 34px` y `align-items:
+  // center` para una fila de una sola línea; con la misma especificidad, lo que
+  // esta regla no repite lo hereda de esa. Sin pisar las dos, un icono/texto de
+  // dos líneas quedaba comprimido en 34px y las líneas se montaban una sobre
+  // otra.
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: auto;
+  gap: 2px;
+  margin: 3px 12px 3px 41px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.12s ease;
+}
+
+.admin-sidebar__sublink-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--cl-admin-nav-muted);
+  transition: color 0.12s ease;
+}
+
+.admin-sidebar__sublink-hint {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--cl-admin-nav-dim);
+  transition: color 0.12s ease;
+}
+
+.admin-sidebar__sublist a:hover,
+.admin-sidebar__sublist a:focus {
+  background: #232327;
+  text-decoration: none;
+}
+
+.admin-sidebar__sublist a:hover .admin-sidebar__sublink-label,
+.admin-sidebar__sublist a:focus .admin-sidebar__sublink-label {
+  color: var(--cl-admin-nav-ink);
+}
+
+.admin-sidebar__sublist a:focus-visible {
+  outline: 1px solid #4b4b54;
+  outline-offset: -1px;
+}
+
+// La pestaña abierta, mismo acento de menta que una entrada normal activa.
+.admin-sidebar__sublist a.is-active,
+.admin-sidebar__sublist a.is-active:hover,
+.admin-sidebar__sublist a.is-active:focus {
+  background: rgba(95, 227, 180, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(95, 227, 180, 0.3);
+}
+
+.admin-sidebar__sublist a.is-active .admin-sidebar__sublink-label {
+  color: #eafff7;
+}
+
+.admin-sidebar__sublist a.is-active .admin-sidebar__sublink-hint {
+  color: rgba(234, 255, 247, 0.75);
+}
+
+// ---------------------------------------------------------------------------
 // Cuenta
 // ---------------------------------------------------------------------------
 
@@ -582,9 +728,18 @@
     min-height: 44px;
   }
 
-  // El encabezado de grupo no es un destino, solo pliega: 36px se acierta con
-  // el pulgar y no se lleva el sitio de una entrada.
-  .admin-sidebar__title {
+  // Igual que una entrada normal: aunque lleve dos líneas de texto, el área
+  // de toque no puede ser menor a un dedo.
+  .admin-sidebar__sublist a {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  // El encabezado de grupo y el link con pestañas no son un destino, solo
+  // pliegan: 36px se acierta con el pulgar y no se lleva el sitio de una
+  // entrada.
+  .admin-sidebar__title,
+  .admin-sidebar__list-toggle {
     min-height: 36px;
   }
 

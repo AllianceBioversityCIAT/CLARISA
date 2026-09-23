@@ -3,7 +3,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 
 import { AuthService } from '../../../../shared/services/auth.service';
-import { ADMIN_GROUPS, AdminGroup, adminSectionLabel } from '../../admin-nav';
+import { ADMIN_GROUPS, AdminGroup, AdminLink, adminSectionLabel } from '../../admin-nav';
 
 /**
  * Lo que de verdad guarda `localStorage.user`, que no es lo que declara
@@ -57,6 +57,14 @@ export class AdminSidebarComponent implements OnDestroy {
   @ViewChild('search') private searchBox?: ElementRef<HTMLInputElement>;
 
   private readonly collapsed = new Set<string>();
+
+  /**
+   * Links con `children` (hoy solo «Microservices & API keys») que el usuario
+   * plegó a mano, por `route`. Al revés que `collapsed`: ahí vive el título de
+   * un grupo, aquí la ruta de un link, porque son dos niveles de plegado
+   * independientes y un link puede repetir el título de ningún grupo.
+   */
+  private readonly collapsedLinks = new Set<string>();
 
   private readonly navigation: Subscription;
 
@@ -121,7 +129,11 @@ export class AdminSidebarComponent implements OnDestroy {
 
     return ADMIN_GROUPS.map(group => ({
       ...group,
-      links: group.links.filter(link => link.label.toLowerCase().includes(needle))
+      links: group.links.filter(
+        link =>
+          link.label.toLowerCase().includes(needle) ||
+          (link.children?.some(child => child.label.toLowerCase().includes(needle)) ?? false)
+      )
     })).filter(group => group.links.length > 0);
   }
 
@@ -182,6 +194,31 @@ export class AdminSidebarComponent implements OnDestroy {
     } else {
       this.collapsed.add(group.title);
     }
+  }
+
+  /**
+   * Abierto por defecto, igual que un grupo: la columna blanca que esto
+   * reemplaza mostraba sus tres pestañas siempre a la vista, y buscando se
+   * fuerza abierto por la misma razón que un grupo — esconder la coincidencia
+   * detrás de un pliegue contesta «no hay nada» a una pregunta que sí tenía
+   * respuesta.
+   */
+  isLinkCollapsed(link: AdminLink): boolean {
+    return !this.query.trim() && this.collapsedLinks.has(link.route);
+  }
+
+  toggleLink(link: AdminLink): void {
+    if (this.collapsedLinks.has(link.route)) {
+      this.collapsedLinks.delete(link.route);
+    } else {
+      this.collapsedLinks.add(link.route);
+    }
+  }
+
+  /** El link padre se resalta si cualquiera de sus pestañas está abierta. */
+  isLinkActive(link: AdminLink): boolean {
+    const path = this.router.url.split('?')[0];
+    return path === link.route || path.startsWith(`${link.route}/`);
   }
 
   /** La sesión, o `null` si no hay ninguna utilizable. */

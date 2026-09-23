@@ -89,10 +89,38 @@
 
       <ul class="admin-sidebar__list" *ngIf="!isCollapsed(group)">
         <li *ngFor="let link of group.links">
-          <a [routerLink]="link.route" routerLinkActive="is-active">
+          <a *ngIf="!link.children" [routerLink]="link.route" routerLinkActive="is-active">
             <i class="admin-sidebar__icon {{ link.icon }}" aria-hidden="true"></i>
             <span>{{ link.label }}</span>
           </a>
+
+          <!--
+            Un link con `children` no navega directo: pliega sus pestañas, igual
+            que el encabezado de grupo de arriba pero un nivel más adentro. Es lo
+            que antes era la columna blanca de «Microservices & API keys», ahora
+            vive aquí mismo (Yeck, 23-sep-2026).
+          -->
+          <ng-container *ngIf="link.children as children">
+            <button
+              type="button"
+              class="admin-sidebar__list-toggle"
+              [class.is-active]="isLinkActive(link)"
+              [attr.aria-expanded]="!isLinkCollapsed(link)"
+              (click)="toggleLink(link)">
+              <i class="admin-sidebar__icon {{ link.icon }}" aria-hidden="true"></i>
+              <span class="admin-sidebar__list-toggle-label">{{ link.label }}</span>
+              <i class="fa fa-angle-down admin-sidebar__chevron" [class.is-collapsed]="isLinkCollapsed(link)" aria-hidden="true"></i>
+            </button>
+
+            <ul class="admin-sidebar__sublist" *ngIf="!isLinkCollapsed(link)">
+              <li *ngFor="let child of children">
+                <a [routerLink]="link.route" [queryParams]="child.queryParams" routerLinkActive="is-active">
+                  <span class="admin-sidebar__sublink-label">{{ child.label }}</span>
+                  <span class="admin-sidebar__sublink-hint">{{ child.hint }}</span>
+                </a>
+              </li>
+            </ul>
+          </ng-container>
         </li>
       </ul>
     </div>

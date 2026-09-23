@@ -28,4 +28,17 @@ describe('admin navigation', () => {
       expect(link.route.startsWith('/clarisa-panel/manage/')).toBe(true);
     });
   });
+
+  // La columna blanca de «Microservices & API keys» se plegó dentro del menú
+  // negro (Yeck, 23-sep-2026): sus tres pestañas viven aquí como `children`,
+  // seleccionables por query param sobre la misma ruta del link padre.
+  it('breaks Microservices & API keys into its three sections, over its own route', () => {
+    const microservices = ADMIN_GROUPS.find(group => group.title === 'System')?.links[0];
+
+    expect(microservices?.children?.map(child => child.label)).toEqual(['API Keys', 'Usage & Analytics', 'MIS Registry']);
+    microservices?.children?.forEach(child => {
+      expect(child.hint.length).toBeGreaterThan(0);
+      expect(Object.keys(child.queryParams)).toEqual(['section']);
+    });
+  });
 });
