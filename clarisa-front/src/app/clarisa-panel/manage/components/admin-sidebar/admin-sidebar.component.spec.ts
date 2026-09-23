@@ -40,7 +40,15 @@ describe('AdminSidebarComponent', () => {
     fixture.detectChanges();
   });
 
-  const labels = () => Array.from(fixture.nativeElement.querySelectorAll('.admin-sidebar__list a')).map(a => (a as HTMLElement).textContent?.trim());
+  // Direct child combinator: un link con `children` mete su propia `<ul>` de
+  // pestañas dentro del mismo `<li>`, y esa `<ul>` cuelga de `.admin-sidebar__list`
+  // igual que las demás — sin el `>` esas pestañas se contarían aquí también.
+  const labels = () => Array.from(fixture.nativeElement.querySelectorAll('.admin-sidebar__list > li > a')).map(a => (a as HTMLElement).textContent?.trim());
+
+  const subLabels = () =>
+    Array.from(fixture.nativeElement.querySelectorAll('.admin-sidebar__sublist a .admin-sidebar__sublink-label')).map(el =>
+      (el as HTMLElement).textContent?.trim()
+    );
 
   it('should create', () => {
     expect(component).toBeTruthy();
@@ -49,7 +57,35 @@ describe('AdminSidebarComponent', () => {
   it('lists every section, grouped, when nothing is typed', () => {
     expect(component.groups.map(group => group.title)).toEqual(['Manage', 'Access', 'System']);
     expect(labels()).toContain('Glossary');
-    expect(labels()?.length).toBe(6);
+    // 5 links directos: los 6 de siempre menos «Microservices & API keys», que
+    // ahora es un toggle (botón) en vez de un link.
+    expect(labels()?.length).toBe(5);
+  });
+
+  // La columna blanca que esto reemplazó mostraba sus tres pestañas siempre a
+  // la vista, así que el desplegable nace abierto, no colapsado.
+  it('shows the Microservices sub-menu open by default, with its three tabs', () => {
+    expect(subLabels()).toEqual(['API Keys', 'Usage & Analytics', 'MIS Registry']);
+
+    const toggle = fixture.nativeElement.querySelector('.admin-sidebar__list-toggle') as HTMLElement;
+    expect(toggle.textContent).toContain('Microservices & API keys');
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('collapses and reopens the Microservices sub-menu', () => {
+    const microservices = component.groups
+      .find(group => group.title === 'System')
+      ?.links.find(link => link.children);
+
+    component.toggleLink(microservices!);
+    fixture.detectChanges();
+    expect(component.isLinkCollapsed(microservices!)).toBe(true);
+    expect(subLabels()).toEqual([]);
+
+    component.toggleLink(microservices!);
+    fixture.detectChanges();
+    expect(component.isLinkCollapsed(microservices!)).toBe(false);
+    expect(subLabels()).toEqual(['API Keys', 'Usage & Analytics', 'MIS Registry']);
   });
 
   // El buscador es del menú: filtra en memoria y no llama a nadie.

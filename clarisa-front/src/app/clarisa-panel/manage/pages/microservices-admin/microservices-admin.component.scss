@@ -1,26 +1,15 @@
 // El hueco de la barra fija lo reserva el armazón (`manage.component.scss`).
-.ms-admin-layout {
-  display: flex;
-  min-height: calc(100vh - var(--cl-admin-header));
-  background: var(--cl-surface-2);
-  box-sizing: border-box;
-}
-
+// Antes había un `<aside>` propio de 260px al lado (columna blanca, doble
+// sidebar); la elección de pestaña vive ahora en el menú negro, así que esto
+// es una sola columna a todo lo ancho (Yeck, 23-sep-2026).
 .ms-admin-main {
-  flex: 1;
-  min-width: 0;
+  min-height: calc(100vh - var(--cl-admin-header));
+  box-sizing: border-box;
   padding: 1.5rem 2rem 2rem;
+  background: var(--cl-surface-2);
 }
 
-/* En teléfono las dos columnas no caben: el aside de 260px fijos dejaba 130px
-   al contenido —la tabla se veía por una rendija de 54px, medido en un iPhone
-   13—. La navegación de la pantalla pasa arriba, en una fila, y el contenido se
-   queda con el ancho entero. */
 @media (max-width: 900px) {
-  .ms-admin-layout {
-    display: block;
-  }
-
   .ms-admin-main {
     padding: 1rem 1rem 2rem;
   }
