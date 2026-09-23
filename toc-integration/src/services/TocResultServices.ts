@@ -1659,6 +1659,9 @@ export class TocResultServices {
       const row = projectRepo.create({
         toc_result_id_toc,
         project_id,
+        code: typeof p?.code === "string" ? p.code : null,
+        program_code:
+          typeof p?.program_code === "string" ? p.program_code : null,
         name: typeof p?.name === "string" ? p.name : null,
         project_summary:
           typeof p?.project_summary === "string" ? p.project_summary : null,
