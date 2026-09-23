@@ -11,6 +11,12 @@ export class TocResultProject {
   @Column({ type: "varchar", length: 100 })
   project_id: string;
 
+  @Column({ type: "varchar", length: 50, nullable: true })
+  code: string | null;
+
+  @Column({ type: "varchar", length: 50, nullable: true })
+  program_code: string | null;
+
   @Column({ type: "varchar", length: 300, nullable: true })
   name: string | null;
 
