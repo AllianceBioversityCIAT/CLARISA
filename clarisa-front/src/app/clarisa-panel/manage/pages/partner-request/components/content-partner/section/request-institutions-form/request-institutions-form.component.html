@@ -131,7 +131,7 @@
 
   <form class="admin-form request-reject" [formGroup]="groups" (ngSubmit)="reject(groups.value)">
     <div class="field field--inline">
-      <p-radioButton name="send-email" value="checked" [(ngModel)]="checked" inputId="email" [value]="checked" binary="true"></p-radioButton>
+      <p-radioButton name="send-email" value="checked" [(ngModel)]="checked" [ngModelOptions]="{ standalone: true }" inputId="email" [value]="checked" binary="true"></p-radioButton>
       <label for="email">Tick to send a justification email.</label>
     </div>
 
