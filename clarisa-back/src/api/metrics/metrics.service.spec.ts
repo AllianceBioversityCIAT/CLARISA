@@ -92,7 +92,9 @@ describe('MetricsService', () => {
     await service.find();
 
     for (const call of count.mock.calls) {
-      expect(call[1]).toEqual({ where: { auditableFields: { is_active: true } } });
+      expect(call[1]).toEqual({
+        where: { auditableFields: { is_active: true } },
+      });
     }
   });
 
