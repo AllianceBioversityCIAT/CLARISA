@@ -253,8 +253,8 @@
       </thead>
       <tbody>
         <tr *ngFor="let row of mappingPreviewRows">
-          <td class="cell-primary">{{ row.term || '—' }}</td>
-          <td>{{ row.definition || '—' }}</td>
+          <td data-card-title data-label="Term" class="cell-primary">{{ row.term || '—' }}</td>
+          <td data-label="Definition">{{ row.definition || '—' }}</td>
         </tr>
       </tbody>
     </table>
@@ -335,6 +335,7 @@
       styleClass="filter-dropdown filter-dropdown--wide"
       [options]="actionFilterOptions"
       [(ngModel)]="actionFilter"
+      (onChange)="applyActionFilter()"
       (onShow)="onDropdownShow($event)">
     </p-dropdown>
     <span class="review-toolbar__count">Showing {{ reviewRows.length }} row(s)</span>
@@ -343,27 +344,27 @@
   <p-table [value]="reviewRows" [rows]="20" [paginator]="reviewRows.length > 20" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
     <ng-template pTemplate="header">
       <tr>
-        <th scope="col" style="width: 4rem">Row</th>
-        <th scope="col" style="width: 7rem">Action</th>
-        <th scope="col" style="width: 16rem">Term</th>
-        <th scope="col">Definition to be saved</th>
+        <th scope="col" pSortableColumn="index" style="width: 5rem">Row <p-sortIcon field="index"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="action" style="width: 8rem">Action <p-sortIcon field="action"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="term" style="width: 16rem">Term <p-sortIcon field="term"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="definition">Definition to be saved <p-sortIcon field="definition"></p-sortIcon></th>
         <th scope="col" style="width: 11rem">Portfolios</th>
       </tr>
     </ng-template>
 
     <ng-template pTemplate="body" let-row>
       <tr [class.row-invalid]="row.action === 'invalid'">
-        <td>{{ row.index }}</td>
-        <td><p-tag [value]="actionLabel(row.action)" [severity]="actionSeverity(row.action)"></p-tag></td>
-        <td class="cell-primary">{{ row.term || '—' }}</td>
-        <td>
+        <td data-label="Row">{{ row.index }}</td>
+        <td data-label="Action"><p-tag [value]="actionLabel(row.action)" [severity]="actionSeverity(row.action)"></p-tag></td>
+        <td data-card-title data-label="Term" class="cell-primary">{{ row.term || '—' }}</td>
+        <td data-label="Definition to be saved">
           <div>{{ row.definition || '—' }}</div>
           <div class="cell-previous" *ngIf="row.action === 'update' && row.current_definition">
             <span class="cell-previous__label">Currently:</span> {{ row.current_definition }}
           </div>
           <div class="cell-message" *ngIf="row.message">{{ row.message }}</div>
         </td>
-        <td>
+        <td data-label="Portfolios">
           <span class="portfolio-chips" *ngIf="row.portfolios?.length; else noRowPortfolios">
             <span class="portfolio-chip" *ngFor="let portfolio of row.portfolios">{{ portfolio.acronym || portfolio.name }}</span>
           </span>

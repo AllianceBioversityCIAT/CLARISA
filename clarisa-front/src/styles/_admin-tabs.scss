@@ -1,0 +1,155 @@
+/**
+ * `.admin-tabs` — EL selector de secciones del panel. Una sola definición.
+ *
+ * Es el segmentado que ya estrenó el glosario el 15-sep-2026 («tabs simples de
+ * fábrica = feos»: riel redondeado, segmento activo en blanco elevado), promovido
+ * aquí para que lo use cualquier pantalla. Sustituye a las pestañas Bootstrap del
+ * tema (`ul.panel-tabs`), que envolvían a dos líneas, no marcaban el activo más
+ * que con un subrayado y colgaban el contador ENCIMA del texto.
+ *
+ * Marcado esperado — botones, no anclas: una pestaña no navega a ninguna parte.
+ *
+ *   <nav class="admin-tabs" role="tablist">
+ *     <button type="button" role="tab" class="admin-tabs__item"
+ *             [class.is-active]="…" [attr.aria-selected]="…">
+ *       <span>Etiqueta</span>
+ *       <span class="admin-tabs__count">24</span>   <!-- opcional -->
+ *     </button>
+ *   </nav>
+ *
+ * Tamaños en px por la misma razón que en `_admin-table.scss`.
+ */
+
+.admin-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px;
+  background: var(--cl-surface-2);
+  border: 1px solid var(--cl-line);
+  border-radius: 999px;
+  box-sizing: border-box;
+  /* Con cuatro etiquetas largas el riel se desplaza en lugar de partirse en dos
+     filas, que es lo que hacía feo al de Bootstrap. */
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  /* 🛑 Obligatorio, y por eso está escrito: en `partner-request` el mismo nodo
+     lleva también `.admin-page__aside`, que declara `flex-wrap: wrap`. Como el
+     riel no declaraba nada, el `wrap` ganaba y las cuatro pestañas se partían
+     en DOS FILAS dentro de la píldora —«estos botones los veo colapsados»,
+     Yeck, 18-sep-2026—. En escritorio no se notaba porque caben. */
+  flex-wrap: nowrap;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* En teléfono el riel toma el ancho entero y avisa de que sigue: sin la pista,
+   un riel cortado a ras del borde se lee como una pestaña mal recortada y no
+   como algo que se desliza. La máscara se apaga al llegar al final. */
+@media (max-width: 720px) {
+  .admin-tabs {
+    display: flex;
+    width: 100%;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+
+    /* Sin desplazamiento pendiente no hay nada que insinuar. */
+    &:not(:has(.admin-tabs__item:last-child:not(:first-child))) {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+  }
+
+  .admin-tabs__item {
+    /* Alto de dedo, como el resto de controles del panel en teléfono. */
+    min-height: 44px;
+    padding: 0 14px;
+  }
+}
+
+.admin-tabs__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  height: 36px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cl-ink-2);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  /* Una pestaña se lee de un vistazo o no es una pestaña. */
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
+
+  i {
+    font-size: 13px;
+  }
+
+  &:hover:not(.is-active) {
+    background: var(--cl-surface);
+    color: var(--cl-ink);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cl-brand-ring);
+    outline-offset: 1px;
+  }
+}
+
+/* El activo se levanta en blanco sobre el riel gris: se distingue sin subrayado
+   y sin cambiarle el peso al texto. */
+.admin-tabs__item.is-active,
+.admin-tabs__item.is-active:hover {
+  background: var(--cl-surface);
+  border-color: var(--cl-line);
+  color: var(--cl-brand-deeper);
+  box-shadow:
+    0 1px 2px rgba(16, 36, 28, 0.06),
+    0 2px 8px rgba(16, 36, 28, 0.08);
+}
+
+/* El contador vive DENTRO del segmento, detrás de la etiqueta. Antes era un
+   `pBadge` absoluto que caía encima de la última palabra. */
+.admin-tabs__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.admin-tabs__item.is-active .admin-tabs__count {
+  background: var(--cl-brand-strong);
+  color: var(--cl-surface);
+}
+
+@media (max-width: 600px) {
+  .admin-tabs {
+    display: flex;
+    width: 100%;
+  }
+
+  .admin-tabs__item {
+    padding: 0 12px;
+  }
+}

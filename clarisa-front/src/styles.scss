@@ -2,6 +2,19 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
+/* Los dos componentes compartidos del panel: la tabla y el selector de sección.
+   Viven en global porque su razón de ser es que TODAS las pantallas dibujen el
+   mismo control; declararlos dentro de un componente es lo que llevó a tener
+   tres tablas distintas para el mismo dato.
+   Van arriba de todo (tras la fuente): un @import después de otras reglas es
+   inválido en CSS y Sonar lo marca como bug. Antes solo había variables :root,
+   así que la cascada no cambia. */
+@import 'styles/admin-page';
+@import 'styles/admin-controls';
+@import 'styles/admin-table';
+@import 'styles/admin-tabs';
+@import 'styles/admin-form';
+
 /* Design tokens - the single source of colour for the application.
    A literal hex outside this block is a review error; see DESIGN.md section 2.
    PrimeNG is not recoloured from here: its theme writes the accent as a literal
@@ -33,6 +46,33 @@
   --cl-radius-card:    14px;
   --cl-radius-control: 8px;
   --cl-shadow-card: 0 28px 60px -14px rgba(0, 0, 0, 0.62), 0 4px 14px rgba(0, 0, 0, 0.28);
+
+  /* Layout del panel de administración. */
+  /* Alto del bloque de marca de la columna. Fue el de la barra superior, que ya
+     no existe: sus dos botones y el nombre de la sección se fueron al pie del
+     sidebar y la franja entera sobraba. */
+  --cl-admin-header: 60px;
+  /* 264 y no 248: con el icono delante, la entrada más larga del panel
+     —«Microservices & API keys»— se cortaba con puntos suspensivos, y un nombre
+     de sección truncado es lo primero que delata una columna estrecha. */
+  --cl-admin-sidebar: 264px;
+  /* El armazón del panel —columna y barra— es negro NEUTRO, sin verde en las
+     superficies: el menta sobre negro se veía «galáctico» (Yeck, 16-sep-2026,
+     pidiendo algo «premium, tipo Vercel, más limpio»). El color de marca queda
+     para una sola acción sólida, no para pintar el mueble. Texto sobre el
+     carbón: 16.97 el claro, 7.50 el apagado y 4.35 el de las etiquetas.
+     🛑 Carbón y no negro puro: con #0a0a0a el panel se veía «tan tinta»
+     (Yeck, 16-sep-2026). Es el mismo sistema, dos peldaños más arriba. */
+  --cl-admin-nav:        #18181b;
+  --cl-admin-nav-2:      #212124;
+  --cl-admin-nav-line:   #2e2e33;
+  --cl-admin-nav-ink:    #fafafa;
+  --cl-admin-nav-muted:  #a8a8b0;
+  --cl-admin-nav-dim:    #7d7d87;
+  /* El menta vuelve, pero SOLO como acento: la sección abierta, su icono, el
+     disco de la cuenta y el foco. Pintar con él las superficies es lo que se veía
+     «galáctico»; marcar con él dónde estás es para lo que sirve. */
+  --cl-admin-nav-accent: #5fe3b4;
 }
 
 html *:not(.fa, .fe, .pi, pre, code) {
@@ -187,4 +227,16 @@ html *:not(.fa, .fe, .pi, pre, code) {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+}
+
+/* ---------------------------------------------------------------------------
+   Cajón de navegación del panel — candado del scroll
+
+   Con el cajón abierto en teléfono, el dedo tiene que mover el cajón y no la
+   tabla que queda detrás: sin esto la página de atrás sigue corriendo bajo un
+   menú que la tapa, y al cerrar se vuelve a un sitio distinto del que se dejó.
+   La clase la pone y la quita `AdminSidebarComponent`.
+   --------------------------------------------------------------------------- */
+body.admin-drawer-open {
+  overflow: hidden;
 }

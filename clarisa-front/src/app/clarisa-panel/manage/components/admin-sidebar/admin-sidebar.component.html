@@ -1,15 +1,150 @@
-<nav class="admin-sidebar" aria-label="Administration">
+<!--
+  Barra del teléfono. Solo existe bajo 900px (el CSS la esconde arriba) y es lo
+  único que se ve del menú hasta que se pide: el botón que abre el cajón, la
+  sección en la que se está —para no depender de leer el título de la página— y
+  la marca al otro extremo, que es la que dice «esto es el panel, no la web».
+-->
+<header class="admin-topbar">
+  <button
+    type="button"
+    class="admin-topbar__burger"
+    (click)="toggleDrawer()"
+    [attr.aria-expanded]="drawerOpen"
+    aria-controls="admin-drawer"
+    aria-label="Open the administration menu">
+    <i class="fa" [class.fa-bars]="!drawerOpen" [class.fa-times]="drawerOpen" aria-hidden="true"></i>
+  </button>
+
+  <span class="admin-topbar__where">{{ sectionLabel || 'Administration' }}</span>
+
+  <a class="admin-topbar__brand" routerLink="/landing-page/home" aria-label="CLARISA — back to the site">
+    <img src="../../../../assets/cgiar_logo.png" alt="" class="admin-sidebar__mark" />
+    <span>CLARISA</span>
+  </a>
+</header>
+
+<!--
+  El velo cierra el cajón al tocar fuera, que es el gesto que todo el mundo
+  intenta primero. Es un botón y no un div: se alcanza con el teclado y se
+  anuncia por lo que hace.
+-->
+<button
+  type="button"
+  class="admin-scrim"
+  *ngIf="drawerOpen"
+  (click)="closeDrawer()"
+  aria-label="Close the administration menu"></button>
+
+<nav class="admin-sidebar" id="admin-drawer" [class.is-open]="drawerOpen" aria-label="Administration">
+  <!--
+    La marca encabeza la columna: la identidad vive con la navegación que se usa.
+    «Administration» va como etiqueta al lado del nombre y no como subtítulo en
+    versales de color, que era una de las piezas que hacían ruido.
+  -->
   <a class="admin-sidebar__brand" routerLink="/landing-page/home">
     <img src="../../../../assets/cgiar_logo.png" alt="CGIAR" class="admin-sidebar__mark" />
-    <span class="admin-sidebar__word">CLARISA<small>Administration</small></span>
+    <span class="admin-sidebar__word">CLARISA</span>
+    <span class="admin-sidebar__chip">Admin</span>
   </a>
 
-  <div class="admin-sidebar__group" *ngFor="let group of groups">
-    <h2 class="admin-sidebar__title">{{ group.title }}</h2>
-    <ul class="admin-sidebar__list">
-      <li *ngFor="let link of group.links">
-        <a [routerLink]="link.route" routerLinkActive="is-active">{{ link.label }}</a>
-      </li>
-    </ul>
+  <!--
+    La vuelta al sitio, justo bajo la marca: es de dónde se viene, así que vive
+    arriba con ella y no al final de todo (Yeck, 16-sep-2026).
+  -->
+  <a class="admin-sidebar__back" routerLink="/landing-page/home">
+    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+    <span>Back to the site</span>
+  </a>
+
+  <!--
+    Busca dentro de la navegación y nada más: no hay backend detrás ni pretende
+    haberlo. Con seis entradas parece de sobra, pero es el atajo de quien ya sabe
+    a dónde va y no quiere leer la columna.
+  -->
+  <div class="admin-sidebar__search">
+    <i class="fa fa-search" aria-hidden="true"></i>
+    <input
+      #search
+      type="search"
+      name="admin-search"
+      [(ngModel)]="query"
+      placeholder="Search…"
+      aria-label="Search the administration menu"
+      autocomplete="off"
+      (keydown.escape)="query = ''" />
+    <!-- El atajo se anuncia donde se usa, y funciona: ⌘K / Ctrl+K enfoca esto. -->
+    <span class="admin-sidebar__kbd" *ngIf="!query">{{ shortcutHint }}</span>
+    <button type="button" class="admin-sidebar__clear" *ngIf="query" (click)="clear()" aria-label="Clear the search">
+      <i class="fa fa-times" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="admin-sidebar__nav">
+    <div class="admin-sidebar__group" *ngFor="let group of groups">
+      <!-- El encabezado pliega su grupo; es un botón porque hace algo. -->
+      <button type="button" class="admin-sidebar__title" [class.is-collapsed]="isCollapsed(group)" [attr.aria-expanded]="!isCollapsed(group)" (click)="toggle(group)">
+        <span>{{ group.title }}</span>
+        <i class="fa fa-angle-down" aria-hidden="true"></i>
+      </button>
+
+      <ul class="admin-sidebar__list" *ngIf="!isCollapsed(group)">
+        <li *ngFor="let link of group.links">
+          <a *ngIf="!link.children" [routerLink]="link.route" routerLinkActive="is-active">
+            <i class="admin-sidebar__icon {{ link.icon }}" aria-hidden="true"></i>
+            <span>{{ link.label }}</span>
+          </a>
+
+          <!--
+            Un link con `children` no navega directo: pliega sus pestañas, igual
+            que el encabezado de grupo de arriba pero un nivel más adentro. Es lo
+            que antes era la columna blanca de «Microservices & API keys», ahora
+            vive aquí mismo (Yeck, 23-sep-2026).
+          -->
+          <ng-container *ngIf="link.children as children">
+            <button
+              type="button"
+              class="admin-sidebar__list-toggle"
+              [class.is-active]="isLinkActive(link)"
+              [attr.aria-expanded]="!isLinkCollapsed(link)"
+              (click)="toggleLink(link)">
+              <i class="admin-sidebar__icon {{ link.icon }}" aria-hidden="true"></i>
+              <span class="admin-sidebar__list-toggle-label">{{ link.label }}</span>
+              <i class="fa fa-angle-down admin-sidebar__chevron" [class.is-collapsed]="isLinkCollapsed(link)" aria-hidden="true"></i>
+            </button>
+
+            <ul class="admin-sidebar__sublist" *ngIf="!isLinkCollapsed(link)">
+              <li *ngFor="let child of children">
+                <a [routerLink]="link.route" [queryParams]="child.queryParams" routerLinkActive="is-active">
+                  <span class="admin-sidebar__sublink-label">{{ child.label }}</span>
+                  <span class="admin-sidebar__sublink-hint">{{ child.hint }}</span>
+                </a>
+              </li>
+            </ul>
+          </ng-container>
+        </li>
+      </ul>
+    </div>
+
+    <p class="admin-sidebar__empty" *ngIf="isEmpty">No section matches «{{ query }}».</p>
+  </div>
+
+  <!--
+    El pie: con qué sesión se trabaja y cómo cerrarla. Vivían en una barra
+    superior que no hacía nada más, así que la barra sobraba y el espacio que se
+    llevaba, también.
+  -->
+  <div class="admin-sidebar__foot">
+    <div class="admin-sidebar__account" *ngIf="user">
+      <span class="admin-sidebar__disc">{{ initials }}</span>
+      <span class="admin-sidebar__who">
+        <strong>{{ displayName }}</strong>
+        <small *ngIf="email">{{ email }}</small>
+      </span>
+    </div>
+
+    <a class="admin-sidebar__out" routerLink="/landing-page/login" (click)="onLogOut()">
+      <i class="fa fa-sign-out" aria-hidden="true"></i>
+      <span>Logout</span>
+    </a>
   </div>
 </nav>

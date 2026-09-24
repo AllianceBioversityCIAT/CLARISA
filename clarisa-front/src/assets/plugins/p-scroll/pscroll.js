@@ -1,26 +1,27 @@
-(function($) {
-    "use strict";
+(function ($) {
+  'use strict';
 
-    const ps = new PerfectScrollbar('.app-sidebar', {
-        useBothWheelAxes: true,
-        suppressScrollX: true,
-        suppressScrollY: false,
+  /**
+   * 🛑 Guardado a propósito. El tema construía estos PerfectScrollbar al cargar
+   * la página, contando con un layout que el panel ya no tiene: `.app-sidebar`
+   * solo existe dentro de una ruta perezosa (la de partner-request) y las otras
+   * tres —`.header-dropdown-list`, `.notifications-menu`,
+   * `.message-menu-scroll`— no existen en ninguna parte desde el revamp.
+   * Sin guarda, cada carga del panel lanzaba
+   * «no element is specified to initialize PerfectScrollbar», que no rompe
+   * Angular pero llena la consola de rojo y esconde los errores de verdad.
+   */
+  const attach = selector => {
+    if (!document.querySelector(selector)) return null;
+    return new PerfectScrollbar(selector, {
+      useBothWheelAxes: true,
+      suppressScrollX: true,
+      suppressScrollY: false,
     });
-    const ps1 = new PerfectScrollbar('.header-dropdown-list', {
-        useBothWheelAxes: true,
-        suppressScrollX: true,
-        suppressScrollY: false,
-    });
-    const ps2 = new PerfectScrollbar('.notifications-menu', {
-        useBothWheelAxes: true,
-        suppressScrollX: true,
-        suppressScrollY: false,
-    });
-    const ps3 = new PerfectScrollbar('.message-menu-scroll', {
-        useBothWheelAxes: true,
-        suppressScrollX: true,
-        suppressScrollY: false,
-    });
+  };
 
-    //P-scrolling
+  attach('.app-sidebar');
+  attach('.header-dropdown-list');
+  attach('.notifications-menu');
+  attach('.message-menu-scroll');
 })(jQuery);

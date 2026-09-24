@@ -1,7 +1,14 @@
-<app-header></app-header>
-<app-about-us id="about-us"></app-about-us>
-<app-indicators></app-indicators>
-<app-publications></app-publications>
-<app-info-dashboards-api-services></app-info-dashboards-api-services>
-<app-partners-collaborators></app-partners-collaborators>
+<!--
+  La home es un solo recorrido.
 
+  `app-header` ya no es el encabezado: es la página. Dentro lleva el vídeo que
+  avanza con el scroll y, encima, las cinco secciones que antes se declaraban
+  aquí abajo —about us, indicadores, publicaciones, dashboards y servicios,
+  partners—, servidas como tramos del descenso.
+
+  🛑 Por eso esas cinco etiquetas ya no están: dejarlas duplicaría el contenido,
+  una vez sobre el vídeo y otra debajo. Los componentes tampoco: se borraron al
+  limpiar, porque Angular los compilaba en cada build para no pintarlos nunca.
+  Están en el historial de git si algún día hacen falta.
+-->
+<app-header></app-header>

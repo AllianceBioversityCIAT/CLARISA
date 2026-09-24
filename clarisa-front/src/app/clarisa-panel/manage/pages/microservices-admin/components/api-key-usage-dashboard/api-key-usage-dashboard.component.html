@@ -169,21 +169,21 @@
   <p-table [value]="summary.by_mis_microservice" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
     <ng-template pTemplate="header">
       <tr>
-        <th>MIS</th>
-        <th>Environment</th>
-        <th>Microservice</th>
-        <th>Requests</th>
+        <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="environment">Environment <p-sortIcon field="environment"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="microservice_name">Microservice <p-sortIcon field="microservice_name"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="total_requests">Requests <p-sortIcon field="total_requests"></p-sortIcon></th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-row>
       <tr>
-        <td>
+        <td data-card-title data-label="MIS">
           <span class="cell-primary">{{ row.mis_acronym }}</span>
           <span class="cell-sub">{{ row.mis_name }}</span>
         </td>
-        <td>{{ row.environment || '—' }}</td>
-        <td><code>{{ row.microservice_name }}</code></td>
-        <td><strong>{{ formatNumber(row.total_requests) }}</strong></td>
+        <td data-label="Environment">{{ row.environment || '—' }}</td>
+        <td data-label="Microservice"><code>{{ row.microservice_name }}</code></td>
+        <td data-label="Requests"><strong>{{ formatNumber(row.total_requests) }}</strong></td>
       </tr>
     </ng-template>
   </p-table>
@@ -198,23 +198,23 @@
     <p-table [value]="summary.by_mis" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
       <ng-template pTemplate="header">
         <tr>
-          <th>MIS</th>
-          <th>Environment</th>
-          <th>Requests</th>
-          <th>Keys</th>
-          <th>Microservices</th>
+          <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="environment">Environment <p-sortIcon field="environment"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="total_requests">Requests <p-sortIcon field="total_requests"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="api_key_count">Keys <p-sortIcon field="api_key_count"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="microservices_used">Microservices <p-sortIcon field="microservices_used"></p-sortIcon></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-row>
         <tr>
-          <td>
+          <td data-card-title data-label="MIS">
             <span class="cell-primary">{{ row.mis_acronym }}</span>
             <span class="cell-sub">{{ row.mis_name }}</span>
           </td>
-          <td>{{ row.environment || '—' }}</td>
-          <td><strong>{{ formatNumber(row.total_requests) }}</strong></td>
-          <td>{{ row.api_key_count }}</td>
-          <td>{{ row.microservices_used }}</td>
+          <td data-label="Environment">{{ row.environment || '—' }}</td>
+          <td data-label="Requests"><strong>{{ formatNumber(row.total_requests) }}</strong></td>
+          <td data-label="Keys">{{ row.api_key_count }}</td>
+          <td data-label="Microservices">{{ row.microservices_used }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
@@ -235,23 +235,23 @@
     >
       <ng-template pTemplate="header">
         <tr>
-          <th>Key</th>
-          <th>MIS</th>
-          <th>Period</th>
-          <th>Lifetime</th>
-          <th>Last used</th>
+          <th scope="col" pSortableColumn="name">Key <p-sortIcon field="name"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="requests_in_period">Period <p-sortIcon field="requests_in_period"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="usage_count">Lifetime <p-sortIcon field="usage_count"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="last_used_at">Last used <p-sortIcon field="last_used_at"></p-sortIcon></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-row>
         <tr [class.is-selected]="filterApiKeyId === row.id" (click)="selectApiKey(row.id)">
-          <td>
+          <td data-card-title data-label="Key">
             <span class="cell-primary">{{ row.name }}</span>
             <code class="key-prefix">{{ row.key_prefix }}…</code>
           </td>
-          <td>{{ row.mis_acronym || '—' }}</td>
-          <td><strong>{{ formatNumber(row.requests_in_period) }}</strong></td>
-          <td>{{ formatNumber(row.usage_count) }}</td>
-          <td>{{ formatDate(row.last_used_at) }}</td>
+          <td data-label="MIS">{{ row.mis_acronym || '—' }}</td>
+          <td data-label="Period"><strong>{{ formatNumber(row.requests_in_period) }}</strong></td>
+          <td data-label="Lifetime">{{ formatNumber(row.usage_count) }}</td>
+          <td data-label="Last used">{{ formatDate(row.last_used_at) }}</td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
@@ -295,13 +295,17 @@
     <header class="table-card__head"><h3>Top endpoints / patterns</h3></header>
     <p-table [value]="keyDetail.top_endpoints" styleClass="p-datatable-sm admin-table">
       <ng-template pTemplate="header">
-        <tr><th>Endpoint</th><th>Requests</th><th>Share</th></tr>
+        <tr>
+          <th scope="col" pSortableColumn="label">Endpoint <p-sortIcon field="label"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="total_requests">Requests <p-sortIcon field="total_requests"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="percentage">Share <p-sortIcon field="percentage"></p-sortIcon></th>
+        </tr>
       </ng-template>
       <ng-template pTemplate="body" let-row>
         <tr>
-          <td><code>{{ row.label }}</code></td>
-          <td>{{ formatNumber(row.total_requests) }}</td>
-          <td>{{ row.percentage }}%</td>
+          <td data-card-title data-label="Endpoint"><code>{{ row.label }}</code></td>
+          <td data-label="Requests">{{ formatNumber(row.total_requests) }}</td>
+          <td data-label="Share">{{ row.percentage }}%</td>
         </tr>
       </ng-template>
     </p-table>
@@ -321,24 +325,24 @@
   >
     <ng-template pTemplate="header">
       <tr>
-        <th>Time</th>
-        <th>MIS</th>
-        <th>Key</th>
-        <th>Microservice</th>
-        <th>Endpoint</th>
-        <th>Status</th>
-        <th>Latency</th>
+        <th scope="col" pSortableColumn="created_at">Time <p-sortIcon field="created_at"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="key_prefix">Key <p-sortIcon field="key_prefix"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="microservice_name">Microservice <p-sortIcon field="microservice_name"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="endpoint_accessed">Endpoint <p-sortIcon field="endpoint_accessed"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="status_code">Status <p-sortIcon field="status_code"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="response_time_ms">Latency <p-sortIcon field="response_time_ms"></p-sortIcon></th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-row>
       <tr>
-        <td>{{ formatDate(row.created_at) }}</td>
-        <td>{{ row.mis_acronym || '—' }}</td>
-        <td><code>{{ row.key_prefix }}…</code></td>
-        <td>{{ row.microservice_name }}</td>
-        <td><code>{{ row.endpoint_accessed }}</code></td>
-        <td>{{ row.status_code ?? '—' }}</td>
-        <td>{{ formatMs(row.response_time_ms) }}</td>
+        <td data-label="Time">{{ formatDate(row.created_at) }}</td>
+        <td data-label="MIS">{{ row.mis_acronym || '—' }}</td>
+        <td data-card-title data-label="Key"><code>{{ row.key_prefix }}…</code></td>
+        <td data-label="Microservice">{{ row.microservice_name }}</td>
+        <td data-label="Endpoint"><code>{{ row.endpoint_accessed }}</code></td>
+        <td data-label="Status">{{ row.status_code ?? '—' }}</td>
+        <td data-label="Latency">{{ formatMs(row.response_time_ms) }}</td>
       </tr>
     </ng-template>
     <ng-template pTemplate="emptymessage">

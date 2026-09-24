@@ -1,12 +1,825 @@
-.hero {
-  &--title {
-    margin-bottom: 2rem !important;
+//
+// Hero con recorrido por scroll.
+//
+// 🛑 Los `var(--cl-*, #hex)` llevan valor de respaldo A PROPÓSITO: esta rama nace
+// de `staging`, y los tokens de DESIGN.md § 2 todavía no están allí — se
+// declararon con el revamp visual, que hoy solo vive en `dev-v2`. Sin el respaldo
+// el botón primario sale sin fondo. En cuanto `staging` reciba los tokens, el
+// respaldo deja de usarse solo y estas líneas se pueden limpiar.
+//
+// Todo el color sale de los tokens `--cl-*` de `styles.scss`; aquí no se escribe
+// ni un hex de marca (DESIGN.md § 2). Las medidas van en PÍXELES porque el tema
+// pone `html { font-size: 62.5% }` y una escala en `rem` aterriza a la mitad
+// (DESIGN.md § 1).
+//
+// Los selectores llevan `:host` para ganarle sin `!important` a las reglas de
+// `assets/css/style-landing.css`, que declara `.hero h1`, `.btn` y compañía con
+// dos y tres niveles.
+
+:host {
+  display: block;
+}
+
+// ---------------------------------------------------------------- el carril
+
+:host .cl-page {
+  position: relative;
+  background: #03140f;
+  // /* El hero se mete DEBAJO de la barra en vez de empezar después de ella: la
+  // barra es translúcida sobre el recorrido, así que el vídeo se ve a través y
+  // se recuperan los 73px que quedaban como franja muerta.
+  margin-top: -73px;
+  // /* 🛑 Y `style-landing.css` declara `section { padding: 70px 0 }` para las
+  // secciones del tema viejo — esto también es un `<section>`. Esos 70px metían
+  // una franja muerta ENCIMA del escenario: empezaba en y=71 en vez de y=1, así
+  // que en el teléfono la pista de «Scroll» nacía fuera de pantalla y el hero
+  // perdía el 10% de su alto. Medido en WebKit móvil, 16-sep-2026.
+  padding: 0;
+}
+
+// El escenario se queda pegado toda la página. El margen negativo es lo que
+// permite que el contenido pase por encima sin que el navegador reserve su alto
+// otra vez — sin él, todo bajaría una pantalla.
+//
+// 🛑 `svh`, no `vh`. En Safari de iOS `100vh` es el viewport GRANDE —el de la
+// barra de direcciones ya colapsada—, así que el escenario mide más que lo que
+// se ve y pega un salto cada vez que la barra aparece o desaparece. `100svh` es
+// el viewport pequeño y no se mueve nunca. El `vh` de la línea de antes es el
+// respaldo para navegadores sin `svh`.
+:host .cl-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  margin-bottom: -100vh;
+  margin-bottom: -100svh;
+  overflow: hidden;
+  z-index: 0;
+}
+
+// El carril del hero: alto vacío que le da recorrido al crecimiento.
+// 🛑 Tiene que medir MÁS que la pantalla: el recorrido es `alto - alto de la
+// pantalla`, así que con 65vh salía negativo y el componente se rendía sin mover
+// un fotograma. Es exactamente lo que pasaba en el teléfono (JC, 16-sep-2026):
+// el móvil tenía su propio `65vh` y el hero entero quedaba muerto.
+:host .cl-rail {
+  position: relative;
+  height: 165vh;
+  height: 165svh;
+  pointer-events: none;
+}
+
+:host .cl-hero__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+// El descenso se apila encima del crecimiento. No lleva fundido largo: su primer
+// fotograma ES el último del clip de arriba, así que un cambio limpio se lee
+// como la misma toma que continúa. 120 ms solo evitan el parpadeo del cambio.
+:host .cl-hero__video--descent {
+  opacity: 0;
+  transition: opacity 0.12s linear;
+
+  &.is-on {
+    opacity: 1;
+  }
+}
+
+// El texto necesita fondo propio: la planta está a la derecha y la izquierda
+// se oscurece para que el titular tenga contraste real sobre cualquier fotograma.
+// Bajo tierra el contenido es denso y el vídeo cede: «no importa que se tape
+// atrás».
+:host .cl-hero__wash.is-deep {
+  background: linear-gradient(90deg, rgba(3, 20, 15, 0.93) 0%, rgba(3, 20, 15, 0.86) 52%, rgba(3, 20, 15, 0.58) 100%);
+}
+
+:host .cl-hero__wash {
+  position: absolute;
+  inset: 0;
+  transition: background 0.5s ease;
+  background: linear-gradient(90deg, rgba(6, 35, 26, 0.9) 0%, rgba(6, 35, 26, 0.74) 38%, rgba(6, 35, 26, 0.18) 72%, rgba(6, 35, 26, 0.4) 100%);
+}
+
+// ---------------------------------------------------------------- el texto
+
+:host .cl-hero__copy.is-off {
+  opacity: 0;
+  pointer-events: none;
+}
+
+:host .cl-hero__copy {
+  position: relative;
+  transition: opacity 0.35s ease;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  // /* 73px arriba: lo que mide la barra, para que el titular no nazca debajo.
+  padding: 73px clamp(24px, 5vw, 80px) 0;
+}
+
+// Los tres mensajes se apilan en la misma caja para que el bloque no cambie de
+// alto al pasar de uno a otro — si saltara, los botones bailarían en pantalla.
+//
+// 🛑 Se apilan con GRID, no con `position: absolute` + `min-height` en píxeles.
+// El número mágico (285px aquí, 290px en el móvil) es correcto para un ancho y
+// falso para todos los demás: en el teléfono el titular ocupa cinco líneas y el
+// bloque se desbordaba, y en escritorio sobraba hueco muerto. Con las tres cajas
+// en la MISMA celda el alto lo fija el mensaje más largo, al ancho que sea.
+:host .cl-hero__steps {
+  display: grid;
+  align-items: start;
+}
+
+:host .cl-hero__step {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.42s ease,
+    transform 0.42s ease;
+  pointer-events: none;
+
+  &.is-on {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+}
+
+:host .cl-hero__text {
+  max-width: 44ch;
+  margin: 16px 0 0;
+  color: #c9e3d9;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+// ---------------------------------------------------- bloques de contenido
+
+:host .cl-panel {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 24px 26px;
+  background: rgba(3, 20, 15, 0.62);
+  backdrop-filter: blur(10px);
+}
+
+:host .cl-panel--split {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 32px;
+  align-items: center;
+  max-width: 1080px;
+  margin-top: 16px;
+}
+
+// Dentro de un panel el texto ocupa el ancho del panel: el tope de 44ch existe
+// para la columna del hero, no aquí, y dejaba media tarjeta vacía.
+:host .cl-panel .cl-hero__text {
+  max-width: none;
+}
+
+:host .cl-panel__figure {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  // /* El diagrama nació sobre fondo claro; aquí vive sobre tinta.
+  background: rgba(255, 255, 255, 0.92);
+  padding: 10px;
+}
+
+:host .cl-panel__body .cl-hero__text + .cl-hero__text {
+  margin-top: 12px;
+}
+
+:host .cl-panel__title {
+  margin: 0 0 10px;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+:host .cl-link {
+  display: inline-block;
+  margin-top: 16px;
+  color: #5fe3b4;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+:host .cl-cards {
+  display: grid;
+  gap: 14px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+:host .cl-cards--docs {
+  grid-template-columns: repeat(3, 1fr);
+
+  li {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
+    background: rgba(3, 20, 15, 0.62);
+    backdrop-filter: blur(8px);
   }
 
-  &--button {
-    background-color: white;
-    color: #7ab800;
-    font-size: 16px;
-    font-weight: 600;
+  img {
+    width: 100%;
+    height: 132px;
+    object-fit: cover;
+    object-position: top;
+  }
+
+  div {
+    padding: 14px 16px 18px;
+  }
+
+  p {
+    margin: 6px 0 0;
+    color: #eaf5f1;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+}
+
+:host .cl-cards__date {
+  color: #5fe3b4;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+:host .cl-cards--two {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+:host .cl-logos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    place-items: center;
+    width: 190px;
+    height: 92px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
+    // /* Los logos son PNG pensados para fondo blanco: se les da el suyo.
+    background: rgba(255, 255, 255, 0.93);
+    padding: 14px 18px;
+  }
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+}
+
+// Marcador de los tramos
+:host .cl-hero__track {
+  display: flex;
+  gap: 7px;
+  margin-top: 30px;
+
+  span {
+    display: block;
+    width: 22px;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.24);
+    transition: background-color 0.35s ease;
+
+    &.is-on {
+      background: #5fe3b4;
+    }
+  }
+}
+
+:host .cl-hero__kicker {
+  margin: 0;
+  color: var(--cl-brand-ring, #bde3d4);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+:host .cl-hero__title {
+  max-width: 17ch;
+  margin: 14px 0 0;
+  color: #fff;
+  font-size: clamp(30px, 3.6vw, 46px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  // /* El lima #6bb700 del tema daba 2,50 sobre blanco y peor sobre la foto.
+  // En blanco sobre el lavado el contraste pasa de 12.
+  text-transform: none;
+}
+
+:host .cl-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+:host .cl-btn {
+  border: 0;
+  border-radius: 9px;
+  padding: 13px 26px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+:host .cl-btn--primary {
+  background: var(--cl-brand-strong, #0b7554); // 5,70 con blanco encima
+  color: #fff;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--cl-brand-deep, #0a6449);
+  }
+}
+
+:host .cl-btn--ghost {
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.42);
+  color: #fff;
+  padding: 11.5px 24.5px;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+:host .cl-btn:focus-visible {
+  outline: 3px solid var(--cl-brand-ring, #bde3d4);
+  outline-offset: 2px;
+}
+
+// ------------------------------------------------------------- pista scroll
+
+:host .cl-hero__hint {
+  position: absolute;
+  bottom: 34px;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  transition: opacity 0.4s ease;
+
+  i {
+    display: block;
+    width: 1px;
+    height: 34px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), transparent);
+    animation: cl-hint 1.9s ease-in-out infinite;
+  }
+
+  &.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@keyframes cl-hint {
+  0%,
+  100% {
+    transform: scaleY(0.55);
+    transform-origin: top;
+  }
+  50% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+}
+
+// ------------------------------------------------------------------ móvil
+//
+// 🛑 Lo que había aquí NO funcionaba, y no era un detalle de estilo: el carril
+// medía `65vh` contra una pantalla de `100vh`, así que el recorrido salía
+// NEGATIVO y el componente abandonaba en su primera línea. Con eso muerto, el
+// vídeo no avanzaba un fotograma, los otros dos mensajes no se veían nunca y el
+// titular del hero se quedaba pintado encima de las seis secciones de abajo.
+// Medido en iPhone 13 el 16-sep-2026: carril 432px, pantalla 664px,
+// recorrido -232px, `currentTime` 0,00 en todo el recorrido.
+// (JC: «abrí desde el cel»; en el PC estaba bien.)
+
+@media (max-width: 820px) {
+  // /* La barra mide 64px por debajo de 768px, no 73px: el hero se mete debajo
+  // de ella justo lo que ocupa, sin franja muerta ni recorte.
+  :host .cl-page {
+    margin-top: -64px;
+  }
+
+  // /* 190svh: una pantalla que se ve más 0,90 de recorrido. Con el pulgar eso
+  // es un gesto y medio, que es lo que dura el crecimiento, y deja ~200px de
+  // scroll a cada uno de los tres mensajes.
+  :host .cl-rail {
+    height: 190vh;
+    height: 190svh;
+  }
+
+  // /* En vertical el lavado va de arriba abajo, no de lado: el texto ocupa los
+  // dos tercios de arriba y la planta tiene que verse en el de abajo. Con el
+  // degradado del escritorio la planta desaparecía detrás del velo.
+  :host .cl-hero__wash {
+    background: linear-gradient(180deg, rgba(6, 35, 26, 0.93) 0%, rgba(6, 35, 26, 0.88) 38%, rgba(6, 35, 26, 0.3) 64%, rgba(6, 35, 26, 0.74) 100%);
+  }
+
+  :host .cl-hero__wash.is-deep {
+    background: linear-gradient(180deg, rgba(3, 20, 15, 0.94) 0%, rgba(3, 20, 15, 0.9) 45%, rgba(3, 20, 15, 0.86) 100%);
+  }
+
+  // /* El clip es 16:9 y el hueco vertical: con `cover` centrado se recorta justo
+  // la planta, que vive en el tercio derecho.
+  :host .cl-hero__video {
+    object-position: 72% center;
+  }
+
+  // /* Pegado arriba, bajo la barra. Centrado dejaba el titular flotando en
+  // mitad de la pantalla con hueco muerto arriba y abajo.
+  :host .cl-hero__copy {
+    justify-content: flex-start;
+    padding: 84px 20px 0;
+  }
+
+  // /* Sin tope de 17ch: en 350px de ancho el tope no recorta nada y solo sirve
+  // para que el navegador reserve menos. `balance` reparte las líneas en vez de
+  // dejar una palabra suelta en la última.
+  :host .cl-hero__title {
+    max-width: none;
+    font-size: clamp(26px, 7vw, 32px);
+    text-wrap: balance;
+  }
+
+  :host .cl-hero__text {
+    max-width: none;
+    font-size: 15px;
+  }
+
+  // /* Los dos reparten el ancho: dos botones de anchos distintos en una fila de
+  // 350px se leen como uno principal y un resto. Alto 46px, por encima del
+  // mínimo de toque.
+  :host .cl-hero__actions {
+    gap: 10px;
+    margin-top: 26px;
+  }
+
+  :host .cl-hero__actions .cl-btn {
+    flex: 1 1 0;
+    min-height: 46px;
+    padding: 13px 14px;
+  }
+
+  :host .cl-hero__track {
+    margin-top: 24px;
+  }
+
+  :host .cl-hero__hint {
+    bottom: 22px;
+  }
+}
+
+// ------------------------------------------------------- teléfono estrecho ---
+// Por debajo de 480px los márgenes de escritorio (24px a cada lado de un
+// `clamp`) se comen el 14% del ancho útil. Se bajan a 18px y las cajas respiran.
+
+@media (max-width: 480px) {
+  :host .cl-hero__copy {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  :host .cl-story__flow {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  :host .cl-panel {
+    padding: 18px;
+  }
+
+  // /* Dos por fila: con 190px fijos solo entraba uno y quedaba media pantalla
+  // vacía a su derecha.
+  :host .cl-logos {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+
+    li {
+      width: auto;
+      height: 76px;
+      padding: 10px 12px;
+    }
+  }
+
+  // /* La cifra manda, pero 38px al lado de una etiqueta larga parte la fila.
+  :host .cl-bars li.is-lead .cl-bars__value {
+    font-size: 32px;
+  }
+}
+
+// ----------------------------------------------- respeto a reducir-movimiento
+//
+// 🛑 Aquí había el MISMO defecto que en el móvil, y peor: el carril se quedaba en
+// `65vh` y el escenario seguía siendo `sticky`, pero el componente ni se engancha
+// al scroll con `reduce` — así que `heroOff` nunca se ponía y el texto del hero
+// quedaba clavado encima de toda la página para quien tenga activado «reducir
+// movimiento» en su teléfono. Con `reduce` no hay recorrido: el escenario deja de
+// estar pegado, el carril desaparece y el contenido baja debajo, como en
+// cualquier página.
+
+@media (prefers-reduced-motion: reduce) {
+  :host .cl-stage {
+    position: static;
+    height: 100vh;
+    height: 100svh;
+    margin-bottom: 0;
+  }
+
+  :host .cl-rail {
+    display: none;
+  }
+
+  // /* Sin escenario pegado detrás, el contenido necesita su propio fondo.
+  :host .cl-story__flow {
+    background: #03140f;
+  }
+
+  :host .cl-hero__hint {
+    display: none;
+  }
+
+  :host .cl-hero__step {
+    transition: none;
+  }
+}
+
+// ---------------------------------------------- indicadores como barras ---
+// Seis tarjetas iguales no dicen nada; la proporción sí. La barra se dibuja
+// contra el mayor, así que se ve de un golpe que hay 250 instituciones por
+// cada lista de control.
+
+:host .cl-bars {
+  display: grid;
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    gap: 8px;
+  }
+}
+
+:host .cl-bars__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+:host .cl-bars__label {
+  color: #a9cbbe;
+  font-size: 14px;
+}
+
+:host .cl-bars__value {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+:host .cl-bars__track {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+
+  i {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #0f8a63, #5fe3b4);
+    // /* Un mínimo visible: 41 sobre 10.630 es el 0,4 % y sin esto no se pinta.
+    min-width: 3px;
+  }
+}
+
+:host .cl-bars__note {
+  color: #7fa294;
+  font-size: 12.5px;
+}
+
+// Mientras no hay dato, la barra no finge: se queda en su carril vacío y la
+// cifra es una raya. Nada de animación de carga parpadeando seis veces.
+:host .cl-bars.is-waiting .cl-bars__value {
+  color: #6d8d81;
+}
+
+:host .cl-bars__offline {
+  margin: 18px 0 0;
+  color: #9ab5aa;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+// La barra crece hasta su valor en vez de aparecer ya dibujada: acompaña al
+// número que está contando al lado.
+:host .cl-bars__track i {
+  transition: width 0.95s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+// La primera manda: es el dato que define el tamaño del catálogo.
+:host .cl-bars li.is-lead {
+  .cl-bars__value {
+    font-size: 38px;
+  }
+
+  .cl-bars__label {
+    color: #5fe3b4;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .cl-bars__track {
+    height: 10px;
+    border-radius: 5px;
+  }
+}
+
+// ---------------------------------------------------- ritmo de los bloques -
+// Alternar la composición evita que seis secciones seguidas se lean como una
+// lista. El bloque «flip» pone el texto a la izquierda y el dato a la derecha.
+
+:host .cl-block--flip {
+  display: grid;
+  grid-template-columns: 0.85fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+
+:host .cl-block__intro .cl-text {
+  max-width: 44ch;
+}
+
+@media (max-width: 900px) {
+  :host .cl-block--flip {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+
+// ======================================================= bajo tierra ======
+// Scroll normal. El vídeo se queda pegado al fondo con `sticky` y el margen
+// negativo, que es lo que permite que el contenido pase por encima sin que el
+// navegador reserve el alto del vídeo dos veces.
+
+:host .cl-story__flow {
+  position: relative;
+  z-index: 2;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 clamp(24px, 5vw, 80px);
+}
+
+// Sin hueco de cortesía: el primer bloque entra mientras el descenso ya está
+// corriendo. Un espacio en blanco aquí es tiempo en el que no pasa nada.
+:host .cl-story__flow > .cl-block:first-child {
+  padding-top: 12vh;
+}
+
+:host .cl-block {
+  padding: 96px 0;
+
+  + .cl-block {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+:host .cl-kicker {
+  margin: 0;
+  color: #5fe3b4;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+:host .cl-block__title {
+  margin: 12px 0 0;
+  color: #fff;
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  // /* `style-landing.css` pone en mayúsculas todos los h2 del landing.
+  text-transform: none;
+}
+
+:host .cl-text {
+  max-width: 62ch;
+  margin: 16px 0 0;
+  color: #c2dbd0;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+:host .cl-nodes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    padding: 9px 18px;
+    background: rgba(255, 255, 255, 0.07);
+    color: #eaf5f1;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: 14px;
+  }
+
+  .dot {
+    display: block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #5fe3b4;
+  }
+}
+
+@media (max-width: 820px) {
+  :host .cl-block {
+    padding: 64px 0;
+  }
+
+  :host .cl-panel--split {
+    grid-template-columns: 1fr;
+  }
+
+  :host .cl-cards--docs,
+  :host .cl-cards--two {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,0 +1,87 @@
+/**
+ * `.admin-page` — el encabezado de una pantalla del panel. Una sola definición.
+ *
+ * Cada pantalla se escribía el suyo: `h2` de 20px aquí, `h1` azul de 26px allá,
+ * el hint a veces gris y a veces no, y ninguna decía a qué grupo del menú
+ * pertenecía. Con la columna de navegación rediseñada, esa desigualdad era lo
+ * primero que se veía al cambiar de sección (Yeck, 16-sep-2026).
+ *
+ * El contraste que pidió: **el carbón del sidebar para el título y el verde de
+ * marca para la línea de encima**. Los dos colores ya existen, así que el
+ * encabezado ata la pantalla a la columna en vez de parecer otra aplicación.
+ */
+
+.admin-page {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.admin-page__head {
+  min-width: 0;
+}
+
+/* La línea de arriba: el grupo del menú al que pertenece esta pantalla. Ubica
+   sin gastar un breadcrumb entero, y es donde vive el verde. */
+.admin-page__eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  /* `--cl-brand-deep` y no `--cl-brand`: a 11px el acento de enlaces se queda en
+     4,34 sobre blanco, por debajo del 4,5 exigido. Este mide 7,16. */
+  color: var(--cl-brand-deep);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-page__title {
+  margin: 0;
+  color: var(--cl-admin-nav);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+/* El apoyo se corta a 58 caracteres: una línea de ayuda que cruza 1400px se lee
+   peor que un párrafo estrecho, y a 70 empujaba las pestañas a una fila propia. */
+.admin-page__hint {
+  margin: 6px 0 0;
+  max-width: 58ch;
+  color: var(--cl-ink-2);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* Un `code` dentro del apoyo: el tema del panel lo pinta rosa sobre rosa, que en
+   una línea de ayuda parece un error marcado. Aquí es solo un término literal. */
+.admin-page__hint code {
+  padding: 1px 6px;
+  border: 1px solid var(--cl-line);
+  border-radius: 5px;
+  background: var(--cl-surface-2);
+  color: var(--cl-ink-2);
+  font-size: 12px;
+}
+
+/* Lo que va a la derecha del título: pestañas, acciones o los dos. */
+.admin-page__aside {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .admin-page {
+    gap: 14px;
+  }
+
+  .admin-page__title {
+    font-size: 20px;
+  }
+}

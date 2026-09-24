@@ -10,7 +10,8 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "update-dependencies": "npx npm-check-updates -u",
-    "theme:build": "node scripts/generate-primeng-theme.js"
+    "theme:build": "node scripts/generate-primeng-theme.js",
+    "build:api-reference-css": "npx --yes tailwindcss@3.4.17 -c tailwind.config.js -i src/assets/api-reference/_src/tailwind.input.css -o src/assets/api-reference/tailwind.css --minify"
   },
   "private": true,
   "dependencies": {

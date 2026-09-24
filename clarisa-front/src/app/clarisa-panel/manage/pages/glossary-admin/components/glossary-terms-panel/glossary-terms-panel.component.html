@@ -1,16 +1,9 @@
-<div class="panel-header">
-  <div>
-    <h1 class="panel-header__title">Glossary terms</h1>
-    <p class="panel-header__desc">
-      Every term published by <code>GET api/glossary</code>. Deactivating a term hides it from the public glossary without deleting anything.
-    </p>
-  </div>
-  <div class="panel-header__actions">
-    <button pButton type="button" icon="pi pi-refresh" class="p-button-text p-button-sm" pTooltip="Reload" (click)="loadTerms()"></button>
-    <button pButton type="button" label="New term" icon="pi pi-plus" class="btn-brand p-button-sm" (click)="openCreate()"></button>
-  </div>
-</div>
-
+<!--
+  Sin título propio: la pantalla ya lo lleva arriba («Glossary»), y dos títulos
+  apilados con dos tamaños distintos era lo primero que se veía al entrar. Las
+  dos acciones viven ahora al final de la fila de filtros, que es la barra de
+  herramientas de esta tabla.
+-->
 <div class="glossary-filters glossary-controls">
   <span class="p-input-icon-left glossary-filters__search">
     <i class="pi pi-search"></i>
@@ -47,7 +40,12 @@
 
   <button pButton type="button" label="Clear" icon="pi pi-filter-slash" class="p-button-text p-button-sm" (click)="clearFilters()"></button>
 
-  <span class="glossary-filters__count">{{ filteredTerms.length }} of {{ concepts.length }} terms · {{ terms.length }} records</span>
+  <span class="glossary-filters__count admin-table-toolbar__count">{{ filteredTerms.length }} of {{ concepts.length }} terms · {{ terms.length }} records</span>
+
+  <span class="glossary-filters__actions">
+    <button pButton type="button" icon="pi pi-refresh" class="p-button-text p-button-icon-only" pTooltip="Reload" aria-label="Reload" (click)="loadTerms()"></button>
+    <button pButton type="button" label="New term" icon="pi pi-plus" (click)="openCreate()"></button>
+  </span>
 </div>
 
 <div class="unlinked-banner" *ngIf="unassignedActiveCount">
@@ -66,6 +64,8 @@
   <p-table
     [value]="filteredTerms"
     [loading]="loading"
+    sortField="current.term"
+    [sortOrder]="1"
     [rows]="15"
     [paginator]="filteredTerms.length > 15"
     [rowsPerPageOptions]="[15, 30, 50, 100]"
@@ -75,14 +75,18 @@
     <ng-template pTemplate="header">
       <tr>
         <th scope="col" style="width: 40px"></th>
-        <th scope="col" style="width: 200px">Term</th>
-        <th scope="col">Definition</th>
-        <th scope="col" style="width: 160px">Source</th>
-        <th scope="col" style="width: 150px">Portfolios</th>
-        <th scope="col" style="width: 104px">
+        <th scope="col" pSortableColumn="current.term" style="width: 200px">Term <p-sortIcon field="current.term"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="current.definition">Definition <p-sortIcon field="current.definition"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="current.source" style="width: 160px">Source <p-sortIcon field="current.source"></p-sortIcon></th>
+        <!-- Ordered by the newest portfolio of the concept, not by the chip text -->
+        <th scope="col" pSortableColumn="portfolioYear" style="width: 150px">Portfolios <p-sortIcon field="portfolioYear"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="current.is_active" style="width: 132px">
           Status <i class="pi pi-info-circle th-help" [pTooltip]="statusHelp" tooltipPosition="top" aria-label="What Active and Inactive mean"></i>
+          <p-sortIcon field="current.is_active"></p-sortIcon>
         </th>
-        <th scope="col" style="width: 150px">Last change</th>
+        <th scope="col" pSortableColumn="current.last_modified_at" style="width: 150px">
+          Last change <p-sortIcon field="current.last_modified_at"></p-sortIcon>
+        </th>
         <th scope="col" style="width: 116px">Actions</th>
       </tr>
     </ng-template>
@@ -99,7 +103,7 @@
             class="p-button-text p-button-sm p-button-plain"
             [pTooltip]="expanded ? 'Hide the other definitions' : 'Show the definition of each portfolio'"></button>
         </td>
-        <td class="cell-primary">
+        <td data-card-title data-label="Term" class="cell-primary">
           {{ concept.current.term }}
           <span
             class="version-badge"
@@ -108,17 +112,17 @@
             >{{ concept.versions.length }} versions</span
           >
         </td>
-        <td class="cell-definition">
+        <td data-label="Definition" class="cell-definition">
           <span class="cell-definition__text" [title]="concept.current.definition">{{ concept.current.definition }}</span>
         </td>
-        <td class="cell-source">
+        <td data-label="Source" class="cell-source">
           <span class="cell-source__text" *ngIf="concept.current.source; else noSource" [pTooltip]="concept.current.source">{{
             concept.current.source
           }}</span>
           <ng-template #noSource><span class="cell-source__empty">Not documented</span></ng-template>
           <span class="cell-source__date" *ngIf="concept.current.reference_date">{{ concept.current.reference_date }}</span>
         </td>
-        <td>
+        <td data-label="Portfolios">
           <span class="portfolio-chips" *ngIf="concept.portfolios?.length; else noPortfolios">
             <span class="portfolio-chip" *ngFor="let portfolio of concept.portfolios" [pTooltip]="portfolio.name">
               {{ portfolioLabel(portfolio) }}
@@ -132,13 +136,13 @@
             </span>
           </ng-template>
         </td>
-        <td>
+        <td data-label="Status">
           <p-tag
             [value]="concept.current.is_active ? 'Active' : 'Inactive'"
             [severity]="concept.current.is_active ? 'success' : 'danger'"
             [pTooltip]="statusHelp"></p-tag>
         </td>
-        <td class="cell-source">
+        <td data-label="Last change" class="cell-source">
           <ng-container *ngTemplateOutlet="lastChange; context: { $implicit: concept.current }"></ng-container>
         </td>
         <td>
@@ -173,17 +177,17 @@
     <ng-template pTemplate="rowexpansion" let-concept>
       <tr class="version-row" *ngFor="let version of concept.versions" [class.row-inactive]="!version.is_active">
         <td></td>
-        <td class="cell-primary version-row__term">
+        <td data-card-title data-label="Term" class="cell-primary version-row__term">
           <span class="version-row__id">#{{ version.id }}</span> {{ version.term }}
         </td>
-        <td class="cell-definition">
+        <td data-label="Definition" class="cell-definition">
           <span class="cell-definition__text" [title]="version.definition">{{ version.definition }}</span>
         </td>
-        <td class="cell-source">
+        <td data-label="Source" class="cell-source">
           <span class="cell-source__text" *ngIf="version.source; else noVersionSource">{{ version.source }}</span>
           <ng-template #noVersionSource><span class="cell-source__empty">Not documented</span></ng-template>
         </td>
-        <td>
+        <td data-label="Portfolios">
           <span class="portfolio-chips" *ngIf="version.portfolios?.length; else noVersionPortfolio">
             <span class="portfolio-chip" *ngFor="let portfolio of version.portfolios">{{ portfolioLabel(portfolio) }}</span>
           </span>
@@ -191,13 +195,13 @@
             <span class="portfolio-unlinked"><i class="pi pi-exclamation-triangle"></i> No portfolio</span>
           </ng-template>
         </td>
-        <td>
+        <td data-label="Status">
           <p-tag
             [value]="version.is_active ? 'Active' : 'Inactive'"
             [severity]="version.is_active ? 'success' : 'danger'"
             [pTooltip]="statusHelp"></p-tag>
         </td>
-        <td class="cell-source">
+        <td data-label="Last change" class="cell-source">
           <ng-container *ngTemplateOutlet="lastChange; context: { $implicit: version }"></ng-container>
         </td>
         <td>

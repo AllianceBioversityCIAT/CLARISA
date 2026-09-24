@@ -352,12 +352,21 @@ export class GlossaryComponent implements OnInit {
   }
 
   /**
+   * El año de inicio más alto que se conoce, o 0 si ninguno lo trae. Es el
+   * criterio de «vigente» de toda la página: por año, nunca por un código fijo,
+   * para que el día que exista 2031-2036 la marca se mueva sola.
+   */
+  private newestStartYear(): number {
+    return Math.max(0, ...[...this.portfolioStartYear.values()]);
+  }
+
+  /**
    * Si esa versión es la del portafolio vigente. Es lo que Héctor pidió marcar:
    * mirando la tarjeta no se sabía cuál de las dos definiciones se estaba
    * leyendo, ni cuál es la que rige hoy.
    */
   isCurrentVersion(version: GlossaryTerm): boolean {
-    const newest = Math.max(0, ...[...this.portfolioStartYear.values()]);
+    const newest = this.newestStartYear();
     return newest > 0 && this.recencyOf(version) === newest;
   }
 
@@ -384,15 +393,10 @@ export class GlossaryComponent implements OnInit {
     return stripped ? stripped.charAt(0).toUpperCase() + stripped.slice(1) : name;
   }
 
-  // Deterministic color per portfolio (cycles a fixed palette by id)
-  portfolioColorClass(id: number): string {
-    return 'chip-color-' + (Math.abs(id ?? 0) % 5);
-  }
-
   /**
-   * Etiqueta y color de la pestaña de una versión.
+   * La etiqueta de la pestaña de una versión.
    *
-   * Existen para que la plantilla no tenga que encadenar `portfolioOf(v)?.name`
+   * Existe para que la plantilla no tenga que encadenar `portfolioOf(v)?.name`
    * dentro de otra llamada: una versión sin portafolio devolvería `undefined` a
    * un parámetro declarado obligatorio, y eso revienta la compilación de
    * plantillas estrictas en vez de fallar en el navegador.
@@ -402,11 +406,6 @@ export class GlossaryComponent implements OnInit {
     return portfolio ? this.portfolioLabel(portfolio.name) : 'No portfolio';
   }
 
-  /**
-   * Si un portafolio es el vigente. Mismo criterio que `isCurrentVersion`: por
-   * año de inicio, no por código fijo, para que cuando exista 2031-2036 la marca
-   * se mueva sola.
-   */
   /**
    * La etiqueta sin la palabra «Portfolio», para pantallas estrechas. A 390px la
    * versión larga desbordaba el riel y el segundo segmento salía cortado por la
@@ -422,14 +421,22 @@ export class GlossaryComponent implements OnInit {
     return portfolio ? this.shortLabel(portfolio.name) : 'No portfolio';
   }
 
-  /** La clase de color del portafolio de una versión, para el punto de su segmento. */
-  versionColorClass(version: GlossaryTerm): string {
-    const portfolio = this.portfolioOf(version);
-    return this.portfolioColorClass(portfolio?.id ?? 0);
+  /**
+   * Si un portafolio es el vigente, por su identificador.
+   *
+   * Hay dos formas del mismo dato en esta pantalla y las dos pasan por aquí: el
+   * portafolio que viene dentro de un término (`id`) y el que devuelve
+   * `api/portfolios` para las pastillas del filtro (`code`). Son el mismo número
+   * —`cardFor` compara `portfolio.id === selectedPortfolioCode` desde antes—,
+   * pero el nombre del campo cambia, y duplicar la comparación es exactamente
+   * cómo se acaba con dos criterios de «vigente» que se contradicen.
+   */
+  isCurrentPortfolioId(id: number | null | undefined): boolean {
+    const newest = this.newestStartYear();
+    return newest > 0 && (this.portfolioStartYear.get(id as number) ?? 0) === newest;
   }
 
   isCurrentPortfolio(portfolio: GlossaryTermPortfolio): boolean {
-    const newest = Math.max(0, ...[...this.portfolioStartYear.values()]);
-    return newest > 0 && (this.portfolioStartYear.get(portfolio.id) ?? 0) === newest;
+    return this.isCurrentPortfolioId(portfolio?.id);
   }
 }

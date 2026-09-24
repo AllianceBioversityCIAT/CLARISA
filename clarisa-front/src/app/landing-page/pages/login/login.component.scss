@@ -1,19 +1,18 @@
-/**
- * Access screen — «L1 · panel partido».
- *
- * The photograph is gone. It was 7.16 MB at 4608x3456, the first thing anyone
- * downloaded to reach a two-field form, and it forced the card to fight it with
- * a radial wash and a 170px inner shadow. In its place the brand pane carries
- * the mark and one line about what CLARISA is, and the form gets the calm half.
- *
- * Colour comes from the tokens in `styles.scss`; this file declares no hex of
- * its own.
- *
- * 🛑 Sizes in px on purpose. The theme sets `html { font-size: 62.5% }`, so in
- * this project **1rem = 10px**, not 16px: a scale written in rem lands at
- * roughly half the intended size, which is exactly how this screen first
- * shipped with 10px inputs.
- */
+//
+// Access screen — «L1 · panel partido».
+//
+// The photograph is gone. It was 7.16 MB at 4608x3456, the first thing anyone
+// downloaded to reach a two-field form, and it forced the card to fight it with
+// a radial wash and a 170px inner shadow. In its place the brand pane carries
+// the mark and one line about what CLARISA is, and the form gets the calm half.
+//
+// Colour comes from the tokens in `styles.scss`; this file declares no hex of
+// its own.
+//
+// 🛑 Sizes in px on purpose. The theme sets `html { font-size: 62.5% }`, so in
+// this project **1rem = 10px**, not 16px: a scale written in rem lands at
+// roughly half the intended size, which is exactly how this screen first
+// shipped with 10px inputs.
 
 :host {
   display: block;
@@ -22,11 +21,11 @@
 .login-split {
   display: flex;
   align-items: stretch;
-  /* 73px is the height of the public bar above. */
+  // /* 73px is the height of the public bar above.
   min-height: calc(100vh - 73px);
 }
 
-/* ---- brand pane ----------------------------------------------------------- */
+// ---- brand pane -----------------------------------------------------------
 
 .brand-pane {
   flex: 0 0 46%;
@@ -39,9 +38,9 @@
   background: var(--cl-brand-deep);
 }
 
-/* Cropped to the wings on purpose. At full height the asset's own «CGIAR»
-   wordmark came through and read as a second, giant logo competing with the one
-   in the bar; the box cuts it off and leaves only the shape. */
+// Cropped to the wings on purpose. At full height the asset's own «CGIAR»
+// wordmark came through and read as a second, giant logo competing with the one
+// in the bar; the box cuts it off and leaves only the shape.
 .brand-pane__ghost {
   position: absolute;
   right: -70px;
@@ -51,12 +50,12 @@
   object-fit: cover;
   object-position: center top;
   opacity: 0.09;
-  /* The mark ships in forest green, which over this background is 1.33 and would
-     read as a stain. Knocked out to white it behaves as texture. */
+  // /* The mark ships in forest green, which over this background is 1.33 and would
+  // read as a stain. Knocked out to white it behaves as texture.
   filter: brightness(0) invert(1);
-  /* The crop that hides the asset's own wordmark left a hard horizontal edge in
-     the middle of the pane, and a straight cut across a logo reads as a broken
-     image rather than as texture. The fade dissolves that edge. */
+  // /* The crop that hides the asset's own wordmark left a hard horizontal edge in
+  // the middle of the pane, and a straight cut across a logo reads as a broken
+  // image rather than as texture. The fade dissolves that edge.
   -webkit-mask-image: linear-gradient(180deg, #000 48%, transparent 92%);
   mask-image: linear-gradient(180deg, #000 48%, transparent 92%);
 }
@@ -72,7 +71,7 @@
   font-weight: 700;
   line-height: 1.16;
   letter-spacing: -0.015em;
-  /* 7.16 over the pane. */
+  // /* 7.16 over the pane.
   color: var(--cl-surface);
 }
 
@@ -80,11 +79,11 @@
   margin: 14px 0 0;
   font-size: 15px;
   line-height: 1.55;
-  /* Still above 5:1 over the pane, so it stays body text and not decoration. */
+  // /* Still above 5:1 over the pane, so it stays body text and not decoration.
   color: rgba(255, 255, 255, 0.82);
 }
 
-/* ---- form pane ------------------------------------------------------------ */
+// ---- form pane ------------------------------------------------------------
 
 .form-pane {
   flex: 1;
@@ -100,8 +99,8 @@
   max-width: 400px;
 }
 
-/* The panel is PrimeNG chrome we do not use here: no border, no background of
-   its own, and the empty header hidden rather than filled with a fake title. */
+// The panel is PrimeNG chrome we do not use here: no border, no background of
+// its own, and the empty header hidden rather than filled with a fake title.
 :host ::ng-deep .form-pane .p-panel .p-panel-header {
   display: none;
 }
@@ -113,7 +112,7 @@
   color: var(--cl-ink-2);
 }
 
-/* ---- card ----------------------------------------------------------------- */
+// ---- card -----------------------------------------------------------------
 
 .login-card__head {
   margin: 0 0 22px;
@@ -125,7 +124,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  /* 7.16 over white. */
+  // /* 7.16 over white.
   color: var(--cl-brand-deep);
 }
 
@@ -147,7 +146,7 @@
   color: var(--cl-ink-3);
 }
 
-/* ---- fields --------------------------------------------------------------- */
+// ---- fields ---------------------------------------------------------------
 
 .field {
   margin: 0 0 16px;
@@ -168,14 +167,14 @@
   color: var(--cl-error);
 }
 
-/* `[hidden]` is only `display: none` at user-agent strength, so the rule above
-   was beating it and both messages showed on a pristine form. The template
-   hides them with `[hidden]`; this is what lets it. */
+// `[hidden]` is only `display: none` at user-agent strength, so the rule above
+// was beating it and both messages showed on a pristine form. The template
+// hides them with `[hidden]`; this is what lets it.
 .field__error[hidden] {
   display: none;
 }
 
-/* «I1 · borde completo», radius 8. */
+// «I1 · borde completo», radius 8.
 :host ::ng-deep .login-card input.p-inputtext {
   width: 100%;
   padding: 13px 14px;
@@ -240,7 +239,7 @@
   }
 }
 
-/* ---- narrow --------------------------------------------------------------- */
+// ---- narrow ---------------------------------------------------------------
 
 @media (max-width: 900px) {
   .brand-pane {
@@ -258,7 +257,7 @@
     min-height: 0;
   }
 
-  /* A band, not half the screen: on a phone the form is what the person came for. */
+  // /* A band, not half the screen: on a phone the form is what the person came for.
   .brand-pane {
     flex: 0 0 auto;
     min-height: 168px;
@@ -277,11 +276,233 @@
   }
 
   .brand-pane__text {
-    /* One line of value proposition is enough next to a form; more is noise. */
+    // /* One line of value proposition is enough next to a form; more is noise.
     display: none;
   }
 
   .form-pane {
     padding: 30px 22px 44px;
+  }
+}
+
+// ------------------------------------------------------ ver la contraseña ---
+// El botón se monta sobre el campo y este le reserva sitio con `padding-right`,
+// para que el texto nunca pase por debajo del icono.
+
+:host .field__with-toggle {
+  position: relative;
+  display: block;
+
+  input {
+    width: 100%;
+    padding-right: 46px;
+  }
+}
+
+:host .field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--cl-ink-3);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition:
+    color 0.16s ease,
+    background-color 0.16s ease;
+
+  &:hover {
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--cl-brand-ring);
+    outline-offset: 1px;
+  }
+
+  i {
+    font-size: 15px;
+  }
+}
+
+// ------------------------------------------------ qué se puede hacer dentro -
+// Las frases se apilan en la misma caja y solo cambia cuál está encendida: si
+// se sucedieran en el flujo, el título y todo el formulario darían un salto
+// cada 2,8 segundos. La altura la fija la frase más larga.
+
+:host .login-card__claims {
+  position: relative;
+  // /* Alto de DOS líneas: las frases más largas ocupan dos, y con 44px la de
+  // abajo se metía debajo del título. Lo fija la frase más alta, no la media.
+  min-height: 52px;
+  margin: 12px 0 18px;
+}
+
+// La que sale se apaga más rápido que la que entra, para que el cruce no se
+// lea como texto fantasma sobre texto.
+:host .login-card__claims p {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  margin: 0;
+  color: var(--cl-ink-2);
+  font-size: 15px;
+  line-height: 1.45;
+  opacity: 0;
+  transform: translateY(6px);
+  // /* 0,3 s de fundido: lo justo para que no parpadee y no se haga esperar.
+  transition:
+    opacity 0.18s ease,
+    transform 0.3s ease;
+  pointer-events: none;
+}
+
+:host .login-card__claims p.is-on {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.34s ease 0.1s,
+    transform 0.34s ease 0.1s;
+}
+
+// ------------------------------------------------------ la espera del botón -
+// La barra recorre la base del propio botón. No hay nada que tapar ni ningún
+// sitio nuevo donde mirar: la espera ocurre donde se hizo clic.
+
+:host .login-card__submit {
+  position: relative;
+  overflow: hidden;
+}
+
+:host .login-card__submit.is-working::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.85);
+  animation: cl-signing 1.15s ease-in-out infinite;
+}
+
+@keyframes cl-signing {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(360%);
+  }
+}
+
+// Mientras se entra, el formulario se apaga sin desaparecer: se ve que sigue
+// ahí y que no admite cambios.
+:host .login-card.is-working .field {
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host .login-card__claims p {
+    transition: none;
+  }
+
+  :host .login-card__submit.is-working::after {
+    animation: none;
+    width: 100%;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// El aviso de que el intento falló
+// ---------------------------------------------------------------------------
+//
+// Encima del botón, dentro de la tarjeta: es la respuesta a lo que se acaba de
+// pulsar. Rojo apagado sobre fondo muy suave —no el bloque saturado de la
+// plantilla—, porque el mensaje tiene que leerse, no asustar: quien se equivoca
+// de contraseña ya sabe que algo salió mal.
+//
+// 7,80 de contraste sobre su propio fondo.
+:host .login-card__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #f3c9c5;
+  border-radius: var(--cl-radius-control);
+  background: #fdeceb;
+  color: #8f1d15;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+
+  i {
+    margin-top: 1px;
+    font-size: 14px;
+    flex: 0 0 auto;
+  }
+
+  span {
+    min-width: 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// El aviso de que la sesión caducó
+// ---------------------------------------------------------------------------
+//
+// Mismo esqueleto que el error de arriba —icono, texto, una caja— pero en el
+// verde de la marca: una sesión que expira no es culpa de nadie, y pintarla de
+// rojo pone cara de avería a algo que es rutina. Así se distinguen de un
+// vistazo: rojo = el intento falló, verde = esto es contexto.
+//
+// Los tres colores salen de los tokens. `--cl-brand-deeper` sobre
+// `--cl-brand-soft` es 7,80 de contraste, el par que el tema declara para
+// exactamente esto.
+:host .login-card__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 0 18px;
+  padding: 10px 12px;
+  border: 1px solid var(--cl-brand-ring);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+
+  i {
+    margin-top: 1px;
+    font-size: 14px;
+    // /* El icono no se encoge cuando el texto pasa a dos líneas, que es lo que
+    // ocurre a 390px: sin esto la caja lo aplasta a una raya.
+    flex: 0 0 auto;
+  }
+
+  span {
+    // /* Deja que el texto parta dentro del flex en vez de desbordar la tarjeta.
+    min-width: 0;
+  }
+}
+
+/* En teléfono el botón de ver la contraseña sube de 36 a 44px. Es un control,
+   no un adorno del campo, y está en la pantalla que todo el mundo toca primero;
+   36px se falla con el pulgar y el intento fallido cae dentro del campo, que
+   abre el teclado. El icono no crece: crece el área que lo acierta. */
+@media (max-width: 720px) {
+  :host .field__toggle {
+    width: 44px;
+    height: 44px;
+    right: 4px;
   }
 }

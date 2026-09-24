@@ -1,4 +1,14 @@
+<!--
+  🛑 Aquí vivía un `<app-footer>` propio del panel, y se fue por dos razones
+  (Yeck, 16-sep-2026): el pie es de la web pública, no de una herramienta de
+  administración —quien entra aquí viene a administrar, no a leer enlaces
+  institucionales—, y además estaba roto: era `position: absolute` de ancho
+  completo, así que en una pantalla con poco contenido aterrizaba a media altura
+  y cruzaba por encima del menú lateral.
+
+  El pie de la landing (`landing-page/components/footer`) es otro componente y
+  sigue donde siempre.
+-->
 <div class="app sidebar-mini ltr light-mode" *ngIf="!loadingStyles">
   <router-outlet></router-outlet>
-  <app-footer></app-footer>
 </div>

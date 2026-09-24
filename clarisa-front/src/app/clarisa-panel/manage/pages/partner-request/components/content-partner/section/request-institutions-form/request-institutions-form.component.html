@@ -1,331 +1,199 @@
-<div
-  style="width: 100%; height: auto; border: 1px solid #f0f0f0; margin-top: 20px"
->
-  <div style="margin: 20px">
-    <h4 style="font-weight: 500; font-size: 18px">
-      {{ informationContent.acronym }} - {{ informationContent.partnerName }}
-    </h4>
-    <p style="font-size: 15px">
-      <span style="font-weight: 500; font-size: 15.5px">Type: </span>
-      {{ informationContent.institutionTypeDTO.name }}
-      <br />
-      <span style="font-weight: 500; font-size: 15.5px">Country: </span
-      >{{ informationContent.countryDTO.name }}<br />
-      <span style="font-weight: 500; font-size: 15.5px">Request Source:</span
-      >{{ informationContent.requestSource }} <br />
-      <span style="font-weight: 500; font-size: 15.5px">MIS: </span
-      >{{ informationContent.mis }}<br />
-      <span style="font-weight: 500; font-size: 15.5px">Request By:</span> ({{
-        informationContent.externalUserName
-      }}) {{ informationContent.externalUserMail }}<br />
-      <span style="font-weight: 500; font-size: 15.5px">Active since:</span>
-      {{ informationContent.created_at }}<br />
-      <span style="font-weight: 500; font-size: 15.5px">Website: </span>
-      <a href="{{ informationContent.webPage }}" target="_blank">{{
-        informationContent.webPage
-      }}</a
-      ><br />
-    </p>
-    <br />
-    <p style="font-size: 15px">
-      <span style="font-weight: 500; font-size: 15.5px">API Requester:</span>
-      User, (user@cgiar.org)
-      <br />
-      <span style="font-weight: 500; font-size: 15.5px">API Comments:</span>
-      {{ informationContent.requestJustification }}
-    </p>
-    <div
-      style="
-        width: 100%;
-        height: auto;
-        background-color: #f0f0f0;
-        font-weight: 500;
-        font-size: 15px;
-      "
-    >
-      <h4>Comments</h4>
-      <p>{{ informationContent.externalUserComments }}</p>
+<!--
+  Ni un handler ni un binding cambiaron: `showModalDialog()`, `confirm()`,
+  `displayModalReject()`, `confirmRequest()`, `reject()` y el formulario
+  `groups` son los mismos. Lo que se rehízo es cómo se lee una solicitud: era un
+  párrafo de ocho líneas «Etiqueta: valor» con `<br>`, una franja gris con la
+  palabra «Comments» y tres botones centrados —el de rechazar en rojo sólido,
+  el de cancelar del modal también—.
+-->
+<article class="request-card">
+  <header class="request-card__head">
+    <h3 class="request-card__title">
+      <span class="request-card__acronym" *ngIf="informationContent.acronym">{{ informationContent.acronym }}</span>
+      {{ informationContent.partnerName }}
+    </h3>
+    <span class="request-card__source">{{ informationContent.mis }} · {{ informationContent.requestSource }}</span>
+  </header>
+
+  <!-- Los datos en rejilla: cada pareja etiqueta/valor es una unidad, y se leen
+       en columna en vez de buscarlas dentro de un párrafo. -->
+  <dl class="request-card__facts">
+    <div class="request-fact">
+      <dt>Type</dt>
+      <dd>{{ informationContent.institutionTypeDTO.name }}</dd>
     </div>
+    <div class="request-fact">
+      <dt>Country</dt>
+      <dd>{{ informationContent.countryDTO.name }}</dd>
+    </div>
+    <div class="request-fact">
+      <dt>Requested by</dt>
+      <dd>
+        {{ informationContent.externalUserName }}
+        <a class="request-fact__mail" [href]="'mailto:' + informationContent.externalUserMail">{{ informationContent.externalUserMail }}</a>
+      </dd>
+    </div>
+    <div class="request-fact">
+      <dt>Active since</dt>
+      <dd>{{ informationContent.created_at }}</dd>
+    </div>
+    <div class="request-fact">
+      <dt>Website</dt>
+      <dd>
+        <a *ngIf="informationContent.webPage" class="cell-link" [href]="informationContent.webPage" target="_blank" rel="noopener noreferrer">{{
+          informationContent.webPage
+        }}</a>
+        <span *ngIf="!informationContent.webPage" class="cell-empty">—</span>
+      </dd>
+    </div>
+    <div class="request-fact">
+      <dt>API requester</dt>
+      <dd>User, (user@cgiar.org)</dd>
+    </div>
+  </dl>
 
-    <div
-      style="
-        margin-top: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      "
-    >
-      <button
-        pButton
-        icon="pi pi-pencil"
-        type="button"
-        label="Edit Request"
-        style="
-          border-radius: 30px;
-          background-color: #f0f0f0;
-          color: black;
-          margin-right: 10px;
-          font-size: 15px;
-        "
-        (click)="showModalDialog()"
-      ></button>
-
-      <button
-        pButton
-        icon="pi pi-check"
-        type="button"
-        label="Accept"
-        style="
-          border-radius: 30px;
-          background-color: #7ab800;
-          color: white;
-          margin-right: 10px;
-          font-size: 15px;
-        "
-        (click)="confirm()"
-      ></button>
-      <button
-        pButton
-        icon="pi pi-times"
-        type="button"
-        label="Reject"
-        style="
-          border-radius: 30px;
-          background-color: #eb5b47;
-          color: white;
-          font-size: 15px;
-        "
-        (click)="displayModalReject()"
-      ></button>
+  <div class="request-card__notes">
+    <div class="request-note">
+      <h4>Justification</h4>
+      <p>{{ informationContent.requestJustification || '—' }}</p>
+    </div>
+    <div class="request-note">
+      <h4>Comments</h4>
+      <p>{{ informationContent.externalUserComments || '—' }}</p>
     </div>
   </div>
-</div>
+
+  <!-- Una sola acción principal —aceptar—; editar es contorno neutro y rechazar,
+       contorno rojo: el bloque rojo se guarda para el diálogo que confirma. -->
+  <footer class="request-card__actions">
+    <button pButton icon="pi pi-pencil" type="button" label="Edit request" class="btn-ghost" (click)="showModalDialog()"></button>
+    <button pButton icon="pi pi-times" type="button" label="Reject" class="btn-caution" (click)="displayModalReject()"></button>
+    <button pButton icon="pi pi-check" type="button" label="Accept" class="btn-brand" (click)="confirm()"></button>
+  </footer>
+</article>
 
 <p-dialog
-  header="Edit Request"
+  header="Edit request"
   [(visible)]="displayModal"
   [modal]="true"
-  [style]="{ width: '50vw' }"
+  [style]="{ width: '52rem' }"
   [baseZIndex]="10000"
   [draggable]="false"
   [resizable]="false"
->
+  styleClass="admin-dialog">
   <ng-template pTemplate="content">
-    <app-edit-request
-      [informationContent]="informationContent"
-      (newItemEvent)="addItem($event)"
-    ></app-edit-request>
+    <app-edit-request [informationContent]="informationContent" (newItemEvent)="addItem($event)"></app-edit-request>
   </ng-template>
 
   <ng-template pTemplate="footer">
-    <button
-      pButton
-      type="button"
-      label="Cancel"
-      style="border-radius: 30px; background-color: #eb5b47; color: white"
-      (click)="displayModal = false"
-    ></button>
+    <button pButton type="button" label="Cancel" class="btn-ghost" (click)="displayModal = false"></button>
   </ng-template>
 </p-dialog>
 
 <p-dialog
-  header="Reject Request"
+  header="Reject request"
   [(visible)]="display"
   [modal]="true"
-  [style]="{ width: '50vw' }"
+  [style]="{ width: '52rem' }"
   [baseZIndex]="10000"
   [draggable]="false"
   [resizable]="false"
->
-  <p class="m-0"></p>
-  <div>
-    <div style="width: 100%; height: auto; border: 1px solid #f0f0f0">
-      <div style="margin: 20px">
-        <h4 style="font-weight: 500; font-size: 18px">
-          {{ informationContent.partnerName }}
-        </h4>
-        <p style="font-size: 15px">
-          <span style="font-weight: 500; font-size: 15.5px">Type: </span>
-          {{ informationContent.institutionTypeDTO.name }}
-          <br />
-          <span style="font-weight: 500; font-size: 15.5px">Country: </span
-          >{{ informationContent.countryDTO.name }}<br />
-          <span style="font-weight: 500; font-size: 15.5px"
-            >Request Source:</span
-          >{{ informationContent.requestSource }} <br />
-          <span style="font-weight: 500; font-size: 15.5px">MIS:</span><br />
-          <span style="font-weight: 500; font-size: 15.5px">Request By:</span>
-          ({{ informationContent.externalUserName }})
-          {{ informationContent.externalUserMail }}<br />
-          <span style="font-weight: 500; font-size: 15.5px">Active since:</span>
-          Oct 3, 2022 6:03AM<br />
-        </p>
-        <br />
-        <p style="font-size: 15px">
-          <span style="font-weight: 500; font-size: 15.5px"
-            >API Requester:</span
-          >
-          User, (user@cgiar.org)
-          <br />
-          <span style="font-weight: 500; font-size: 15.5px">API Comments:</span>
-          {{ informationContent.requestJustification }}
-        </p>
-        <div
-          style="
-            width: 100%;
-            height: auto;
-            background-color: #f0f0f0;
-            font-weight: 500;
-            font-size: 15px;
-          "
-        >
-          <h4>Comments</h4>
-          <p>{{ informationContent.externalUserComments }}</p>
-        </div>
+  styleClass="admin-dialog">
+  <!-- Resumen de lo que se va a rechazar, en la misma rejilla que la tarjeta. -->
+  <section class="request-recap">
+    <h3 class="request-recap__title">{{ informationContent.partnerName }}</h3>
+    <dl class="request-card__facts">
+      <div class="request-fact">
+        <dt>Type</dt>
+        <dd>{{ informationContent.institutionTypeDTO.name }}</dd>
       </div>
+      <div class="request-fact">
+        <dt>Country</dt>
+        <dd>{{ informationContent.countryDTO.name }}</dd>
+      </div>
+      <div class="request-fact">
+        <dt>Request source</dt>
+        <dd>{{ informationContent.requestSource }}</dd>
+      </div>
+      <div class="request-fact">
+        <dt>Requested by</dt>
+        <dd>
+          {{ informationContent.externalUserName }}
+          <a class="request-fact__mail" [href]="'mailto:' + informationContent.externalUserMail">{{ informationContent.externalUserMail }}</a>
+        </dd>
+      </div>
+    </dl>
+    <div class="request-note">
+      <h4>Comments</h4>
+      <p>{{ informationContent.externalUserComments || '—' }}</p>
     </div>
-    <div
-      
-      style="display: flex; flex-direction: row; margin-left: 10px"
-    >
-      <p-radioButton
-        name="send-email"
-        value="checked"
-        [(ngModel)]="checked"
-        inputId="email"
-        [value]="checked"
-        binary="true"
-      ></p-radioButton>
-      <label style="margin-left: 10px; margin-top: 10px" for="email"
-        >Tick to send a justification email.</label
-      >
+  </section>
+
+  <form class="admin-form request-reject" [formGroup]="groups" (ngSubmit)="reject(groups.value)">
+    <div class="field field--inline">
+      <p-radioButton name="send-email" value="checked" [(ngModel)]="checked" [ngModelOptions]="{ standalone: true }" inputId="email" [value]="checked" binary="true"></p-radioButton>
+      <label for="email">Tick to send a justification email.</label>
     </div>
-    <form [formGroup]="groups" (ngSubmit)="reject(groups.value)">
-      <div style="margin-left: 10px; margin-top: 20px">
-        <!--
-        <span>Select the reason why:*</span>
-        <br />
-        <p-dropdown
-          [options]="responseRejectOptions"
-          [(ngModel)]="selectResponse"
-          optionLabel="name"
-          [style]="{ width: '100%' }"
-          placeholder="Select a reason"
-          [showClear]="true"
-          [required]="true"
-          formControlName="rejectJustification"
-        ></p-dropdown>-->
-      </div>
-      <div style="margin-left: 10px; margin-top: 20px">
-        <span>Justification: <span style="color: red">*</span> </span><br />
-        <textarea
-          [rows]="5"
-          pInputTextarea
-          style="width: 100%"
-          formControlName="rejectJustification"
-        ></textarea>
-      </div>
-      <p-confirmDialog
-        [style]="{ width: '50vw' }"
-        [baseZIndex]="10000"
-      ></p-confirmDialog>
-      <button
-        pButton
-        label="Reject"
-        style="
-          border-radius: 30px;
-          background-color: #7ab800;
-          color: white;
-          margin-right: 10px;
-        "
-        type="submit"
-      ></button>
-      <div style="margin-left: 10px; margin-top: 20px">
-        <ul style="list-style: circle">
-          <li>
-            <b>Already exists:</b> "InstitutionRequested" already exists in
-            CLARISA as "CLARISA Institution"
-          </li>
-          <li>
-            <b>Already exists as PPA:</b> "InstitutionRequested" is available in
-            CLARISA as Managing/PPA Partner.Please contact your PMU or
-            "ManagementLiaison Role" in order to add it to the list of project
-            partners
-          </li>
-          <li>
-            <b>Not legal:</b> This is a program/project, not an institution. We
-            suggest to use "CLARISA Institution" instead.
-          </li>
-          <li>
-            <b>Sub-department:</b> The "InstitutionRequested" is a part of the
-            "CLARISA Institution". Therefore, we kindly suggest you to include
-            "instution Requested" as sub-department of "CLARISA Institution".
-          </li>
-          <li>
-            <b>Person - Not institution:</b> "PersonRequested" is a person, not
-            an institution. We suggest you to include this person under the
-            institution that hired him.
-          </li>
-          <li>
-            <b>Country - Office:</b> The "InstitutionRequested" is a part of the
-            "CLARISAInstitution" in "CountryInstitution". Therefore, we kindly
-            suggest you to include the "Country" country office for
-            "CLARISAInstitution".
-          </li>
-        </ul>
-      </div>
-    </form>
-  </div>
+
+    <div class="field">
+      <label for="reject-justification">Justification<span class="tag-req">Required</span></label>
+      <textarea id="reject-justification" [rows]="5" pInputTextarea formControlName="rejectJustification"></textarea>
+    </div>
+
+    <!-- Las razones habituales, plegadas: son seis párrafos que no hacen falta
+         hasta que se está escribiendo el motivo. -->
+    <details class="request-reasons">
+      <summary>Common reasons, ready to copy</summary>
+      <ul>
+        <li><b>Already exists:</b> "InstitutionRequested" already exists in CLARISA as "CLARISA Institution"</li>
+        <li>
+          <b>Already exists as PPA:</b> "InstitutionRequested" is available in CLARISA as Managing/PPA Partner. Please contact your PMU or
+          "ManagementLiaison Role" in order to add it to the list of project partners
+        </li>
+        <li><b>Not legal:</b> This is a program/project, not an institution. We suggest to use "CLARISA Institution" instead.</li>
+        <li>
+          <b>Sub-department:</b> The "InstitutionRequested" is a part of the "CLARISA Institution". Therefore, we kindly suggest you to include
+          "instution Requested" as sub-department of "CLARISA Institution".
+        </li>
+        <li>
+          <b>Person - Not institution:</b> "PersonRequested" is a person, not an institution. We suggest you to include this person under the
+          institution that hired him.
+        </li>
+        <li>
+          <b>Country - Office:</b> The "InstitutionRequested" is a part of the "CLARISAInstitution" in "CountryInstitution". Therefore, we kindly
+          suggest you to include the "Country" country office for "CLARISAInstitution".
+        </li>
+      </ul>
+    </details>
+
+    <p-confirmDialog [style]="{ width: '32rem' }" [baseZIndex]="10000" styleClass="admin-dialog"></p-confirmDialog>
+
+    <!-- Aquí sí va el rojo sólido: es el botón que ejecuta el rechazo. -->
+    <div class="admin-form__actions">
+      <button pButton label="Reject request" class="btn-caution-solid" type="submit"></button>
+    </div>
+  </form>
 
   <ng-template pTemplate="footer">
-    <button
-      pButton
-      type="button"
-      label="Cancel"
-      style="border-radius: 30px; background-color: #eb5b47; color: white"
-      (click)="display = false"
-    ></button>
+    <button pButton type="button" label="Cancel" class="btn-ghost" (click)="display = false"></button>
   </ng-template>
 </p-dialog>
 
 <p-dialog
-  header="Confirm"
+  header="Accept request"
   [(visible)]="displayConfirm"
   [modal]="true"
-  [style]="{ width: '50vw' }"
+  [style]="{ width: '32rem' }"
   [baseZIndex]="10000"
   [draggable]="false"
   [resizable]="false"
->
-  <p class="m-0"></p>
-  <div>
-    <p>Are you sure you want to accept this request?</p>
-  </div>
+  styleClass="admin-dialog">
+  <p>Are you sure you want to accept this request?</p>
 
   <ng-template pTemplate="footer">
-    <button
-      pButton
-      type="button"
-      label="Continue"
-      style="
-        border-radius: 30px;
-        background-color: #7ab800;
-        color: white;
-        margin-right: 10px;
-      "
-      (click)="confirmRequest()"
-    ></button>
-    <button
-      pButton
-      type="button"
-      label="Cancel"
-      style="border-radius: 30px; background-color: #eb5b47; color: white"
-      (click)="displayConfirm = false"
-    ></button>
+    <button pButton type="button" label="Cancel" class="btn-ghost" (click)="displayConfirm = false"></button>
+    <button pButton type="button" label="Accept request" class="btn-brand" (click)="confirmRequest()"></button>
   </ng-template>
 </p-dialog>
-
-
-
 
 <p-messages id="msgs" timeout="3000" hideTransitionOptions="3000"></p-messages>

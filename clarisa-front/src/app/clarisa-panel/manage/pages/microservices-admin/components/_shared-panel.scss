@@ -10,75 +10,60 @@
 .panel-header__title {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #0065bd;
+  color: var(--cl-ink);
   margin: 0 0 0.35rem;
 }
 
 .panel-header__desc {
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--cl-ink-2);
   margin: 0;
   max-width: 36rem;
   line-height: 1.5;
 
   code {
     font-size: 0.8em;
-    background: #eef1f4;
+    background: var(--cl-surface-2);
     padding: 0.1em 0.35em;
     border-radius: 4px;
-    color: #334155;
+    color: var(--cl-ink);
   }
 }
 
 .panel-header__actions {
   display: flex;
-  align-items: center;
+  /* `flex-end`, no `center`: con la etiqueta encima del filtro, el botón se
+     alinea con la base del dropdown — el mismo criterio que ya usa el riel de
+     filtros de Usage & Analytics (`dash-toolbar`). */
+  align-items: flex-end;
   gap: 0.75rem;
 }
 
 .panel-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-card);
   padding: 0.25rem;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 2px rgba(16, 36, 28, 0.05);
 }
 
-:host ::ng-deep .admin-table {
-  .p-datatable-thead > tr > th {
-    background: #f8fafc;
-    color: #475569;
-    font-size: 0.72rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    border-color: #e2e8f0;
-    padding: 0.65rem 1rem;
-  }
-
-  .p-datatable-tbody > tr > td {
-    padding: 0.7rem 1rem;
-    font-size: 0.85rem;
-    border-color: #f1f5f9;
-    color: #334155;
-  }
-
-  .p-datatable-tbody > tr:hover {
-    background: #fafdfb;
-  }
-}
+/* `.admin-table` ya no se dibuja aquí. La tabla del panel es una sola y vive en
+   `src/styles/_admin-table.scss`, en global: mientras cada pantalla se pintaba la
+   suya, la misma columna salía gris en el glosario, blanca en microservicios y
+   lima en la lista de instituciones. Lo que quede en un componente son sus
+   anchos de columna y sus celdas, nunca la piel de la tabla. */
 
 .cell-primary {
   font-weight: 500;
-  color: #1e293b;
+  color: var(--cl-ink);
 }
 
 .key-prefix {
   font-size: 0.78rem;
-  background: #f1f5f9;
+  background: var(--cl-surface-2);
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
-  color: #0065bd;
+  color: var(--cl-ink);
 }
 
 .scopes-cell {
@@ -86,7 +71,7 @@
 }
 
 .scopes-more {
-  color: #7ab800;
+  color: var(--cl-brand);
   font-weight: 600;
   margin-left: 0.15rem;
 }
@@ -98,17 +83,25 @@
 
 .empty-cell {
   text-align: center;
-  color: #94a3b8;
+  color: var(--cl-ink-3);
   padding: 2rem !important;
 }
 
-:host ::ng-deep .btn-brand.p-button {
-  background: #7ab800;
-  border-color: #6a9f00;
+/* El mismo par etiqueta+control que usa Usage & Analytics (`dash-toolbar__group`):
+   antes el filtro de aquí iba pelado junto al botón primario y el de allá con
+   "PERIOD"/"MIS" encima de cada dropdown — mismo tipo de control, dos formas
+   distintas de dibujarlo en la misma sección del panel. */
+.panel-header__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 
-  &:hover {
-    background: #6a9f00;
-    border-color: #5d8a00;
+  label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--cl-ink-3);
   }
 }
 
@@ -116,59 +109,11 @@
   min-width: 7rem;
 }
 
-.admin-form .field {
-  margin-bottom: 1rem;
-
-  label {
-    display: block;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #475569;
-    margin-bottom: 0.35rem;
-  }
-
-  .req {
-    color: #dc2626;
-  }
-
-  /* Says out loud what each field expects, instead of leaving the absence of
-     an asterisk to mean "optional". */
-  .tag-req,
-  .tag-opt {
-    margin-left: 0.4rem;
-    border-radius: 999px;
-    padding: 0.1rem 0.45rem;
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    vertical-align: middle;
-  }
-
-  .tag-req {
-    background: #fee2e2;
-    color: #b91c1c;
-  }
-
-  .tag-opt {
-    background: #f1f5f9;
-    color: #94a3b8;
-  }
-
-  .field-hint {
-    display: block;
-    margin-top: 0.25rem;
-    font-size: 0.72rem;
-    color: #94a3b8;
-  }
-
-  .field-error {
-    display: block;
-    margin-top: 0.25rem;
-    font-size: 0.72rem;
-    color: #dc2626;
-  }
-}
+/* `.btn-brand` y `.admin-form .field` tampoco se dibujan aquí: son el botón y el
+   campo del panel, y viven en `src/styles/_admin-form.scss`, en global. Los tenía
+   solo quien importara este archivo, así que las solicitudes de institución —que
+   no lo importaban— acabaron con campos de otra altura y un botón naranja.
+   De paso, `.btn-brand` estaba en el lima `#7ab800` de la paleta vieja. */
 
 .dialog-footer {
   display: flex;
@@ -176,11 +121,11 @@
   gap: 0.5rem;
   margin-top: 1.25rem;
   padding-top: 1rem;
-  border-top: 1px solid #eef1f4;
+  border-top: 1px solid var(--cl-line);
 }
 
 .dropdown-meta {
-  color: #94a3b8;
+  color: var(--cl-ink-3);
   font-size: 0.85em;
 }
 
@@ -189,13 +134,16 @@
     display: flex;
     gap: 0.75rem;
     align-items: flex-start;
-    background: #fffbeb;
-    border: 1px solid #fde68a;
+    /* Mismo par ámbar que ya usa `.p-tag-warning` en `_admin-controls.scss`: no
+       hay un token `--cl-warn-soft` todavía, y este alcance es migrar a lo que
+       ya existe, no inventar uno nuevo para un solo banner. */
+    background: #fdf3e0;
+    border: 1px solid #f5dfa8;
     border-radius: 8px;
     padding: 0.85rem 1rem;
     margin-bottom: 1rem;
     font-size: 0.85rem;
-    color: #92400e;
+    color: #7a5400;
 
     .pi {
       font-size: 1.1rem;
@@ -204,15 +152,15 @@
   }
 
   .secret-box {
-    background: #f8fafc;
-    border: 1px dashed #cbd5e1;
+    background: var(--cl-surface-2);
+    border: 1px dashed var(--cl-line);
     border-radius: 8px;
     padding: 1rem;
     word-break: break-all;
 
     code {
       font-size: 0.8rem;
-      color: #0f172a;
+      color: var(--cl-ink);
       line-height: 1.5;
     }
   }

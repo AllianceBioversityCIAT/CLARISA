@@ -1,29 +1,53 @@
+/**
+ * Armazón del panel: una columna fija a la izquierda y el contenido a su
+ * derecha, de arriba abajo.
+ *
+ * Ya no hay barra superior, así que tampoco hay hueco que reservar para ella.
+ * Ese hueco se declaraba aquí una sola vez y no en cada pantalla: antes cada
+ * página traía su propio `padding-top` (72px en microservicios y ciclo de vida,
+ * 75px en el glosario) y bastaba con mover la barra para abrir una franja vacía
+ * distinta en cada una.
+ */
+
 .admin-shell {
   display: flex;
   align-items: flex-start;
   background: var(--cl-surface);
+  /* El footer del panel (`clarisa-panel/components/footer`) es `position:
+     absolute` y de ancho completo, así que se planta justo donde acaba el
+     contenido: en una pantalla con poco que mostrar aterrizaba a media altura y
+     tapaba las primeras entradas del sidebar. Con el armazón ocupando la
+     ventana, cae abajo del todo. El footer en sí no se toca: lo usan también la
+     documentación y la referencia de API. */
+  min-height: calc(100vh - var(--cl-admin-header));
 }
 
 .admin-shell__content {
   flex: 1;
-  /* The sidebar is `position: fixed`, so it no longer reserves its own column:
-     without this offset the table slides underneath it. 248px is the sidebar
-     width declared in `admin-sidebar.component.scss`; the two move together. */
-  margin-left: 248px;
+  /* El sidebar es `position: fixed`, así que ya no reserva su columna: sin este
+     desplazamiento la tabla se le mete por debajo. Los dos leen la misma
+     variable, así que se mueven juntos. */
+  margin-left: var(--cl-admin-sidebar);
   /* `min-width: 0` so a wide table scrolls inside the content column instead of
      pushing the sidebar off the screen. */
   min-width: 0;
 }
 
 @media (max-width: 900px) {
+  /* Bajo 900px el sidebar es un cajón que se abre encima: no ocupa columna, así
+     que no hay margen que compensar y el contenido usa la pantalla entera.
+     Antes de eso la navegación se metía en el flujo como una fila y había que
+     recorrerla entera para llegar a la pantalla. */
   .admin-shell {
-    flex-direction: column;
+    display: block;
   }
 
-  /* Under 900px the sidebar goes back into the flow as a row on top, so the
-     offset has to go with it. */
   .admin-shell__content {
     width: 100%;
     margin-left: 0;
+    /* El armazón ya no es flex, así que `min-width: 0` no basta: lo que impide
+       que una tabla ancha estire la página es contener su desbordamiento aquí. */
+    max-width: 100%;
+    overflow-x: hidden;
   }
 }

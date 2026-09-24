@@ -1,167 +1,115 @@
+<!--
+  🛑 Este modal es el de `CLR-55`. No se tocó ni un `formControlName`, ni el
+  `(onChange)` de los tipos, ni el `(ngSubmit)`, ni el orden en que se resuelven
+  los subtipos: el arreglo que impide que editar una solicitud la reasigne a
+  «CGIAR Center» vive en el TS y en el back, y sigue intacto. Aquí solo cambia la
+  maquetación: fila a fila con `style="width: 50%"` → rejilla que se pliega, y
+  campos de la misma altura.
+-->
 <div *ngIf="loading == true" class="loader">
-  <img
-    src="../../assets/images/loadeer.gif"
-    style="width: 50px; height: 50px; opacity: 1"
-  />
+  <img src="../../assets/images/loadeer.gif" alt="" />
 </div>
+
 <div *ngIf="loading == false">
-  <form [formGroup]="group" (ngSubmit)="edit(group.value)">
-    <div>
-      <div>
-        <span>Name:*</span>
-        <input
-          type="text"
-          pInputText
-          style="width: 100%"
-          formControlName="name"
-        />
-      </div>
-      <div
-        style="
-          margin-top: 10px;
-          width: 100%;
-          display: flex;
-          flex-direction: row;
-        "
-      >
-        <div style="width: 50%">
-          <span>Country:*</span>
-          <br />
+  <form class="admin-form" [formGroup]="group" (ngSubmit)="edit(group.value)">
+    <div class="field">
+      <label for="edit-request-name">Name<span class="tag-req">Required</span></label>
+      <input id="edit-request-name" type="text" pInputText formControlName="name" />
+    </div>
+
+    <div class="admin-form__grid">
+      <div class="field">
+        <label>Type<span class="tag-req">Required</span></label>
+        <!--
+          `appendTo="body"`: el panel se dibuja fuera del diálogo. Dentro, el
+          contenido del modal tiene scroll propio y le recorta la lista — el
+          mismo defecto que se comía las opciones del paginador (16-sep-2026).
+        -->
+        <p-dropdown
+          [options]="type"
+          [(ngModel)]="selectedType"
+          optionLabel="name"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          (onChange)="selectType($event.value)"
+          formControlName="institutionHelpOne"></p-dropdown>
+
+        <ng-container *ngIf="isArray(subTypeOne) && subTypeOne.length != 0">
+          <label class="field-stack">Sub type<span class="tag-req">Required</span></label>
           <p-dropdown
-            [options]="cities"
-            [(ngModel)]="selectedCity"
+            [options]="subTypeOne"
+            [(ngModel)]="selectSubtypeOne"
             optionLabel="name"
-            [style]="{ width: '90%' }"
-            formControlName="hqCountryIso"
-          >
-          </p-dropdown>
-        </div>
-        <div style="width: 50%">
-          <span>Category 1:</span>
-          <input
-            type="text"
-            pInputText
-            style="width: 100%"
-            formControlName="category_1"
-          />
-        </div>
-      </div>
-      <div
-        style="
-          margin-top: 10px;
-          width: 100%;
-          display: flex;
-          flex-direction: row;
-        "
-      >
-        <div style="width: 50%">
-          <span>Type:*</span>
-          <br />
+            appendTo="body"
+            panelStyleClass="admin-dropdown-panel"
+            (onChange)="selectSubType($event.value)"
+            formControlName="institutionHelpTwo"></p-dropdown>
+        </ng-container>
+
+        <ng-container *ngIf="isArray(subTypeTwo) && subTypeTwo.length != 0">
+          <label class="field-stack">Sub type<span class="tag-req">Required</span></label>
           <p-dropdown
-            [options]="type"
-            [(ngModel)]="selectedType"
+            [options]="subTypeTwo"
+            [(ngModel)]="selectSubTypeTwo"
             optionLabel="name"
-            [style]="{ width: '90%' }"
-            (onChange)="selectType($event.value)"
-            formControlName="institutionHelpOne"
-          >
-          </p-dropdown>
-          <br />
-          <span *ngIf="isArray(subTypeOne) && subTypeOne.length != 0">
-            <span>Sub Type:*</span>
-            <br />
-            <p-dropdown
-              [options]="subTypeOne"
-              [(ngModel)]="selectSubtypeOne"
-              optionLabel="name"
-              [style]="{ width: '90%' }"
-              (onChange)="selectSubType($event.value)"
-              formControlName="institutionHelpTwo"
-            >
-            </p-dropdown>
-          </span>
-          <br />
-          <span *ngIf="isArray(subTypeTwo) && subTypeTwo.length != 0">
-            <span>Sub Type:*</span>
-            <br />
-            <p-dropdown
-              [options]="subTypeTwo"
-              [(ngModel)]="selectSubTypeTwo"
-              optionLabel="name"
-              [style]="{ width: '90%' }"
-              formControlName="institutionTypeCode"
-            >
-            </p-dropdown>
-          </span>
-        </div>
-        <div style="width: 50%">
-          <span>Category 2:</span>
-          <input
-            type="text"
-            pInputText
-            style="width: 100%"
-            formControlName="category_2"
-          />
-        </div>
+            appendTo="body"
+            panelStyleClass="admin-dropdown-panel"
+            formControlName="institutionTypeCode"></p-dropdown>
+        </ng-container>
       </div>
-      <div
-        style="
-          margin-top: 10px;
-          width: 100%;
-          display: flex;
-          flex-direction: row;
-        "
-      >
-        <div style="width: 70%">
-          <span>Website:</span>
-          <input
-            type="text"
-            pInputText
-            style="width: 100%"
-            formControlName="websiteLink"
-          />
-        </div>
-        <div style="width: 30%; margin-left: 20px">
-          <span>Acronym:</span>
-          <input
-            type="text"
-            pInputText
-            style="width: 100%"
-            formControlName="acronym"
-          />
-        </div>
-      </div>
-      <div style="margin-top: 10px">
-        <span>Comments:</span><br />
-        <textarea
-          [rows]="5"
-          pInputTextarea
-          style="width: 100%"
-          formControlName="externalUserComments"
-        ></textarea>
-      </div>
-      <div style="margin-top: 10px">
-        <span>Justification:<span style="color: red">*</span></span
-        ><br />
-        <textarea
-          [rows]="5"
-          pInputTextarea
-          style="width: 100%"
-          formControlName="modification_justification"
-        ></textarea>
+
+      <div class="field">
+        <label>Country<span class="tag-req">Required</span></label>
+        <!-- El más largo de todos: 249 países dentro de un modal con scroll. -->
+        <p-dropdown
+          [options]="cities"
+          [(ngModel)]="selectedCity"
+          optionLabel="name"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          formControlName="hqCountryIso"></p-dropdown>
       </div>
     </div>
 
-    <button
-      pButton
-      type="submit"
-      label="Update request"
-      style="
-        border-radius: 30px;
-        background-color: #7ab800;
-        color: white;
-        margin-right: 10px;
-      "
-    ></button>
+    <div class="admin-form__grid">
+      <div class="field">
+        <label for="edit-request-category-1">Category 1 <span class="tag-opt">Optional</span></label>
+        <input id="edit-request-category-1" type="text" pInputText formControlName="category_1" />
+      </div>
+
+      <div class="field">
+        <label for="edit-request-category-2">Category 2 <span class="tag-opt">Optional</span></label>
+        <input id="edit-request-category-2" type="text" pInputText formControlName="category_2" />
+      </div>
+    </div>
+
+    <div class="admin-form__grid admin-form__grid--wide">
+      <div class="field">
+        <label for="edit-request-website">Website <span class="tag-opt">Optional</span></label>
+        <input id="edit-request-website" type="text" pInputText formControlName="websiteLink" />
+      </div>
+
+      <div class="field">
+        <label for="edit-request-acronym">Acronym <span class="tag-opt">Optional</span></label>
+        <input id="edit-request-acronym" type="text" pInputText formControlName="acronym" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="edit-request-comments">Comments <span class="tag-opt">Optional</span></label>
+      <textarea id="edit-request-comments" [rows]="4" pInputTextarea formControlName="externalUserComments"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="edit-request-justification">Justification<span class="tag-req">Required</span></label>
+      <textarea id="edit-request-justification" [rows]="4" pInputTextarea formControlName="modification_justification"></textarea>
+      <!-- Es el único campo que el componente valida al guardar; decirlo aquí
+           evita el «Error validator» sin nombre que reportó Santi. -->
+      <small class="field-hint">Required: say why the request is being changed.</small>
+    </div>
+
+    <div class="admin-form__actions">
+      <button pButton type="submit" label="Update request" class="btn-brand"></button>
+    </div>
   </form>
 </div>

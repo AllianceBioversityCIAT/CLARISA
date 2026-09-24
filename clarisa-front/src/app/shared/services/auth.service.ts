@@ -5,6 +5,18 @@ import { environment } from 'src/environments/environment';
 import { UserAuth } from '../interfaces/user-auth';
 import { UserBasicInfo } from '../interfaces/user-basic-info';
 
+/**
+ * Why the user is looking at the login screen.
+ *
+ * Travels as `?reason=session-expired` so the reason survives the redirect —and
+ * a reload— instead of living in a variable that the navigation itself destroys.
+ * The login screen is the only reader.
+ */
+export const SESSION_EXPIRED = 'session-expired';
+
+/** Where a closed session lands. */
+export const LOGIN_ROUTE = 'landing-page/login';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -43,10 +55,21 @@ export class AuthService {
    * The order used to be the other way around — navigate, reload, clear — and
    * the reload raced the clear: whether the browser took the new page with the
    * token still in place depended on timing.
+   *
+   * `reason` is what the login screen needs to tell an expiry from someone
+   * arriving on their own: without it the app dropped the user on a blank form
+   * mid-task and said nothing, which reads as being thrown out. It is opt-in on
+   * purpose — pressing «Sign out» is not an incident and carries no message.
    */
-  logout() {
+  logout(reason?: typeof SESSION_EXPIRED) {
     localStorage.clear();
-    this.router.navigate(['landing-page/login']);
+
+    if (reason) {
+      this.router.navigate([LOGIN_ROUTE], { queryParams: { reason } });
+      return;
+    }
+
+    this.router.navigate([LOGIN_ROUTE]);
   }
 
   /**

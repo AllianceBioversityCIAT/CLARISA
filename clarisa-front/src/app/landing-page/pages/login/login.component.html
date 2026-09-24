@@ -15,51 +15,105 @@
   <div class="form-pane">
     <form (ngSubmit)="onSubmit()" [formGroup]="loginForm">
       <p-panel>
-        <div class="login-card">
+        <div class="login-card" [class.is-working]="signingIn">
           <header class="login-card__head">
             <p class="login-card__brand">CLARISA</p>
+
+            <!--
+              Qué se puede hacer una vez dentro, una frase cada vez. Va ENCIMA del
+              título y no suelto por la pantalla: es lo primero que se lee al
+              llegar, y es la única pantalla donde alguien se detiene sin saber
+              todavía qué hay al otro lado.
+            -->
+            <div class="login-card__claims" aria-live="polite">
+              <p *ngFor="let c of claims; let i = index" [class.is-on]="i === claim">{{ c }}</p>
+            </div>
+
             <h1 class="login-card__title">Sign in</h1>
             <p class="login-card__subtitle">Request partners administrator</p>
           </header>
 
+          <!--
+            Por qué se está aquí, cuando no se vino por voluntad propia. Va
+            ARRIBA del formulario y no junto al botón: no es la respuesta a nada
+            que se acabe de pulsar, es el contexto de la pantalla, y se lee antes
+            de empezar a escribir.
+
+            En verde de marca y no en rojo: que una sesión caduque no es un
+            fallo de quien la tenía. `role="status"` porque informa, no alerta.
+          -->
+          <p class="login-card__notice" *ngIf="sessionExpired" role="status">
+            <i class="fa fa-clock-o" aria-hidden="true"></i>
+            <span>Your session expired. Please sign in again to continue.</span>
+          </p>
+
           <div class="field">
             <label for="login-user">Username or email</label>
-            <input id="login-user" pInputText type="text" formControlName="login" name="login" autocomplete="username" />
+            <input id="login-user" pInputText type="text" formControlName="login" name="login" autocomplete="username" [readonly]="signingIn" />
             <small class="field__error" [hidden]="loginForm.controls['login'].valid || !loginForm.controls['login'].dirty">Login is required</small>
           </div>
 
           <div class="field">
             <label for="login-password">Password</label>
-            <input id="login-password" pInputText type="password" formControlName="password" name="password" autocomplete="current-password" />
+            <!--
+              El ojo va DENTRO del campo, no al lado: al lado empujaría el input
+              y rompería la altura de la fila. El botón es `type="button"` a
+              propósito — dentro de un formulario, un botón sin tipo envía.
+            -->
+            <div class="field__with-toggle">
+              <input
+                id="login-password"
+                pInputText
+                [type]="showPassword ? 'text' : 'password'"
+                formControlName="password"
+                name="password"
+                autocomplete="current-password"
+                [readonly]="signingIn" />
+              <button
+                type="button"
+                class="field__toggle"
+                (click)="showPassword = !showPassword"
+                [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+                [attr.aria-pressed]="showPassword"
+                tabindex="0">
+                <i class="fa" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword" aria-hidden="true"></i>
+              </button>
+            </div>
             <small class="field__error" [hidden]="loginForm.controls['password'].valid || !loginForm.controls['password'].dirty"
               >Password is required</small
             >
           </div>
 
+          <!--
+            Lo que falló, encima del botón y no en un toast que se va solo: es la
+            respuesta a lo que se acaba de pulsar, así que vive donde estaba la
+            mano. `role="alert"` para que un lector de pantalla lo anuncie sin
+            tener que buscarlo.
+
+            🛑 Este bloque es el que faltaba: el componente ya calculaba el
+            mensaje y la plantilla no lo pintaba en ninguna parte, así que una
+            contraseña incorrecta no decía absolutamente nada
+            (Yeck, 16-sep-2026).
+          -->
+          <p class="login-card__error" *ngIf="menssageValidate" role="alert">
+            <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+            <span>{{ menssageValidate }}</span>
+          </p>
+
+          <!--
+            La espera vive EN el botón: una barra que recorre su base. Sin
+            diálogo encima del formulario y sin la ruedecita azul de PrimeNG,
+            que además venía de un GIF.
+          -->
           <button
             pButton
             type="submit"
-            label="Sign in"
+            [label]="signingIn ? 'Signing in' : 'Sign in'"
             class="login-card__submit"
-            [disabled]="!loginForm.valid"
-            (click)="displayConfirm = true"></button>
+            [disabled]="!loginForm.valid || signingIn"
+            [class.is-working]="signingIn"></button>
         </div>
       </p-panel>
     </form>
   </div>
 </div>
-
-<p-dialog
-  header="Loading"
-  [(visible)]="displayConfirm"
-  [modal]="true"
-  [style]="{ width: '50vw' }"
-  [baseZIndex]="10000"
-  [draggable]="false"
-  [resizable]="false">
-  <h4>{{ menssageValidate }}</h4>
-
-  <div style="width: 100%; display: flex; align-items: center; justify-content: center">
-    <img src="../../assets/images/loadeer.gif" alt="Loading" style="width: 50px; height: 50px" />
-  </div>
-</p-dialog>

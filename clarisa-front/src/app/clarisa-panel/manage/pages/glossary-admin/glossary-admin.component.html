@@ -4,33 +4,44 @@
     that made two navigation columns in a row, so it is a horizontal segmented
     control above the content instead: one column, one place to switch section.
   -->
-  <header class="glossary-topbar">
-    <div class="glossary-topbar__head">
-      <h2 class="glossary-topbar__title">Glossary</h2>
-      <p class="glossary-topbar__hint">Manage the CLARISA glossary terms and their portfolios.</p>
+  <!--
+    Un solo encabezado para la pantalla. Antes había dos títulos apilados:
+    «Glossary» aquí y «Glossary terms» dentro del panel de términos, con dos
+    tamaños distintos y dos explicaciones. El de dentro se fue; el texto que sí
+    decía algo —qué publica el endpoint y qué pasa al desactivar— es ahora el
+    apoyo de este.
+
+    Y el selector de sección usa `admin-tabs`, el mismo control que las
+    solicitudes de institución, en vez de un segmentado propio.
+  -->
+  <header class="admin-page">
+    <div class="admin-page__head">
+      <span class="admin-page__eyebrow">Manage</span>
+      <h1 class="admin-page__title">Glossary</h1>
+      <p class="admin-page__hint">
+        Every term published by <code>GET api/glossary</code>. Deactivating a term hides it from the public glossary without deleting anything.
+      </p>
     </div>
 
-    <nav class="glossary-segmented" role="tablist" aria-label="Glossary sections">
+    <nav class="admin-tabs admin-page__aside" role="tablist" aria-label="Glossary sections">
       <button
         type="button"
         role="tab"
         id="glossary-tab-terms"
-        class="glossary-segmented__item"
-        [class.glossary-segmented__item--active]="activeSection === 'terms'"
+        class="admin-tabs__item"
+        [class.is-active]="activeSection === 'terms'"
         [attr.aria-selected]="activeSection === 'terms'"
         (click)="setSection('terms')">
-        <i class="pi pi-list" aria-hidden="true"></i>
         <span>Terms</span>
       </button>
       <button
         type="button"
         role="tab"
         id="glossary-tab-bulk"
-        class="glossary-segmented__item"
-        [class.glossary-segmented__item--active]="activeSection === 'bulk'"
+        class="admin-tabs__item"
+        [class.is-active]="activeSection === 'bulk'"
         [attr.aria-selected]="activeSection === 'bulk'"
         (click)="setSection('bulk')">
-        <i class="pi pi-upload" aria-hidden="true"></i>
         <span>Bulk upload</span>
       </button>
     </nav>

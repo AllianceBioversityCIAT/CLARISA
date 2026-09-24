@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { RouterTestingModule } from '@angular/router/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { NavigationBarComponent } from './navigation-bar.component';
 
@@ -9,8 +10,14 @@ describe('NavigationBarComponent', () => {
   let fixture: ComponentFixture<NavigationBarComponent>;
 
   beforeEach(async () => {
+    // Sin sesión guardada la barra muestra «Sign in», que es lo que estos casos
+    // comprueban. Un token dejado por otro test la pondría en modo cuenta.
+    localStorage.clear();
+
     await TestBed.configureTestingModule({
-      imports: [RouterTestingModule],
+      // `HttpClientTestingModule` porque la barra ahora inyecta `AuthService`
+      // para saber si hay sesión, y ese servicio pide `HttpClient`.
+      imports: [RouterTestingModule, HttpClientTestingModule],
       declarations: [NavigationBarComponent],
       schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
