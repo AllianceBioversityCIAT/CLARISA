@@ -383,7 +383,7 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
 
     try {
       const started = video.play();
-      if (started && typeof started.then === 'function') {
+      if (started !== undefined && typeof started.then === 'function') {
         started.then(() => video.pause()).catch(() => undefined);
       } else {
         video.pause();

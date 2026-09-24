@@ -2,6 +2,19 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
+/* Los dos componentes compartidos del panel: la tabla y el selector de sección.
+   Viven en global porque su razón de ser es que TODAS las pantallas dibujen el
+   mismo control; declararlos dentro de un componente es lo que llevó a tener
+   tres tablas distintas para el mismo dato.
+   Van arriba de todo (tras la fuente): un @import después de otras reglas es
+   inválido en CSS y Sonar lo marca como bug. Antes solo había variables :root,
+   así que la cascada no cambia. */
+@import 'styles/admin-page';
+@import 'styles/admin-controls';
+@import 'styles/admin-table';
+@import 'styles/admin-tabs';
+@import 'styles/admin-form';
+
 /* Design tokens - the single source of colour for the application.
    A literal hex outside this block is a review error; see DESIGN.md section 2.
    PrimeNG is not recoloured from here: its theme writes the accent as a literal
@@ -61,16 +74,6 @@
      «galáctico»; marcar con él dónde estás es para lo que sirve. */
   --cl-admin-nav-accent: #5fe3b4;
 }
-
-/* Los dos componentes compartidos del panel: la tabla y el selector de sección.
-   Viven en global porque su razón de ser es que TODAS las pantallas dibujen el
-   mismo control; declararlos dentro de un componente es lo que llevó a tener
-   tres tablas distintas para el mismo dato. */
-@import 'styles/admin-page';
-@import 'styles/admin-controls';
-@import 'styles/admin-table';
-@import 'styles/admin-tabs';
-@import 'styles/admin-form';
 
 html *:not(.fa, .fe, .pi, pre, code) {
   font-family: 'Poppins', sans-serif !important;

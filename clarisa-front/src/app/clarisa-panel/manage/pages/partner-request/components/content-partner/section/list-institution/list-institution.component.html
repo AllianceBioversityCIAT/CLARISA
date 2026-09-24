@@ -40,7 +40,8 @@
     <div class="admin-table-toolbar">
       <span class="p-input-icon-left">
         <i class="pi pi-search"></i>
-        <input pInputText type="text" (input)="dt1.filterGlobal($any($event.target).value, 'contains')" placeholder="Search an institution" />
+        <label for="institution-search" class="cl-sr-only">Search an institution</label>
+        <input id="institution-search" pInputText type="text" (input)="dt1.filterGlobal($any($event.target).value, 'contains')" placeholder="Search an institution" />
       </span>
       <span class="admin-table-toolbar__count">{{ dt1.totalRecords || 0 }} institutions</span>
     </div>
@@ -48,23 +49,23 @@
 
   <ng-template pTemplate="header">
     <tr>
-      <th style="width: 88px" pSortableColumn="code">Code <p-sortIcon field="code"></p-sortIcon></th>
-      <th style="width: 118px" pSortableColumn="acronym">Acronym <p-sortIcon field="acronym"></p-sortIcon></th>
-      <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+      <th scope="col" style="width: 88px" pSortableColumn="code">Code <p-sortIcon field="code"></p-sortIcon></th>
+      <th scope="col" style="width: 118px" pSortableColumn="acronym">Acronym <p-sortIcon field="acronym"></p-sortIcon></th>
+      <th scope="col" pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
       <!--
         Se ordena por `institutionType.name`, no por el objeto: comparar objetos
         no reordena nada, así que la flecha llevaba desde siempre a una tabla que
         no se movía. Y sí, el encabezado decía «Insitution Type».
       -->
-      <th style="width: 250px" pSortableColumn="institutionType.name">Institution type <p-sortIcon field="institutionType.name"></p-sortIcon></th>
+      <th scope="col" style="width: 250px" pSortableColumn="institutionType.name">Institution type <p-sortIcon field="institutionType.name"></p-sortIcon></th>
       <!--
         La celda es una lista de países, así que no se ordena por ella: se ordena
         por `officeSort`, el primer código del listado en alfabético. Es lo que
         el lector compara de un vistazo, y las instituciones sin oficina quedan
         juntas en un extremo en vez de repartidas.
       -->
-      <th style="width: 150px" pSortableColumn="officeSort">Office location <p-sortIcon field="officeSort"></p-sortIcon></th>
-      <th style="width: 260px" pSortableColumn="websiteLink">Website <p-sortIcon field="websiteLink"></p-sortIcon></th>
+      <th scope="col" style="width: 150px" pSortableColumn="officeSort">Office location <p-sortIcon field="officeSort"></p-sortIcon></th>
+      <th scope="col" style="width: 260px" pSortableColumn="websiteLink">Website <p-sortIcon field="websiteLink"></p-sortIcon></th>
     </tr>
   </ng-template>
 

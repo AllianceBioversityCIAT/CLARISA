@@ -6,7 +6,7 @@
   // carga. Ver la nota larga en ese archivo.
   if (!document.querySelector('.sidebar-right')) return;
 
-  new PerfectScrollbar('.sidebar-right', {
+  return new PerfectScrollbar('.sidebar-right', {
     useBothWheelAxes: true,
     suppressScrollX: true,
   });
