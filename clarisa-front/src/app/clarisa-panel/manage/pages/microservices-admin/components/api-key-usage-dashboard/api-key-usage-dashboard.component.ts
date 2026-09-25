@@ -96,6 +96,13 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
   endpointQuery = '';
   selectedEndpoint: UsageTreeEndpoint | null = null;
   openGroups = new Set<string>();
+  /**
+   * Solo se conserva la selección que eligió la persona. La que puso el
+   * componente (el catálogo llega antes que el uso, y en ese instante el «más
+   * usado» es el primero con 0) se recalcula cuando llegan los datos: si no,
+   * el panel abría en «CGIAR entities · 0» con 34 llamadas en otra parte.
+   */
+  private endpointPickedByUser = false;
 
   /** Activity log, paged on the server. */
   logsFirst = 0;
@@ -315,6 +322,7 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
 
   selectEndpoint(endpoint: UsageTreeEndpoint): void {
     this.selectedEndpoint = endpoint;
+    this.endpointPickedByUser = true;
   }
 
   endpointShare(endpoint: UsageTreeEndpoint): number {
@@ -476,13 +484,17 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
   private rebuildTree(): void {
     this.tree = buildUsageTree(this.catalog, this.endpointUsage?.items ?? []);
     this.visibleTree = filterUsageTree(this.tree, this.endpointQuery);
+    if (!this.endpointPickedByUser && this.endpointUsage) {
+      // Hasta que la persona toque el árbol, el grupo abierto sigue a los datos.
+      this.openGroups.clear();
+    }
     if (!this.openGroups.size && this.visibleTree.length) {
       // Abre solo el grupo con más tráfico: el árbol entero desplegado es una
       // lista de 50 rutas, y lo que se busca de entrada es lo que más se usa.
       const busiest = [...this.visibleTree].sort((a, b) => b.total_requests - a.total_requests)[0];
       this.openGroups.add(busiest.name);
     }
-    const stillThere = this.selectedEndpoint ? this.findEndpoint(this.visibleTree, this.selectedEndpoint.key) : null;
+    const stillThere = this.endpointPickedByUser && this.selectedEndpoint ? this.findEndpoint(this.visibleTree, this.selectedEndpoint.key) : null;
     this.selectedEndpoint = stillThere ?? this.busiestEndpoint(this.visibleTree);
   }
 
