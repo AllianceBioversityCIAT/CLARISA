@@ -1,4 +1,4 @@
-import { bandPath, compactNumber, monotonePath, niceMax, paletteColor, SYSTEM_PALETTE, tickIndexes } from './chart-geometry';
+import { bandPath, compactNumber, monotonePath, niceMax, niceTicks, paletteColor, SYSTEM_PALETTE, tickIndexes } from './chart-geometry';
 
 describe('chart geometry', () => {
   it('draws a monotone curve through every point and never above the data', () => {
@@ -60,5 +60,13 @@ describe('chart geometry', () => {
   it('cycles the palette', () => {
     expect(paletteColor(0)).toBe(SYSTEM_PALETTE[0]);
     expect(paletteColor(SYSTEM_PALETTE.length + 1)).toBe(SYSTEM_PALETTE[1]);
+  });
+
+  it('picks a round step first, so the axis never reads 13, 25, 38', () => {
+    expect(niceTicks(28)).toEqual([0, 10, 20, 30]);
+    expect(niceTicks(47)).toEqual([0, 20, 40, 60]);
+    expect(niceTicks(180)).toEqual([0, 50, 100, 150, 200]);
+    expect(niceTicks(0)).toEqual([0, 1]);
+    expect(niceTicks(3)).toEqual([0, 1, 2, 3]);
   });
 });
