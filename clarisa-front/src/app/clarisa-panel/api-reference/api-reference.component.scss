@@ -1,32 +1,16 @@
-// The documentation navbar renders as position: fixed, so it takes no space in
-// the flow. Without this offset it sits on top of the doc's own topbar (logo +
-// search) and hides it.
-$docs-header-height: 75px;
-
+// Sin barra encima, el marco ocupa la ventana entera: el armazón (columna +
+// contenido) vive dentro del iframe, igual que en el panel vive en su shell.
+// `svh` y no `vh`: en Safari móvil `100vh` es el viewport grande y el marco
+// quedaría más alto que la pantalla con la barra de direcciones a la vista.
 .api-reference-proposal {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding-top: $docs-header-height;
-  min-height: calc(100vh - #{$docs-header-height});
-  box-sizing: border-box;
+  display: block;
+  height: 100vh;
+  height: 100svh;
 }
 
 .api-doc-frame {
-  flex: 1 1 auto;
-  width: 100%;
-  min-height: calc(100vh - #{$docs-header-height});
-  border: 0;
   display: block;
-}
-
-@media (max-width: 991px) {
-  .api-reference-proposal {
-    padding-top: 60px;
-    min-height: calc(100vh - 60px);
-  }
-
-  .api-doc-frame {
-    min-height: calc(100vh - 60px);
-  }
+  width: 100%;
+  height: 100%;
+  border: 0;
 }

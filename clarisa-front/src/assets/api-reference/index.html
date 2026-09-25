@@ -15,10 +15,10 @@
     no fijaba versión —cualquier cambio suyo llegaba a producción sin que nadie
     lo aprobara— y las clases se compilaban en el navegador de cada visitante.
 
-    Ahora es una hoja estática de ~20 KB generada aquí con las clases que ESTA
-    página usa de verdad. Se regenera con `npm run build:api-reference-css`; el
-    tema (paleta `leaf`, tipografías, sombras) vive en `tailwind.config.js` en
-    la raíz del front.
+    Ahora es una hoja estática generada aquí con las clases que ESTA página usa
+    de verdad. Se regenera con `npm run build:api-reference-css`; el tema
+    (paleta `brand`/`forest`, tipografías, sombras) vive en `tailwind.config.js`
+    en la raíz del front.
   -->
   <link rel="stylesheet" href="tailwind.css" />
   <!--
@@ -31,146 +31,752 @@
     crossorigin="anonymous"
     referrerpolicy="no-referrer"></script>
   <style>
+    /* ═══════════════════════════════════════════════════════════════════
+       Piel de la doc — rediseño del 24-sep-2026.
+
+       La doc era la última pantalla con el verde lima del tema viejo (barra
+       `#7ab800`, hero degradado, cabeceras de tabla lima). Toma la línea del
+       panel de administración —columna fija con la marca y el catálogo,
+       contenido a la derecha, controles de 34px, tarjetas de 14px— pero con
+       OTRO color de armazón: verde bosque, no el carbón del panel (Yeck:
+       «la línea de diseño del admin puede ser pero con otro color para que el
+       sidebar quede más bonito»). El menta es SOLO acento: el endpoint abierto,
+       la columna que ordena, el foco. Pintar superficies con él es lo que se
+       veía «galáctico» (16-sep-2026).
+
+       Los tokens repiten los de `styles.scss` (DESIGN.md § 2): esta página vive
+       en un iframe y no alcanza a leer las variables de la app.
+
+       Lo que es layout va en CSS a mano y no en clases de Tailwind: la hoja se
+       compila aparte y el armazón no puede depender de que esa compilación se
+       acuerde de una clase (lección del cajón, 18-sep-2026).
+       ═══════════════════════════════════════════════════════════════════ */
+    :root {
+      --forest:        #0e3328;   /* columna, cabecera de tabla, paneles de código */
+      --forest-2:      #143d31;   /* superficie dentro del bosque: buscador, hover */
+      --forest-3:      #1a4a3b;   /* hover más fuerte, botón sobre oscuro */
+      --forest-line:   #1f4a3d;   /* la única línea que se dibuja sobre bosque */
+      --forest-ink:    #f4faf7;   /* 13,21 sobre bosque */
+      --forest-muted:  #a9bdb6;   /* 6,99 */
+      --forest-dim:    #8aa39a;   /* 5,11: etiquetas, nunca texto importante */
+      --accent:        #5fe3b4;   /* menta, 8,62 sobre bosque: solo acento */
+
+      --brand:         #0f8a63;
+      --brand-strong:  #0b7554;
+      --brand-deep:    #0a6449;
+      --brand-deeper:  #08543e;
+      --brand-soft:    #e3f3ed;
+      --brand-ring:    #bde3d4;
+
+      --ink:    #10241c;
+      --ink-2:  #46524c;
+      --ink-3:  #79847c;
+      --surface:   #ffffff;
+      --surface-2: #f7f9f6;
+      --line:      #d9e0da;
+
+      --error:      #b42318;
+      --error-soft: #fdeceb;
+      --warn:       #7a5400;
+      --warn-soft:  #fdf3e0;
+
+      --aside-w: 272px;   /* 264 del panel + 8: «Institutions Related List» con su punto */
+      --brand-h: 60px;    /* alto del bloque de marca, el mismo del panel */
+      --topbar-h: 56px;   /* barra del teléfono */
+    }
+
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--surface); color: var(--ink-2); }
+
     ::-webkit-scrollbar { width: 9px; height: 9px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #c4d4e4; border-radius: 9px; border: 2px solid #f8fafc; }
-    ::-webkit-scrollbar-thumb:hover { background: #9db8d2; }
-    .fade-in { animation: fadeIn .25s ease both; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-    .spin { animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .skeleton { animation: pulse 1.4s ease-in-out infinite; }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
-    table.data th { position: sticky; top: 0; z-index: 5; }
+    ::-webkit-scrollbar-thumb { background: #c5d0ca; border-radius: 9px; border: 2px solid var(--surface); }
+    ::-webkit-scrollbar-thumb:hover { background: #9fb0a8; }
+    .doc-aside ::-webkit-scrollbar-thumb { background: #2b5a4a; border-color: var(--forest); }
 
-    /* Con sitio para las dos columnas, ni la barra ni el velo existen. La
-       declaración va ANTES de la consulta de medios: puesta después ganaba por
-       orden y escondía la barra también en el teléfono. */
-    .doc-navbar, .doc-scrim { display: none; }
+    .fade-in { animation: fadeIn .22s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    /* ── Armazón ──────────────────────────────────────────────────────── */
+
+    .doc-aside {
+      position: fixed; top: 0; bottom: 0; left: 0; z-index: 30;
+      width: var(--aside-w);
+      display: flex; flex-direction: column;
+      box-sizing: border-box;
+      color: var(--forest-ink);
+      /* No un bloque plano: caída de arriba abajo y un halo de marca tenue en
+         la esquina de la marca. Es lo que separa «plataforma» de
+         «institucional» (Yeck, 15-sep-2026). */
+      background:
+        radial-gradient(420px 260px at -10% -10%, rgba(95, 227, 180, 0.13), transparent 62%),
+        linear-gradient(180deg, #123a2e 0%, var(--forest) 34%, #0b2a21 100%);
+      border-right: 1px solid var(--forest-line);
+    }
+
+    .doc-brand {
+      display: flex; align-items: center; gap: 10px;
+      flex: 0 0 auto;
+      height: var(--brand-h);
+      padding: 0 20px;
+      box-sizing: border-box;
+      border-bottom: 1px solid var(--forest-line);
+      color: var(--forest-ink);
+      text-decoration: none;
+    }
+    /* La marca del CGIAR es verde bosque sobre blanco; sobre bosque necesita ir en blanco. */
+    .doc-brand__mark { width: 24px; height: auto; filter: brightness(0) invert(1); opacity: .92; }
+    .doc-brand__word { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+    .doc-brand__chip {
+      margin-left: auto;
+      padding: 2px 7px;
+      border: 1px solid var(--forest-line);
+      border-radius: 5px;
+      font-size: 10.5px; font-weight: 500;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .doc-back {
+      display: flex; align-items: center; gap: 8px;
+      flex: 0 0 auto;
+      height: 30px;
+      margin: 10px 12px 0;
+      padding: 0 10px;
+      border-radius: 6px;
+      color: var(--forest-muted);
+      font-size: 12.5px; font-weight: 500;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background .12s ease, color .12s ease;
+    }
+    .doc-back:hover, .doc-back:focus-visible { background: var(--forest-2); color: var(--forest-ink); outline: none; }
+    .doc-back svg { width: 13px; height: 13px; }
+
+    .doc-search {
+      display: flex; align-items: center; gap: 8px;
+      flex: 0 0 auto;
+      height: 34px;
+      margin: 8px 12px 6px;
+      padding: 0 9px;
+      border: 1px solid var(--forest-line);
+      border-radius: 6px;
+      background: var(--forest-2);
+      transition: border-color .15s ease;
+    }
+    .doc-search:focus-within { border-color: var(--accent); }
+    .doc-search svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--forest-dim); }
+    .doc-search input {
+      flex: 1; min-width: 0;
+      border: 0; background: transparent; outline: none;
+      color: var(--forest-ink);
+      font: 500 13px/1 Inter, system-ui, sans-serif;
+    }
+    .doc-search input::placeholder { color: var(--forest-dim); }
+    .doc-search input::-webkit-search-cancel-button { appearance: none; }
+    .doc-search__kbd {
+      padding: 1px 6px;
+      border: 1px solid var(--forest-line); border-radius: 4px;
+      color: var(--forest-dim);
+      font: 500 10.5px/1.5 'JetBrains Mono', monospace;
+    }
+    .doc-search__clear {
+      display: none; align-items: center; justify-content: center;
+      width: 18px; height: 18px; padding: 0;
+      border: 0; border-radius: 4px; background: transparent;
+      color: var(--forest-dim); cursor: pointer;
+    }
+    .doc-search__clear svg { width: 11px; height: 11px; color: currentColor; }
+    .doc-search__clear:hover { background: var(--forest-3); color: var(--forest-ink); }
+    .doc-search.has-query .doc-search__kbd { display: none; }
+    .doc-search.has-query .doc-search__clear { display: inline-flex; }
+
+    .doc-nav { flex: 1 1 auto; padding: 6px 0 16px; overflow-y: auto; overscroll-behavior: contain; }
+
+    /* Entrada de primer nivel («Get started») y fila de categoría: misma
+       geometría que una entrada del panel — 34px, margen 12, radio 6. */
+    .doc-link, .doc-cat {
+      display: flex; align-items: center; gap: 10px;
+      width: calc(100% - 24px);
+      height: 34px;
+      margin: 1px 12px;
+      padding: 0 8px;
+      box-sizing: border-box;
+      border: 0; border-radius: 6px;
+      background: transparent;
+      color: var(--forest-muted);
+      font: 450 13px/1 Inter, system-ui, sans-serif;
+      text-align: left; text-decoration: none;
+      cursor: pointer;
+      transition: background .12s ease, color .12s ease;
+    }
+    .doc-link svg, .doc-cat svg { flex: 0 0 auto; }
+    .doc-link__icon { width: 15px; height: 15px; color: var(--forest-dim); transition: color .12s ease; }
+    .doc-link:hover, .doc-link:focus-visible, .doc-cat:hover, .doc-cat:focus-visible {
+      background: var(--forest-2); color: var(--forest-ink); outline: none;
+    }
+    .doc-link:hover .doc-link__icon { color: var(--forest-muted); }
+    .doc-link.is-active, .doc-link.is-active:hover {
+      background: rgba(95, 227, 180, 0.15);
+      box-shadow: inset 0 0 0 1px rgba(95, 227, 180, 0.3);
+      color: #eafff7; font-weight: 500;
+    }
+    .doc-link.is-active .doc-link__icon { color: var(--accent); }
+
+    .doc-group { margin-top: 10px; }
+    .doc-group + .doc-group { margin-top: 14px; }
+    /* Sin versalitas ni tracking abierto: a este tamaño lo legible es el tono. */
+    .doc-group__title {
+      display: flex; align-items: center;
+      height: 28px;
+      padding: 0 20px;
+      color: var(--forest-dim);
+      font-size: 11px; font-weight: 500; letter-spacing: .01em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .doc-cat { font-weight: 500; }
+    .doc-cat > span:first-child { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-cat__count {
+      flex: 0 0 auto;
+      min-width: 20px; height: 18px; padding: 0 6px;
+      border-radius: 999px;
+      background: var(--forest-2);
+      color: var(--forest-dim);
+      font: 600 10.5px/18px 'JetBrains Mono', monospace;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .doc-cat__chev { width: 12px; height: 12px; color: var(--forest-dim); transition: transform .18s ease; }
+    details.doc-catbox > summary { list-style: none; }
+    details.doc-catbox > summary::-webkit-details-marker { display: none; }
+    details.doc-catbox[open] > summary .doc-cat__chev { transform: rotate(180deg); }
+    details.doc-catbox[open] > summary .doc-cat { color: var(--forest-ink); }
+
+    /* Endpoints: un nivel más adentro, colgando de un riel de 1px que arranca
+       bajo la etiqueta de la categoría, no bajo su punto. */
+    .doc-eps { margin: 2px 12px 4px 24px; padding: 0 0 0 10px; border-left: 1px solid var(--forest-line); list-style: none; }
+    .doc-ep {
+      display: flex; align-items: center; gap: 9px;
+      width: 100%;
+      height: 32px;
+      padding: 0 8px;
+      box-sizing: border-box;
+      border: 0; border-radius: 6px;
+      background: transparent;
+      color: var(--forest-muted);
+      font: 450 12.5px/1 Inter, system-ui, sans-serif;
+      text-align: left; cursor: pointer;
+      transition: background .12s ease, color .12s ease;
+    }
+    .doc-ep__dot { flex: 0 0 5px; width: 5px; height: 5px; border-radius: 999px; background: var(--forest-dim); transition: background .12s ease; }
+    .doc-ep > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-ep:hover, .doc-ep:focus-visible { background: var(--forest-2); color: var(--forest-ink); outline: none; }
+    .doc-ep.is-active, .doc-ep.is-active:hover {
+      background: rgba(95, 227, 180, 0.15);
+      box-shadow: inset 0 0 0 1px rgba(95, 227, 180, 0.3);
+      color: #eafff7; font-weight: 500;
+    }
+    .doc-ep.is-active .doc-ep__dot { background: var(--accent); }
+    .doc-nav__empty { margin: 8px 20px; color: var(--forest-dim); font-size: 12.5px; line-height: 1.5; }
+
+    /* El pie: contra qué API se está leyendo y si el spec cargó. Es un dato
+       real de esta sesión, no decoración: cuando `api-docs-json` falla, las
+       pestañas Doc y Schema se quedan con lo inferido de los datos. El margen
+       inferior deja sitio al botón de chat del sitio, que flota en esa esquina. */
+    .doc-foot {
+      flex: 0 0 auto;
+      margin: 0 12px 68px;
+      padding: 12px 8px 0;
+      border-top: 1px solid var(--forest-line);
+      color: var(--forest-dim);
+      font-size: 11px; line-height: 1.5;
+    }
+    .doc-foot__row { display: flex; align-items: center; gap: 7px; min-width: 0; }
+    .doc-foot__dot { flex: 0 0 6px; width: 6px; height: 6px; border-radius: 999px; background: var(--forest-dim); }
+    .doc-foot__dot.is-live { background: var(--accent); box-shadow: 0 0 0 3px rgba(95, 227, 180, 0.18); }
+    .doc-foot__dot.is-off { background: #e0a23c; }
+    .doc-foot__host { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--forest-muted); font: 500 11px/1.5 'JetBrains Mono', monospace; }
+
+    .doc-main { margin-left: var(--aside-w); min-height: 100vh; min-width: 0; padding: 28px 32px 48px; box-sizing: border-box; }
+
+    /* ── Barra y velo del teléfono ────────────────────────────────────── */
+    .doc-topbar, .doc-scrim { display: none; }
+
+    /* ── Controles: el mismo sistema del panel (34px, radio 6, 13/600) ── */
+    .doc-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      height: 34px; padding: 0 14px;
+      box-sizing: border-box;
+      border: 1px solid transparent; border-radius: 6px;
+      background: transparent;
+      color: var(--ink-2);
+      font: 600 13px/1 Inter, system-ui, sans-serif;
+      text-decoration: none; white-space: nowrap;
+      cursor: pointer;
+      transition: background .12s ease, border-color .12s ease, color .12s ease;
+    }
+    .doc-btn svg { width: 14px; height: 14px; flex: 0 0 auto; }
+    .doc-btn:focus-visible { outline: 2px solid var(--brand-ring); outline-offset: 1px; }
+    .doc-btn:disabled { opacity: .5; cursor: default; }
+    .doc-btn--primary { background: var(--brand-strong); border-color: var(--brand-strong); color: #fff; }
+    .doc-btn--primary:hover:not(:disabled) { background: var(--brand-deep); border-color: var(--brand-deep); }
+    .doc-btn--outline { background: var(--surface); border-color: var(--line); color: var(--ink-2); }
+    .doc-btn--outline:hover:not(:disabled) { background: var(--surface-2); border-color: var(--ink-3); color: var(--ink); }
+    .doc-btn--ghost { color: var(--ink-2); }
+    .doc-btn--ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
+    .doc-btn--icon { width: 34px; padding: 0; }
+    .doc-btn--sm { height: 30px; padding: 0 11px; font-size: 12.5px; }
+    .doc-btn--sm.doc-btn--icon { width: 30px; }
+    /* Sobre un panel oscuro (código, JSON). */
+    .doc-btn--dark { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.1); color: var(--forest-ink); }
+    .doc-btn--dark:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); }
+    .doc-btn--dark:focus-visible { outline-color: var(--accent); }
+
+    .doc-field {
+      display: flex; align-items: center; gap: 8px;
+      height: 34px; padding: 0 10px;
+      box-sizing: border-box;
+      border: 1px solid var(--line); border-radius: 6px;
+      background: var(--surface);
+      transition: border-color .12s ease, box-shadow .12s ease;
+    }
+    .doc-field svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--ink-3); }
+    .doc-field input, .doc-field select {
+      flex: 1; min-width: 0; height: 100%;
+      border: 0; background: transparent; outline: none;
+      color: var(--ink);
+      font: 500 13px/1 Inter, system-ui, sans-serif;
+    }
+    .doc-field input::placeholder { color: var(--ink-3); }
+    .doc-field:hover { border-color: var(--ink-3); }
+    .doc-field:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-ring); }
+    .doc-field--mono input, .doc-field--mono select { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+
+    /* Selector propio: la flecha de fábrica del navegador delata el control. */
+    .doc-select {
+      position: relative;
+      display: inline-flex; align-items: center;
+      height: 34px;
+      border: 1px solid var(--line); border-radius: 6px;
+      background: var(--surface);
+      transition: border-color .12s ease, box-shadow .12s ease;
+    }
+    .doc-select:hover { border-color: var(--ink-3); }
+    .doc-select:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-ring); }
+    .doc-select select {
+      appearance: none; -webkit-appearance: none;
+      height: 100%; padding: 0 30px 0 12px;
+      border: 0; background: transparent; outline: none;
+      color: var(--ink); font: 600 13px/1 Inter, system-ui, sans-serif;
+      cursor: pointer;
+    }
+    .doc-select::after {
+      content: ''; position: absolute; right: 11px; top: 50%;
+      width: 7px; height: 7px;
+      border-right: 1.6px solid var(--ink-3); border-bottom: 1.6px solid var(--ink-3);
+      transform: translateY(-70%) rotate(45deg);
+      pointer-events: none;
+    }
+    .doc-select--sm { height: 30px; }
+    .doc-select--sm select { font-size: 12.5px; padding-left: 10px; }
+
+    .doc-tag {
+      display: inline-flex; align-items: center;
+      height: 21px; padding: 0 9px;
+      border-radius: 999px;
+      font-size: 11px; font-weight: 600; letter-spacing: .01em;
+      white-space: nowrap;
+    }
+    .doc-tag--ok { background: var(--brand-soft); color: var(--brand-deeper); }
+    .doc-tag--muted { background: var(--surface-2); color: var(--ink-2); }
+    .doc-tag--warn { background: var(--warn-soft); color: var(--warn); }
+    .doc-tag--error { background: var(--error-soft); color: #8f1d15; }
+    .doc-tag--mono { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+
+    .docpill {
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: var(--brand-soft);
+      color: var(--brand-deeper);
+      font: 500 12px/1.6 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+
+    /* Método + URL: una sola fila, la URL se recorta con puntos antes que
+       partirse, y las dos acciones son iconos del alto del sistema. */
+    .doc-method {
+      display: inline-flex; align-items: center;
+      height: 24px; padding: 0 9px;
+      border-radius: 5px;
+      background: var(--forest); color: var(--accent);
+      font: 700 11.5px/1 'JetBrains Mono', monospace; letter-spacing: .04em;
+    }
+
+    /* ── Pestañas: el riel del panel (`.admin-tabs`) ──────────────────── */
+    .doc-tabs {
+      display: inline-flex; align-items: center; gap: 4px;
+      max-width: 100%; padding: 4px;
+      box-sizing: border-box;
+      background: var(--surface-2);
+      border: 1px solid var(--line); border-radius: 999px;
+      overflow-x: auto; scrollbar-width: none;
+      flex-wrap: nowrap;
+    }
+    .doc-tabs::-webkit-scrollbar { display: none; }
+    .doc-tabs__item {
+      display: inline-flex; align-items: center; gap: 8px;
+      flex: 0 0 auto;
+      height: 34px; padding: 0 16px;
+      border: 1px solid transparent; border-radius: 999px;
+      background: transparent;
+      color: var(--ink-2);
+      font: 600 13px/1 Inter, system-ui, sans-serif;
+      white-space: nowrap; cursor: pointer;
+      transition: background .16s ease, color .16s ease, box-shadow .16s ease;
+    }
+    .doc-tabs__item:hover:not(.is-active) { background: var(--surface); color: var(--ink); }
+    .doc-tabs__item:focus-visible { outline: 2px solid var(--brand-ring); outline-offset: 1px; }
+    .doc-tabs__item.is-active, .doc-tabs__item.is-active:hover {
+      background: var(--surface);
+      border-color: var(--line);
+      color: var(--brand-deeper);
+      box-shadow: 0 1px 2px rgba(16, 36, 28, 0.06), 0 2px 8px rgba(16, 36, 28, 0.08);
+    }
+
+    /* ── Tarjetas ─────────────────────────────────────────────────────── */
+    /* `min-width: 0`: como celda de una rejilla, la tarjeta tomaría el ancho
+       mínimo de su contenido —una ruta en mono sin partir— y en teléfono se
+       salía de la columna con el texto recortado al borde (medido a 390px). */
+    .doc-card { min-width: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 1px 2px rgba(16, 36, 28, 0.05); }
+    .doc-note {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid var(--brand-ring); border-radius: 8px;
+      background: var(--brand-soft);
+      color: var(--brand-deeper);
+      font-size: 13.5px; line-height: 1.55;
+    }
+    .doc-note__icon { display: grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; margin-top: 1px; border-radius: 7px; background: var(--brand-strong); color: #fff; }
+    .doc-note__icon svg { width: 14px; height: 14px; }
+    .doc-note--soft { border-color: var(--line); background: var(--surface-2); color: var(--ink-2); }
+    .doc-note--soft .doc-note__icon { background: var(--forest); color: var(--accent); }
+    .doc-note--warn { border-color: #f0dfb5; background: var(--warn-soft); color: var(--warn); }
+    .doc-note--warn .doc-note__icon { background: #c98a00; }
+
+    /* Encabezado de página, como `.admin-page`: eyebrow en verde profundo,
+       título en el bosque del armazón, apoyo en tinta 2. */
+    .doc-page__eyebrow { display: block; margin-bottom: 6px; color: var(--brand-deep); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .doc-page__title { margin: 0; color: var(--forest); font-size: 24px; font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; }
+    .doc-page__hint { margin: 6px 0 0; max-width: 72ch; color: var(--ink-2); font-size: 13.5px; line-height: 1.55; }
+
+    /* ── Hero de la portada: bosque con trabajo gráfico, no un bloque plano ── */
+    .doc-hero {
+      position: relative; overflow: hidden;
+      padding: 40px 44px;
+      border-radius: 14px;
+      background:
+        radial-gradient(520px 320px at 100% 0%, rgba(95, 227, 180, 0.18), transparent 60%),
+        linear-gradient(135deg, #123a2e 0%, var(--forest) 55%, #0b2a21 100%);
+      color: var(--forest-ink);
+      box-shadow: 0 20px 48px -20px rgba(14, 51, 40, 0.55);
+    }
+    /* Red de nodos —un recurso, sus parámetros, sus versiones— dibujada a mano
+       y enmascarada para que viva solo a la derecha, lejos del texto. */
+    .doc-hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240' fill='none' stroke='%23ffffff' stroke-opacity='.16' stroke-width='1'%3E%3Cpath d='M30 44 L118 22 L206 66 M118 22 L128 118 M30 44 L64 140 L128 118 L206 66 M64 140 L96 214 M128 118 L184 194 M206 66 L214 160 L184 194 M96 214 L184 194'/%3E%3Cg fill='%2372f0c4' fill-opacity='.7' stroke='none'%3E%3Ccircle cx='30' cy='44' r='2.5'/%3E%3Ccircle cx='118' cy='22' r='2.5'/%3E%3Ccircle cx='206' cy='66' r='2.5'/%3E%3Ccircle cx='128' cy='118' r='3.5'/%3E%3Ccircle cx='64' cy='140' r='2.5'/%3E%3Ccircle cx='96' cy='214' r='2.5'/%3E%3Ccircle cx='184' cy='194' r='2.5'/%3E%3Ccircle cx='214' cy='160' r='2.5'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 360px 360px;
+      /* En píxeles y no en %: el texto mide hasta 60ch (~620px) más el
+         relleno, y eso no cambia con el ancho de la tarjeta. La red empieza
+         donde el texto termina, nunca debajo de él. */
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, transparent 680px, #000 820px);
+      mask-image: linear-gradient(90deg, transparent 0, transparent 680px, #000 820px);
+      pointer-events: none;
+    }
+    .doc-hero > * { position: relative; }
+    .doc-hero__eyebrow { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    .doc-hero__eyebrow::before { content: ''; width: 18px; height: 2px; border-radius: 2px; background: var(--accent); }
+    .doc-hero__title { margin: 0; max-width: 18ch; font-size: 32px; font-weight: 800; line-height: 1.1; letter-spacing: -0.025em; color: #fff; }
+    .doc-hero__text { margin: 14px 0 0; max-width: 60ch; color: var(--forest-muted); font-size: 15px; line-height: 1.6; }
+    .doc-hero__text b { color: var(--forest-ink); font-weight: 600; }
+    .doc-hero__stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+    .doc-stat {
+      display: flex; flex-direction: column; gap: 3px;
+      min-width: 96px; padding: 10px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    }
+    .doc-stat__n { font: 700 22px/1 'JetBrains Mono', monospace; color: #fff; font-variant-numeric: tabular-nums; }
+    .doc-stat__l { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--forest-dim); }
+    .doc-hero--compact { padding: 32px 36px; }
+    .doc-hero--compact .doc-hero__title { font-size: 26px; }
+
+    /* Filas de una lista de recursos dentro de una tarjeta: nombre a la
+       izquierda, la ruta en mono para quien integra, flecha al final. */
+    .doc-list { margin: 0; padding: 0; list-style: none; }
+    .doc-row {
+      display: flex; align-items: center; gap: 12px;
+      width: 100%;
+      min-height: 40px; padding: 6px 12px;
+      box-sizing: border-box;
+      border: 0; border-radius: 8px;
+      background: transparent;
+      color: var(--ink);
+      font: 500 13.5px/1.3 Inter, system-ui, sans-serif;
+      text-align: left; cursor: pointer;
+      transition: background .12s ease;
+    }
+    .doc-row:hover, .doc-row:focus-visible { background: var(--surface-2); outline: none; }
+    .doc-row__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-row__meta { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #5f6c65; /* 5,3 sobre blanco: es dato para quien integra, no apoyo */ font: 500 11.5px/1 'JetBrains Mono', monospace; }
+    .doc-row__chev { flex: 0 0 auto; width: 14px; height: 14px; color: var(--ink-3); transition: transform .12s ease, color .12s ease; }
+    .doc-row:hover .doc-row__chev { color: var(--brand-deep); transform: translateX(2px); }
+
+    /* ── Paneles de código: UNO para toda la doc (ejemplos, JSON, DTO) ── */
+    .doc-code { overflow: hidden; border-radius: 14px; background: var(--forest); border: 1px solid #0b2a21; }
+    .doc-code__bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px 9px 16px; border-bottom: 1px solid var(--forest-line); }
+    .doc-code__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--forest-muted); font: 600 12px/1 'JetBrains Mono', monospace; }
+    .doc-code__pre { margin: 0; padding: 16px 18px; overflow: auto; color: #dbe7e2; font: 400 12.5px/1.65 'JetBrains Mono', monospace; }
+    .doc-code__pre--tall { max-height: 62vh; }
+
+    /* ── Tabla de datos ───────────────────────────────────────────────── */
+    /* 🛑 Sin `overflow: hidden` en la tarjeta: el selector de filas y el
+       desplegable de filtros se abren dentro de ella y quedarían decapitados.
+       Las esquinas se recortan pieza a pieza (barra, cuerpo, pie). */
+    .doc-table { position: relative; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 1px 2px rgba(16, 36, 28, 0.05); }
+    .doc-table__bar { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); border-radius: 14px 14px 0 0; }
+    .doc-table__scroll { overflow: auto; max-height: 62vh; }
+    .doc-table__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-top: 1px solid var(--line); border-radius: 0 0 14px 14px; color: var(--ink-2); font-size: 12.5px; }
+    .doc-table__foot b { color: var(--forest); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .doc-table__count { color: var(--ink-3); font-size: 12.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .doc-table__count b { color: var(--forest); font-weight: 600; }
+
+    table.doc-grid { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+    table.doc-grid th {
+      position: sticky; top: 0; z-index: 5;
+      padding: 10px 14px;
+      background: var(--forest);
+      color: #d7dedb;
+      font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; line-height: 1.3;
+      text-align: left; white-space: nowrap; vertical-align: bottom;
+      border-bottom: 1px solid #0b2a21;
+    }
+    table.doc-grid th.is-sortable { cursor: pointer; user-select: none; transition: background .12s ease, color .12s ease; }
+    table.doc-grid th.is-sortable:hover { background: var(--forest-2); color: #fff; }
+    table.doc-grid th.is-sorted, table.doc-grid th.is-sorted:hover { background: var(--forest-2); color: var(--accent); }
+    table.doc-grid th .th-key { display: block; margin-top: 3px; color: var(--forest-dim); font: 400 10px/1 'JetBrains Mono', monospace; letter-spacing: 0; text-transform: none; }
+    table.doc-grid th.is-sorted .th-key { color: rgba(95, 227, 180, 0.7); }
+    table.doc-grid th .th-sort { display: inline-block; width: 12px; margin-left: 5px; color: #d7dedb; opacity: .55; font-size: 10px; vertical-align: 0; }
+    table.doc-grid th.is-sortable:hover .th-sort { opacity: 1; }
+    table.doc-grid th.is-sorted .th-sort { color: var(--accent); opacity: 1; }
+    table.doc-grid td { padding: 11px 14px; border-bottom: 1px solid #eef2ef; color: var(--ink-2); line-height: 1.45; vertical-align: top; }
+    table.doc-grid tbody tr:nth-child(even) td { background: var(--surface-2); }
+    table.doc-grid tbody tr:hover td { background: var(--brand-soft); }
+    table.doc-grid tbody tr:last-child td { border-bottom: 0; }
+    table.doc-grid td.is-empty { color: var(--ink-3); }
+    table.doc-grid td.is-mono { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+    table.doc-grid.doc-grid--prose th { position: static; }
+    table.doc-grid.doc-grid--prose td { vertical-align: top; }
+
+    /* ── Filtros por columna ──────────────────────────────────────────── */
+    .doc-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+    .doc-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      height: 30px; padding: 0 4px 0 10px;
+      border: 1px solid var(--brand-ring); border-radius: 999px;
+      background: var(--brand-soft);
+      color: var(--brand-deeper);
+      font-size: 12.5px; font-weight: 500; line-height: 1;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .doc-chip__label { cursor: pointer; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .doc-chip__label b { font-weight: 600; }
+    .doc-chip__x { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 0; border-radius: 999px; background: transparent; color: var(--brand-deep); cursor: pointer; }
+    .doc-chip__x:hover { background: rgba(8, 84, 62, 0.12); }
+    .doc-chip__x svg { width: 11px; height: 11px; }
+
+    .doc-pop {
+      position: absolute; left: 12px; top: calc(100% - 4px); z-index: 40;
+      width: 320px; max-width: calc(100% - 24px);
+      border: 1px solid var(--line); border-radius: 10px;
+      background: var(--surface);
+      box-shadow: 0 12px 32px rgba(16, 36, 28, 0.16), 0 2px 8px rgba(16, 36, 28, 0.08);
+      animation: fadeIn .14s ease both;
+    }
+    .doc-pop__head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    .doc-pop__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-size: 13px; font-weight: 600; }
+    .doc-pop__title small { display: block; margin-top: 2px; color: var(--ink-3); font: 500 11px/1 'JetBrains Mono', monospace; }
+    .doc-pop__search { margin: 8px 10px 4px; height: 32px; }
+    .doc-pop__list { max-height: 280px; overflow-y: auto; padding: 4px 6px 6px; }
+    .doc-pop__item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; min-height: 34px; padding: 6px 8px;
+      box-sizing: border-box;
+      border: 0; border-radius: 6px; background: transparent;
+      color: var(--ink); font: 500 13px/1.3 Inter, system-ui, sans-serif;
+      text-align: left; cursor: pointer;
+    }
+    .doc-pop__item:hover, .doc-pop__item:focus-visible { background: var(--surface-2); outline: none; }
+    .doc-pop__label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-pop__key { color: var(--ink-3); font: 500 11px/1 'JetBrains Mono', monospace; }
+    .doc-pop__n { color: var(--ink-3); font: 500 11.5px/1 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+    .doc-check { display: grid; place-items: center; flex: 0 0 16px; width: 16px; height: 16px; border: 1.5px solid #b8c4bd; border-radius: 4px; background: var(--surface); color: #fff; transition: background .12s ease, border-color .12s ease; }
+    .doc-check svg { width: 10px; height: 10px; opacity: 0; }
+    .doc-pop__item.is-on .doc-check { background: var(--brand-strong); border-color: var(--brand-strong); }
+    .doc-pop__item.is-on .doc-check svg { opacity: 1; }
+    .doc-pop__foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--line); }
+    .doc-pop__empty { padding: 14px 12px; color: var(--ink-3); font-size: 12.5px; }
+
+    /* ── Skeleton: la forma real de la tabla, solo los datos parpadean ── */
+    .sk { position: relative; overflow: hidden; border-radius: 4px; background: #e9efec; }
+    .sk::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(227, 243, 237, 0.9), transparent); animation: sk 1.4s ease-in-out infinite; }
+    @keyframes sk { to { transform: translateX(100%); } }
+    .sk--dark { background: #1a4a3b; }
+    .sk--dark::after { background: linear-gradient(90deg, transparent, rgba(95, 227, 180, 0.18), transparent); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .sk::after { animation: none; }
+      .fade-in { animation: none; }
+      .doc-aside { transition: none; }
+      html { scroll-behavior: auto; }
+    }
 
     /* ░░ TELÉFONO Y TABLETA ░░
-       La columna de la izquierda es `fixed` y mide 288px: en una pantalla de
-       390px dejaba 102px al contenido, y lo que se leía era el texto partido
-       letra por letra («Ex / CL / of / co»). Medido en clarisatest sobre un
-       iPhone 13.
-
-       Bajo 1024px la columna pasa a ser un cajón que se abre sobre el
-       contenido, y el contenido se queda con el ancho entero. Va en CSS a mano
-       y no en clases de Tailwind porque la hoja del catálogo se compila aparte
-       (`npm run build:api-reference-css`) y el layout no puede depender de que
-       esa compilación se acuerde de estas clases. */
+       La columna es `fixed` y mide 272px: bajo 1024px pasa a ser un cajón que
+       se abre sobre el contenido, y el contenido se queda con el ancho entero
+       (medido el 18-sep-2026 en un iPhone 13: con la columna en flujo quedaban
+       102px al contenido y el hero salía partido letra por letra). */
     @media (max-width: 1023px) {
       .doc-aside {
         width: min(86vw, 320px);
         transform: translateX(-100%);
         transition: transform .24s cubic-bezier(.32,.72,0,1);
-        box-shadow: none;
+        z-index: 41;
       }
-      .doc-aside.is-open {
-        transform: translateX(0);
-        box-shadow: 18px 0 40px rgba(15,23,42,.22);
-      }
-      .doc-main {
-        margin-left: 0;
-        /* Sitio para la barra del cajón, que va fija arriba. */
-        padding: 64px 16px 32px;
-      }
-      .doc-navbar { display: flex; }
-      .doc-scrim.is-open { display: block; }
-      /* 🛑 El mínimo es SOLO para la tabla de datos (`table.data`), que es la
-         única que vive dentro de un contenedor con `overflow: auto` y por tanto
-         la única que puede deslizarse. Aplicado a todas las tablas —como estuvo
-         un rato— las dos de la pestaña Doc (parámetros y campos) quedaban
-         recortadas a 356px de 640 por un ancestro con `overflow: hidden`: media
-         tabla inalcanzable, cuando antes eran `w-full` y cabían solas. */
-      .doc-main table.data { min-width: 640px; }
+      .doc-aside.is-open { transform: translateX(0); box-shadow: 24px 0 48px rgba(0, 0, 0, 0.45); }
+      /* El atajo «/» anuncia una tecla que en un teléfono no existe. */
+      .doc-search__kbd { display: none; }
+      .doc-foot { margin-bottom: 16px; }
+      /* Alto de dedo en lo que lleva a algún sitio. */
+      .doc-link, .doc-cat, .doc-ep, .doc-back { min-height: 44px; }
 
-      /* Las tablas de la pestaña Doc —parámetros y campos— viven dentro de una
-         tarjeta que usa `overflow-hidden` para redondearles las esquinas. Con
-         356px de ancho útil eso recorta 94px de la tabla de parámetros y no hay
-         forma de alcanzarlos. En teléfono la tarjeta deja deslizar: se pierde
-         el redondeo de la esquina de la tabla y se gana la columna que faltaba.
-         (Antes de este bloque la página entera desbordaba y de esa tabla se
-         veían 36px de 422.) */
-      .doc-main div.overflow-hidden:has(> table) {
-        overflow-x: auto;
+      .doc-main { margin-left: 0; padding: calc(var(--topbar-h) + 16px) 16px 32px; }
+
+      .doc-topbar {
+        display: flex; align-items: center; gap: 10px;
+        position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+        height: var(--topbar-h); padding: 0 8px 0 4px;
+        box-sizing: border-box;
+        background: var(--forest);
+        border-bottom: 1px solid var(--forest-line);
+        color: var(--forest-ink);
       }
+      .doc-topbar__burger {
+        display: inline-flex; align-items: center; justify-content: center;
+        flex: 0 0 auto; width: 44px; height: 44px;
+        border: 0; border-radius: 10px; background: transparent;
+        color: var(--forest-ink); cursor: pointer;
+      }
+      .doc-topbar__burger:active { background: var(--forest-2); }
+      .doc-topbar__burger svg { width: 20px; height: 20px; }
+      .doc-topbar__where { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+      .doc-topbar__brand { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 6px 8px; color: var(--forest-muted); font-size: 12px; font-weight: 600; letter-spacing: .02em; text-decoration: none; }
+      .doc-topbar__brand .doc-brand__mark { width: 18px; }
+
+      .doc-scrim {
+        display: none;
+        position: fixed; inset: 0; z-index: 40;
+        width: 100%; height: 100%; padding: 0; border: 0;
+        background: rgba(9, 9, 11, 0.55);
+        -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+        cursor: pointer;
+      }
+      .doc-scrim.is-open { display: block; }
+
+      .doc-hero { padding: 28px 22px; }
+      .doc-hero__title { font-size: 26px; }
+      /* En teléfono el texto y las cifras ocupan el ancho completo: no queda
+         ningún sitio donde la red no pase por detrás de algo, así que no se
+         dibuja. El halo de la esquina se queda. */
+      .doc-hero::before { display: none; }
+      .doc-hero__stats { gap: 8px; }
+      .doc-stat { flex: 1 1 96px; min-width: 0; padding: 10px 12px; }
+      .doc-page__title { font-size: 22px; }
+
+      /* Solo la tabla de datos vive en un contenedor que desliza; las de la
+         pestaña Doc caben solas y con un mínimo quedarían recortadas por la
+         tarjeta (regresión del 18-sep-2026, corregida ese mismo día). */
+      .doc-table__scroll table.doc-grid { min-width: 640px; }
+      .doc-main div.doc-card:has(> table.doc-grid--prose) { overflow-x: auto; }
+
+      .doc-pop { left: 8px; right: 8px; width: auto; max-width: none; }
     }
-    @media (prefers-reduced-motion: reduce) {
-      .doc-aside { transition: none; }
+    @media (max-width: 720px) {
+      .doc-tabs { display: flex; width: 100%; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
+      .doc-tabs__item { min-height: 44px; padding: 0 14px; }
+      .doc-btn, .doc-field, .doc-select { min-height: 40px; }
+      /* La ruta en mono al lado del nombre partía la fila en dos mitades
+         recortadas («CGIAR entities Ty…» / «cgiar-entity-typ…»). El nombre es
+         lo que se toca; la ruta se lee entera en la página del endpoint. */
+      .doc-row__meta { display: none; }
+      .doc-field input { font-size: 16px; } /* Safari amplía la página con campos <16px */
     }
-    .doc-navbar {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 25;
-      align-items: center; gap: 10px;
-      height: 52px; padding: 0 8px;
-      background: rgba(255,255,255,.92);
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgb(226 232 240 / .8);
-    }
-    .doc-navbar__burger {
-      display: inline-flex; align-items: center; justify-content: center;
-      /* 44px: el mínimo que un pulgar acierta sin apuntar. */
-      width: 44px; height: 44px;
-      border: 0; border-radius: 10px; background: transparent;
-      color: #334155; cursor: pointer;
-    }
-    .doc-navbar__burger:active { background: #f1f5f9; }
-    .doc-navbar__where {
-      flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: 13px; font-weight: 700; color: #4e7600;
-    }
-    .doc-scrim {
-      position: fixed; inset: 0; z-index: 20;
-      width: 100%; height: 100%; padding: 0; border: 0;
-      background: rgba(15,23,42,.45); cursor: pointer;
-    }
-    .docpill { border-radius: .375rem; background: #f2f7e4; padding: .075rem .35rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; color: #4e7600; }
   </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-800 antialiased">
+<body class="font-sans antialiased">
 
-  <!-- ░░ LAYOUT ░░
-       No topbar of its own: the page is embedded under the CLARISA site navbar,
-       and a second bar stacked below it read as duplicated chrome. The search
-       box now lives at the top of the sidebar, which is what it actually
-       filters. -->
-  <!-- Barra del teléfono: abre el catálogo y dice en qué grupo se está. Sólo
-       existe bajo 1024px; con sitio para las dos columnas sobra. -->
-  <header class="doc-navbar">
-    <button type="button" class="doc-navbar__burger" onclick="toggleDocNav()" aria-controls="docAside" aria-expanded="false" aria-label="Open the endpoint catalog">
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+  <!-- Barra del teléfono: abre el catálogo y dice dónde se está. Solo existe
+       bajo 1024px; con sitio para las dos columnas la marca vive en la columna. -->
+  <header class="doc-topbar">
+    <button type="button" class="doc-topbar__burger" onclick="toggleDocNav()" aria-controls="docAside" aria-expanded="false" aria-label="Open the endpoint catalog">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
-    <span class="doc-navbar__where" id="docNavbarWhere">API Documentation</span>
+    <span class="doc-topbar__where" id="docNavbarWhere">API Documentation</span>
+    <a class="doc-topbar__brand" href="/landing-page/home" target="_top" onclick="return leaveTo('/landing-page/home', event)" aria-label="CLARISA — back to the site">
+      <img src="../cgiar_logo.png" alt="" class="doc-brand__mark" />
+      <span>CLARISA</span>
+    </a>
   </header>
 
   <button type="button" class="doc-scrim" id="docScrim" onclick="closeDocNav()" aria-label="Close the endpoint catalog"></button>
 
-  <div class="flex">
+  <!-- ░░ COLUMNA ░░  La marca encabeza la columna, la vuelta al sitio justo
+       debajo (es de donde se viene), el buscador filtra lo que hay bajo él, y
+       el pie dice contra qué API se está leyendo. -->
+  <aside id="docAside" class="doc-aside" aria-label="API documentation">
+    <a class="doc-brand" href="/landing-page/home" target="_top" onclick="return leaveTo('/landing-page/home', event)">
+      <img src="../cgiar_logo.png" alt="CGIAR" class="doc-brand__mark" />
+      <span class="doc-brand__word">CLARISA</span>
+      <span class="doc-brand__chip">API docs</span>
+    </a>
 
-    <!-- SIDEBAR -->
-    <aside id="docAside" class="doc-aside fixed bottom-0 left-0 top-0 z-30 w-72 overflow-y-auto border-r border-slate-200/80 bg-white px-3 py-5">
-      <div class="mb-4 px-1">
-        <button onclick="goHome()" class="mb-2 block w-full truncate text-left text-[13px] font-extrabold tracking-tight text-leaf-700 transition hover:text-leaf-800">
-          <span id="sidebarContext">API Documentation</span>
-        </button>
-        <div class="relative">
-          <svg class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
-          <input id="globalSearch" type="text" aria-label="Search endpoints" placeholder="Search endpoints…  ( / )"
-            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-[13px] outline-none transition focus:border-leaf-500 focus:bg-white focus:ring-4 focus:ring-leaf-200" />
-        </div>
-      </div>
-      <div id="sidebar"></div>
-    </aside>
+    <a class="doc-back" href="/landing-page/home" target="_top" onclick="return leaveTo('/landing-page/home', event)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m7-7l-7 7 7 7"/></svg>
+      <span>Back to the site</span>
+    </a>
 
-    <!-- MAIN -->
-    <main class="doc-main ml-72 min-h-screen min-w-0 flex-1 px-8 py-8">
-      <!-- No width cap here: the data table needs the full width available.
-           Prose-heavy views (home, Get Started, the Doc tab) carry their own
-           `mx-auto max-w-*` so long paragraphs never go full-bleed. -->
-      <div id="main" class="w-full"></div>
-    </main>
-  </div>
+    <div class="doc-search" id="docSearchBox">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
+      <input id="globalSearch" type="search" aria-label="Search endpoints" placeholder="Search endpoints…" autocomplete="off" />
+      <span class="doc-search__kbd" aria-hidden="true">/</span>
+      <button type="button" class="doc-search__clear" onclick="clearSearch()" aria-label="Clear the search">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <nav class="doc-nav" id="sidebar" aria-label="Endpoint catalog"></nav>
+
+    <div class="doc-foot" id="docFoot"></div>
+  </aside>
+
+  <!-- ░░ CONTENIDO ░░  Sin tope de ancho aquí: la tabla de datos necesita el
+       ancho completo. Las vistas de prosa (portada, Get started, pestaña Doc) traen
+       su propio `mx-auto max-w-*`. -->
+  <main class="doc-main">
+    <div id="main" class="w-full"></div>
+  </main>
 
 <script>
 /* ════════════════════════════════════════════════════════════════════
@@ -202,6 +808,24 @@ const slug = s => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').repl
    documentation has always been linked. */
 const toSegment = s => String(s ?? '').trim().replace(/\s+/g, '_');
 
+/* True when this page is embedded in the Angular shell (its normal life). */
+/* True only when the parent is our own Angular shell. A cross-origin parent
+   throws on `location.origin`, and then the plain href takes over: a
+   postMessage nobody handles would leave the link dead. */
+const EMBEDDED = (() => { try { return window.parent !== window && window.parent.location.origin === window.location.origin; } catch { return false; } })();
+
+/* «Back to the site»: inside the shell the jump goes through the Angular
+   router (no full reload, no CloudFront 404 on the deep link); standalone the
+   plain href with `target="_top"` does the job. */
+function leaveTo(url, event) {
+  if (!EMBEDDED) return true;
+  try {
+    parent.postMessage({ type: 'clarisa-docs:leave', url }, window.location.origin);
+    if (event) event.preventDefault();
+    return false;
+  } catch { return true; }
+}
+
 /* Tells the Angular host which path is being shown, so the address bar keeps
    up with in-page navigation without reloading this frame. */
 function announcePath(segments) {
@@ -213,6 +837,7 @@ function announcePath(segments) {
   const bar = document.getElementById('docNavbarWhere');
   if (bar) bar.textContent = where.length ? where[where.length - 1] : 'API Documentation';
   if (typeof closeDocNav === 'function') closeDocNav();
+  window.scrollTo({ top: 0, behavior: 'auto' });
 
   try {
     parent.postMessage(
@@ -242,6 +867,12 @@ function applyGroupFilter(catalog) {
 const AUTO_ALL_LIMIT = 500;    // at or below this, an endpoint opens with every record on one page
 const PAGE_SIZES = [25, 50, 100, 250, 'all'];
 
+/* A column with this many distinct values or fewer is filtered by picking
+   values from a list (with counts); above it, by typing a fragment. Sixty
+   covers every enum-like column of the catalogue (types, regions, statuses)
+   and keeps names and codes — hundreds of values — as free text. */
+const PICK_LIMIT = 60;
+
 const state = {
   catalog: null, spec: null,
   scopedGroup: null,        // group name when the view is narrowed by ?group=
@@ -253,6 +884,12 @@ const state = {
   page: 1, pageSize: 25,       // pageSize is a number, or 'all' for a single page
   tab: 'table',
   cache: new Map(),
+  // Column filters on the Table tab: [{ col, mode: 'in' | 'contains', values: [...] | text }].
+  // They stack with AND; inside an 'in' filter the picked values are OR.
+  filters: [],
+  search: '',               // free text over every visible column
+  picker: null,             // open filter popover: { index, col, q, sel: Set, text }
+  distinct: new Map(),      // col -> [[value, count], ...] of the current rows
   // Query params the user typed in the JSON tab, and the response they got.
   // Empty means "no filters": the endpoint answers exactly as it always has.
   query: {},
@@ -263,6 +900,41 @@ const state = {
 
 const $  = (s, el=document) => el.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n).toLocaleString('en-US');
+/* A JS string literal that is safe INSIDE a double-quoted HTML attribute:
+   `JSON.stringify` handles the JS side (quotes, backslashes, newlines) and
+   `esc` the HTML side. `onclick="fn(${attr(v)})"` — never `esc()` alone in a
+   JS context: the HTML parser decodes `&#39;` back to `'` before the script
+   runs, and never `JSON.stringify` alone inside single quotes: an apostrophe
+   in the value («Farmers' association») ends the attribute early. */
+const attr = v => esc(JSON.stringify(v));
+/* `1 record` / `2 records`. */
+const plural = (n, word) => `${word}${n === 1 ? '' : 's'}`;
+/* The JS type name of a sample value, as written in a TypeScript interface. */
+function tsTypeOf(value) {
+  if (typeof value === 'number') return 'number';
+  if (typeof value === 'boolean') return 'boolean';
+  return 'string';
+}
+
+/* Icons drawn once, reused everywhere: one line of SVG per glyph. */
+const ICON = {
+  bolt:   '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>',
+  chev:   '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></svg>',
+  right:  '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/></svg>',
+  copy:   '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg>',
+  open:   '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 4h6m0 0v6m0-6L10 14M20 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1h5"/></svg>',
+  down:   '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-5-5m5 5l5-5M4 20h16"/></svg>',
+  filter: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h18l-7 8v6l-4 2v-8L3 5z"/></svg>',
+  search: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>',
+  x:      '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>',
+  check:  '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>',
+  info:   '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 11v5m0-8h.01"/></svg>',
+  key:    '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a4 4 0 11-2.6 7.03L10 16.4V19H7v3H3v-4l7.4-7.4A4 4 0 0115 7z"/><circle cx="16" cy="8" r="1" fill="currentColor" stroke="none"/></svg>',
+  mail:   '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M3 7l9 6 9-6"/></svg>',
+  back:   '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m7-7l-7 7 7 7"/></svg>',
+  play:   '<svg fill="currentColor" viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg>',
+};
 
 /* Some values — glossary definitions above all — carry real markup in the
    database: `<br>` for line breaks, `<a href>` for references, `&bull;` for
@@ -309,7 +981,7 @@ const sanitizeInto = node => {
         child.setAttribute('href', href);
         child.setAttribute('target', '_blank');
         child.setAttribute('rel', 'noopener noreferrer');
-        child.className = 'font-medium text-leaf-700 underline underline-offset-2 hover:text-leaf-800';
+        child.className = 'font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800';
       } else {
         // A link we cannot vouch for still keeps its text.
         child.replaceWith(...child.childNodes);
@@ -347,9 +1019,10 @@ const hasRichMarkup = s => /<(br|a|b|strong|i|em|u|p|ul|ol|li|sup|sub)\b[^>]*>|&
     state.spec = spec;
     applyScopedBranding();
     renderSidebar();
+    renderFoot();
     if (!openDeepLink()) goHome();
   } catch (e) {
-    $('#main').innerHTML = `<div class="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">Could not load catalog.json — ${esc(e)}</div>`;
+    $('#main').innerHTML = `<div class="doc-note doc-note--warn"><span class="doc-note__icon">${ICON.info}</span><div><b>Could not load the catalog.</b><br>${esc(e)}</div></div>`;
   }
 })();
 
@@ -387,81 +1060,94 @@ function openDeepLink() {
   return false;
 }
 
-/* When the view is scoped to one group, say so in the topbar and the tab
-   title instead of repeating the group name on every screen. */
+/* When the view is scoped to one group, say so in the tab title and the
+   search placeholder. The group name itself heads the catalog (renderSidebar),
+   so it is not repeated here. */
 function applyScopedBranding() {
   if (!state.scopedGroup) return;
-  const context = $('#sidebarContext');
-  if (context) context.textContent = state.scopedGroup;
   document.title = `CLARISA · ${state.scopedGroup}`;
   const search = $('#globalSearch');
-  if (search) search.placeholder = `Search in ${state.scopedGroup}…  ( / )`;
+  if (search) search.placeholder = `Search in ${state.scopedGroup}…`;
+  const bar = document.getElementById('docNavbarWhere');
+  if (bar) bar.textContent = state.scopedGroup;
+}
+
+/* The foot of the column: which API this page reads, and whether its OpenAPI
+   spec answered. Without the spec the Doc and Schema tabs fall back to what
+   can be inferred from the live rows — worth saying, not hiding. */
+function renderFoot() {
+  let host = API_BASE;
+  try { host = new URL(API_BASE).host; } catch { /* keep the raw base */ }
+  const live = !!state.spec;
+  $('#docFoot').innerHTML = `
+    <div class="doc-foot__row" title="${esc(API_BASE)}">
+      <span class="doc-foot__dot ${live ? 'is-live' : 'is-off'}"></span>
+      <span class="doc-foot__host">${esc(host)}</span>
+    </div>
+    <div class="doc-foot__row"><span style="width:6px;flex:0 0 6px"></span><span>${live ? 'OpenAPI spec loaded · read-only API' : 'OpenAPI spec unavailable · showing live data only'}</span></div>`;
 }
 
 /* ── sidebar ──────────────────────────────────────────────────────── */
 function renderSidebar(filter = '') {
   const q = filter.trim().toLowerCase();
-  // "Get Started" is navigation chrome, not an endpoint — always rendered first,
+  $('#docSearchBox').classList.toggle('has-query', !!q);
+
+  // "Get started" is navigation chrome, not an endpoint — always rendered first,
   // outside the endpoint search filter.
   const getStartedBtn = `
-    <button id="getStartedBtn" onclick="renderGetStarted()"
-      class="mb-5 flex w-full items-center gap-2.5 rounded-xl border border-leaf-200 bg-leaf-50/70 px-3 py-2.5 text-left text-[13px] font-bold text-leaf-700 transition hover:border-leaf-300 hover:bg-leaf-50">
-      <svg class="h-4 w-4 shrink-0 text-leaf-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-      <span>Get Started</span>
+    <button type="button" id="getStartedBtn" class="doc-link" onclick="renderGetStarted()">
+      <span class="doc-link__icon">${ICON.bolt}</span>
+      <span>Get started</span>
     </button>`;
+
   let html = '';
   state.catalog.groups.forEach((g, gi) => {
     const cats = g.categories.map((c, ci) => {
       const eps = c.endpoints.filter(ep => !q || ep.name.toLowerCase().includes(q) || ep.route.toLowerCase().includes(q));
       if (q && !eps.length && !c.name.toLowerCase().includes(q)) return '';
       const list = (q ? eps : c.endpoints).map(ep => `
-        <button onclick='selectEndpoint(${gi},${ci},${JSON.stringify(ep.route)})'
-          data-route="${esc(ep.route)}"
-          class="ep-btn group flex w-full items-center gap-2 rounded-lg px-3 py-[7px] text-left text-[13px] font-medium text-slate-500 transition hover:bg-leaf-50 hover:text-leaf-700">
-          <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300 transition group-hover:bg-leaf-500"></span>
-          <span class="truncate">${esc(ep.name)}</span>
-        </button>`).join('');
+        <li><button type="button" onclick="selectEndpoint(${gi},${ci},${attr(ep.route)})"
+          data-route="${esc(ep.route)}" class="doc-ep ep-btn">
+          <span class="doc-ep__dot"></span>
+          <span>${esc(ep.name)}</span>
+        </button></li>`).join('');
       return `
-        <details class="cat mb-1" ${q ? 'open' : ''} data-cat="${gi}-${ci}">
-          <summary class="flex cursor-pointer select-none items-center justify-between rounded-lg px-3 py-2 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-100">
-            <span class="truncate">${esc(c.name)}</span>
-            <span class="ml-2 shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400">${c.endpoints.length}</span>
-          </summary>
-          <div class="ml-2 border-l border-slate-200 pl-2 pt-1">${list}</div>
+        <details class="doc-catbox" ${q ? 'open' : ''} data-cat="${gi}-${ci}">
+          <summary><span class="doc-cat">
+            <span>${esc(c.name)}</span>
+            <span class="doc-cat__count">${c.endpoints.length}</span>
+            <span class="doc-cat__chev">${ICON.chev}</span>
+          </span></summary>
+          <ul class="doc-eps">${list}</ul>
         </details>`;
     }).join('');
     if (q && !cats.trim()) return;
-    // The group heading is redundant when the whole view is that group.
-    const heading = state.scopedGroup
-      ? ''
-      : `<div class="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.14em] text-leaf-700/80">${esc(g.group)}</div>`;
     html += `
-      <div class="mb-5">
-        ${heading}
+      <div class="doc-group">
+        <div class="doc-group__title" title="${esc(g.group)}">${esc(g.group)}</div>
         ${cats}
       </div>`;
   });
-  $('#sidebar').innerHTML = getStartedBtn + (html || '<div class="px-3 py-6 text-sm text-slate-400">No endpoints match your search.</div>');
+  $('#sidebar').innerHTML = getStartedBtn + (html || `<p class="doc-nav__empty">No endpoint matches «${esc(filter.trim())}».</p>`);
   highlightActive();
 }
 
 function highlightActive() {
   document.querySelectorAll('.ep-btn').forEach(b => {
-    const active = state.current && b.dataset.route === state.current.endpoint.route;
-    b.classList.toggle('bg-leaf-50', active);
-    b.classList.toggle('text-leaf-700', active);
-    b.classList.toggle('font-semibold', active);
+    const active = !!state.current && b.dataset.route === state.current.endpoint.route;
+    b.classList.toggle('is-active', active);
     if (active) b.closest('details')?.setAttribute('open', '');
   });
   const gs = $('#getStartedBtn');
-  if (gs) {
-    const on = state.nav === 'get-started';
-    gs.classList.toggle('border-leaf-300', on);
-    gs.classList.toggle('bg-leaf-50', on);
-    gs.classList.toggle('text-leaf-800', on);
-  }
+  if (gs) gs.classList.toggle('is-active', state.nav === 'get-started');
 }
 
+function clearSearch() {
+  const input = $('#globalSearch');
+  input.value = '';
+  renderSidebar('');
+  input.focus();
+}
 
 /* ── cajón del catálogo (teléfono y tableta) ──────────────────────── */
 function toggleDocNav() {
@@ -470,22 +1156,59 @@ function toggleDocNav() {
 function openDocNav() {
   $('#docAside').classList.add('is-open');
   $('#docScrim').classList.add('is-open');
-  $('.doc-navbar__burger').setAttribute('aria-expanded', 'true');
+  $('.doc-topbar__burger').setAttribute('aria-expanded', 'true');
   document.body.style.overflow = 'hidden';
 }
 function closeDocNav() {
   $('#docAside').classList.remove('is-open');
   $('#docScrim').classList.remove('is-open');
-  $('.doc-navbar__burger').setAttribute('aria-expanded', 'false');
+  $('.doc-topbar__burger').setAttribute('aria-expanded', 'false');
   document.body.style.overflow = '';
 }
 
 $('#globalSearch').addEventListener('input', e => renderSidebar(e.target.value));
-document.addEventListener('keydown', e => {
-  // Escape cierra el cajón antes que nada: es la salida que se busca a ciegas.
-  if (e.key === 'Escape' && $('#docAside').classList.contains('is-open')) { closeDocNav(); return; }
-  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#globalSearch').focus(); }
+// Enter opens the first endpoint that matches: the shortcut of whoever already
+// knows what they are looking for.
+$('#globalSearch').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { const first = $('#sidebar .ep-btn'); if (first) first.click(); }
 });
+document.addEventListener('keydown', e => {
+  // Escape closes the filter popover, then the drawer: the exits one looks for blindly.
+  if (e.key === 'Escape') {
+    if (state.picker) { closePicker(); return; }
+    if ($('#docAside').classList.contains('is-open')) { closeDocNav(); return; }
+  }
+  if (e.key === '/' && !['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) { e.preventDefault(); $('#globalSearch').focus(); }
+});
+
+/* ── shared pieces ────────────────────────────────────────────────── */
+function codePanel(title, code, opts = {}) {
+  return `
+    <div class="doc-code ${opts.className || ''}">
+      <div class="doc-code__bar">
+        <span class="doc-code__title">${title}</span>
+        <button type="button" class="doc-btn doc-btn--sm doc-btn--dark" onclick="copyText(${attr(code)}, this)">${ICON.copy}<span>Copy</span></button>
+      </div>
+      <pre class="doc-code__pre ${opts.tall ? 'doc-code__pre--tall' : ''}"><code>${esc(code)}</code></pre>
+    </div>`;
+}
+const docCodeBlock = (title, code) => `<div class="mb-4">${codePanel(title, code)}</div>`;
+
+function note(html, kind = '') {
+  return `<div class="doc-note ${kind}"><span class="doc-note__icon">${ICON.info}</span><div>${html}</div></div>`;
+}
+
+/* One table skin for the prose tabs (Doc, Schema): the same forest header as
+   the data grid, without the sticky top — these tables are short. */
+function proseTable(headers, rowsHtml) {
+  return `
+    <div class="doc-card overflow-hidden">
+      <table class="doc-grid doc-grid--prose">
+        <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>`;
+}
 
 /* ── home / welcome ───────────────────────────────────────────────── */
 function goHome() {
@@ -497,34 +1220,38 @@ function goHome() {
   const nCats = c.groups.reduce((a, g) => a + g.categories.length, 0);
   const nEps  = c.groups.reduce((a, g) => a + g.categories.reduce((b, x) => b + x.endpoints.length, 0), 0);
 
-  // Scoped to one group: show a card per CATEGORY (with its description), since
-  // repeating the group name in a single card would say nothing new.
+  // Scoped to one group: a card per CATEGORY listing its endpoints with their
+  // route — the reader sees what they will call. Full catalog: a card per
+  // group listing its categories with a count.
   const cards = state.scopedGroup
     ? c.groups[0].categories.map((cat, ci) => `
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
-          <div class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-leaf-700/80">Category</div>
-          <h3 class="mb-2 text-lg font-bold text-leaf-800">${esc(cat.name)}</h3>
-          ${cat.description ? `<p class="mb-4 text-[13px] leading-relaxed text-slate-500">${esc(cat.description)}</p>` : '<div class="mb-4"></div>'}
-          <div class="flex flex-wrap gap-2">
+        <article class="doc-card p-5">
+          <span class="doc-page__eyebrow">Category</span>
+          <h3 class="m-0 text-[17px] font-bold text-forest">${esc(cat.name)}</h3>
+          ${cat.description ? `<p class="mb-3 mt-1.5 text-[13px] leading-relaxed text-ink-2">${esc(cat.description)}</p>` : '<div class="mb-3"></div>'}
+          <ul class="doc-list -mx-2">
             ${cat.endpoints.map(ep => `
-              <button onclick='selectEndpoint(0,${ci},${JSON.stringify(ep.route)})'
-                class="rounded-full border border-leaf-200 bg-leaf-50 px-3.5 py-1.5 text-xs font-semibold text-leaf-700 transition hover:border-leaf-300 hover:bg-leaf-100 hover:text-leaf-800">
-                ${esc(ep.name)}
-              </button>`).join('')}
-          </div>
-        </div>`).join('')
+              <li><button type="button" class="doc-row" onclick="selectEndpoint(0,${ci},${attr(ep.route)})">
+                <span class="doc-row__name">${esc(ep.name)}</span>
+                <span class="doc-row__meta">${esc(ep.route.replace(/^api\//, ''))}</span>
+                <span class="doc-row__chev">${ICON.right}</span>
+              </button></li>`).join('')}
+          </ul>
+        </article>`).join('')
     : c.groups.map((g, gi) => `
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
-          <div class="mb-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-leaf-700/80">Group</div>
-          <h3 class="mb-4 text-lg font-bold text-leaf-800">${esc(g.group)}</h3>
-          <div class="flex flex-wrap gap-2">
+        <article class="doc-card p-5">
+          <span class="doc-page__eyebrow">Group</span>
+          <h3 class="m-0 text-[17px] font-bold text-forest">${esc(g.group)}</h3>
+          ${g.description ? `<p class="mb-3 mt-1.5 text-[13px] leading-relaxed text-ink-2">${esc(g.description)}</p>` : '<div class="mb-3"></div>'}
+          <ul class="doc-list -mx-2">
             ${g.categories.map((cat, ci) => `
-              <button onclick="openFirstOf(${gi},${ci})"
-                class="rounded-full border border-leaf-200 bg-leaf-50 px-3.5 py-1.5 text-xs font-semibold text-leaf-700 transition hover:border-leaf-300 hover:bg-leaf-100 hover:text-leaf-800">
-                ${esc(cat.name)} <span class="opacity-50">· ${cat.endpoints.length}</span>
-              </button>`).join('')}
-          </div>
-        </div>`).join('');
+              <li><button type="button" class="doc-row" onclick="openFirstOf(${gi},${ci})">
+                <span class="doc-row__name">${esc(cat.name)}</span>
+                <span class="doc-row__meta">${cat.endpoints.length} endpoint${cat.endpoints.length === 1 ? '' : 's'}</span>
+                <span class="doc-row__chev">${ICON.right}</span>
+              </button></li>`).join('')}
+          </ul>
+        </article>`).join('');
 
   const heroTitle = state.scopedGroup ? esc(state.scopedGroup) : "Explore CLARISA's official control lists";
   const heroDescription = state.scopedGroup ? c.groups[0].description : null;
@@ -534,36 +1261,22 @@ function goHome() {
 
   $('#main').innerHTML = `
     <div class="fade-in mx-auto max-w-6xl">
-      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-leaf-600 via-leaf-700 to-leaf-900 p-10 text-white shadow-pop">
-        <div class="absolute -right-16 -top-24 h-72 w-72 rounded-full bg-leaf-300/20 blur-2xl"></div>
-        <div class="absolute -bottom-28 right-32 h-64 w-64 rounded-full bg-leaf-400/25 blur-2xl"></div>
-        <div class="relative">
-          <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-leaf-100">CGIAR · catalogs as a service</div>
-          <h1 class="text-3xl font-extrabold tracking-tight md:text-4xl">${heroTitle}</h1>
-          <p class="mt-3 max-w-2xl text-[15px] leading-relaxed text-leaf-50">
-            ${heroDescription ? esc(heroDescription) + '<br class="hidden md:block" />' : ''}
-            Browse every public list as a <b class="text-white">live table</b>, download it to
-            <b class="text-white">Excel</b> in one click, or grab the <b class="text-white">JSON / code snippets</b>
-            if you are integrating a system. Pick a category from the catalog to start.
-          </p>
-          <div class="mt-7 flex flex-wrap gap-3">
-            ${stats.map(([n, l]) => `
-              <div class="rounded-2xl bg-white/15 px-5 py-3 backdrop-blur">
-                <div class="text-2xl font-extrabold text-white">${n}</div>
-                <div class="text-[11px] font-semibold uppercase tracking-wider text-leaf-100">${l}</div>
-              </div>`).join('')}
-          </div>
+      <section class="doc-hero">
+        <div class="doc-hero__eyebrow">CGIAR · Catalogs as a service</div>
+        <h1 class="doc-hero__title">${heroTitle}</h1>
+        <p class="doc-hero__text">
+          ${heroDescription ? esc(heroDescription) + ' ' : ''}
+          Browse every public list as a <b>live table</b>, download it to <b>Excel</b> in one click,
+          or grab the <b>JSON and code snippets</b> if you are integrating a system.
+        </p>
+        <div class="doc-hero__stats">
+          ${stats.map(([n, l]) => `<div class="doc-stat"><span class="doc-stat__n">${fmt(n)}</span><span class="doc-stat__l">${l}</span></div>`).join('')}
         </div>
-      </div>
-      <div class="mt-8 grid gap-5 lg:grid-cols-2">${cards}</div>
-      <div class="mt-8 flex items-start gap-3 rounded-2xl border border-leaf-200 bg-leaf-50 p-5">
-        <div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-leaf-500 font-bold text-white">i</div>
-        <div class="text-sm leading-relaxed text-leaf-900">
-          <b>New here?</b> Every endpoint page has two faces: the <b>Table</b> tab is made for analysts and
+      </section>
+      <div class="mt-6 grid gap-4 lg:grid-cols-2">${cards}</div>
+      <div class="mt-6">${note(`<b>New here?</b> Every endpoint page has two faces: the <b>Table</b> tab is made for analysts and
           non-technical users (filter, sort, export to Excel); the <b>JSON, Schema and Code</b> tabs are made
-          for developers integrating CLARISA into their platforms.
-        </div>
-      </div>
+          for developers integrating CLARISA into their platforms.`, 'doc-note--soft')}</div>
     </div>`;
 }
 
@@ -576,91 +1289,78 @@ function openFirstOf(gi, ci) {
 function renderGetStarted() {
   state.current = null;
   state.nav = 'get-started';
+  announcePath([state.scopedGroup]);
+  const bar = document.getElementById('docNavbarWhere');
+  if (bar) bar.textContent = 'Get started';
   highlightActive();
 
   const sampleUrl = API_BASE + 'institutions';
   const curlEx = `curl -X GET "${sampleUrl}" \\\n  -H "X-API-Key: cl_prod_9f8d7e6c5b4a3b2a1c0d…" \\\n  -H "Accept: application/json"`;
   const fetchEx = `const apiKey = "cl_prod_9f8d7e6c5b4a3b2a1c0d…";\n\nconst res = await fetch("${sampleUrl}", {\n  method: "GET",\n  headers: {\n    "X-API-Key": apiKey,\n    "Accept": "application/json",\n  },\n});\nconst data = await res.json();\nconsole.log(data);`;
 
-  const codeBlock = (title, code) => `
-    <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-        <span class="text-[13px] font-bold text-leaf-800">${title}</span>
-        <button onclick='copyText(${JSON.stringify(code)}, this)' class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-leaf-400 hover:text-leaf-700">Copy</button>
-      </div>
-      <pre class="overflow-auto bg-slate-50 p-5 font-mono text-[12.5px] leading-relaxed text-slate-700"><code>${esc(code)}</code></pre>
-    </div>`;
+  const bullet = (title, text) => `
+    <li class="flex gap-3">
+      <span class="mt-[3px] grid h-4 w-4 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700">${ICON.check}</span>
+      <span><b class="font-semibold text-ink">${title}</b> — ${text}</span>
+    </li>`;
 
   $('#main').innerHTML = `
     <div class="fade-in mx-auto max-w-4xl">
-      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-leaf-600 via-leaf-700 to-leaf-900 p-9 text-white shadow-pop">
-        <div class="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-leaf-300/20 blur-2xl"></div>
-        <div class="relative">
-          <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-leaf-100">Get Started</div>
-          <h1 class="text-3xl font-extrabold tracking-tight">Authenticating with the CLARISA API</h1>
-          <p class="mt-3 max-w-2xl text-[15px] leading-relaxed text-leaf-50">
-            CLARISA serves CGIAR's official control lists as a service. Browsing the public
-            catalogs on this page needs no setup — but to consume the API from your own system
-            you authenticate with an <b class="text-white">API token</b>.
-          </p>
-        </div>
-      </div>
-
-      <!-- Hybrid auth -->
-      <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
-        <h2 class="text-lg font-bold text-leaf-800">A hybrid authentication model</h2>
-        <p class="mt-2 text-[14px] leading-relaxed text-slate-600">
-          The API now accepts a valid <b>API token</b> sent in the
-          <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12.5px] text-leaf-700">X-API-Key</code>
-          request header. Existing integrations that authenticate with the legacy
-          <b>JWT</b> keep working — the two coexist, so you can migrate at your own pace.
+      <section class="doc-hero doc-hero--compact">
+        <div class="doc-hero__eyebrow">Get started</div>
+        <h1 class="doc-hero__title">Authenticating with the CLARISA API</h1>
+        <p class="doc-hero__text">
+          CLARISA serves CGIAR's official control lists as a service. Browsing the public
+          catalogs on this page needs no setup — but to consume the API from your own system
+          you authenticate with an <b>API token</b>.
         </p>
       </section>
 
-      <!-- Request a token -->
-      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
-        <h2 class="text-lg font-bold text-leaf-800">1 · Request a token</h2>
-        <p class="mt-2 text-[14px] leading-relaxed text-slate-600">
-          There is no public self-service portal yet. To get a token, email
-          <b>both</b> support addresses below:
+      <section class="doc-card mt-6 p-6">
+        <h2 class="m-0 text-lg font-bold text-forest">A hybrid authentication model</h2>
+        <p class="mb-0 mt-2 text-[14px] leading-relaxed text-ink-2">
+          The API accepts a valid <b class="font-semibold text-ink">API token</b> sent in the
+          <code class="docpill">X-API-Key</code> request header. Existing integrations that
+          authenticate with the legacy <b class="font-semibold text-ink">JWT</b> keep working —
+          the two coexist, so you can migrate at your own pace.
         </p>
-        <div class="mt-4 flex flex-wrap gap-3">
-          <a href="mailto:CLARISASupport@cgiar.org" class="rounded-xl border border-leaf-200 bg-leaf-50 px-4 py-2.5 text-[13px] font-bold text-leaf-700 transition hover:border-leaf-300 hover:bg-leaf-50">✉ CLARISASupport@cgiar.org</a>
-          <a href="mailto:PRMSTechsupport@cgiar.org" class="rounded-xl border border-leaf-200 bg-leaf-50 px-4 py-2.5 text-[13px] font-bold text-leaf-700 transition hover:border-leaf-300 hover:bg-leaf-50">✉ PRMSTechsupport@cgiar.org</a>
+      </section>
+
+      <section class="doc-card mt-4 p-6">
+        <span class="doc-page__eyebrow">Step 1</span>
+        <h2 class="m-0 text-lg font-bold text-forest">Request a token</h2>
+        <p class="mt-2 text-[14px] leading-relaxed text-ink-2">
+          There is no public self-service portal yet. To get a token, email <b class="font-semibold text-ink">both</b> support addresses:
+        </p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <a href="mailto:CLARISASupport@cgiar.org" class="doc-btn doc-btn--outline">${ICON.mail}<span>CLARISASupport@cgiar.org</span></a>
+          <a href="mailto:PRMSTechsupport@cgiar.org" class="doc-btn doc-btn--outline">${ICON.mail}<span>PRMSTechsupport@cgiar.org</span></a>
         </div>
-        <p class="mt-4 text-[14px] font-semibold text-slate-700">Include in your request:</p>
-        <ul class="mt-2 space-y-1.5 text-[14px] leading-relaxed text-slate-600">
-          <li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-leaf-500"></span><span><b>Name &amp; organization / project</b> — who will use the key.</span></li>
-          <li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-leaf-500"></span><span><b>Use case</b> — a short description of how your system integrates with CLARISA.</span></li>
-          <li class="flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-leaf-500"></span><span><b>Environment</b> — development / staging, production, or both.</span></li>
+        <p class="mb-2 mt-5 text-[13px] font-semibold text-ink">Include in your request</p>
+        <ul class="m-0 list-none space-y-2 p-0 text-[14px] leading-relaxed text-ink-2">
+          ${bullet('Name &amp; organization / project', 'who will use the key.')}
+          ${bullet('Use case', 'a short description of how your system integrates with CLARISA.')}
+          ${bullet('Environment', 'development / staging, production, or both.')}
         </ul>
-        <p class="mt-4 text-[14px] leading-relaxed text-slate-600">
-          Once approved you receive a token shaped like
-          <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12.5px] text-leaf-700">cl_[env]_[random]</code>,
-          for example <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12.5px] text-leaf-700">cl_prod_9f8d7e6c…</code>.
-          Treat it as a secret — do not commit it to source control.
+        <p class="mb-0 mt-5 text-[14px] leading-relaxed text-ink-2">
+          Once approved you receive a token shaped like <code class="docpill">cl_[env]_[random]</code>,
+          for example <code class="docpill">cl_prod_9f8d7e6c…</code>. Treat it as a secret — do not commit it to source control.
         </p>
       </section>
 
-      <!-- Use the token -->
-      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
-        <h2 class="text-lg font-bold text-leaf-800">2 · Use the token</h2>
-        <p class="mb-4 mt-2 text-[14px] leading-relaxed text-slate-600">
-          Send your token in the <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[12.5px] text-leaf-700">X-API-Key</code> header on every request.
+      <section class="doc-card mt-4 p-6">
+        <span class="doc-page__eyebrow">Step 2</span>
+        <h2 class="m-0 text-lg font-bold text-forest">Use the token</h2>
+        <p class="mb-4 mt-2 text-[14px] leading-relaxed text-ink-2">
+          Send your token in the <code class="docpill">X-API-Key</code> header on every request.
         </p>
-        ${codeBlock('cURL', curlEx)}
-        ${codeBlock('JavaScript (fetch)', fetchEx)}
+        ${docCodeBlock('cURL', curlEx)}
+        ${codePanel('JavaScript (fetch)', fetchEx)}
       </section>
 
-      <!-- Read-only notice -->
-      <div class="mt-6 flex items-start gap-3 rounded-2xl border border-leaf-200 bg-leaf-50 p-5">
-        <div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-leaf-500 font-bold text-white">i</div>
-        <div class="text-sm leading-relaxed text-leaf-900">
-          <b>Read-only.</b> The public control-list endpoints exposed by this API only support
+      <div class="mt-4">${note(`<b>Read-only.</b> The public control-list endpoints exposed by this API only support
           <b>GET</b> requests. Creating, updating or deleting catalog data is restricted to
-          CLARISA's administrative workflows.
-        </div>
-      </div>
+          CLARISA's administrative workflows.`)}</div>
     </div>`;
 }
 
@@ -677,7 +1377,13 @@ async function selectEndpoint(gi, ci, route) {
   state.current = { group, category, endpoint };
   state.nav = 'endpoint';
   state.tab = 'doc'; state.page = 1; state.sortKey = null;
+  // The previous endpoint's rows must not survive into this one: while the
+  // fetch runs (seconds for Institutions) or if it fails, switching to Table
+  // would show — and export — the other list under this title.
+  state.rows = []; state.columns = []; state.filtered = [];
+  state.loading = true; state.loadError = null;
   // Filters belong to the endpoint that was being looked at, not to the next one.
+  state.filters = []; state.search = ''; state.picker = null; state.distinct = new Map();
   state.query = {}; state.queryResult = null; state.queryError = null; state.queryLoading = false;
   announcePath([group.group, category.name, endpoint?.name]);
   highlightActive();
@@ -696,9 +1402,9 @@ async function selectEndpoint(gi, ci, route) {
     // Small catalogues (the glossary, countries, ...) open with every record on
     // one page — no pager to fight with. Big ones keep the paginated default.
     state.pageSize = state.rows.length <= AUTO_ALL_LIMIT ? 'all' : 25;
-    if (state.current?.endpoint.route === route) renderEndpointShell(false);
+    if (state.current?.endpoint.route === route) { state.loading = false; renderEndpointShell(false); }
   } catch (e) {
-    if (state.current?.endpoint.route === route) renderEndpointShell(false, String(e));
+    if (state.current?.endpoint.route === route) { state.loading = false; state.loadError = String(e); renderEndpointShell(false, state.loadError); }
   }
 }
 
@@ -768,42 +1474,38 @@ function renderEndpointShell(loading, error = null) {
   const op = specOpFor(endpoint.route);
   const desc = op?.description || op?.summary || category.description || '';
   const inSpec = !!op;
+  const url = API_BASE + endpoint.route;
 
   $('#main').innerHTML = `
     <div class="fade-in">
-      <nav class="mb-3 flex items-center gap-1.5 text-xs font-semibold text-slate-400">
-        <button onclick="goHome()" class="transition hover:text-leaf-700">Home</button>
-        <span>/</span><span>${esc(group.group)}</span>
-        <span>/</span><span class="text-leaf-700">${esc(category.name)}</span>
-      </nav>
-
-      <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div class="max-w-3xl">
-          <h1 class="text-2xl font-extrabold tracking-tight text-leaf-800">${esc(endpoint.name)}</h1>
-          ${desc ? `<p class="mt-1.5 text-[14px] leading-relaxed text-slate-500">${esc(desc)}</p>` : ''}
+      <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0">
+          <span class="doc-page__eyebrow">
+            <button type="button" onclick="goHome()" class="border-0 bg-transparent p-0 font-bold uppercase tracking-[.12em] text-brand-700 hover:text-brand-800">${esc(group.group)}</button>
+            <span class="mx-1 text-ink-3">/</span>${esc(category.name)}
+          </span>
+          <h1 class="doc-page__title">${esc(endpoint.name)}</h1>
+          ${desc ? `<p class="doc-page__hint">${esc(desc)}</p>` : ''}
         </div>
-        ${!inSpec && state.spec ? '<span class="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold text-amber-700">not in public spec</span>' : ''}
+        ${!inSpec && state.spec ? '<span class="doc-tag doc-tag--warn mt-1">Not in the public spec</span>' : ''}
       </div>
 
-      <div class="mb-6 flex items-center gap-0 overflow-hidden rounded-2xl border border-leaf-300 bg-leaf-50 shadow-card">
-        <span class="m-2 rounded-xl bg-leaf-500 px-4 py-2 font-mono text-[13px] font-bold text-white">GET</span>
-        <code class="flex-1 truncate font-mono text-[13px] font-medium text-slate-700">${esc(API_BASE + endpoint.route)}</code>
-        <button onclick="copyText('${esc(API_BASE + endpoint.route)}', this)"
-          class="m-2 rounded-xl border border-leaf-300 bg-white px-3.5 py-2 text-xs font-bold text-leaf-700 transition hover:bg-leaf-100">Copy</button>
-        <a href="${esc(API_BASE + endpoint.route)}" target="_blank"
-          class="m-2 ml-0 rounded-xl border border-leaf-300 bg-white px-3.5 py-2 text-xs font-bold text-leaf-700 transition hover:bg-leaf-100">Open ↗</a>
+      <div class="doc-card mb-4 flex items-center gap-3 px-3 py-2">
+        <span class="doc-method">GET</span>
+        <code class="min-w-0 flex-1 truncate font-mono text-[13px] font-medium text-ink" title="${esc(url)}">${esc(url)}</code>
+        <button type="button" class="doc-btn doc-btn--outline doc-btn--icon" onclick="copyText(${attr(url)}, this)" aria-label="Copy the URL" title="Copy the URL">${ICON.copy}</button>
+        <a href="${esc(url)}" target="_blank" rel="noopener" class="doc-btn doc-btn--outline doc-btn--icon" aria-label="Open the raw response in a new tab" title="Open in a new tab">${ICON.open}</a>
       </div>
 
-      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex rounded-xl border border-slate-200 bg-white p-1 shadow-card">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <nav class="doc-tabs" role="tablist" aria-label="Views of this endpoint">
           ${['doc:Doc','table:Table','json:JSON','schema:Schema','code:Code'].map(t => {
             const [id, label] = t.split(':');
             const on = state.tab === id;
-            return `<button onclick="setTab('${id}')"
-              class="rounded-lg px-4 py-1.5 text-[13px] font-semibold transition ${on ? 'bg-leaf-700 text-white shadow' : 'text-slate-500 hover:text-leaf-700'}">${label}</button>`;
+            return `<button type="button" role="tab" aria-selected="${on}" onclick="setTab('${id}')" class="doc-tabs__item ${on ? 'is-active' : ''}">${label}</button>`;
           }).join('')}
-        </div>
-        <div class="flex items-center gap-2" id="exportZone"></div>
+        </nav>
+        <div class="flex flex-wrap items-center gap-2" id="exportZone"></div>
       </div>
 
       <div id="tabBody"></div>
@@ -811,25 +1513,43 @@ function renderEndpointShell(loading, error = null) {
 
   // Doc and Code are spec/static-derived — render them immediately, no wait for live data.
   if (loading && (state.tab === 'doc' || state.tab === 'code')) { renderTab(); return; }
-  if (loading) {
-    $('#tabBody').innerHTML = `
-      <div class="rounded-2xl border border-slate-200 bg-white p-16 text-center shadow-card">
-        <svg class="spin mx-auto h-8 w-8 text-leaf-700" fill="none" viewBox="0 0 24 24"><circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
-        <div class="mt-4 text-sm font-semibold text-slate-500">Fetching live data…</div>
-        <div class="mt-1 text-xs text-slate-400">Large lists (e.g. Institutions) can take a few seconds.</div>
-      </div>`;
-    return;
-  }
+  if (loading) { $('#tabBody').innerHTML = skeletonTable(); return; }
   if (error) {
     $('#tabBody').innerHTML = `
-      <div class="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-        <div class="text-sm font-bold text-red-700">Could not load this endpoint</div>
-        <div class="mt-1 font-mono text-xs text-red-500">${esc(error)}</div>
-        <button onclick='selectEndpointRetry()' class="mt-4 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700">Retry</button>
+      <div class="doc-card p-8 text-center">
+        <div class="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-xl bg-[#fdeceb] text-[#8f1d15]">${ICON.info}</div>
+        <div class="text-[14px] font-semibold text-ink">Could not load this endpoint</div>
+        <div class="mt-1 font-mono text-xs text-ink-3">${esc(error)}</div>
+        <button type="button" onclick="selectEndpointRetry()" class="doc-btn doc-btn--outline mt-4">Retry</button>
       </div>`;
     return;
   }
   renderTab();
+}
+
+/* The shape of the table while the rows arrive: the static parts (bar,
+   forest header, pager) render real, only the data slots shimmer. A spinner
+   with «Fetching…» in the middle of a white card told the reader nothing about
+   what was coming. */
+function skeletonTable() {
+  const widths = [64, 96, 52, 120, 88, 140, 72];
+  const cell = (w, i) => `<td><span class="sk" style="display:block;height:12px;width:${w + ((i * 7) % 24)}px"></span></td>`;
+  const row = () => '<tr>' + widths.map(cell).join('') + '</tr>';
+  return `
+    <div class="doc-table" aria-busy="true" aria-label="Loading records">
+      <div class="doc-table__bar">
+        <span class="sk" style="height:34px;width:240px;border-radius:6px"></span>
+        <span class="sk" style="height:30px;width:110px;border-radius:999px"></span>
+        <span class="ml-auto sk" style="height:12px;width:120px"></span>
+      </div>
+      <div class="doc-table__scroll">
+        <table class="doc-grid">
+          <thead><tr>${widths.map(w => `<th><span class="sk sk--dark" style="display:block;height:10px;width:${w}px"></span></th>`).join('')}</tr></thead>
+          <tbody>${Array.from({ length: 9 }, row).join('')}</tbody>
+        </table>
+      </div>
+      <div class="doc-table__foot"><span class="sk" style="height:12px;width:160px"></span><span class="sk" style="height:30px;width:180px;border-radius:6px"></span></div>
+    </div>`;
 }
 
 function selectEndpointRetry() {
@@ -839,20 +1559,21 @@ function selectEndpointRetry() {
   selectEndpoint(gi, ci, endpoint.route);
 }
 
-function setTab(t) { state.tab = t; renderEndpointShell(false); }
+// A tab opened while the rows are still on their way gets the skeleton (or
+// the error card), never the previous endpoint's data.
+function setTab(t) { state.tab = t; state.picker = null; renderEndpointShell(state.loading, state.loadError); }
 
 /* ── tabs ─────────────────────────────────────────────────────────── */
 function renderTab() {
   const zone = $('#exportZone');
   zone.innerHTML = '';
   if (state.tab === 'table') {
+    // One primary per zone: Excel is what the analysts come for; the other
+    // two formats are outlined.
     zone.innerHTML = `
-      <span class="mr-1 rounded-full bg-leaf-50 px-3 py-1.5 text-xs font-bold text-leaf-700">${state.filtered.length.toLocaleString()} records</span>
-      <button onclick="exportExcel()" class="flex items-center gap-1.5 rounded-xl bg-leaf-500 px-4 py-2 text-xs font-bold text-white shadow-card transition hover:bg-leaf-600">
-        <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v8.6l2.3-2.3a1 1 0 111.4 1.4l-4 4a1 1 0 01-1.4 0l-4-4a1 1 0 111.4-1.4L9 11.6V3a1 1 0 011-1z"/><path d="M3 15a1 1 0 011 1v1h12v-1a1 1 0 112 0v2a1 1 0 01-1 1H3a1 1 0 01-1-1v-2a1 1 0 011-1z"/></svg>
-        Excel</button>
-      <button onclick="exportCSV()" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-leaf-400 hover:text-leaf-700">CSV</button>
-      <button onclick="exportJSON()" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-leaf-400 hover:text-leaf-700">JSON</button>`;
+      <button type="button" onclick="exportExcel()" class="doc-btn doc-btn--primary">${ICON.down}<span>Excel</span></button>
+      <button type="button" onclick="exportCSV()" class="doc-btn doc-btn--outline">CSV</button>
+      <button type="button" onclick="exportJSON()" class="doc-btn doc-btn--outline">JSON</button>`;
   }
   if (state.tab === 'doc')    return renderDoc();
   if (state.tab === 'table')  return renderTable();
@@ -861,7 +1582,328 @@ function renderTab() {
   if (state.tab === 'code')   return renderCode();
 }
 
+/* ── column filters ───────────────────────────────────────────────────
+   Two kinds, chosen per column by how many distinct values it holds:
+     · 'in'       — pick values from a list with counts (types, regions, flags)
+     · 'contains' — type a fragment (names, codes, URLs)
+   They stack with AND, and the free-text search runs on top of them. Exports
+   take `state.filtered`, so a file downloaded after filtering holds exactly
+   what the table shows. */
+const cellKey = v => (v === null || v === undefined || v === '') ? '' : String(v);
+// A Map, not an object: `v in {}` also finds inherited keys, and a cell whose
+// value is «toString» would print a function.
+const CELL_LABELS = new Map([['', '(empty)'], ['true', 'Yes'], ['false', 'No']]);
+const cellLabel = v => (CELL_LABELS.has(v) ? CELL_LABELS.get(v) : v);
+
+function distinctValues(col) {
+  if (state.distinct.has(col)) return state.distinct.get(col);
+  const counts = new Map();
+  for (const r of state.rows) {
+    const k = cellKey(r[col]);
+    counts.set(k, (counts.get(k) || 0) + 1);
+    // Past the limit the column is free text anyway; no need to count it all.
+    if (counts.size > PICK_LIMIT + 1) break;
+  }
+  const list = [...counts.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+  state.distinct.set(col, list);
+  return list;
+}
+const isPickable = col => distinctValues(col).length <= PICK_LIMIT;
+
+function rowPasses(r) {
+  for (const f of state.filters) {
+    const v = cellKey(r[f.col]);
+    if (f.mode === 'in') { if (!f.values.includes(v)) return false; }
+    else if (!v.toLowerCase().includes(f.text)) return false;
+  }
+  if (state.search) {
+    const q = state.search;
+    if (!state.columns.some(c => cellKey(r[c]).toLowerCase().includes(q))) return false;
+  }
+  return true;
+}
+
+function applyFilters() {
+  state.filtered = (state.filters.length || state.search) ? state.rows.filter(rowPasses) : state.rows;
+  state.page = 1;
+  applySort(false);
+}
+
+function openPicker(index = -1) {
+  const f = index >= 0 ? state.filters[index] : null;
+  state.picker = {
+    index,
+    col: f ? f.col : null,
+    q: '', qRaw: '',
+    sel: new Set(f && f.mode === 'in' ? f.values : []),
+    // 5. The chip shows what was typed; editing it must show the same, not
+    // the lower-cased copy used for matching.
+    text: f && f.mode === 'contains' ? f.raw : '',
+  };
+  renderPicker(true);
+}
+function closePicker() { state.picker = null; const pop = $('#filterPop'); if (pop) pop.remove(); }
+function pickerCol(col) { const p = state.picker; p.col = col; p.q = ''; p.qRaw = ''; p.sel = new Set(); p.text = ''; renderPicker(true); }
+function pickerBack() { const p = state.picker; p.col = null; p.q = ''; p.qRaw = ''; renderPicker(true); }
+function pickerQuery(v) {
+  const p = state.picker;
+  p.qRaw = v; p.q = v.trim().toLowerCase();
+  // Re-rendering replaces the field being typed in; put the caret back.
+  renderPicker(false);
+  const input = $('#pickerQ');
+  if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+}
+function pickerText(v) { state.picker.text = v; }
+function pickerToggle(v) {
+  const p = state.picker;
+  p.sel.has(v) ? p.sel.delete(v) : p.sel.add(v);
+  renderPicker(false);
+}
+/* The filter the open picker describes, or null when it would filter nothing
+   (no value picked, no text typed). */
+function buildFilter(p) {
+  if (isPickable(p.col)) {
+    return p.sel.size ? { col: p.col, mode: 'in', values: [...p.sel] } : null;
+  }
+  const typed = p.text.trim();
+  return typed ? { col: p.col, mode: 'contains', text: typed.toLowerCase(), raw: typed } : null;
+}
+
+function pickerApply() {
+  const p = state.picker;
+  if (!p?.col) return;
+  const f = buildFilter(p);
+  if (p.index < 0) {
+    if (f) state.filters.push(f);
+  } else if (f) {
+    state.filters[p.index] = f;
+  } else {
+    state.filters.splice(p.index, 1);
+  }
+  state.picker = null;
+  applyFilters();
+  renderTable();
+}
+function removeFilter(i) { state.filters.splice(i, 1); state.picker = null; applyFilters(); renderTable(); }
+function clearFilters() { state.filters = []; state.search = ''; state.picker = null; applyFilters(); renderTable(); }
+
+function pickerHead(p) {
+  return `
+    <div class="doc-pop__head">
+      <button type="button" class="doc-btn doc-btn--ghost doc-btn--sm doc-btn--icon" onclick="pickerBack()" aria-label="Choose another column">${ICON.back}</button>
+      <span class="doc-pop__title">${esc(humanizeColumn(p.col))}<small>${esc(p.col)}</small></span>
+      <button type="button" class="doc-btn doc-btn--ghost doc-btn--sm doc-btn--icon" onclick="closePicker()" aria-label="Close">${ICON.x}</button>
+    </div>`;
+}
+
+/* The search box of a list, shown only when the list is long enough to need it. */
+function pickerSearch(show, placeholder, value) {
+  if (!show) return '';
+  return `<div class="doc-field doc-pop__search">${ICON.search}<input id="pickerQ" type="text" placeholder="${placeholder}" value="${esc(value)}" oninput="pickerQuery(this.value)" autocomplete="off"></div>`;
+}
+
+const applyLabel = p => (p.index >= 0 ? 'Update' : 'Apply');
+
+// Step 1: which column.
+function pickerColumnsHtml(p) {
+  const cols = state.columns.filter(c => !p.q || humanizeColumn(c).toLowerCase().includes(p.q) || c.toLowerCase().includes(p.q));
+  const items = cols.length
+    ? cols.map(c => `
+          <button type="button" class="doc-pop__item" data-col="${esc(c)}">
+            <span class="doc-pop__label">${esc(humanizeColumn(c))}</span><span class="doc-pop__key">${esc(c)}</span>
+          </button>`).join('')
+    : '<div class="doc-pop__empty">No column matches.</div>';
+  return `
+      <div class="doc-pop__head"><span class="doc-pop__title">Filter by column</span>
+        <button type="button" class="doc-btn doc-btn--ghost doc-btn--sm doc-btn--icon" onclick="closePicker()" aria-label="Close">${ICON.x}</button></div>
+      ${pickerSearch(state.columns.length > 8, 'Find a column…', p.qRaw)}
+      <div class="doc-pop__list">${items}</div>`;
+}
+
+// Step 2a: pick values. Counts say how much each choice will leave.
+function pickerValuesHtml(p) {
+  const all = distinctValues(p.col);
+  const shown = all.filter(([v]) => !p.q || cellLabel(v).toLowerCase().includes(p.q));
+  const items = shown.length
+    ? shown.map(([v, n]) => {
+        const on = p.sel.has(v);
+        return `
+          <button type="button" class="doc-pop__item ${on ? 'is-on' : ''}" data-value="${esc(v)}" role="checkbox" aria-checked="${on}">
+            <span class="doc-check">${ICON.check}</span><span class="doc-pop__label">${esc(cellLabel(v))}</span><span class="doc-pop__n">${fmt(n)}</span>
+          </button>`;
+      }).join('')
+    : '<div class="doc-pop__empty">No value matches.</div>';
+  const status = p.sel.size ? `<b>${p.sel.size}</b> selected` : 'Pick one or more values';
+  return `
+      ${pickerHead(p)}
+      ${pickerSearch(all.length > 8, 'Find a value…', p.qRaw)}
+      <div class="doc-pop__list">${items}</div>
+      <div class="doc-pop__foot">
+        <span class="doc-table__count">${status}</span>
+        <button type="button" class="doc-btn doc-btn--primary doc-btn--sm" onclick="pickerApply()">${applyLabel(p)}</button>
+      </div>`;
+}
+
+// Step 2b: free text for columns with too many values to list.
+function pickerTextHtml(p) {
+  return `
+    ${pickerHead(p)}
+    <div class="p-3">
+      <div class="doc-field">${ICON.search}<input id="pickerText" type="text" placeholder="Contains…" value="${esc(p.text)}" oninput="pickerText(this.value)" onkeydown="if (event.key === 'Enter') pickerApply()" autocomplete="off"></div>
+      <p class="mb-0 mt-2 text-[12px] leading-snug text-ink-3">More than ${PICK_LIMIT} distinct values, so this one is typed — matches any part of the text, case-insensitive.</p>
+    </div>
+    <div class="doc-pop__foot">
+      <span></span>
+      <button type="button" class="doc-btn doc-btn--primary doc-btn--sm" onclick="pickerApply()">${applyLabel(p)}</button>
+    </div>`;
+}
+
+function renderPicker(focus) {
+  const p = state.picker;
+  let pop = $('#filterPop');
+  if (!p) {
+    if (pop) pop.remove();
+    return;
+  }
+  if (!pop) {
+    pop = document.createElement('div');
+    pop.id = 'filterPop';
+    pop.className = 'doc-pop';
+    $('.doc-table__bar')?.appendChild(pop);
+  }
+
+  let firstFocus;
+  if (!p.col) {
+    pop.innerHTML = pickerColumnsHtml(p);
+    firstFocus = () => $('#pickerQ');
+  } else if (isPickable(p.col)) {
+    pop.innerHTML = pickerValuesHtml(p);
+    firstFocus = () => $('#pickerQ') || pop.querySelector('.doc-pop__item');
+  } else {
+    pop.innerHTML = pickerTextHtml(p);
+    firstFocus = () => $('#pickerText');
+  }
+  if (focus) firstFocus()?.focus();
+}
+
+// Column and value rows carry their key in a data attribute and are handled
+// here, delegated: an inline `onclick='fn("…")'` breaks on the first value
+// with an apostrophe (Institution types has «Farmers' association…»).
+document.addEventListener('click', e => {
+  const pop = e.target.closest('#filterPop');
+  if (!pop || !state.picker) return;
+  const item = e.target.closest('.doc-pop__item');
+  if (!item) return;
+  if (item.dataset.col !== undefined) pickerCol(item.dataset.col);
+  else if (item.dataset.value !== undefined) pickerToggle(item.dataset.value);
+});
+
+// Click outside the popover closes it. The button that opens it is excluded so
+// a click there does not close and reopen in one go.
+document.addEventListener('mousedown', e => {
+  if (!state.picker) return;
+  if (e.target.closest('#filterPop') || e.target.closest('[data-filter-opener]')) return;
+  closePicker();
+});
+
+function chipVerb(f) {
+  if (f.mode !== 'in') return 'contains';
+  return f.values.length > 1 ? 'is any of' : 'is';
+}
+
+function filterChips() {
+  return state.filters.map((f, i) => {
+    const label = humanizeColumn(f.col);
+    let value;
+    if (f.mode === 'in') {
+      const names = f.values.map(cellLabel);
+      const more = names.length > 2 ? ' +' + (names.length - 2) : '';
+      value = names.slice(0, 2).join(', ') + more;
+    } else value = `“${f.raw}”`;
+    return `
+      <span class="doc-chip" title="${esc(label)}: ${esc(f.mode === 'in' ? f.values.map(cellLabel).join(', ') : f.raw)}">
+        <span class="doc-chip__label" onclick="openPicker(${i})" data-filter-opener><b>${esc(label)}</b> ${chipVerb(f)} ${esc(value)}</span>
+        <button type="button" class="doc-chip__x" onclick="removeFilter(${i})" aria-label="Remove this filter">${ICON.x}</button>
+      </span>`;
+  }).join('');
+}
+
 /* ── TABLE tab ────────────────────────────────────────────────────── */
+// Two lines on purpose: the readable label for whoever is reading the table,
+// and underneath the exact field path, because this page exists so a developer
+// can see what the response actually returns. Not a tooltip — a tooltip is
+// invisible on touch and impossible to copy.
+function headerCell(c) {
+  const label = humanizeColumn(c);
+  const on = state.sortKey === c;
+  let sortState = 'none';
+  let arrow = '↕';
+  if (on) {
+    sortState = state.sortDir > 0 ? 'ascending' : 'descending';
+    arrow = state.sortDir > 0 ? '▲' : '▼';
+  }
+  const key = label.toLowerCase() === String(c).toLowerCase() ? '' : `<span class="th-key">${esc(c)}</span>`;
+  return `<th onclick="sortBy(${attr(c)})" class="is-sortable ${on ? 'is-sorted' : ''}" aria-sort="${sortState}">
+      <span>${esc(label)}</span><span class="th-sort">${arrow}</span>
+      ${key}</th>`;
+}
+
+function bodyCell(raw) {
+  if (raw === null || raw === undefined || raw === '') return '<td class="is-empty">—</td>';
+  if (typeof raw === 'boolean') {
+    const tag = raw ? '<span class="doc-tag doc-tag--ok">Yes</span>' : '<span class="doc-tag doc-tag--muted">No</span>';
+    return `<td>${tag}</td>`;
+  }
+  const v = String(raw);
+  // Full value, always: a definition is the content here, not a preview of it.
+  // Prose wraps into a paragraph capped by the inner div (max-width on a <td>
+  // is ignored by the auto table layout, on a block child it is not). Short
+  // values keep `whitespace-nowrap` on purpose: if every cell may wrap, an
+  // over-wide table collapses to its min-content width and turns ordinary
+  // names into one-word-per-line columns. A value carrying markup always takes
+  // the wrapping branch: a line break inside `whitespace-nowrap` would render
+  // as nothing at all.
+  if (v.length > 45 || hasRichMarkup(v)) {
+    return `<td class="leading-relaxed"><div class="max-w-[560px] whitespace-normal break-words">${renderRich(v)}</div></td>`;
+  }
+  return `<td class="whitespace-nowrap">${esc(v)}</td>`;
+}
+
+function tableCountHtml(total, hasFilters) {
+  if (hasFilters) return `<b>${fmt(total)}</b> of ${fmt(state.rows.length)}`;
+  return `<b>${fmt(total)}</b> ${plural(total, 'record')}`;
+}
+
+function pageSizeOptions() {
+  return PAGE_SIZES
+    .filter(n => n !== 'all' || state.rows.length <= AUTO_ALL_LIMIT)
+    .map(n => {
+      const selected = String(n) === String(state.pageSize) ? 'selected' : '';
+      const text = n === 'all' ? 'All' : n;
+      return `<option value="${n}" ${selected}>${text}</option>`;
+    }).join('');
+}
+
+function emptyTableHtml() {
+  return `<tr><td colspan="${state.columns.length}" class="px-4 py-14 text-center">
+            <div class="text-[14px] font-semibold text-ink">No records match your filters</div>
+            <div class="mt-1 text-[12.5px] text-ink-3">Loosen a filter, or clear them all to see the ${fmt(state.rows.length)} records again.</div>
+            <button type="button" class="doc-btn doc-btn--outline doc-btn--sm mt-4" onclick="clearFilters()">Clear all filters</button>
+          </td></tr>`;
+}
+
+function tableFootHtml(total, start, size, pages, showingAll) {
+  if (showingAll) return `<span>Showing <b>all ${fmt(total)}</b> ${plural(total, 'record')}</span>`;
+  const first = total ? fmt(start + 1) : 0;
+  const last = fmt(Math.min(start + size, total));
+  return `<span>Showing <b>${first}–${last}</b> of <b>${fmt(total)}</b></span>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="setPage(${state.page - 1})" ${state.page <= 1 ? 'disabled' : ''} class="doc-btn doc-btn--outline doc-btn--sm">← Prev</button>
+          <span class="px-2">Page <b>${fmt(state.page)}</b> / ${fmt(pages)}</span>
+          <button type="button" onclick="setPage(${state.page + 1})" ${state.page >= pages ? 'disabled' : ''} class="doc-btn doc-btn--outline doc-btn--sm">Next →</button>
+        </div>`;
+}
+
 function renderTable() {
   const total = state.filtered.length;
   const showingAll = state.pageSize === 'all';
@@ -871,74 +1913,37 @@ function renderTable() {
   const start = (state.page - 1) * size;
   const rows = state.filtered.slice(start, start + size);
 
-  const ths = state.columns.map(c => {
-    const on = state.sortKey === c;
-    const label = humanizeColumn(c);
-    // Two lines on purpose: the readable label for whoever is reading the
-    // table, and underneath the exact field path, because this page exists so a
-    // developer can see what the response actually returns. Not a tooltip — a
-    // tooltip is invisible on touch and impossible to copy.
-    return `<th onclick="sortBy('${esc(c)}')"
-      class="cursor-pointer select-none whitespace-nowrap border-b border-slate-200 bg-leaf-700 px-4 py-2.5 text-left align-bottom text-white transition hover:bg-leaf-700">
-      <span class="text-[11px] font-bold uppercase tracking-wider">${esc(label)}</span>
-      <span class="${on ? 'text-leaf-300' : 'text-leaf-400/50'}">${on ? (state.sortDir > 0 ? '▲' : '▼') : '↕'}</span>
-      ${label.toLowerCase() !== String(c).toLowerCase()
-        ? `<span class="mt-0.5 block font-mono text-[10px] font-normal normal-case leading-none tracking-normal text-leaf-200/80">${esc(c)}</span>`
-        : ''}</th>`;
-  }).join('');
+  const ths = state.columns.map(headerCell).join('');
+  const trs = rows.map(r => '<tr>' + state.columns.map(c => bodyCell(r[c])).join('') + '</tr>').join('');
 
-  const trs = rows.map((r, i) => `
-    <tr class="${i % 2 ? 'bg-slate-50/60' : 'bg-white'} transition hover:bg-leaf-50">
-      ${state.columns.map(c => {
-        let v = r[c];
-        if (v === null || v === undefined || v === '') return '<td class="border-b border-slate-100 px-4 py-2.5 text-slate-300">—</td>';
-        if (typeof v === 'boolean') return `<td class="border-b border-slate-100 px-4 py-2.5">${v ? '<span class="font-bold text-leaf-600">✓ yes</span>' : '<span class="font-semibold text-slate-400">✗ no</span>'}</td>`;
-        v = String(v);
-        // Full value, always: a definition is the content here, not a preview of
-        // it. Prose wraps into a paragraph capped by the inner div (max-width on
-        // a <td> is ignored by the auto table layout, on a block child it is
-        // not). Short values keep `whitespace-nowrap` on purpose: if every cell
-        // may wrap, an over-wide table collapses to its min-content width and
-        // turns ordinary names into one-word-per-line columns. No `title`
-        // attribute any more — the text is fully visible, so a tooltip
-        // repeating it is just noise.
-        // A value carrying markup always takes the wrapping branch: a line
-        // break inside `whitespace-nowrap` would render as nothing at all.
-        return v.length > 45 || hasRichMarkup(v)
-          ? `<td class="border-b border-slate-100 px-4 py-2.5 text-[13px] leading-relaxed text-slate-600"><div class="max-w-[560px] whitespace-normal break-words">${renderRich(v)}</div></td>`
-          : `<td class="whitespace-nowrap border-b border-slate-100 px-4 py-2.5 text-[13px] text-slate-600">${esc(v)}</td>`;
-      }).join('')}
-    </tr>`).join('');
+  const hasFilters = state.filters.length > 0 || !!state.search;
 
   $('#tabBody').innerHTML = `
-    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-      <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3">
-        <div class="relative flex-1 min-w-[220px] max-w-sm">
-          <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
-          <input id="tableSearch" type="text" placeholder="Filter ${state.rows.length.toLocaleString()} records…"
-            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-[13px] outline-none transition focus:border-leaf-500 focus:bg-white focus:ring-4 focus:ring-leaf-200" />
+    <div class="doc-table">
+      <div class="doc-table__bar">
+        <div class="doc-field w-full sm:w-[260px]">
+          ${ICON.search}
+          <input id="tableSearch" type="text" placeholder="Search ${fmt(state.rows.length)} records…" value="${esc(state.search)}" autocomplete="off" aria-label="Search every column">
         </div>
-        <div class="ml-auto flex items-center gap-2 text-xs font-semibold text-slate-400">
-          Rows
-          <select id="pageSize" class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-bold text-slate-600 outline-none">
-            ${PAGE_SIZES.filter(n => n !== 'all' || state.rows.length <= AUTO_ALL_LIMIT).map(n => `<option value="${n}" ${String(n) === String(state.pageSize) ? 'selected' : ''}>${n === 'all' ? 'All' : n}</option>`).join('')}
-          </select>
+        <div class="doc-filters" id="filterZone">
+          ${filterChips()}
+          <button type="button" class="doc-btn doc-btn--outline doc-btn--sm" onclick="openPicker()" data-filter-opener>${ICON.filter}<span>${state.filters.length ? 'Add filter' : 'Filter'}</span></button>
+          ${hasFilters ? `<button type="button" class="doc-btn doc-btn--ghost doc-btn--sm" onclick="clearFilters()">Clear all</button>` : ''}
+        </div>
+        <div class="ml-auto flex items-center gap-3">
+          <span class="doc-table__count">${tableCountHtml(total, hasFilters)}</span>
+          <label class="flex items-center gap-2 text-[12.5px] text-ink-3">Rows
+            <span class="doc-select doc-select--sm"><select id="pageSize" aria-label="Rows per page">
+              ${pageSizeOptions()}
+            </select></span>
+          </label>
         </div>
       </div>
-      <div class="max-h-[58vh] overflow-auto">
-        <table class="data w-full border-collapse text-sm"><thead><tr>${ths}</tr></thead><tbody>${trs ||
-          `<tr><td colspan="${state.columns.length}" class="px-4 py-12 text-center text-sm text-slate-400">No records match your filter.</td></tr>`}</tbody></table>
+      <div class="doc-table__scroll">
+        <table class="data doc-grid"><thead><tr>${ths}</tr></thead><tbody>${trs || emptyTableHtml()}</tbody></table>
       </div>
-      <div class="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs font-semibold text-slate-500">
-        <span>${showingAll
-          ? `Showing <b class="text-leaf-700">all ${total.toLocaleString()}</b> record${total === 1 ? '' : 's'}`
-          : `Showing <b class="text-leaf-700">${total ? (start + 1).toLocaleString() : 0}–${Math.min(start + size, total).toLocaleString()}</b> of <b class="text-leaf-700">${total.toLocaleString()}</b>`}</span>
-        ${showingAll ? '' : `
-        <div class="flex items-center gap-1.5">
-          <button onclick="setPage(${state.page - 1})" ${state.page <= 1 ? 'disabled' : ''} class="rounded-lg border border-slate-200 px-3 py-1.5 transition enabled:hover:border-leaf-400 enabled:hover:text-leaf-700 disabled:opacity-40">← Prev</button>
-          <span class="px-2">Page <b class="text-leaf-700">${state.page}</b> / ${pages.toLocaleString()}</span>
-          <button onclick="setPage(${state.page + 1})" ${state.page >= pages ? 'disabled' : ''} class="rounded-lg border border-slate-200 px-3 py-1.5 transition enabled:hover:border-leaf-400 enabled:hover:text-leaf-700 disabled:opacity-40">Next →</button>
-        </div>`}
+      <div class="doc-table__foot">
+        ${tableFootHtml(total, start, size, pages, showingAll)}
       </div>
     </div>`;
 
@@ -946,15 +1951,14 @@ function renderTable() {
   $('#tableSearch').addEventListener('input', e => {
     clearTimeout(deb);
     deb = setTimeout(() => {
-      const q = e.target.value.trim().toLowerCase();
-      state.filtered = !q ? state.rows : state.rows.filter(r => state.columns.some(c => String(r[c] ?? '').toLowerCase().includes(q)));
-      state.page = 1;
-      applySort(false);
-      renderTab();
-      const inp = $('#tableSearch'); inp.value = e.target.value; inp.focus(); inp.setSelectionRange(q.length + 99, q.length + 99);
+      state.search = e.target.value.trim().toLowerCase();
+      applyFilters();
+      renderTable();
+      const inp = $('#tableSearch'); inp.value = e.target.value; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
     }, 250);
   });
   $('#pageSize').addEventListener('change', e => { state.pageSize = e.target.value === 'all' ? 'all' : +e.target.value; state.page = 1; renderTable(); });
+  if (state.picker) renderPicker(false);
 }
 
 function setPage(p) { state.page = p; renderTable(); }
@@ -1062,6 +2066,25 @@ function currentJsonData() {
 }
 
 /* ── JSON tab ─────────────────────────────────────────────────────── */
+function queryEnumField(p, value) {
+  const defaultNote = p.default ? ' (' + esc(p.default) + ')' : '';
+  const options = p.values.map(v => {
+    const selected = String(value) === String(v) ? ' selected' : '';
+    return `<option value="${esc(v)}"${selected}>${esc(v)}</option>`;
+  }).join('');
+  return `<span class="doc-select w-full"><select class="w-full" onchange="setQueryValue(${attr(p.name)}, this.value)" style="font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:500">
+           <option value=""${value === '' ? ' selected' : ''}>— not sent${defaultNote} —</option>
+           ${options}
+         </select></span>`;
+}
+
+function queryTextField(p, value) {
+  return `<div class="doc-field doc-field--mono"><input type="${p.isNumber ? 'number' : 'text'}" value="${esc(value)}"
+           oninput="setQueryValue(${attr(p.name)}, this.value)"
+           onkeydown="if (event.key === 'Enter') runQuery()"
+           placeholder="${p.default ? esc(p.default) : 'not sent'}"></div>`;
+}
+
 function renderJSON() {
   const params = queryParamsFor(state.current.endpoint.route);
   const raw = currentJsonData();
@@ -1069,61 +2092,50 @@ function renderJSON() {
   const preview = arr.slice(0, 50);
   const filtered = !!state.queryResult;
 
-  $('#exportZone').innerHTML = `<button onclick="exportJSON()" class="rounded-xl bg-leaf-700 px-4 py-2 text-xs font-bold text-white shadow-card transition hover:bg-leaf-700">Download full JSON</button>`;
+  $('#exportZone').innerHTML = `<button type="button" onclick="exportJSON()" class="doc-btn doc-btn--primary">${ICON.down}<span>Download full JSON</span></button>`;
 
   const controls = params.map(p => {
     const value = state.query[p.name] ?? '';
-    const field = p.values
-      ? `<select onchange="setQueryValue('${esc(p.name)}', this.value)"
-           class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-[12.5px] text-slate-700 outline-none transition focus:border-leaf-400">
-           <option value=""${value === '' ? ' selected' : ''}>— not sent${p.default ? ` (${esc(p.default)})` : ''} —</option>
-           ${p.values.map(v => `<option value="${esc(v)}"${String(value) === String(v) ? ' selected' : ''}>${esc(v)}</option>`).join('')}
-         </select>`
-      : `<input type="${p.isNumber ? 'number' : 'text'}" value="${esc(value)}"
-           oninput="setQueryValue('${esc(p.name)}', this.value)"
-           onkeydown="if (event.key === 'Enter') runQuery()"
-           placeholder="${p.default ? esc(p.default) : 'not sent'}"
-           class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-[12.5px] text-slate-700 outline-none transition focus:border-leaf-400">`;
+    const field = p.values ? queryEnumField(p, value) : queryTextField(p, value);
     return `
       <div>
-        <label class="mb-1 block font-mono text-[12px] font-bold text-leaf-700">${esc(p.name)}${p.required ? '<span class="ml-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500">required</span>' : ''}</label>
+        <label class="mb-1.5 flex items-center gap-2 font-mono text-[12px] font-semibold text-brand-800">${esc(p.name)}${p.required ? '<span class="doc-tag doc-tag--error">required</span>' : ''}</label>
         ${field}
-        ${p.description ? `<p class="mt-1 text-[11.5px] leading-snug text-slate-400">${esc(p.description)}</p>` : ''}
+        ${p.description ? `<p class="mb-0 mt-1.5 text-[11.5px] leading-snug text-ink-3">${esc(p.description)}</p>` : ''}
       </div>`;
   }).join('');
 
   const panel = params.length ? `
-    <div class="mb-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+    <div class="doc-card mb-4 p-5">
       <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h3 class="text-[13px] font-bold text-leaf-800">Try it with query parameters</h3>
-        <span class="text-[12px] text-slate-400">Leave a field empty to omit it — no filters means the default response.</span>
+        <h3 class="m-0 text-[14px] font-bold text-forest">Try it with query parameters</h3>
+        <span class="text-[12px] text-ink-3">Leave a field empty to omit it — no filters means the default response.</span>
       </div>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">${controls}</div>
-      <div class="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 px-4 py-3">
-        <span class="rounded-md bg-leaf-500 px-2 py-0.5 font-mono text-[11px] font-bold text-white">GET</span>
-        <code id="queryUrl" class="flex-1 break-all font-mono text-[12.5px] text-slate-600">${esc(buildQueryUrl())}</code>
-        <button onclick="copyText($('#queryUrl').textContent, this)" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-leaf-400 hover:text-leaf-700">Copy</button>
+      <div class="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2">
+        <span class="doc-method">GET</span>
+        <code id="queryUrl" class="min-w-0 flex-1 break-all font-mono text-[12.5px] text-ink">${esc(buildQueryUrl())}</code>
+        <button type="button" onclick="copyText($('#queryUrl').textContent, this)" class="doc-btn doc-btn--outline doc-btn--sm doc-btn--icon" aria-label="Copy the URL">${ICON.copy}</button>
       </div>
       <div class="mt-3 flex items-center gap-2">
-        <button id="queryRun" onclick="runQuery()" ${state.queryLoading ? 'disabled' : ''}
-          class="rounded-xl bg-leaf-500 px-4 py-2 text-xs font-bold text-white shadow-card transition hover:bg-leaf-600 disabled:opacity-60">${state.queryLoading ? 'Running…' : 'Run query'}</button>
-        ${filtered || activeQueryPairs().length ? `<button onclick="resetQuery()" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-500 transition hover:border-leaf-400 hover:text-leaf-700">Reset</button>` : ''}
+        <button type="button" id="queryRun" onclick="runQuery()" ${state.queryLoading ? 'disabled' : ''} class="doc-btn doc-btn--primary">${ICON.play}<span>${state.queryLoading ? 'Running…' : 'Run query'}</span></button>
+        ${filtered || activeQueryPairs().length ? '<button type="button" onclick="resetQuery()" class="doc-btn doc-btn--outline">Reset</button>' : ''}
       </div>
-      ${state.queryError ? `<div class="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 font-mono text-xs text-red-600">${esc(state.queryError)}</div>` : ''}
+      ${state.queryError ? `<div class="mt-3 rounded-lg border border-[#f4c7c3] bg-[#fdeceb] px-3 py-2 font-mono text-xs text-[#8f1d15]">${esc(state.queryError)}</div>` : ''}
     </div>` : '';
 
   const label = filtered
-    ? `Filtered response · ${esc(state.queryResult.url.split('?')[1] || 'no filters')} · showing first ${preview.length.toLocaleString()} of ${arr.length.toLocaleString()} items`
-    : `Live response · showing first ${preview.length.toLocaleString()} of ${arr.length.toLocaleString()} items`;
+    ? `Filtered response · ${esc(state.queryResult.url.split('?')[1] || 'no filters')} · first ${fmt(preview.length)} of ${fmt(arr.length)}`
+    : `Live response · first ${fmt(preview.length)} of ${fmt(arr.length)} items`;
 
   $('#tabBody').innerHTML = `
     ${panel}
-    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-leaf-900 shadow-card">
-      <div class="flex items-center justify-between border-b border-white/10 px-5 py-3">
-        <span class="font-mono text-xs font-semibold text-leaf-400">${label}</span>
-        <button onclick="copyText(jsonPreviewText(), this)" class="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/20">Copy</button>
+    <div class="doc-code">
+      <div class="doc-code__bar">
+        <span class="doc-code__title">${label}</span>
+        <button type="button" onclick="copyText(jsonPreviewText(), this)" class="doc-btn doc-btn--sm doc-btn--dark">${ICON.copy}<span>Copy</span></button>
       </div>
-      <pre class="max-h-[62vh] overflow-auto p-5 font-mono text-[12.5px] leading-relaxed text-leaf-200"><code>${esc(JSON.stringify(preview, null, 2))}</code></pre>
+      <pre class="doc-code__pre doc-code__pre--tall"><code>${esc(JSON.stringify(preview, null, 2))}</code></pre>
     </div>`;
 }
 function jsonPreviewText() {
@@ -1157,23 +2169,14 @@ function renderSchema() {
 }
 function schemaTable(entries, inferred) {
   const rows = entries.map(([name, def, req]) => `
-    <tr class="bg-white transition hover:bg-leaf-50/60">
-      <td class="border-b border-slate-100 px-5 py-3 font-mono text-[13px] font-semibold text-leaf-700">${esc(name)} ${req ? '<span class="ml-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500">required</span>' : ''}</td>
-      <td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md bg-leaf-100 px-2 py-1 font-mono text-[11px] font-bold text-leaf-800">${esc(def.type || 'object')}${def.format ? ` · ${esc(def.format)}` : ''}</span></td>
-      <td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-500">${esc(def.description || '')}</td>
+    <tr>
+      <td class="is-mono font-semibold text-brand-800">${esc(name)} ${req ? '<span class="doc-tag doc-tag--error ml-1">required</span>' : ''}</td>
+      <td><span class="doc-tag doc-tag--muted doc-tag--mono">${esc(def.type || 'object')}${def.format ? ` · ${esc(def.format)}` : ''}</span></td>
+      <td>${esc(def.description || '') || '<span class="text-ink-3">—</span>'}</td>
     </tr>`).join('');
   return `
-    ${inferred ? '<div class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-700">Schema not published in the OpenAPI spec — fields inferred from live data.</div>' : ''}
-    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-      <table class="w-full border-collapse text-sm">
-        <thead><tr>
-          <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Field</th>
-          <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Type</th>
-          <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Description</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
+    ${inferred ? `<div class="mb-3">${note('Schema not published in the OpenAPI spec — fields inferred from live data.', 'doc-note--warn')}</div>` : ''}
+    ${proseTable(['Field', 'Type', 'Description'], rows)}`;
 }
 
 /* ── CODE tab ─────────────────────────────────────────────────────── */
@@ -1184,14 +2187,7 @@ function renderCode() {
     ['JavaScript (fetch)', `const res = await fetch("${url}");\nconst data = await res.json();\nconsole.log(data);`],
     ['Python (requests)', `import requests\n\nres = requests.get("${url}")\ndata = res.json()\nprint(len(data), "records")`],
   ];
-  $('#tabBody').innerHTML = blocks.map(([title, code]) => `
-    <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-        <span class="text-[13px] font-bold text-leaf-800">${title}</span>
-        <button onclick='copyText(${JSON.stringify(code)}, this)' class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-leaf-400 hover:text-leaf-700">Copy</button>
-      </div>
-      <pre class="overflow-auto bg-slate-50 p-5 font-mono text-[12.5px] leading-relaxed text-slate-700"><code>${esc(code)}</code></pre>
-    </div>`).join('');
+  $('#tabBody').innerHTML = `<div class="mx-auto max-w-4xl">${blocks.map(([title, code]) => docCodeBlock(title, code)).join('')}</div>`;
 }
 
 /* ── DOC tab ──────────────────────────────────────────────────────── */
@@ -1222,22 +2218,11 @@ function tsType(node) {
   return t || 'any';
 }
 
-function docCodeBlock(title, code) {
-  return `
-    <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-        <span class="text-[13px] font-bold text-leaf-800">${title}</span>
-        <button onclick='copyText(${JSON.stringify(code)}, this)' class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-leaf-400 hover:text-leaf-700">Copy</button>
-      </div>
-      <pre class="overflow-auto bg-slate-50 p-5 font-mono text-[12.5px] leading-relaxed text-slate-700"><code>${esc(code)}</code></pre>
-    </div>`;
-}
-
 function docSection(title, subtitle, bodyHtml) {
   return `
-    <section class="mb-6">
-      <h2 class="text-lg font-bold text-leaf-800">${title}</h2>
-      ${subtitle ? `<p class="mb-3 mt-1 text-[13.5px] leading-relaxed text-slate-500">${subtitle}</p>` : '<div class="mb-3"></div>'}
+    <section class="mb-7">
+      <h2 class="m-0 text-[17px] font-bold text-forest">${title}</h2>
+      ${subtitle ? `<p class="mb-3 mt-1 text-[13.5px] leading-relaxed text-ink-2">${subtitle}</p>` : '<div class="mb-3"></div>'}
       ${bodyHtml}
     </section>`;
 }
@@ -1255,28 +2240,28 @@ function renderDoc() {
     const vEx = `# v1 — default, no param needed\nGET ${url}\n\n# v2 — opt in with the version query param\nGET ${url}?version=2`;
     versioningBody = `
       <div class="mb-4 grid gap-3 sm:grid-cols-2">
-        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-card">
-          <div class="flex items-center gap-2"><span class="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[12px] font-bold text-slate-600">v1</span><span class="text-[12px] font-semibold text-slate-400">default</span></div>
-          <p class="mt-2 text-[13.5px] leading-relaxed text-slate-600">Served when no <code class="docpill">version</code> param is sent.</p>
+        <div class="doc-card p-4">
+          <div class="flex items-center gap-2"><span class="doc-tag doc-tag--muted doc-tag--mono">v1</span><span class="text-[12px] font-semibold text-ink-3">default</span></div>
+          <p class="mb-0 mt-2 text-[13.5px] leading-relaxed text-ink-2">Served when no <code class="docpill">version</code> param is sent.</p>
         </div>
-        <div class="rounded-xl border border-leaf-300 bg-leaf-50 p-4 shadow-card">
-          <div class="flex items-center gap-2"><span class="rounded-md bg-leaf-500 px-2 py-0.5 font-mono text-[12px] font-bold text-white">v2</span><span class="text-[12px] font-semibold text-leaf-700">opt-in</span></div>
-          <p class="mt-2 text-[13.5px] leading-relaxed text-leaf-900">${v2}</p>
+        <div class="rounded-card border border-brand-200 bg-brand-50 p-4">
+          <div class="flex items-center gap-2"><span class="doc-tag doc-tag--mono" style="background:var(--brand-strong);color:#fff">v2</span><span class="text-[12px] font-semibold text-brand-800">opt-in</span></div>
+          <p class="mb-0 mt-2 text-[13.5px] leading-relaxed text-brand-800">${v2}</p>
         </div>
       </div>
       ${docCodeBlock('Selecting a version', vEx)}`;
   } else {
     versioningBody = `
-      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <div class="flex items-center gap-2"><span class="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[12px] font-bold text-slate-600">v1</span><span class="text-[12px] font-semibold text-slate-400">only</span></div>
-        <p class="mt-2 text-[13.5px] leading-relaxed text-slate-600">
+      <div class="rounded-control border border-line bg-surface-2 p-4">
+        <div class="flex items-center gap-2"><span class="doc-tag doc-tag--muted doc-tag--mono">v1</span><span class="text-[12px] font-semibold text-ink-3">only</span></div>
+        <p class="mb-0 mt-2 text-[13.5px] leading-relaxed text-ink-2">
           This endpoint has a single version. Sending <code class="docpill">?version=2</code> has no effect — it always serves its v1 response.
         </p>
       </div>`;
   }
   const versioning = docSection(
     'Versioning',
-    `CLARISA versions the API through an optional <code class="docpill">?version=N</code> query param — not via the URI and not via a header. Omit it and you get <b>v1</b>.`,
+    `CLARISA versions the API through an optional <code class="docpill">?version=N</code> query param — not via the URI and not via a header. Omit it and you get <b class="font-semibold text-ink">v1</b>.`,
     versioningBody,
   );
 
@@ -1289,14 +2274,12 @@ function renderDoc() {
         ? `<div class="mt-1.5 flex flex-wrap gap-1">${p.values.map(v => `<code class="docpill">${esc(v)}</code>`).join('')}</div>`
         : '';
       return `
-        <tr class="bg-white transition hover:bg-leaf-50/60">
-          <td class="border-b border-slate-100 px-5 py-3 align-top font-mono text-[13px] font-semibold text-leaf-700">${esc(p.name)}
-            ${p.required
-              ? '<span class="ml-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500">required</span>'
-              : '<span class="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-400">optional</span>'}</td>
-          <td class="border-b border-slate-100 px-5 py-3 align-top"><span class="rounded-md bg-leaf-100 px-2 py-1 font-mono text-[11px] font-bold text-leaf-800">${esc(p.values ? 'enum' : p.type)}</span>${values}</td>
-          <td class="border-b border-slate-100 px-5 py-3 align-top font-mono text-[12px] text-slate-500">${p.default ? esc(p.default) : '<span class="text-slate-300">—</span>'}</td>
-          <td class="border-b border-slate-100 px-5 py-3 align-top text-[13px] text-slate-500">${esc(p.description) || '<span class="text-slate-300">Not documented in the spec.</span>'}</td>
+        <tr>
+          <td class="is-mono font-semibold text-brand-800">${esc(p.name)}
+            <div class="mt-1.5">${p.required ? '<span class="doc-tag doc-tag--error">required</span>' : '<span class="doc-tag doc-tag--muted">optional</span>'}</div></td>
+          <td><span class="doc-tag doc-tag--muted doc-tag--mono">${esc(p.values ? 'enum' : p.type)}</span>${values}</td>
+          <td class="is-mono">${p.default ? esc(p.default) : '<span class="text-ink-3">—</span>'}</td>
+          <td>${esc(p.description) || '<span class="text-ink-3">Not documented in the spec.</span>'}</td>
         </tr>`;
     }).join('');
 
@@ -1315,69 +2298,35 @@ function renderDoc() {
     if (!recipes.length) recipes.push(`# every parameter is optional\nGET ${url}`);
 
     paramsBody = `
-      <div class="mb-4 rounded-xl border border-leaf-200 bg-leaf-50 px-4 py-3 text-[13.5px] leading-relaxed text-leaf-900">
-        Every filter below is <b>optional unless marked required</b>. Send none and the endpoint replies exactly as it always has —
-        adding a filter never changes the shape of the response, only which records come back.
-      </div>
-      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-        <table class="w-full border-collapse text-sm">
-          <thead><tr>
-            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Param</th>
-            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Type · accepted values</th>
-            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Default</th>
-            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Description</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <p class="mb-3 mt-4 text-[13.5px] text-slate-500">Copy any of these, or build your own in the <b>JSON</b> tab and run it against the live API.</p>
+      <div class="mb-4">${note(`Every filter below is <b>optional unless marked required</b>. Send none and the endpoint replies exactly as it always has —
+        adding a filter never changes the shape of the response, only which records come back.`)}</div>
+      ${proseTable(['Param', 'Type · accepted values', 'Default', 'Description'], rows)}
+      <p class="mb-3 mt-4 text-[13.5px] text-ink-2">Copy any of these, or build your own in the <b class="font-semibold text-ink">JSON</b> tab and run it against the live API.</p>
       ${docCodeBlock('Ready-made requests', recipes.join('\n\n'))}`;
   } else {
-    const fallback = v2 ? `?version=2` : '';
+    const v2Hint = v2 ? ' You can still pass <code class="docpill">?version=2</code> to opt into v2.' : '';
+    const example = v2 ? '<div class="mt-4">' + docCodeBlock('Example', 'GET ' + url + '?version=2') + '</div>' : '';
     paramsBody = `
-      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-[13.5px] leading-relaxed text-slate-600">
-        No query parameters are published for this endpoint in the OpenAPI spec.${v2 ? ` You can still pass <code class="docpill">?version=2</code> to opt into v2.` : ''}
-      </div>${fallback ? docCodeBlock('Example', `GET ${url}${fallback}`) : ''}`;
+      <div class="rounded-control border border-line bg-surface-2 p-4 text-[13.5px] leading-relaxed text-ink-2">
+        No query parameters are published for this endpoint in the OpenAPI spec.${v2Hint}
+      </div>${example}`;
   }
   const params = docSection('Query parameters', 'Optional filters you append to the request URL to narrow what comes back.', paramsBody);
 
   /* ── 3. Responses / status codes ── */
   const responses = op?.responses || {};
-  let respBody;
   const respKeys = Object.keys(responses);
-  if (respKeys.length) {
-    respBody = `
-      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-        <table class="w-full border-collapse text-sm">
-          <thead><tr>
-            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Status</th>
-            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Meaning</th>
-          </tr></thead>
-          <tbody>${respKeys.map(code => {
-            const ok = code.startsWith('2');
-            return `<tr class="bg-white">
-              <td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md px-2 py-1 font-mono text-[12px] font-bold ${ok ? 'bg-leaf-100 text-leaf-800' : 'bg-amber-100 text-amber-700'}">${esc(code)}</span></td>
-              <td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-600">${esc(responses[code].description || (ok ? 'Successful response' : ''))}</td>
-            </tr>`;
-          }).join('')}</tbody>
-        </table>
-      </div>`;
-  } else {
-    respBody = `
-      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-        <table class="w-full border-collapse text-sm">
-          <thead><tr>
-            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Status</th>
-            <th class="border-b border-slate-200 bg-leaf-700 px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Meaning</th>
-          </tr></thead>
-          <tbody>
-            <tr class="bg-white"><td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md bg-leaf-100 px-2 py-1 font-mono text-[12px] font-bold text-leaf-800">200</span></td><td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-600">Successful response — returns the control list.</td></tr>
-            <tr class="bg-white"><td class="border-b border-slate-100 px-5 py-3"><span class="rounded-md bg-amber-100 px-2 py-1 font-mono text-[12px] font-bold text-amber-700">401</span></td><td class="border-b border-slate-100 px-5 py-3 text-[13px] text-slate-600">Missing or invalid API token.</td></tr>
-          </tbody>
-        </table>
-      </div>`;
-  }
-  const respSection = docSection('Responses', 'HTTP status codes this endpoint can return.', respBody);
+  const statusRow = (code, text) => {
+    const ok = String(code).startsWith('2');
+    return `<tr>
+      <td><span class="doc-tag doc-tag--mono ${ok ? 'doc-tag--ok' : 'doc-tag--warn'}">${esc(code)}</span></td>
+      <td>${esc(text)}</td>
+    </tr>`;
+  };
+  const respRows = respKeys.length
+    ? respKeys.map(code => statusRow(code, responses[code].description || (String(code).startsWith('2') ? 'Successful response' : ''))).join('')
+    : statusRow('200', 'Successful response — returns the control list.') + statusRow('401', 'Missing or invalid API token.');
+  const respSection = docSection('Responses', 'HTTP status codes this endpoint can return.', proseTable(['Status', 'Meaning'], respRows));
 
   /* ── 4. Response model / DTO interface ── */
   let schemaNode = op?.responses?.['200']?.content?.['application/json']?.schema;
@@ -1401,10 +2350,11 @@ function renderDoc() {
   } else {
     const sample = state.rows && state.rows[0];
     if (sample) {
-      const lines = Object.keys(sample).map(k => `  ${k}: ${typeof sample[k] === 'number' ? 'number' : typeof sample[k] === 'boolean' ? 'boolean' : 'string'};`);
-      dtoBody = `<div class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-700">Model not published in the OpenAPI spec — shape inferred from live data.</div>${docCodeBlock('Inferred shape', `interface ${modelName} {\n${lines.join('\n')}\n}`)}`;
+      const lines = Object.keys(sample).map(k => `  ${k}: ${tsTypeOf(sample[k])};`);
+      const shape = 'interface ' + modelName + ' {\n' + lines.join('\n') + '\n}';
+      dtoBody = `<div class="mb-3">${note('Model not published in the OpenAPI spec — shape inferred from live data.', 'doc-note--warn')}</div>${docCodeBlock('Inferred shape', shape)}`;
     } else {
-      dtoBody = `<div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-[13.5px] text-slate-600">No response model published for this endpoint.</div>`;
+      dtoBody = `<div class="rounded-control border border-line bg-surface-2 p-4 text-[13.5px] text-ink-2">No response model published for this endpoint.</div>`;
     }
   }
   const dtoSection = docSection('Response model', 'The DTO returned in the response body.', dtoBody);
@@ -1419,7 +2369,8 @@ function exportName(ext) {
 }
 // Exports carry the visible columns, keyed by the raw field path: a hidden
 // column is noise in the file too, but a renamed header would break whatever
-// script already reads it.
+// script already reads it. And they carry the FILTERED rows: a file downloaded
+// after narrowing the table holds exactly what the table shows.
 function exportRows() {
   return state.filtered.map(r => Object.fromEntries(state.columns.map(c => [c, r[c]])));
 }
@@ -1434,9 +2385,9 @@ function exportCSV() {
   download(new Blob(['﻿' + XLSX.utils.sheet_to_csv(ws)], { type: 'text/csv;charset=utf-8' }), exportName('csv'));
 }
 function exportJSON() {
-  // From the JSON tab you download what you are looking at, filters included;
-  // from the Table tab, the plain response that feeds the table.
-  const raw = state.tab === 'json' ? currentJsonData() : state.cache.get(state.current.endpoint.route);
+  // From the JSON tab you download what you are looking at, query included;
+  // from the Table tab, the rows the table shows (filters included).
+  const raw = state.tab === 'json' ? currentJsonData() : exportRows();
   download(new Blob([JSON.stringify(raw, null, 2)], { type: 'application/json' }), exportName('json'));
 }
 function download(blob, name) {
@@ -1448,8 +2399,12 @@ function download(blob, name) {
 /* ── misc ─────────────────────────────────────────────────────────── */
 function copyText(t, btn) {
   navigator.clipboard.writeText(t).then(() => {
-    const old = btn.textContent; btn.textContent = 'Copied ✓';
-    setTimeout(() => (btn.textContent = old), 1400);
+    const label = btn.querySelector('span');
+    const target = label || btn;
+    const old = target.innerHTML;
+    target.innerHTML = label ? 'Copied' : ICON.check;
+    btn.classList.add('is-copied');
+    setTimeout(() => { target.innerHTML = old; btn.classList.remove('is-copied'); }, 1400);
   });
 }
 </script>

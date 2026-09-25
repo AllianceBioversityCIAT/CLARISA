@@ -1,12 +1,12 @@
-<!-- Same navbar the legacy documentation pages carry, so this view is not a
-     dead end: Home, Dashboards, Services and Help stay reachable from here. -->
-<app-horizontal-menu></app-horizontal-menu>
-
+<!--
+  La doc ya no lleva la barra lima del tema viejo encima (`app-horizontal-menu`,
+  `#7ab800` y su menú de Bootstrap): con el revamp era la única pantalla que
+  seguía pintada así, y dos barras apiladas —la del sitio y la del catálogo—
+  leían como cromo duplicado (Yeck, 24-sep-2026). La doc toma el armazón del
+  panel: una columna propia con la marca, la vuelta al sitio y el catálogo, y
+  el contenido a la derecha. Esas piezas viven dentro del iframe.
+-->
 <div class="api-reference-proposal">
   <!-- Doc isolated in an iframe so the template CSS does not affect it -->
-  <iframe
-    [src]="iframeUrl"
-    class="api-doc-frame"
-    title="CLARISA API Documentation"
-  ></iframe>
+  <iframe [src]="iframeUrl" class="api-doc-frame" title="CLARISA API Documentation"></iframe>
 </div>
