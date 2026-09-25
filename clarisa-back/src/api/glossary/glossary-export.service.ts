@@ -37,6 +37,8 @@ const CSV_COLUMNS = [
   'sourceUrl',
   'referenceDate',
   'portfolios',
+  'editorialStatus',
+  'replacedByTermId',
 ] as const;
 
 type PublicTerm = {
@@ -49,6 +51,8 @@ type PublicTerm = {
   sourceUrl: string | null;
   referenceDate: string | null;
   portfolios: { id: number; name: string; acronym: string }[];
+  editorialStatus: string;
+  replacedByTermId: number | null;
 };
 
 /**
@@ -156,6 +160,8 @@ export class GlossaryExportService {
           t.sourceUrl,
           t.referenceDate,
           t.portfolios.map((p) => p.acronym).join('; '),
+          t.editorialStatus,
+          t.replacedByTermId,
         ]
           .map(cell)
           .join(','),
@@ -209,6 +215,7 @@ export class GlossaryExportService {
       '@prefix skos: <http://www.w3.org/2004/02/skos/core#> .',
       '@prefix dcterms: <http://purl.org/dc/terms/> .',
       '@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .',
+      '@prefix owl: <http://www.w3.org/2002/07/owl#> .',
       '',
       `${scheme} a skos:ConceptScheme ;`,
       `  dcterms:title ${this.literal('CLARISA Glossary')} ;`,
@@ -236,6 +243,12 @@ export class GlossaryExportService {
       }
       for (const p of t.portfolios) {
         props.push(`skos:scopeNote ${this.literal(`Applies to ${p.name}`)}`);
+      }
+      if (t.editorialStatus === 'deprecated') {
+        props.push('owl:deprecated "true"^^xsd:boolean');
+        if (t.replacedByTermId !== null) {
+          props.push(`dcterms:isReplacedBy ${uri(t.replacedByTermId)}`);
+        }
       }
       for (const sibling of byGroup.get(t.groupId) ?? []) {
         if (sibling !== t.termId) props.push(`skos:related ${uri(sibling)}`);

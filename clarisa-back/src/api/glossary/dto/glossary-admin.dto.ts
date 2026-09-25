@@ -14,6 +14,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { GlossaryEditorialStatus } from '../entities/glossary.entity';
 
 /**
  * Maximum amount of rows accepted in a single bulk operation. Keeps the
@@ -73,6 +74,10 @@ export class GlossaryAdminDto {
   reference_date: string | null;
   /** Synonyms, acronyms and older wording. Always an array, `[]` when none. */
   alternative_labels: string[];
+  /** Draft, in review, approved or deprecated. Only the last two are public. */
+  editorial_status: GlossaryEditorialStatus;
+  /** Id of the term that replaces this one; set only when deprecated. */
+  replaced_by_id: number | null;
   is_active: boolean;
   show_in_dashboard: boolean;
   application_name: string;
@@ -180,6 +185,15 @@ export class CreateGlossaryTermDto extends GlossaryTermFieldsDto {
   @IsInt()
   @Type(() => Number)
   group_of?: number;
+
+  /**
+   * Lets a new term start as a draft, invisible to the public endpoints until
+   * it is approved. Defaults to `approved`, which is how every term created
+   * from the panel behaved before the status existed.
+   */
+  @IsOptional()
+  @IsEnum(GlossaryEditorialStatus)
+  editorial_status?: GlossaryEditorialStatus;
 }
 
 /**
@@ -218,6 +232,21 @@ export class UpdateGlossaryTermDto extends GlossaryTermFieldsDto {
   @IsString()
   @IsNotEmpty({ message: 'The definition cannot be empty' })
   definition?: string;
+}
+
+/**
+ * Moves a term through its editorial life. `replaced_by_id` only makes sense
+ * with `deprecated`: the service rejects it with any other status, and moving a
+ * term out of `deprecated` clears it.
+ */
+export class UpdateGlossaryEditorialStatusDto {
+  @IsEnum(GlossaryEditorialStatus)
+  status: GlossaryEditorialStatus;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  replaced_by_id?: number | null;
 }
 
 export class UpdateGlossaryStatusDto {

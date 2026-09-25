@@ -92,7 +92,7 @@ describe('GlossaryExportService', () => {
       expect(file.body.startsWith('﻿')).toBe(true);
       const lines = file.body.slice(1).trimEnd().split('\r\n');
       expect(lines[0]).toBe(
-        'termId,groupId,term,alternativeLabels,definition,source,sourceUrl,referenceDate,portfolios',
+        'termId,groupId,term,alternativeLabels,definition,source,sourceUrl,referenceDate,portfolios,editorialStatus,replacedByTermId',
       );
       expect(lines[1].startsWith('12,12,Impact assessment,IA,')).toBe(true);
     });
@@ -136,6 +136,24 @@ describe('GlossaryExportService', () => {
       expect(outcome13).not.toContain(
         'skos:related <https://clarisa.cgiar.org/glossary/term/13>',
       );
+    });
+
+    it('marks a deprecated term and points to its replacement', async () => {
+      findAll.mockResolvedValue([
+        term(5, 'Old term', 'Old', {
+          editorial_status: 'deprecated' as any,
+          replaced_by_id: 6,
+        }),
+        term(6, 'New term', 'New'),
+      ]);
+      const body = (await service.export(GlossaryExportFormat.SKOS)).body;
+      const old = body.split('\n\n').find((b) => b.includes('/term/5> a'));
+      expect(old).toContain('owl:deprecated "true"^^xsd:boolean');
+      expect(old).toContain(
+        'dcterms:isReplacedBy <https://clarisa.cgiar.org/glossary/term/6>',
+      );
+      const current = body.split('\n\n').find((b) => b.includes('/term/6> a'));
+      expect(current).not.toContain('owl:deprecated');
     });
 
     it('escapes quotes and line breaks inside literals', async () => {

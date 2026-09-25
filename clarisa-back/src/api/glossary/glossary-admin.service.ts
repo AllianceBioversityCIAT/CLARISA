@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource, EntityManager, In } from 'typeorm';
-import { Glossary } from './entities/glossary.entity';
+import { Glossary, GlossaryEditorialStatus } from './entities/glossary.entity';
 import { GlossaryPortfolio } from './entities/glossary-portfolio.entity';
 import { Portfolio } from '../portfolio/entities/portfolio.entity';
 import { User } from '../user/entities/user.entity';
@@ -24,6 +24,7 @@ import {
   GlossaryTermPortfolioDto,
   REFERENCE_DATE_PATTERN,
   SplitGlossaryTermDto,
+  UpdateGlossaryEditorialStatusDto,
   UpdateGlossaryTermDto,
 } from './dto/glossary-admin.dto';
 
@@ -165,6 +166,8 @@ export class GlossaryAdminService {
       source_url: glossary.sourceUrl ?? null,
       reference_date: this.toIsoDay(glossary.referenceDate),
       alternative_labels: glossary.alternativeLabels,
+      editorial_status: glossary.editorialStatus,
+      replaced_by_id: glossary.replacedByTermId,
       is_active: !!glossary.auditableFields?.is_active,
       show_in_dashboard: !!glossary.show_in_dashboard,
       application_name: glossary.applicationName,
@@ -492,6 +495,8 @@ export class GlossaryAdminService {
         alternative_labels: this.labelsToColumn(
           this.normalizeLabels(dto.alternative_labels, title),
         ),
+        editorial_status:
+          dto.editorial_status ?? GlossaryEditorialStatus.APPROVED,
         applicationName: dto.application_name ?? null,
         show_in_dashboard: dto.show_in_dashboard ?? false,
       });
@@ -642,6 +647,65 @@ export class GlossaryAdminService {
    * portfolios move to a new row with the new definition, the source row keeps
    * the rest untouched, and the two stay related through the group.
    */
+  /**
+   * Moves a term through draft → in review → approved → deprecated.
+   *
+   * A deprecated term stays published and keeps its termId, so a report that
+   * cites it still resolves; `replaced_by_id` sends the reader to the current
+   * one. The replacement has to be another existing term that is itself
+   * current (not deprecated, not a draft), so the chain can never loop or end
+   * on something the public cannot see.
+   */
+  async setEditorialStatus(
+    id: number,
+    dto: UpdateGlossaryEditorialStatusDto,
+    userData: UserData,
+  ): Promise<GlossaryAdminDto> {
+    return this._dataSource.transaction(async (manager) => {
+      const glossary = await manager.findOne(Glossary, { where: { id } });
+      if (!glossary) {
+        throw new NotFoundException(`Glossary term ${id} was not found`);
+      }
+
+      const replacedBy = dto.replaced_by_id ?? null;
+      if (replacedBy !== null) {
+        if (dto.status !== GlossaryEditorialStatus.DEPRECATED) {
+          throw new BadRequestException(
+            'Only a deprecated term can point to a replacement',
+          );
+        }
+        if (Number(replacedBy) === Number(id)) {
+          throw new BadRequestException('A term cannot replace itself');
+        }
+        const target = await manager.findOne(Glossary, {
+          where: { id: replacedBy },
+        });
+        if (!target) {
+          throw new BadRequestException(
+            `The replacement term ${replacedBy} was not found`,
+          );
+        }
+        if (
+          (target.editorial_status ?? GlossaryEditorialStatus.APPROVED) !==
+            GlossaryEditorialStatus.APPROVED ||
+          !target.auditableFields?.is_active
+        ) {
+          throw new BadRequestException(
+            'The replacement has to be an active, approved term',
+          );
+        }
+      }
+
+      glossary.editorial_status = dto.status;
+      glossary.replaced_by_id =
+        dto.status === GlossaryEditorialStatus.DEPRECATED ? replacedBy : null;
+      glossary.auditableFields.updated_by = userData.userId;
+      await manager.save(Glossary, glossary);
+
+      return this.toAdminDto(await this.findOneWithRelations(manager, id));
+    });
+  }
+
   async splitVersion(
     id: number,
     dto: SplitGlossaryTermDto,

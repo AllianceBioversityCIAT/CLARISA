@@ -4,6 +4,23 @@ import { AuditableEntity } from '../../../shared/entities/extends/auditable-enti
 import { GlossaryPortfolio } from './glossary-portfolio.entity';
 
 /**
+ * Where a term stands in its editorial life. Only `approved` and `deprecated`
+ * are published: a draft or a term under review never reaches a consumer.
+ */
+export enum GlossaryEditorialStatus {
+  DRAFT = 'draft',
+  IN_REVIEW = 'in_review',
+  APPROVED = 'approved',
+  DEPRECATED = 'deprecated',
+}
+
+/** The statuses the public endpoints serve. */
+export const PUBLISHED_EDITORIAL_STATUSES: GlossaryEditorialStatus[] = [
+  GlossaryEditorialStatus.APPROVED,
+  GlossaryEditorialStatus.DEPRECATED,
+];
+
+/**
  * Reads the stored alternative labels back as a clean list. Anything that is
  * not a JSON array of strings — `null`, an empty value, text written by hand in
  * the database — degrades to `[]` instead of failing the whole read.
@@ -90,6 +107,30 @@ export class Glossary {
   @Column({ name: 'alternative_labels', type: 'text', nullable: true })
   alternative_labels: string | null;
 
+  /**
+   * Editorial status, `approved` for every row that predates the column — so
+   * what is published today stays published, unchanged. What travels is the
+   * `editorialStatus` getter, which never returns an empty value.
+   */
+  @Exclude()
+  @Column({
+    name: 'editorial_status',
+    type: 'varchar',
+    length: 20,
+    nullable: false,
+    default: GlossaryEditorialStatus.APPROVED,
+  })
+  editorial_status: GlossaryEditorialStatus;
+
+  /**
+   * The term that supersedes this one once it is deprecated. Retired terms are
+   * never deleted, so a report that cites the old one still resolves, and a
+   * reader is sent to the current wording.
+   */
+  @Exclude()
+  @Column({ name: 'replaced_by_id', type: 'bigint', nullable: true })
+  replaced_by_id: number | null;
+
   @Exclude({ toPlainOnly: true })
   @Column({ type: 'tinyint', nullable: false, default: () => '0' })
   show_in_dashboard: boolean;
@@ -132,6 +173,19 @@ export class Glossary {
    * column — publishes `[]`, never `null`, so a consumer can iterate it
    * without a null check.
    */
+  @Expose()
+  get editorialStatus(): GlossaryEditorialStatus {
+    return this.editorial_status ?? GlossaryEditorialStatus.APPROVED;
+  }
+
+  /** `termId` of the replacement, or `null` while the term is current. */
+  @Expose()
+  get replacedByTermId(): number | null {
+    return this.replaced_by_id === null || this.replaced_by_id === undefined
+      ? null
+      : Number(this.replaced_by_id);
+  }
+
   @Expose()
   get alternativeLabels(): string[] {
     return parseLabels(this.alternative_labels);

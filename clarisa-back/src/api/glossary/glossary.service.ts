@@ -4,8 +4,12 @@ import {
   FindOptionsOrder,
   FindOptionsRelations,
   FindOptionsWhere,
+  In,
 } from 'typeorm';
-import { Glossary } from './entities/glossary.entity';
+import {
+  Glossary,
+  PUBLISHED_EDITORIAL_STATUSES,
+} from './entities/glossary.entity';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { GlossaryRepository } from './repositories/glossary.repository';
 @Injectable()
@@ -16,7 +20,12 @@ export class GlossaryService {
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     onlyDashboard = false,
   ): Promise<Glossary[]> {
-    let whereClause: FindOptionsWhere<Glossary> = {};
+    // A draft or a term under review is never public, whatever `show` says.
+    // Every row that predates the editorial status is `approved`, so this
+    // returns exactly what the endpoint returned before the column existed.
+    let whereClause: FindOptionsWhere<Glossary> = {
+      editorial_status: In(PUBLISHED_EDITORIAL_STATUSES),
+    };
     const orderClause: FindOptionsOrder<Glossary> = {
       title: 'ASC',
     };
@@ -56,9 +65,10 @@ export class GlossaryService {
     }
   }
 
+  /** A draft or a term under review is not public by id either. */
   findOne(id: number) {
     return this.glossaryRepository.findOne({
-      where: { id },
+      where: { id, editorial_status: In(PUBLISHED_EDITORIAL_STATUSES) },
       relations: {
         glossary_portfolio_array: { portfolio_object: true },
       },

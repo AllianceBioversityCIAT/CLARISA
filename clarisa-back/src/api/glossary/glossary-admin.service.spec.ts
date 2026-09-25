@@ -753,6 +753,117 @@ describe('GlossaryAdminService', () => {
     });
   });
 
+  describe('editorial status', () => {
+    const stored = (over: any = {}) => ({
+      id: 1,
+      title: 'Outcome',
+      definition: 'A definition',
+      editorial_status: 'approved',
+      replaced_by_id: null,
+      auditableFields: { is_active: true },
+      ...over,
+    });
+
+    it('creates terms as approved unless the panel asks for a draft', async () => {
+      manager.findOne.mockResolvedValue(stored());
+      await service.create(
+        { term: 'Outcome', definition: 'A definition' },
+        userData,
+      );
+      await service.create(
+        {
+          term: 'Output',
+          definition: 'A definition',
+          editorial_status: 'draft' as any,
+        },
+        userData,
+      );
+      const created = manager.create.mock.calls
+        .filter((c: any[]) => c[0] === Glossary)
+        .map((c: any[]) => c[1].editorial_status);
+      expect(created).toEqual(['approved', 'draft']);
+    });
+
+    it('deprecates a term pointing to an approved, active replacement', async () => {
+      const term = stored();
+      const target = stored({ id: 2, title: 'Result' });
+      manager.findOne.mockImplementation((_entity: any, { where }: any) =>
+        Promise.resolve(Number(where.id) === 2 ? target : term),
+      );
+
+      await service.setEditorialStatus(
+        1,
+        { status: 'deprecated' as any, replaced_by_id: 2 },
+        userData,
+      );
+
+      expect(term.editorial_status).toBe('deprecated');
+      expect(term.replaced_by_id).toBe(2);
+      expect(term.auditableFields.updated_by).toBe(7);
+    });
+
+    it('clears the replacement when a term leaves deprecated', async () => {
+      const term = stored({
+        editorial_status: 'deprecated',
+        replaced_by_id: 2,
+      });
+      manager.findOne.mockResolvedValue(term);
+
+      await service.setEditorialStatus(
+        1,
+        { status: 'approved' as any },
+        userData,
+      );
+
+      expect(term.editorial_status).toBe('approved');
+      expect(term.replaced_by_id).toBeNull();
+    });
+
+    it.each([
+      [
+        'a replacement on a non-deprecated status',
+        { status: 'approved', replaced_by_id: 2 },
+        stored({ id: 2 }),
+      ],
+      [
+        'a term replacing itself',
+        { status: 'deprecated', replaced_by_id: 1 },
+        stored(),
+      ],
+      [
+        'a replacement that does not exist',
+        { status: 'deprecated', replaced_by_id: 9 },
+        null,
+      ],
+      [
+        'a replacement that is itself a draft',
+        { status: 'deprecated', replaced_by_id: 2 },
+        stored({ id: 2, editorial_status: 'draft' }),
+      ],
+      [
+        'a replacement that is inactive',
+        { status: 'deprecated', replaced_by_id: 2 },
+        stored({ id: 2, auditableFields: { is_active: false } }),
+      ],
+    ])('rejects %s', async (_label, dto: any, target) => {
+      const term = stored();
+      manager.findOne.mockImplementation((_entity: any, { where }: any) =>
+        Promise.resolve(Number(where.id) === 1 ? term : target),
+      );
+      await expect(
+        service.setEditorialStatus(1, dto, userData),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(term.editorial_status).toBe('approved');
+    });
+
+    it('answers 404 for a term that does not exist', async () => {
+      manager.findOne.mockResolvedValue(null);
+      await expect(
+        service.setEditorialStatus(5, { status: 'approved' as any }, userData),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
   describe('source and reference date', () => {
     it('stores the provenance sent on create', async () => {
       manager.findOne.mockResolvedValue({

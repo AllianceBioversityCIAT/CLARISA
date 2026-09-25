@@ -136,4 +136,21 @@ describe('Glossary serialization', () => {
     }
     expect(parseLabels('["IA", 3, "MEL"]')).toEqual(['IA', 'MEL']);
   });
+
+  it('publishes every pre-existing row as approved, with no replacement', () => {
+    const plain = instanceToPlain(buildGlossary([]));
+    expect(plain.editorialStatus).toBe('approved');
+    expect(plain.replacedByTermId).toBeNull();
+    expect(plain.editorial_status).toBeUndefined();
+    expect(plain.replaced_by_id).toBeUndefined();
+  });
+
+  it('publishes the replacement of a deprecated term as a number', () => {
+    const glossary = buildGlossary([]);
+    glossary.editorial_status = 'deprecated' as any;
+    glossary.replaced_by_id = '15' as any; // bigint arrives as a string
+    const plain = instanceToPlain(glossary);
+    expect(plain.editorialStatus).toBe('deprecated');
+    expect(plain.replacedByTermId).toBe(15);
+  });
 });
