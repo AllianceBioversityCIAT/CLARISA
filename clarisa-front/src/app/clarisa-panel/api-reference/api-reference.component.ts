@@ -11,6 +11,19 @@ interface DocsNavigationMessage {
 }
 
 /**
+ * Message the embedded documentation posts when the user leaves it for a page
+ * of the site («Back to the site»). Handled here so the jump goes through the
+ * Angular router instead of reloading the whole app from inside the frame.
+ */
+interface DocsLeaveMessage {
+  type: 'clarisa-docs:leave';
+  url: string;
+}
+
+/** Where the frame may send the visitor. Anything else is ignored. */
+const LEAVE_TARGETS = ['/landing-page/home', '/landing-page/api-services', '/landing-page/contact-us'];
+
+/**
  * Documentacion de API custom de CLARISA.
  *
  * Se monta dentro de un IFRAME (assets/api-reference/index.html) para AISLAR la
@@ -82,7 +95,15 @@ export class ApiReferenceComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const message = event.data as DocsNavigationMessage;
+    const message = event.data as DocsNavigationMessage | DocsLeaveMessage;
+
+    if (message?.type === 'clarisa-docs:leave') {
+      if (LEAVE_TARGETS.includes(message.url)) {
+        this.router.navigateByUrl(message.url);
+      }
+      return;
+    }
+
     if (message?.type !== 'clarisa-docs:navigate' || !Array.isArray(message.path)) {
       return;
     }

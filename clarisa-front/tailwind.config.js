@@ -33,29 +33,69 @@ module.exports = {
   content: ['./src/assets/api-reference/index.html'],
   theme: {
     extend: {
-      // La paleta de la marca, la misma que declaraba el `tailwind.config` en
-      // línea que había dentro del HTML cuando esto se servía por CDN.
+      // La paleta del revamp (DESIGN.md § 2), no la lima `#7ab800` de antes: la
+      // doc era la última pantalla que seguía pintada con el verde viejo, y al
+      // lado de la barra y el panel nuevos se leía como otra aplicación
+      // (Yeck, 24-sep-2026). Los valores son los mismos tokens `--cl-*` de
+      // `styles.scss`, copiados aquí porque esta hoja se compila aparte y no
+      // alcanza a leer variables de la app.
       colors: {
-        leaf: {
-          50: '#f7fbe9',
-          100: '#ebf4d9',
-          200: '#d8eaae',
-          300: '#bcdb78',
-          400: '#a0c94a',
-          500: '#7ab800',
-          600: '#669a00',
-          700: '#4e7600',
-          800: '#405e06',
-          900: '#37500a'
+        brand: {
+          50: '#e3f3ed', // --cl-brand-soft
+          100: '#cbe9dc',
+          200: '#bde3d4', // --cl-brand-ring
+          300: '#7fcbb0',
+          400: '#3eaa87',
+          500: '#0f8a63', // --cl-brand (4,34 sobre blanco: solo texto grande o iconos)
+          600: '#0b7554', // --cl-brand-strong (5,70 con blanco encima)
+          700: '#0a6449', // --cl-brand-deep (7,16)
+          800: '#08543e', // --cl-brand-deeper (7,80 sobre brand-50)
+          900: '#0d3d2e'
+        },
+        // El armazón de la doc: verde bosque, el color «de familia» que
+        // cgiar.org usa como bloque profundo (#033529 medido), y no el carbón
+        // del panel de administración, que Yeck pidió reservar para el panel
+        // («con otro color para que el sidebar quede más bonito»). Contrastes
+        // medidos sobre #0e3328: ink 13,21 · muted 6,99 · dim 5,11 · mint 8,62.
+        forest: {
+          DEFAULT: '#0e3328',
+          2: '#143d31',
+          3: '#1a4a3b',
+          line: '#1f4a3d',
+          ink: '#f4faf7',
+          muted: '#a9bdb6',
+          dim: '#8aa39a',
+          accent: '#5fe3b4'
+        },
+        ink: {
+          DEFAULT: '#10241c', // --cl-ink
+          2: '#46524c', // --cl-ink-2 (8,17)
+          3: '#79847c' // --cl-ink-3 (3,89: apoyo, nunca texto importante)
+        },
+        surface: {
+          DEFAULT: '#ffffff',
+          2: '#f7f9f6'
+        },
+        line: '#d9e0da',
+        state: {
+          ok: '#2c6b3c',
+          warn: '#9a6b00',
+          error: '#b42318'
         }
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace']
       },
+      borderRadius: {
+        card: '14px', // --cl-radius-card
+        control: '8px' // --cl-radius-control
+      },
       boxShadow: {
-        card: '0 1px 2px rgba(7,39,74,.06), 0 4px 16px rgba(7,39,74,.07)',
-        pop: '0 8px 30px rgba(7,39,74,.14)'
+        // Un píxel: la tarjeta se despega del fondo lo justo, sin el halo de
+        // plantilla que traía la sombra anterior.
+        card: '0 1px 2px rgba(16,36,28,.05)',
+        pop: '0 12px 32px rgba(16,36,28,.16), 0 2px 8px rgba(16,36,28,.08)'
       }
     }
   }
