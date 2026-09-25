@@ -7,6 +7,10 @@ import { MicroservicesAdminComponent } from './microservices-admin.component';
 import { ApiKeysPanelComponent } from './components/api-keys-panel/api-keys-panel.component';
 import { ApiKeyUsageDashboardComponent } from './components/api-key-usage-dashboard/api-key-usage-dashboard.component';
 import { MisesPanelComponent } from './components/mises-panel/mises-panel.component';
+import { UsageChartComponent } from './components/charts/usage-chart.component';
+import { SparklineComponent } from './components/charts/sparkline.component';
+import { FlowChartComponent } from './components/charts/flow-chart.component';
+import { SystemPickerComponent } from './components/system-picker/system-picker.component';
 import { ChartModule } from 'primeng/chart';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
@@ -29,6 +33,10 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     ApiKeysPanelComponent,
     ApiKeyUsageDashboardComponent,
     MisesPanelComponent,
+    UsageChartComponent,
+    SparklineComponent,
+    FlowChartComponent,
+    SystemPickerComponent
   ],
   imports: [
     CommonModule,
@@ -49,8 +57,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     CalendarModule,
     MultiSelectModule,
     ChartModule,
-    ProgressSpinnerModule,
+    ProgressSpinnerModule
   ],
-  providers: [MessageService, ConfirmationService],
+  providers: [MessageService, ConfirmationService]
 })
 export class MicroservicesAdminModule {}
