@@ -81,21 +81,28 @@ export const ADMIN_GROUPS: AdminGroup[] = [
         label: 'Microservices & API keys',
         route: '/clarisa-panel/manage/microservices-admin',
         icon: 'fa fa-plug',
+        /*
+         * El orden es el del flujo, no el de la fecha en que se escribió cada
+         * pestaña: primero qué está pasando (Overview: quién consume CLARISA,
+         * cuánto y cuándo — lo que Héctor y Enrico preguntaron el 24-sep-2026),
+         * después los sistemas registrados y al final las llaves que les
+         * pertenecen (Yeck, 24-sep-2026: «MIS Registry de primero»).
+         */
         children: [
           {
-            label: 'API Keys',
-            hint: 'Create, rotate, and revoke keys',
-            queryParams: { section: 'api-keys' }
-          },
-          {
-            label: 'Usage & Analytics',
-            hint: 'Metrics, timelines, and activity logs',
-            queryParams: { section: 'usage' }
+            label: 'Overview',
+            hint: 'Who uses CLARISA, and how much',
+            queryParams: { section: 'overview' }
           },
           {
             label: 'MIS Registry',
-            hint: 'Manage microservice identities',
+            hint: 'The systems that hold keys',
             queryParams: { section: 'mises' }
+          },
+          {
+            label: 'API Keys',
+            hint: 'Create, edit, rotate, and revoke keys',
+            queryParams: { section: 'api-keys' }
           }
         ]
       }

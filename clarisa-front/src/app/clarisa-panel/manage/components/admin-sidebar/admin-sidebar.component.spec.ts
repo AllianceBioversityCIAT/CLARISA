@@ -65,7 +65,7 @@ describe('AdminSidebarComponent', () => {
   // La columna blanca que esto reemplazó mostraba sus tres pestañas siempre a
   // la vista, así que el desplegable nace abierto, no colapsado.
   it('shows the Microservices sub-menu open by default, with its three tabs', () => {
-    expect(subLabels()).toEqual(['API Keys', 'Usage & Analytics', 'MIS Registry']);
+    expect(subLabels()).toEqual(['Overview', 'MIS Registry', 'API Keys']);
 
     const toggle = fixture.nativeElement.querySelector('.admin-sidebar__list-toggle') as HTMLElement;
     expect(toggle.textContent).toContain('Microservices & API keys');
@@ -85,7 +85,7 @@ describe('AdminSidebarComponent', () => {
     component.toggleLink(microservices!);
     fixture.detectChanges();
     expect(component.isLinkCollapsed(microservices!)).toBe(false);
-    expect(subLabels()).toEqual(['API Keys', 'Usage & Analytics', 'MIS Registry']);
+    expect(subLabels()).toEqual(['Overview', 'MIS Registry', 'API Keys']);
   });
 
   // El buscador es del menú: filtra en memoria y no llama a nadie.

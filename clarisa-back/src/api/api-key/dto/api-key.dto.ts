@@ -1,6 +1,7 @@
 export class ApiKeyDto {
   id: number;
   name: string;
+  description?: string | null;
   key_prefix: string;
   mis_id?: number;
   mis_acronym?: string;
