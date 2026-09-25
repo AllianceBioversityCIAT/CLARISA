@@ -28,6 +28,27 @@ export interface UpdateApiKeyBody {
   expires_at?: string | null;
 }
 
+export interface UsageOverviewSystem {
+  mis_id: number | null;
+  acronym: string;
+  name: string;
+  environment: string | null;
+  calls: number;
+  errors: number;
+  avg_response_time_ms: number | null;
+  api_keys: number;
+  last_used_at: string | null;
+}
+
+export interface UsageOverview {
+  period: { from: string; to: string };
+  granularity: 'day' | 'week';
+  systems: UsageOverviewSystem[];
+  series: { bucket: string; mis_id: number | null; calls: number; errors: number; avg_response_time_ms: number | null }[];
+  /** `day_of_week`: 1 = Sunday … 7 = Saturday */
+  heatmap: { day_of_week: number; hour: number; mis_id: number | null; calls: number }[];
+}
+
 export interface EndpointConsumer {
   api_key_id: number;
   api_key_name: string;
@@ -79,6 +100,8 @@ export interface UsageQueryParams {
   from?: string;
   to?: string;
   mis_id?: number;
+  /** Several systems, comma-separated MIS ids; `0` = keys with no MIS. */
+  mis_ids?: string;
   api_key_id?: number;
   microservice_name?: string;
   granularity?: 'day' | 'week';
@@ -405,6 +428,13 @@ export class ManageApiService {
 
   getApiKeyUsageByEndpoint(params: UsageQueryParams = {}) {
     return this.http.get<EndpointUsagePage>(`${this.urlApi}api/api-keys/usage/endpoints`, {
+      params: this.cleanParams(params)
+    });
+  }
+
+  /** Everything the Overview draws, broken down by system. */
+  getApiKeyUsageOverview(params: UsageQueryParams = {}) {
+    return this.http.get<UsageOverview>(`${this.urlApi}api/api-keys/usage/overview`, {
       params: this.cleanParams(params)
     });
   }

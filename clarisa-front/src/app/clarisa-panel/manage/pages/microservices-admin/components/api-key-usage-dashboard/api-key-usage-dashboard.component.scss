@@ -5,239 +5,6 @@
   position: relative;
 }
 
-/* ---- período y filtros ----------------------------------------------------- */
-
-.ov-toolbar {
-  padding: 12px 14px;
-  margin-bottom: 14px;
-  display: grid;
-  /* `minmax(0, 1fr)` y no `auto`: el riel de período no envuelve (a propósito)
-     y con una pista `auto` su contenido de 577 px ensanchaba TODAS las filas
-     del grid en un teléfono de 390, filtros incluidos. Medido el 24-sep-2026. */
-  grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
-}
-
-.ov-toolbar__row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  min-width: 0;
-}
-
-.ov-toolbar__period {
-  font-size: 12.5px;
-  color: var(--cl-ink-3);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.ov-toolbar__actions {
-  margin-left: auto;
-  display: flex;
-  gap: 8px;
-}
-
-.ov-toolbar__label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--cl-ink-3);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-
-  .pi {
-    font-size: 11px;
-  }
-}
-
-/* La misma píldora segmentada que elige la sección, un peldaño más chica:
-   es el mismo tipo de control (una opción entre varias), así que se dibuja
-   igual y solo cambia el tamaño. */
-:host ::ng-deep .admin-tabs--compact .admin-tabs__item {
-  height: 30px;
-  padding: 0 12px;
-  font-size: 12.5px;
-}
-
-.ov-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-
-  label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--cl-ink-3);
-  }
-}
-
-.ov-field__apply {
-  align-self: flex-end;
-}
-
-:host ::ng-deep .ov-dropdown {
-  min-width: 11rem;
-  height: 34px;
-  align-items: center;
-  border-radius: var(--cl-radius-control);
-
-  &--wide {
-    min-width: 15rem;
-  }
-
-  .p-dropdown-label {
-    padding-top: 0;
-    padding-bottom: 0;
-    line-height: 32px;
-    font-size: 13px;
-  }
-}
-
-/* ---- cifras ----------------------------------------------------------------- */
-
-.ov-kpis {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-/* Mientras llegan las cifras las tarjetas ya están: solo la cifra brilla. */
-.ov-kpis.is-loading .kpi-card__value {
-  color: transparent;
-  border-radius: 6px;
-  background: linear-gradient(90deg, var(--cl-line) 0%, var(--cl-surface-2) 50%, var(--cl-line) 100%);
-  background-size: 200% 100%;
-  animation: ov-shimmer 1.2s ease-in-out infinite;
-  width: 60%;
-}
-
-@keyframes ov-shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ov-kpis.is-loading .kpi-card__value {
-    animation: none;
-  }
-}
-
-/* ---- curvas ----------------------------------------------------------------- */
-
-.ov-charts {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-/* ---- la llave elegida -------------------------------------------------------- */
-
-.ov-detail {
-  margin-bottom: 14px;
-  padding: 14px 16px 16px;
-  border-color: var(--cl-brand-ring);
-
-  &__eyebrow {
-    display: block;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--cl-brand-deep);
-  }
-
-  &__head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 10px;
-
-    h2 {
-      margin: 2px 0 4px;
-      font-size: 18px;
-      color: var(--cl-ink);
-      letter-spacing: -0.01em;
-    }
-
-    p {
-      margin: 0;
-      font-size: 13px;
-      color: var(--cl-ink-2);
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 4px;
-    }
-  }
-
-  &__kpis {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 20px;
-    font-size: 13px;
-    color: var(--cl-ink-2);
-    padding-bottom: 12px;
-    margin-bottom: 12px;
-    border-bottom: 1px solid var(--cl-line);
-
-    strong {
-      color: var(--cl-ink);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .is-bad strong {
-      color: var(--cl-error);
-    }
-  }
-
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-  }
-}
-
-/* ---- quién consume ----------------------------------------------------------- */
-
-.ov-grid {
-  display: grid;
-  /* `minmax(0, 1fr)`: un ítem de grid mide por defecto `min-width: auto`, y
-     con una tabla de 880px dentro el grid se salía de la pantalla sin
-     scrollbar. El `0` deja que la tarjeta se encoja a su scroll interno. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-/* Requests con su participación al lado: el número manda, la barra ubica. */
-
-:host ::ng-deep .ov-table--clickable .p-datatable-tbody > tr {
-  cursor: pointer;
-
-  &.is-static {
-    cursor: default;
-  }
-
-  &.is-selected > td {
-    background: var(--cl-brand-soft) !important;
-  }
-}
-
-/* ---- endpoints: el árbol de la doc -------------------------------------------- */
-
 .ov-endpoints {
   margin-bottom: 14px;
   padding: 4px 4px 6px;
@@ -395,10 +162,6 @@
   }
 }
 
-/* El verbo HTTP, como en la doc: una pastilla monoespaciada de ancho fijo
-   para que las rutas queden alineadas. El color solo distingue lectura de
-   escritura; la palabra es la que dice cuál. */
-
 .ov-endpoint {
   padding: 16px 18px 18px;
   min-width: 0;
@@ -493,9 +256,6 @@
   }
 }
 
-/* La tabla de consumidores del endpoint es más chica que el resto: sin el
-   mínimo de 880 que las de pantalla completa necesitan. */
-:host ::ng-deep .ov-grid .admin-table.p-datatable,
 :host ::ng-deep .ov-consumers.p-datatable {
   min-width: 0;
 
@@ -503,8 +263,6 @@
     min-width: 0;
   }
 }
-
-/* ---- el registro crudo ---------------------------------------------------------- */
 
 .ov-logs {
   margin-bottom: 24px;
@@ -527,25 +285,6 @@
   }
 }
 
-/* ---- pantallas angostas --------------------------------------------------------- */
-
-@media (max-width: 1280px) {
-  .ov-kpis {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 1100px) {
-  .ov-charts,
-  .ov-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .ov-detail__grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 @media (max-width: 900px) {
   .ov-endpoints__body {
     grid-template-columns: minmax(0, 1fr);
@@ -555,47 +294,5 @@
     border-right: 0;
     border-bottom: 1px solid var(--cl-line);
     max-height: 320px;
-  }
-}
-
-/* Sin datos, el gráfico no pinta ejes vacíos: dice que no hay nada. */
-.chart-card__empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 180px;
-}
-
-@media (max-width: 720px) {
-  /* El host `<p-dropdown>` es quien vive en la fila flex: si no se estira él,
-     el `.p-dropdown` de dentro a 100% se estira contra un host de ancho auto
-     y se sale por la derecha. */
-  .ov-toolbar__row--filters p-dropdown {
-    flex: 1 1 100%;
-    width: 100%;
-    min-width: 0;
-  }
-
-  .ov-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ov-toolbar__actions {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .ov-toolbar__period {
-    width: 100%;
-  }
-
-  :host ::ng-deep .ov-dropdown,
-  :host ::ng-deep .ov-dropdown--wide {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .ov-endpoint {
-    padding: 14px 12px 16px;
   }
 }
