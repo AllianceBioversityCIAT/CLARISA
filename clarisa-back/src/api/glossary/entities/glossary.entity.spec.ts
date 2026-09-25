@@ -1,5 +1,5 @@
 import { instanceToPlain } from 'class-transformer';
-import { Glossary } from './glossary.entity';
+import { Glossary, parseLabels } from './glossary.entity';
 import { GlossaryPortfolio } from './glossary-portfolio.entity';
 import { Portfolio } from '../../portfolio/entities/portfolio.entity';
 
@@ -103,5 +103,37 @@ describe('Glossary serialization', () => {
     const plain = instanceToPlain(buildGlossary([]));
     expect(plain.source_url).toBeUndefined();
     expect(plain.reference_date).toBeUndefined();
+  });
+
+  it('should publish a permanent termId, distinct from the shared groupId', () => {
+    const glossary = buildGlossary([]);
+    glossary.id = 42;
+    glossary.group_id = 7;
+
+    const plain = instanceToPlain(glossary);
+    expect(plain.termId).toBe(42);
+    expect(plain.groupId).toBe(7);
+    // `id` stays excluded: termId is an added key, not a renamed one.
+    expect(plain.id).toBeUndefined();
+  });
+
+  it('should publish alternativeLabels as an array, never null', () => {
+    const withoutLabels = instanceToPlain(buildGlossary([]));
+    expect(withoutLabels.alternativeLabels).toEqual([]);
+
+    const glossary = buildGlossary([]);
+    glossary.alternative_labels = JSON.stringify(['IA', ' impact assessment ']);
+    expect(instanceToPlain(glossary).alternativeLabels).toEqual([
+      'IA',
+      'impact assessment',
+    ]);
+    expect(instanceToPlain(glossary).alternative_labels).toBeUndefined();
+  });
+
+  it('should degrade unreadable alternative labels to an empty array', () => {
+    for (const raw of ['', 'not json', '{"a":1}', '[1, null, "  "]']) {
+      expect(parseLabels(raw)).toEqual([]);
+    }
+    expect(parseLabels('["IA", 3, "MEL"]')).toEqual(['IA', 'MEL']);
   });
 });

@@ -100,6 +100,46 @@ export class GlossaryAdminService {
     }
   }
 
+  /**
+   * Cleans a list of alternative labels: trimmed, blanks dropped, duplicates
+   * removed case-insensitively (first spelling wins) and the term itself left
+   * out, since a synonym equal to the term adds nothing to a search.
+   */
+  private normalizeLabels(
+    labels: readonly string[] | null | undefined,
+    term?: string,
+  ): string[] {
+    const termKey = term ? this.termKey(term) : null;
+    const seen = new Set<string>();
+    const clean: string[] = [];
+    for (const raw of labels ?? []) {
+      const label = this.normalizeTerm(raw);
+      const key = label.toLowerCase();
+      if (!label || key === termKey || seen.has(key)) continue;
+      seen.add(key);
+      clean.push(label);
+    }
+    return clean;
+  }
+
+  /** The column value for a list of labels: JSON, or `null` when empty. */
+  private labelsToColumn(labels: string[]): string | null {
+    return labels.length ? JSON.stringify(labels) : null;
+  }
+
+  /**
+   * Splits the single spreadsheet cell a bulk file maps for the labels.
+   * `undefined` (column not mapped) stays `null` so an update keeps the
+   * stored labels; an empty cell is a mapped column with no labels.
+   */
+  private labelsFromCell(
+    cell: string | undefined,
+    term: string,
+  ): string[] | null {
+    if (cell === undefined || cell === null) return null;
+    return this.normalizeLabels(cell.split(/[;|]/), term);
+  }
+
   private toPortfolioDto(portfolio: Portfolio): GlossaryTermPortfolioDto {
     return {
       id: Number(portfolio.id),
@@ -124,6 +164,7 @@ export class GlossaryAdminService {
       source: glossary.source ?? null,
       source_url: glossary.sourceUrl ?? null,
       reference_date: this.toIsoDay(glossary.referenceDate),
+      alternative_labels: glossary.alternativeLabels,
       is_active: !!glossary.auditableFields?.is_active,
       show_in_dashboard: !!glossary.show_in_dashboard,
       application_name: glossary.applicationName,
@@ -448,6 +489,9 @@ export class GlossaryAdminService {
         source: this.toNullableText(dto.source),
         sourceUrl: this.toNullableText(dto.source_url),
         referenceDate: this.toNullableText(dto.reference_date),
+        alternative_labels: this.labelsToColumn(
+          this.normalizeLabels(dto.alternative_labels, title),
+        ),
         applicationName: dto.application_name ?? null,
         show_in_dashboard: dto.show_in_dashboard ?? false,
       });
@@ -509,6 +553,12 @@ export class GlossaryAdminService {
       }
 
       this.applyProvenance(glossary, dto);
+
+      if (dto.alternative_labels !== undefined) {
+        glossary.alternative_labels = this.labelsToColumn(
+          this.normalizeLabels(dto.alternative_labels, glossary.title),
+        );
+      }
 
       if (dto.show_in_dashboard !== undefined) {
         glossary.show_in_dashboard = dto.show_in_dashboard;
@@ -644,6 +694,12 @@ export class GlossaryAdminService {
         sourceUrl: this.toNullableText(dto.source_url) ?? source.sourceUrl,
         referenceDate:
           this.toNullableText(dto.reference_date) ?? source.referenceDate,
+        alternative_labels:
+          dto.alternative_labels !== undefined
+            ? this.labelsToColumn(
+                this.normalizeLabels(dto.alternative_labels, source.title),
+              )
+            : source.alternative_labels,
         applicationName: source.applicationName,
         show_in_dashboard: source.show_in_dashboard,
       });
@@ -945,6 +1001,7 @@ export class GlossaryAdminService {
       source: row.source,
       sourceUrl: row.source_url,
       referenceDate: row.reference_date,
+      alternative_labels: this.labelsToColumn(row.alternative_labels ?? []),
       applicationName: dto.application_name ?? null,
       show_in_dashboard: dto.show_in_dashboard ?? false,
     });
@@ -994,6 +1051,9 @@ export class GlossaryAdminService {
       source_url: row.source_url ?? undefined,
       reference_date: row.reference_date ?? undefined,
     });
+    if (row.alternative_labels !== null) {
+      glossary.alternative_labels = this.labelsToColumn(row.alternative_labels);
+    }
 
     glossary.auditableFields.is_active = true;
     glossary.auditableFields.updated_by = userData.userId;
@@ -1079,6 +1139,7 @@ export class GlossaryAdminService {
         source: this.toNullableText(row.source),
         source_url: this.toNullableText(row.source_url),
         reference_date: this.toNullableText(row.reference_date),
+        alternative_labels: this.labelsFromCell(row.alternative_labels, term),
         action: GlossaryBulkRowAction.CREATE,
         glossary_id: null,
         portfolios: rowPortfolios,

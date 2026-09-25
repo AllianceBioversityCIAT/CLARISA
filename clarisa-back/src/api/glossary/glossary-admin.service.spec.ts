@@ -646,6 +646,113 @@ describe('GlossaryAdminService', () => {
 
   // -------------------------------------------------------------- provenance
 
+  describe('alternative labels', () => {
+    it('stores cleaned labels on create: trimmed, deduplicated, without the term itself', async () => {
+      manager.findOne.mockResolvedValue({
+        id: 99,
+        title: 'Impact assessment',
+        auditableFields: { is_active: true },
+      });
+
+      await service.create(
+        {
+          term: 'Impact assessment',
+          definition: 'A definition',
+          alternative_labels: [
+            ' IA ',
+            'ia',
+            '',
+            'impact ASSESSMENT',
+            'IA study',
+          ],
+        },
+        userData,
+      );
+
+      const created = savedEntities.find(
+        (e) => e && e.title === 'Impact assessment',
+      );
+      expect(JSON.parse(created.alternative_labels)).toEqual([
+        'IA',
+        'IA study',
+      ]);
+    });
+
+    it('stores null, not an empty JSON array, when there are no labels', async () => {
+      manager.findOne.mockResolvedValue({
+        id: 99,
+        title: 'Outcome',
+        auditableFields: { is_active: true },
+      });
+
+      await service.create(
+        { term: 'Outcome', definition: 'A definition' },
+        userData,
+      );
+
+      const created = savedEntities.find((e) => e && e.title === 'Outcome');
+      expect(created.alternative_labels).toBeNull();
+    });
+
+    it('leaves the labels untouched when the update does not mention them, and clears them with []', async () => {
+      const stored: any = {
+        id: 1,
+        title: 'Outcome',
+        definition: 'old',
+        alternative_labels: JSON.stringify(['Result']),
+        auditableFields: { is_active: true },
+      };
+      manager.findOne.mockResolvedValue(stored);
+
+      await service.update(1, { definition: 'new' }, userData);
+      expect(stored.alternative_labels).toBe(JSON.stringify(['Result']));
+
+      await service.update(1, { alternative_labels: [] }, userData);
+      expect(stored.alternative_labels).toBeNull();
+    });
+
+    it('splits the bulk cell on ; and | but not on commas', async () => {
+      const result = await service.bulkPreview({
+        rows: [
+          {
+            term: 'Outcome',
+            definition: 'A definition',
+            alternative_labels:
+              'Result; change in behaviour, practice | Outcome',
+          },
+        ],
+      });
+
+      expect(result.rows[0].alternative_labels).toEqual([
+        'Result',
+        'change in behaviour, practice',
+      ]);
+    });
+
+    it('keeps the stored labels when a bulk upload maps no label column', async () => {
+      const stored: any = {
+        id: 1,
+        title: 'Outcome',
+        definition: 'old',
+        alternative_labels: JSON.stringify(['Result']),
+        auditableFields: { is_active: true },
+      };
+      storedGlossary = [stored];
+      manager.findOne.mockResolvedValue(stored);
+
+      await service.bulkImport(
+        {
+          rows: [{ term: 'Outcome', definition: 'new' }],
+          on_conflict: GlossaryBulkConflictPolicy.UPDATE,
+        },
+        userData,
+      );
+
+      expect(stored.definition).toBe('new');
+      expect(stored.alternative_labels).toBe(JSON.stringify(['Result']));
+    });
+  });
+
   describe('source and reference date', () => {
     it('stores the provenance sent on create', async () => {
       manager.findOne.mockResolvedValue({

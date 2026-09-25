@@ -3,6 +3,26 @@ import { Exclude, Expose } from 'class-transformer';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
 import { GlossaryPortfolio } from './glossary-portfolio.entity';
 
+/**
+ * Reads the stored alternative labels back as a clean list. Anything that is
+ * not a JSON array of strings — `null`, an empty value, text written by hand in
+ * the database — degrades to `[]` instead of failing the whole read.
+ */
+export function parseLabels(value: string | null | undefined): string[] {
+  if (!value) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed
+          .filter((label): label is string => typeof label === 'string')
+          .map((label) => label.trim())
+          .filter((label) => label !== '')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 @Entity('glossary')
 export class Glossary {
   @Exclude({ toPlainOnly: true })
@@ -58,6 +78,18 @@ export class Glossary {
   @Column({ name: 'reference_date', type: 'date', nullable: true })
   referenceDate: string;
 
+  /**
+   * Other names readers actually use for the same concept — acronyms, older
+   * wording, common variants ("IA" for "Impact assessment"). They are what lets
+   * a search, or an AI tool, recognise a term written differently.
+   *
+   * Stored as a JSON array in a nullable text column; what travels is the
+   * `alternativeLabels` getter below.
+   */
+  @Exclude()
+  @Column({ name: 'alternative_labels', type: 'text', nullable: true })
+  alternative_labels: string | null;
+
   @Exclude({ toPlainOnly: true })
   @Column({ type: 'tinyint', nullable: false, default: () => '0' })
   show_in_dashboard: boolean;
@@ -80,6 +112,29 @@ export class Glossary {
   @Expose()
   get groupId(): number {
     return Number(this.group_id ?? this.id);
+  }
+
+  /**
+   * The permanent identifier of this entry: the row id, which never changes
+   * when the wording is edited. `groupId` cannot play that role — the versions
+   * of a concept share it — so a consumer that needs to cite or link one
+   * specific entry (a permalink, a SKOS URI) reads this one.
+   *
+   * Additive: `id` itself stays excluded, so no existing key changes.
+   */
+  @Expose()
+  get termId(): number {
+    return Number(this.id);
+  }
+
+  /**
+   * Always an array: a row without synonyms — every row that predates the
+   * column — publishes `[]`, never `null`, so a consumer can iterate it
+   * without a null check.
+   */
+  @Expose()
+  get alternativeLabels(): string[] {
+    return parseLabels(this.alternative_labels);
   }
 
   @Expose()
