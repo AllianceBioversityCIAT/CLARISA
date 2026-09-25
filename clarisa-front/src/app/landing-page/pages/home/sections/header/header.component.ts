@@ -238,7 +238,10 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.metricsState = 'ready';
 
     // Si el bloque ya está a la vista cuando llega el dato, se cuenta ahora.
-    if (this.barsVisible()) this.countUp();
+    // 🛑 Con `prefers-reduced-motion` no hay listener de scroll (ver
+    // `ngAfterViewInit`), así que este es el ÚNICO momento en que las cifras se
+    // escriben: sin esta rama quedaban seis guiones para siempre (24-sep-2026).
+    if (this.reduceMotion || this.barsVisible()) this.countUp();
   }
 
   /** ¿El bloque de cifras está dentro de la pantalla? */
