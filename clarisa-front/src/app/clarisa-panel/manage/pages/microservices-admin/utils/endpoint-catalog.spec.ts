@@ -146,6 +146,22 @@ describe('buildUsageTree', () => {
     expect(satellite.categories[0].endpoints[0].microservice).toBe('reports');
   });
 
+  it('keeps a satellite call and a direct call to the same route apart, and the groups add up to the total', () => {
+    const items = [
+      item({ endpoint: '/api/partner-requests/create', http_method: 'POST', total_requests: 14 }),
+      item({ microservice_name: 'manual-test', endpoint: '/api/partner-requests/create', http_method: 'POST', total_requests: 3 }),
+      item({ microservice_name: 'AI STAR', endpoint: '/api/partner-request', http_method: 'POST', total_requests: 10 })
+    ];
+    const tree = buildUsageTree(catalog, items);
+
+    const other = tree.find(g => g.kind === 'other')!;
+    const satellite = tree.find(g => g.kind === 'microservice')!;
+    expect(other.total_requests).toBe(14);
+    expect(satellite.total_requests).toBe(13);
+    expect(satellite.categories.find(c => c.name === 'manual-test')!.endpoints[0].total_requests).toBe(3);
+    expect(tree.reduce((sum, g) => sum + g.total_requests, 0)).toBe(27);
+  });
+
   it('works without a catalogue: everything is "other"', () => {
     const tree = buildUsageTree(null, [item({ total_requests: 2 })]);
     expect(tree).toHaveLength(1);

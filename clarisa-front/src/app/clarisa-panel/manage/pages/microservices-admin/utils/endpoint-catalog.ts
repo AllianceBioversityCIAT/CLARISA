@@ -214,7 +214,11 @@ export function buildUsageTree(catalog: Catalog | null, items: EndpointUsageItem
     if (!isClarisa) {
       const service = item.microservice_name || 'unknown';
       const byService = satellite.get(service) ?? new Map<string, Accumulator>();
-      const key = `${(item.http_method ?? '').toLowerCase()} ${normalizePath(item.endpoint)}`;
+      // The service goes into the key: the same method + path reported by a
+      // satellite service and called directly on CLARISA are two nodes, and
+      // `finishedNode` caches by key across groups (the tree summed 45 calls
+      // out of 34 on clarisatest, 2026-09-25).
+      const key = `${service.toLowerCase()} ${(item.http_method ?? '').toLowerCase()} ${normalizePath(item.endpoint)}`;
       const acc = byService.get(key) ?? newAccumulator(key, item.endpoint, item.endpoint, item.http_method, service, false);
       absorb(acc, item);
       byService.set(key, acc);
