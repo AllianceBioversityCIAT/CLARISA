@@ -6,18 +6,22 @@
     </p>
   </div>
   <div class="panel-header__actions">
-    <p-dropdown
-      [options]="[
-        { label: 'Active', value: 'active' },
-        { label: 'All', value: 'all' },
-        { label: 'Inactive', value: 'inactive' }
-      ]"
-      [(ngModel)]="showFilter"
-      optionLabel="label"
-      optionValue="value"
-      (onChange)="loadMises()"
-      styleClass="filter-dropdown"
-    ></p-dropdown>
+    <div class="panel-header__filter">
+      <label id="misesStatusLabel">Status</label>
+      <p-dropdown
+        [options]="[
+          { label: 'Active', value: 'active' },
+          { label: 'All', value: 'all' },
+          { label: 'Inactive', value: 'inactive' }
+        ]"
+        [(ngModel)]="showFilter"
+        optionLabel="label"
+        optionValue="value"
+        (onChange)="loadMises()"
+        styleClass="filter-dropdown"
+        ariaLabelledBy="misesStatusLabel"
+      ></p-dropdown>
+    </div>
     <button
       pButton
       type="button"
@@ -33,6 +37,8 @@
   <p-table
     [value]="mises"
     [loading]="loading"
+    sortField="acronym"
+    [sortOrder]="1"
     [rows]="10"
     [paginator]="mises.length > 10"
     styleClass="p-datatable-sm admin-table"
@@ -40,24 +46,24 @@
   >
     <ng-template pTemplate="header">
       <tr>
-        <th>Acronym</th>
-        <th>Name</th>
-        <th>Environment</th>
-        <th>Status</th>
+        <th scope="col" pSortableColumn="acronym">Acronym <p-sortIcon field="acronym"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="environment">Environment <p-sortIcon field="environment"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="is_active">Status <p-sortIcon field="is_active"></p-sortIcon></th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-mis>
       <tr>
-        <td><code class="key-prefix">{{ mis.acronym }}</code></td>
-        <td><span class="cell-primary">{{ mis.name }}</span></td>
-        <td>
+        <td data-label="Acronym"><code class="key-prefix">{{ mis.acronym }}</code></td>
+        <td data-card-title data-label="Name"><span class="cell-primary">{{ mis.name }}</span></td>
+        <td data-label="Environment">
           <span *ngIf="mis.environment; else noEnv">
             {{ mis.environment }}
             <span class="env-name" *ngIf="mis.environmentName"> · {{ mis.environmentName }}</span>
           </span>
           <ng-template #noEnv>—</ng-template>
         </td>
-        <td>
+        <td data-label="Status">
           <p-tag
             [value]="mis.is_active === false ? 'Inactive' : 'Active'"
             [severity]="mis.is_active === false ? 'danger' : 'success'"

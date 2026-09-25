@@ -1,5 +1,6 @@
 import { of } from 'rxjs';
 import { FormBuilder } from '@angular/forms';
+import { ObjectUtils } from 'primeng/utils';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { GlossaryTermsPanelComponent } from './glossary-terms-panel.component';
 import { GlossaryAdminTerm, ManageApiService } from '../../../../services/manage-api.service';
@@ -172,5 +173,90 @@ describe('GlossaryTermsPanelComponent — terms with no portfolio', () => {
     component.openSplit(component.terms[0]);
 
     expect(component.splitPortfolioOptions.map(option => option.value)).toEqual([2, 3]);
+  });
+});
+
+/**
+ * Sorting the table (Hector, 2026-09-17: every table needs a way to order it).
+ *
+ * The rows are concepts, not records, so the header points at nested fields and
+ * at one derived field. These tests hold that contract: the fields the template
+ * declares have to resolve to something the table can compare.
+ */
+describe('GlossaryTermsPanelComponent — sortable columns', () => {
+  let component: GlossaryTermsPanelComponent;
+
+  const term = (id: number, name: string, portfolioIds: number[]): GlossaryAdminTerm =>
+    ({
+      id,
+      group_id: id,
+      term: name,
+      definition: `Definition of ${name}`,
+      source: null,
+      source_url: null,
+      reference_date: null,
+      is_active: true,
+      show_in_dashboard: false,
+      application_name: null,
+      portfolios: portfolioIds.map(portfolioId => ({ id: portfolioId, name: `Portfolio ${portfolioId}`, acronym: `P${portfolioId}` }))
+    }) as unknown as GlossaryAdminTerm;
+
+  const portfolios = [
+    { code: 2, name: 'CGIAR portfolio 2022-2024', acronym: 'P22', is_active: 1, start_date: 2022 },
+    { code: 3, name: 'CGIAR portfolio 2025-2030', acronym: 'P25', is_active: 1, start_date: 2025 }
+  ];
+
+  beforeEach(() => {
+    const apiService = {
+      getGlossaryTerms: () => of([term(1, 'Outcome', [2]), term(2, 'Impact', [2, 3]), term(3, 'Orphan', [])]),
+      getAllPortfolios: () => of(portfolios)
+    } as unknown as ManageApiService;
+
+    component = new GlossaryTermsPanelComponent(
+      apiService,
+      new FormBuilder(),
+      { add: jest.fn() } as unknown as MessageService,
+      { confirm: jest.fn() } as unknown as ConfirmationService
+    );
+    component.ngOnInit();
+  });
+
+  it('orders the Portfolios column by the newest portfolio of the concept, not by the chip text', () => {
+    const years = new Map(component.filteredTerms.map(concept => [concept.current.term, concept.portfolioYear]));
+
+    expect(years.get('Impact')).toBe(2025);
+    expect(years.get('Outcome')).toBe(2022);
+    // No portfolio linked: it sorts at one end instead of breaking the comparison.
+    expect(years.get('Orphan')).toBe(0);
+  });
+
+  it('declares every sortable column over a value the table can compare', () => {
+    // Mirrors the `pSortableColumn` fields of glossary-terms-panel.component.html.
+    const sortableColumns = [
+      'current.term',
+      'current.definition',
+      'current.source',
+      'portfolioYear',
+      'current.is_active',
+      'current.last_modified_at'
+    ];
+
+    for (const field of sortableColumns) {
+      for (const concept of component.filteredTerms) {
+        // What the table compares when the reader clicks that header. An empty
+        // value is fine — it lands at one end; an object would compare as
+        // "[object Object]" and leave the column in no order at all.
+        const value = ObjectUtils.resolveFieldData(concept, field);
+        expect(value === null || value === undefined || typeof value !== 'object').toBe(true);
+      }
+    }
+  });
+
+  it('orders by a nested column the way the table will', () => {
+    const byTerm = [...component.filteredTerms].sort((a, b) =>
+      String(ObjectUtils.resolveFieldData(a, 'current.term')).localeCompare(String(ObjectUtils.resolveFieldData(b, 'current.term')), 'en')
+    );
+
+    expect(byTerm.map(concept => concept.current.term)).toEqual(['Impact', 'Orphan', 'Outcome']);
   });
 });

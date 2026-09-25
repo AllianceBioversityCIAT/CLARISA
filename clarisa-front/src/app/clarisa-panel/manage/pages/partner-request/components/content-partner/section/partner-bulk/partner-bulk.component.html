@@ -1,15 +1,19 @@
-<div style="margin-top: 20px; display: flex; flex-direction: column">
-  <form [formGroup]="group" (ngSubmit)="accepted(group.value)">
-    <div
-      style="
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-      "
-    >
-      <div style="width: 50%">
+<!--
+  Misma advertencia que en el formulario de al lado: aquí no se tocó ni un
+  `formControlName`, ni el `(change)` del archivo, ni el `(ngSubmit)`. Lo que
+  cambió es que los dos desplegables y el archivo dejaron de flotar centrados
+  sobre una pantalla vacía, el `input[type=file]` de fábrica —con su botón azul
+  «Choose File» y su «No file chosen»— pasó a ser una zona de carga propia, y el
+  botón lima quedó como el primario del panel.
+-->
+<form class="admin-form" [formGroup]="group" (ngSubmit)="accepted(group.value)">
+  <div class="admin-card admin-card--form">
+    <h3 class="admin-card__title">Bulk institution request</h3>
+    <p class="admin-card__hint">Upload an Excel file to open several institution requests at once, on behalf of the selected user.</p>
+
+    <div class="admin-form__grid">
+      <div class="field">
+        <label>Requesting user<span class="tag-req">Required</span></label>
         <p-dropdown
           [options]="users"
           [(ngModel)]="selectedUser"
@@ -17,13 +21,11 @@
           [filter]="true"
           filterBy="email"
           [showClear]="true"
-          placeholder="Select a User"
-          [style]="{ width: '90%' }"
+          placeholder="Select a user"
           [required]="true"
           [virtualScroll]="true"
           [itemSize]="31"
-          formControlName="externalUser"
-        >
+          formControlName="externalUser">
           <ng-template pTemplate="selectedItem">
             <div class="country-item country-item-value" *ngIf="selectedUser">
               <div>{{ selectedUser.email }}</div>
@@ -36,7 +38,9 @@
           </ng-template>
         </p-dropdown>
       </div>
-      <div style="width: 50%">
+
+      <div class="field">
+        <label>MIS<span class="tag-req">Required</span></label>
         <p-dropdown
           [options]="mises"
           [(ngModel)]="selectedMis"
@@ -44,13 +48,11 @@
           [filter]="true"
           filterBy="name"
           [showClear]="true"
-          placeholder="Select an Mis"
-          [style]="{ width: '90%' }"
+          placeholder="Select a MIS"
           [required]="true"
           [virtualScroll]="true"
           [itemSize]="31"
-          formControlName="mis"
-        >
+          formControlName="mis">
           <ng-template pTemplate="selectedItem">
             <div class="country-item country-item-value" *ngIf="selectedMis">
               <div>{{ selectedMis.name }}</div>
@@ -65,65 +67,51 @@
       </div>
     </div>
 
-    <div style="width: 100%; margin-top: 20px">
+    <div class="field">
+      <label for="file">Excel file<span class="tag-req">Required</span></label>
+      <!--
+        El `input` sigue siendo el mismo control nativo, con el mismo `accept` y
+        el mismo `(change)`: solo se le pone encima una etiqueta que hace de zona
+        de carga, porque el botón que pinta el navegador es azul, dice «Choose
+        File» y no se puede recolorear.
+      -->
       <input
+        #bulkFile
+        class="bulk-drop__input"
         type="file"
         id="file"
-        aria-label="File browser example"
+        aria-label="Excel file with the institution requests"
         (change)="basicUploadSingle($any($event.target).files)"
-        accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      />
+        accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+      <label class="bulk-drop" for="file">
+        <i class="pi pi-file-excel" aria-hidden="true"></i>
+        <span class="bulk-drop__text">
+          <!-- El nombre del archivo sale del propio `input`, sin pasar por el
+               componente: el `(change)` ya dispara la detección de cambios. -->
+          <strong>{{ bulkFile.files?.length ? bulkFile.files[0].name : 'Choose a file' }}</strong>
+          <small>{{ bulkFile.files?.length ? 'Click to replace it' : '.xlsx only' }}</small>
+        </span>
+      </label>
     </div>
 
-    <div
-      style="
-        width: 100%;
-        margin-top: 20px;
-        display: flex;
-        flex-direction: row;
-        align-items: flex-end;
-        justify-content: flex-end;
-      "
-    >
-      <button
-        pButton
-        label="Bulk Upload"
-        type="submit"
-        style="
-          border-radius: 10px;
-          background-color: #7ab800;
-          color: white;
-          margin-right: 50px;
-        "
-      ></button>
+    <div class="admin-form__actions">
+      <button pButton label="Upload requests" type="submit" class="btn-brand"></button>
     </div>
-  </form>
-</div>
+  </div>
+</form>
 
 <p-dialog
-  header="Loading Partners Request"
+  header="Loading partner requests"
   [(visible)]="displayConfirm"
   [modal]="true"
-  [style]="{ width: '50vw' }"
+  [style]="{ width: '32rem' }"
   [baseZIndex]="10000"
   [draggable]="false"
   [resizable]="false"
->
-  <p class="m-0">
-    Partners are being updated and institutions are being created.
-  </p>
-  <div
-    style="
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    "
-  >
-    <img
-      src="../../assets/images/loadeer.gif"
-      style="width: 50px; height: 50px"
-    />
+  styleClass="admin-dialog">
+  <div class="bulk-loading">
+    <img src="../../assets/images/loadeer.gif" alt="" />
+    <p>Partners are being updated and institutions are being created.</p>
   </div>
 </p-dialog>
 

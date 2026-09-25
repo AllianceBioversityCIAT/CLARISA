@@ -5,7 +5,7 @@ import { ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { LoginGuardGuard } from './login-guard.guard';
-import { AuthService } from './auth.service';
+import { AuthService, SESSION_EXPIRED } from './auth.service';
 
 describe('LoginGuardGuard', () => {
   let guard: LoginGuardGuard;
@@ -61,6 +61,9 @@ describe('LoginGuardGuard', () => {
 
     expect(result).toBe(false);
     expect(logoutSpy).toHaveBeenCalled();
+    // Y con el motivo: sin él, la pantalla de entrada no puede decir por qué se
+    // ha llegado a ella y la salida se lee como una expulsión.
+    expect(logoutSpy).toHaveBeenCalledWith(SESSION_EXPIRED);
   });
 
   it('should let a session that is still valid through', () => {

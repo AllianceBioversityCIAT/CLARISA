@@ -25,6 +25,12 @@ interface GlossaryConcept {
   versions: GlossaryAdminTerm[];
   /** Every portfolio the concept covers, newest first. */
   portfolios: GlossaryPortfolioRef[];
+  /**
+   * Start year of the newest portfolio, 0 when the concept has none. The
+   * Portfolios column sorts by this: the chips are a list, so ordering them by
+   * text would put "P22" before "P25" only by accident.
+   */
+  portfolioYear: number;
 }
 
 @Component({
@@ -223,12 +229,16 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     }
 
     this.concepts = [...byGroup.entries()]
-      .map(([key, versions]) => ({
-        key,
-        versions: [...versions].sort((a, b) => this.recencyOf(b) - this.recencyOf(a) || a.id - b.id),
-        current: versions.reduce((newest, version) => (this.recencyOf(version) > this.recencyOf(newest) ? version : newest), versions[0]),
-        portfolios: this.portfoliosOf(versions)
-      }))
+      .map(([key, versions]) => {
+        const portfolios = this.portfoliosOf(versions);
+        return {
+          key,
+          versions: [...versions].sort((a, b) => this.recencyOf(b) - this.recencyOf(a) || a.id - b.id),
+          current: versions.reduce((newest, version) => (this.recencyOf(version) > this.recencyOf(newest) ? version : newest), versions[0]),
+          portfolios,
+          portfolioYear: portfolios.reduce((newest, portfolio) => Math.max(newest, this.portfolioStartYear.get(portfolio.id) ?? 0), 0)
+        };
+      })
       .sort((a, b) => a.current.term.localeCompare(b.current.term, 'en'));
   }
 

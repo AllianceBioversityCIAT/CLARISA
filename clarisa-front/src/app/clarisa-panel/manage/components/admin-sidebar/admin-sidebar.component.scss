@@ -1,183 +1,733 @@
-/**
- * «S3 · agrupada por secciones». Colour comes from the tokens in `styles.scss`.
- *
- * Sizes in px: the theme sets `html { font-size: 62.5% }`, so 1rem is 10px here.
- */
+//
+// Columna de administración — negro neutro, sin adornos.
+//
+// La primera versión era negra con menta: el acento pintaba la costilla del
+// borde, el subtítulo de la marca, el disco de la cuenta y el relleno de la
+// entrada abierta, y el conjunto se leía «galáctico» (Yeck, 16-sep-2026). Aquí
+// no hay color en el mueble: superficies neutras, una sola línea de 1px como
+// separación y el contraste lo hace el blanco del texto, no un neón. El verde de
+// marca aparece una vez en toda la pantalla, en el botón sólido de la barra.
+//
+// Sizes in px: the theme sets `html { font-size: 62.5% }`, so 1rem is 10px here.
 
 :host {
   display: block;
 }
 
-/* The panel header is `position: fixed` and 75px tall, so a sidebar starting at
-   0 has its first 75px — the whole brand block — hidden underneath it. The offset
-   is declared once here and reused by the fixed top.
-
-   `fixed` rather than `sticky`: the navigation stays put while a long table
-   scrolls, and it no longer needs the content column to be tall enough to hold
-   it. Being out of flow, the column next to it gets a matching `margin-left` in
-   `manage.component.scss` — the two numbers move together. */
+// `fixed` rather than `sticky`: the navigation stays put while a long table
+// scrolls, and it no longer needs the content column to be tall enough to hold
+// it. Being out of flow, the column next to it gets a matching `margin-left` in
+// `manage.component.scss` — the two numbers move together.
 .admin-sidebar {
-  --admin-header: 75px;
   position: fixed;
-  top: var(--admin-header);
+  top: 0;
   left: 0;
-  z-index: 1;
-  width: 248px;
-  /* Not `min-height`: a fixed box has to be capped at the viewport for
-     `overflow-y` to have anything to scroll when the list outgrows the screen. */
-  height: calc(100vh - var(--admin-header));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 0 0 24px;
-  background: var(--cl-surface);
-  border-right: 1px solid var(--cl-line);
+  // /* Por encima de la barra (z-index 9 del tema).
+  z-index: 10;
+  width: var(--cl-admin-sidebar);
+  // /* Not `min-height`: a fixed box has to be capped at the viewport for
+  // `overflow-y` to have anything to scroll when the list outgrows the screen.
+  height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: var(--cl-admin-nav);
+  // /* La única separación con el contenido. La costilla de color que recorría
+  // este borde se quitó: era la pieza que más gritaba.
+  border-right: 1px solid var(--cl-admin-nav-line);
 }
 
-/* The brand block is the heading of the panel, so it carries more weight than the
-   entries and a rule of its own that closes it off from the navigation. */
+// ---------------------------------------------------------------------------
+// Marca
+// ---------------------------------------------------------------------------
+
 .admin-sidebar__brand {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 11px;
-  margin-bottom: 18px;
-  padding: 18px 24px 20px;
-  border-bottom: 1px solid var(--cl-line);
+  gap: 10px;
+  height: var(--cl-admin-header);
+  // /* 20px: la x en la que caen también la lupa del buscador y los iconos de las
+  // entradas. Con tres canales distintos la columna se lee escalonada.
+  padding: 0 20px;
+  border-bottom: 1px solid var(--cl-admin-nav-line);
   text-decoration: none;
+  box-sizing: border-box;
 }
 
+// El logo del CGIAR es verde bosque sobre blanco; sobre negro necesita ayuda.
 .admin-sidebar__mark {
-  width: 34px;
+  width: 24px;
   height: auto;
+  filter: brightness(0) invert(1);
+  opacity: 0.9;
 }
 
 .admin-sidebar__word {
-  font-size: 17px;
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-  color: var(--cl-ink);
-}
-
-.admin-sidebar__word small {
-  display: block;
-  margin-top: 3px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  /* 7.16 over white. */
-  color: var(--cl-brand-deep);
+  letter-spacing: -0.01em;
+  color: var(--cl-admin-nav-ink);
+  white-space: nowrap;
 }
 
-/* A hairline, not just air: with three groups stacked, whitespace alone left the
-   headings floating and the column read as one long pile again. */
-.admin-sidebar__group + .admin-sidebar__group {
-  margin-top: 18px;
-  padding-top: 18px;
-  border-top: 1px solid var(--cl-line);
+// «Administration» era un subtítulo en versales de color; como etiqueta al lado
+// del nombre dice lo mismo y no compite con él.
+.admin-sidebar__chip {
+  margin-left: auto;
+  padding: 2px 7px;
+  border: 1px solid var(--cl-admin-nav-line);
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--cl-admin-nav-accent);
+  white-space: nowrap;
 }
 
-/* The group heading is a label, not a link: small, quiet and never clickable, so
-   it never competes with the entries under it. */
-.admin-sidebar__title {
-  margin: 0 0 6px;
-  padding: 0 24px;
+// ---------------------------------------------------------------------------
+// Buscador
+// ---------------------------------------------------------------------------
+
+.admin-sidebar__search {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  margin: 8px 12px 6px;
+  padding: 0 8px;
+  border: 1px solid var(--cl-admin-nav-line);
+  border-radius: 6px;
+  background: var(--cl-admin-nav-2);
+  transition: border-color 0.15s ease;
+
+  &:focus-within {
+    border-color: var(--cl-admin-nav-accent);
+  }
+
+  > i {
+    font-size: 11px;
+    color: var(--cl-admin-nav-dim);
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--cl-admin-nav-ink);
+    font-size: 13px;
+    font-weight: 400;
+
+    &::placeholder {
+      color: var(--cl-admin-nav-dim);
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    // /* Safari dibuja su propia cruz dentro de `type="search"`, gris sobre negro
+    // y sin relación con el resto; la nuestra es el botón de al lado.
+    &::-webkit-search-cancel-button {
+      appearance: none;
+    }
+  }
+}
+
+// El atajo, escrito donde se usa. Desaparece en cuanto hay texto, que es cuando
+// deja de hacer falta y estorbaría a la cruz.
+.admin-sidebar__kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--cl-admin-nav-line);
+  border-radius: 4px;
+  color: var(--cl-admin-nav-dim);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.admin-sidebar__clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--cl-admin-nav-dim);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--cl-ink-3);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: #2a2a2f;
+    color: var(--cl-admin-nav-ink);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Navegación
+// ---------------------------------------------------------------------------
+
+.admin-sidebar__nav {
+  flex: 1 1 auto;
+  padding: 6px 0 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.admin-sidebar__group + .admin-sidebar__group {
+  margin-top: 12px;
+}
+
+// El encabezado del grupo pliega lo suyo, así que es un botón. Sin versalitas ni
+// tracking abierto: a este tamaño lo que hace legible una etiqueta es el tono,
+// no el espaciado.
+.admin-sidebar__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 28px;
+  padding: 0 20px;
+  border: 0;
+  background: transparent;
+  color: var(--cl-admin-nav-dim);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+
+  i {
+    font-size: 12px;
+    transition: transform 0.18s ease;
+  }
+
+  &.is-collapsed i {
+    transform: rotate(-90deg);
+  }
+
+  &:hover {
+    color: var(--cl-admin-nav-muted);
+  }
 }
 
 .admin-sidebar__list {
-  margin: 0;
+  margin: 2px 0 0;
   padding: 0;
   list-style: none;
 }
 
-/* The entries run to the left edge of the screen so the active marker can sit on
-   it; the right side keeps an inset, which is what still reads as a pill. */
-.admin-sidebar__list a {
-  position: relative;
+// El link normal y el que pliega pestañas (más abajo) comparten toda su
+// geometría — mismo alto, margen, radio, tipografía — así que se declaran
+// juntos y cada uno agrega solo lo que lo distingue (el toggle es un botón).
+.admin-sidebar__list a,
+.admin-sidebar__list-toggle {
   display: flex;
   align-items: center;
-  height: 40px;
-  margin-right: 12px;
-  padding: 0 14px 0 24px;
-  border-radius: 0 var(--cl-radius-control) var(--cl-radius-control) 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--cl-ink-2);
+  gap: 10px;
+  height: 34px;
+  margin: 1px 12px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 450;
+  color: var(--cl-admin-nav-muted);
   text-decoration: none;
   transition:
-    background 0.15s ease,
-    color 0.15s ease;
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+// El icono da a la entrada un ancla fija a la izquierda. Ancho fijo para que las
+// etiquetas arranquen todas en la misma x.
+.admin-sidebar__icon {
+  flex: 0 0 15px;
+  width: 15px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--cl-admin-nav-dim);
+  transition: color 0.12s ease;
+}
+
+.admin-sidebar__list a span {
+  min-width: 0;
+  // /* Un nombre largo se corta antes que partirse en dos líneas y descuadrar la
+  // altura de la fila.
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-sidebar__list a:hover,
-.admin-sidebar__list a:focus {
-  color: var(--cl-ink);
-  background: var(--cl-surface-2);
+.admin-sidebar__list a:focus,
+.admin-sidebar__list-toggle:hover,
+.admin-sidebar__list-toggle:focus {
+  background: #232327;
+  color: var(--cl-admin-nav-ink);
   text-decoration: none;
 }
 
-/* The soft pill, the same one the public bar uses for the current section: 7.80. */
+.admin-sidebar__list a:hover .admin-sidebar__icon,
+.admin-sidebar__list a:focus .admin-sidebar__icon,
+.admin-sidebar__list-toggle:hover .admin-sidebar__icon,
+.admin-sidebar__list-toggle:focus .admin-sidebar__icon {
+  color: var(--cl-admin-nav-muted);
+}
+
+// El mismo anillo de foco en cualquier control plano de la columna: link,
+// toggle, sub-link y encabezado de grupo (más abajo).
+.admin-sidebar__list a:focus-visible,
+.admin-sidebar__list-toggle:focus-visible,
+.admin-sidebar__sublist a:focus-visible,
+.admin-sidebar__title:focus-visible {
+  outline: 1px solid #4b4b54;
+  outline-offset: -1px;
+}
+
+// La abierta lleva el acento: relleno de menta al 15 %, un contorno que la
+// separa del carbón y el icono en menta puro (el par background+box-shadow
+// vive junto al de la sub-entrada, más abajo, con el mismo valor).
+// Sobre la pastilla ya resuelta (#233632): 12.25 el texto y 7.98 el icono.
+.admin-sidebar__list a.is-active .admin-sidebar__icon {
+  color: var(--cl-admin-nav-accent);
+}
+
+.admin-sidebar__empty {
+  margin: 8px 20px;
+  color: var(--cl-admin-nav-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+// ---------------------------------------------------------------------------
+// Link con pestañas propias (Microservices & API keys)
+//
+// Antes era una segunda columna blanca al lado de esta: propia marca, propio
+// «CLARISA Admin», propio buscador implícito. Aquí es un link más que en vez
+// de navegar pliega, con el mismo chevron que un grupo — un nivel más adentro,
+// no un mueble aparte (Yeck, 23-sep-2026).
+// ---------------------------------------------------------------------------
+
+// Geometría y hover ya salen de la regla compartida con `.admin-sidebar__list
+// a` (arriba). Aquí solo lo que lo hace un botón, y el resaltado tenue de
+// «estás en esta zona» — la pestaña en sí, más abajo, lleva el acento de menta.
+.admin-sidebar__list-toggle {
+  width: calc(100% - 24px);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+
+  &.is-active {
+    color: var(--cl-admin-nav-ink);
+  }
+}
+
+.admin-sidebar__list-toggle-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-sidebar__chevron {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--cl-admin-nav-dim);
+  transition: transform 0.18s ease;
+
+  &.is-collapsed {
+    transform: rotate(-90deg);
+  }
+}
+
+.admin-sidebar__sublist {
+  margin: 2px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+// /* 41px: el padding del botón (8) más el ancho del icono (15) más el gap (10)
+// más el margen de la fila (12) — arranca justo bajo la etiqueta del padre, no
+// bajo su icono.
+.admin-sidebar__sublist a {
+  // /* `.admin-sidebar__list a` (arriba) fija `height: 34px` y `align-items:
+  // center` para una fila de una sola línea; con la misma especificidad, lo que
+  // esta regla no repite lo hereda de esa. Sin pisar las dos, un icono/texto de
+  // dos líneas quedaba comprimido en 34px y las líneas se montaban una sobre
+  // otra.
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: auto;
+  gap: 2px;
+  margin: 3px 12px 3px 41px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.12s ease;
+}
+
+.admin-sidebar__sublink-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--cl-admin-nav-muted);
+  transition: color 0.12s ease;
+}
+
+.admin-sidebar__sublink-hint {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--cl-admin-nav-dim);
+  transition: color 0.12s ease;
+}
+
+.admin-sidebar__sublist a:hover,
+.admin-sidebar__sublist a:focus {
+  background: #232327;
+  text-decoration: none;
+}
+
+.admin-sidebar__sublist a:hover .admin-sidebar__sublink-label,
+.admin-sidebar__sublist a:focus .admin-sidebar__sublink-label {
+  color: var(--cl-admin-nav-ink);
+}
+
+// El mismo acento de menta que una entrada normal activa — una sola regla
+// para las dos, en vez de repetir el par background+box-shadow.
 .admin-sidebar__list a.is-active,
 .admin-sidebar__list a.is-active:hover,
-.admin-sidebar__list a.is-active:focus {
-  color: var(--cl-brand-deeper);
-  background: var(--cl-brand-soft);
+.admin-sidebar__list a.is-active:focus,
+.admin-sidebar__sublist a.is-active,
+.admin-sidebar__sublist a.is-active:hover,
+.admin-sidebar__sublist a.is-active:focus {
+  background: rgba(95, 227, 180, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(95, 227, 180, 0.3);
 }
 
-/* The pill alone is easy to lose against a white column. The bar anchors the
-   current entry to the edge of the screen, where the eye returns to it. */
-.admin-sidebar__list a.is-active::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 3px;
-  background: var(--cl-brand-deep);
+.admin-sidebar__list a.is-active {
+  color: #eafff7;
+  font-weight: 500;
 }
+
+.admin-sidebar__sublist a.is-active .admin-sidebar__sublink-label {
+  color: #eafff7;
+}
+
+.admin-sidebar__sublist a.is-active .admin-sidebar__sublink-hint {
+  color: rgba(234, 255, 247, 0.75);
+}
+
+// ---------------------------------------------------------------------------
+// Cuenta
+// ---------------------------------------------------------------------------
+
+// El pie entero: cuenta y salidas. El widget de chat vive fijo en la esquina
+// inferior izquierda, y este margen lo deja por debajo.
+.admin-sidebar__foot {
+  flex: 0 0 auto;
+  margin: 0 12px 68px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cl-admin-nav-line);
+}
+
+.admin-sidebar__account {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 4px 10px;
+}
+
+.admin-sidebar__disc {
+  display: flex;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--cl-admin-nav-accent);
+  color: var(--cl-admin-nav);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-sidebar__who {
+  display: block;
+  min-width: 0;
+
+  strong {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--cl-admin-nav-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    display: block;
+    margin-top: 1px;
+    font-size: 11px;
+    color: var(--cl-admin-nav-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// Sin contorno, a diferencia del buscador que tiene justo debajo: dos cajas
+// idénticas apiladas se leen como dos campos, y esto es un enlace.
+.admin-sidebar__back {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  margin: 10px 12px 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--cl-admin-nav-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+
+  i {
+    font-size: 11px;
+  }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &:hover,
+  &:focus {
+    background: #232327;
+    color: var(--cl-admin-nav-ink);
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: 1px solid #5c5c66;
+    outline-offset: 1px;
+  }
+}
+
+// Cerrar sesión no es la acción que se viene a hacer aquí, así que no lleva el
+// verde sólido que tenía: contorno, icono delante y el mismo peso que el resto
+// de la columna. El acento se reserva para decir dónde estás.
+.admin-sidebar__out {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 34px;
+  margin-top: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--cl-admin-nav-line);
+  border-radius: 6px;
+  background: var(--cl-admin-nav-2);
+  color: var(--cl-admin-nav-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+
+  i {
+    width: 15px;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  &:hover,
+  &:focus {
+    border-color: #4b4b54;
+    background: #2b2b31;
+    color: var(--cl-admin-nav-ink);
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--cl-admin-nav-accent);
+    outline-offset: 1px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Barra y velo del teléfono
+// ---------------------------------------------------------------------------
+
+// Ambas piezas no existen en escritorio: allí la columna está siempre a la
+// vista y una barra encima sería una franja que no dice nada nuevo.
+.admin-topbar,
+.admin-scrim {
+  display: none;
+}
+
+// ---------------------------------------------------------------------------
+// Ancho de celular
+// ---------------------------------------------------------------------------
 
 @media (max-width: 900px) {
-  /* Narrow screens have no room for a column, so the navigation goes back to a
-     row under the header — in flow, which is why the content column drops its
-     `margin-left` at this same breakpoint. */
+  // /* La columna deja de ocupar la pantalla y pasa a ser un cajón: sigue siendo
+  // `fixed`, pero se guarda a la izquierda y vuelve cuando se pide. Lo que había
+  // antes —la columna entera en el flujo, arriba— obligaba a bajar el menú
+  // completo en cada navegación para llegar al contenido.
   .admin-sidebar {
-    position: static;
-    width: 100%;
-    height: auto;
-    overflow-y: visible;
-    margin-top: var(--admin-header);
-    padding: 0 14px 16px;
-    border-right: none;
-    border-bottom: 1px solid var(--cl-line);
+    // /* 86vw con tope: deja ver un borde del contenido detrás, que es lo que
+    // dice «esto está encima, no es otra página».
+    width: min(86vw, 320px);
+    transform: translateX(-100%);
+    transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+    // /* Por encima del velo, que va en 40.
+    z-index: 41;
+
+    &.is-open {
+      transform: translateX(0);
+      box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.001), 24px 0 48px rgba(0, 0, 0, 0.45);
+    }
   }
 
-  .admin-sidebar__brand,
-  .admin-sidebar__title {
-    padding-left: 10px;
-    padding-right: 10px;
+  // Quien prefiere no ver movimiento recibe el mismo cajón, sin el deslizamiento.
+  @media (prefers-reduced-motion: reduce) {
+    .admin-sidebar {
+      transition: none;
+    }
   }
 
-  .admin-sidebar__list {
+  .admin-topbar {
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+    position: sticky;
+    top: 0;
+    // /* Sobre el contenido de la página, bajo el cajón y su velo.
+    z-index: 30;
+    align-items: center;
+    gap: 12px;
+    height: var(--cl-admin-header);
+    padding: 0 8px 0 4px;
+    box-sizing: border-box;
+    background: var(--cl-admin-nav);
+    border-bottom: 1px solid var(--cl-admin-nav-line);
   }
 
-  /* Laid out in a row there is no screen edge to anchor to, so the entries go
-     back to a rounded pill and the marker steps aside. */
-  .admin-sidebar__list a {
-    height: 36px;
-    margin-right: 0;
-    padding: 0 12px;
-    border-radius: var(--cl-radius-control);
+  // 44px de lado: el mínimo que un pulgar acierta sin apuntar.
+  .admin-topbar__burger {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--cl-admin-nav-ink);
+    font-size: 18px;
+    cursor: pointer;
+
+    &:active {
+      background: var(--cl-admin-nav-2);
+    }
   }
 
-  .admin-sidebar__list a.is-active::before {
-    content: none;
+  // La sección manda en la barra: es el dato que se consulta, no la marca.
+  .admin-topbar__where {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--cl-admin-nav-ink);
+  }
+
+  .admin-topbar__brand {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--cl-admin-nav-muted);
+
+    .admin-sidebar__mark {
+      width: 18px;
+    }
+  }
+
+  .admin-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(9, 9, 11, 0.55);
+    // /* Safari en iOS pinta el velo sin esto cuando el cajón ya está compuesto.
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+  }
+
+  // Alto de dedo en lo que se toca para ir a algún sitio: las entradas medían
+  // 34px, la vuelta al sitio 30, el cierre de sesión 34 y la marca de la barra
+  // —que también lleva a la web— 33.
+  .admin-sidebar__list a,
+  .admin-sidebar__back,
+  .admin-sidebar__out,
+  .admin-topbar__brand {
+    min-height: 44px;
+  }
+
+  // Igual que una entrada normal: aunque lleve dos líneas de texto, el área
+  // de toque no puede ser menor a un dedo.
+  .admin-sidebar__sublist a {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  // El encabezado de grupo y el link con pestañas no son un destino, solo
+  // pliegan: 36px se acierta con el pulgar y no se lleva el sitio de una
+  // entrada.
+  .admin-sidebar__title,
+  .admin-sidebar__list-toggle {
+    min-height: 36px;
+  }
+
+  // 🛑 El buscador se va. Filtra seis entradas que aquí caben todas a la vez,
+  // y anuncia un atajo —⌘K / Ctrl+K— que en un teléfono no existe: una tecla
+  // dibujada que nadie puede pulsar. Los ~50px que ocupaba son los que hacían
+  // que la última entrada, «Microservices & API keys», quedara bajo el pliegue.
+  .admin-sidebar__search {
+    display: none;
+  }
+
+  // El hueco de 68px del pie lo reservaba el botón de chat, que en teléfono se
+  // fue al lado derecho.
+  .admin-sidebar__foot {
+    margin-bottom: 16px;
   }
 }

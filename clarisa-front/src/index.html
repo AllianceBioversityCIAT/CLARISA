@@ -5,7 +5,15 @@
     <title>CLARISA</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.png" />
+    <!--
+      El SVG primero: el navegador que lo entiende lo escala sin pixelarse en
+      cualquier densidad, y el PNG queda de recambio para los que no. Los dos
+      son carbón y menta, los colores del panel (16-sep-2026).
+    -->
+    <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png" />
+    <meta name="theme-color" content="#18181b" />
     <!-- Bootstrap -->
     <link href="" rel="stylesheet" id="boostrap" />
     <!-- Font Awesome CSS-->

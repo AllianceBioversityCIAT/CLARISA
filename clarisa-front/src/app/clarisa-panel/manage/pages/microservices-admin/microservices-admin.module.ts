@@ -4,7 +4,6 @@ import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MicroservicesAdminRoutingModule } from './microservices-admin-routing.module';
 import { MicroservicesAdminComponent } from './microservices-admin.component';
-import { AdminSidebarComponent } from './components/admin-sidebar/admin-sidebar.component';
 import { ApiKeysPanelComponent } from './components/api-keys-panel/api-keys-panel.component';
 import { ApiKeyUsageDashboardComponent } from './components/api-key-usage-dashboard/api-key-usage-dashboard.component';
 import { MisesPanelComponent } from './components/mises-panel/mises-panel.component';
@@ -27,7 +26,6 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 @NgModule({
   declarations: [
     MicroservicesAdminComponent,
-    AdminSidebarComponent,
     ApiKeysPanelComponent,
     ApiKeyUsageDashboardComponent,
     MisesPanelComponent,

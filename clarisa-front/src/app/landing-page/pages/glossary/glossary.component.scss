@@ -1,22 +1,55 @@
+//
+// Glosario público — alineado al revamp visual (DESIGN.md).
+//
+// Antes esta pantalla tenía su propia paleta: azul pizarra `#436280` para los
+// títulos, lima `#739600` para todo lo que fuera acento y `#d8dfd0` para las
+// líneas. Nada de eso existe en el sistema nuevo, así que la misma aplicación se
+// veía de dos maneras según la pantalla. Aquí el color sale entero de los tokens
+// `--cl-*` de `styles.scss`.
+//
+// 🛑 Los `var(--cl-*, #hex)` llevan respaldo A PROPÓSITO, igual que
+// `home/sections/header/header.component.scss`: esta rama nace de `staging` y
+// los tokens llegaron con el revamp. Sin el respaldo, en una rama que no los
+// traiga la página sale sin color.
+//
+// 🛑 Medidas en PÍXELES. El tema pone `html { font-size: 62.5% }`, así que
+// 1rem = 10px y una escala en `rem` aterriza a la mitad (DESIGN.md § 1).
+//
+// De dónde se copió cada control, para no inventar un tercer lenguaje:
+//   · pastilla activa      → «pastilla suave» de DESIGN.md § 0
+//                            (`--cl-brand-soft` + `--cl-brand-deeper`, 7,80)
+//   · riel de pestañas     → `src/styles/_admin-tabs.scss`
+//   · campo de texto       → `login.component.scss` (borde completo, radio 8, 16px)
+//   · tarjeta              → `.admin-card` de `src/styles/_admin-form.scss`
+//   · anillo de foco       → `--cl-brand-ring`
+//
+// El riel se declara aquí y no se usa la clase global `.admin-tabs` a propósito:
+// esa clase es del panel de administración y el día que el panel la pinte de
+// carbón —ya pasó con la tabla— se llevaría por delante una página pública. Los
+// valores son los mismos porque salen de los mismos tokens.
+
 .glossary-section {
   padding: 48px 0 72px;
-  background-color: #f7f8f5;
+  background-color: var(--cl-surface-2, #f7f9f6);
 }
 
 .glossary-intro {
-  margin-bottom: 28px;
+  margin-bottom: 26px;
 
   h3 {
-    color: #436280;
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 8px;
+    margin: 0 0 8px;
+    color: var(--cl-ink, #10241c);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   p {
-    color: #5f6b76;
-    font-size: 14px;
-    max-width: 720px;
+    max-width: 68ch;
+    margin: 0;
+    color: var(--cl-ink-2, #46524c);
+    font-size: 15px;
+    line-height: 1.6;
   }
 }
 
@@ -24,40 +57,74 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 32px;
+  gap: 14px 16px;
+  margin-bottom: 28px;
 }
+
+// ------------------------------------------------------------------ buscador
+// Mismo campo que el del acceso: borde completo, radio de control y 16px.
+// 🛑 Los 16px son un piso, no un gusto: por debajo, iOS Safari hace zoom al
+// enfocar y la página salta bajo el dedo (DESIGN.md § 4).
 
 .glossary-search {
   position: relative;
-  flex: 1 1 320px;
-  max-width: 470px;
+  flex: 1 1 300px;
+  max-width: 440px;
 
   i {
     position: absolute;
-    left: 16px;
+    left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    color: #739600;
+    // /* El icono es una pista de para qué sirve el campo, no un estado: gastar
+    // el verde aquí lo devalúa donde sí dice algo.
+    color: var(--cl-ink-3, #79847c);
+    font-size: 14px;
+    pointer-events: none;
   }
 
   input {
     width: 100%;
-    padding: 8px 16px 8px 40px;
-    border: 1px solid #d8dfd0;
-    border-radius: 50px;
-    font-size: 13px;
+    height: 44px;
+    padding: 0 14px 0 38px;
+    border: 1px solid var(--cl-line, #d9e0da);
+    // /* Radio de control, no píldora: DESIGN.md § 6 reserva la píldora para
+    // chips y etiquetas, nunca para un campo de texto.
+    border-radius: var(--cl-radius-control, 8px);
+    background: var(--cl-surface, #ffffff);
+    color: var(--cl-ink, #10241c);
+    font-size: 16px;
     outline: none;
+    // /* `type="search"` trae el marco redondeado de WebKit, que se pinta ENCIMA
+    // del borde declarado y deja el campo con dos formas distintas.
+    -webkit-appearance: none;
+    appearance: none;
     transition:
-      border-color 0.2s ease,
-      box-shadow 0.2s ease;
+      border-color 0.16s ease,
+      box-shadow 0.16s ease;
+
+    // /* 🛑 `--cl-ink-3` sobre blanco mide 3,89 y DESIGN.md § 6.1 pide 4,5
+    // «incluidos los placeholders». El apagado se queda para el icono, que es un
+    // gráfico y le basta con 3,0.
+    &::placeholder {
+      color: var(--cl-ink-2, #46524c);
+    }
+
+    &:hover {
+      border-color: var(--cl-ink-3, #79847c);
+    }
 
     &:focus {
-      border-color: #739600;
-      box-shadow: 0 0 0 3px rgba(115, 150, 0, 0.15);
+      border-color: var(--cl-brand, #0f8a63);
+      box-shadow: 0 0 0 3px var(--cl-brand-ring, #bde3d4);
     }
   }
 }
+
+// --------------------------------------------------------- filtro de portafolio
+// Pastillas que envuelven, no un riel con desplazamiento lateral: la lista sale
+// de `api/portfolios` y crece sola. Un riel deslizante esconde las opciones que
+// no caben, y en un teléfono nadie descubre un filtro que hay que arrastrar.
 
 .glossary-filters {
   display: flex;
@@ -66,82 +133,103 @@
 }
 
 .filter-pill {
-  border: 1px solid #d8dfd0;
-  background: transparent;
-  color: #5f6b76;
-  padding: 5px 13px;
-  border-radius: 50px;
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 15px;
+  border: 1px solid var(--cl-line, #d9e0da);
+  border-radius: 999px;
+  background: var(--cl-surface, #ffffff);
+  color: var(--cl-ink-2, #46524c);
+  font-family: inherit;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
+    background-color 0.16s ease,
+    color 0.16s ease,
+    border-color 0.16s ease;
 
-  &:hover {
-    border-color: #a8b3a0;
-    background-color: rgba(115, 150, 0, 0.08);
+  &:hover:not(.active) {
+    border-color: var(--cl-ink-3, #79847c);
+    color: var(--cl-ink, #10241c);
   }
 
+  // «Tratamiento del activo: pastilla suave» — DESIGN.md § 0. El acento `#0f8a63`
+  // como fondo con blanco encima da 4,34 y no pasa; esta combinación mide 7,80.
   &.active {
-    background-color: #739600;
-    color: #fff;
+    background-color: var(--cl-brand-soft, #e3f3ed);
+    border-color: var(--cl-brand-ring, #bde3d4);
+    color: var(--cl-brand-deeper, #08543e);
   }
 
-  &.active.chip-color-0 {
-    background-color: #6d28d9;
-    border-color: #6d28d9;
-  }
-  &.active.chip-color-1 {
-    background-color: #8a8f98;
-    border-color: #8a8f98;
-  }
-  &.active.chip-color-2 {
-    background-color: #739600;
-    border-color: #739600;
-  }
-  &.active.chip-color-3 {
-    background-color: #2563a8;
-    border-color: #2563a8;
-  }
-  &.active.chip-color-4 {
-    background-color: #c2701e;
-    border-color: #c2701e;
+  &:focus-visible {
+    outline: 2px solid var(--cl-brand-ring, #bde3d4);
+    outline-offset: 1px;
   }
 }
+
+// Una sola de las dos se pinta; la otra no ocupa caja.
+.filter-pill__narrow {
+  display: none;
+}
+
+// ------------------------------------------------------------------- estados
 
 .glossary-loading,
 .glossary-empty {
   text-align: center;
   padding: 64px 0;
-  color: #5f6b76;
+  color: var(--cl-ink-2, #46524c);
+  font-size: 15px;
 
   i {
-    font-size: 2.2rem;
-    color: #739600;
-    margin-bottom: 12px;
     display: inline-block;
+    margin-bottom: 12px;
+    font-size: 2.2rem;
+  }
+
+  p {
+    margin: 0;
   }
 }
+
+.glossary-loading i {
+  color: var(--cl-brand, #0f8a63);
+}
+
+.glossary-empty i {
+  color: var(--cl-ink-3, #79847c);
+}
+
+// ------------------------------------------------------------------ tarjetas
 
 .glossary-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   max-width: 960px;
 }
 
+// Misma tarjeta que `.admin-card`: borde de 1px, radio de tarjeta, superficie
+// blanca. Se fue la costilla verde de 4px del borde izquierdo — repetida 69
+// veces era el elemento más presente de la página y no decía nada; el verde
+// queda para lo que sí informa (el filtro elegido y la marca «Current»).
+//
+// 🛑 Borde O sombra, no las dos (DESIGN.md § 6). El hover mueve el color del
+// borde en lugar de sumar una sombra encima.
 .glossary-card {
-  background: #fff;
-  border: 1px solid #e6eadf;
-  border-left: 4px solid #739600;
-  border-radius: 10px;
   padding: 18px 22px 20px;
-  transition: box-shadow 0.15s ease;
+  border: 1px solid var(--cl-line, #d9e0da);
+  border-radius: var(--cl-radius-card, 14px);
+  background: var(--cl-surface, #ffffff);
+  transition: border-color 0.16s ease;
 
   &:hover {
-    box-shadow: 0 8px 20px rgba(67, 98, 128, 0.12);
+    border-color: var(--cl-brand-ring, #bde3d4);
   }
 
   .card-header {
@@ -153,43 +241,61 @@
     margin-bottom: 10px;
 
     h4 {
-      color: #436280;
-      /* 15px competía de tú a tú con la definición; el término es el título de
-         la tarjeta y tiene que ganarle. */
-      font-size: 16.5px;
+      margin: 0;
+      color: var(--cl-ink, #10241c);
+      // /* El término es el título de la tarjeta y tiene que ganarle a la
+      // definición, que va a 15.
+      font-size: 17px;
       font-weight: 700;
       line-height: 1.3;
       letter-spacing: -0.01em;
-      margin: 0;
     }
   }
+}
 
-  p {
-    color: #4c5560;
-    /* 13px para definiciones de hasta 1.740 caracteres era pedirle demasiado al
-       ojo; 14 con más interlínea es lo que hace legible el párrafo largo. */
-    font-size: 14px;
-    line-height: 1.7;
-    margin: 0;
-    white-space: pre-line;
+.card-definition {
+  margin: 0;
+  color: var(--cl-ink-2, #46524c);
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-line;
+  // /* Las definiciones traen enlaces con URL larga; sin esto una sola de ellas
+  // ensancha la tarjeta y saca la página de cuadro en el teléfono.
+  overflow-wrap: anywhere;
+}
+
+// 🛑 Los enlaces DENTRO de la definición estaban saliendo en gris y sin subrayar:
+// `assets/css/style-landing.css:84` declara `a { color: #7f7f7f }` y tres líneas
+// más abajo les quita el subrayado a todos. Un enlace que no se ve como enlace no
+// es un enlace. Dos clases de especificidad para ganarle sin `!important`.
+.glossary-card .card-definition a {
+  color: var(--cl-brand-deep, #0a6449); // 7,16 sobre blanco
+  text-decoration: underline;
+
+  &:hover,
+  &:focus {
+    color: var(--cl-brand-deeper, #08543e);
+    text-decoration: underline;
   }
 }
 
 .card-source {
-  color: #6b7a68;
-  font-size: 12.5px;
+  margin: 12px 0 0;
+  padding-top: 10px;
+  // /* Era `--cl-ink-3`, que sobre blanco mide 3,89. La procedencia es un dato
+  // que alguien va a querer leer y citar, no una marca de agua.
+  border-top: 1px solid var(--cl-line, #d9e0da);
+  color: var(--cl-ink-2, #46524c);
+  font-size: 13px;
   line-height: 1.5;
-  margin: 10px 0 0;
-  padding-top: 8px;
-  border-top: 1px dashed #e6eadf;
 
   a {
-    color: #5c7800;
+    color: var(--cl-brand-deep, #0a6449);
     text-decoration: underline;
   }
 
   a:hover {
-    color: #739600;
+    color: var(--cl-brand-deeper, #08543e);
   }
 }
 
@@ -198,6 +304,7 @@
      screen but disappears when the line is copied or read aloud, leaving
      "Source:CGIAR …". */
   font-weight: 600;
+  color: var(--cl-ink, #10241c);
 }
 
 .card-source__date {
@@ -209,29 +316,30 @@
  * vean como tabs en esa esquina… que se vea cuál es el por defecto, que diga
  * current».
  *
- * Es un segmentado propio, no un componente de librería: un `p-tabView` pelado
- * trae su propia caja, su subrayado y su tipografía, y dentro de una tarjeta se
- * come el encabezado entero.
+ * Es el mismo segmentado del panel (`src/styles/_admin-tabs.scss`) a escala de
+ * tarjeta: riel redondeado sobre `--cl-surface-2` y segmento activo en blanco
+ * elevado. No es un `p-tabView`, que trae su propia caja y su subrayado y dentro
+ * de una tarjeta se come el encabezado entero.
  *
- * 🛑 El color ya no codifica el portafolio. Antes cada uno tenía el suyo por
- * `id % 5` —violeta, gris, verde, azul, naranja— y no había leyenda en ninguna
- * parte, así que el color no decía nada: había que saberlo de antes. Ahora lo
- * único que el color distingue es lo que el lector sí necesita, y es lo que
- * preguntó Héctor: cuál rige hoy. Punto lleno = vigente, punto hueco = anterior.
- *
- * 🛑 Tamaños en px. Este front arrastra `html { font-size: 62.5% }`, así que
- * 1rem = 10px y una escala en rem sale a la mitad.
+ * 🛑 Se fue el punto de color, y con él la única cosa de esta pantalla que había
+ * que adivinar. El punto codificaba el portafolio por `id % 5` —violeta, gris,
+ * verde, azul, naranja— y su RELLENO decía si era el vigente: dos significados
+ * en 9 píxeles, ninguno escrito en ninguna parte. Ahora el portafolio lo dice la
+ * etiqueta, que ya estaba ahí, y el vigente lo dice la palabra «Current».
+ * Un canal, con su nombre encima.
  */
 .version-rail {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+  max-width: 100%;
   padding: 3px;
+  border: 1px solid var(--cl-line, #d9e0da);
   border-radius: 999px;
-  background: #f1f4ec;
+  background: var(--cl-surface-2, #f7f9f6);
+  box-sizing: border-box;
   /* En pantallas estrechas el riel se desliza en vez de romper la fila: dos
      segmentos apilados parecen dos controles distintos. */
-  max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -245,39 +353,42 @@
   align-items: center;
   gap: 7px;
   flex: 0 0 auto;
-  padding: 5px 11px;
-  border: 0;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
-  color: #5d6b5f;
+  color: var(--cl-ink-2, #46524c);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
+  line-height: 1;
   white-space: nowrap;
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    box-shadow 0.15s ease;
+    background 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
-button.version-seg:hover {
-  color: #3a4a3f;
-  background: rgba(255, 255, 255, 0.65);
+button.version-seg:hover:not(.is-active) {
+  background: var(--cl-surface, #ffffff);
+  color: var(--cl-ink, #10241c);
 }
 
 /* Activo en blanco elevado: el segmento se despega del riel en vez de pintarse
    de color, que es lo que volvía a mezclar «dónde estoy» con «qué portafolio es». */
 .version-seg.is-active {
-  color: #2f3d33;
-  background: #fff;
+  border-color: var(--cl-line, #d9e0da);
+  background: var(--cl-surface, #ffffff);
+  color: var(--cl-brand-deeper, #08543e);
   box-shadow:
-    0 1px 2px rgba(31, 45, 35, 0.14),
-    0 3px 10px rgba(67, 98, 128, 0.12);
+    0 1px 2px rgba(16, 36, 28, 0.06),
+    0 2px 8px rgba(16, 36, 28, 0.08);
 }
 
 .version-seg:focus-visible {
-  outline: 2px solid #739600;
+  outline: 2px solid var(--cl-brand-ring, #bde3d4);
   outline-offset: 1px;
 }
 
@@ -287,54 +398,15 @@ button.version-seg:hover {
   cursor: default;
 }
 
-/* El punto lleva el color de su portafolio —el mismo de siempre— y el relleno
-   dice cuál rige: lleno = vigente, hueco = periodo anterior. El color identifica,
-   el relleno informa; antes el color intentaba hacer las dos cosas y no hacía
-   ninguna. */
-.version-seg__dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex: 0 0 auto;
+/* 🛑 Salvo cuando es el único: el borde del riel y el del segmento se dibujan
+   uno dentro del otro y la mayoría de los términos —los que solo pertenecen a un
+   portafolio— salían con una pastilla pintada dentro de otra. Medido en el
+   render a 1280px: dos anillos concéntricos a 3px de distancia. El segmento se
+   apaga y el riel hace de pastilla; el texto y la medida no cambian. */
+.version-rail--static .version-seg:only-child {
+  border-color: transparent;
   background: transparent;
-  border: 2px solid #b6c0b0;
-
-  &.chip-color-0 {
-    border-color: #6d28d9; // violeta
-  }
-  &.chip-color-1 {
-    border-color: #8a8f98; // gris (portfolios cerrados, ej. 2016-2021)
-  }
-  &.chip-color-2 {
-    border-color: #739600; // verde CGIAR (2022-2024)
-  }
-  &.chip-color-3 {
-    border-color: #2563a8; // azul (2025-2030)
-  }
-  &.chip-color-4 {
-    border-color: #c2701e; // naranja (CGIAR general)
-  }
-
-  &.is-current {
-    background: currentColor;
-    color: #739600;
-
-    &.chip-color-0 {
-      color: #6d28d9;
-    }
-    &.chip-color-1 {
-      color: #8a8f98;
-    }
-    &.chip-color-2 {
-      color: #739600;
-    }
-    &.chip-color-3 {
-      color: #2563a8;
-    }
-    &.chip-color-4 {
-      color: #c2701e;
-    }
-  }
+  box-shadow: none;
 }
 
 .version-seg__label {
@@ -348,64 +420,184 @@ button.version-seg:hover {
   display: none;
 }
 
-/* La palabra «Current» se fue: el punto lleno ya dice cuál rige y la etiqueta
-   repetía el dato al lado del color que lo codifica. Se mantiene el criterio de
-   Héctor —saber cuál es el vigente— con un canal en vez de dos. */
-
-@media (max-width: 576px) {
-  /* A 390px los dos segmentos se salían del riel y el segundo quedaba cortado
-     por la mitad: un corte así se lee como un fallo de pintado, no como «hay
-     más a la derecha». Apretando el segmento caben los dos enteros, que es
-     mejor que enseñar medio. */
-  .version-seg {
-    gap: 6px;
-    padding: 5px 9px;
-    font-size: 11px;
-  }
-
-  .version-seg__wide {
-    display: none;
-  }
-
-  .version-seg__narrow {
-    display: inline;
-  }
-
-  .glossary-card .card-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+/**
+ * «Current» — la marca del portafolio que rige hoy.
+ *
+ * Es una PALABRA y no una forma a propósito: la regla del proyecto es que color
+ * o forma sin leyenda decoran, no informan, y la única leyenda que no hay que
+ * mantener es la que está escrita en el propio control. La misma pastilla sale
+ * en tres sitios —la frase de la entradilla, la pastilla del filtro y el riel de
+ * la tarjeta—, así que se reconoce a la primera y no se explica tres veces.
+ *
+ * 7,80 de contraste: `--cl-brand-deeper` sobre `--cl-brand-soft`.
+ */
+.version-seg__now {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--cl-brand-soft, #e3f3ed);
+  color: var(--cl-brand-deeper, #08543e);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
+
+/* Dentro de la pastilla ya activa del filtro, el fondo suave es el mismo de la
+   pastilla y la marca desaparecería; el blanco la vuelve a separar. */
+.filter-pill.active .version-seg__now {
+  background: var(--cl-surface, #ffffff);
+}
+
+/* En la frase de la entradilla la pastilla es el ejemplo, así que se alinea con
+   el texto en vez de con la caja. */
+.version-seg__now--inline {
+  position: relative;
+  top: -1px;
+  vertical-align: middle;
+}
+
+// ------------------------------------------------------------ índice de letras
 
 .glossary-letters {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  margin: -14px 0 28px;
+  gap: 6px;
+  margin: -10px 0 26px;
 }
 
 .letter-circle {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   padding: 0;
+  border: 1px solid var(--cl-line, #d9e0da);
   border-radius: 50%;
-  border: 1px solid #d8dfd0;
-  background: #fff;
-  color: #436280;
-  font-size: 12px;
+  background: var(--cl-surface, #ffffff);
+  color: var(--cl-ink-2, #46524c);
+  font-family: inherit;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease,
+    border-color 0.16s ease;
 
-  &:hover {
-    border-color: #739600;
-    color: #739600;
+  &:hover:not(.active) {
+    border-color: var(--cl-ink-3, #79847c);
+    color: var(--cl-ink, #10241c);
   }
 
   &.active {
-    background-color: #739600;
-    border-color: #739600;
-    color: #fff;
+    background-color: var(--cl-brand-soft, #e3f3ed);
+    border-color: var(--cl-brand-ring, #bde3d4);
+    color: var(--cl-brand-deeper, #08543e);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cl-brand-ring, #bde3d4);
+    outline-offset: 1px;
+  }
+}
+
+// ---------------------------------------------------------------------- táctil
+// 34px se pulsa con el ratón y se falla con el pulgar. Donde no hay puntero fino
+// —o la pantalla es de teléfono— todo lo que se toca sube a 40px.
+
+@media (hover: none), (max-width: 768px) {
+  .letter-circle {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+
+  .filter-pill {
+    min-height: 40px;
+  }
+
+  .version-seg {
+    min-height: 40px;
+    padding: 0 13px;
+  }
+}
+
+// ----------------------------------------------------------------- teléfono
+// Medido a 390px: sin la etiqueta corta, «Portfolio 2025-2030» dos veces
+// desborda el riel y el segundo segmento sale cortado por la mitad, que se lee
+// como un fallo de pintado y no como «hay más a la derecha». El periodo solo ya
+// identifica el portafolio, y la palabra completa sigue en el filtro de arriba.
+
+@media (max-width: 576px) {
+  .glossary-section {
+    padding: 32px 0 56px;
+  }
+
+  .glossary-intro h3 {
+    font-size: 19px;
+  }
+
+  .glossary-search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .filter-pill {
+    padding: 0 13px;
+    font-size: 13px;
+  }
+
+  .filter-pill__wide,
+  .version-seg__wide {
+    display: none;
+  }
+
+  .filter-pill__narrow,
+  .version-seg__narrow {
+    display: inline;
+  }
+
+  .glossary-card {
+    padding: 16px 16px 18px;
+  }
+
+  // /* El riel debajo del término, no a su lado: a este ancho compartir la fila
+  // deja el término en dos palabras por línea.
+  .glossary-card .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .version-seg {
+    gap: 6px;
+    padding: 0 11px;
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filter-pill,
+  .letter-circle,
+  .version-seg,
+  .glossary-card,
+  .glossary-search input {
+    transition: none;
+  }
+}
+
+/* En teléfono la pastilla «Current» sube de 10,5 a 11,5px y crece dos píxeles
+   de alto. A 10,5 era el texto más pequeño de todo el sitio público, y es
+   justamente el que explica cuál de los portafolios está vigente: si se lee con
+   esfuerzo, la tabla entera se lee mal. */
+@media (max-width: 720px) {
+  .version-seg__now {
+    height: 20px;
+    padding: 0 8px;
+    font-size: 11.5px;
   }
 }

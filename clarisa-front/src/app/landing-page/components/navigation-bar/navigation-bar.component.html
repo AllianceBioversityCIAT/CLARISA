@@ -117,7 +117,36 @@
         second line. As a direct child of the bar it stays pinned right, and on a
         phone it stays visible next to the burger instead of hiding inside the menu.
       -->
-      <a class="cl-signin nav-signin" routerLink="/landing-page/login">Sign in</a>
+      <a class="cl-signin nav-signin" routerLink="/landing-page/login" *ngIf="!user">Sign in</a>
+
+      <!--
+        Con sesión abierta el botón de entrar no tiene sentido: lo que hace falta
+        es saber con qué cuenta se está y poder salir. Vive en el mismo sitio y
+        con la misma altura, así que la fila no se mueve al iniciar sesión.
+      -->
+      <!--
+        El panel tiene botón propio, no una línea escondida en el menú del
+        perfil: es el destino al que va quien entra, y desde dentro se llega al
+        resto (Yeck, 16-sep-2026). Estilo distinto al «Sign in» para que no se
+        confundan al alternar según haya sesión o no.
+      -->
+      <a class="cl-admin" routerLink="/clarisa-panel/manage/partner-request" *ngIf="user">
+        <i class="fa fa-sliders" aria-hidden="true"></i>
+        Admin
+      </a>
+
+      <div class="cl-account" *ngIf="user">
+        <button type="button" class="cl-account__btn" (click)="toggleAccount()" [attr.aria-expanded]="accountOpen" aria-haspopup="true">
+          <span class="cl-account__disc">{{ initials }}</span>
+          <span class="cl-account__name">{{ displayName }}</span>
+          <i class="fa fa-caret-down" aria-hidden="true"></i>
+        </button>
+
+        <div class="cl-account__menu" *ngIf="accountOpen">
+          <p class="cl-account__email" *ngIf="user.email">{{ user.email }}</p>
+          <button type="button" class="cl-account__out" (click)="signOut()">Sign out</button>
+        </div>
+      </div>
     </div>
   </div>
 </header>

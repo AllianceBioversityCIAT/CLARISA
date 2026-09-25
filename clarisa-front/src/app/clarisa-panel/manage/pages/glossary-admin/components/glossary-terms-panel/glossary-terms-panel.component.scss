@@ -15,6 +15,15 @@
   margin-bottom: 14px;
 }
 
+/* Las acciones de la tabla cierran la fila de filtros por la derecha: recargar
+   en icono, crear en sólido. Antes vivían en un encabezado propio que repetía el
+   título de la pantalla. */
+.glossary-filters__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .glossary-filters__search {
   flex: 1 1 260px;
   max-width: 360px;
@@ -30,84 +39,10 @@
   color: var(--cl-ink-3);
 }
 
-/* One height for every control of the filter row. The defaults come out around
-   46px, which is what made the row read as a stack of big boxes. */
-:host ::ng-deep .glossary-controls {
-  .p-inputtext,
-  .p-dropdown {
-    height: 40px;
-    font-size: 14px;
-    border: 1px solid var(--cl-line);
-    border-radius: var(--cl-radius-control);
-    box-shadow: none;
-  }
+/* Las alturas de la fila de filtros salen de `_admin-controls.scss`: 34px para
+   el buscador, los selectores y los botones. Esta hoja las fijaba en 40 y dejaba
+   la fila del glosario media talla por encima de la de las demás pantallas. */
 
-  .p-inputtext {
-    padding: 0 12px;
-  }
-
-  .p-input-icon-left > i {
-    top: 50%;
-    left: 12px;
-    margin-top: 0;
-    transform: translateY(-50%);
-    font-size: 13px;
-    color: var(--cl-ink-3);
-  }
-
-  .p-input-icon-left > .p-inputtext {
-    padding-left: 34px;
-  }
-
-  .p-dropdown {
-    display: inline-flex;
-    align-items: center;
-  }
-
-  .p-dropdown .p-dropdown-label {
-    padding: 0 0 0 12px;
-    font-size: 14px;
-    line-height: 38px;
-    color: var(--cl-ink-2);
-  }
-
-  .p-dropdown .p-dropdown-label.p-placeholder {
-    color: var(--cl-ink-3);
-  }
-
-  .p-dropdown .p-dropdown-trigger {
-    width: 32px;
-    color: var(--cl-ink-3);
-  }
-
-  .p-dropdown:not(.p-disabled):hover,
-  .p-inputtext:enabled:hover {
-    border-color: var(--cl-brand-ring);
-  }
-
-  .p-dropdown:not(.p-disabled).p-focus,
-  .p-inputtext:enabled:focus {
-    border-color: var(--cl-brand);
-    box-shadow: 0 0 0 2px var(--cl-brand-ring);
-  }
-
-  .p-button.p-button-sm {
-    height: 40px;
-    font-size: 13px;
-  }
-}
-
-:host ::ng-deep .filter-dropdown {
-  min-width: 132px;
-}
-
-:host ::ng-deep .filter-dropdown--wide {
-  min-width: 176px;
-}
-
-/* Column widths and the clamp live together: the definition is the only column
-   allowed to grow, and it is capped at three lines so one long paragraph stops
-   stretching its row to a screenful. The full text stays in the `title`. */
 :host ::ng-deep .glossary-table {
   /* `styleClass` lands on the wrapper, so the layout mode has to be set on the
      table itself for the `th` widths to be honoured. */
@@ -116,13 +51,10 @@
     width: 100%;
   }
 
+  /* La cabecera NO se pinta aquí: la declara `.admin-table` en global, en el
+     carbón de la columna, y repetirla con otro color era lo que hacía que esta
+     tabla se leyera como de otra aplicación. Aquí solo quedan los anchos. */
   .p-datatable-thead > tr > th {
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--cl-ink-3);
-    background: var(--cl-surface-2);
-    border-color: var(--cl-line);
     padding: 10px 14px;
   }
 
@@ -365,5 +297,28 @@
   &__term {
     font-weight: 500;
     color: #475569;
+  }
+}
+
+/* 🛑 La columna «Definition» medía CERO píxeles —en teléfono, en tableta y en
+   escritorio— y su encabezado se pintaba encima del de «Source»: se leía
+   «DOEFUINRCIETION». No es un defecto de tamaño de pantalla, es aritmética: con
+   `table-layout: fixed` los siete anchos declarados en los `th` suman 948px, y
+   el mínimo que pone `_admin-table.scss` es 880, así que la tabla se queda en
+   948 y la única columna SIN ancho —justo la que lleva el texto principal— se
+   queda con lo que sobra, que es nada.
+
+   Con un mínimo de 1180 la definición recibe los ~230px que le faltaban y la
+   tarjeta se desplaza de lado, que es lo que hace cualquier tabla ancha.
+   Medido: 948 declarados + 232 para la definición. */
+:host ::ng-deep .admin-table .p-datatable-table {
+  min-width: 1180px;
+}
+
+/* En teléfono manda el modo ficha de `_admin-table.scss`: no hay tabla que
+   ensanchar y este mínimo dejaría la pantalla deslizándose de lado en vano. */
+@media (max-width: 720px) {
+  :host ::ng-deep .admin-table .p-datatable-table {
+    min-width: 0;
   }
 }

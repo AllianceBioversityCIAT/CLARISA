@@ -1,0 +1,260 @@
+/**
+ * Los controles del panel: botones, chips de estado y selectores. Una sola
+ * definición, como la tabla y el formulario.
+ *
+ * Por qué existe: cada pantalla usaba los tamaños de fábrica de PrimeNG, que
+ * rondan los 42-46px, y el resultado era un «Refresh» del alto de dos filas de
+ * tabla junto a un buscador de 26rem con esquinas de píldora, mientras la
+ * pantalla de al lado ponía el mismo botón de otro tamaño
+ * (Yeck, 16-sep-2026: «veo iconos y botón colosalmente grande, toca estandarizar»).
+ *
+ * Ámbito: `.admin-shell`, el armazón del panel. La landing pública tiene su
+ * propio lenguaje y no se toca desde aquí.
+ *
+ * Especificidad: `angular.json` carga `styles.scss` ANTES del tema de PrimeNG,
+ * así que una regla de la misma especificidad pierde. Con `.admin-shell`
+ * delante (0,2,0 contra 0,1,0) gana sin un solo `!important`.
+ *
+ * Tamaños en px: el tema del panel deja `html { font-size: 16px }`.
+ */
+
+.admin-shell {
+  /* ---- botones ------------------------------------------------------------ */
+
+  /* Una sola altura para todo lo que se pulse: 34px, la misma del buscador y de
+     los selectores. Dos alturas en una fila es lo que hace que una barra de
+     acciones se lea como una pila de cajas. */
+  .p-button {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    gap: 7px;
+    transition:
+      background-color 0.12s ease,
+      border-color 0.12s ease,
+      color 0.12s ease;
+  }
+
+  .p-button .p-button-icon {
+    font-size: 13px;
+    margin: 0;
+  }
+
+  .p-button .p-button-label {
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  /* El primario del panel es el verde de marca: 5,70 con blanco encima. */
+  .p-button:not(.p-button-text):not(.p-button-outlined):not(.p-button-link) {
+    background: var(--cl-brand-strong);
+    border-color: var(--cl-brand-strong);
+    color: var(--cl-surface);
+
+    &:enabled:hover,
+    &:enabled:focus {
+      background: var(--cl-brand-deep);
+      border-color: var(--cl-brand-deep);
+      color: var(--cl-surface);
+    }
+  }
+
+  /* El secundario: contorno fino y tinta. Lo que antes era un botón entero de
+     color para acciones como «Refresh», que no son la acción de la pantalla. */
+  .p-button.p-button-outlined {
+    background: var(--cl-surface);
+    border-color: var(--cl-line);
+    color: var(--cl-ink-2);
+
+    &:enabled:hover,
+    &:enabled:focus {
+      background: var(--cl-surface-2);
+      border-color: var(--cl-ink-3);
+      color: var(--cl-ink);
+    }
+  }
+
+  .p-button.p-button-text {
+    color: var(--cl-ink-2);
+
+    &:enabled:hover,
+    &:enabled:focus {
+      background: var(--cl-surface-2);
+      color: var(--cl-ink);
+    }
+  }
+
+  /* Acciones de fila: cuadradas, del alto de la fila y en el gris de apoyo. Se
+     encienden al pasar por encima, no antes: una columna de iconos de color
+     compite con los datos que hay a su izquierda. */
+  .p-button.p-button-icon-only,
+  .p-button.p-button-rounded.p-button-text {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 6px;
+    color: var(--cl-ink-3);
+  }
+
+  .p-button.p-button-icon-only:enabled:hover {
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+  }
+
+  .p-button.p-button-sm {
+    height: 30px;
+    padding: 0 11px;
+    font-size: 12.5px;
+  }
+
+  .p-button:focus,
+  .p-button:focus-visible {
+    box-shadow: none;
+    outline: 2px solid var(--cl-brand-ring);
+    outline-offset: 1px;
+  }
+
+  .p-button:disabled {
+    opacity: 0.5;
+  }
+
+  /* ---- chips de estado ---------------------------------------------------- */
+
+  /* Pastilla, no rectángulo de color: 11px, altura fija y el color sobre fondo
+     suave. El rojo y el verde saturados de fábrica gritaban más que el dato. */
+  .p-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 21px;
+    padding: 0 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .p-tag.p-tag-success {
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+  }
+
+  .p-tag.p-tag-danger {
+    background: #fdeceb;
+    color: #8f1d15;
+  }
+
+  .p-tag.p-tag-warning {
+    background: #fdf3e0;
+    color: #7a5400;
+  }
+
+  .p-tag.p-tag-info {
+    background: var(--cl-surface-2);
+    color: var(--cl-ink-2);
+  }
+
+  /* ---- selectores y campos ------------------------------------------------ */
+
+  .p-dropdown,
+  .p-multiselect {
+    height: 34px;
+    border-radius: 6px;
+    border-color: var(--cl-line);
+    background: var(--cl-surface);
+    align-items: center;
+
+    &:not(.p-disabled):hover {
+      border-color: var(--cl-ink-3);
+    }
+
+    &:not(.p-disabled).p-focus {
+      box-shadow: none;
+      border-color: var(--cl-brand);
+      outline: 2px solid var(--cl-brand-ring);
+      outline-offset: 1px;
+    }
+  }
+
+  .p-dropdown .p-dropdown-label,
+  .p-multiselect .p-multiselect-label {
+    padding: 0 12px;
+    font-size: 13px;
+    color: var(--cl-ink-2);
+    display: flex;
+    align-items: center;
+  }
+
+  .p-dropdown .p-dropdown-trigger {
+    width: 32px;
+    color: var(--cl-ink-3);
+  }
+
+  /* El buscador de una tabla: el mismo alto que los botones de su fila, y las
+     esquinas del sistema. La píldora de 26rem de ancho fijo se desbordaba en
+     cuanto la ventana bajaba de 1200px. */
+  .p-input-icon-left > .p-inputtext,
+  .admin-search {
+    height: 34px;
+    border-radius: 6px;
+    border-color: var(--cl-line);
+    font-size: 13px;
+    color: var(--cl-ink);
+  }
+
+  .p-input-icon-left > .p-inputtext:enabled:focus {
+    box-shadow: none;
+    border-color: var(--cl-brand);
+    outline: 2px solid var(--cl-brand-ring);
+    outline-offset: 1px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Teléfono — alto de dedo y campos que no disparan el zoom de iOS
+
+   Esta hoja no tenía ninguna consulta de medios: los controles del panel medían
+   lo mismo en un ratón que en un pulgar. Medido en un iPhone 13: botones y
+   desplegables a 34px, los de solo icono a 30 — por debajo de los 44 que un
+   dedo acierta sin apuntar.
+
+   🛑 Y el que no se ve hasta que se toca: Safari en iOS **amplía la página
+   entera** al enfocar un campo cuyo texto mide menos de 16px, y al salir la
+   deja descuadrada. Los buscadores del panel estaban en 13. El tamaño se sube
+   solo en el campo, que es lo que dispara el zoom; las etiquetas se quedan.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  .admin-shell {
+    .p-button,
+    .p-dropdown,
+    .p-multiselect {
+      height: auto;
+      min-height: 44px;
+    }
+
+    /* Los de solo icono no necesitan el ancho de una etiqueta, pero sí el alto:
+       40px es el mínimo con el que una fila de tres iconos deja de fallarse. */
+    .p-button.p-button-icon-only,
+    .p-button.p-button-rounded.p-button-text,
+    .p-button.p-button-sm {
+      height: auto;
+      min-height: 40px;
+      min-width: 40px;
+    }
+
+    .p-input-icon-left > .p-inputtext,
+    .admin-search,
+    input.p-inputtext,
+    textarea.p-inputtext {
+      min-height: 44px;
+      /* 16px exactos: es el umbral de Safari, no una preferencia. */
+      font-size: 16px;
+    }
+
+    /* La etiqueta de estado no se toca, así que se queda como está: subirla
+       solo la volvería un botón que no lo es. */
+  }
+}

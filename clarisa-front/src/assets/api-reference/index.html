@@ -6,31 +6,30 @@
   <title>CLARISA · API Documentation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            leaf: {
-              50: '#f7fbe9', 100: '#ebf4d9', 200: '#d8eaae', 300: '#bcdb78',
-              400: '#a0c94a', 500: '#7ab800', 600: '#669a00', 700: '#4e7600',
-              800: '#405e06', 900: '#37500a',
-            },
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
-          },
-          boxShadow: {
-            card: '0 1px 2px rgba(7,39,74,.06), 0 4px 16px rgba(7,39,74,.07)',
-            pop: '0 8px 30px rgba(7,39,74,.14)',
-          },
-        },
-      },
-    };
-  </script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <!--
+    🛑 Tailwind COMPILADO, no el CDN de desarrollo.
+
+    Aquí había una etiqueta `<script>` apuntando al CDN de Tailwind, con la
+    configuración del tema escrita en línea justo debajo. Tres cosas estaban
+    mal: el propio Tailwind documenta ese CDN como solo para desarrollo, la URL
+    no fijaba versión —cualquier cambio suyo llegaba a producción sin que nadie
+    lo aprobara— y las clases se compilaban en el navegador de cada visitante.
+
+    Ahora es una hoja estática de ~20 KB generada aquí con las clases que ESTA
+    página usa de verdad. Se regenera con `npm run build:api-reference-css`; el
+    tema (paleta `leaf`, tipografías, sombras) vive en `tailwind.config.js` en
+    la raíz del front.
+  -->
+  <link rel="stylesheet" href="tailwind.css" />
+  <!--
+    Versión fijada + SRI: si el archivo del CDN cambiara un solo byte, el
+    navegador se niega a ejecutarlo en vez de correr algo que nadie revisó.
+  -->
+  <script
+    src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"
+    integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"></script>
   <style>
     ::-webkit-scrollbar { width: 9px; height: 9px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -43,6 +42,89 @@
     .skeleton { animation: pulse 1.4s ease-in-out infinite; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
     table.data th { position: sticky; top: 0; z-index: 5; }
+
+    /* Con sitio para las dos columnas, ni la barra ni el velo existen. La
+       declaración va ANTES de la consulta de medios: puesta después ganaba por
+       orden y escondía la barra también en el teléfono. */
+    .doc-navbar, .doc-scrim { display: none; }
+
+    /* ░░ TELÉFONO Y TABLETA ░░
+       La columna de la izquierda es `fixed` y mide 288px: en una pantalla de
+       390px dejaba 102px al contenido, y lo que se leía era el texto partido
+       letra por letra («Ex / CL / of / co»). Medido en clarisatest sobre un
+       iPhone 13.
+
+       Bajo 1024px la columna pasa a ser un cajón que se abre sobre el
+       contenido, y el contenido se queda con el ancho entero. Va en CSS a mano
+       y no en clases de Tailwind porque la hoja del catálogo se compila aparte
+       (`npm run build:api-reference-css`) y el layout no puede depender de que
+       esa compilación se acuerde de estas clases. */
+    @media (max-width: 1023px) {
+      .doc-aside {
+        width: min(86vw, 320px);
+        transform: translateX(-100%);
+        transition: transform .24s cubic-bezier(.32,.72,0,1);
+        box-shadow: none;
+      }
+      .doc-aside.is-open {
+        transform: translateX(0);
+        box-shadow: 18px 0 40px rgba(15,23,42,.22);
+      }
+      .doc-main {
+        margin-left: 0;
+        /* Sitio para la barra del cajón, que va fija arriba. */
+        padding: 64px 16px 32px;
+      }
+      .doc-navbar { display: flex; }
+      .doc-scrim.is-open { display: block; }
+      /* 🛑 El mínimo es SOLO para la tabla de datos (`table.data`), que es la
+         única que vive dentro de un contenedor con `overflow: auto` y por tanto
+         la única que puede deslizarse. Aplicado a todas las tablas —como estuvo
+         un rato— las dos de la pestaña Doc (parámetros y campos) quedaban
+         recortadas a 356px de 640 por un ancestro con `overflow: hidden`: media
+         tabla inalcanzable, cuando antes eran `w-full` y cabían solas. */
+      .doc-main table.data { min-width: 640px; }
+
+      /* Las tablas de la pestaña Doc —parámetros y campos— viven dentro de una
+         tarjeta que usa `overflow-hidden` para redondearles las esquinas. Con
+         356px de ancho útil eso recorta 94px de la tabla de parámetros y no hay
+         forma de alcanzarlos. En teléfono la tarjeta deja deslizar: se pierde
+         el redondeo de la esquina de la tabla y se gana la columna que faltaba.
+         (Antes de este bloque la página entera desbordaba y de esa tabla se
+         veían 36px de 422.) */
+      .doc-main div.overflow-hidden:has(> table) {
+        overflow-x: auto;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .doc-aside { transition: none; }
+    }
+    .doc-navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 25;
+      align-items: center; gap: 10px;
+      height: 52px; padding: 0 8px;
+      background: rgba(255,255,255,.92);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgb(226 232 240 / .8);
+    }
+    .doc-navbar__burger {
+      display: inline-flex; align-items: center; justify-content: center;
+      /* 44px: el mínimo que un pulgar acierta sin apuntar. */
+      width: 44px; height: 44px;
+      border: 0; border-radius: 10px; background: transparent;
+      color: #334155; cursor: pointer;
+    }
+    .doc-navbar__burger:active { background: #f1f5f9; }
+    .doc-navbar__where {
+      flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px; font-weight: 700; color: #4e7600;
+    }
+    .doc-scrim {
+      position: fixed; inset: 0; z-index: 20;
+      width: 100%; height: 100%; padding: 0; border: 0;
+      background: rgba(15,23,42,.45); cursor: pointer;
+    }
     .docpill { border-radius: .375rem; background: #f2f7e4; padding: .075rem .35rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; color: #4e7600; }
   </style>
 </head>
@@ -53,10 +135,21 @@
        and a second bar stacked below it read as duplicated chrome. The search
        box now lives at the top of the sidebar, which is what it actually
        filters. -->
+  <!-- Barra del teléfono: abre el catálogo y dice en qué grupo se está. Sólo
+       existe bajo 1024px; con sitio para las dos columnas sobra. -->
+  <header class="doc-navbar">
+    <button type="button" class="doc-navbar__burger" onclick="toggleDocNav()" aria-controls="docAside" aria-expanded="false" aria-label="Open the endpoint catalog">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <span class="doc-navbar__where" id="docNavbarWhere">API Documentation</span>
+  </header>
+
+  <button type="button" class="doc-scrim" id="docScrim" onclick="closeDocNav()" aria-label="Close the endpoint catalog"></button>
+
   <div class="flex">
 
     <!-- SIDEBAR -->
-    <aside class="fixed bottom-0 left-0 top-0 z-30 w-72 overflow-y-auto border-r border-slate-200/80 bg-white px-3 py-5">
+    <aside id="docAside" class="doc-aside fixed bottom-0 left-0 top-0 z-30 w-72 overflow-y-auto border-r border-slate-200/80 bg-white px-3 py-5">
       <div class="mb-4 px-1">
         <button onclick="goHome()" class="mb-2 block w-full truncate text-left text-[13px] font-extrabold tracking-tight text-leaf-700 transition hover:text-leaf-800">
           <span id="sidebarContext">API Documentation</span>
@@ -71,7 +164,7 @@
     </aside>
 
     <!-- MAIN -->
-    <main class="ml-72 min-h-screen min-w-0 flex-1 px-8 py-8">
+    <main class="doc-main ml-72 min-h-screen min-w-0 flex-1 px-8 py-8">
       <!-- No width cap here: the data table needs the full width available.
            Prose-heavy views (home, Get Started, the Doc tab) carry their own
            `mx-auto max-w-*` so long paragraphs never go full-bleed. -->
@@ -112,6 +205,15 @@ const toSegment = s => String(s ?? '').trim().replace(/\s+/g, '_');
 /* Tells the Angular host which path is being shown, so the address bar keeps
    up with in-page navigation without reloading this frame. */
 function announcePath(segments) {
+  // Toda navegación pasa por aquí, así que es el sitio donde el cajón se cierra
+  // solo: quien toca un endpoint quiere verlo, no seguir mirando el catálogo
+  // que lo tapa. Y la barra del teléfono, que es lo único visible del catálogo
+  // cuando está cerrado, dice dónde se está.
+  const where = segments.filter(Boolean);
+  const bar = document.getElementById('docNavbarWhere');
+  if (bar) bar.textContent = where.length ? where[where.length - 1] : 'API Documentation';
+  if (typeof closeDocNav === 'function') closeDocNav();
+
   try {
     parent.postMessage(
       { type: 'clarisa-docs:navigate', path: segments.filter(Boolean).map(toSegment) },
@@ -360,8 +462,28 @@ function highlightActive() {
   }
 }
 
+
+/* ── cajón del catálogo (teléfono y tableta) ──────────────────────── */
+function toggleDocNav() {
+  $('#docAside').classList.contains('is-open') ? closeDocNav() : openDocNav();
+}
+function openDocNav() {
+  $('#docAside').classList.add('is-open');
+  $('#docScrim').classList.add('is-open');
+  $('.doc-navbar__burger').setAttribute('aria-expanded', 'true');
+  document.body.style.overflow = 'hidden';
+}
+function closeDocNav() {
+  $('#docAside').classList.remove('is-open');
+  $('#docScrim').classList.remove('is-open');
+  $('.doc-navbar__burger').setAttribute('aria-expanded', 'false');
+  document.body.style.overflow = '';
+}
+
 $('#globalSearch').addEventListener('input', e => renderSidebar(e.target.value));
 document.addEventListener('keydown', e => {
+  // Escape cierra el cajón antes que nada: es la salida que se busca a ciegas.
+  if (e.key === 'Escape' && $('#docAside').classList.contains('is-open')) { closeDocNav(); return; }
   if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#globalSearch').focus(); }
 });
 
@@ -422,7 +544,7 @@ function goHome() {
             ${heroDescription ? esc(heroDescription) + '<br class="hidden md:block" />' : ''}
             Browse every public list as a <b class="text-white">live table</b>, download it to
             <b class="text-white">Excel</b> in one click, or grab the <b class="text-white">JSON / code snippets</b>
-            if you are integrating a system. Pick a category on the left to start.
+            if you are integrating a system. Pick a category from the catalog to start.
           </p>
           <div class="mt-7 flex flex-wrap gap-3">
             ${stats.map(([n, l]) => `
@@ -569,7 +691,7 @@ async function selectEndpoint(gi, ci, route) {
     }
     const arr = Array.isArray(raw) ? raw : [raw];
     state.rows = arr.map(r => flatten(r));
-    state.columns = deriveColumns(state.rows);
+    state.columns = deriveColumns(state.rows, route);
     state.filtered = state.rows;
     // Small catalogues (the glossary, countries, ...) open with every record on
     // one page — no pager to fight with. Big ones keep the paginated default.
@@ -591,11 +713,54 @@ function flatten(obj, prefix = '', depth = 0, out = {}) {
   return out;
 }
 
-function deriveColumns(rows) {
+// Columns a given endpoint carries but nobody reading the catalogue needs.
+// Keyed by route; a route absent from here hides nothing — the default stays
+// "show everything the payload returns". Requested by Santiago Sánchez
+// 2026-08-27: presentation-only fields on the two Areas lists, and the internal
+// ids of the outcomes table (its real numbering is the SMO code next to them).
+const HIDDEN_COLUMNS = {
+  'api/action-areas': ['icon', 'color'],
+  'api/impact-areas': ['icon', 'color'],
+  'api/action-area-outcomes': ['id', 'actionAreaId', 'outcomeId', 'outcomeIndicatorId']
+};
+
+// Acronyms and compounds that splitting camelCase would mangle ("Iso alpha 2").
+// Deliberately short: a miss falls back to the derived label, never to an error.
+const LABEL_OVERRIDES = {
+  id: 'ID', code: 'Code', name: 'Name', acronym: 'Acronym',
+  isoAlpha2: 'ISO Alpha-2', isoAlpha3: 'ISO Alpha-3',
+  um49Code: 'UN M49 code', umCode: 'UN M49 code',
+  smoCode: 'SMO code', outcomeSMOcode: 'SMO code',
+  outcomeIndicatorSMOcode: 'Indicator SMO code',
+  financialCode: 'Financial code', websiteLink: 'Website',
+  latitude: 'Latitude', longitude: 'Longitude'
+};
+
+// `regionDTO.parentRegion.name` -> `Region · Parent region · Name`.
+// The raw key is never replaced by this, only accompanied by it: the header
+// prints both, because a developer must still see the field they will have to
+// write in their own code.
+function humanizeColumn(key) {
+  return String(key).split('.').map(seg => {
+    if (LABEL_OVERRIDES[seg]) return LABEL_OVERRIDES[seg];
+    const bare = seg.replace(/(DTO|Dto)$/, '') || seg;
+    if (LABEL_OVERRIDES[bare]) return LABEL_OVERRIDES[bare];
+    const words = bare
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/([A-Za-z])(\d)/g, '$1 $2')
+      .replace(/[_-]+/g, ' ')
+      .trim()
+      .toLowerCase();
+    return words ? words.charAt(0).toUpperCase() + words.slice(1) : seg;
+  }).join(' · ');
+}
+
+function deriveColumns(rows, route) {
+  const hidden = HIDDEN_COLUMNS[route] || [];
   const cols = [];
   const seen = new Set();
   rows.slice(0, 200).forEach(r => Object.keys(r).forEach(k => { if (!seen.has(k)) { seen.add(k); cols.push(k); } }));
-  return cols;
+  return cols.filter(c => !hidden.includes(c));
 }
 
 function renderEndpointShell(loading, error = null) {
@@ -708,9 +873,18 @@ function renderTable() {
 
   const ths = state.columns.map(c => {
     const on = state.sortKey === c;
+    const label = humanizeColumn(c);
+    // Two lines on purpose: the readable label for whoever is reading the
+    // table, and underneath the exact field path, because this page exists so a
+    // developer can see what the response actually returns. Not a tooltip — a
+    // tooltip is invisible on touch and impossible to copy.
     return `<th onclick="sortBy('${esc(c)}')"
-      class="cursor-pointer select-none whitespace-nowrap border-b border-slate-200 bg-leaf-700 px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white transition hover:bg-leaf-700">
-      ${esc(c)} <span class="${on ? 'text-leaf-300' : 'text-leaf-400/50'}">${on ? (state.sortDir > 0 ? '▲' : '▼') : '↕'}</span></th>`;
+      class="cursor-pointer select-none whitespace-nowrap border-b border-slate-200 bg-leaf-700 px-4 py-2.5 text-left align-bottom text-white transition hover:bg-leaf-700">
+      <span class="text-[11px] font-bold uppercase tracking-wider">${esc(label)}</span>
+      <span class="${on ? 'text-leaf-300' : 'text-leaf-400/50'}">${on ? (state.sortDir > 0 ? '▲' : '▼') : '↕'}</span>
+      ${label.toLowerCase() !== String(c).toLowerCase()
+        ? `<span class="mt-0.5 block font-mono text-[10px] font-normal normal-case leading-none tracking-normal text-leaf-200/80">${esc(c)}</span>`
+        : ''}</th>`;
   }).join('');
 
   const trs = rows.map((r, i) => `
@@ -1243,14 +1417,20 @@ function exportName(ext) {
   const d = new Date().toISOString().slice(0, 10);
   return `CLARISA_${state.current.endpoint.name.replace(/\s+/g, '_')}_${d}.${ext}`;
 }
+// Exports carry the visible columns, keyed by the raw field path: a hidden
+// column is noise in the file too, but a renamed header would break whatever
+// script already reads it.
+function exportRows() {
+  return state.filtered.map(r => Object.fromEntries(state.columns.map(c => [c, r[c]])));
+}
 function exportExcel() {
-  const ws = XLSX.utils.json_to_sheet(state.filtered);
+  const ws = XLSX.utils.json_to_sheet(exportRows());
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'data');
   XLSX.writeFile(wb, exportName('xlsx'));
 }
 function exportCSV() {
-  const ws = XLSX.utils.json_to_sheet(state.filtered);
+  const ws = XLSX.utils.json_to_sheet(exportRows());
   download(new Blob(['﻿' + XLSX.utils.sheet_to_csv(ws)], { type: 'text/csv;charset=utf-8' }), exportName('csv'));
 }
 function exportJSON() {

@@ -295,12 +295,22 @@ function icontext() {
 // ______________ICON-TEXT JS end
 
 
+// 🛑 Estos dos botones viven dentro de un componente de ruta perezosa
+// (`partner-request`), así que al cargar la página NO existen todavía. Sin la
+// comprobación, `slideLeft.addEventListener` reventaba con
+// «null is not an object» — y como el error corta la ejecución del script,
+// TODO lo que va debajo de esta línea dejaba de registrarse. No era ruido de
+// consola: era media hoja de comportamiento que nunca llegaba a enchufarse.
 let slideLeft = document.querySelector(".slide-left");
 let slideRight = document.querySelector(".slide-right");
-slideLeft.addEventListener("click", () => {
-    slideClick()
-}, true)
-slideRight.addEventListener("click", () => { slideClick() }, true)
+if (slideLeft) {
+    slideLeft.addEventListener("click", () => {
+        slideClick()
+    }, true)
+}
+if (slideRight) {
+    slideRight.addEventListener("click", () => { slideClick() }, true)
+}
 
 // used to remove is-expanded class and remove class on clicking arrow buttons
 function slideClick() {
@@ -645,9 +655,21 @@ $(document).on("click", ".rtl #slide-right", function () {
 });
 
 // FOOTER
-document.getElementById("year").innerHTML = new Date().getFullYear();
+// 🛑 Segundo fallo del mismo archivo, y estaba ESCONDIDO detrás del primero:
+// mientras `slideLeft.addEventListener` reventaba arriba, la ejecución nunca
+// llegaba hasta aquí. Al guardar aquel, salió este. Ninguna plantilla pinta un
+// `#year` —el tema lo daba por hecho en su pie, que esta app nunca usó—.
+const anioEl = document.getElementById("year");
+if (anioEl) {
+    anioEl.innerHTML = new Date().getFullYear();
+}
 
-document.querySelector('.main-content').addEventListener('click', ()=>{
+// 🛑 Tercer y último acceso sin comprobar de este archivo. `.main-content` es
+// del armazón del tema y esta app no lo pinta en ninguna plantilla, así que la
+// llamada reventaba y cortaba el resto del script. Los otros `querySelector` que
+// quedan apuntan a `body`, que siempre existe.
+const zonaPrincipal = document.querySelector('.main-content');
+if (zonaPrincipal) zonaPrincipal.addEventListener('click', ()=>{
     if (document.querySelector('body').classList.contains('horizontal')) {
         let li = document.querySelectorAll('.side-menu li')
         li.forEach((e, i) => {

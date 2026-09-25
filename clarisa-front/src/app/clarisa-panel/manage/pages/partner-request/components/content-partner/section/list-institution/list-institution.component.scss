@@ -1,0 +1,70 @@
+
+/* Aviso de descarga caída y su reintento. Se dibuja en lugar de la tabla: una
+   tabla vacía con un girador encima es lo que hacía creer que seguía cargando. */
+.list-error {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0 0;
+  padding: 18px 20px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-card);
+  background: var(--cl-surface);
+
+  > i {
+    font-size: 20px;
+    color: var(--cl-warn);
+  }
+
+  div {
+    flex: 1;
+    min-width: 0;
+  }
+
+  strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cl-ink);
+  }
+
+  span {
+    display: block;
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--cl-ink-2);
+  }
+
+  /* La causa concreta, en el tono de lo secundario: quien solo quiere reintentar
+     no la necesita, y quien tiene que reportarla la encuentra sin abrir nada. */
+  .list-error__reason {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--cl-ink-3);
+  }
+}
+
+.list-error__retry {
+  flex: 0 0 auto;
+  height: 36px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-brand-strong);
+  color: var(--cl-surface);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--cl-brand-deep);
+  }
+}
+
+.list-slow {
+  margin: 0;
+  padding: 10px 4px 0;
+  color: var(--cl-ink-3);
+  font-size: 12.5px;
+}

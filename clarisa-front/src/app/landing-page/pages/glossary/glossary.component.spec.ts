@@ -328,4 +328,86 @@ describe('GlossaryComponent', () => {
       expect(cardsFor('Orphan')).toHaveLength(1);
     });
   });
+
+  // Lo que Héctor pidió ver: cuál de los portafolios rige hoy. Antes se decía con
+  // un punto relleno y sin leyenda en ninguna parte; ahora lo dice la palabra.
+  describe('the "Current" mark', () => {
+    /** La tarjeta de un término, por su título. */
+    const cardEl = (name: string): HTMLElement =>
+      Array.from(fixture.nativeElement.querySelectorAll('.glossary-card')).find(
+        (card: any) => card.querySelector('h4')?.textContent.trim() === name
+      ) as HTMLElement;
+
+    /** El texto de cada segmento del riel de esa tarjeta. */
+    const railOf = (name: string): string[] =>
+      Array.from(cardEl(name).querySelectorAll('.version-seg')).map((seg: any) => seg.textContent.replace(/\s+/g, ' ').trim());
+
+    beforeEach(() => {
+      fixture.detectChanges();
+      showAllPortfolios();
+      fixture.detectChanges();
+    });
+
+    it('is the newest portfolio by start year, and nothing else', () => {
+      expect(component.isCurrentPortfolioId(3)).toBe(true); // 2025-2030
+      expect(component.isCurrentPortfolioId(2)).toBe(false); // 2022-2024
+      expect(component.isCurrentPortfolioId(1)).toBe(false); // 2016-2021, closed
+      // "CGIAR general" carries no start year: it is offered as a filter, but it
+      // is not a period and cannot be the one in force.
+      expect(component.isCurrentPortfolioId(4)).toBe(false);
+      expect(component.isCurrentPortfolioId(999)).toBe(false);
+      expect(component.isCurrentPortfolioId(null)).toBe(false);
+    });
+
+    // 🛑 La regresión que se arregló: el riel estático pintaba `is-current` en
+    // TODOS los portafolios de la tarjeta, así que el de 2022-2024 se anunciaba
+    // como vigente exactamente igual que el de 2025-2030.
+    it('marks only the portfolio in force when one definition covers two', () => {
+      const segments = railOf('Shared term');
+
+      expect(segments).toHaveLength(2);
+      expect(segments.filter(text => text.includes('Current'))).toHaveLength(1);
+      expect(segments.find(text => text.includes('Current'))).toContain('Portfolio 2025-2030');
+    });
+
+    it('marks the portfolio in force on a term that only belongs to the older one', () => {
+      // Las dos etiquetas —larga y corta— viven las dos en el DOM y el CSS pinta
+      // solo una; por eso el texto sale pegado. Lo que importa: no dice 'Current'.
+      expect(railOf('Action Area')).toEqual(['Portfolio 2022-20242022-2024']);
+    });
+
+    // La marca dice qué portafolio rige, no cuál se está leyendo: son dos cosas
+    // distintas y el riel ya dice la segunda con el segmento levantado.
+    it('stays on the portfolio in force after the reader opens the older definition', () => {
+      expect(railOf('Impact').find(text => text.includes('Current'))).toContain('Portfolio 2025-2030');
+
+      const card = component.filteredTerms.find(item => item.term === 'Impact')!;
+      component.showVersion(card, 1);
+      fixture.detectChanges();
+
+      expect(card.definition).toBe('The 2022-2024 wording');
+      expect(railOf('Impact').find(text => text.includes('Current'))).toContain('Portfolio 2025-2030');
+    });
+
+    // La página abre con un portafolio ya elegido; sin la marca no hay manera de
+    // saber por qué se está viendo un subconjunto.
+    it('explains the default by marking the same portfolio in the filter', () => {
+      const pills = Array.from(fixture.nativeElement.querySelectorAll('.filter-pill')).map((pill: any) =>
+        pill.textContent.replace(/\s+/g, ' ').trim()
+      );
+
+      expect(pills.filter(text => text.includes('Current'))).toHaveLength(1);
+      expect(pills.find(text => text.includes('Current'))).toContain('Portfolio 2025-2030');
+    });
+
+    // La leyenda: la misma pastilla dentro de la frase de la entradilla, para que
+    // la palabra no dependa de que alguien la deduzca.
+    it('shows the same tag inside the intro, as the legend', () => {
+      const legend: HTMLElement = fixture.nativeElement.querySelector('.glossary-intro .version-seg__now');
+
+      expect(legend).toBeTruthy();
+      expect(legend.textContent.trim()).toBe('Current');
+      expect(fixture.nativeElement.querySelector('.glossary-intro p').textContent).toContain('in force today');
+    });
+  });
 });

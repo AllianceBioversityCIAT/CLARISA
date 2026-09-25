@@ -1,14 +1,20 @@
 <div class="lifecycle-layout">
   <main class="lifecycle-main">
-    <header class="panel-header">
-      <div>
-        <h1 class="panel-header__title">Institution Lifecycle</h1>
-        <p class="panel-header__desc">
+    <!--
+      Encabezado del panel, el mismo de todas las pantallas: grupo en verde,
+      título en el carbón de la columna y apoyo debajo. Antes era un `h1` azul
+      de 26px propio de esta pantalla.
+    -->
+    <header class="admin-page">
+      <div class="admin-page__head">
+        <span class="admin-page__eyebrow">Manage</span>
+        <h1 class="admin-page__title">Institution lifecycle</h1>
+        <p class="admin-page__hint">
           Set the validity period of an institution and record which institution replaced it
           (<code>renames</code>, successions, merges and splits).
         </p>
       </div>
-      <div class="panel-header__actions">
+      <div class="admin-page__aside">
         <p-dropdown
           [options]="statusOptions"
           [(ngModel)]="statusFilter"
@@ -17,6 +23,8 @@
           (onChange)="onStatusFilterChange()"
           styleClass="filter-dropdown"
         ></p-dropdown>
+        <!-- Secundario y del alto del selector de al lado: recargar no es la
+             acción de esta pantalla, es un apaño cuando algo se quedó viejo. -->
         <button
           pButton
           type="button"
@@ -43,60 +51,62 @@
         styleClass="p-datatable-sm admin-table"
         responsiveLayout="scroll"
       >
+        <!-- `admin-table-toolbar` es la fila de filtros de TODAS las tablas del
+             panel: mismo alto, mismo ancho máximo y el recuento a la derecha. -->
         <ng-template pTemplate="caption">
-          <div class="table-caption">
+          <div class="admin-table-toolbar">
             <span class="p-input-icon-left">
               <i class="pi pi-search"></i>
               <input
                 pInputText
                 type="text"
-                class="search-input"
                 placeholder="Search by name or acronym"
                 aria-label="Search by name or acronym"
                 (input)="lifecycleTable.filterGlobal($any($event.target).value, 'contains')"
               />
             </span>
+            <span class="admin-table-toolbar__count">{{ lifecycleTable.totalRecords || 0 }} institutions</span>
           </div>
         </ng-template>
 
         <ng-template pTemplate="header">
           <tr>
-            <th scope="col" pSortableColumn="code" style="width: 6rem">
+            <th scope="col" pSortableColumn="code" style="width: 70px">
               Code <p-sortIcon field="code"></p-sortIcon>
             </th>
             <th scope="col" pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
-            <th scope="col" pSortableColumn="acronym" style="width: 9rem">
+            <th scope="col" pSortableColumn="acronym" style="width: 92px">
               Acronym <p-sortIcon field="acronym"></p-sortIcon>
             </th>
-            <th scope="col" pSortableColumn="typeName" style="width: 12rem">
+            <th scope="col" pSortableColumn="typeName" style="width: 164px">
               Type <p-sortIcon field="typeName"></p-sortIcon>
             </th>
-            <th scope="col" pSortableColumn="endDate" style="width: 11rem">
+            <th scope="col" pSortableColumn="endDate" style="width: 118px">
               Valid until <p-sortIcon field="endDate"></p-sortIcon>
             </th>
-            <th scope="col" style="width: 16rem">Replaced by</th>
-            <th scope="col" style="width: 14rem">Replaces</th>
-            <th scope="col" style="width: 6rem">Actions</th>
+            <th scope="col" style="width: 158px">Replaced by</th>
+            <th scope="col" style="width: 150px">Replaces</th>
+            <th scope="col" style="width: 90px">Actions</th>
           </tr>
         </ng-template>
 
         <ng-template pTemplate="body" let-inst>
           <tr>
-            <td><code class="key-prefix">{{ inst.code }}</code></td>
-            <td>
+            <td data-label="Code" class="cell-num">{{ inst.code }}</td>
+            <td data-card-title data-label="Name">
               <span class="cell-primary">{{ inst.name }}</span>
               <span class="cell-meta" *ngIf="inst.previousNames?.length">
                 formerly {{ inst.previousNames.join(', ') }}
               </span>
             </td>
-            <td>
+            <td data-label="Acronym">
               {{ inst.acronym || '—' }}
               <span class="cell-meta" *ngIf="inst.previousAcronyms?.length">
                 was {{ inst.previousAcronyms.join(', ') }}
               </span>
             </td>
-            <td>{{ inst.typeName || '—' }}</td>
-            <td>
+            <td data-label="Type">{{ inst.typeName || '—' }}</td>
+            <td data-label="End date">
               <!-- An end date in the future is an announced retirement, not a
                    retirement: the institution is still usable until that day. -->
               <ng-container [ngSwitch]="inst.validityStatus">
@@ -113,13 +123,13 @@
             <!-- The two ends of the relation, each in its own column: one cell
                  saying "SMO (SUCCESSOR)" on both rows is what made the table
                  unable to tell which institution came first. -->
-            <td>
+            <td data-label="Replaced by">
               <span class="lineage-cell" *ngIf="inst.replacedBy?.length; else noReplacedBy" [pTooltip]="lineageTooltip(inst.replacedBy)" tooltipPosition="top">
                 {{ lineageLabel(inst.replacedBy, 'successor') }}
               </span>
               <ng-template #noReplacedBy><span class="cell-muted">—</span></ng-template>
             </td>
-            <td>
+            <td data-label="Replaces">
               <span class="lineage-cell" *ngIf="inst.replaces?.length; else noReplaces" [pTooltip]="lineageTooltip(inst.replaces)" tooltipPosition="top">
                 {{ lineageLabel(inst.replaces, 'predecessor') }}
               </span>
@@ -130,9 +140,10 @@
                 pButton
                 type="button"
                 icon="pi pi-pencil"
-                class="p-button-text p-button-sm"
+                class="p-button-text p-button-icon-only"
                 pTooltip="Edit lifecycle"
                 tooltipPosition="top"
+                aria-label="Edit lifecycle"
                 (click)="openEdit(inst)"
               ></button>
             </td>

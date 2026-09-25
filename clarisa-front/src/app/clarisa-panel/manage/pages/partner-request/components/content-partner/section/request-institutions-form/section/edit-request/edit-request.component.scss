@@ -1,13 +1,28 @@
-.loader{
-    width: 50vw;
-    height: 90%;
-    margin-left: -24px;
-    padding: 0px;
-    background-color: white;
-    position: fixed;
+/* El velo de carga cubre el contenido del diálogo mientras llegan los catálogos.
+   Antes se dibujaba a `50vw` con un `margin-left: -24px`, medidas atadas al
+   ancho que tenía el modal entonces; ahora se pega a su contenedor. */
+.loader {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cl-surface);
+  border-radius: var(--cl-radius-card);
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000000;
+  img {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+:host {
+  display: block;
+  position: relative;
+  min-height: 120px;
+}
+
+.field .field-stack {
+  margin-top: 14px;
 }
