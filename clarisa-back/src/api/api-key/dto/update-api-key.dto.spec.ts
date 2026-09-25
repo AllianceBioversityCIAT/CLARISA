@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { UpdateApiKeyDto } from './update-api-key.dto';
 import { CreateApiKeyDto } from './create-api-key.dto';
+import { UsageSummaryQueryDto } from './usage-query.dto';
 
 /**
  * The DTOs are only exercised by the controller's ValidationPipe: a service
@@ -73,5 +74,18 @@ describe('CreateApiKeyDto (controller pipe) — description', () => {
     await expect(
       run(CreateApiKeyDto, { ...base, description: '' }),
     ).resolves.toMatchObject({ description: '' });
+  });
+});
+
+describe('UsageSummaryQueryDto (controller pipe) — mis_ids', () => {
+  const q = (query: unknown) =>
+    pipe.transform(query, { type: 'query', metatype: UsageSummaryQueryDto });
+
+  it('accepts comma-separated ids and rejects anything else', async () => {
+    await expect(q({ mis_ids: '3,7,0' })).resolves.toMatchObject({
+      mis_ids: '3,7,0',
+    });
+    await expect(q({ mis_ids: '3;DROP' })).rejects.toThrow();
+    await expect(q({ mis_ids: '3,,7' })).rejects.toThrow();
   });
 });
