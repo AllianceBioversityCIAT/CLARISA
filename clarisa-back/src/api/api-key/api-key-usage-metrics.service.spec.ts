@@ -214,4 +214,116 @@ describe('ApiKeyUsageMetricsService — endpoint and MIS aggregates', () => {
       .replace(/\/\/.*$/gm, '');
     expect(code).not.toMatch(/'\?'/);
   });
+
+  it('getOverview returns systems, series and heatmap with numbers, and labels the no-MIS bucket', async () => {
+    const systems = [
+      {
+        mis_id: '3',
+        acronym: 'PRMS',
+        name: 'PRMS',
+        environment: 'PROD',
+        calls: '120',
+        errors: '2',
+        avg_ms: '180.4',
+        api_keys: '2',
+        last_used_at: new Date('2026-09-24T10:00:00Z'),
+      },
+      {
+        mis_id: null,
+        acronym: null,
+        name: null,
+        environment: null,
+        calls: '5',
+        errors: null,
+        avg_ms: null,
+        api_keys: '1',
+        last_used_at: null,
+      },
+    ];
+    const series = [
+      {
+        bucket: '2026-09-22',
+        mis_id: '3',
+        calls: '60',
+        errors: '1',
+        avg_ms: '170',
+      },
+    ];
+    const heat = [{ dow: '2', hour: '10', mis_id: '3', calls: '40' }];
+    const qbs = [
+      queryBuilder(systems),
+      queryBuilder(series),
+      queryBuilder(heat),
+    ];
+    const logRepository: any = {
+      createQueryBuilder: jest.fn(() => qbs.shift()),
+    };
+    const service = new ApiKeyUsageMetricsService({} as any, logRepository);
+
+    const result = await service.getOverview({
+      from: '2026-09-01',
+      to: '2026-09-25',
+      granularity: 'week',
+    });
+
+    expect(result.granularity).toBe('week');
+    expect(result.systems).toEqual([
+      {
+        mis_id: 3,
+        acronym: 'PRMS',
+        name: 'PRMS',
+        environment: 'PROD',
+        calls: 120,
+        errors: 2,
+        avg_response_time_ms: 180,
+        api_keys: 2,
+        last_used_at: systems[0].last_used_at,
+      },
+      {
+        mis_id: null,
+        acronym: 'No MIS',
+        name: 'Keys not linked to any system',
+        environment: null,
+        calls: 5,
+        errors: 0,
+        avg_response_time_ms: null,
+        api_keys: 1,
+        last_used_at: null,
+      },
+    ]);
+    expect(result.series).toEqual([
+      {
+        bucket: '2026-09-22',
+        mis_id: 3,
+        calls: 60,
+        errors: 1,
+        avg_response_time_ms: 170,
+      },
+    ]);
+    expect(result.heatmap).toEqual([
+      { day_of_week: 2, hour: 10, mis_id: 3, calls: 40 },
+    ]);
+  });
+
+  it('mis_ids narrows the log query to several systems, «0» meaning no MIS', async () => {
+    const qb = queryBuilder([]);
+    const logRepository: any = { createQueryBuilder: jest.fn(() => qb) };
+    const service = new ApiKeyUsageMetricsService({} as any, logRepository);
+
+    await service.getLogs({ mis_ids: '3,7,0' } as any);
+    expect(qb.andWhere).toHaveBeenCalledWith(
+      '(ak.mis_id IN (:...misIds) OR ak.mis_id IS NULL)',
+      { misIds: [3, 7] },
+    );
+
+    qb.andWhere.mockClear();
+    await service.getLogs({ mis_ids: '3,3' } as any);
+    expect(qb.andWhere).toHaveBeenCalledWith('ak.mis_id IN (:...misIds)', {
+      misIds: [3],
+    });
+
+    qb.andWhere.mockClear();
+    await service.getLogs({ mis_ids: '0' } as any);
+    expect(qb.andWhere).toHaveBeenCalledWith('ak.mis_id IS NULL');
+  });
 });

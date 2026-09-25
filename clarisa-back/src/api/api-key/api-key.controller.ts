@@ -81,6 +81,13 @@ export class ApiKeyController {
     return this._apiKeyUsageMetricsService.getEndpointUsage(query);
   }
 
+  /** The Overview in one call: per system, per bucket and per weekday × hour */
+  @Get('usage/overview')
+  @UseGuards(JwtAuthGuard)
+  getUsageOverview(@Query() query: UsageSummaryQueryDto) {
+    return this._apiKeyUsageMetricsService.getOverview(query);
+  }
+
   /** Per MIS: how many keys it holds and when any of them was last used */
   @Get('usage/mis-activity')
   @UseGuards(JwtAuthGuard)

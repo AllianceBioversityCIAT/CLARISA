@@ -13,6 +13,7 @@ import {
   EndpointUsageItemDto,
   EndpointUsageResponseDto,
   MisActivityItemDto,
+  UsageOverviewResponseDto,
   UsageLogsResponseDto,
   UsageSummaryResponseDto,
 } from './dto/usage-metrics.dto';
@@ -29,10 +30,18 @@ const CONSUMER_ROWS_CAP = 5000;
  */
 const ENDPOINT_EXPR = 'SUBSTRING_INDEX(log.endpoint_accessed, CHAR(63), 1)';
 
+/** Day bucket as a plain `YYYY-MM-DD` string, so no driver timezone shifts it. */
+const DAY_EXPR = "DATE_FORMAT(log.created_at, '%Y-%m-%d')";
+/** The Monday of the call's week, same format. */
+const WEEK_EXPR =
+  "DATE_FORMAT(DATE_SUB(log.created_at, INTERVAL WEEKDAY(log.created_at) DAY), '%Y-%m-%d')";
+
 interface UsageFilterParams {
   from: Date;
   to: Date;
   mis_id?: number;
+  /** Several systems; `0` means «no MIS». */
+  mis_ids?: number[];
   api_key_id?: number;
   microservice_name?: string;
 }
@@ -341,6 +350,97 @@ export class ApiKeyUsageMetricsService {
     }));
   }
 
+  /**
+   * Everything the Overview draws, broken down by system so the panel can
+   * switch systems on and off without asking again: one row per system, the
+   * time series per bucket and system, and calls per weekday × hour.
+   */
+  async getOverview(
+    query: UsageSummaryQueryDto,
+  ): Promise<UsageOverviewResponseDto> {
+    const range = resolveUsageDateRange(query.from, query.to);
+    const filters = this._buildFilters(range, query);
+    const granularity = query.granularity ?? 'day';
+    const bucket = granularity === 'week' ? WEEK_EXPR : DAY_EXPR;
+
+    const [systemRows, seriesRows, heatRows] = await Promise.all([
+      this._baseLogQuery(filters)
+        .leftJoin('ak.environment_object', 'env')
+        .select('ak.mis_id', 'mis_id')
+        .addSelect('mis.acronym', 'acronym')
+        .addSelect('mis.name', 'name')
+        .addSelect('env.acronym', 'environment')
+        .addSelect('COUNT(log.id)', 'calls')
+        .addSelect(
+          'SUM(CASE WHEN log.status_code >= 400 THEN 1 ELSE 0 END)',
+          'errors',
+        )
+        .addSelect('AVG(log.response_time_ms)', 'avg_ms')
+        .addSelect('COUNT(DISTINCT ak.id)', 'api_keys')
+        .addSelect('MAX(log.created_at)', 'last_used_at')
+        .groupBy('ak.mis_id')
+        .addGroupBy('mis.acronym')
+        .addGroupBy('mis.name')
+        .addGroupBy('env.acronym')
+        .orderBy('calls', 'DESC')
+        .getRawMany(),
+      this._baseLogQuery(filters)
+        .select(bucket, 'bucket')
+        .addSelect('ak.mis_id', 'mis_id')
+        .addSelect('COUNT(log.id)', 'calls')
+        .addSelect(
+          'SUM(CASE WHEN log.status_code >= 400 THEN 1 ELSE 0 END)',
+          'errors',
+        )
+        .addSelect('AVG(log.response_time_ms)', 'avg_ms')
+        .groupBy(bucket)
+        .addGroupBy('ak.mis_id')
+        .orderBy('bucket', 'ASC')
+        .getRawMany(),
+      this._baseLogQuery(filters)
+        .select('DAYOFWEEK(log.created_at)', 'dow')
+        .addSelect('HOUR(log.created_at)', 'hour')
+        .addSelect('ak.mis_id', 'mis_id')
+        .addSelect('COUNT(log.id)', 'calls')
+        .groupBy('DAYOFWEEK(log.created_at)')
+        .addGroupBy('HOUR(log.created_at)')
+        .addGroupBy('ak.mis_id')
+        .getRawMany(),
+    ]);
+
+    const id = (v: unknown) => (v != null ? Number(v) : null);
+    const ms = (v: unknown) => (v != null ? Math.round(Number(v)) : null);
+
+    return {
+      period: toIsoPeriod(range),
+      granularity,
+      systems: systemRows.map((row) => ({
+        mis_id: id(row.mis_id),
+        acronym: row.acronym ?? 'No MIS',
+        name: row.name ?? 'Keys not linked to any system',
+        environment: row.environment ?? null,
+        calls: Number(row.calls ?? 0),
+        errors: Number(row.errors ?? 0),
+        avg_response_time_ms: ms(row.avg_ms),
+        api_keys: Number(row.api_keys ?? 0),
+        last_used_at: row.last_used_at ?? null,
+      })),
+      series: seriesRows.map((row) => ({
+        bucket: String(row.bucket),
+        mis_id: id(row.mis_id),
+        calls: Number(row.calls ?? 0),
+        errors: Number(row.errors ?? 0),
+        avg_response_time_ms: ms(row.avg_ms),
+      })),
+      heatmap: heatRows.map((row) => ({
+        day_of_week: Number(row.dow),
+        hour: Number(row.hour),
+        mis_id: id(row.mis_id),
+        calls: Number(row.calls ?? 0),
+      })),
+    };
+  }
+
   private _buildFilters(
     range: { from: Date; to: Date },
     query: UsageSummaryQueryDto,
@@ -349,6 +449,9 @@ export class ApiKeyUsageMetricsService {
       from: range.from,
       to: range.to,
       mis_id: query.mis_id,
+      mis_ids: query.mis_ids
+        ? [...new Set(query.mis_ids.split(',').map(Number))]
+        : undefined,
       api_key_id: query.api_key_id,
       microservice_name: query.microservice_name?.trim() || undefined,
     };
@@ -370,6 +473,20 @@ export class ApiKeyUsageMetricsService {
 
     if (filters.mis_id) {
       qb.andWhere('ak.mis_id = :misId', { misId: filters.mis_id });
+    }
+
+    if (filters.mis_ids?.length) {
+      const ids = filters.mis_ids.filter((id) => id > 0);
+      const withNone = filters.mis_ids.includes(0);
+      if (ids.length && withNone) {
+        qb.andWhere('(ak.mis_id IN (:...misIds) OR ak.mis_id IS NULL)', {
+          misIds: ids,
+        });
+      } else if (ids.length) {
+        qb.andWhere('ak.mis_id IN (:...misIds)', { misIds: ids });
+      } else {
+        qb.andWhere('ak.mis_id IS NULL');
+      }
     }
 
     if (filters.microservice_name) {

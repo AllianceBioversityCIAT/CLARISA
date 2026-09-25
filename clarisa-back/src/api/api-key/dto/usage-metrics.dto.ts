@@ -153,3 +153,42 @@ export class MisActivityItemDto {
   usage_count: number;
   last_used_at: Date | null;
 }
+
+export class OverviewSystemDto {
+  /** `null` = keys with no MIS */
+  mis_id: number | null;
+  acronym: string;
+  name: string;
+  environment: string | null;
+  calls: number;
+  errors: number;
+  avg_response_time_ms: number | null;
+  api_keys: number;
+  last_used_at: Date | null;
+}
+
+export class OverviewSeriesPointDto {
+  /** `YYYY-MM-DD`; with `granularity=week`, the Monday of the week */
+  bucket: string;
+  mis_id: number | null;
+  calls: number;
+  errors: number;
+  avg_response_time_ms: number | null;
+}
+
+export class OverviewHeatCellDto {
+  /** 1 = Sunday … 7 = Saturday (MySQL `DAYOFWEEK`) */
+  day_of_week: number;
+  /** 0-23, in the database clock */
+  hour: number;
+  mis_id: number | null;
+  calls: number;
+}
+
+export class UsageOverviewResponseDto {
+  period: UsagePeriodDto;
+  granularity: 'day' | 'week';
+  systems: OverviewSystemDto[];
+  series: OverviewSeriesPointDto[];
+  heatmap: OverviewHeatCellDto[];
+}
