@@ -9,6 +9,7 @@ import { UserService } from '../user/user.service';
 import { ResponseDto } from '../../shared/entities/dtos/response.dto';
 import { FindManyOptions, Like } from 'typeorm';
 import { MisMapper } from './mappers/mis.mapper';
+import { SimpleMisDto } from './dto/simple-mis.dto';
 
 @Injectable()
 export class MisService {
@@ -124,6 +125,47 @@ export class MisService {
         auditableFields: { is_active: true },
       },
       ...this._where,
+    });
+  }
+
+  /**
+   * Logical delete (Yeck, 2026-09-24): the row stays so API keys, partner
+   * requests and users that point at the MIS keep their history; only
+   * `is_active` flips. `findOne` already hides inactive rows, so a retired
+   * MIS can no longer be linked to a new key.
+   */
+  async setActive(
+    id: number,
+    active: boolean,
+    userData: UserData,
+  ): Promise<ResponseDto<SimpleMisDto & { is_active: boolean }>> {
+    const mis = await this._misRepository.findOne({
+      where: { id },
+      ...this._where,
+    });
+    if (!mis) {
+      throw new Error(`MIS with ID "${id}" not found`);
+    }
+    if (active) {
+      // The uniqueness rule of `create()` must hold again when a row returns.
+      const clash = await this.findOneByAcronymAndEnvironment(
+        mis.acronym,
+        mis.environment_object?.acronym ?? '',
+      );
+      if (clash && clash.id !== mis.id) {
+        throw new Error(
+          `An active MIS with acronym "${mis.acronym}" already exists in that environment`,
+        );
+      }
+    }
+    mis.auditableFields.is_active = active;
+    mis.auditableFields.updated_by = userData.userId;
+    const saved = await this._misRepository.save(mis);
+    // The serializer strips `auditableFields`, so the answer says the state
+    // it just set instead of returning a MIS that looks unchanged.
+    return ResponseDto.buildOkResponse({
+      ...this._misMapper.classToSimpleDto(saved),
+      is_active: active,
     });
   }
 

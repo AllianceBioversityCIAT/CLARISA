@@ -15,8 +15,10 @@ import {
 import { ApiKeyService } from './api-key.service';
 import { ApiKeyUsageMetricsService } from './api-key-usage-metrics.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
+import { UpdateApiKeyDto } from './dto/update-api-key.dto';
 import {
   ApiKeyUsageQueryDto,
+  UsageEndpointsQueryDto,
   UsageLogsQueryDto,
   UsageSummaryQueryDto,
 } from './dto/usage-query.dto';
@@ -72,6 +74,27 @@ export class ApiKeyController {
     return this._apiKeyUsageMetricsService.getLogs(query);
   }
 
+  /** Requests per endpoint in the period, with the keys that consumed each one */
+  @Get('usage/endpoints')
+  @UseGuards(JwtAuthGuard)
+  getUsageByEndpoint(@Query() query: UsageEndpointsQueryDto) {
+    return this._apiKeyUsageMetricsService.getEndpointUsage(query);
+  }
+
+  /** The Overview in one call: per system, per bucket and per weekday × hour */
+  @Get('usage/overview')
+  @UseGuards(JwtAuthGuard)
+  getUsageOverview(@Query() query: UsageSummaryQueryDto) {
+    return this._apiKeyUsageMetricsService.getOverview(query);
+  }
+
+  /** Per MIS: how many keys it holds and when any of them was last used */
+  @Get('usage/mis-activity')
+  @UseGuards(JwtAuthGuard)
+  getMisActivity() {
+    return this._apiKeyUsageMetricsService.getMisActivity();
+  }
+
   @Get(':id/usage')
   @UseGuards(JwtAuthGuard)
   getKeyUsage(
@@ -85,6 +108,16 @@ export class ApiKeyController {
   @UseGuards(JwtAuthGuard)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this._apiKeyService.findOne(id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  update(
+    @GetUserData() userData: UserData,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateApiKeyDto: UpdateApiKeyDto,
+  ) {
+    return this._apiKeyService.update(id, updateApiKeyDto, userData);
   }
 
   @Patch(':id/revoke')
