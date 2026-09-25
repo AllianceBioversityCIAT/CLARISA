@@ -1,61 +1,74 @@
-<header class="panel-header">
-  <div>
-    <h1 class="panel-header__title">MIS Registry</h1>
-    <p class="panel-header__desc">
-      Register Management Information Systems used in CLARISA microservice authentication.
-    </p>
+<header class="panel-head">
+  <div class="panel-head__text">
+    <h2 class="panel-head__title">MIS registry</h2>
+    <p class="panel-head__desc">The systems that hold keys. Deactivating one keeps its history and its keys; it just cannot be linked to new ones.</p>
   </div>
-  <div class="panel-header__actions">
-    <div class="panel-header__filter">
-      <label id="misesStatusLabel">Status</label>
-      <p-dropdown
-        [options]="[
-          { label: 'Active', value: 'active' },
-          { label: 'All', value: 'all' },
-          { label: 'Inactive', value: 'inactive' }
-        ]"
-        [(ngModel)]="showFilter"
-        optionLabel="label"
-        optionValue="value"
-        (onChange)="loadMises()"
-        styleClass="filter-dropdown"
-        ariaLabelledBy="misesStatusLabel"
-      ></p-dropdown>
-    </div>
-    <button
-      pButton
-      type="button"
-      label="Create MIS"
-      icon="pi pi-plus"
-      class="p-button-success btn-brand"
-      (click)="openCreate()"
-    ></button>
-  </div>
+  <button pButton type="button" label="Register MIS" icon="pi pi-plus" class="btn-brand" (click)="openCreate()"></button>
 </header>
 
 <section class="panel-card">
   <p-table
+    #misTable
     [value]="mises"
     [loading]="loading"
+    dataKey="id"
     sortField="acronym"
     [sortOrder]="1"
     [rows]="10"
-    [paginator]="mises.length > 10"
+    [paginator]="true"
+    [rowsPerPageOptions]="rowsPerPage"
+    [showCurrentPageReport]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} systems"
+    [globalFilterFields]="['searchText']"
     styleClass="p-datatable-sm admin-table"
-    responsiveLayout="scroll"
-  >
+    responsiveLayout="scroll">
+    <ng-template pTemplate="caption">
+      <div class="admin-table-toolbar">
+        <span class="p-input-icon-left">
+          <i class="pi pi-search"></i>
+          <input
+            pInputText
+            type="text"
+            placeholder="Search by acronym, name, or environment"
+            aria-label="Search MIS"
+            (input)="misTable.filterGlobal($any($event.target).value, 'contains')" />
+        </span>
+        <p-dropdown
+          [options]="[
+            { label: 'Active', value: 'active' },
+            { label: 'All', value: 'all' },
+            { label: 'Inactive', value: 'inactive' }
+          ]"
+          [(ngModel)]="showFilter"
+          optionLabel="label"
+          optionValue="value"
+          (onChange)="loadMises()"
+          styleClass="filter-dropdown"
+          ariaLabel="Status filter"></p-dropdown>
+        <span class="admin-table-toolbar__count">{{ misTable.totalRecords || 0 }} systems</span>
+      </div>
+    </ng-template>
+
     <ng-template pTemplate="header">
       <tr>
-        <th scope="col" pSortableColumn="acronym">Acronym <p-sortIcon field="acronym"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="acronym" style="width: 150px">Acronym <p-sortIcon field="acronym"></p-sortIcon></th>
         <th scope="col" pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="environment">Environment <p-sortIcon field="environment"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="is_active">Status <p-sortIcon field="is_active"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="environment" style="width: 170px">Environment <p-sortIcon field="environment"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="activeKeys" style="width: 110px">Keys <p-sortIcon field="activeKeys"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="lastUsedTs" style="width: 130px">Last used <p-sortIcon field="lastUsedTs"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="is_active" style="width: 110px">Status <p-sortIcon field="is_active"></p-sortIcon></th>
+        <th scope="col" style="width: 120px">Actions</th>
       </tr>
     </ng-template>
+
     <ng-template pTemplate="body" let-mis>
-      <tr>
-        <td data-label="Acronym"><code class="key-prefix">{{ mis.acronym }}</code></td>
-        <td data-card-title data-label="Name"><span class="cell-primary">{{ mis.name }}</span></td>
+      <tr [class.row-inactive]="mis.is_active === false">
+        <td data-label="Acronym">
+          <code class="key-prefix">{{ mis.acronym }}</code>
+        </td>
+        <td data-card-title data-label="Name">
+          <span class="cell-primary">{{ mis.name }}</span>
+        </td>
         <td data-label="Environment">
           <span *ngIf="mis.environment; else noEnv">
             {{ mis.environment }}
@@ -63,25 +76,56 @@
           </span>
           <ng-template #noEnv>—</ng-template>
         </td>
+        <td data-label="Keys">
+          <span
+            [class.cell-muted]="!mis.totalKeys"
+            [pTooltip]="
+              activityUnavailable
+                ? 'Not available on this server yet'
+                : mis.totalKeys
+                  ? mis.activeKeys + ' active of ' + mis.totalKeys
+                  : 'No keys linked'
+            "
+            tooltipPosition="top"
+            >{{ keysLabel(mis) }}</span
+          >
+        </td>
+        <td data-label="Last used">
+          <span [class.cell-muted]="!mis.lastUsedAt" [title]="lastUsedTitle(mis)">{{ lastUsed(mis) }}</span>
+        </td>
         <td data-label="Status">
-          <p-tag
-            [value]="mis.is_active === false ? 'Inactive' : 'Active'"
-            [severity]="mis.is_active === false ? 'danger' : 'success'"
-          ></p-tag>
+          <p-tag [value]="mis.is_active === false ? 'Inactive' : 'Active'" [severity]="mis.is_active === false ? 'danger' : 'success'"></p-tag>
+        </td>
+        <td>
+          <div class="row-actions">
+            <button
+              *ngIf="mis.is_active !== false"
+              pButton
+              type="button"
+              icon="pi pi-ban"
+              class="p-button-text p-button-sm p-button-warning"
+              pTooltip="Deactivate"
+              aria-label="Deactivate"
+              (click)="confirmDeactivate(mis)"></button>
+            <button
+              *ngIf="mis.is_active === false"
+              pButton
+              type="button"
+              icon="pi pi-replay"
+              class="p-button-text p-button-sm"
+              pTooltip="Reactivate"
+              aria-label="Reactivate"
+              (click)="confirmActivate(mis)"></button>
+          </div>
         </td>
       </tr>
     </ng-template>
+
     <ng-template pTemplate="emptymessage">
       <tr>
-        <td colspan="4" class="empty-cell">
-          No MIS entries yet.
-          <button
-            pButton
-            type="button"
-            label="Create the first MIS"
-            class="p-button-link p-0 ms-1"
-            (click)="openCreate()"
-          ></button>
+        <td colspan="7" class="empty-cell">
+          No systems match this filter.
+          <button pButton type="button" label="Register the first MIS" class="p-button-link p-0 ms-1" (click)="openCreate()"></button>
         </td>
       </tr>
     </ng-template>
@@ -89,44 +133,57 @@
 </section>
 
 <p-dialog
-  header="Create MIS"
+  header="Register MIS"
   [(visible)]="createVisible"
   [modal]="true"
   [style]="{ width: '38rem' }"
-  [contentStyle]="{ overflow: 'visible' }"
+  [breakpoints]="{ '720px': '94vw' }"
   [draggable]="false"
   [closable]="!submitting"
-  styleClass="admin-dialog"
->
+  styleClass="admin-dialog">
   <form [formGroup]="form" class="admin-form" (ngSubmit)="submitCreate()">
     <div class="field">
       <label for="misName">Name <span class="req">*</span></label>
-      <input
-        id="misName"
-        pInputText
-        formControlName="name"
-        class="w-full"
-        placeholder="e.g. Email Microservice"
-      />
-      <small class="field-error" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">
-        Name is required.
-      </small>
+      <input id="misName" pInputText formControlName="name" class="w-full" placeholder="e.g. Email Microservice" />
+      <small class="field-error" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">Name is required.</small>
     </div>
 
-    <div class="field">
-      <label for="misAcronym">Acronym <span class="req">*</span></label>
-      <input
-        id="misAcronym"
-        pInputText
-        formControlName="acronym"
-        class="w-full"
-        placeholder="EMAIL"
-        style="text-transform: uppercase"
-      />
-      <small class="field-hint">Letters, numbers, underscore, hyphen only. Stored in uppercase.</small>
-      <small class="field-error" *ngIf="form.get('acronym')?.invalid && form.get('acronym')?.touched">
-        Valid acronym required (e.g. EMAIL, TOC).
-      </small>
+    <div class="admin-form__grid">
+      <div class="field">
+        <label for="misAcronym">Acronym <span class="req">*</span></label>
+        <input id="misAcronym" pInputText formControlName="acronym" class="w-full" placeholder="EMAIL" style="text-transform: uppercase" />
+        <small class="field-hint">Letters, numbers, underscore, hyphen. Stored in uppercase.</small>
+        <small class="field-error" *ngIf="form.get('acronym')?.invalid && form.get('acronym')?.touched"
+          >Valid acronym required (e.g. EMAIL, TOC).</small
+        >
+      </div>
+
+      <div class="field">
+        <label for="misEnv">Environment <span class="req">*</span></label>
+        <p-dropdown
+          id="misEnv"
+          formControlName="environment"
+          [options]="environments"
+          optionLabel="label"
+          optionValue="acronym"
+          [placeholder]="environmentsLoading ? 'Loading environments…' : 'Select environment (e.g. PROD)'"
+          appendTo="body"
+          [style]="{ width: '100%' }"
+          styleClass="w-full admin-dropdown"
+          panelStyleClass="admin-dropdown-panel"
+          (onShow)="onDropdownShow($event)">
+          <ng-template let-env pTemplate="item">
+            <div class="dd-option">
+              <span class="dd-option__title">{{ env.acronym }}</span>
+              <span class="dd-option__meta" *ngIf="env.name">{{ env.name }}</span>
+            </div>
+          </ng-template>
+          <ng-template let-env pTemplate="selectedItem">
+            <span class="dd-selected">{{ env.acronym }}</span>
+          </ng-template>
+        </p-dropdown>
+        <small class="field-error" *ngIf="form.get('environment')?.invalid && form.get('environment')?.touched">Environment is required.</small>
+      </div>
     </div>
 
     <div class="field">
@@ -142,14 +199,12 @@
         [showClear]="true"
         [virtualScroll]="users.length > 20"
         [itemSize]="44"
-        [disabled]="usersLoading"
         [placeholder]="usersLoading ? 'Loading users…' : 'Select CLARISA user'"
         appendTo="body"
         [style]="{ width: '100%' }"
         styleClass="w-full admin-dropdown"
         panelStyleClass="admin-dropdown-panel"
-        (onShow)="onDropdownShow($event)"
-      >
+        (onShow)="onDropdownShow($event)">
         <ng-template let-user pTemplate="item">
           <div class="dd-option">
             <span class="dd-option__title">{{ user.displayName }}</span>
@@ -161,60 +216,20 @@
         </ng-template>
       </p-dropdown>
       <small class="field-hint">Defaults to your account when logged in.</small>
-      <small class="field-error" *ngIf="form.get('contact_point_id')?.invalid && form.get('contact_point_id')?.touched">
-        Contact point is required.
-      </small>
-    </div>
-
-    <div class="field">
-      <label for="misEnv">Environment <span class="req">*</span></label>
-      <p-dropdown
-        id="misEnv"
-        formControlName="environment"
-        [options]="environments"
-        optionLabel="label"
-        optionValue="acronym"
-        [disabled]="environmentsLoading"
-        [placeholder]="environmentsLoading ? 'Loading environments…' : 'Select environment (e.g. PROD)'"
-        appendTo="body"
-        [style]="{ width: '100%' }"
-        styleClass="w-full admin-dropdown"
-        panelStyleClass="admin-dropdown-panel"
-        (onShow)="onDropdownShow($event)"
+      <small class="field-error" *ngIf="form.get('contact_point_id')?.invalid && form.get('contact_point_id')?.touched"
+        >Contact point is required.</small
       >
-        <ng-template let-env pTemplate="item">
-          <div class="dd-option">
-            <span class="dd-option__title">{{ env.acronym }}</span>
-            <span class="dd-option__meta" *ngIf="env.name">{{ env.name }}</span>
-          </div>
-        </ng-template>
-        <ng-template let-env pTemplate="selectedItem">
-          <span class="dd-selected">{{ env.acronym }}</span>
-        </ng-template>
-      </p-dropdown>
-      <small class="field-hint">Must match an existing environment acronym (PROD, DEV, etc.).</small>
-      <small class="field-error" *ngIf="form.get('environment')?.invalid && form.get('environment')?.touched">
-        Environment is required.
-      </small>
     </div>
 
     <div class="dialog-footer">
-      <button
-        pButton
-        type="button"
-        label="Cancel"
-        class="p-button-text"
-        [disabled]="submitting"
-        (click)="createVisible = false"
-      ></button>
+      <button pButton type="button" label="Cancel" class="p-button-text" [disabled]="submitting" (click)="createVisible = false"></button>
       <button
         pButton
         type="submit"
-        [label]="submitting ? 'Creating…' : 'Create MIS'"
+        [label]="submitting ? 'Registering…' : 'Register MIS'"
         class="btn-brand"
         [loading]="submitting"
-        [disabled]="submitting || form.invalid"
-      ></button>
+        [disabled]="submitting || form.invalid"></button>
     </div>
   </form>
 </p-dialog>

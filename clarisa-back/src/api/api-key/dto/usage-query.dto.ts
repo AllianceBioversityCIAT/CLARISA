@@ -65,3 +65,13 @@ export class UsageLogsQueryDto extends UsageSummaryQueryDto {
   @Min(0)
   offset?: number = 0;
 }
+
+export class UsageEndpointsQueryDto extends UsageSummaryQueryDto {
+  /** Maximum number of endpoints returned (busiest first). */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(500)
+  limit?: number = 200;
+}

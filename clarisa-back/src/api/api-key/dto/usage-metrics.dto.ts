@@ -113,3 +113,43 @@ export class UsageLogsResponseDto {
   total: number;
   items: UsageLogItemDto[];
 }
+
+export class EndpointConsumerDto {
+  api_key_id: number;
+  api_key_name: string;
+  key_prefix: string;
+  mis_id: number | null;
+  mis_acronym: string | null;
+  total_requests: number;
+  last_used_at: Date | null;
+}
+
+export class EndpointUsageItemDto {
+  /** Name the caller reported (`clarisa-api` for direct calls to this API) */
+  microservice_name: string;
+  /** Request path without its query string */
+  endpoint: string;
+  http_method: string | null;
+  total_requests: number;
+  error_count: number;
+  avg_response_time_ms: number | null;
+  unique_api_keys: number;
+  last_used_at: Date | null;
+  consumers: EndpointConsumerDto[];
+}
+
+export class EndpointUsageResponseDto {
+  period: UsagePeriodDto;
+  total_requests: number;
+  items: EndpointUsageItemDto[];
+}
+
+export class MisActivityItemDto {
+  mis_id: number | null;
+  mis_acronym: string;
+  mis_name: string;
+  total_keys: number;
+  active_keys: number;
+  usage_count: number;
+  last_used_at: Date | null;
+}

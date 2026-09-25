@@ -1,0 +1,355 @@
+/**
+ * `_admin-stats` — las piezas con las que el panel MUESTRA cifras y participación,
+ * una sola vez para todas las pantallas: la tarjeta de indicador, la tarjeta de
+ * gráfico y la de tabla con su cabecera, la barra de trabajo de una pestaña, el
+ * número con su barra de participación, la lista de endpoints con barra, el
+ * verbo HTTP y el chip informativo.
+ *
+ * Nacieron en «Microservices & API keys» (24-sep-2026) y viven aquí y no en el
+ * componente por la misma razón que la tabla y el formulario (`_admin-table`,
+ * `_admin-form`): son el mismo control para cualquier pantalla que muestre
+ * consumo, y además un `@import` dentro de un componente se copia en cada
+ * componente que lo importa y cuenta contra su presupuesto de 10 kB.
+ *
+ * Ámbito: los nombres son propios (`kpi-card`, `admin-method`…), no pisan nada
+ * de PrimeNG ni del Bootstrap del tema.
+ */
+
+/* ---- barra de trabajo de una pestaña -------------------------------------- */
+
+.panel-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin-bottom: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.panel-head__text {
+  min-width: 0;
+}
+
+.panel-head__title {
+  margin: 0 0 0.2rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--cl-ink);
+  letter-spacing: -0.01em;
+}
+
+.panel-head__desc {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 0.83rem;
+  line-height: 1.45;
+  color: var(--cl-ink-2);
+
+  code {
+    font-size: 0.85em;
+    background: var(--cl-surface-2);
+    border: 1px solid var(--cl-line);
+    padding: 0.05em 0.35em;
+    border-radius: 4px;
+    color: var(--cl-ink-2);
+  }
+}
+
+.cell-sub {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--cl-ink-3);
+  line-height: 1.35;
+  margin-top: 1px;
+}
+
+/* ---- lista de endpoints con barra de participación ------------------------ */
+
+.endpoint-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+
+  li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 120px 96px;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+  }
+
+  &__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    code {
+      font-size: 12px;
+      color: var(--cl-ink);
+      background: transparent;
+      padding: 0;
+    }
+  }
+
+  &__track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--cl-line);
+    overflow: hidden;
+  }
+
+  &__fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--cl-brand-strong);
+  }
+
+  &__value {
+    text-align: right;
+    color: var(--cl-ink-2);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
+
+.endpoint-bars__via {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--cl-ink-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.via-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cl-line);
+  background: var(--cl-surface);
+  color: var(--cl-ink-2);
+  font-size: 12px;
+
+  b {
+    color: var(--cl-ink);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.kpi-card {
+  min-width: 0;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-card);
+  padding: 12px 14px;
+  box-shadow: 0 1px 2px rgba(16, 36, 28, 0.05);
+  /* El mismo acento que marca «estás aquí» en el resto del panel. */
+  border-top: 3px solid var(--cl-brand-strong);
+
+  &--alert {
+    border-top-color: var(--cl-warn);
+  }
+
+  &__label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cl-ink-3);
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__value {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--cl-ink);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  &__hint {
+    display: block;
+    margin-top: 5px;
+    font-size: 11.5px;
+    color: var(--cl-ink-3);
+    line-height: 1.35;
+
+    b {
+      color: var(--cl-warn);
+    }
+  }
+}
+
+.chart-card {
+  padding: 12px 16px 14px;
+  min-width: 0;
+
+  &--nested {
+    border: 1px solid var(--cl-line);
+    border-radius: 10px;
+    box-shadow: none;
+    padding: 10px 12px 12px;
+  }
+
+  &__head {
+    margin-bottom: 8px;
+
+    h2,
+    h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--cl-ink);
+    }
+
+    span {
+      font-size: 12px;
+      color: var(--cl-ink-3);
+    }
+  }
+}
+
+.table-card {
+  min-width: 0;
+  padding: 4px 4px 6px;
+
+  &__head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 10px 12px 12px;
+
+    h2 {
+      margin: 0 0 2px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--cl-ink);
+    }
+
+    > div > span {
+      display: block;
+      font-size: 12px;
+      color: var(--cl-ink-3);
+      max-width: 52ch;
+    }
+
+    .admin-table-toolbar {
+      flex: 0 1 260px;
+
+      .p-input-icon-left {
+        flex: 1 1 200px;
+        max-width: 320px;
+      }
+    }
+  }
+}
+
+.share {
+  display: inline-grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 150px;
+
+  strong {
+    font-variant-numeric: tabular-nums;
+  }
+
+  small {
+    color: var(--cl-ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__track {
+    height: 5px;
+    min-width: 30px;
+    border-radius: 999px;
+    background: var(--cl-line);
+    overflow: hidden;
+  }
+
+  &__fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--cl-brand-strong);
+  }
+}
+
+.admin-method {
+  flex: 0 0 auto;
+  display: inline-block;
+  min-width: 44px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: center;
+  text-transform: uppercase;
+  background: var(--cl-surface-2);
+  border: 1px solid var(--cl-line);
+  color: var(--cl-ink-2);
+
+  &[data-method='GET'],
+  &[data-method='get'] {
+    background: var(--cl-brand-soft);
+    border-color: var(--cl-brand-ring);
+    color: var(--cl-brand-deeper);
+  }
+
+  &--lg {
+    min-width: 56px;
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+
+  .pi {
+    font-size: 11px;
+  }
+
+  &--muted {
+    background: var(--cl-surface-2);
+    border: 1px solid var(--cl-line);
+    color: var(--cl-ink-2);
+  }
+}
+
+.admin-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--cl-ink-3);
+
+  &--padded {
+    padding: 14px 12px 12px;
+  }
+}

@@ -1,74 +1,109 @@
-<header class="panel-header">
-  <div>
-    <h1 class="panel-header__title">API Keys</h1>
-    <p class="panel-header__desc">
-      Issue and manage <code>X-API-Key</code> credentials for microservice access.
+<!--
+  Barra de trabajo de la pestaña: qué es, y la única acción primaria a la
+  derecha. El buscador, el filtro de estado y el recuento viven en la barra de
+  la tabla, que es la misma de «Institution lifecycle».
+-->
+<header class="panel-head">
+  <div class="panel-head__text">
+    <h2 class="panel-head__title">API keys</h2>
+    <p class="panel-head__desc">
+      Credentials sent as <code>X-API-Key</code>. Open a row to see what it was used for in the last {{ detailDays }} days.
     </p>
   </div>
-  <div class="panel-header__actions">
-    <div class="panel-header__filter">
-      <label id="apiKeysStatusLabel">Status</label>
-      <p-dropdown
-        [options]="[
-          { label: 'Active', value: 'active' },
-          { label: 'All', value: 'all' },
-          { label: 'Inactive', value: 'inactive' }
-        ]"
-        [(ngModel)]="showFilter"
-        optionLabel="label"
-        optionValue="value"
-        (onChange)="loadKeys()"
-        styleClass="filter-dropdown"
-        ariaLabelledBy="apiKeysStatusLabel"
-      ></p-dropdown>
-    </div>
-    <button
-      pButton
-      type="button"
-      label="New API key"
-      icon="pi pi-plus"
-      class="p-button-success btn-brand"
-      (click)="openCreate()"
-    ></button>
-  </div>
+  <button pButton type="button" label="New API key" icon="pi pi-plus" class="btn-brand" (click)="openCreate()"></button>
 </header>
 
 <section class="panel-card">
   <p-table
+    #keysTable
     [value]="keys"
     [loading]="loading"
+    dataKey="id"
     sortField="name"
     [sortOrder]="1"
     [rows]="10"
-    [paginator]="keys.length > 10"
-    styleClass="p-datatable-sm admin-table"
-    responsiveLayout="scroll"
-  >
+    [paginator]="true"
+    [rowsPerPageOptions]="rowsPerPage"
+    [showCurrentPageReport]="true"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} keys"
+    [globalFilterFields]="['search_text']"
+    [expandedRowKeys]="expandedRows"
+    (onRowExpand)="onRowExpand($event)"
+    styleClass="p-datatable-sm admin-table keys-table"
+    responsiveLayout="scroll">
+    <ng-template pTemplate="caption">
+      <div class="admin-table-toolbar">
+        <span class="p-input-icon-left">
+          <i class="pi pi-search"></i>
+          <input
+            pInputText
+            type="text"
+            placeholder="Search by name, prefix, MIS, or description"
+            aria-label="Search API keys"
+            (input)="keysTable.filterGlobal($any($event.target).value, 'contains')" />
+        </span>
+        <p-dropdown
+          [options]="[
+            { label: 'Active', value: 'active' },
+            { label: 'All', value: 'all' },
+            { label: 'Inactive', value: 'inactive' }
+          ]"
+          [(ngModel)]="showFilter"
+          optionLabel="label"
+          optionValue="value"
+          (onChange)="loadKeys()"
+          styleClass="filter-dropdown"
+          ariaLabel="Status filter"></p-dropdown>
+        <span class="admin-table-toolbar__count">{{ keysTable.totalRecords || 0 }} keys</span>
+      </div>
+    </ng-template>
+
     <ng-template pTemplate="header">
       <tr>
-        <th scope="col" pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="key_prefix">Prefix <p-sortIcon field="key_prefix"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="environment">Env <p-sortIcon field="environment"></p-sortIcon></th>
-        <th scope="col">Scopes</th>
-        <th scope="col" pSortableColumn="usage_count">Usage <p-sortIcon field="usage_count"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="status_label">Status <p-sortIcon field="status_label"></p-sortIcon></th>
-        <th scope="col" style="width: 9rem">Actions</th>
+        <th scope="col" style="width: 36px"></th>
+        <th scope="col" pSortableColumn="name" style="width: 180px">Name <p-sortIcon field="name"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="key_prefix" style="width: 126px">Prefix <p-sortIcon field="key_prefix"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="mis_acronym" style="width: 88px">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="environment" style="width: 70px">Env <p-sortIcon field="environment"></p-sortIcon></th>
+        <th scope="col" style="width: 150px">Scopes</th>
+        <th scope="col" pSortableColumn="last_used_ts" style="width: 100px">Last used <p-sortIcon field="last_used_ts"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="usage_count" style="width: 72px">Calls <p-sortIcon field="usage_count"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="status_label" style="width: 96px">Status <p-sortIcon field="status_label"></p-sortIcon></th>
+        <th scope="col" style="width: 116px">Actions</th>
       </tr>
     </ng-template>
-    <ng-template pTemplate="body" let-key>
-      <tr>
-        <td data-card-title data-label="Name"><span class="cell-primary">{{ key.name }}</span></td>
-        <td data-label="Prefix"><code class="key-prefix">{{ key.key_prefix }}…</code></td>
+
+    <ng-template pTemplate="body" let-key let-expanded="expanded">
+      <tr [class.row-inactive]="!key.is_active" [class.is-open]="expanded">
+        <td>
+          <button
+            pButton
+            type="button"
+            [pRowToggler]="key"
+            [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+            class="p-button-text p-button-sm p-button-plain"
+            [pTooltip]="expanded ? 'Hide details' : 'Details and last ' + detailDays + ' days'"
+            [attr.aria-label]="expanded ? 'Hide details' : 'Show details'"></button>
+        </td>
+        <td data-card-title data-label="Name">
+          <span class="cell-primary">{{ key.name }}</span>
+          <span class="cell-sub cell-ellipsis" *ngIf="key.description" [title]="key.description">{{ key.description }}</span>
+        </td>
+        <td data-label="Prefix">
+          <code class="key-prefix">{{ key.key_prefix }}…</code>
+        </td>
         <td data-label="MIS">{{ key.mis_acronym || '—' }}</td>
         <td data-label="Env">{{ key.environment || '—' }}</td>
         <td data-label="Scopes">
           <span class="scopes-cell" [pTooltip]="(key.scopes || []).join(', ')" tooltipPosition="top">
-            {{ (key.scopes || []).length ? (key.scopes | slice:0:2).join(', ') : '—' }}
+            {{ (key.scopes || []).length ? (key.scopes | slice: 0 : 2).join(', ') : '—' }}
             <span *ngIf="(key.scopes || []).length > 2" class="scopes-more">+{{ key.scopes.length - 2 }}</span>
           </span>
         </td>
-        <td data-label="Usage">{{ key.usage_count ?? 0 }}</td>
+        <td data-label="Last used">
+          <span [class.cell-muted]="!key.last_used_at" [title]="lastUsedTitle(key)">{{ lastUsed(key) }}</span>
+        </td>
+        <td data-label="Calls">{{ formatNumber(key.usage_count ?? 0) }}</td>
         <td data-label="Status">
           <p-tag [value]="statusLabel(key)" [severity]="statusSeverity(key)"></p-tag>
         </td>
@@ -77,19 +112,27 @@
             <button
               pButton
               type="button"
+              icon="pi pi-pencil"
+              class="p-button-text p-button-sm"
+              pTooltip="Edit"
+              aria-label="Edit"
+              (click)="openEdit(key)"></button>
+            <button
+              pButton
+              type="button"
               icon="pi pi-refresh"
               class="p-button-text p-button-sm"
               pTooltip="Rotate"
-              (click)="confirmRotate(key)"
-            ></button>
+              aria-label="Rotate"
+              (click)="confirmRotate(key)"></button>
             <button
               pButton
               type="button"
               icon="pi pi-ban"
               class="p-button-text p-button-sm p-button-warning"
               pTooltip="Revoke"
-              (click)="confirmRevoke(key)"
-            ></button>
+              aria-label="Revoke"
+              (click)="confirmRevoke(key)"></button>
           </div>
           <button
             *ngIf="!key.is_active"
@@ -97,102 +140,232 @@
             type="button"
             icon="pi pi-trash"
             class="p-button-text p-button-sm p-button-danger"
-            pTooltip="Delete"
-            (click)="confirmDelete(key)"
-          ></button>
+            pTooltip="Delete permanently"
+            aria-label="Delete permanently"
+            (click)="confirmDelete(key)"></button>
         </td>
       </tr>
     </ng-template>
+
+    <!--
+      La ficha de la llave, debajo de su fila: lo que la describe a la izquierda
+      y lo que hizo en los últimos 30 días a la derecha. Es la respuesta a
+      «qué endpoints consume esta API key» sin cambiar de pantalla
+      (Héctor, 24-sep-2026: la información a mano apenas se entra).
+    -->
+    <ng-template pTemplate="rowexpansion" let-key>
+      <tr class="key-detail-row">
+        <td colspan="10">
+          <div class="key-detail">
+            <section class="key-detail__facts">
+              <h3 class="key-detail__heading">Details</h3>
+              <dl class="key-facts">
+                <div>
+                  <dt>Description</dt>
+                  <dd [class.cell-muted]="!key.description">{{ key.description || 'No description yet' }}</dd>
+                </div>
+                <div>
+                  <dt>Linked MIS</dt>
+                  <dd>
+                    <ng-container *ngIf="key.mis_acronym; else noMis"
+                      >{{ key.mis_acronym }}<span class="cell-sub" *ngIf="key.mis_name">{{ key.mis_name }}</span></ng-container
+                    >
+                    <ng-template #noMis><span class="cell-muted">None</span></ng-template>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Allowed IPs</dt>
+                  <dd [class.cell-muted]="!key.allowed_ips?.length">{{ key.allowed_ips?.length ? key.allowed_ips.join(', ') : 'Any' }}</dd>
+                </div>
+                <div>
+                  <dt>Expires</dt>
+                  <dd [class.cell-muted]="!key.expires_at">{{ key.expires_at ? formatDate(key.expires_at) : 'Never' }}</dd>
+                </div>
+                <div>
+                  <dt>Created</dt>
+                  <dd>{{ formatDate(key.created_at) }}</dd>
+                </div>
+                <div>
+                  <dt>Lifetime calls</dt>
+                  <dd>{{ formatNumber(key.usage_count ?? 0) }}</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="key-detail__usage">
+              <header class="key-detail__usage-head">
+                <h3 class="key-detail__heading">Last {{ detailDays }} days</h3>
+                <button
+                  pButton
+                  type="button"
+                  label="Open in Overview"
+                  icon="pi pi-chart-line"
+                  class="p-button-text p-button-sm"
+                  (click)="openInOverview(key)"></button>
+              </header>
+
+              <ng-container *ngIf="detailLoading[key.id]">
+                <div class="key-usage-skeleton" aria-busy="true" aria-label="Loading usage"><span></span><span></span><span></span></div>
+              </ng-container>
+
+              <ng-container *ngIf="!detailLoading[key.id] && detailById[key.id] === null">
+                <p class="key-detail__empty">Usage for this key could not be loaded.</p>
+              </ng-container>
+
+              <ng-container *ngIf="!detailLoading[key.id] && detailById[key.id] as detail">
+                <div class="key-usage-kpis">
+                  <span
+                    ><strong>{{ formatNumber(detail.totals.total_requests) }}</strong> requests</span
+                  >
+                  <span
+                    ><strong>{{ detail.totals.active_days }}</strong> active days</span
+                  >
+                  <span
+                    ><strong>{{ detail.totals.avg_response_time_ms ?? '—' }}</strong> ms avg</span
+                  >
+                  <span [class.is-bad]="detail.totals.error_count"
+                    ><strong>{{ formatNumber(detail.totals.error_count) }}</strong> errors</span
+                  >
+                </div>
+
+                <ng-container *ngIf="detail.top_endpoints.length; else noUsage">
+                  <ol class="endpoint-bars">
+                    <li *ngFor="let ep of detail.top_endpoints">
+                      <span class="endpoint-bars__label"
+                        ><code>{{ ep.label }}</code></span
+                      >
+                      <span class="endpoint-bars__track"><span class="endpoint-bars__fill" [style.width]="shareWidth(ep.percentage)"></span></span>
+                      <span class="endpoint-bars__value">{{ formatNumber(ep.total_requests) }} · {{ ep.percentage }}%</span>
+                    </li>
+                  </ol>
+                  <p class="endpoint-bars__via" *ngIf="detail.by_microservice.length">
+                    Via
+                    <span class="via-chip" *ngFor="let ms of detail.by_microservice"
+                      >{{ ms.label }} <b>{{ formatNumber(ms.total_requests) }}</b></span
+                    >
+                  </p>
+                </ng-container>
+                <ng-template #noUsage>
+                  <p class="key-detail__empty">No calls in the last {{ detailDays }} days.</p>
+                </ng-template>
+              </ng-container>
+            </section>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
     <ng-template pTemplate="emptymessage">
       <tr>
-        <td colspan="8" class="empty-cell">No API keys found for this filter.</td>
+        <td colspan="10" class="empty-cell">
+          No API keys match this filter.
+          <button pButton type="button" label="Create one" class="p-button-link p-0 ms-1" (click)="openCreate()"></button>
+        </td>
       </tr>
     </ng-template>
   </p-table>
 </section>
 
 <p-dialog
-  header="Create API key"
-  [(visible)]="createVisible"
+  [header]="dialogTitle"
+  [(visible)]="dialogVisible"
   [modal]="true"
-  [style]="{ width: '38rem' }"
+  [style]="{ width: '40rem' }"
+  [breakpoints]="{ '720px': '94vw' }"
   [draggable]="false"
-  [contentStyle]="{ overflow: 'visible' }"
-  styleClass="admin-dialog"
->
-  <form [formGroup]="form" class="admin-form" (ngSubmit)="submitCreate()">
+  [closable]="!submitting"
+  (onHide)="closeDialog()"
+  styleClass="admin-dialog">
+  <form [formGroup]="form" class="admin-form" (ngSubmit)="submit()">
+    <p class="edit-note" *ngIf="editing">
+      <code class="key-prefix">{{ editing.key_prefix }}…</code>
+      The secret does not change here. To issue a new one, use <strong>Rotate</strong>.
+    </p>
+
     <div class="field">
       <label for="keyName">Name <span class="req">*</span></label>
-      <input id="keyName" pInputText formControlName="name" class="w-full" placeholder="e.g. Email MS - Production" />
+      <input id="keyName" pInputText formControlName="name" class="w-full" placeholder="e.g. Reporting Tool — production" />
       <small class="field-error" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">Name is required (max 255 chars).</small>
     </div>
 
     <div class="field">
-      <label for="keyMis">Linked MIS</label>
-      <p-dropdown
-        id="keyMis"
-        formControlName="mis_id"
-        [options]="mises"
-        optionLabel="acronym"
-        optionValue="id"
-        [showClear]="true"
-        [filter]="true"
-        filterBy="acronym,name,environment"
-        placeholder="Optional"
-        (onChange)="onMisSelected($event.value)"
-        appendTo="body"
-        [style]="{ width: '100%' }"
-        styleClass="w-full admin-dropdown"
-        panelStyleClass="admin-dropdown-panel"
-        (onShow)="onDropdownShow($event)"
-      >
-        <ng-template let-mis pTemplate="item">
-          <div class="dd-option">
-            <span class="dd-option__title">{{ mis.acronym }}</span>
-            <span class="dd-option__meta" *ngIf="mis.name">{{ mis.name }}</span>
-            <span class="dd-option__meta" *ngIf="mis.environment">Env: {{ mis.environment }}</span>
-          </div>
-        </ng-template>
-        <ng-template let-mis pTemplate="selectedItem">
-          <span class="dd-selected">{{ mis.acronym }}</span>
-        </ng-template>
-      </p-dropdown>
+      <label for="keyDescription">Description <span class="tag-opt">Optional</span></label>
+      <textarea
+        id="keyDescription"
+        pInputTextarea
+        formControlName="description"
+        rows="2"
+        class="w-full"
+        placeholder="Who holds this key and what it is used for, e.g. «PRMS back end, nightly sync of institutions»"></textarea>
+      <small class="field-hint">Shown under the name in the table, so nobody has to guess from the prefix.</small>
+      <small class="field-error" *ngIf="form.get('description')?.invalid && form.get('description')?.touched">Max 1000 characters.</small>
+    </div>
+
+    <div class="admin-form__grid">
+      <div class="field">
+        <label for="keyMis">Linked MIS <span class="tag-opt">Optional</span></label>
+        <p-dropdown
+          id="keyMis"
+          formControlName="mis_id"
+          [options]="mises"
+          optionLabel="acronym"
+          optionValue="id"
+          [showClear]="true"
+          [filter]="true"
+          filterBy="acronym,name,environment"
+          placeholder="None"
+          (onChange)="onMisSelected($event.value)"
+          appendTo="body"
+          [style]="{ width: '100%' }"
+          styleClass="w-full admin-dropdown"
+          panelStyleClass="admin-dropdown-panel"
+          (onShow)="onDropdownShow($event)">
+          <ng-template let-mis pTemplate="item">
+            <div class="dd-option">
+              <span class="dd-option__title">{{ mis.acronym }}</span>
+              <span class="dd-option__meta" *ngIf="mis.name">{{ mis.name }}</span>
+              <span class="dd-option__meta" *ngIf="mis.environment">Env: {{ mis.environment }}</span>
+            </div>
+          </ng-template>
+          <ng-template let-mis pTemplate="selectedItem">
+            <span class="dd-selected">{{ mis.acronym }}</span>
+          </ng-template>
+        </p-dropdown>
+      </div>
+
+      <div class="field">
+        <label for="keyEnv">Key environment <span class="req" *ngIf="!editing">*</span></label>
+        <p-dropdown
+          id="keyEnv"
+          formControlName="environment"
+          [options]="environments"
+          optionLabel="label"
+          optionValue="acronym"
+          [placeholder]="environmentsLoading ? 'Loading environments…' : 'Select environment (e.g. PROD)'"
+          appendTo="body"
+          [style]="{ width: '100%' }"
+          styleClass="w-full admin-dropdown"
+          panelStyleClass="admin-dropdown-panel"
+          (onShow)="onDropdownShow($event)">
+          <ng-template let-env pTemplate="item">
+            <div class="dd-option">
+              <span class="dd-option__title">{{ env.acronym }}</span>
+              <span class="dd-option__meta" *ngIf="env.name">{{ env.name }}</span>
+            </div>
+          </ng-template>
+          <ng-template let-env pTemplate="selectedItem">
+            <span class="dd-selected">{{ env.acronym }}</span>
+          </ng-template>
+        </p-dropdown>
+        <small class="field-hint" *ngIf="!editing">
+          Sets the prefix: <code>{{ keyPrefixPreview(form.get('environment')?.value) }}</code>
+        </small>
+        <small class="field-hint" *ngIf="editing">Fixed: it is part of the prefix.</small>
+      </div>
     </div>
 
     <div class="field">
-      <label for="keyEnv">Key environment <span class="req">*</span></label>
-      <p-dropdown
-        id="keyEnv"
-        formControlName="environment"
-        [options]="environments"
-        optionLabel="label"
-        optionValue="acronym"
-        [disabled]="environmentsLoading"
-        [placeholder]="environmentsLoading ? 'Loading environments…' : 'Select environment (e.g. PROD)'"
-        appendTo="body"
-        [style]="{ width: '100%' }"
-        styleClass="w-full admin-dropdown"
-        panelStyleClass="admin-dropdown-panel"
-        (onShow)="onDropdownShow($event)"
-      >
-        <ng-template let-env pTemplate="item">
-          <div class="dd-option">
-            <span class="dd-option__title">{{ env.acronym }}</span>
-            <span class="dd-option__meta" *ngIf="env.name">{{ env.name }}</span>
-          </div>
-        </ng-template>
-        <ng-template let-env pTemplate="selectedItem">
-          <span class="dd-selected">{{ env.acronym }}</span>
-        </ng-template>
-      </p-dropdown>
-      <small class="field-hint">
-        Same catalog as MIS (DEV, TEST, PROD, etc.). Key prefix:
-        <code>{{ keyPrefixPreview(form.get('environment')?.value) }}</code>
-      </small>
-    </div>
-
-    <div class="field">
-      <label for="keyScopes">Scopes</label>
+      <label for="keyScopes">Scopes <span class="tag-opt">Optional</span></label>
       <p-multiSelect
         inputId="keyScopes"
         formControlName="scopes"
@@ -206,13 +379,11 @@
         [filter]="true"
         filterPlaceHolder="Search permissions…"
         [showToggleAll]="false"
-        [disabled]="scopesLoading"
-        [placeholder]="scopesLoading ? 'Loading scopes…' : 'Select permissions (optional)'"
+        [placeholder]="scopesLoading ? 'Loading scopes…' : 'Select permissions'"
         appendTo="body"
         styleClass="w-full admin-multiselect"
         panelStyleClass="admin-dropdown-panel"
-        [style]="{ width: '100%' }"
-      >
+        [style]="{ width: '100%' }">
         <ng-template let-option pTemplate="item">
           <div class="dd-option" [title]="option.title">
             <span class="dd-option__title">{{ option.label }}</span>
@@ -220,40 +391,47 @@
           </div>
         </ng-template>
       </p-multiSelect>
-      <small class="field-hint">
-        Permissions for CLARISA APIs and microservice capabilities — not other MIS identifiers.
-      </small>
+      <small class="field-hint">Permissions for CLARISA APIs and microservice capabilities — not MIS identifiers.</small>
     </div>
 
-    <div class="field">
-      <label for="keyIps">Allowed IPs</label>
-      <textarea
-        id="keyIps"
-        pInputTextarea
-        formControlName="allowedIpsText"
-        rows="2"
-        class="w-full"
-        placeholder="10.0.0.0/8 (optional, comma-separated)"
-      ></textarea>
-    </div>
+    <div class="admin-form__grid">
+      <div class="field">
+        <label for="keyIps">Allowed IPs <span class="tag-opt">Optional</span></label>
+        <textarea
+          id="keyIps"
+          pInputTextarea
+          formControlName="allowedIpsText"
+          rows="2"
+          class="w-full"
+          placeholder="10.0.0.0/8, 192.168.1.50"></textarea>
+        <small class="field-hint">Comma-separated. Empty means any IP.</small>
+      </div>
 
-    <div class="field">
-      <label for="keyExpires">Expires at</label>
-      <p-calendar
-        id="keyExpires"
-        formControlName="expires_at"
-        [showIcon]="true"
-        dateFormat="yy-mm-dd"
-        [showTime]="true"
-        appendTo="body"
-        styleClass="w-full"
-        panelStyleClass="admin-dropdown-panel"
-      ></p-calendar>
+      <div class="field">
+        <label for="keyExpires">Expires at <span class="tag-opt">Optional</span></label>
+        <p-calendar
+          id="keyExpires"
+          formControlName="expires_at"
+          [showIcon]="true"
+          [showClear]="true"
+          dateFormat="yy-mm-dd"
+          [showTime]="true"
+          appendTo="body"
+          styleClass="w-full"
+          panelStyleClass="admin-dropdown-panel"></p-calendar>
+        <small class="field-hint">Empty means the key never expires.</small>
+      </div>
     </div>
 
     <div class="dialog-footer">
-      <button pButton type="button" label="Cancel" class="p-button-text" (click)="createVisible = false"></button>
-      <button pButton type="submit" label="Create key" class="btn-brand"></button>
+      <button pButton type="button" label="Cancel" class="p-button-text" [disabled]="submitting" (click)="closeDialog()"></button>
+      <button
+        pButton
+        type="submit"
+        [label]="submitting ? 'Saving…' : editing ? 'Save changes' : 'Create key'"
+        class="btn-brand"
+        [loading]="submitting"
+        [disabled]="submitting"></button>
     </div>
   </form>
 </p-dialog>
@@ -265,8 +443,8 @@
   [closable]="true"
   (onHide)="closeSecretDialog()"
   [style]="{ width: '36rem' }"
-  styleClass="admin-dialog secret-dialog"
->
+  [breakpoints]="{ '720px': '94vw' }"
+  styleClass="admin-dialog secret-dialog">
   <div class="secret-banner">
     <i class="pi pi-exclamation-triangle"></i>
     <p>This secret is shown <strong>once</strong>. Copy it now and store it securely.</p>

@@ -8,6 +8,7 @@ export class ApiKeyMapper {
     const dto = new ApiKeyDto();
     dto.id = apiKey.id;
     dto.name = apiKey.name;
+    dto.description = apiKey.description ?? null;
     dto.key_prefix = apiKey.key_prefix;
     dto.mis_id = apiKey.mis_id;
     dto.scopes = apiKey.scopes;

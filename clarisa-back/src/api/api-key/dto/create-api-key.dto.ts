@@ -18,6 +18,12 @@ export class CreateApiKeyDto {
   @MaxLength(255)
   name: string;
 
+  /** Who holds the key and what it is used for. Optional; the panel sends '' to clear it. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+
   @IsOptional()
   @IsInt()
   @Min(1)
