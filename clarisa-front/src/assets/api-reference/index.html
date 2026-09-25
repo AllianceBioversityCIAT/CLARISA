@@ -697,7 +697,7 @@
 
       .doc-hero { padding: 28px 22px; }
       .doc-hero__title { font-size: 26px; }
-      /* En teléfono el texto y las cifras ocupan todo el ancho: no queda
+      /* En teléfono el texto y las cifras ocupan el ancho completo: no queda
          ningún sitio donde la red no pase por detrás de algo, así que no se
          dibuja. El halo de la esquina se queda. */
       .doc-hero::before { display: none; }
@@ -771,8 +771,8 @@
     <div class="doc-foot" id="docFoot"></div>
   </aside>
 
-  <!-- ░░ CONTENIDO ░░  Sin tope de ancho aquí: la tabla de datos necesita todo
-       el ancho. Las vistas de prosa (portada, Get started, pestaña Doc) traen
+  <!-- ░░ CONTENIDO ░░  Sin tope de ancho aquí: la tabla de datos necesita el
+       ancho completo. Las vistas de prosa (portada, Get started, pestaña Doc) traen
        su propio `mx-auto max-w-*`. -->
   <main class="doc-main">
     <div id="main" class="w-full"></div>
@@ -908,6 +908,14 @@ const fmt = n => Number(n).toLocaleString('en-US');
    runs, and never `JSON.stringify` alone inside single quotes: an apostrophe
    in the value («Farmers' association») ends the attribute early. */
 const attr = v => esc(JSON.stringify(v));
+/* `1 record` / `2 records`. */
+const plural = (n, word) => `${word}${n === 1 ? '' : 's'}`;
+/* The JS type name of a sample value, as written in a TypeScript interface. */
+function tsTypeOf(value) {
+  if (typeof value === 'number') return 'number';
+  if (typeof value === 'boolean') return 'boolean';
+  return 'string';
+}
 
 /* Icons drawn once, reused everywhere: one line of SVG per glyph. */
 const ICON = {
@@ -1525,7 +1533,8 @@ function renderEndpointShell(loading, error = null) {
    what was coming. */
 function skeletonTable() {
   const widths = [64, 96, 52, 120, 88, 140, 72];
-  const row = () => `<tr>${widths.map((w, i) => `<td><span class="sk" style="display:block;height:12px;width:${w + ((i * 7) % 24)}px"></span></td>`).join('')}</tr>`;
+  const cell = (w, i) => `<td><span class="sk" style="display:block;height:12px;width:${w + ((i * 7) % 24)}px"></span></td>`;
+  const row = () => '<tr>' + widths.map(cell).join('') + '</tr>';
   return `
     <div class="doc-table" aria-busy="true" aria-label="Loading records">
       <div class="doc-table__bar">
@@ -1581,7 +1590,10 @@ function renderTab() {
    take `state.filtered`, so a file downloaded after filtering holds exactly
    what the table shows. */
 const cellKey = v => (v === null || v === undefined || v === '') ? '' : String(v);
-const cellLabel = v => v === '' ? '(empty)' : v === 'true' ? 'Yes' : v === 'false' ? 'No' : v;
+// A Map, not an object: `v in {}` also finds inherited keys, and a cell whose
+// value is «toString» would print a function.
+const CELL_LABELS = new Map([['', '(empty)'], ['true', 'Yes'], ['false', 'No']]);
+const cellLabel = v => (CELL_LABELS.has(v) ? CELL_LABELS.get(v) : v);
 
 function distinctValues(col) {
   if (state.distinct.has(col)) return state.distinct.get(col);
@@ -1647,14 +1659,27 @@ function pickerToggle(v) {
   p.sel.has(v) ? p.sel.delete(v) : p.sel.add(v);
   renderPicker(false);
 }
+/* The filter the open picker describes, or null when it would filter nothing
+   (no value picked, no text typed). */
+function buildFilter(p) {
+  if (isPickable(p.col)) {
+    return p.sel.size ? { col: p.col, mode: 'in', values: [...p.sel] } : null;
+  }
+  const typed = p.text.trim();
+  return typed ? { col: p.col, mode: 'contains', text: typed.toLowerCase(), raw: typed } : null;
+}
+
 function pickerApply() {
   const p = state.picker;
   if (!p?.col) return;
-  const f = isPickable(p.col)
-    ? (p.sel.size ? { col: p.col, mode: 'in', values: [...p.sel] } : null)
-    : (p.text.trim() ? { col: p.col, mode: 'contains', text: p.text.trim().toLowerCase(), raw: p.text.trim() } : null);
-  if (p.index >= 0) { if (f) state.filters[p.index] = f; else state.filters.splice(p.index, 1); }
-  else if (f) state.filters.push(f);
+  const f = buildFilter(p);
+  if (p.index < 0) {
+    if (f) state.filters.push(f);
+  } else if (f) {
+    state.filters[p.index] = f;
+  } else {
+    state.filters.splice(p.index, 1);
+  }
   state.picker = null;
   applyFilters();
   renderTable();
@@ -1662,10 +1687,84 @@ function pickerApply() {
 function removeFilter(i) { state.filters.splice(i, 1); state.picker = null; applyFilters(); renderTable(); }
 function clearFilters() { state.filters = []; state.search = ''; state.picker = null; applyFilters(); renderTable(); }
 
+function pickerHead(p) {
+  return `
+    <div class="doc-pop__head">
+      <button type="button" class="doc-btn doc-btn--ghost doc-btn--sm doc-btn--icon" onclick="pickerBack()" aria-label="Choose another column">${ICON.back}</button>
+      <span class="doc-pop__title">${esc(humanizeColumn(p.col))}<small>${esc(p.col)}</small></span>
+      <button type="button" class="doc-btn doc-btn--ghost doc-btn--sm doc-btn--icon" onclick="closePicker()" aria-label="Close">${ICON.x}</button>
+    </div>`;
+}
+
+/* The search box of a list, shown only when the list is long enough to need it. */
+function pickerSearch(show, placeholder, value) {
+  if (!show) return '';
+  return `<div class="doc-field doc-pop__search">${ICON.search}<input id="pickerQ" type="text" placeholder="${placeholder}" value="${esc(value)}" oninput="pickerQuery(this.value)" autocomplete="off"></div>`;
+}
+
+const applyLabel = p => (p.index >= 0 ? 'Update' : 'Apply');
+
+// Step 1: which column.
+function pickerColumnsHtml(p) {
+  const cols = state.columns.filter(c => !p.q || humanizeColumn(c).toLowerCase().includes(p.q) || c.toLowerCase().includes(p.q));
+  const items = cols.length
+    ? cols.map(c => `
+          <button type="button" class="doc-pop__item" data-col="${esc(c)}">
+            <span class="doc-pop__label">${esc(humanizeColumn(c))}</span><span class="doc-pop__key">${esc(c)}</span>
+          </button>`).join('')
+    : '<div class="doc-pop__empty">No column matches.</div>';
+  return `
+      <div class="doc-pop__head"><span class="doc-pop__title">Filter by column</span>
+        <button type="button" class="doc-btn doc-btn--ghost doc-btn--sm doc-btn--icon" onclick="closePicker()" aria-label="Close">${ICON.x}</button></div>
+      ${pickerSearch(state.columns.length > 8, 'Find a column…', p.qRaw)}
+      <div class="doc-pop__list">${items}</div>`;
+}
+
+// Step 2a: pick values. Counts say how much each choice will leave.
+function pickerValuesHtml(p) {
+  const all = distinctValues(p.col);
+  const shown = all.filter(([v]) => !p.q || cellLabel(v).toLowerCase().includes(p.q));
+  const items = shown.length
+    ? shown.map(([v, n]) => {
+        const on = p.sel.has(v);
+        return `
+          <button type="button" class="doc-pop__item ${on ? 'is-on' : ''}" data-value="${esc(v)}" role="checkbox" aria-checked="${on}">
+            <span class="doc-check">${ICON.check}</span><span class="doc-pop__label">${esc(cellLabel(v))}</span><span class="doc-pop__n">${fmt(n)}</span>
+          </button>`;
+      }).join('')
+    : '<div class="doc-pop__empty">No value matches.</div>';
+  const status = p.sel.size ? `<b>${p.sel.size}</b> selected` : 'Pick one or more values';
+  return `
+      ${pickerHead(p)}
+      ${pickerSearch(all.length > 8, 'Find a value…', p.qRaw)}
+      <div class="doc-pop__list">${items}</div>
+      <div class="doc-pop__foot">
+        <span class="doc-table__count">${status}</span>
+        <button type="button" class="doc-btn doc-btn--primary doc-btn--sm" onclick="pickerApply()">${applyLabel(p)}</button>
+      </div>`;
+}
+
+// Step 2b: free text for columns with too many values to list.
+function pickerTextHtml(p) {
+  return `
+    ${pickerHead(p)}
+    <div class="p-3">
+      <div class="doc-field">${ICON.search}<input id="pickerText" type="text" placeholder="Contains…" value="${esc(p.text)}" oninput="pickerText(this.value)" onkeydown="if (event.key === 'Enter') pickerApply()" autocomplete="off"></div>
+      <p class="mb-0 mt-2 text-[12px] leading-snug text-ink-3">More than ${PICK_LIMIT} distinct values, so this one is typed — matches any part of the text, case-insensitive.</p>
+    </div>
+    <div class="doc-pop__foot">
+      <span></span>
+      <button type="button" class="doc-btn doc-btn--primary doc-btn--sm" onclick="pickerApply()">${applyLabel(p)}</button>
+    </div>`;
+}
+
 function renderPicker(focus) {
   const p = state.picker;
   let pop = $('#filterPop');
-  if (!p) { if (pop) pop.remove(); return; }
+  if (!p) {
+    if (pop) pop.remove();
+    return;
+  }
   if (!pop) {
     pop = document.createElement('div');
     pop.id = 'filterPop';
@@ -1673,63 +1772,18 @@ function renderPicker(focus) {
     $('.doc-table__bar')?.appendChild(pop);
   }
 
+  let firstFocus;
   if (!p.col) {
-    // Step 1: which column.
-    const cols = state.columns.filter(c => !p.q || humanizeColumn(c).toLowerCase().includes(p.q) || c.toLowerCase().includes(p.q));
-    pop.innerHTML = `
-      <div class="doc-pop__head"><span class="doc-pop__title">Filter by column</span>
-        <button type="button" class="doc-btn doc-btn--ghost doc-btn--sm doc-btn--icon" onclick="closePicker()" aria-label="Close">${ICON.x}</button></div>
-      ${state.columns.length > 8 ? `<div class="doc-field doc-pop__search">${ICON.search}<input id="pickerQ" type="text" placeholder="Find a column…" value="${esc(p.qRaw)}" oninput="pickerQuery(this.value)" autocomplete="off"></div>` : ''}
-      <div class="doc-pop__list">
-        ${cols.length ? cols.map(c => `
-          <button type="button" class="doc-pop__item" data-col="${esc(c)}">
-            <span class="doc-pop__label">${esc(humanizeColumn(c))}</span><span class="doc-pop__key">${esc(c)}</span>
-          </button>`).join('') : '<div class="doc-pop__empty">No column matches.</div>'}
-      </div>`;
-    if (focus) $('#pickerQ')?.focus();
-    return;
+    pop.innerHTML = pickerColumnsHtml(p);
+    firstFocus = () => $('#pickerQ');
+  } else if (isPickable(p.col)) {
+    pop.innerHTML = pickerValuesHtml(p);
+    firstFocus = () => $('#pickerQ') || pop.querySelector('.doc-pop__item');
+  } else {
+    pop.innerHTML = pickerTextHtml(p);
+    firstFocus = () => $('#pickerText');
   }
-
-  const head = `
-    <div class="doc-pop__head">
-      <button type="button" class="doc-btn doc-btn--ghost doc-btn--sm doc-btn--icon" onclick="pickerBack()" aria-label="Choose another column">${ICON.back}</button>
-      <span class="doc-pop__title">${esc(humanizeColumn(p.col))}<small>${esc(p.col)}</small></span>
-      <button type="button" class="doc-btn doc-btn--ghost doc-btn--sm doc-btn--icon" onclick="closePicker()" aria-label="Close">${ICON.x}</button>
-    </div>`;
-
-  if (isPickable(p.col)) {
-    // Step 2a: pick values. Counts say how much each choice will leave.
-    const all = distinctValues(p.col);
-    const shown = all.filter(([v]) => !p.q || cellLabel(v).toLowerCase().includes(p.q));
-    pop.innerHTML = `
-      ${head}
-      ${all.length > 8 ? `<div class="doc-field doc-pop__search">${ICON.search}<input id="pickerQ" type="text" placeholder="Find a value…" value="${esc(p.qRaw)}" oninput="pickerQuery(this.value)" autocomplete="off"></div>` : ''}
-      <div class="doc-pop__list">
-        ${shown.length ? shown.map(([v, n]) => `
-          <button type="button" class="doc-pop__item ${p.sel.has(v) ? 'is-on' : ''}" data-value="${esc(v)}" role="checkbox" aria-checked="${p.sel.has(v)}">
-            <span class="doc-check">${ICON.check}</span><span class="doc-pop__label">${esc(cellLabel(v))}</span><span class="doc-pop__n">${fmt(n)}</span>
-          </button>`).join('') : '<div class="doc-pop__empty">No value matches.</div>'}
-      </div>
-      <div class="doc-pop__foot">
-        <span class="doc-table__count">${p.sel.size ? `<b>${p.sel.size}</b> selected` : 'Pick one or more values'}</span>
-        <button type="button" class="doc-btn doc-btn--primary doc-btn--sm" onclick="pickerApply()">${p.index >= 0 ? 'Update' : 'Apply'}</button>
-      </div>`;
-    if (focus) ($('#pickerQ') || pop.querySelector('.doc-pop__item'))?.focus();
-    return;
-  }
-
-  // Step 2b: free text for columns with too many values to list.
-  pop.innerHTML = `
-    ${head}
-    <div class="p-3">
-      <div class="doc-field">${ICON.search}<input id="pickerText" type="text" placeholder="Contains…" value="${esc(p.text)}" oninput="pickerText(this.value)" onkeydown="if (event.key === 'Enter') pickerApply()" autocomplete="off"></div>
-      <p class="mb-0 mt-2 text-[12px] leading-snug text-ink-3">More than ${PICK_LIMIT} distinct values, so this one is typed — matches any part of the text, case-insensitive.</p>
-    </div>
-    <div class="doc-pop__foot">
-      <span></span>
-      <button type="button" class="doc-btn doc-btn--primary doc-btn--sm" onclick="pickerApply()">${p.index >= 0 ? 'Update' : 'Apply'}</button>
-    </div>`;
-  if (focus) $('#pickerText')?.focus();
+  if (focus) firstFocus()?.focus();
 }
 
 // Column and value rows carry their key in a data attribute and are handled
@@ -1752,23 +1806,104 @@ document.addEventListener('mousedown', e => {
   closePicker();
 });
 
+function chipVerb(f) {
+  if (f.mode !== 'in') return 'contains';
+  return f.values.length > 1 ? 'is any of' : 'is';
+}
+
 function filterChips() {
   return state.filters.map((f, i) => {
     const label = humanizeColumn(f.col);
     let value;
     if (f.mode === 'in') {
       const names = f.values.map(cellLabel);
-      value = names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2}` : '');
+      const more = names.length > 2 ? ' +' + (names.length - 2) : '';
+      value = names.slice(0, 2).join(', ') + more;
     } else value = `“${f.raw}”`;
     return `
       <span class="doc-chip" title="${esc(label)}: ${esc(f.mode === 'in' ? f.values.map(cellLabel).join(', ') : f.raw)}">
-        <span class="doc-chip__label" onclick="openPicker(${i})" data-filter-opener><b>${esc(label)}</b> ${f.mode === 'in' ? (f.values.length > 1 ? 'is any of' : 'is') : 'contains'} ${esc(value)}</span>
+        <span class="doc-chip__label" onclick="openPicker(${i})" data-filter-opener><b>${esc(label)}</b> ${chipVerb(f)} ${esc(value)}</span>
         <button type="button" class="doc-chip__x" onclick="removeFilter(${i})" aria-label="Remove this filter">${ICON.x}</button>
       </span>`;
   }).join('');
 }
 
 /* ── TABLE tab ────────────────────────────────────────────────────── */
+// Two lines on purpose: the readable label for whoever is reading the table,
+// and underneath the exact field path, because this page exists so a developer
+// can see what the response actually returns. Not a tooltip — a tooltip is
+// invisible on touch and impossible to copy.
+function headerCell(c) {
+  const label = humanizeColumn(c);
+  const on = state.sortKey === c;
+  let sortState = 'none';
+  let arrow = '↕';
+  if (on) {
+    sortState = state.sortDir > 0 ? 'ascending' : 'descending';
+    arrow = state.sortDir > 0 ? '▲' : '▼';
+  }
+  const key = label.toLowerCase() === String(c).toLowerCase() ? '' : `<span class="th-key">${esc(c)}</span>`;
+  return `<th onclick="sortBy(${attr(c)})" class="is-sortable ${on ? 'is-sorted' : ''}" aria-sort="${sortState}">
+      <span>${esc(label)}</span><span class="th-sort">${arrow}</span>
+      ${key}</th>`;
+}
+
+function bodyCell(raw) {
+  if (raw === null || raw === undefined || raw === '') return '<td class="is-empty">—</td>';
+  if (typeof raw === 'boolean') {
+    const tag = raw ? '<span class="doc-tag doc-tag--ok">Yes</span>' : '<span class="doc-tag doc-tag--muted">No</span>';
+    return `<td>${tag}</td>`;
+  }
+  const v = String(raw);
+  // Full value, always: a definition is the content here, not a preview of it.
+  // Prose wraps into a paragraph capped by the inner div (max-width on a <td>
+  // is ignored by the auto table layout, on a block child it is not). Short
+  // values keep `whitespace-nowrap` on purpose: if every cell may wrap, an
+  // over-wide table collapses to its min-content width and turns ordinary
+  // names into one-word-per-line columns. A value carrying markup always takes
+  // the wrapping branch: a line break inside `whitespace-nowrap` would render
+  // as nothing at all.
+  if (v.length > 45 || hasRichMarkup(v)) {
+    return `<td class="leading-relaxed"><div class="max-w-[560px] whitespace-normal break-words">${renderRich(v)}</div></td>`;
+  }
+  return `<td class="whitespace-nowrap">${esc(v)}</td>`;
+}
+
+function tableCountHtml(total, hasFilters) {
+  if (hasFilters) return `<b>${fmt(total)}</b> of ${fmt(state.rows.length)}`;
+  return `<b>${fmt(total)}</b> ${plural(total, 'record')}`;
+}
+
+function pageSizeOptions() {
+  return PAGE_SIZES
+    .filter(n => n !== 'all' || state.rows.length <= AUTO_ALL_LIMIT)
+    .map(n => {
+      const selected = String(n) === String(state.pageSize) ? 'selected' : '';
+      const text = n === 'all' ? 'All' : n;
+      return `<option value="${n}" ${selected}>${text}</option>`;
+    }).join('');
+}
+
+function emptyTableHtml() {
+  return `<tr><td colspan="${state.columns.length}" class="px-4 py-14 text-center">
+            <div class="text-[14px] font-semibold text-ink">No records match your filters</div>
+            <div class="mt-1 text-[12.5px] text-ink-3">Loosen a filter, or clear them all to see the ${fmt(state.rows.length)} records again.</div>
+            <button type="button" class="doc-btn doc-btn--outline doc-btn--sm mt-4" onclick="clearFilters()">Clear all filters</button>
+          </td></tr>`;
+}
+
+function tableFootHtml(total, start, size, pages, showingAll) {
+  if (showingAll) return `<span>Showing <b>all ${fmt(total)}</b> ${plural(total, 'record')}</span>`;
+  const first = total ? fmt(start + 1) : 0;
+  const last = fmt(Math.min(start + size, total));
+  return `<span>Showing <b>${first}–${last}</b> of <b>${fmt(total)}</b></span>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="setPage(${state.page - 1})" ${state.page <= 1 ? 'disabled' : ''} class="doc-btn doc-btn--outline doc-btn--sm">← Prev</button>
+          <span class="px-2">Page <b>${fmt(state.page)}</b> / ${fmt(pages)}</span>
+          <button type="button" onclick="setPage(${state.page + 1})" ${state.page >= pages ? 'disabled' : ''} class="doc-btn doc-btn--outline doc-btn--sm">Next →</button>
+        </div>`;
+}
+
 function renderTable() {
   const total = state.filtered.length;
   const showingAll = state.pageSize === 'all';
@@ -1778,38 +1913,8 @@ function renderTable() {
   const start = (state.page - 1) * size;
   const rows = state.filtered.slice(start, start + size);
 
-  const ths = state.columns.map(c => {
-    const on = state.sortKey === c;
-    const label = humanizeColumn(c);
-    // Two lines on purpose: the readable label for whoever is reading the
-    // table, and underneath the exact field path, because this page exists so a
-    // developer can see what the response actually returns. Not a tooltip — a
-    // tooltip is invisible on touch and impossible to copy.
-    return `<th onclick="sortBy(${attr(c)})" class="is-sortable ${on ? 'is-sorted' : ''}" aria-sort="${on ? (state.sortDir > 0 ? 'ascending' : 'descending') : 'none'}">
-      <span>${esc(label)}</span><span class="th-sort">${on ? (state.sortDir > 0 ? '▲' : '▼') : '↕'}</span>
-      ${label.toLowerCase() !== String(c).toLowerCase() ? `<span class="th-key">${esc(c)}</span>` : ''}</th>`;
-  }).join('');
-
-  const trs = rows.map(r => `
-    <tr>
-      ${state.columns.map(c => {
-        let v = r[c];
-        if (v === null || v === undefined || v === '') return '<td class="is-empty">—</td>';
-        if (typeof v === 'boolean') return `<td>${v ? '<span class="doc-tag doc-tag--ok">Yes</span>' : '<span class="doc-tag doc-tag--muted">No</span>'}</td>`;
-        v = String(v);
-        // Full value, always: a definition is the content here, not a preview of
-        // it. Prose wraps into a paragraph capped by the inner div (max-width on
-        // a <td> is ignored by the auto table layout, on a block child it is
-        // not). Short values keep `whitespace-nowrap` on purpose: if every cell
-        // may wrap, an over-wide table collapses to its min-content width and
-        // turns ordinary names into one-word-per-line columns.
-        // A value carrying markup always takes the wrapping branch: a line
-        // break inside `whitespace-nowrap` would render as nothing at all.
-        return v.length > 45 || hasRichMarkup(v)
-          ? `<td class="leading-relaxed"><div class="max-w-[560px] whitespace-normal break-words">${renderRich(v)}</div></td>`
-          : `<td class="whitespace-nowrap">${esc(v)}</td>`;
-      }).join('')}
-    </tr>`).join('');
+  const ths = state.columns.map(headerCell).join('');
+  const trs = rows.map(r => '<tr>' + state.columns.map(c => bodyCell(r[c])).join('') + '</tr>').join('');
 
   const hasFilters = state.filters.length > 0 || !!state.search;
 
@@ -1826,32 +1931,19 @@ function renderTable() {
           ${hasFilters ? `<button type="button" class="doc-btn doc-btn--ghost doc-btn--sm" onclick="clearFilters()">Clear all</button>` : ''}
         </div>
         <div class="ml-auto flex items-center gap-3">
-          <span class="doc-table__count">${hasFilters ? `<b>${fmt(total)}</b> of ${fmt(state.rows.length)}` : `<b>${fmt(total)}</b> record${total === 1 ? '' : 's'}`}</span>
+          <span class="doc-table__count">${tableCountHtml(total, hasFilters)}</span>
           <label class="flex items-center gap-2 text-[12.5px] text-ink-3">Rows
             <span class="doc-select doc-select--sm"><select id="pageSize" aria-label="Rows per page">
-              ${PAGE_SIZES.filter(n => n !== 'all' || state.rows.length <= AUTO_ALL_LIMIT).map(n => `<option value="${n}" ${String(n) === String(state.pageSize) ? 'selected' : ''}>${n === 'all' ? 'All' : n}</option>`).join('')}
+              ${pageSizeOptions()}
             </select></span>
           </label>
         </div>
       </div>
       <div class="doc-table__scroll">
-        <table class="data doc-grid"><thead><tr>${ths}</tr></thead><tbody>${trs ||
-          `<tr><td colspan="${state.columns.length}" class="px-4 py-14 text-center">
-            <div class="text-[14px] font-semibold text-ink">No records match your filters</div>
-            <div class="mt-1 text-[12.5px] text-ink-3">Loosen a filter, or clear them all to see the ${fmt(state.rows.length)} records again.</div>
-            <button type="button" class="doc-btn doc-btn--outline doc-btn--sm mt-4" onclick="clearFilters()">Clear all filters</button>
-          </td></tr>`}</tbody></table>
+        <table class="data doc-grid"><thead><tr>${ths}</tr></thead><tbody>${trs || emptyTableHtml()}</tbody></table>
       </div>
       <div class="doc-table__foot">
-        <span>${showingAll
-          ? `Showing <b>all ${fmt(total)}</b> record${total === 1 ? '' : 's'}`
-          : `Showing <b>${total ? fmt(start + 1) : 0}–${fmt(Math.min(start + size, total))}</b> of <b>${fmt(total)}</b>`}</span>
-        ${showingAll ? '' : `
-        <div class="flex items-center gap-1.5">
-          <button type="button" onclick="setPage(${state.page - 1})" ${state.page <= 1 ? 'disabled' : ''} class="doc-btn doc-btn--outline doc-btn--sm">← Prev</button>
-          <span class="px-2">Page <b>${fmt(state.page)}</b> / ${fmt(pages)}</span>
-          <button type="button" onclick="setPage(${state.page + 1})" ${state.page >= pages ? 'disabled' : ''} class="doc-btn doc-btn--outline doc-btn--sm">Next →</button>
-        </div>`}
+        ${tableFootHtml(total, start, size, pages, showingAll)}
       </div>
     </div>`;
 
@@ -1974,6 +2066,25 @@ function currentJsonData() {
 }
 
 /* ── JSON tab ─────────────────────────────────────────────────────── */
+function queryEnumField(p, value) {
+  const defaultNote = p.default ? ' (' + esc(p.default) + ')' : '';
+  const options = p.values.map(v => {
+    const selected = String(value) === String(v) ? ' selected' : '';
+    return `<option value="${esc(v)}"${selected}>${esc(v)}</option>`;
+  }).join('');
+  return `<span class="doc-select w-full"><select class="w-full" onchange="setQueryValue(${attr(p.name)}, this.value)" style="font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:500">
+           <option value=""${value === '' ? ' selected' : ''}>— not sent${defaultNote} —</option>
+           ${options}
+         </select></span>`;
+}
+
+function queryTextField(p, value) {
+  return `<div class="doc-field doc-field--mono"><input type="${p.isNumber ? 'number' : 'text'}" value="${esc(value)}"
+           oninput="setQueryValue(${attr(p.name)}, this.value)"
+           onkeydown="if (event.key === 'Enter') runQuery()"
+           placeholder="${p.default ? esc(p.default) : 'not sent'}"></div>`;
+}
+
 function renderJSON() {
   const params = queryParamsFor(state.current.endpoint.route);
   const raw = currentJsonData();
@@ -1985,15 +2096,7 @@ function renderJSON() {
 
   const controls = params.map(p => {
     const value = state.query[p.name] ?? '';
-    const field = p.values
-      ? `<span class="doc-select w-full"><select class="w-full" onchange="setQueryValue(${attr(p.name)}, this.value)" style="font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:500">
-           <option value=""${value === '' ? ' selected' : ''}>— not sent${p.default ? ` (${esc(p.default)})` : ''} —</option>
-           ${p.values.map(v => `<option value="${esc(v)}"${String(value) === String(v) ? ' selected' : ''}>${esc(v)}</option>`).join('')}
-         </select></span>`
-      : `<div class="doc-field doc-field--mono"><input type="${p.isNumber ? 'number' : 'text'}" value="${esc(value)}"
-           oninput="setQueryValue(${attr(p.name)}, this.value)"
-           onkeydown="if (event.key === 'Enter') runQuery()"
-           placeholder="${p.default ? esc(p.default) : 'not sent'}"></div>`;
+    const field = p.values ? queryEnumField(p, value) : queryTextField(p, value);
     return `
       <div>
         <label class="mb-1.5 flex items-center gap-2 font-mono text-[12px] font-semibold text-brand-800">${esc(p.name)}${p.required ? '<span class="doc-tag doc-tag--error">required</span>' : ''}</label>
@@ -2016,7 +2119,7 @@ function renderJSON() {
       </div>
       <div class="mt-3 flex items-center gap-2">
         <button type="button" id="queryRun" onclick="runQuery()" ${state.queryLoading ? 'disabled' : ''} class="doc-btn doc-btn--primary">${ICON.play}<span>${state.queryLoading ? 'Running…' : 'Run query'}</span></button>
-        ${filtered || activeQueryPairs().length ? `<button type="button" onclick="resetQuery()" class="doc-btn doc-btn--outline">Reset</button>` : ''}
+        ${filtered || activeQueryPairs().length ? '<button type="button" onclick="resetQuery()" class="doc-btn doc-btn--outline">Reset</button>' : ''}
       </div>
       ${state.queryError ? `<div class="mt-3 rounded-lg border border-[#f4c7c3] bg-[#fdeceb] px-3 py-2 font-mono text-xs text-[#8f1d15]">${esc(state.queryError)}</div>` : ''}
     </div>` : '';
@@ -2201,11 +2304,12 @@ function renderDoc() {
       <p class="mb-3 mt-4 text-[13.5px] text-ink-2">Copy any of these, or build your own in the <b class="font-semibold text-ink">JSON</b> tab and run it against the live API.</p>
       ${docCodeBlock('Ready-made requests', recipes.join('\n\n'))}`;
   } else {
-    const fallback = v2 ? `?version=2` : '';
+    const v2Hint = v2 ? ' You can still pass <code class="docpill">?version=2</code> to opt into v2.' : '';
+    const example = v2 ? '<div class="mt-4">' + docCodeBlock('Example', 'GET ' + url + '?version=2') + '</div>' : '';
     paramsBody = `
       <div class="rounded-control border border-line bg-surface-2 p-4 text-[13.5px] leading-relaxed text-ink-2">
-        No query parameters are published for this endpoint in the OpenAPI spec.${v2 ? ` You can still pass <code class="docpill">?version=2</code> to opt into v2.` : ''}
-      </div>${fallback ? `<div class="mt-4">${docCodeBlock('Example', `GET ${url}${fallback}`)}</div>` : ''}`;
+        No query parameters are published for this endpoint in the OpenAPI spec.${v2Hint}
+      </div>${example}`;
   }
   const params = docSection('Query parameters', 'Optional filters you append to the request URL to narrow what comes back.', paramsBody);
 
@@ -2246,8 +2350,9 @@ function renderDoc() {
   } else {
     const sample = state.rows && state.rows[0];
     if (sample) {
-      const lines = Object.keys(sample).map(k => `  ${k}: ${typeof sample[k] === 'number' ? 'number' : typeof sample[k] === 'boolean' ? 'boolean' : 'string'};`);
-      dtoBody = `<div class="mb-3">${note('Model not published in the OpenAPI spec — shape inferred from live data.', 'doc-note--warn')}</div>${docCodeBlock('Inferred shape', `interface ${modelName} {\n${lines.join('\n')}\n}`)}`;
+      const lines = Object.keys(sample).map(k => `  ${k}: ${tsTypeOf(sample[k])};`);
+      const shape = 'interface ' + modelName + ' {\n' + lines.join('\n') + '\n}';
+      dtoBody = `<div class="mb-3">${note('Model not published in the OpenAPI spec — shape inferred from live data.', 'doc-note--warn')}</div>${docCodeBlock('Inferred shape', shape)}`;
     } else {
       dtoBody = `<div class="rounded-control border border-line bg-surface-2 p-4 text-[13.5px] text-ink-2">No response model published for this endpoint.</div>`;
     }
