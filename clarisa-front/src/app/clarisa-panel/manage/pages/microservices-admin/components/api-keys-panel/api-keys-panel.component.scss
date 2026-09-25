@@ -3,11 +3,15 @@
 /* ---- la ficha desplegada de una llave ------------------------------------- */
 
 :host ::ng-deep .keys-table {
-  /* Diez columnas con ancho declarado suman 1194: por debajo, con
-     `table-layout: fixed`, la que no tiene ancho se queda en CERO (el mismo
-     defecto que tuvo la definición del glosario el 18-sep-2026). */
-  &.p-datatable .p-datatable-table {
-    min-width: 1200px;
+  /* Diez columnas con ancho declarado suman 1034, lo que cabe a 1366 con el
+     sidebar abierto: con `table-layout: fixed`, si la suma supera el mínimo
+     de la tabla la columna sin ancho se queda en CERO (el mismo defecto que
+     tuvo la definición del glosario el 18-sep-2026), y si el mínimo supera la
+     pantalla, Status y Actions se esconden tras un scroll lateral. */
+  @media (min-width: 721px) {
+    &.p-datatable .p-datatable-table {
+      min-width: 1040px;
+    }
   }
 
   .p-datatable-tbody > tr.is-open > td {
@@ -185,6 +189,25 @@
 
     .endpoint-bars__track {
       grid-column: 1 / -1;
+    }
+  }
+}
+
+@media (max-width: 720px) {
+  /* La fila de expansión lleva `colspan`, y el global la viste como la fila
+     de «no hay nada» (punteada, centrada). Es la ficha de la llave: se pinta
+     como una ficha más, pegada a la de su fila. */
+  :host ::ng-deep .keys-table.p-datatable .p-datatable-tbody > tr.key-detail-row {
+    border-style: solid;
+    margin-top: -12px;
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+
+    > td {
+      display: block;
+      text-align: left;
+      padding: 0 !important;
     }
   }
 }

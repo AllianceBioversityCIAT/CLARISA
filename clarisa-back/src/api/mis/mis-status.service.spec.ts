@@ -34,7 +34,15 @@ describe('MisService.setActive', () => {
         { provide: MisRepository, useValue: repository },
         { provide: EnvironmentService, useValue: {} },
         { provide: UserService, useValue: {} },
-        { provide: MisMapper, useValue: {} },
+        {
+          provide: MisMapper,
+          useValue: {
+            classToSimpleDto: jest.fn((m) => ({
+              id: m.id,
+              acronym: m.acronym,
+            })),
+          },
+        },
       ],
     }).compile();
     service = module.get(MisService);
@@ -55,7 +63,11 @@ describe('MisService.setActive', () => {
         }),
       }),
     );
-    expect((result as any).response.id).toBe(5);
+    expect((result as any).response).toEqual({
+      id: 5,
+      acronym: 'MEL',
+      is_active: false,
+    });
   });
 
   it('reactivates when no other active MIS holds the acronym in that environment', async () => {

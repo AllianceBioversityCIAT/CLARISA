@@ -9,6 +9,7 @@ import { UserService } from '../user/user.service';
 import { ResponseDto } from '../../shared/entities/dtos/response.dto';
 import { FindManyOptions, Like } from 'typeorm';
 import { MisMapper } from './mappers/mis.mapper';
+import { SimpleMisDto } from './dto/simple-mis.dto';
 
 @Injectable()
 export class MisService {
@@ -137,7 +138,7 @@ export class MisService {
     id: number,
     active: boolean,
     userData: UserData,
-  ): Promise<ResponseDto<Mis>> {
+  ): Promise<ResponseDto<SimpleMisDto & { is_active: boolean }>> {
     const mis = await this._misRepository.findOne({
       where: { id },
       ...this._where,
@@ -160,7 +161,12 @@ export class MisService {
     mis.auditableFields.is_active = active;
     mis.auditableFields.updated_by = userData.userId;
     const saved = await this._misRepository.save(mis);
-    return ResponseDto.buildOkResponse(saved);
+    // The serializer strips `auditableFields`, so the answer says the state
+    // it just set instead of returning a MIS that looks unchanged.
+    return ResponseDto.buildOkResponse({
+      ...this._misMapper.classToSimpleDto(saved),
+      is_active: active,
+    });
   }
 
   async findOne(id: number): Promise<Mis> {

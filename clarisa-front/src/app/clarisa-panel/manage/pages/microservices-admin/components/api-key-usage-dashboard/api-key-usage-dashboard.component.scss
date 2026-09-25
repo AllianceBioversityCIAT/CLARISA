@@ -11,6 +11,10 @@
   padding: 12px 14px;
   margin-bottom: 14px;
   display: grid;
+  /* `minmax(0, 1fr)` y no `auto`: el riel de período no envuelve (a propósito)
+     y con una pista `auto` su contenido de 577 px ensanchaba TODAS las filas
+     del grid en un teléfono de 390, filtros incluidos. Medido el 24-sep-2026. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -19,6 +23,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
+  min-width: 0;
 }
 
 .ov-toolbar__period {
@@ -567,6 +572,7 @@
      y se sale por la derecha. */
   .ov-toolbar__row--filters p-dropdown {
     flex: 1 1 100%;
+    width: 100%;
     min-width: 0;
   }
 

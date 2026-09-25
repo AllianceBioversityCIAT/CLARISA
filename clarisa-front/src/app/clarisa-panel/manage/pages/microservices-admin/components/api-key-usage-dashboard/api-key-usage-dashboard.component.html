@@ -534,6 +534,7 @@
     [value]="logs?.items || []"
     [loading]="logsLoading"
     [lazy]="true"
+    [lazyLoadOnInit]="false"
     (onLazyLoad)="onLogsLazy($event)"
     [paginator]="true"
     [(first)]="logsFirst"

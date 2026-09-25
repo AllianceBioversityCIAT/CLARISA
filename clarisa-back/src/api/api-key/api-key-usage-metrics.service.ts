@@ -18,6 +18,9 @@ import {
 } from './dto/usage-metrics.dto';
 import { resolveUsageDateRange, toIsoPeriod } from './utils/usage-date-range';
 
+/** Upper bound of (endpoint × key) rows fetched for the consumers merge. */
+const CONSUMER_ROWS_CAP = 5000;
+
 /** Path without its query string: `/api/institutions?status=all` → `/api/institutions` */
 const ENDPOINT_EXPR = "SUBSTRING_INDEX(log.endpoint_accessed, '?', 1)";
 
@@ -247,6 +250,9 @@ export class ApiKeyUsageMetricsService {
       .addGroupBy('ak.mis_id')
       .addGroupBy('mis.acronym')
       .orderBy('total_requests', 'DESC')
+      // Bounded on purpose: `endpointRows` is capped by `limit`, and this
+      // query must not scan the whole history unbounded over «All time».
+      .limit(CONSUMER_ROWS_CAP)
       .getRawMany();
 
     const keyOf = (row: {
