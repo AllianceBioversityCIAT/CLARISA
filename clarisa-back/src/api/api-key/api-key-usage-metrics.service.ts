@@ -21,8 +21,13 @@ import { resolveUsageDateRange, toIsoPeriod } from './utils/usage-date-range';
 /** Upper bound of (endpoint × key) rows fetched for the consumers merge. */
 const CONSUMER_ROWS_CAP = 5000;
 
-/** Path without its query string: `/api/institutions?status=all` → `/api/institutions` */
-const ENDPOINT_EXPR = "SUBSTRING_INDEX(log.endpoint_accessed, '?', 1)";
+/**
+ * Path without its query string: `/api/institutions?status=all` → `/api/institutions`.
+ * 🛑 `CHAR(63)` and never a literal `'?'`: the MySQL driver formats every `?`
+ * of the SQL text as a placeholder, quoted or not, so `'?'` swallowed the
+ * `from` date and the query died with a 1064 on clarisatest (2026-09-25).
+ */
+const ENDPOINT_EXPR = 'SUBSTRING_INDEX(log.endpoint_accessed, CHAR(63), 1)';
 
 interface UsageFilterParams {
   from: Date;
