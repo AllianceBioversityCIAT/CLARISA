@@ -18,9 +18,23 @@
         Glossary of terms and their definitions used across CLARISA and CGIAR reporting. Filter by portfolio or search any term below; the portfolio
         tagged <span class="version-seg__now version-seg__now--inline">Current</span> is the one in force today.
       </p>
+      <!-- Plain links: the API answers with an attachment, so the browser saves the file itself. -->
+      <p class="glossary-download">
+        <span class="glossary-download__label">Download the glossary: </span>
+        <ng-container *ngFor="let option of exportFormats; let last = last">
+          <a [href]="exportUrl(option.format)" [attr.aria-label]="'Download the glossary as ' + option.label">{{ option.label }}</a>
+          <ng-container *ngIf="!last"> · </ng-container>
+        </ng-container>
+      </p>
     </div>
 
-    <div class="glossary-toolbar">
+    <!-- On a permalink the page is one term: the filters would only hide it, so they give way to the way back. -->
+    <a class="glossary-back" *ngIf="focusMode" routerLink="/landing-page/glossary">
+      <i class="pi pi-arrow-left" aria-hidden="true"></i>
+      Back to all terms
+    </a>
+
+    <div class="glossary-toolbar" *ngIf="!focusMode">
       <div class="glossary-search">
         <i class="pi pi-search" aria-hidden="true"></i>
         <input type="search" aria-label="Search a term or definition" [(ngModel)]="searchText" placeholder="Search a term or definition..." />
@@ -50,7 +64,7 @@
       </div>
     </div>
 
-    <div class="glossary-letters" *ngIf="!loading && availableLetters.length" role="group" aria-label="Filter by initial">
+    <div class="glossary-letters" *ngIf="!focusMode && !loading && availableLetters.length" role="group" aria-label="Filter by initial">
       <button
         type="button"
         class="letter-circle"
@@ -69,13 +83,17 @@
 
     <div class="glossary-empty" *ngIf="!loading && !filteredTerms.length">
       <i class="pi pi-book"></i>
-      <p>No terms match your search.</p>
+      <p *ngIf="!focusMode">No terms match your search.</p>
+      <p *ngIf="focusMode">This term was not found.</p>
     </div>
 
     <div class="glossary-list" *ngIf="!loading && filteredTerms.length">
-      <article class="glossary-card" *ngFor="let item of filteredTerms">
+      <article class="glossary-card" *ngFor="let item of filteredTerms" [class.is-focused]="focusMode">
         <div class="card-header">
-          <h4>{{ item.term }}</h4>
+          <div class="card-title">
+            <h4>{{ item.term }}</h4>
+            <p class="card-alt-labels" *ngIf="item.alternativeLabels.length">Also known as: {{ item.alternativeLabels.join(' · ') }}</p>
+          </div>
           <!--
             Un solo riel para las dos situaciones. Antes un concepto con dos
             definiciones salía como pestañas y uno con una sola como etiqueta de
@@ -137,6 +155,15 @@
             <ng-container *ngIf="item.source"> · </ng-container>{{ referenceDateLabel(item.referenceDate) }}
           </span>
         </p>
+        <div class="card-actions" *ngIf="item.termId != null">
+          <button type="button" class="card-copy" (click)="copyLink(item)">
+            <i class="pi pi-link" aria-hidden="true"></i>
+            Copy link
+          </button>
+          <span class="card-copy__feedback" role="status" aria-live="polite">
+            <ng-container *ngIf="copiedTermId === item.termId">{{ copyFailed ? 'Could not copy the link' : 'Link copied' }}</ng-container>
+          </span>
+        </div>
       </article>
     </div>
   </div>
