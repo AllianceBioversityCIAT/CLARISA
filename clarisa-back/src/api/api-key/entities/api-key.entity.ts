@@ -25,6 +25,10 @@ export class ApiKey {
   @Column({ type: 'varchar', length: 255, nullable: false })
   name: string;
 
+  /** Free text: who holds the key and what it is used for (Héctor, 2026-09-24) */
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
   @Column({ type: 'varchar', length: 16, nullable: false })
   key_prefix: string;
 

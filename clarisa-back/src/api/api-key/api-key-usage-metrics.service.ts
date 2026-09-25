@@ -3,15 +3,23 @@ import { ApiKeyRepository } from './repositories/api-key.repository';
 import { ApiKeyUsageLogRepository } from './repositories/api-key-usage-log.repository';
 import {
   ApiKeyUsageQueryDto,
+  UsageEndpointsQueryDto,
   UsageLogsQueryDto,
   UsageSummaryQueryDto,
 } from './dto/usage-query.dto';
 import {
   ApiKeyUsageStatsResponseDto,
+  EndpointConsumerDto,
+  EndpointUsageItemDto,
+  EndpointUsageResponseDto,
+  MisActivityItemDto,
   UsageLogsResponseDto,
   UsageSummaryResponseDto,
 } from './dto/usage-metrics.dto';
 import { resolveUsageDateRange, toIsoPeriod } from './utils/usage-date-range';
+
+/** Path without its query string: `/api/institutions?status=all` → `/api/institutions` */
+const ENDPOINT_EXPR = "SUBSTRING_INDEX(log.endpoint_accessed, '?', 1)";
 
 interface UsageFilterParams {
   from: Date;
@@ -180,6 +188,146 @@ export class ApiKeyUsageMetricsService {
         created_at: row.created_at,
       })),
     };
+  }
+
+  /**
+   * Requests per endpoint in the period, busiest first, each with the keys
+   * that consumed it. The query string is stripped so `/api/institutions`
+   * and `/api/institutions?status=all` count as one endpoint; path params
+   * (`/get/221`) are left as logged and folded by the panel against the
+   * public catalogue.
+   */
+  async getEndpointUsage(
+    query: UsageEndpointsQueryDto,
+  ): Promise<EndpointUsageResponseDto> {
+    const range = resolveUsageDateRange(query.from, query.to);
+    const filters = this._buildFilters(range, query);
+    const limit = query.limit ?? 200;
+
+    const endpointRows = await this._baseLogQuery(filters)
+      .select('log.microservice_name', 'microservice_name')
+      .addSelect(ENDPOINT_EXPR, 'endpoint')
+      .addSelect('log.http_method', 'http_method')
+      .addSelect('COUNT(log.id)', 'total_requests')
+      .addSelect(
+        'SUM(CASE WHEN log.status_code >= 400 THEN 1 ELSE 0 END)',
+        'error_count',
+      )
+      .addSelect('AVG(log.response_time_ms)', 'avg_response_time_ms')
+      .addSelect('COUNT(DISTINCT log.api_key_id)', 'unique_api_keys')
+      .addSelect('MAX(log.created_at)', 'last_used_at')
+      .groupBy('log.microservice_name')
+      .addGroupBy(ENDPOINT_EXPR)
+      .addGroupBy('log.http_method')
+      .orderBy('total_requests', 'DESC')
+      .limit(limit)
+      .getRawMany();
+
+    if (!endpointRows.length) {
+      return { period: toIsoPeriod(range), total_requests: 0, items: [] };
+    }
+
+    const consumerRows = await this._baseLogQuery(filters)
+      .select('log.microservice_name', 'microservice_name')
+      .addSelect(ENDPOINT_EXPR, 'endpoint')
+      .addSelect('log.http_method', 'http_method')
+      .addSelect('ak.id', 'api_key_id')
+      .addSelect('ak.name', 'api_key_name')
+      .addSelect('ak.key_prefix', 'key_prefix')
+      .addSelect('ak.mis_id', 'mis_id')
+      .addSelect('mis.acronym', 'mis_acronym')
+      .addSelect('COUNT(log.id)', 'total_requests')
+      .addSelect('MAX(log.created_at)', 'last_used_at')
+      .groupBy('log.microservice_name')
+      .addGroupBy(ENDPOINT_EXPR)
+      .addGroupBy('log.http_method')
+      .addGroupBy('ak.id')
+      .addGroupBy('ak.name')
+      .addGroupBy('ak.key_prefix')
+      .addGroupBy('ak.mis_id')
+      .addGroupBy('mis.acronym')
+      .orderBy('total_requests', 'DESC')
+      .getRawMany();
+
+    const keyOf = (row: {
+      microservice_name: string;
+      endpoint: string;
+      http_method: string | null;
+    }) =>
+      `${row.microservice_name}\u0000${row.endpoint}\u0000${row.http_method ?? ''}`;
+
+    const consumersByEndpoint = new Map<string, EndpointConsumerDto[]>();
+    for (const row of consumerRows) {
+      const key = keyOf(row);
+      const list = consumersByEndpoint.get(key) ?? [];
+      list.push({
+        api_key_id: Number(row.api_key_id),
+        api_key_name: row.api_key_name,
+        key_prefix: row.key_prefix,
+        mis_id: row.mis_id != null ? Number(row.mis_id) : null,
+        mis_acronym: row.mis_acronym ?? null,
+        total_requests: Number(row.total_requests),
+        last_used_at: row.last_used_at ?? null,
+      });
+      consumersByEndpoint.set(key, list);
+    }
+
+    const items: EndpointUsageItemDto[] = endpointRows.map((row) => ({
+      microservice_name: row.microservice_name,
+      endpoint: row.endpoint,
+      http_method: row.http_method ?? null,
+      total_requests: Number(row.total_requests),
+      error_count: Number(row.error_count ?? 0),
+      avg_response_time_ms:
+        row.avg_response_time_ms != null
+          ? Math.round(Number(row.avg_response_time_ms))
+          : null,
+      unique_api_keys: Number(row.unique_api_keys),
+      last_used_at: row.last_used_at ?? null,
+      consumers: consumersByEndpoint.get(keyOf(row)) ?? [],
+    }));
+
+    return {
+      period: toIsoPeriod(range),
+      total_requests: items.reduce((sum, item) => sum + item.total_requests, 0),
+      items,
+    };
+  }
+
+  /**
+   * One row per MIS (plus one for keys with no MIS): how many keys it holds,
+   * how many are active, and the most recent `last_used_at` among them. Read
+   * from `api_keys`, not from the log, so it is cheap and covers all time.
+   */
+  async getMisActivity(): Promise<MisActivityItemDto[]> {
+    const rows = await this._apiKeyRepository
+      .createQueryBuilder('ak')
+      .leftJoin('ak.mis_object', 'mis')
+      .select('ak.mis_id', 'mis_id')
+      .addSelect('mis.acronym', 'mis_acronym')
+      .addSelect('mis.name', 'mis_name')
+      .addSelect('COUNT(ak.id)', 'total_keys')
+      .addSelect(
+        'SUM(CASE WHEN ak.is_active = 1 THEN 1 ELSE 0 END)',
+        'active_keys',
+      )
+      .addSelect('SUM(ak.usage_count)', 'usage_count')
+      .addSelect('MAX(ak.last_used_at)', 'last_used_at')
+      .groupBy('ak.mis_id')
+      .addGroupBy('mis.acronym')
+      .addGroupBy('mis.name')
+      .orderBy('last_used_at', 'DESC')
+      .getRawMany();
+
+    return rows.map((row) => ({
+      mis_id: row.mis_id != null ? Number(row.mis_id) : null,
+      mis_acronym: row.mis_acronym ?? '—',
+      mis_name: row.mis_name ?? 'Unassigned',
+      total_keys: Number(row.total_keys ?? 0),
+      active_keys: Number(row.active_keys ?? 0),
+      usage_count: Number(row.usage_count ?? 0),
+      last_used_at: row.last_used_at ?? null,
+    }));
   }
 
   private _buildFilters(
