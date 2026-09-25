@@ -308,4 +308,44 @@ describe('ApiKeyUsageDashboardComponent', () => {
     expect(clickSpy).not.toHaveBeenCalled();
     clickSpy.mockRestore();
   });
+
+  it('opens on the busiest endpoint once usage arrives, but keeps what the person picked', async () => {
+    manageApiMock.getApiReferenceCatalog.mockReturnValueOnce(
+      of({
+        groups: [
+          { group: 'Control List', categories: [{ name: 'General', endpoints: [{ name: 'Countries', route: 'api/countries', method: 'get' }] }] }
+        ]
+      })
+    );
+    manageApiMock.getApiKeyUsageByEndpoint.mockReturnValue(
+      of({
+        period: { from: '', to: '' },
+        total_requests: 14,
+        items: [
+          {
+            microservice_name: 'clarisa-api',
+            endpoint: '/api/partner-requests/create',
+            http_method: 'POST',
+            total_requests: 14,
+            error_count: 0,
+            avg_response_time_ms: 10,
+            unique_api_keys: 2,
+            last_used_at: null,
+            consumers: []
+          }
+        ]
+      })
+    );
+
+    await build();
+
+    // Countries (0 calls) was the only candidate when the catalogue landed; the data wins.
+    expect(component.selectedEndpoint?.route).toBe('/api/partner-requests/create');
+    expect(component.isGroupOpen(component.tree.find(g => g.kind === 'other')!)).toBe(true);
+
+    const countries = component.tree[0].categories[0].endpoints[0];
+    component.selectEndpoint(countries);
+    component.refresh();
+    expect(component.selectedEndpoint?.route).toBe('api/countries');
+  });
 });
