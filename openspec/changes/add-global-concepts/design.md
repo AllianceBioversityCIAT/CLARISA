@@ -93,6 +93,26 @@ secretariat, PRM Steering Group validation by no objection) but who can move a s
 permission, so Rabat's decision is configuration, not code. A proposal accepted into `published`
 applies its payload in the same transaction.
 
+### D5b. Roles and requests (the Partner Requests pattern)
+- **Visitor** (anonymous): reads, searches and downloads what is published.
+- **Requester** (any signed-in CGIAR user, or a system with an API key, as `partner-request/create`
+  already allows): submits a *concept request* — new, edit or deprecate — with a rationale; cannot
+  create or edit concepts directly; sees the state of their requests and is emailed the outcome.
+- **Reviewer** (Community of Practice / domain expert, optional step): comments and recommends.
+- **Admin / approver**: approves, requests changes or rejects, always with a justification; can also
+  create and edit directly (initial load, quick fixes), and such writes are flagged
+  `direct_edit` in the change log.
+- **AI recommendation**: on any request, "Get AI recommendation" checks duplicates, definition quality
+  (circular, missing genus), source presence, list values and conflicts, and answers
+  approve / needs changes / reject with reasons. Advisory only, stored with the request; a person
+  always decides.
+
+### D8b. Import matching: AI or manual, always editable
+The import wizard keeps one selector per column. "Auto-match with AI" fills every selector with a
+confidence badge; "Normalize with AI" proposes list values for free-text cells. The user can change
+any selector by hand or skip AI entirely; with AI disabled the buttons are hidden and the wizard is
+fully manual.
+
 ### D6. Exports
 `json` (API shape), `csv` (RFC 4180, BOM, formula guard), `skos` Turtle and `jsonld`, for the whole
 scheme or a release. SKOS mapping: `skos:ConceptScheme`, `skos:Concept`, `prefLabel`/`altLabel`/

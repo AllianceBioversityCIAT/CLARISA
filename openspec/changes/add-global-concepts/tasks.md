@@ -20,7 +20,8 @@
 - [ ] 1.5 Admin: CRUD, labels, relations (polyhierarchy), mappings, collections, editorial status
       with replacement, lists.
 - [ ] 1.6 Change log written in the same transaction as every write.
-- [ ] 1.7 Proposals: submit (any signed-in user), move steps, publish applies payload, reject.
+- [ ] 1.7 Concept requests (Partner Requests pattern): submit (signed-in user or API key), reviewer comment, admin approve / request changes / reject with justification and email; admin direct writes flagged `direct_edit`.
+- [ ] 1.7b AI recommendation on a request (advisory, stored, never changes state).
 - [ ] 1.8 Exports JSON / CSV / Turtle / JSON-LD (reuse the helpers from the glossary export) and
       content negotiation on the concept endpoint.
 - [ ] 1.9 Quality gate (S13, S14, S27, cycles, required definition) + releases as immutable files.
@@ -47,7 +48,7 @@
 - [ ] 3.1 MCP endpoint (stateless Streamable HTTP): `search_concepts`, `get_concept`,
       `suggest_concepts_for_text`, `list_releases`; `package.json` + lock updated together.
 - [ ] 3.2 AI switch + server-side OpenAI client with a spend cap.
-- [ ] 3.3 AI import column mapping (headers + 5 rows → field + confidence), editor confirms.
+- [ ] 3.3 "Auto-match with AI" in the import wizard (headers + 5 rows → field + confidence badge), every selector still editable by hand; "Normalize with AI" for list values.
 - [ ] 3.4 Embeddings for semantic search and duplicate detection on proposals and import.
 - [ ] 3.5 Demo: an AI assistant (Claude/ChatGPT) connected to the MCP answering with official terms.
 
