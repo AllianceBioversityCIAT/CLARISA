@@ -111,6 +111,24 @@ export function niceMax(value: number): number {
   return step * power;
 }
 
+/**
+ * Eje en pasos redondos: primero el paso (1, 2, 2.5, 5 × 10ⁿ) y después el
+ * tope como múltiplo del paso. Partir del tope daba 50 / 4 = 12.5 y el eje
+ * salía «13, 25, 38» (clarisatest, 25-sep-2026).
+ */
+export function niceTicks(max: number, count = 4): number[] {
+  if (!(max > 0)) {
+    return [0, 1];
+  }
+  const step = niceMax(max / count);
+  const top = Math.max(step, Math.ceil(max / step) * step);
+  const ticks: number[] = [];
+  for (let v = 0; v <= top + step / 2; v += step) {
+    ticks.push(Math.round(v * 1000) / 1000);
+  }
+  return ticks;
+}
+
 /** «1.2k», «35k», «2.4M»: el eje no necesita más precisión que eso. */
 export function compactNumber(value: number): string {
   const abs = Math.abs(value);

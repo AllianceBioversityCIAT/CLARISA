@@ -1,5 +1,5 @@
 import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, Input, OnChanges, OnDestroy } from '@angular/core';
-import { bandPath, compactNumber, monotonePath, niceMax, Pt, tickIndexes } from '../../utils/chart-geometry';
+import { bandPath, compactNumber, monotonePath, niceTicks, Pt, tickIndexes } from '../../utils/chart-geometry';
 
 export interface ChartSeries {
   key: string;
@@ -299,7 +299,8 @@ export class UsageChartComponent implements OnChanges, AfterViewInit, OnDestroy 
         }
       }
     }
-    const top = niceMax(max);
+    const ticks = niceTicks(max);
+    const top = ticks[ticks.length - 1];
     const y = (v: number) => bottom - (v / top) * this.plotHeight;
     const base = new Array(n).fill(0);
     this.drawn = this.series.map((s, k) => {
@@ -316,10 +317,7 @@ export class UsageChartComponent implements OnChanges, AfterViewInit, OnDestroy 
         area: stacked ? bandPath(tops, lower) : ''
       };
     });
-    this.yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => ({
-      y: y(top * f),
-      label: compactNumber(top * f) + (this.unit && f === 1 ? ` ${this.unit}` : '')
-    }));
+    this.yTicks = ticks.map((v, i) => ({ y: y(v), label: compactNumber(v) + (this.unit && i === ticks.length - 1 ? ` ${this.unit}` : '') }));
     this.xTicks = tickIndexes(n, Math.max(2, Math.floor(this.plotWidth / 90))).map((i, k, all) => ({
       x: this.xAt(i),
       label: this.shortDate(this.labels[i]),
