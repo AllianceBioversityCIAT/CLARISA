@@ -302,6 +302,7 @@ export class GlossaryFileParserService {
     sourceIndex: number;
     sourceUrlIndex: number;
     referenceDateIndex: number;
+    alternativeLabelsIndex: number;
   } {
     const termNames = ['term', 'terms', 'concept', 'concepts', 'name', 'title', 'termino', 'término', 'concepto', 'nombre', 'acronym', 'word'];
     const definitionNames = [
@@ -353,12 +354,31 @@ export class GlossaryFileParserService {
       ['reference date', 'source date', 'date', 'year', 'fecha', 'anio', 'año'],
       taken
     );
+    taken.push(referenceDateIndex);
+    // Plural and singular both listed: the whole-word match stops "label" from
+    // matching "labels".
+    const alternativeLabelsIndex = this.findOptionalColumn(
+      normalized,
+      [
+        'alternative labels',
+        'alternative label',
+        'alternative names',
+        'synonyms',
+        'synonym',
+        'aliases',
+        'alias',
+        'other names',
+        'sinonimos',
+        'sinónimos'
+      ],
+      taken
+    );
 
-    return { termIndex, definitionIndex, sourceIndex, sourceUrlIndex, referenceDateIndex };
+    return { termIndex, definitionIndex, sourceIndex, sourceUrlIndex, referenceDateIndex, alternativeLabelsIndex };
   }
 
   /**
-   * Header lookup for the columns that are optional (source, link, date).
+   * Header lookup for the columns that are optional (source, link, date, labels).
    *
    * Matched on whole words, unlike the term/definition lookup: a plain
    * `includes` makes "Resource" match "source" and "Update" match "date", and

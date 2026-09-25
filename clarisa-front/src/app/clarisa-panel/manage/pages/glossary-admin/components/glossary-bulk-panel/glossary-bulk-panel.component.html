@@ -205,6 +205,32 @@
       <small class="field-hint">Optional. Must be a calendar day (YYYY-MM-DD); an Excel date cell already arrives that way.</small>
     </div>
 
+    <div class="field">
+      <label for="bulk-alternative-labels-column">Which column holds the <strong>alternative labels</strong>?</label>
+      <p-dropdown
+        inputId="bulk-alternative-labels-column"
+        appendTo="body"
+        panelStyleClass="admin-dropdown-panel column-dropdown-panel"
+        placeholder="Not in this file"
+        filterPlaceholder="Search a column…"
+        styleClass="full-width"
+        scrollHeight="288px"
+        filterBy="label"
+        [options]="columnOptions"
+        [(ngModel)]="alternativeLabelsColumn"
+        [showClear]="true"
+        [filter]="true"
+        [resetFilterOnHide]="true"
+        [virtualScroll]="true"
+        [itemSize]="36"
+        (onShow)="onDropdownShow($event)">
+      </p-dropdown>
+      <small class="field-hint"
+        >Optional. Other names, acronyms or older wording, all in one cell separated by ; or | (a comma stays part of the label). Leaving it unmapped
+        keeps the labels already stored.</small
+      >
+    </div>
+
     <div class="field field--full">
       <label>Portfolios assigned to every term in this batch</label>
       <p-multiSelect
@@ -356,7 +382,12 @@
       <tr [class.row-invalid]="row.action === 'invalid'">
         <td data-label="Row">{{ row.index }}</td>
         <td data-label="Action"><p-tag [value]="actionLabel(row.action)" [severity]="actionSeverity(row.action)"></p-tag></td>
-        <td data-card-title data-label="Term" class="cell-primary">{{ row.term || '—' }}</td>
+        <td data-card-title data-label="Term" class="cell-primary">
+          {{ row.term || '—' }}
+          <div class="cell-previous cell-previous--aliases" *ngIf="row.alternative_labels?.length">
+            <span class="cell-previous__label">Also:</span> {{ row.alternative_labels.join(' · ') }}
+          </div>
+        </td>
         <td data-label="Definition to be saved">
           <div>{{ row.definition || '—' }}</div>
           <div class="cell-previous" *ngIf="row.action === 'update' && row.current_definition">

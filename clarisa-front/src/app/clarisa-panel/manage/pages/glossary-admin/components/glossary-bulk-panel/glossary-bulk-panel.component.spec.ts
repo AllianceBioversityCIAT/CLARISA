@@ -65,6 +65,68 @@ describe('GlossaryBulkPanelComponent', () => {
   });
 
   /**
+   * Alternative labels travel as the raw cell, and only when the column was
+   * mapped: an absent key is what tells the API to keep the stored labels.
+   */
+  describe('alternative labels column', () => {
+    const lastBody = (preview: jest.Mock) => preview.mock.calls[preview.mock.calls.length - 1][0];
+    let previewGlossaryBulk: jest.Mock;
+
+    beforeEach(() => {
+      previewGlossaryBulk = jest.fn(() => of({ rows: [], summary: {}, applied: false }));
+      component = new GlossaryBulkPanelComponent(
+        { getAllPortfolios: () => of([]), previewGlossaryBulk } as unknown as ManageApiService,
+        new GlossaryFileParserService(),
+        messageService
+      );
+    });
+
+    it('sends the cell untouched when the column is mapped', async () => {
+      await paste('term\tdefinition\talternative labels\nImpact assessment\tA study\tIA; Impact study | old name');
+
+      expect(component.alternativeLabelsColumn).toBe(2);
+      component.runPreview();
+
+      expect(lastBody(previewGlossaryBulk).rows[0]).toEqual({
+        term: 'Impact assessment',
+        definition: 'A study',
+        alternative_labels: 'IA; Impact study | old name'
+      });
+    });
+
+    it('sends an empty cell as an empty string, so the row clears its labels', async () => {
+      await paste('term\tdefinition\talternative labels\nImpact assessment\tA study\t');
+      component.runPreview();
+
+      expect(lastBody(previewGlossaryBulk).rows[0].alternative_labels).toBe('');
+    });
+
+    it('leaves the key out when the column is not mapped', async () => {
+      await paste('term\tdefinition\tnotes\nImpact assessment\tA study\tIA');
+
+      expect(component.alternativeLabelsColumn).toBeNull();
+      component.runPreview();
+
+      expect('alternative_labels' in lastBody(previewGlossaryBulk).rows[0]).toBe(false);
+    });
+
+    it('leaves the key out once the reader clears a detected column', async () => {
+      await paste('term\tdefinition\tsynonyms\nImpact assessment\tA study\tIA');
+      component.alternativeLabelsColumn = null;
+      component.runPreview();
+
+      expect('alternative_labels' in lastBody(previewGlossaryBulk).rows[0]).toBe(false);
+    });
+
+    it('forgets the mapping when the wizard starts over', async () => {
+      await paste('term\tdefinition\talternative labels\nImpact assessment\tA study\tIA');
+      component.startOver();
+
+      expect(component.alternativeLabelsColumn).toBeNull();
+    });
+  });
+
+  /**
    * The review table is sortable, and the table orders the very array it is
    * given. Handing it a new array on every change detection cycle would put the
    * rows back in file order a moment after the reader clicked a column.
