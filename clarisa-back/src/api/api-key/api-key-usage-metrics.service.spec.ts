@@ -1,4 +1,6 @@
 import { ApiKeyUsageMetricsService } from './api-key-usage-metrics.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * The two aggregates added on 2026-09-24 for the redesigned Usage panel:
@@ -197,5 +199,19 @@ describe('ApiKeyUsageMetricsService — endpoint and MIS aggregates', () => {
         last_used_at: null,
       },
     ]);
+  });
+
+  // The MySQL driver replaces EVERY `?` of the SQL text with a parameter,
+  // including one inside a string literal. A `'?'` in a raw expression took
+  // the `from` date and broke `usage/endpoints` on clarisatest (2026-09-25).
+  it('never writes a literal question mark into the raw SQL of this service', () => {
+    const source = fs.readFileSync(
+      path.join(__dirname, 'api-key-usage-metrics.service.ts'),
+      'utf8',
+    );
+    const code = source
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '');
+    expect(code).not.toMatch(/'\?'/);
   });
 });
