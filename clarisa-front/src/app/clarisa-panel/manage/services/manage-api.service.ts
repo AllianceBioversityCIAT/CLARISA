@@ -6,10 +6,66 @@ import { Observable } from 'rxjs';
 export interface CreateApiKeyBody {
   name: string;
   environment: string;
+  /** Who holds the key and what it is used for (Héctor, 2026-09-24). */
+  description?: string;
   mis_id?: number;
   scopes?: string[];
   allowed_ips?: string[];
   expires_at?: string;
+}
+
+/**
+ * Edit of an existing key. Absent = unchanged; `null` (or `''` for the two
+ * scalars) clears the value. The environment is not editable: it is baked into
+ * the prefix, so changing it means rotating the key.
+ */
+export interface UpdateApiKeyBody {
+  name?: string;
+  description?: string;
+  mis_id?: number | null;
+  scopes?: string[] | null;
+  allowed_ips?: string[] | null;
+  expires_at?: string | null;
+}
+
+export interface EndpointConsumer {
+  api_key_id: number;
+  api_key_name: string;
+  key_prefix: string;
+  mis_id: number | null;
+  mis_acronym: string | null;
+  total_requests: number;
+  last_used_at: string | null;
+}
+
+export interface EndpointUsageItem {
+  /** `clarisa-api` for direct calls to this API; otherwise the caller's own name. */
+  microservice_name: string;
+  /** Request path without its query string. */
+  endpoint: string;
+  http_method: string | null;
+  total_requests: number;
+  error_count: number;
+  avg_response_time_ms: number | null;
+  unique_api_keys: number;
+  last_used_at: string | null;
+  consumers: EndpointConsumer[];
+}
+
+export interface EndpointUsagePage {
+  period: { from: string; to: string };
+  total_requests: number;
+  items: EndpointUsageItem[];
+}
+
+export interface MisActivityItem {
+  mis_id: number | null;
+  mis_acronym: string;
+  mis_name: string;
+  total_keys: number;
+  active_keys: number;
+  usage_count: number;
+  last_used_at: string | null;
 }
 
 export interface CreateMisBody {
@@ -326,12 +382,41 @@ export class ManageApiService {
     return this.http.patch(`${this.urlApi}api/api-keys/${id}/rotate`, {});
   }
 
+  updateApiKey(id: number, body: UpdateApiKeyBody) {
+    return this.http.patch(`${this.urlApi}api/api-keys/${id}`, body);
+  }
+
   deleteApiKey(id: number) {
     return this.http.delete(`${this.urlApi}api/api-keys/${id}`);
   }
 
   createMis(body: CreateMisBody) {
     return this.http.post(`${this.urlApi}api/mises/create`, body);
+  }
+
+  /** Logical delete: the row stays, `is_active` flips. */
+  deactivateMis(id: number) {
+    return this.http.patch(`${this.urlApi}api/mises/deactivate/${id}`, {});
+  }
+
+  activateMis(id: number) {
+    return this.http.patch(`${this.urlApi}api/mises/activate/${id}`, {});
+  }
+
+  getApiKeyUsageByEndpoint(params: UsageQueryParams = {}) {
+    return this.http.get<EndpointUsagePage>(`${this.urlApi}api/api-keys/usage/endpoints`, {
+      params: this.cleanParams(params)
+    });
+  }
+
+  /** The public documentation map; the Overview hangs usage from its tree. */
+  getApiReferenceCatalog() {
+    return this.http.get<{ groups: any[] }>('assets/api-reference/catalog.json');
+  }
+
+  /** Keys held and last use per MIS, for the registry table. */
+  getMisActivity() {
+    return this.http.get<MisActivityItem[]>(`${this.urlApi}api/api-keys/usage/mis-activity`);
   }
 
   getApiKeyUsageSummary(params: UsageQueryParams = {}) {

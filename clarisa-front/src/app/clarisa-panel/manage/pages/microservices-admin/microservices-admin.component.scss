@@ -1,16 +1,20 @@
 // El hueco de la barra fija lo reserva el armazón (`manage.component.scss`).
-// Antes había un `<aside>` propio de 260px al lado (columna blanca, doble
-// sidebar); la elección de pestaña vive ahora en el menú negro, así que esto
-// es una sola columna a todo lo ancho (Yeck, 23-sep-2026).
-.ms-admin-main {
+// Una sola columna a todo lo ancho: la elección de pestaña vive en el riel del
+// encabezado y en el menú negro, nunca en una segunda columna blanca
+// (Yeck, 23-sep-2026).
+.ms-admin {
   min-height: calc(100vh - var(--cl-admin-header));
   box-sizing: border-box;
   padding: 1.5rem 2rem 2rem;
   background: var(--cl-surface-2);
 }
 
+.ms-admin__main {
+  min-width: 0;
+}
+
 @media (max-width: 900px) {
-  .ms-admin-main {
+  .ms-admin {
     padding: 1rem 1rem 2rem;
   }
 }

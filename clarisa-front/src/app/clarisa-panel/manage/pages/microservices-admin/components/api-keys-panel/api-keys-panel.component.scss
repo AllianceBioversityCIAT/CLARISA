@@ -1,1 +1,190 @@
 @import '../shared-panel';
+
+/* ---- la ficha desplegada de una llave ------------------------------------- */
+
+:host ::ng-deep .keys-table {
+  /* Diez columnas con ancho declarado suman 1194: por debajo, con
+     `table-layout: fixed`, la que no tiene ancho se queda en CERO (el mismo
+     defecto que tuvo la definición del glosario el 18-sep-2026). */
+  &.p-datatable .p-datatable-table {
+    min-width: 1200px;
+  }
+
+  .p-datatable-tbody > tr.is-open > td {
+    background: var(--cl-surface-2);
+    border-bottom-color: transparent;
+  }
+
+  /* La fila de expansión no es una fila de datos: sin cebra, sin hover. */
+  .p-datatable-tbody > tr.key-detail-row > td {
+    padding: 0;
+    background: var(--cl-surface-2) !important;
+    border-bottom: 1px solid var(--cl-line);
+  }
+}
+
+.key-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 0 32px;
+  padding: 14px 18px 18px 56px;
+}
+
+.key-detail__heading {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cl-ink-3);
+}
+
+.key-detail__usage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+
+  .key-detail__heading {
+    margin-bottom: 0;
+  }
+}
+
+.key-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 20px;
+  margin: 0;
+
+  > div {
+    min-width: 0;
+  }
+
+  dt {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cl-ink-3);
+    margin-bottom: 2px;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--cl-ink);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  /* La descripción es la que puede ser larga: ocupa las dos columnas. */
+  > div:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.key-usage-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--cl-ink-2);
+
+  strong {
+    color: var(--cl-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .is-bad strong {
+    color: var(--cl-error);
+  }
+}
+
+.key-detail__empty {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--cl-ink-3);
+}
+
+/* Esqueleto de las tres líneas que van a aparecer, en el tinte de apoyo. */
+.key-usage-skeleton {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+
+  span {
+    display: block;
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--cl-line) 0%, var(--cl-surface) 50%, var(--cl-line) 100%);
+    background-size: 200% 100%;
+    animation: key-usage-shimmer 1.2s ease-in-out infinite;
+
+    &:nth-child(1) {
+      width: 60%;
+    }
+    &:nth-child(2) {
+      width: 90%;
+    }
+    &:nth-child(3) {
+      width: 75%;
+    }
+  }
+}
+
+@keyframes key-usage-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key-usage-skeleton span {
+    animation: none;
+  }
+}
+
+.edit-note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface-2);
+  border: 1px solid var(--cl-line);
+  font-size: 13px;
+  color: var(--cl-ink-2);
+}
+
+.cell-muted {
+  color: var(--cl-ink-3);
+}
+
+@media (max-width: 900px) {
+  .key-detail {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px 0;
+    padding: 14px 16px 18px;
+  }
+}
+
+@media (max-width: 720px) {
+  .key-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .endpoint-bars li {
+    grid-template-columns: minmax(0, 1fr) 80px;
+
+    .endpoint-bars__track {
+      grid-column: 1 / -1;
+    }
+  }
+}

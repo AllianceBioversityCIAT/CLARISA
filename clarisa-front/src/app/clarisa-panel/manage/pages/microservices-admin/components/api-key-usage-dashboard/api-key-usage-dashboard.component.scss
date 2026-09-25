@@ -1,280 +1,595 @@
-@import '../_shared-panel';
+@import '../shared-panel';
 
 :host {
   display: block;
   position: relative;
 }
 
-.dash-header {
-  @extend .panel-header;
+/* ---- período y filtros ----------------------------------------------------- */
 
-  &__title {
-    @extend .panel-header__title;
-    letter-spacing: -0.02em;
-  }
-
-  &__desc {
-    @extend .panel-header__desc;
-  }
-
-  &__actions {
-    @extend .panel-header__actions;
-  }
-}
-
-.dash-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem 1.25rem;
-  padding: 1rem 1.1rem;
-  margin-bottom: 1rem;
-  align-items: flex-end;
-
-  &__group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-
-    label {
-      font-size: 0.68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--cl-ink-3);
-    }
-  }
-}
-
-:host ::ng-deep .dash-dropdown {
-  min-width: 9rem;
-
-  &--wide {
-    min-width: 14rem;
-  }
-}
-
-.dash-kpis {
+.ov-toolbar {
+  padding: 12px 14px;
+  margin-bottom: 14px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 10px;
 }
 
-.kpi-card {
-  background: var(--cl-surface);
-  border: 1px solid var(--cl-line);
-  border-radius: var(--cl-radius-card);
-  padding: 0.9rem 1rem;
-  box-shadow: 0 1px 2px rgba(16, 36, 28, 0.05);
-  /* Mismo acento que marca "estás aquí" en el resto del panel — la tarjeta
-     activa del sidebar, la columna que ordena la tabla — no un azul aparte. */
-  border-top: 3px solid var(--cl-brand-strong);
+.ov-toolbar__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
 
-  /* La única tarjeta de alerta reutiliza el par ámbar de `.p-tag-warning`
-     (`_admin-controls.scss`): no hay `--cl-warn-soft` todavía y este alcance es
-     migrar a lo que ya existe, no crear un token para una sola tarjeta. */
-  &--alert {
-    border-top-color: #d97706;
-    background: linear-gradient(180deg, #fdf3e0 0%, var(--cl-surface) 40%);
+.ov-toolbar__period {
+  font-size: 12.5px;
+  color: var(--cl-ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ov-toolbar__actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.ov-toolbar__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cl-ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  .pi {
+    font-size: 11px;
   }
+}
 
-  &__label {
-    display: block;
-    font-size: 0.68rem;
+/* La misma píldora segmentada que elige la sección, un peldaño más chica:
+   es el mismo tipo de control (una opción entre varias), así que se dibuja
+   igual y solo cambia el tamaño. */
+:host ::ng-deep .admin-tabs--compact .admin-tabs__item {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12.5px;
+}
+
+.ov-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  label {
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     color: var(--cl-ink-3);
-    margin-bottom: 0.35rem;
+  }
+}
+
+.ov-field__apply {
+  align-self: flex-end;
+}
+
+:host ::ng-deep .ov-dropdown {
+  min-width: 11rem;
+  height: 34px;
+  align-items: center;
+  border-radius: var(--cl-radius-control);
+
+  &--wide {
+    min-width: 15rem;
   }
 
-  &__value {
+  .p-dropdown-label {
+    padding-top: 0;
+    padding-bottom: 0;
+    line-height: 32px;
+    font-size: 13px;
+  }
+}
+
+/* ---- cifras ----------------------------------------------------------------- */
+
+.ov-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+/* Mientras llegan las cifras las tarjetas ya están: solo la cifra brilla. */
+.ov-kpis.is-loading .kpi-card__value {
+  color: transparent;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--cl-line) 0%, var(--cl-surface-2) 50%, var(--cl-line) 100%);
+  background-size: 200% 100%;
+  animation: ov-shimmer 1.2s ease-in-out infinite;
+  width: 60%;
+}
+
+@keyframes ov-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ov-kpis.is-loading .kpi-card__value {
+    animation: none;
+  }
+}
+
+/* ---- curvas ----------------------------------------------------------------- */
+
+.ov-charts {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+/* ---- la llave elegida -------------------------------------------------------- */
+
+.ov-detail {
+  margin-bottom: 14px;
+  padding: 14px 16px 16px;
+  border-color: var(--cl-brand-ring);
+
+  &__eyebrow {
     display: block;
-    font-size: 1.45rem;
+    font-size: 11px;
     font-weight: 700;
-    color: var(--cl-ink);
-    line-height: 1.1;
-    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cl-brand-deep);
   }
-
-  &__hint {
-    display: block;
-    margin-top: 0.3rem;
-    font-size: 0.72rem;
-    color: var(--cl-ink-3);
-  }
-}
-
-.dash-charts {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1rem;
-
-  &--detail {
-    margin-top: 0.75rem;
-    margin-bottom: 0;
-  }
-}
-
-.chart-card {
-  padding: 0.75rem 1rem 1rem;
-  min-height: 16rem;
-
-  &--nested {
-    border: 1px solid var(--cl-line);
-    border-radius: 8px;
-    box-shadow: none;
-    min-height: 13rem;
-  }
-
-  &__head {
-    margin-bottom: 0.75rem;
-
-    h2,
-    h3 {
-      margin: 0;
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--cl-ink);
-    }
-
-    span {
-      font-size: 0.75rem;
-      color: var(--cl-ink-3);
-    }
-  }
-
-  ::ng-deep canvas {
-    max-height: 220px;
-  }
-}
-
-.dash-matrix {
-  margin-bottom: 1rem;
-  padding: 0.5rem 0.25rem 0.75rem;
-}
-
-.dash-grid {
-  display: grid;
-  /* `minmax(0, 1fr)`, no `1fr`: un ítem de grid mide por defecto `min-width:
-     auto`, que para una tarjeta con una tabla de 880px dentro es su propio
-     ancho de contenido. Con dos tarjetas pidiendo ≥880px en ~1112px de sitio,
-     el grid entero se salía 688px a la derecha SIN scrollbar (`window.scrollTo`
-     no movía nada — no era una tabla apretada, era contenido inalcanzable). El
-     `0` del mínimo deja que la tarjeta se encoja hasta su propio scroll interno
-     (`.p-datatable-wrapper { overflow-x: auto }`, ya declarado en global), que
-     es el comportamiento que la tabla ya tenía pensado para un contenedor
-     angosto. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.table-card {
-  padding: 0.5rem 0.25rem 0.75rem;
-
-  &--nested {
-    margin-top: 0.75rem;
-    padding: 0.25rem;
-  }
-
-  &__head {
-    padding: 0.5rem 0.85rem 0.65rem;
-    border-bottom: 1px solid var(--cl-surface-2);
-    margin-bottom: 0.25rem;
-
-    h2,
-    h3 {
-      margin: 0;
-      font-size: 0.92rem;
-      font-weight: 600;
-      color: var(--cl-ink);
-    }
-
-    span {
-      font-size: 0.72rem;
-      color: var(--cl-ink-3);
-    }
-  }
-}
-
-.cell-sub {
-  display: block;
-  font-size: 0.72rem;
-  color: var(--cl-ink-3);
-}
-
-:host ::ng-deep .dash-table--clickable .p-datatable-tbody > tr {
-  cursor: pointer;
-
-  /* El mismo mint que resalta la fila activa o con hover en cualquier otra
-     tabla del panel (`styles.scss`), no un azul propio de esta pantalla. */
-  &.is-selected,
-  &.p-highlight {
-    background: var(--cl-brand-soft) !important;
-  }
-}
-
-.dash-detail {
-  margin-bottom: 1rem;
-  padding: 1rem 1.1rem;
 
   &__head {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
+    gap: 12px;
+    margin-bottom: 10px;
 
     h2 {
-      margin: 0 0 0.25rem;
-      font-size: 1.1rem;
+      margin: 2px 0 4px;
+      font-size: 18px;
       color: var(--cl-ink);
+      letter-spacing: -0.01em;
     }
 
     p {
       margin: 0;
-      font-size: 0.8rem;
+      font-size: 13px;
       color: var(--cl-ink-2);
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
     }
   }
 
   &__kpis {
     display: flex;
     flex-wrap: wrap;
-    gap: 1.25rem;
-    font-size: 0.82rem;
+    gap: 6px 20px;
+    font-size: 13px;
     color: var(--cl-ink-2);
-    padding-bottom: 0.75rem;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
     border-bottom: 1px solid var(--cl-line);
+
+    strong {
+      color: var(--cl-ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .is-bad strong {
+      color: var(--cl-error);
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
   }
 }
 
-.dash-logs {
-  margin-bottom: 2rem;
+/* ---- quién consume ----------------------------------------------------------- */
+
+.ov-grid {
+  display: grid;
+  /* `minmax(0, 1fr)`: un ítem de grid mide por defecto `min-width: auto`, y
+     con una tabla de 880px dentro el grid se salía de la pantalla sin
+     scrollbar. El `0` deja que la tarjeta se encoja a su scroll interno. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
-:host ::ng-deep .dash-spinner {
-  position: absolute;
-  top: 6rem;
-  right: 2rem;
-  width: 36px;
-  height: 36px;
+/* Requests con su participación al lado: el número manda, la barra ubica. */
 
-  /* PrimeNG anima el trazo por 4 colores de fábrica (rojo/azul/verde/ámbar) vía
-     `@keyframes p-progress-spinner-color`; sin tocarlo, el spinner de un panel
-     mint escupe un arcoíris. `!important` sí gana: la animación cede ante una
-     declaración marcada así (al revés de lo habitual), así que el giro se
-     conserva y el color queda fijo en el acento de marca. */
-  .p-progress-spinner-circle {
-    stroke: var(--cl-brand-strong) !important;
+:host ::ng-deep .ov-table--clickable .p-datatable-tbody > tr {
+  cursor: pointer;
+
+  &.is-static {
+    cursor: default;
+  }
+
+  &.is-selected > td {
+    background: var(--cl-brand-soft) !important;
+  }
+}
+
+/* ---- endpoints: el árbol de la doc -------------------------------------------- */
+
+.ov-endpoints {
+  margin-bottom: 14px;
+  padding: 4px 4px 6px;
+}
+
+.ov-endpoints__head .admin-table-toolbar {
+  flex: 0 1 420px;
+}
+
+.ov-endpoints__body {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--cl-line);
+  min-height: 320px;
+
+  &.is-loading {
+    opacity: 0.6;
+  }
+}
+
+.ov-tree {
+  border-right: 1px solid var(--cl-line);
+  padding: 8px 6px 8px 8px;
+  max-height: 560px;
+  overflow-y: auto;
+  min-width: 0;
+
+  &__group {
+    margin-bottom: 4px;
+  }
+
+  &__group-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--cl-ink);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+
+    .pi {
+      font-size: 10px;
+      color: var(--cl-ink-3);
+    }
+
+    &:hover {
+      background: var(--cl-surface-2);
+    }
+  }
+
+  &__group-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__count {
+    flex: 0 0 auto;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--cl-ink-2);
+    font-variant-numeric: tabular-nums;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--cl-surface-2);
+    border: 1px solid var(--cl-line);
+
+    &--soft {
+      background: transparent;
+      border-color: transparent;
+      color: var(--cl-ink-3);
+    }
+  }
+
+  &__categories {
+    padding: 2px 0 6px 10px;
+  }
+
+  &__category-name {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 8px 0 2px;
+    padding: 0 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cl-ink-3);
+  }
+
+  &__endpoints {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__endpoint {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--cl-ink-2);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--cl-surface-2);
+      color: var(--cl-ink);
+    }
+
+    &.is-active {
+      background: var(--cl-brand-soft);
+      color: var(--cl-brand-deeper);
+
+      .ov-tree__count {
+        background: var(--cl-surface);
+        border-color: var(--cl-brand-ring);
+        color: var(--cl-brand-deeper);
+      }
+    }
+
+    &.is-idle {
+      color: var(--cl-ink-3);
+
+      .ov-tree__count {
+        color: var(--cl-ink-3);
+        background: transparent;
+        border-color: transparent;
+      }
+    }
+  }
+
+  &__endpoint-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* El verbo HTTP, como en la doc: una pastilla monoespaciada de ancho fijo
+   para que las rutas queden alineadas. El color solo distingue lectura de
+   escritura; la palabra es la que dice cuál. */
+
+.ov-endpoint {
+  padding: 16px 18px 18px;
+  min-width: 0;
+
+  &--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  &__title {
+    min-width: 0;
+
+    h3 {
+      margin: 0 0 2px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--cl-ink);
+      letter-spacing: -0.01em;
+    }
+  }
+
+  &__route {
+    display: block;
+    font-size: 12.5px;
+    color: var(--cl-ink-2);
+    background: transparent;
+    padding: 0;
+    word-break: break-all;
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  &__kpis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    font-size: 13px;
+    color: var(--cl-ink-2);
+    padding: 10px 0 12px;
+    border-top: 1px solid var(--cl-line);
+    border-bottom: 1px solid var(--cl-line);
+
+    strong {
+      color: var(--cl-ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    small {
+      color: var(--cl-ink-3);
+    }
+
+    .is-bad strong {
+      color: var(--cl-error);
+    }
+  }
+
+  &__paths {
+    margin: 10px 0 0;
+    font-size: 12px;
+    color: var(--cl-ink-3);
+
+    code {
+      background: var(--cl-surface-2);
+      border: 1px solid var(--cl-line);
+      border-radius: 4px;
+      padding: 0 4px;
+      color: var(--cl-ink-2);
+      font-size: 11.5px;
+    }
+  }
+
+  &__sub {
+    margin: 14px 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cl-ink-3);
+  }
+}
+
+/* La tabla de consumidores del endpoint es más chica que el resto: sin el
+   mínimo de 880 que las de pantalla completa necesitan. */
+:host ::ng-deep .ov-grid .admin-table.p-datatable,
+:host ::ng-deep .ov-consumers.p-datatable {
+  min-width: 0;
+
+  .p-datatable-table {
+    min-width: 0;
+  }
+}
+
+/* ---- el registro crudo ---------------------------------------------------------- */
+
+.ov-logs {
+  margin-bottom: 24px;
+}
+
+.ov-log-path {
+  font-size: 12px;
+  color: var(--cl-ink);
+  background: transparent;
+  padding: 0;
+  word-break: break-all;
+}
+
+.ov-status {
+  font-variant-numeric: tabular-nums;
+
+  &.is-bad {
+    color: var(--cl-error);
+    font-weight: 600;
+  }
+}
+
+/* ---- pantallas angostas --------------------------------------------------------- */
+
+@media (max-width: 1280px) {
+  .ov-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 1100px) {
-  .dash-charts,
-  .dash-grid {
-    grid-template-columns: 1fr;
+  .ov-charts,
+  .ov-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ov-detail__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .ov-endpoints__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ov-tree {
+    border-right: 0;
+    border-bottom: 1px solid var(--cl-line);
+    max-height: 320px;
+  }
+}
+
+/* Sin datos, el gráfico no pinta ejes vacíos: dice que no hay nada. */
+.chart-card__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+}
+
+@media (max-width: 720px) {
+  /* El host `<p-dropdown>` es quien vive en la fila flex: si no se estira él,
+     el `.p-dropdown` de dentro a 100% se estira contra un host de ancho auto
+     y se sale por la derecha. */
+  .ov-toolbar__row--filters p-dropdown {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .ov-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ov-toolbar__actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .ov-toolbar__period {
+    width: 100%;
+  }
+
+  :host ::ng-deep .ov-dropdown,
+  :host ::ng-deep .ov-dropdown--wide {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ov-endpoint {
+    padding: 14px 12px 16px;
   }
 }

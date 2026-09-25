@@ -1,354 +1,601 @@
-<header class="dash-header">
-  <div>
-    <h1 class="dash-header__title">API Key Usage</h1>
-    <p class="dash-header__desc">
-      Operational view of validation traffic — filter by MIS, API key, or consuming microservice.
-    </p>
+<!--
+  Overview: la primera pantalla del módulo. De arriba abajo, de lo que se
+  responde de un vistazo a lo que se investiga: período → cifras → curvas →
+  quién consume (sistemas, llaves) → qué consume (endpoints, con la estructura
+  de la doc pública) → el registro crudo.
+-->
+
+<!-- ---- período y filtros ------------------------------------------------ -->
+<section class="ov-toolbar panel-card">
+  <div class="ov-toolbar__row">
+    <nav class="admin-tabs admin-tabs--compact ov-range" role="tablist" aria-label="Period">
+      <button
+        *ngFor="let option of rangeOptions"
+        type="button"
+        role="tab"
+        class="admin-tabs__item"
+        [class.is-active]="rangePreset === option.value"
+        [attr.aria-selected]="rangePreset === option.value"
+        (click)="setRange(option.value)">
+        <span>{{ option.label }}</span>
+      </button>
+    </nav>
+
+    <span class="ov-toolbar__period" [title]="periodLabel">{{ periodLabel }}</span>
+
+    <div class="ov-toolbar__actions">
+      <button pButton type="button" icon="pi pi-refresh" label="Refresh" class="p-button-outlined" (click)="refresh()" [disabled]="loading"></button>
+    </div>
   </div>
-  <div class="dash-header__actions">
+
+  <div class="ov-toolbar__row ov-toolbar__row--custom" *ngIf="rangePreset === 'custom'">
+    <div class="ov-field">
+      <label for="ovFrom">From</label>
+      <p-calendar
+        inputId="ovFrom"
+        [(ngModel)]="customFrom"
+        dateFormat="yy-mm-dd"
+        [showIcon]="true"
+        [maxDate]="customTo || undefined"
+        appendTo="body"></p-calendar>
+    </div>
+    <div class="ov-field">
+      <label for="ovTo">To</label>
+      <p-calendar
+        inputId="ovTo"
+        [(ngModel)]="customTo"
+        dateFormat="yy-mm-dd"
+        [showIcon]="true"
+        [minDate]="customFrom || undefined"
+        appendTo="body"></p-calendar>
+    </div>
     <button
       pButton
       type="button"
-      icon="pi pi-refresh"
-      label="Refresh"
-      class="p-button-outlined"
-      (click)="refresh()"
-      [disabled]="loading"
-    ></button>
-    <button
-      pButton
-      type="button"
-      icon="pi pi-download"
-      label="Export CSV"
-      class="p-button-outlined"
-      (click)="exportLogsCsv()"
-      [disabled]="!logs?.items?.length"
-    ></button>
-  </div>
-</header>
-
-<section class="dash-toolbar panel-card">
-  <div class="dash-toolbar__group">
-    <label>Period</label>
-    <p-dropdown
-      [options]="rangeOptions"
-      [(ngModel)]="rangePreset"
-      optionLabel="label"
-      optionValue="value"
-      (onChange)="onRangeChange()"
-      styleClass="dash-dropdown"
-    ></p-dropdown>
+      label="Apply"
+      class="btn-brand ov-field__apply"
+      (click)="applyCustomRange()"
+      [disabled]="!customFrom || !customTo"></button>
   </div>
 
-  <div class="dash-toolbar__group" *ngIf="rangePreset === 'custom'">
-    <label>From</label>
-    <p-calendar [(ngModel)]="customFrom" dateFormat="yy-mm-dd" [showIcon]="true"></p-calendar>
-  </div>
-  <div class="dash-toolbar__group" *ngIf="rangePreset === 'custom'">
-    <label>To</label>
-    <p-calendar [(ngModel)]="customTo" dateFormat="yy-mm-dd" [showIcon]="true"></p-calendar>
-  </div>
-  <div class="dash-toolbar__group" *ngIf="rangePreset === 'custom'">
-    <button pButton type="button" label="Apply" class="p-button-sm" (click)="applyCustomRange()"></button>
-  </div>
-
-  <div class="dash-toolbar__group">
-    <label>Granularity</label>
-    <p-dropdown
-      [options]="[
-        { label: 'Daily', value: 'day' },
-        { label: 'Weekly', value: 'week' }
-      ]"
-      [(ngModel)]="granularity"
-      optionLabel="label"
-      optionValue="value"
-      (onChange)="onFiltersChange()"
-      styleClass="dash-dropdown"
-    ></p-dropdown>
-  </div>
-
-  <div class="dash-toolbar__group">
-    <label>MIS</label>
+  <div class="ov-toolbar__row ov-toolbar__row--filters">
+    <span class="ov-toolbar__label"><i class="pi pi-filter"></i> Narrow to</span>
     <p-dropdown
       [options]="mises"
       [(ngModel)]="filterMisId"
       optionLabel="label"
       optionValue="id"
       [showClear]="true"
-      placeholder="All MIS"
+      [filter]="mises.length > 8"
+      placeholder="Any system (MIS)"
       (onChange)="onFiltersChange()"
-      styleClass="dash-dropdown dash-dropdown--wide"
-    ></p-dropdown>
-  </div>
-
-  <div class="dash-toolbar__group">
-    <label>API Key</label>
+      appendTo="body"
+      styleClass="ov-dropdown ov-dropdown--wide"
+      ariaLabel="Filter by MIS"></p-dropdown>
     <p-dropdown
       [options]="apiKeyOptions"
       [(ngModel)]="filterApiKeyId"
       optionLabel="label"
       optionValue="id"
       [showClear]="true"
-      placeholder="All keys"
+      [filter]="apiKeyOptions.length > 8"
+      placeholder="Any API key"
       (onChange)="onFiltersChange()"
-      styleClass="dash-dropdown dash-dropdown--wide"
-    ></p-dropdown>
-  </div>
-
-  <div class="dash-toolbar__group">
-    <label>Microservice</label>
+      appendTo="body"
+      styleClass="ov-dropdown ov-dropdown--wide"
+      ariaLabel="Filter by API key"></p-dropdown>
     <p-dropdown
       [options]="microserviceOptions"
       [(ngModel)]="filterMicroservice"
       optionLabel="label"
       optionValue="value"
       [showClear]="true"
-      placeholder="All services"
+      placeholder="Any microservice"
       (onChange)="onFiltersChange()"
-      styleClass="dash-dropdown"
-    ></p-dropdown>
+      appendTo="body"
+      styleClass="ov-dropdown"
+      ariaLabel="Filter by microservice"></p-dropdown>
+    <button
+      *ngIf="hasFilters"
+      pButton
+      type="button"
+      label="Clear"
+      icon="pi pi-filter-slash"
+      class="p-button-text p-button-sm"
+      (click)="clearFilters()"></button>
   </div>
 </section>
 
-<div class="dash-kpis" *ngIf="summary">
+<!-- ---- cifras ------------------------------------------------------------ -->
+<div class="ov-kpis" [class.is-loading]="loading && !summary" aria-live="polite">
   <article class="kpi-card">
-    <span class="kpi-card__label">Total requests</span>
-    <strong class="kpi-card__value">{{ formatNumber(summary.totals.total_requests) }}</strong>
-    <span class="kpi-card__hint">In selected period</span>
+    <span class="kpi-card__label">Systems consuming</span>
+    <strong class="kpi-card__value">{{ summary ? formatNumber(systemsCount) : '·' }}</strong>
+    <span class="kpi-card__hint" *ngIf="summary">
+      {{ formatNumber(summary.by_microservice.length) }} microservice{{ summary.by_microservice.length === 1 ? '' : 's'
+      }}<ng-container *ngIf="unassignedRequests"> · {{ formatNumber(unassignedRequests) }} calls from keys with no MIS</ng-container>
+    </span>
+  </article>
+  <article class="kpi-card">
+    <span class="kpi-card__label">Requests</span>
+    <strong class="kpi-card__value">{{ summary ? formatNumber(summary.totals.total_requests) : '·' }}</strong>
+    <span class="kpi-card__hint">In the period</span>
+  </article>
+  <article class="kpi-card" [class.kpi-card--alert]="summary && summary.totals.error_count > 0">
+    <span class="kpi-card__label">Error rate</span>
+    <strong class="kpi-card__value">{{ summary ? errorRate() : '·' }}</strong>
+    <span class="kpi-card__hint" *ngIf="summary">{{ formatNumber(summary.totals.error_count) }} errors logged</span>
   </article>
   <article class="kpi-card">
     <span class="kpi-card__label">Avg response</span>
-    <strong class="kpi-card__value">{{ formatMs(summary.totals.avg_response_time_ms) }}</strong>
+    <strong class="kpi-card__value">{{ summary ? formatMs(summary.totals.avg_response_time_ms) : '·' }}</strong>
     <span class="kpi-card__hint">Validation latency</span>
   </article>
-  <article class="kpi-card">
-    <span class="kpi-card__label">Error rate</span>
-    <strong class="kpi-card__value">{{ errorRate() }}</strong>
-    <span class="kpi-card__hint">{{ formatNumber(summary.totals.error_count) }} errors logged</span>
-  </article>
-  <article class="kpi-card">
+  <article class="kpi-card" [class.kpi-card--alert]="summary && summary.totals.expiring_within_30_days > 0">
     <span class="kpi-card__label">Active keys</span>
-    <strong class="kpi-card__value">{{ formatNumber(summary.totals.active_keys) }}</strong>
-    <span class="kpi-card__hint">{{ formatNumber(summary.totals.revoked_keys) }} revoked</span>
-  </article>
-  <article class="kpi-card kpi-card--alert" *ngIf="summary.totals.expiring_within_30_days">
-    <span class="kpi-card__label">Expiring soon</span>
-    <strong class="kpi-card__value">{{ formatNumber(summary.totals.expiring_within_30_days) }}</strong>
-    <span class="kpi-card__hint">Within 30 days</span>
+    <strong class="kpi-card__value">{{ summary ? formatNumber(summary.totals.active_keys) : '·' }}</strong>
+    <span class="kpi-card__hint" *ngIf="summary">
+      {{ formatNumber(summary.totals.revoked_keys) }} revoked<ng-container *ngIf="summary.totals.expiring_within_30_days">
+        · <b>{{ summary.totals.expiring_within_30_days }} expiring within 30 days</b></ng-container
+      >
+    </span>
   </article>
   <article class="kpi-card">
-    <span class="kpi-card__label">MIS consumers</span>
-    <strong class="kpi-card__value">{{ formatNumber(summary.by_mis.length) }}</strong>
-    <span class="kpi-card__hint">{{ formatNumber(summary.by_microservice.length) }} microservices</span>
+    <span class="kpi-card__label">Last activity</span>
+    <strong class="kpi-card__value" [title]="formatDate(lastActivity.at)">{{ summary ? ago(lastActivity.at) : '·' }}</strong>
+    <span class="kpi-card__hint cell-ellipsis" *ngIf="summary" [title]="lastActivity.key || ''">{{
+      lastActivity.key || 'No calls in the period'
+    }}</span>
   </article>
 </div>
 
-<section class="dash-charts" *ngIf="summary">
+<!-- ---- curvas ------------------------------------------------------------ -->
+<section class="ov-charts" *ngIf="summary">
   <article class="panel-card chart-card">
     <header class="chart-card__head">
-      <h2>Request timeline</h2>
-      <span>Volume over time</span>
+      <h2>Requests over time</h2>
+      <span>{{ granularity === 'day' ? 'Per day' : 'Per week' }}</span>
     </header>
-    <p-chart type="line" [data]="timelineChart" [options]="{ maintainAspectRatio: false, plugins: { legend: { display: false } } }"></p-chart>
+    <p-chart *ngIf="summary.time_series.length; else noTimeline" type="line" [data]="timelineChart" [options]="lineOptions" height="220px"></p-chart>
+    <ng-template #noTimeline><p class="admin-empty chart-card__empty">No calls in this period.</p></ng-template>
   </article>
 
   <article class="panel-card chart-card">
     <header class="chart-card__head">
       <h2>By microservice</h2>
-      <span>Who is calling validate / CLARISA</span>
+      <span>Who validated or called CLARISA</span>
     </header>
-    <p-chart type="bar" [data]="microserviceChart" [options]="{ maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }"></p-chart>
+    <p-chart
+      *ngIf="summary.by_microservice.length; else noMicroservices"
+      type="bar"
+      [data]="microserviceChart"
+      [options]="barOptions"
+      height="220px"></p-chart>
+    <ng-template #noMicroservices><p class="admin-empty chart-card__empty">Nothing called CLARISA in this period.</p></ng-template>
   </article>
 </section>
 
-<section class="panel-card table-card dash-matrix" *ngIf="summary?.by_mis_microservice?.length">
-  <header class="table-card__head">
-    <h2>MIS → Microservice matrix</h2>
-    <span>Requests per consumer MIS to each microservice_name (e.g. ToC PROD → reports)</span>
+<!-- ---- la llave elegida ------------------------------------------------- -->
+<section class="ov-detail panel-card" *ngIf="filterApiKeyId && keyDetail">
+  <header class="ov-detail__head">
+    <div>
+      <span class="ov-detail__eyebrow">API key</span>
+      <h2>{{ keyDetail.api_key.name }}</h2>
+      <p>
+        <code class="key-prefix">{{ keyDetail.api_key.key_prefix }}…</code>
+        · {{ keyDetail.api_key.mis_acronym || 'No MIS' }} · {{ keyDetail.api_key.environment || '—' }} ·
+        <p-tag [value]="statusOf(keyDetail.api_key)" [severity]="statusSeverity(keyDetail.api_key)"></p-tag>
+      </p>
+    </div>
+    <button pButton type="button" icon="pi pi-times" label="Close" class="p-button-text p-button-sm" (click)="clearKeyDetail()"></button>
   </header>
-  <p-table [value]="summary.by_mis_microservice" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
-    <ng-template pTemplate="header">
-      <tr>
-        <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="environment">Environment <p-sortIcon field="environment"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="microservice_name">Microservice <p-sortIcon field="microservice_name"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="total_requests">Requests <p-sortIcon field="total_requests"></p-sortIcon></th>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-row>
-      <tr>
-        <td data-card-title data-label="MIS">
-          <span class="cell-primary">{{ row.mis_acronym }}</span>
-          <span class="cell-sub">{{ row.mis_name }}</span>
-        </td>
-        <td data-label="Environment">{{ row.environment || '—' }}</td>
-        <td data-label="Microservice"><code>{{ row.microservice_name }}</code></td>
-        <td data-label="Requests"><strong>{{ formatNumber(row.total_requests) }}</strong></td>
-      </tr>
-    </ng-template>
-  </p-table>
+
+  <div class="ov-detail__kpis">
+    <span
+      ><strong>{{ formatNumber(keyDetail.totals.total_requests) }}</strong> requests</span
+    >
+    <span
+      ><strong>{{ keyDetail.totals.active_days }}</strong> active days</span
+    >
+    <span
+      ><strong>{{ formatMs(keyDetail.totals.avg_response_time_ms) }}</strong> avg</span
+    >
+    <span [class.is-bad]="keyDetail.totals.error_count"
+      ><strong>{{ formatNumber(keyDetail.totals.error_count) }}</strong> errors</span
+    >
+  </div>
+
+  <div class="ov-detail__grid" *ngIf="!detailLoading">
+    <article class="chart-card chart-card--nested">
+      <header class="chart-card__head"><h3>Timeline</h3></header>
+      <p-chart
+        *ngIf="keyDetail.time_series.length; else keyNoTimeline"
+        type="line"
+        [data]="keyTimelineChart"
+        [options]="lineOptions"
+        height="180px"></p-chart>
+      <ng-template #keyNoTimeline><p class="admin-empty chart-card__empty">No calls in the period.</p></ng-template>
+    </article>
+    <article class="chart-card chart-card--nested">
+      <header class="chart-card__head"><h3>By microservice</h3></header>
+      <p-chart
+        *ngIf="keyDetail.by_microservice.length; else keyNoMs"
+        type="bar"
+        [data]="keyMicroserviceChart"
+        [options]="barOptions"
+        height="180px"></p-chart>
+      <ng-template #keyNoMs><p class="admin-empty chart-card__empty">No calls in the period.</p></ng-template>
+    </article>
+    <article class="chart-card chart-card--nested">
+      <header class="chart-card__head"><h3>Top endpoints</h3></header>
+      <ol class="endpoint-bars" *ngIf="keyDetail.top_endpoints.length; else keyNoEndpoints">
+        <li *ngFor="let ep of keyDetail.top_endpoints">
+          <span class="endpoint-bars__label"
+            ><code>{{ ep.label }}</code></span
+          >
+          <span class="endpoint-bars__track"><span class="endpoint-bars__fill" [style.width]="barWidth(ep.percentage)"></span></span>
+          <span class="endpoint-bars__value">{{ formatNumber(ep.total_requests) }} · {{ ep.percentage }}%</span>
+        </li>
+      </ol>
+      <ng-template #keyNoEndpoints><p class="admin-empty">No calls in the period.</p></ng-template>
+    </article>
+  </div>
 </section>
 
-<section class="dash-grid" *ngIf="summary">
+<!-- ---- quién consume ---------------------------------------------------- -->
+<section class="ov-grid">
   <article class="panel-card table-card">
-    <header class="table-card__head">
-      <h2>Consumption by MIS</h2>
-      <span>e.g. ToC — PROD traffic to each microservice_name aggregate</span>
-    </header>
-    <p-table [value]="summary.by_mis" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
+    <p-table
+      #consumersTable
+      [value]="consumers"
+      [loading]="loading"
+      dataKey="mis_acronym"
+      sortField="total_requests"
+      [sortOrder]="-1"
+      [rows]="10"
+      [paginator]="consumers.length > 10"
+      [rowsPerPageOptions]="rowsPerPage"
+      [globalFilterFields]="['search_text']"
+      styleClass="p-datatable-sm admin-table ov-table--clickable"
+      responsiveLayout="scroll">
+      <ng-template pTemplate="caption">
+        <div class="table-card__head">
+          <div>
+            <h2>Systems</h2>
+            <span>Each MIS with traffic in the period. Click one to narrow everything to it.</span>
+          </div>
+          <div class="admin-table-toolbar">
+            <span class="p-input-icon-left">
+              <i class="pi pi-search"></i>
+              <input
+                pInputText
+                type="text"
+                placeholder="Search systems"
+                aria-label="Search systems"
+                (input)="consumersTable.filterGlobal($any($event.target).value, 'contains')" />
+            </span>
+          </div>
+        </div>
+      </ng-template>
       <ng-template pTemplate="header">
         <tr>
-          <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
-          <th scope="col" pSortableColumn="environment">Environment <p-sortIcon field="environment"></p-sortIcon></th>
-          <th scope="col" pSortableColumn="total_requests">Requests <p-sortIcon field="total_requests"></p-sortIcon></th>
-          <th scope="col" pSortableColumn="api_key_count">Keys <p-sortIcon field="api_key_count"></p-sortIcon></th>
-          <th scope="col" pSortableColumn="microservices_used">Microservices <p-sortIcon field="microservices_used"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="mis_acronym">System <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="environment" style="width: 90px">Env <p-sortIcon field="environment"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="api_key_count" style="width: 70px">Keys <p-sortIcon field="api_key_count"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="total_requests" style="width: 150px">Requests <p-sortIcon field="total_requests"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="last_used_ts" style="width: 110px">Last used <p-sortIcon field="last_used_ts"></p-sortIcon></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-row>
-        <tr>
-          <td data-card-title data-label="MIS">
+        <tr [class.is-selected]="filterMisId === row.mis_id && row.mis_id != null" [class.is-static]="row.mis_id == null" (click)="toggleMis(row)">
+          <td data-card-title data-label="System">
             <span class="cell-primary">{{ row.mis_acronym }}</span>
             <span class="cell-sub">{{ row.mis_name }}</span>
           </td>
-          <td data-label="Environment">{{ row.environment || '—' }}</td>
-          <td data-label="Requests"><strong>{{ formatNumber(row.total_requests) }}</strong></td>
+          <td data-label="Env">{{ row.environment || '—' }}</td>
           <td data-label="Keys">{{ row.api_key_count }}</td>
-          <td data-label="Microservices">{{ row.microservices_used }}</td>
+          <td data-label="Requests">
+            <span class="share">
+              <strong>{{ formatNumber(row.total_requests) }}</strong>
+              <span class="share__track"><span class="share__fill" [style.width]="barWidth(row.share)"></span></span>
+              <small>{{ row.share }}%</small>
+            </span>
+          </td>
+          <td data-label="Last used">
+            <span [title]="formatDate(row.last_used_at)">{{ ago(row.last_used_at) }}</span>
+          </td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="5" class="empty-cell">No usage in this period.</td></tr>
+        <tr>
+          <td colspan="5" class="empty-cell">No system called CLARISA in this period.</td>
+        </tr>
       </ng-template>
     </p-table>
   </article>
 
   <article class="panel-card table-card">
-    <header class="table-card__head">
-      <h2>Consumption by API key</h2>
-      <span>Click a row to drill down</span>
-    </header>
     <p-table
-      [value]="summary.keys"
-      styleClass="p-datatable-sm admin-table dash-table--clickable"
-      responsiveLayout="scroll"
-    >
+      #keysTable
+      [value]="keyRows"
+      [loading]="loading"
+      dataKey="id"
+      sortField="requests_in_period"
+      [sortOrder]="-1"
+      [rows]="10"
+      [paginator]="keyRows.length > 10"
+      [rowsPerPageOptions]="rowsPerPage"
+      [globalFilterFields]="['search_text']"
+      styleClass="p-datatable-sm admin-table ov-table--clickable"
+      responsiveLayout="scroll">
+      <ng-template pTemplate="caption">
+        <div class="table-card__head">
+          <div>
+            <h2>API keys</h2>
+            <span>Keys with traffic in the period. Click one for its timeline and endpoints.</span>
+          </div>
+          <div class="admin-table-toolbar">
+            <span class="p-input-icon-left">
+              <i class="pi pi-search"></i>
+              <input
+                pInputText
+                type="text"
+                placeholder="Search keys"
+                aria-label="Search keys"
+                (input)="keysTable.filterGlobal($any($event.target).value, 'contains')" />
+            </span>
+          </div>
+        </div>
+      </ng-template>
       <ng-template pTemplate="header">
         <tr>
           <th scope="col" pSortableColumn="name">Key <p-sortIcon field="name"></p-sortIcon></th>
-          <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
-          <th scope="col" pSortableColumn="requests_in_period">Period <p-sortIcon field="requests_in_period"></p-sortIcon></th>
-          <th scope="col" pSortableColumn="usage_count">Lifetime <p-sortIcon field="usage_count"></p-sortIcon></th>
-          <th scope="col" pSortableColumn="last_used_at">Last used <p-sortIcon field="last_used_at"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="mis_acronym" style="width: 90px">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="requests_in_period" style="width: 100px">Period <p-sortIcon field="requests_in_period"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="usage_count" style="width: 100px">Lifetime <p-sortIcon field="usage_count"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="last_used_ts" style="width: 110px">Last used <p-sortIcon field="last_used_ts"></p-sortIcon></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-row>
         <tr [class.is-selected]="filterApiKeyId === row.id" (click)="selectApiKey(row.id)">
           <td data-card-title data-label="Key">
             <span class="cell-primary">{{ row.name }}</span>
-            <code class="key-prefix">{{ row.key_prefix }}…</code>
+            <span class="cell-sub"
+              ><code class="key-prefix">{{ row.key_prefix }}…</code> · {{ row.environment || '—' }} · {{ row.status_label }}</span
+            >
           </td>
           <td data-label="MIS">{{ row.mis_acronym || '—' }}</td>
-          <td data-label="Period"><strong>{{ formatNumber(row.requests_in_period) }}</strong></td>
+          <td data-label="Period">
+            <strong>{{ formatNumber(row.requests_in_period) }}</strong>
+          </td>
           <td data-label="Lifetime">{{ formatNumber(row.usage_count) }}</td>
-          <td data-label="Last used">{{ formatDate(row.last_used_at) }}</td>
+          <td data-label="Last used">
+            <span [title]="formatDate(row.last_used_at)">{{ ago(row.last_used_at) }}</span>
+          </td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="5" class="empty-cell">No key activity in this period.</td></tr>
+        <tr>
+          <td colspan="5" class="empty-cell">No key activity in this period.</td>
+        </tr>
       </ng-template>
     </p-table>
   </article>
 </section>
 
-<section class="dash-detail panel-card" *ngIf="keyDetail">
-  <header class="dash-detail__head">
+<!-- ---- qué consume: el árbol de la documentación ------------------------ -->
+<section class="panel-card ov-endpoints">
+  <header class="table-card__head ov-endpoints__head">
     <div>
-      <h2>{{ keyDetail.api_key.name }}</h2>
-      <p>
-        <code>{{ keyDetail.api_key.key_prefix }}…</code>
-        · {{ keyDetail.api_key.mis_acronym || 'No MIS' }}
-        · {{ keyDetail.api_key.environment || '—' }}
-      </p>
+      <h2>Endpoints</h2>
+      <span>Usage hung from the same map as the public documentation: group, category, endpoint, and who called it.</span>
     </div>
-    <button pButton type="button" icon="pi pi-times" class="p-button-text" (click)="clearKeyDetail()"></button>
+    <div class="admin-table-toolbar">
+      <span class="p-input-icon-left">
+        <i class="pi pi-search"></i>
+        <input
+          pInputText
+          type="text"
+          placeholder="Search endpoint, category, or consumer"
+          aria-label="Search endpoints"
+          [ngModel]="endpointQuery"
+          (ngModelChange)="onEndpointQuery($event)" />
+      </span>
+      <span class="admin-table-toolbar__count" *ngIf="endpointUsage">{{ formatNumber(endpointUsage.total_requests) }} calls</span>
+    </div>
   </header>
 
-  <div class="dash-detail__kpis">
-    <span><strong>{{ formatNumber(keyDetail.totals.total_requests) }}</strong> requests</span>
-    <span><strong>{{ formatMs(keyDetail.totals.avg_response_time_ms) }}</strong> avg</span>
-    <span><strong>{{ keyDetail.totals.active_days }}</strong> active days</span>
-  </div>
+  <p class="admin-empty admin-empty--padded" *ngIf="endpointsUnavailable">Per-endpoint usage is not available on this server yet.</p>
 
-  <div class="dash-charts dash-charts--detail" *ngIf="!detailLoading">
-    <article class="chart-card chart-card--nested">
-      <header class="chart-card__head"><h3>Key timeline</h3></header>
-      <p-chart type="line" [data]="keyTimelineChart" [options]="{ maintainAspectRatio: false, plugins: { legend: { display: false } } }"></p-chart>
-    </article>
-    <article class="chart-card chart-card--nested">
-      <header class="chart-card__head"><h3>By microservice</h3></header>
-      <p-chart type="bar" [data]="keyMicroserviceChart" [options]="{ maintainAspectRatio: false, plugins: { legend: { display: false } } }"></p-chart>
-    </article>
-  </div>
+  <div class="ov-endpoints__body" *ngIf="!endpointsUnavailable" [class.is-loading]="endpointsLoading">
+    <nav class="ov-tree" aria-label="Endpoint catalogue">
+      <p class="admin-empty" *ngIf="!visibleTree.length && !endpointsLoading">Nothing matches «{{ endpointQuery }}».</p>
 
-  <article class="table-card table-card--nested" *ngIf="keyDetail.top_endpoints.length">
-    <header class="table-card__head"><h3>Top endpoints / patterns</h3></header>
-    <p-table [value]="keyDetail.top_endpoints" styleClass="p-datatable-sm admin-table">
-      <ng-template pTemplate="header">
-        <tr>
-          <th scope="col" pSortableColumn="label">Endpoint <p-sortIcon field="label"></p-sortIcon></th>
-          <th scope="col" pSortableColumn="total_requests">Requests <p-sortIcon field="total_requests"></p-sortIcon></th>
-          <th scope="col" pSortableColumn="percentage">Share <p-sortIcon field="percentage"></p-sortIcon></th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-row>
-        <tr>
-          <td data-card-title data-label="Endpoint"><code>{{ row.label }}</code></td>
-          <td data-label="Requests">{{ formatNumber(row.total_requests) }}</td>
-          <td data-label="Share">{{ row.percentage }}%</td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </article>
+      <section class="ov-tree__group" *ngFor="let group of visibleTree" [class.is-open]="isGroupOpen(group)">
+        <button type="button" class="ov-tree__group-toggle" [attr.aria-expanded]="isGroupOpen(group)" (click)="toggleGroup(group)">
+          <i class="pi" [class.pi-chevron-down]="isGroupOpen(group)" [class.pi-chevron-right]="!isGroupOpen(group)"></i>
+          <span class="ov-tree__group-name">{{ group.name }}</span>
+          <span class="ov-tree__count">{{ formatNumber(group.total_requests) }}</span>
+        </button>
+
+        <div class="ov-tree__categories" *ngIf="isGroupOpen(group)">
+          <div class="ov-tree__category" *ngFor="let category of group.categories">
+            <h3 class="ov-tree__category-name">
+              <span>{{ category.name }}</span>
+              <span class="ov-tree__count ov-tree__count--soft">{{ formatNumber(category.total_requests) }}</span>
+            </h3>
+            <ul class="ov-tree__endpoints">
+              <li *ngFor="let endpoint of category.endpoints">
+                <button
+                  type="button"
+                  class="ov-tree__endpoint"
+                  [class.is-active]="selectedEndpoint?.key === endpoint.key"
+                  [class.is-idle]="!endpoint.total_requests"
+                  (click)="selectEndpoint(endpoint)">
+                  <span class="admin-method" [attr.data-method]="endpoint.method || '?'">{{ endpoint.method || '—' }}</span>
+                  <span class="ov-tree__endpoint-name">{{ endpoint.name }}</span>
+                  <span class="ov-tree__count">{{ formatNumber(endpoint.total_requests) }}</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </nav>
+
+    <article class="ov-endpoint" *ngIf="selectedEndpoint as ep; else pickOne">
+      <header class="ov-endpoint__head">
+        <span class="admin-method admin-method--lg" [attr.data-method]="ep.method || '?'">{{ ep.method || '—' }}</span>
+        <div class="ov-endpoint__title">
+          <h3>{{ ep.name }}</h3>
+          <code class="ov-endpoint__route">{{ ep.route }}</code>
+          <span class="ov-endpoint__tags">
+            <span class="admin-chip" *ngIf="ep.documented"><i class="pi pi-book"></i> In the public docs</span>
+            <span class="admin-chip admin-chip--muted" *ngIf="!ep.documented && ep.microservice === 'clarisa-api'">Not in the public docs</span>
+            <span class="admin-chip admin-chip--muted" *ngIf="ep.microservice !== 'clarisa-api'"
+              ><i class="pi pi-sitemap"></i> {{ ep.microservice }}</span
+            >
+          </span>
+        </div>
+      </header>
+
+      <div class="ov-endpoint__kpis">
+        <span
+          ><strong>{{ formatNumber(ep.total_requests) }}</strong> requests <small>· {{ endpointShare(ep) }}% of the period</small></span
+        >
+        <span
+          ><strong>{{ ep.unique_api_keys }}</strong> {{ ep.unique_api_keys === 1 ? 'key' : 'keys' }}</span
+        >
+        <span [class.is-bad]="ep.error_count"
+          ><strong>{{ formatNumber(ep.error_count) }}</strong> errors</span
+        >
+        <span
+          ><strong>{{ formatMs(ep.avg_response_time_ms) }}</strong> avg</span
+        >
+        <span
+          ><strong [title]="formatDate(ep.last_used_at)">{{ ago(ep.last_used_at) }}</strong> last call</span
+        >
+      </div>
+
+      <p class="ov-endpoint__paths" *ngIf="ep.paths.length > 1">
+        <i class="pi pi-info-circle"></i> {{ ep.paths.length }} paths folded here, e.g. <code>{{ ep.paths[0] }}</code
+        >, <code>{{ ep.paths[1] }}</code>
+      </p>
+
+      <h4 class="ov-endpoint__sub">Consumed by</h4>
+      <p-table
+        [value]="ep.consumers"
+        styleClass="p-datatable-sm admin-table ov-consumers"
+        responsiveLayout="scroll"
+        *ngIf="ep.consumers.length; else noConsumers">
+        <ng-template pTemplate="header">
+          <tr>
+            <th scope="col" pSortableColumn="api_key_name">Key <p-sortIcon field="api_key_name"></p-sortIcon></th>
+            <th scope="col" pSortableColumn="mis_acronym" style="width: 100px">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
+            <th scope="col" pSortableColumn="total_requests" style="width: 170px">Requests <p-sortIcon field="total_requests"></p-sortIcon></th>
+            <th scope="col" pSortableColumn="last_used_at" style="width: 110px">Last call <p-sortIcon field="last_used_at"></p-sortIcon></th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-c>
+          <tr>
+            <td data-card-title data-label="Key">
+              <span class="cell-primary">{{ c.api_key_name }}</span>
+              <span class="cell-sub"
+                ><code class="key-prefix">{{ c.key_prefix }}…</code></span
+              >
+            </td>
+            <td data-label="MIS">{{ c.mis_acronym || '—' }}</td>
+            <td data-label="Requests">
+              <span class="share">
+                <strong>{{ formatNumber(c.total_requests) }}</strong>
+                <span class="share__track"><span class="share__fill" [style.width]="barWidth(consumerShare(c.total_requests))"></span></span>
+                <small>{{ consumerShare(c.total_requests) }}%</small>
+              </span>
+            </td>
+            <td data-label="Last call">
+              <span [title]="formatDate(c.last_used_at)">{{ ago(c.last_used_at) }}</span>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+      <ng-template #noConsumers><p class="admin-empty">Nobody called this endpoint in the period.</p></ng-template>
+    </article>
+    <ng-template #pickOne>
+      <article class="ov-endpoint ov-endpoint--empty" *ngIf="!endpointsLoading">
+        <p class="admin-empty">Pick an endpoint on the left.</p>
+      </article>
+    </ng-template>
+  </div>
 </section>
 
-<section class="panel-card table-card dash-logs">
-  <header class="table-card__head">
-    <h2>Activity log</h2>
-    <span>{{ formatNumber(logs?.total) }} events · latest 100</span>
-  </header>
+<!-- ---- el registro crudo ------------------------------------------------ -->
+<section class="panel-card table-card ov-logs">
   <p-table
     [value]="logs?.items || []"
     [loading]="logsLoading"
+    [lazy]="true"
+    (onLazyLoad)="onLogsLazy($event)"
+    [paginator]="true"
+    [(first)]="logsFirst"
+    [rows]="logsRows"
+    [rowsPerPageOptions]="logsRowsOptions"
+    [totalRecords]="logs?.total || 0"
+    [showCurrentPageReport]="true"
+    currentPageReportTemplate="{first}–{last} of {totalRecords} events"
     styleClass="p-datatable-sm admin-table"
-    responsiveLayout="scroll"
-  >
+    responsiveLayout="scroll">
+    <ng-template pTemplate="caption">
+      <div class="table-card__head">
+        <div>
+          <h2>Activity log</h2>
+          <span>Every validated call, newest first. Narrow it with the filters above.</span>
+        </div>
+        <button
+          pButton
+          type="button"
+          icon="pi pi-download"
+          label="Export this page"
+          class="p-button-outlined p-button-sm"
+          (click)="exportLogsCsv()"
+          [disabled]="!logs?.items?.length"></button>
+      </div>
+    </ng-template>
     <ng-template pTemplate="header">
       <tr>
-        <th scope="col" pSortableColumn="created_at">Time <p-sortIcon field="created_at"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="mis_acronym">MIS <p-sortIcon field="mis_acronym"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="key_prefix">Key <p-sortIcon field="key_prefix"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="microservice_name">Microservice <p-sortIcon field="microservice_name"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="endpoint_accessed">Endpoint <p-sortIcon field="endpoint_accessed"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="status_code">Status <p-sortIcon field="status_code"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="response_time_ms">Latency <p-sortIcon field="response_time_ms"></p-sortIcon></th>
+        <th scope="col" style="width: 170px">Time</th>
+        <th scope="col" style="width: 90px">MIS</th>
+        <th scope="col" style="width: 160px">Key</th>
+        <th scope="col" style="width: 130px">Microservice</th>
+        <th scope="col">Endpoint</th>
+        <th scope="col" style="width: 80px">Status</th>
+        <th scope="col" style="width: 90px">Latency</th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-row>
       <tr>
         <td data-label="Time">{{ formatDate(row.created_at) }}</td>
         <td data-label="MIS">{{ row.mis_acronym || '—' }}</td>
-        <td data-card-title data-label="Key"><code>{{ row.key_prefix }}…</code></td>
+        <td data-card-title data-label="Key">
+          <span class="cell-primary">{{ row.api_key_name }}</span
+          ><span class="cell-sub"
+            ><code class="key-prefix">{{ row.key_prefix }}…</code></span
+          >
+        </td>
         <td data-label="Microservice">{{ row.microservice_name }}</td>
-        <td data-label="Endpoint"><code>{{ row.endpoint_accessed }}</code></td>
-        <td data-label="Status">{{ row.status_code ?? '—' }}</td>
+        <td data-label="Endpoint">
+          <span class="admin-method" [attr.data-method]="row.http_method || '?'">{{ row.http_method || '—' }}</span>
+          <code class="ov-log-path">{{ row.endpoint_accessed }}</code>
+        </td>
+        <td data-label="Status">
+          <span class="ov-status" [class.is-bad]="row.status_code >= 400">{{ row.status_code ?? '—' }}</span>
+        </td>
         <td data-label="Latency">{{ formatMs(row.response_time_ms) }}</td>
       </tr>
     </ng-template>
     <ng-template pTemplate="emptymessage">
-      <tr><td colspan="7" class="empty-cell">No log entries for current filters.</td></tr>
+      <tr>
+        <td colspan="7" class="empty-cell">No events for the current period and filters.</td>
+      </tr>
     </ng-template>
   </p-table>
 </section>
-
-<p-progressSpinner *ngIf="loading" styleClass="dash-spinner"></p-progressSpinner>
