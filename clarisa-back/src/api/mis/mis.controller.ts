@@ -7,6 +7,7 @@ import {
   UseInterceptors,
   ClassSerializerInterceptor,
   Post,
+  Patch,
   UseGuards,
   Body,
   UsePipes,
@@ -39,6 +40,25 @@ export class MisController {
     @Body() createMisDto: CreateMisDto,
   ) {
     return this._misService.create(createMisDto, userData);
+  }
+
+  /** Logical delete: the row stays, `is_active` flips (Yeck, 2026-09-24) */
+  @Patch('deactivate/:id')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  deactivate(
+    @GetUserData() userData: UserData,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this._misService.setActive(id, false, userData);
+  }
+
+  @Patch('activate/:id')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  activate(
+    @GetUserData() userData: UserData,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this._misService.setActive(id, true, userData);
   }
 
   @Get()
