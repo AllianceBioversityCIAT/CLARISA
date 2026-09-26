@@ -64,4 +64,15 @@ export const PUBLIC_OPENAPI_PATHS: string[] = [
   '/api/account-types',
   '/api/science-groups',
   '/api/units',
+  // Global Concepts (MELIAF taxonomy) — public read only; writes, requests,
+  // admin and MCP stay out of the spec.
+  '/api/global-concepts/schemes',
+  '/api/global-concepts/lists',
+  '/api/global-concepts/{scheme}',
+  '/api/global-concepts/{scheme}/concepts',
+  '/api/global-concepts/{scheme}/concepts/{termId}',
+  '/api/global-concepts/{scheme}/concepts/{termId}/history',
+  '/api/global-concepts/{scheme}/changes',
+  '/api/global-concepts/{scheme}/releases',
+  '/api/global-concepts/{scheme}/export',
 ];

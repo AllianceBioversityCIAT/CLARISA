@@ -1371,7 +1371,16 @@ function renderGetStarted() {
 /* ── endpoint page ────────────────────────────────────────────────── */
 function specOpFor(route) {
   const p = '/' + route.replace(/^\/+/, '');
-  return state.spec?.paths?.[p]?.get || null;
+  const paths = state.spec?.paths || {};
+  if (paths[p]?.get) return paths[p].get;
+  // Templated spec paths ("/api/global-concepts/{scheme}/concepts") match a
+  // concrete catalog route ("api/global-concepts/meliaf/concepts").
+  for (const [tpl, ops] of Object.entries(paths)) {
+    if (!ops?.get || !tpl.includes('{')) continue;
+    const re = new RegExp('^' + tpl.split(/\{[^}]+\}/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[^/]+') + '$');
+    if (re.test(p)) return ops.get;
+  }
+  return null;
 }
 
 async function selectEndpoint(gi, ci, route) {

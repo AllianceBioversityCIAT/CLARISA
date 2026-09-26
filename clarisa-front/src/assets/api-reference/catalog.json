@@ -291,6 +291,42 @@
           ]
         }
       ]
+    },
+    {
+      "group": "Global Concepts",
+      "categories": [
+        {
+          "name": "MELIAF taxonomy",
+          "description": "CGIAR taxonomy for Monitoring, Evaluation, Learning, Impact Assessment and Foresight: published concepts with persistent URIs, controlled lists, releases and a change feed. Exports as JSON, CSV, SKOS Turtle and JSON-LD.",
+          "endpoints": [
+            {
+              "name": "Concept schemes",
+              "route": "api/global-concepts/schemes",
+              "method": "get"
+            },
+            {
+              "name": "Controlled lists",
+              "route": "api/global-concepts/lists",
+              "method": "get"
+            },
+            {
+              "name": "MELIAF concepts",
+              "route": "api/global-concepts/meliaf/concepts",
+              "method": "get"
+            },
+            {
+              "name": "MELIAF releases",
+              "route": "api/global-concepts/meliaf/releases",
+              "method": "get"
+            },
+            {
+              "name": "MELIAF change feed",
+              "route": "api/global-concepts/meliaf/changes",
+              "method": "get"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
