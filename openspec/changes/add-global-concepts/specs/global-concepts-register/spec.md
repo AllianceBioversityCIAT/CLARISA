@@ -2,8 +2,8 @@
 
 ### Requirement: Decoupled storage
 The Global Concepts module SHALL store its data only in its own tables (prefix `gc_`) and SHALL NOT
-declare foreign keys to, or read from, any table outside the module, except the `users` /
-`permissions` reads performed by the existing authentication guards.
+declare foreign keys to any table outside the module; its only contact points with existing tables
+SHALL be those listed in design.md (*Audit corrections*, item 3).
 
 #### Scenario: Dropping the module
 - **WHEN** the module migration is reverted
@@ -25,7 +25,7 @@ validated_by, date_validated, steward, replaced_by, maps_to_prms, maps_to_extern
 
 ### Requirement: Persistent identifier
 Each concept SHALL have a `term_id` that never changes and a URI built from it
-(`https://clarisa.cgiar.org/concepts/{scheme}/{term_id}`); editing labels or definitions SHALL NOT
+(`https://api.clarisa.cgiar.org/concepts/{scheme}/{term_id}`, domain pending Group 4's decision); editing labels or definitions SHALL NOT
 change either, and a deprecated concept SHALL keep resolving.
 
 #### Scenario: Wording changes
@@ -52,3 +52,7 @@ concept, returning only approved and deprecated concepts.
 #### Scenario: Drafts stay private
 - **WHEN** a concept is in `draft` or `in_review`
 - **THEN** no public endpoint, export or MCP tool returns it
+
+#### Scenario: Hub shows approved terms only
+- **WHEN** a client lists concepts with `status=approved`
+- **THEN** deprecated concepts are excluded (they stay resolvable by URI)

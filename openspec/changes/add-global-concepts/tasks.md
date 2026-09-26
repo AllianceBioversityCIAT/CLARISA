@@ -8,6 +8,9 @@
 - [ ] 0.4 License of the published scheme (CC BY 4.0 proposed).
 - [ ] 0.5 OpenAI key ownership, monthly cap and where it is stored (server env only).
 - [ ] 0.6 Rabat demo script and who plays each governance role in the rehearsal.
+- [ ] 0.7 Identify the brief's "~70% working prototype" (owner, scope) and position this proposal against it.
+- [ ] 0.8 URI domain with Group 4 (`taxonomy.cgiar.org` in their template vs `api.clarisa.cgiar.org/concepts` + `w3id.org` alias).
+- [ ] 0.9 Governance one-slide workflow diagram (brief §4 input) for the proposal to Marissa.
 
 ## 1. Rabat core — back (`clarisa-back/src/api/global-concepts`)
 
@@ -34,6 +37,9 @@
 - [ ] 1.10 Bulk import preview/import (generic version of the glossary plan builder) with the
       data-quality report.
 - [ ] 1.11 Swagger: public paths in `PUBLIC_OPENAPI_PATHS`; group in the API reference catalog.
+- [ ] 1.10b Public request form (no CLARISA account): email + one-time verification link, rate limit.
+- [ ] 1.10c Version pinning (`?version=`), diff between releases, `owl:priorVersion` link; governance description in scheme metadata and exports.
+- [ ] 1.10d Import mapping rules for the Lexicon file: PARENT TERM → `meliaf_phase_primary`, SOURCE prefixes → `derivation`, citation/URL split.
 - [ ] 1.12 Unit tests per service + DTO validation specs through the real `ValidationPipe`.
 
 ## 2. Rabat core — front (`clarisa-front`)
@@ -57,6 +63,7 @@
 - [ ] 3.3 "Auto-match with AI" in the import wizard (headers + 5 rows → field + confidence badge), every selector still editable by hand; "Normalize with AI" for list values.
 - [ ] 3.4 Embeddings for semantic search and duplicate detection on proposals and import.
 - [ ] 3.5 Demo: an AI assistant (Claude/ChatGPT) connected to the MCP answering with official terms.
+- [ ] 3.6 Demo "another system via API": a named consumer (PRMS dev or the Hub) calling the API with its key, agreed with its owner before day 1.
 
 ## 4. Release and rehearsal
 
@@ -77,3 +84,6 @@
 - [ ] 5.5 Usage analytics (searches, zero-result searches as candidate terms).
 - [ ] 5.6 Registration in BARTOC / AgroPortal; DOI per release.
 - [ ] 5.7 Decide whether the PRMS glossary becomes a scheme inside Global Concepts.
+- [ ] 5.8 Write the reusable method for connecting a domain taxonomy and load the climate-change-adaptation taxonomy as a second scheme (brief 2.3).
+- [ ] 5.9 Import Layer 1 (AI-generated terms) as a separate scheme/origin; transfer of terms from Groups 2 and 3.
+- [ ] 5.10 Reconciliation endpoint (OpenRefine) and signed webhooks on the change feed.

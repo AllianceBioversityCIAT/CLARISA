@@ -17,6 +17,58 @@
 - **Timebox**: production before the convening (6-oct). Flow `feature → dev-v2 (clarisatest) →
   feature → staging → main`; migrations run in the production Jenkins job.
 
+## Audit corrections (2026-09-25) — these supersede anything below that disagrees
+
+An adversarial compliance audit against every source (brief, use cases, summary table, schema
+workbook, live checklist, emails and Yeck's requirements) found gaps and self-contradictions.
+Resolved here so the rest of the document can be read against one reference:
+
+1. **Persistent URI** — `clarisa.cgiar.org` is S3 + CloudFront: it cannot negotiate on `Accept` and
+   answers deep links with HTTP 404 today. The concept URI is therefore served by the **API host**,
+   `https://api.clarisa.cgiar.org/concepts/{scheme}/{term_id}` (redirects browsers to the human page
+   with 303, returns Turtle/JSON-LD to machines), with `https://w3id.org/cgiar/{scheme}/{term_id}`
+   as the proposed permanent alias. The schema template uses `taxonomy.cgiar.org/meliaf/…`: the
+   domain is **Open Question 2**, decided with Group 4 before release 1.0.0.
+2. **"Anyone in CGIAR can contribute"** — CLARISA's login only admits people who already have a
+   CLARISA user (`auth.service.ts:39-46`). Requests therefore come through three doors, none of which
+   changes the existing login: (a) a **public request form** in the module, identified by email with a
+   one-time verification link and rate-limited; (b) **platforms with their API key** on behalf of their
+   own signed-in users (PRMS, the Hub); (c) signed-in CLARISA users.
+3. **Contact points with existing CLARISA** (the honest list): reads `users`/`permissions` through the
+   existing guards; one row in `permissions` + grants in `role_permission`; if platform keys are used,
+   reads `api_keys` and writes `api_key_usage_logs`, and four scopes are added to the API-keys scope
+   constant and admin; the glossary's Excel parser is generalised (behaviour unchanged, covered by its
+   tests); outcome emails use the existing email service. No foreign key in any direction. The module
+   migration `down` drops every `gc_` table, the permission rows and strips the four scopes from keys.
+4. **One data model** — the reconciled table list is D2 as amended by: `gc_schemes` (+ `owner_platform`,
+   `governance_description`, `license`, `previous_release_id`); `gc_concepts` (+ `extra` JSON, `rights_note`,
+   `validated_by` as a JSON list, `replaced_by` named as in the schema); preferred labels live in
+   `gc_concepts.preferred_label` for the scheme's default language **and** as `gc_labels` rows
+   (`kind = pref`) for other languages; `gc_proposals` (+ `type` new/edit/merge/deprecate/promote,
+   `origin_platform`, `acting_user_email`, `external_request_id`, `callback_url`, `ai_recommendation`,
+   `reviewer_comments`, `no_objection_until`). Real columns: every scalar field of the schema; `extra`
+   only for fields added later (D15 reads accordingly).
+5. **One request state machine** — `submitted → in_review → changes_requested ↔ in_review → approved |
+   rejected`; `approved` applies the payload in the same transaction (a merge moves labels, relations
+   and mappings to the surviving concept and deprecates the other with it as replacement).
+6. **Roles** — visitor, requester, reviewer (CoP / domain champion), admin-approver (PPT secretariat),
+   plus configurable **validator** (PRM Steering Group, no-objection window) and **custodian /
+   technical steward** of the published version. Who holds each is decided in Rabat.
+7. **Governance travels with the data** — the scheme's `governance_description` is published in the
+   scheme metadata and in every export; releases link to the previous one (`owl:priorVersion`).
+8. **Deprecated URIs keep resolving** and show the replacement (no silent redirect).
+9. **MCP tools** — `search_concepts`, `get_concept` (by `term_id` or exact label), `suggest_concepts_for_text`,
+   `list_releases`; `propose_concept` exists only for callers with a key holding `global-concepts:request`.
+10. **French** — the schema supports labels per language from day one; French labels for the Rabat
+    demo are optional, machine-suggested and flagged unvalidated; full FR/ES is after Rabat.
+11. **Text alignment** keeps no user text; phrases that matched nothing are only kept if the user
+    ticks "suggest these as new terms", which files them as requests.
+12. **Content timing** — production ships the structure plus the Lexicon terms loaded as **draft**;
+    release 1.0.0 is published only if Group 4 approves content (the brief puts content work after
+    Rabat). The Rabat demo publishes a small approved seed set, clearly labelled as a demo release.
+13. **Brief's "~70% prototype"** — unknown owner (probably the Lexicon's or José Berenguer's). To be
+    identified before Marissa's call, and the proposal positioned relative to it (Task 0.7).
+
 ## Goals / Non-Goals
 
 **Goals**
@@ -52,12 +104,18 @@ themselves only), so dropping the module never has to touch another table.
 | `gc_relations` | broader / related between concepts; **polyhierarchy allowed** (several broader), narrower derived | concept_id, related_concept_id, kind |
 | `gc_collections` + `gc_collection_members` | Curated subsets without touching the hierarchy ("PRMS reporting terms", "MEL phase: Design", "climate adaptation") | code, label, ordered; concept_id, position |
 | `gc_mappings` | Links to external vocabularies, **with SSSOM-style provenance** | concept_id, target_scheme (`agrovoc`, `ipcc`, `oecd-dac`, `prms`…), target_uri, target_label, match (`exact`/`close`/`broad`/`narrow`/`related`; `close` by default because `exactMatch` is transitive), justification (manual / lexical / ai_suggested), confidence, author_email, reviewed_by_email, mapped_at, status |
-| `gc_icons` | Icon register (priority low, per CGIAR) | concept_id, icon_status, file_name, file_format, file_url, designer, designer_country, year_created, rights_and_licence, alt_text |
+| `gc_icons` | Icon register (priority low, per CGIAR), same field names as the schema's *Icon register* sheet | icon_id, concept_id (the sheet's term_id), icon_status, file_name, file_format, designer, designer_country, year_created, rights_and_licence, alt_text, file_link_primary, file_link_backup, date_added |
 | `gc_lists` | Controlled lists (status, function, phase, term_type, derivation, language, icon_status, icon_format) | list_code, value, label, sort, is_active |
 | `gc_history` | Append-only change log | concept_id, action, changes (JSON from/to), changed_by_email, changed_at |
 | `gc_proposals` | Change requests (governance) | type (new/edit/merge/deprecate), concept_id?, payload (JSON), rationale, proposer_email, state (submitted/screening/validation/published/rejected), decision_note, decided_by_email, timestamps |
 | `gc_releases` | Released versions of a scheme | scheme_id, version (semver), released_at, notes, snapshot (JSON/Turtle), license |
 
+- **Where each schema field lives**: the 25 scalar fields are columns of `gc_concepts` with the schema's
+  own names; `alternative_labels` → `gc_labels` (kind `alt`); `broader_term` / `narrower_terms` /
+  `related_terms` → `gc_relations` (narrower derived from broader); `maps_to_prms` /
+  `maps_to_external` → `gc_mappings`; the eight lists of the *Lists* sheet (status, meliaf_function,
+  meliaf_phase, term_type, derivation, language, icon_status, icon_format) → `gc_lists`. The export
+  and the import wizard use the schema's field names, so the Excel round-trips.
 - Who edited is stored as **email text** (not a user id), so the module needs no relation — not
   even a logical one — with `users`.
 - `term_id` is kept from the Lexicon file when it is unique; the data-quality sheet shows 13 IDs

@@ -1,9 +1,9 @@
 ## ADDED Requirements
 
 ### Requirement: Change proposals
-Any signed-in CLARISA user SHALL be able to propose a new concept, an edit, a merge or a
-deprecation, with a rationale; the proposal SHALL move through submitted, screening, validation and
-published or rejected, each step recorded with who decided and a note.
+Any person SHALL be able to propose — through the public request form (verified email), a platform using its API key, or as a signed-in CLARISA user — a new concept, an edit, a merge or a
+deprecation, with a rationale; the proposal SHALL move through submitted, in_review, changes_requested and
+approved or rejected, each step recorded with who decided and a note.
 
 #### Scenario: Proposal travels end to end
 - **WHEN** a proposal for a new concept is screened, validated and published

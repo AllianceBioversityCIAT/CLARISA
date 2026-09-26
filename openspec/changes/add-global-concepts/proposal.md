@@ -27,8 +27,10 @@ PRMS reads today and mix two vocabularies with different owners and rules.
   - its own tables — concepts, labels, relations, external mappings, icons, change log, change
     proposals, released versions and its own controlled lists — with **no foreign key to any
     existing table** and no read of portfolios, glossary or any PRMS data;
-  - the only rows written outside its tables are the admin permission (`permissions` +
-    `role_permission`), exactly as the glossary admin did (`1786320000000-SeedGlossaryAdminPermission`).
+  - contact points with existing CLARISA are listed in design.md (*Audit corrections*, item 3): the
+    admin permission rows, the optional use of platform API keys (read `api_keys`, write
+    `api_key_usage_logs`, four new scopes), the generalised Excel parser and the email service — no
+    foreign key in any direction.
 - **Public read**, anonymous and cacheable: list, search (label, alternative labels, partial words),
   one concept, its history, released versions, and exports in **JSON, CSV, SKOS Turtle and
   JSON-LD**. Every concept has a persistent URI that resolves to a human page or to RDF by content
@@ -50,6 +52,10 @@ PRMS reads today and mix two vocabularies with different owners and rules.
   published by a model.
 - **Public page "Global Concepts"** on the CLARISA landing site, with search, filters by MELIAF
   function/phase/type, the concept page and download links.
+- **Three doors for requests**: a public request form (email + verification link), platforms with
+  their CLARISA API key (scopes read / request / write / review, write and review limited to the
+  concept group the platform owns), and signed-in CLARISA users. Requests follow the Partner
+  Requests pattern and carry an advisory AI recommendation.
 - **Reversible by design**: a feature switch hides the section and its routes; a single migration
   `down` drops every table of the module and the permission rows.
 
