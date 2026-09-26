@@ -113,6 +113,28 @@ confidence badge; "Normalize with AI" proposes list values for free-text cells. 
 any selector by hand or skip AI entirely; with AI disabled the buttons are hidden and the wizard is
 fully manual.
 
+### D5c. Platforms integrate with their CLARISA API key
+- Consuming platforms (PRMS, MELIAF Hub, others) authenticate with the **existing CLARISA API keys**
+  (per platform, with scopes, environment and expiry; usage already logged). New scopes:
+  `global-concepts:read`, `global-concepts:request`, `global-concepts:write`, `global-concepts:review`,
+  enforced with the existing `@RequireApiKeyScope` + `CompositeAuthGuard`, as Partner Requests does
+  (`partner-requests:create`).
+- **Concept groups per platform**: a scheme can be owned by a platform (`gc_schemes.owner_platform`,
+  text code, e.g. `prms`), with its own URIs (`/concepts/prms/{term_id}`), releases and governance.
+  The global `meliaf` scheme is owned by MELIAF admins; **no platform writes to it directly** — it
+  only submits requests. `write` and `review` scopes apply only to schemes the platform owns.
+- Requests carry `origin_platform`, `acting_user_email` (the person behind the token),
+  `external_request_id` (idempotency: a retry returns the same request) and an optional
+  `callback_url` for the outcome (signed, retried). A `promote` request type moves a platform
+  concept into the global scheme; the old one is mapped or deprecated pointing to it.
+- Decoupling trade-off: this **reads** `api_keys` and **writes** `api_key_usage_logs` through the
+  existing guard — no foreign key, but a contact point. Platform identity is stored as text, so no
+  module table relates to `api_keys` or `mis`. Alternative (own tokens table) rejected as duplication.
+- Rate limit per key on write/request endpoints; tokens are server-to-server only (never in a browser).
+- Open: visibility of platform-owned schemes (public or owner + admins only); whether MELIAF also
+  approves platform schemes; what happens to open requests when a key is revoked (they stay; callbacks
+  stop).
+
 ### D6. Exports
 `json` (API shape), `csv` (RFC 4180, BOM, formula guard), `skos` Turtle and `jsonld`, for the whole
 scheme or a release. SKOS mapping: `skos:ConceptScheme`, `skos:Concept`, `prefLabel`/`altLabel`/

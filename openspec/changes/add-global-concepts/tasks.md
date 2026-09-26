@@ -1,5 +1,7 @@
 ## 0. Decisions before code (Yeck + Héctor)
 
+- [ ] 0.0 Platforms: visibility of platform-owned schemes; whether MELIAF also approves them; open requests of revoked keys.
+
 - [ ] 0.1 Go / no-go for building the module (this proposal) — Héctor's OK; Idea in CLAR + Epic in CLR.
 - [ ] 0.2 URI domain and path (`clarisa.cgiar.org/concepts/meliaf/{term_id}` proposed).
 - [ ] 0.3 Public or signed-in read for the pilot (public proposed).
@@ -22,6 +24,10 @@
 - [ ] 1.6 Change log written in the same transaction as every write.
 - [ ] 1.7 Concept requests (Partner Requests pattern): submit (signed-in user or API key), reviewer comment, admin approve / request changes / reject with justification and email; admin direct writes flagged `direct_edit`.
 - [ ] 1.7b AI recommendation on a request (advisory, stored, never changes state).
+- [ ] 1.7c Platform integration: scopes `global-concepts:read|request|write|review` on the existing API
+      keys, platform-owned schemes, `origin_platform` + `acting_user_email` + `external_request_id`
+      (idempotency) + signed `callback_url`, `promote` requests, rate limit per key.
+- [ ] 1.7d Add the four scopes to the API keys admin ("Microservices & API keys") so an admin can grant them.
 - [ ] 1.8 Exports JSON / CSV / Turtle / JSON-LD (reuse the helpers from the glossary export) and
       content negotiation on the concept endpoint.
 - [ ] 1.9 Quality gate (S13, S14, S27, cycles, required definition) + releases as immutable files.
