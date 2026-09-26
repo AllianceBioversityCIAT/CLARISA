@@ -35,6 +35,8 @@ import {
   UpdateConceptDto,
 } from '../dto/concept-admin.dto';
 import { PublishReleaseDto } from '../dto/release.dto';
+import { RequestsService } from '../services/requests.service';
+import { RequestTransitionDto } from '../dto/request.dto';
 
 /**
  * Admin surface of Global Concepts (`/api/global-concepts/admin`). Every write
@@ -58,6 +60,7 @@ export class GlobalConceptsAdminController {
   constructor(
     private readonly admin: ConceptsAdminService,
     private readonly releases: ReleasesService,
+    private readonly requests: RequestsService,
   ) {}
 
   private actor(user: UserData): GcActor {
@@ -173,6 +176,25 @@ export class GlobalConceptsAdminController {
     @GetUserData() user: UserData,
   ) {
     return this.admin.merge(scheme, termId, dto, this.actor(user));
+  }
+
+  @Get(':scheme/requests')
+  requestList(@Param('scheme') scheme: string, @Query('state') state?: string) {
+    return this.requests.list(scheme, state);
+  }
+
+  @Get('requests/:id')
+  requestDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.requests.getForAdmin(id);
+  }
+
+  @Post('requests/:id/transition')
+  transition(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RequestTransitionDto,
+    @GetUserData() user: UserData,
+  ) {
+    return this.requests.transition(id, dto, { email: user.email });
   }
 
   @Get(':scheme/quality')

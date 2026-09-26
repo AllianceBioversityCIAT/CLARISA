@@ -1,4 +1,14 @@
 import { Module } from '@nestjs/common';
+import { GuardsModule } from '../../shared/guards/guards.module';
+import { HandlebarsTemplateModule } from '../handlebars-template/handlebars-template.module';
+import { HandlebarsCompiler } from '../../shared/utils/handlebars-compiler';
+import { MessagingMicroservice } from '../../integration/microservices/messaging/messaging.microservice';
+import {
+  GlobalConceptsPlatformController,
+  GlobalConceptsRequestsController,
+} from './controllers/global-concepts-requests.controller';
+import { RequestsService } from './services/requests.service';
+import { OutboxService } from './services/outbox.service';
 import { GlobalConceptsAdminController } from './controllers/global-concepts-admin.controller';
 import { GlobalConceptsPublicController } from './controllers/global-concepts-public.controller';
 import { ConceptUriController } from './controllers/concept-uri.controller';
@@ -15,6 +25,8 @@ const providers = [
   ConceptsAdminService,
   ConceptsExportService,
   ReleasesService,
+  RequestsService,
+  OutboxService,
   GlobalConceptsEnabledGuard,
 ];
 
@@ -25,8 +37,14 @@ const providers = [
  * public `:scheme/...` routes.
  */
 @Module({
-  controllers: [GlobalConceptsAdminController, GlobalConceptsPublicController],
-  providers,
+  imports: [GuardsModule, HandlebarsTemplateModule],
+  controllers: [
+    GlobalConceptsAdminController,
+    GlobalConceptsPlatformController,
+    GlobalConceptsRequestsController,
+    GlobalConceptsPublicController,
+  ],
+  providers: [...providers, MessagingMicroservice, HandlebarsCompiler],
   exports: providers,
 })
 export class GlobalConceptsModule {}

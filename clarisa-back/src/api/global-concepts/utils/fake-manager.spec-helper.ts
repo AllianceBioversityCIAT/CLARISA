@@ -20,6 +20,9 @@ const matches = (row: Row, where: Row | undefined): boolean => {
       if (op.type === 'in')
         return (op.value as any[]).map(String).includes(String(row[k]));
       if (op.type === 'not') return String(row[k]) !== String(op.value);
+      if (op.type === 'moreThan') return row[k] > op.value;
+      if (op.type === 'lessThanOrEqual') return row[k] <= op.value;
+      if (op.type === 'isNull') return row[k] === null || row[k] === undefined;
       throw new Error(`Unsupported operator ${op.type}`);
     }
     if (v === null) return row[k] === null || row[k] === undefined;
@@ -116,6 +119,8 @@ export class FakeManager {
       where: (_: string, p: Row = {}) => (Object.assign(params, p), qb),
       andWhere: (_: string, p: Row = {}) => (Object.assign(params, p), qb),
       innerJoin: () => qb,
+      limit: () => qb,
+      getMany: async () => [],
       getOne: async () => {
         if (entity === GcScheme) {
           return (

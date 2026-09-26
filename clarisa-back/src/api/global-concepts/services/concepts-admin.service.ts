@@ -835,6 +835,12 @@ export class ConceptsAdminService {
     });
   }
 
+  /** Platform code owning a scheme, or null when MELIAF admins own it. */
+  async ownerOf(code: string): Promise<string | null> {
+    const scheme = await this.loader.scheme(this.dataSource.manager, code);
+    return scheme.owner_platform ?? null;
+  }
+
   // ---------------------------------------------------------------- helpers
 
   /** Locks the scheme row: serialises term-id allocation and graph checks (V3). */
