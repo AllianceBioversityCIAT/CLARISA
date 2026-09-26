@@ -294,7 +294,37 @@ export class RequestsService {
       },
       order: { id: 'DESC' },
     });
-    return rows.map((r) => this.present(r, true));
+    const refs = await this.conceptRefs(manager, rows);
+    return rows.map((r) => ({ ...this.present(r, true), ...refs(r) }));
+  }
+
+  /**
+   * The admin queue shows which concept a request is about by its TERM ID and
+   * label, never by the internal row id (loaded in one query).
+   */
+  private async conceptRefs(manager: EntityManager, rows: GcProposal[]) {
+    const ids = [
+      ...new Set(
+        rows
+          .flatMap((r) => [r.concept_id, r.target_concept_id])
+          .filter((v): v is number => v !== null && v !== undefined)
+          .map(Number),
+      ),
+    ];
+    const concepts = ids.length
+      ? await manager.find(GcConcept, { where: { id: In(ids) } })
+      : [];
+    const byId = new Map(concepts.map((c) => [Number(c.id), c]));
+    const ref = (id: number | null) => {
+      const c = id === null || id === undefined ? null : byId.get(Number(id));
+      return c
+        ? { term_id: Number(c.term_id), preferred_label: c.preferred_label }
+        : null;
+    };
+    return (r: GcProposal) => ({
+      concept: ref(r.concept_id),
+      target_concept: ref(r.target_concept_id),
+    });
   }
 
   async getForAdmin(id: number) {
@@ -303,7 +333,8 @@ export class RequestsService {
       where: { proposal_id: proposal.id },
       order: { id: 'ASC' },
     });
-    return { ...this.present(proposal, true), events };
+    const refs = await this.conceptRefs(this.dataSource.manager, [proposal]);
+    return { ...this.present(proposal, true), ...refs(proposal), events };
   }
 
   /** What a public requester or a platform may see of its own request. */
