@@ -87,7 +87,7 @@ export class AiService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+          Authorization: `Bearer ${env.OPEN_AI_CLARISA_ASSISTANT_TOKEN}`,
         },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(TIMEOUT_MS),

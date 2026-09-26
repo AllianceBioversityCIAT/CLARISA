@@ -25,7 +25,7 @@ export const GlobalConceptsConfig = {
   get aiEnabled(): boolean {
     return (
       (env.GLOBAL_CONCEPTS_AI_ENABLED ?? 'false').toLowerCase() === 'true' &&
-      !!env.OPENAI_API_KEY
+      !!env.OPEN_AI_CLARISA_ASSISTANT_TOKEN
     );
   },
   get aiModel(): string {

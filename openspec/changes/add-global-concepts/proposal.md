@@ -85,7 +85,7 @@ Nothing in the existing glossary, its endpoints or its page changes. **No breaki
 - **Dependencies**: `@modelcontextprotocol/sdk` (MCP) and `openai` (AI assistance) —
   `package.json` **and** `package-lock.json` updated together (a lock out of sync broke `npm ci`
   before).
-- **Config**: `OPENAI_API_KEY`, `GLOBAL_CONCEPTS_ENABLED`, `GLOBAL_CONCEPTS_AI_ENABLED` in
+- **Config**: `OPEN_AI_CLARISA_ASSISTANT_TOKEN`, `GLOBAL_CONCEPTS_ENABLED`, `GLOBAL_CONCEPTS_AI_ENABLED` in
   `.env.example` and `app-config.ts`. The key never reaches the browser.
 - **Front (`clarisa-front`)**: new admin page under `clarisa-panel/manage/global-concepts`, a menu
   entry in `admin-nav.ts`, a public page under `landing-page/global-concepts` and a root redirect

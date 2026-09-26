@@ -218,7 +218,7 @@ of the public read; a `propose_concept` tool is added only if Group 4 wants AI-s
 (they would still go through the human workflow). No new server or infrastructure.
 
 ### D8. AI assistance (OpenAI), opt-in and server-side
-- Key in `OPENAI_API_KEY`; feature switch `GLOBAL_CONCEPTS_AI_ENABLED`; every call from the back.
+- Key in `OPEN_AI_CLARISA_ASSISTANT_TOKEN`; feature switch `GLOBAL_CONCEPTS_AI_ENABLED`; every call from the back.
 - Features: import column mapping (headers + 5 sample rows → schema fields, editor confirms),
   near-duplicate detection (embeddings), semantic search fallback, draft `scope_note` /
   `example_of_use` / `short_definition` for editors, AGROVOC alignment suggestions (candidate list
@@ -409,7 +409,7 @@ work. Each item is a rule the code enforces (and a test to write).
 - V45. AI spend cap lives in `gc_ai_usage` (one row per UTC month, atomic upsert), checked before every
   call; `GLOBAL_CONCEPTS_AI_MONTHLY_CAP_USD` defaults to 10. Unknown models are priced at the most
   expensive known rate so the cap errs on the safe side. AI is on only when
-  `GLOBAL_CONCEPTS_AI_ENABLED=true` **and** `OPENAI_API_KEY` is set; otherwise every AI route is 404.
+  `GLOBAL_CONCEPTS_AI_ENABLED=true` **and** `OPEN_AI_CLARISA_ASSISTANT_TOKEN` is set; otherwise every AI route is 404.
 - V46. Column matching resolves exact headers without the model and filters the model's answer to
   known fields, one column per field; list normalization accepts only values of the list. The
   request recommendation writes only `ai_recommendation` and never sends the requester's email.

@@ -221,7 +221,7 @@ describe('AiService', () => {
   });
 
   it('parses the structured answer and records the spend', async () => {
-    process.env.OPENAI_API_KEY = 'sk-test';
+    process.env.OPEN_AI_CLARISA_ASSISTANT_TOKEN = 'sk-test';
     global.fetch = jest.fn(async () => ({
       ok: true,
       status: 200,
