@@ -40,6 +40,14 @@ accept only values from the module's own lists, editable by admins.
 - **WHEN** a row brings the function "MEL+IA"
 - **THEN** the import flags it and proposes the closest list values instead of storing it
 
+### Requirement: One status, no second switch
+A concept SHALL have exactly one editorial status and no separate active flag; whether it is public
+follows from the status alone.
+
+#### Scenario: Retracting a published concept
+- **WHEN** an admin wants a published concept out of the public read
+- **THEN** the only way is to deprecate it (optionally with a replacement), and the history records it
+
 ### Requirement: Public read
 The module SHALL expose anonymous, read-only endpoints to list, filter (function, phase, type,
 status, collection), search (preferred, alternative and hidden labels, partial words) and get a

@@ -24,7 +24,9 @@ model.
 - **AND** the editor confirms or changes it before the preview
 
 ### Requirement: No retention of user text
-Text sent to `suggest_concepts_for_text` or the text-alignment endpoint SHALL NOT be stored.
+Text sent to `suggest_concepts_for_text` or the text-alignment endpoint SHALL NOT be stored, and
+these endpoints SHALL accept the text only in a POST body, never in the URL (the request log keeps
+URLs).
 
 #### Scenario: Draft checked
 - **WHEN** a user checks a confidential draft

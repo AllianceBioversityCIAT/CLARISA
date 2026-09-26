@@ -10,8 +10,27 @@ NOT be deleted and MAY point to one approved replacement.
 - **AND** its URI page shows the replacement
 
 #### Scenario: Invalid replacement
-- **WHEN** the replacement is itself a draft, inactive, deprecated or the same concept
+- **WHEN** the replacement is itself a draft, deprecated, the same concept, or a concept whose own
+  replacement chain leads back to this one
 - **THEN** the request is rejected with 400 and nothing changes
+
+### Requirement: Merge
+Merging concept B into A SHALL move B's labels (deduplicated per language against A's), relations
+(dropping self-relations and duplicates) and mappings to A, deprecate B with A as replacement, and
+log both concepts, in one transaction.
+
+#### Scenario: Merged label equals the survivor's preferred label
+- **WHEN** B's preferred label equals A's preferred label in the same language
+- **THEN** it is not added as an alternative label of A and the merge still succeeds
+
+### Requirement: Relation integrity at write time
+The module SHALL reject, when written: a relation between concepts of different schemes, a
+self-relation, a `broader` that creates a cycle, and a `related` between a concept and one of its
+ancestors or descendants.
+
+#### Scenario: Cycle attempt
+- **WHEN** A is broader than B and someone sets B as broader than A
+- **THEN** the write is rejected with 400 and the hierarchy is unchanged
 
 ### Requirement: Change log
 Every write to a concept SHALL append an entry with the fields that changed (before/after), the

@@ -41,15 +41,18 @@ Resolved here so the rest of the document can be read against one reference:
    tests); outcome emails use the existing email service. No foreign key in any direction. The module
    migration `down` drops every `gc_` table, the permission rows and strips the four scopes from keys.
 4. **One data model** — the reconciled table list is D2 as amended by: `gc_schemes` (+ `owner_platform`,
-   `governance_description`, `license`, `previous_release_id`); `gc_concepts` (+ `extra` JSON, `rights_note`,
+   `governance_description`, `license`, `default_language`; `code` immutable);
+   `gc_releases` (+ `release_uri`, `previous_release_id`); `gc_concepts` (+ `extra` JSON, `rights_note`,
    `validated_by` as a JSON list, `replaced_by` named as in the schema); preferred labels live in
    `gc_concepts.preferred_label` for the scheme's default language **and** as `gc_labels` rows
    (`kind = pref`) for other languages; `gc_proposals` (+ `type` new/edit/merge/deprecate/promote,
    `origin_platform`, `acting_user_email`, `external_request_id`, `callback_url`, `ai_recommendation`,
    `reviewer_comments`, `no_objection_until`). Real columns: every scalar field of the schema; `extra`
    only for fields added later (D15 reads accordingly).
-5. **One request state machine** — `submitted → in_review → changes_requested ↔ in_review → approved |
-   rejected`; `approved` applies the payload in the same transaction (a merge moves labels, relations
+5. **One request state machine** — `submitted → in_review → (changes_requested ↔ in_review) →
+   validation → approved | rejected`. `validation` is the no-objection step of the PRM Steering Group
+   (`no_objection_until`, restarted every time a request re-enters it); when no validator is
+   configured for a scheme the step is skipped; `approved` applies the payload in the same transaction (a merge moves labels, relations
    and mappings to the surviving concept and deprecates the other with it as replacement).
 6. **Roles** — visitor, requester, reviewer (CoP / domain champion), admin-approver (PPT secretariat),
    plus configurable **validator** (PRM Steering Group, no-objection window) and **custodian /
@@ -98,17 +101,20 @@ themselves only), so dropping the module never has to touch another table.
 
 | Table | Purpose | Key columns |
 |---|---|---|
-| `gc_schemes` | A vocabulary (MELIAF first; room for domain taxonomies such as climate change adaptation) | id, code (`meliaf`), title, description, uri_base, license, publisher |
-| `gc_concepts` | The term register (one row per concept) | id, scheme_id, **term_id** (external stable code, e.g. 2374), term_uri, preferred_label, language, definition, short_definition, scope_note, example_of_use, term_type, meliaf_function (JSON list), meliaf_phase_primary, meliaf_phase_also (JSON), source_citation, source_url, derivation, **origin** (lexicon/ai_generated/domain_expert/external_standard), status, version, date_created, date_modified, validated_by, date_validated, steward, replaced_by_concept_id, notes, is_active, created_by_email, updated_by_email |
+| `gc_schemes` | A vocabulary (MELIAF first; room for domain taxonomies such as climate change adaptation) | id, code (`meliaf`, **immutable**), title, description, uri_base, default_language, license, publisher, governance_description, owner_platform?, next_term_id |
+| `gc_concepts` | The term register (one row per concept) | id, scheme_id, **term_id** (external stable code, e.g. 2374; the URI is derived, never stored), preferred_label, language, definition, short_definition, scope_note, example_of_use, term_type, meliaf_function (JSON list), meliaf_phase_primary, meliaf_phase_also (JSON), source_citation, source_url, derivation, **origin** (lexicon/ai_generated/domain_expert/external_standard), status, version, date_created, date_modified, validated_by, date_validated, steward, replaced_by_concept_id, notes, is_active, created_by_email, updated_by_email |
 | `gc_labels` | Every non-preferred label, per language | concept_id, label, language, kind (`alt` / `hidden` for misspellings and old names / `acronym` / `discouraged` = do-not-use), status |
 | `gc_relations` | broader / related between concepts; **polyhierarchy allowed** (several broader), narrower derived | concept_id, related_concept_id, kind |
-| `gc_collections` + `gc_collection_members` | Curated subsets without touching the hierarchy ("PRMS reporting terms", "MEL phase: Design", "climate adaptation") | code, label, ordered; concept_id, position |
+| `gc_collections` + `gc_collection_members` | Curated subsets without touching the hierarchy ("PRMS reporting terms", "MEL phase: Design", "climate adaptation") | scheme_id, code, label, ordered (unique `scheme_id, code`); concept_id (same scheme), position |
 | `gc_mappings` | Links to external vocabularies, **with SSSOM-style provenance** | concept_id, target_scheme (`agrovoc`, `ipcc`, `oecd-dac`, `prms`…), target_uri, target_label, match (`exact`/`close`/`broad`/`narrow`/`related`; `close` by default because `exactMatch` is transitive), justification (manual / lexical / ai_suggested), confidence, author_email, reviewed_by_email, mapped_at, status |
 | `gc_icons` | Icon register (priority low, per CGIAR), same field names as the schema's *Icon register* sheet | icon_id, concept_id (the sheet's term_id), icon_status, file_name, file_format, designer, designer_country, year_created, rights_and_licence, alt_text, file_link_primary, file_link_backup, date_added |
-| `gc_lists` | Controlled lists (status, function, phase, term_type, derivation, language, icon_status, icon_format) | list_code, value, label, sort, is_active |
-| `gc_history` | Append-only change log | concept_id, action, changes (JSON from/to), changed_by_email, changed_at |
-| `gc_proposals` | Change requests (governance) | type (new/edit/merge/deprecate), concept_id?, payload (JSON), rationale, proposer_email, state (submitted/screening/validation/published/rejected), decision_note, decided_by_email, timestamps |
-| `gc_releases` | Released versions of a scheme | scheme_id, version (semver), released_at, notes, snapshot (JSON/Turtle), license |
+| `gc_lists` | Controlled lists (status, function, phase, term_type, derivation, language, icon_status, icon_format) | scheme_id? (null = shared by every scheme), list_code, value, label, sort, is_active |
+| `gc_history` | Append-only change log; its auto-increment `id` is the cursor of the change feed | id, concept_id, action, changes (JSON from/to), changed_by_email, changed_at, tx_id (groups the rows of one merge/import), proposal_id?, release_id? |
+| `gc_proposals` | Change requests (governance) | type (new/edit/merge/deprecate/promote), scheme_id, concept_id? (source), target_concept_id? (merge survivor / promote result), target_scheme_id? (promote), base_version?, access_token_hash (lets a public requester read and resubmit), payload (JSON), rationale, requester_email, origin (form/platform/clarisa_user), origin_platform?, external_request_id?, callback_url?, ai_recommendation (JSON)?, no_objection_until?, state (submitted/in_review/changes_requested/approved/rejected), decision_note, decided_by_email, timestamps |
+| `gc_proposal_events` | State changes and comments of a proposal (a proposal for a *new* concept has no concept yet, so this cannot live in `gc_history`) | proposal_id, from_state, to_state, actor_email, note, at |
+| `gc_email_verifications` | One-time links for the public request form | email, token_hash, proposal_draft (JSON), expires_at, used_at |
+| `gc_releases` | Released versions of a scheme | scheme_id, version (semver), release_uri (stored, immutable), previous_release_id?, released_at, notes, snapshot (JSON/Turtle), license |
+| `gc_outbox` | Emails and (later) callbacks written in the same transaction as the decision, delivered afterwards with retries | kind, payload (JSON), attempts, next_attempt_at, delivered_at |
 
 - **Where each schema field lives**: the 25 scalar fields are columns of `gc_concepts` with the schema's
   own names; `alternative_labels` → `gc_labels` (kind `alt`); `broader_term` / `narrower_terms` /
@@ -129,9 +135,9 @@ taxonomy (the Build Brief's worked case) live as a second scheme mapped to MELIA
 merged into it.
 
 ### D3. Persistent identifiers and content negotiation
-- URI pattern `https://clarisa.cgiar.org/concepts/{scheme}/{term_id}` (e.g. `…/concepts/meliaf/2374`)
-  and scheme URI `https://clarisa.cgiar.org/concepts/meliaf`. `term_id` never changes; deprecated
-  concepts keep resolving.
+- URI pattern `https://api.clarisa.cgiar.org/concepts/{scheme}/{term_id}` (e.g. `…/concepts/meliaf/2374`)
+  and scheme URI `https://api.clarisa.cgiar.org/concepts/meliaf` (see *Audit corrections* 1; domain
+  pending Group 4). `term_id` never changes; deprecated concepts keep resolving.
 - The front route `concepts/:scheme/:termId` renders the human page. The API
   `GET api/global-concepts/{scheme}/concepts/{termId}` answers JSON by default and Turtle / JSON-LD
   with `Accept: text/turtle` / `application/ld+json` or `?format=`.
@@ -140,7 +146,8 @@ merged into it.
 
 ### D4. Editorial model
 Status `draft | in_review | approved | deprecated` (list-driven). Only `approved` and `deprecated`
-are public. Deprecation requires nothing, allows a `replaced_by` that must be an approved concept.
+are public. Deprecation requires **either** a `replaced_by` (an approved concept) **or** a written
+reason, stored as a history note — the same rule the release gate checks, so the two never disagree.
 Each approved edit of `definition` or `preferred_label` bumps `version` (minor). A **release**
 freezes the scheme at a semantic version with the change log since the previous release.
 
@@ -153,13 +160,14 @@ applies its payload in the same transaction.
 
 ### D5b. Roles and requests (the Partner Requests pattern)
 - **Visitor** (anonymous): reads, searches and downloads what is published.
-- **Requester** (any signed-in CGIAR user, or a system with an API key, as `partner-request/create`
-  already allows): submits a *concept request* — new, edit or deprecate — with a rationale; cannot
+- **Requester** (through the public form with a verified email, a platform with its API key, or a
+  signed-in CLARISA user — see *Audit corrections* 2): submits a *concept request* — new, edit or deprecate — with a rationale; cannot
   create or edit concepts directly; sees the state of their requests and is emailed the outcome.
 - **Reviewer** (Community of Practice / domain expert, optional step): comments and recommends.
 - **Admin / approver**: approves, requests changes or rejects, always with a justification; can also
   create and edit directly (initial load, quick fixes), and such writes are flagged
-  `direct_edit` in the change log.
+  `direct_edit` in the change log. "Admin" is **per scheme**: a platform key with the `write` scope is
+  the admin of the scheme that platform owns, and nothing else.
 - **AI recommendation**: on any request, "Get AI recommendation" checks duplicates, definition quality
   (circular, missing genus), source presence, list values and conflicts, and answers
   approve / needs changes / reject with reasons. Advisory only, stored with the request; a person
@@ -196,8 +204,7 @@ fully manual.
 ### D6. Exports
 `json` (API shape), `csv` (RFC 4180, BOM, formula guard), `skos` Turtle and `jsonld`, for the whole
 scheme or a release. SKOS mapping: `skos:ConceptScheme`, `skos:Concept`, `prefLabel`/`altLabel`/
-`hiddenLabel` with language tags, `definition`, `scopeNote`, `example`, `editorialNote` (notes are
-**not** published), `broader`/`narrower`/`related`, `exactMatch`/`closeMatch`/…, `dcterms:source`,
+`hiddenLabel` with language tags, `definition`, `scopeNote`, `example` (the internal `notes` field is **never** exported), `broader`/`narrower`/`related`, `exactMatch`/`closeMatch`/…, `dcterms:source`,
 `dcterms:created`/`modified`, `owl:deprecated` + `dcterms:isReplacedBy`, `owl:versionInfo`,
 `dcterms:license` (CC BY 4.0 unless Group 4 decides otherwise). Reuses the helpers written for the
 glossary export.
@@ -253,10 +260,10 @@ complete; French (Rabat is francophone) is machine-suggested and flagged unvalid
 carry their own status, which is what the text-alignment use case needs to say "do not use this
 label, use that one".
 
-### D15. Few real columns + one JSON column for the long tail
-The ~10 fields that are filtered or searched are real columns; the rest of the 28 plus any field
-defined later live in a JSON `extra` column driven by a field-definition list, so "add fields
-without rebuilding" holds without an EAV model.
+### D15. Real columns for the schema, one JSON column for the long tail
+Every scalar field of the schema template is a real column of `gc_concepts` (see D2); fields defined
+**after** the schema is agreed live in a JSON `extra` column driven by a field-definition list, so
+"add fields without rebuilding" holds without an EAV model.
 
 ### D16. Version pinning, diff and reconciliation
 `?version=1.0.0` pins any read to a release; `GET …/diff?from=1.0.0&to=1.1.0` returns what was
@@ -275,9 +282,141 @@ and it happens only when a caller sends a key.)
 - One migration owns all tables; its `down` drops them and deletes the permission rows. No other
   table is altered.
 
+## Validation pass (2026-09-25, Fable 5.1) — integrity rules the implementation MUST follow
+
+A second, independent reading of the model looking for bugs, bad relations and flows that cannot
+work. Each item is a rule the code enforces (and a test to write).
+
+**Identity and uniqueness**
+- V1. Unique keys: `gc_schemes(code)`, `gc_concepts(scheme_id, term_id)`, `gc_labels(concept_id,
+  language, label)`, `gc_relations(concept_id, related_concept_id, kind)`, `gc_mappings(concept_id,
+  target_uri, match)`, `gc_collection_members(collection_id, concept_id)`, `gc_lists(list_code, value)`,
+  `gc_releases(scheme_id, version)`, `gc_proposals(origin_platform, external_request_id)`. Indexes on
+  `gc_history(concept_id)`, `gc_proposal_events(proposal_id)`, `gc_concepts(scheme_id, status)`,
+  `gc_labels(label)`.
+- V2. `term_id` is unique **per scheme**, not globally (PRMS and MELIAF may both have 2374). Every
+  internal reference between module tables (`replaced_by`, relations, mappings to another scheme's
+  concept, collection members) uses the internal `gc_concepts.id`; `term_id` and the URI appear only
+  at the API/export boundary. The schema field `replaced_by` is therefore rendered from the internal
+  id at export time.
+- V3. New `term_id`s are assigned from a per-scheme counter read and written under a row lock on
+  `gc_schemes` inside the import transaction, never from `MAX(term_id)+1` without a lock.
+
+**Labels**
+- V4. `gc_concepts.preferred_label` is the preferred label in the scheme's default language and is
+  the only place it lives; `gc_labels(kind = pref)` is allowed only for other languages. A `pref`
+  row in the default language is rejected (otherwise S14 is violated inside one concept).
+- V5. `gc_labels.kind ∈ {alt, hidden, acronym}` and `status ∈ {active, discouraged}`; `discouraged`
+  is a status, not a kind (the two were redundant).
+- V6. A concept has exactly one editorial `status`; there is **no** `is_active` flag (a second
+  on/off switch next to draft/approved/deprecated is ambiguous). Retracting a published concept is
+  `deprecated`; a mistake published too early is corrected by an edit, and the history says so.
+
+**Relations**
+- V7. Both concepts of a `gc_relations` row belong to the **same scheme**; a link to a concept of
+  another scheme is a `gc_mappings` row (`broadMatch`/`narrowMatch`/`relatedMatch`). This keeps
+  cycle checks and per-scheme exports self-contained.
+- V8. `related` is symmetric: stored once with `concept_id < related_concept_id` and queried in
+  both directions. `broader` is directed; `narrower` is never stored.
+- V9. Checked **at write time**, not only at release: no self-relation, no `broader` cycle
+  (walk ancestors before insert), no `related` between a concept and one of its ancestors or
+  descendants (S27).
+- V10. Deprecating a concept keeps its relations; the quality report warns about approved concepts
+  whose every `broader` is deprecated, and the public hierarchy hides deprecated parents.
+
+**Deprecation and merge**
+- V11. `replaced_by` must point to an `approved` concept at write time and must not create a chain
+  cycle (walk the replacement chain before insert). Readers follow the chain to the current concept.
+- V12. Merging B into A: labels of B become `alt` labels of A **after** deduplicating against A's
+  labels case-insensitively per language (S13/S14); relations of B move to A dropping self-relations
+  and duplicates; mappings move with deduplication; B becomes `deprecated` with `replaced_by = A`.
+  All in one transaction, all logged for both concepts.
+- V13. `promote` keeps the platform concept `approved` with an `exactMatch` mapping to the new global
+  concept by default (the platform keeps its own URI); deprecating it with `replaced_by` is a choice
+  made in the request, not the default.
+
+**Requests**
+- V14. One person field: `requester_email` (the human), plus `origin` and `origin_platform`. The
+  earlier `proposer_email` / `acting_user_email` pair is gone.
+- V15. Idempotency: a retry with the same `(origin_platform, external_request_id)` returns the same
+  request; the same id with a **different** payload answers 409.
+- V16. `edit` requests store `base_version` of the concept; if the concept changed before approval,
+  approving is refused with 409 and the request goes back to `in_review` with a note. Payloads are
+  validated against the lists at submission **and** at approval (lists may have changed).
+- V17. The public form creates the request only after the email link is used; the draft lives in
+  `gc_email_verifications` until then (expires in 24 h). Rate limit per email and per IP.
+- V18. Callbacks need a shared secret to sign, and CLARISA only stores the **hash** of an API key, so
+  the key cannot sign. For Rabat the outcome is **polled** (`GET …/requests/{id}` with the key) and
+  emailed; signed callbacks come after Rabat with a per-platform secret stored encrypted in a module
+  table (`gc_platform_settings`).
+- V19. Platform identity on a key is the MIS acronym (`ApiKeyAuthContext.mis.acronym`);
+  `gc_schemes.owner_platform` stores it lower-cased as text. Renaming a MIS breaks ownership until an
+  admin updates the scheme; when MIS is retired in favour of key-only identity, the code moves to a
+  key attribute. Documented, not hidden.
+- V20. Step permissions are path prefixes the substring guard can tell apart:
+  `/api/global-concepts/admin` (full), `/api/global-concepts/admin/requests/review`,
+  `/api/global-concepts/admin/requests/validate`. A holder of the full prefix matches every step.
+
+**Found by DeepSeek (judge) and confirmed against the model**
+- V26. The state machine has a `validation` step with a restartable no-objection window (a validator
+  is configured per scheme; absent → skipped).
+- V27. Every decision is `UPDATE gc_proposals SET state=? WHERE id=? AND state=?`; zero affected rows
+  → 409. Two admins cannot both decide the same request.
+- V28. `merge` and `promote` carry explicit `concept_id` (source), `target_concept_id` and, for
+  promote, `target_scheme_id`; approvers are authorised against **both** schemes involved.
+- V29. A public requester gets a per-request access token in the verification email: it reads the
+  status and resubmits after `changes_requested`. Without it the public form would be write-only.
+- V30. Emails (and later callbacks) go through `gc_outbox`, written in the decision transaction and
+  delivered afterwards with retries — a crash between commit and email cannot lose the outcome.
+- V31. `gc_history` rows carry `tx_id`, `proposal_id?` and `release_id?`, so a merge can be
+  reconstructed and a request can be traced to the release that shipped it (brief §5 "citable
+  reference"). The change feed cursor is `gc_history.id`, never a timestamp (two rows can share a
+  second).
+- V32. `previous_release_id` lives on `gc_releases`, not on the scheme; `release_uri` is stored once
+  and never recomputed; `gc_schemes.code` is immutable because it is part of every URI; the concept
+  URI is derived from `uri_base + term_id` at read time, never stored (a stored copy goes stale).
+- V33. `gc_schemes.default_language` exists (V4 depends on it). `gc_collections` and `gc_lists` are
+  scoped by scheme (`scheme_id`; a null list scope means shared), and a collection only holds
+  concepts of its own scheme.
+- V34. SKOS export maps `acronym` labels to `skos:altLabel` and `discouraged` labels to
+  `skos:hiddenLabel`; nothing stored is silently dropped.
+- V35. `get_concept` by exact label returns **every** match (two schemes, or two concepts, may share a
+  label); by `term_id` it requires the `scheme` argument. `list_releases(scheme)` likewise.
+- V36. Deprecating a concept that is the `replaced_by` of others requires giving it a replacement
+  itself, so no chain ends on a deprecated concept without continuation.
+- V37. AI provenance is per field: `origin` is the concept's primary source; `ai_generated_fields`
+  (JSON list) marks which fields a model drafted. Writing an AI scope note never rewrites the
+  concept's `origin`.
+- V38. `acting_user_email` sent by a platform is stored as **asserted**, shown as "PRMS on behalf of
+  x (asserted by PRMS)", and never treated as an authenticated CLARISA identity.
+- V39. A release snapshot is built inside one consistent-read transaction (InnoDB REPEATABLE READ),
+  so an approval committed mid-way cannot leave a concept with new fields but old labels.
+- V40. License is per scheme (`dcterms:license`) for original text; external definitions carry their
+  own `dcterms:rights` from `rights_note` and are stored as citation + link, not text (D12).
+- V41. Merge also moves collection memberships (deduplicated) and icons to the survivor, and re-points
+  open requests of the merged concept to it; source preferred labels become `alt` labels.
+- V42. Live reads are the default (PRMS wants the current definition); a consumer that must match a
+  citation pins `?version=`. Stated, not hidden.
+- V43. "No retention of user text" is precise: the alignment endpoint stores nothing; phrases the user
+  explicitly ticks as "suggest as new terms" become requests and are stored as such.
+
+**Lists, versions, reads**
+- V21. List values are immutable once used (add a new value and deactivate the old); only labels and
+  order change. Concepts reference values by text, so a renamed value would orphan them.
+- V22. Two version numbers, two meanings: `gc_concepts.version` (record revision, `owl:versionInfo`
+  on the concept) and `gc_releases.version` (scheme release, `owl:versionInfo` on the scheme). New
+  concepts start at 1.0; any approved change to a published field — labels in any language,
+  definition, notes, relations, mappings, status — bumps the minor.
+- V23. `?version=` pinning applies to get, list and export (served from the release snapshot); search
+  and the change feed are live only.
+- V24. `suggest_concepts_for_text` and the MCP tool are **POST** with the text in the body: the
+  request-logging interceptor logs the URL, so a `GET ?text=` would retain user text in the logs.
+- V25. Search is `LIKE`-based over preferred, alternative and hidden labels (500 terms; MySQL FULLTEXT
+  ignores tokens under 3 characters such as "IA"); semantic search is the optional AI layer.
+
 ## Risks / Trade-offs
 
-- **Time**: 7 working days to production including review. → MVP cut below; the rest is released
+- **Time**: 6 working days to production including review (25-sep → 5-oct). → MVP cut below; the rest is released
   after Rabat on the same design.
 - **Content quality** (duplicate IDs, 23 spellings of function, phase in the parent column): the
   import reports them instead of silently fixing them. → Data-quality report in the wizard.
@@ -303,7 +442,7 @@ and it happens only when a caller sends a key.)
 
 1. Public or internal? (use case 2 asks it). The design allows both: public read on, or only for
    signed-in users.
-2. URI domain: `clarisa.cgiar.org/concepts/…` vs `w3id.org/cgiar/meliaf/…`.
+2. URI domain: `api.clarisa.cgiar.org/concepts/…` (+ `w3id.org` alias) vs the template's `taxonomy.cgiar.org/meliaf/…`.
 3. License of the published scheme (CC BY 4.0 proposed).
 4. Who holds each governance step in production (decided in Rabat), and the length of the no-objection window.
 5. Whether the existing glossary later becomes a scheme inside Global Concepts.
