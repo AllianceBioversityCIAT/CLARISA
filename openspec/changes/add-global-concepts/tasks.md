@@ -22,7 +22,7 @@
       switch `GLOBAL_CONCEPTS_ENABLED`.
 - [x] 1.4 Public read: list/filter/search/get, history, releases, change feed; only approved +
       deprecated.
-- [ ] 1.5 Admin: CRUD, labels, relations (polyhierarchy), mappings, collections, editorial status
+- [x] 1.5 Admin: CRUD, labels, relations (polyhierarchy), mappings, collections, editorial status
       with replacement, lists.
 - [x] 1.6 Change log written in the same transaction as every write.
 - [x] 1.7 Concept requests (Partner Requests pattern): submit (signed-in user or API key), reviewer comment, admin approve / request changes / reject with justification and email; admin direct writes flagged `direct_edit`.
@@ -44,15 +44,15 @@
 
 ## 2. Rabat core — front (`clarisa-front`)
 
-- [ ] 2.1 Admin section "Global Concepts": table with filters and sorting, concept form (core fields
+- [x] 2.1 Admin section "Global Concepts": table with filters and sorting, concept form (core fields
       first, advanced fields collapsed), relations and mappings editors, status actions.
-- [ ] 2.2 Proposals queue with step actions and decision notes; "Propose a concept" for any
+- [x] 2.2 Proposals queue with step actions and decision notes; "Propose a concept" for any
       signed-in user.
-- [ ] 2.3 Import wizard: generalise the glossary parser (`HEADER_WORDS`/`detectColumns` as
+- [x] 2.3 Import wizard: generalise the glossary parser (`HEADER_WORDS`/`detectColumns` as
       parameters) and reuse the 4-step wizard.
-- [ ] 2.4 Public page "Global Concepts": search, facets, concept page with URI, history, relations,
+- [x] 2.4 Public page "Global Concepts": search, facets, concept page with URI, history, relations,
       mappings, downloads; root route `concepts/:scheme/:termId`.
-- [ ] 2.5 Menu entries (admin-nav, landing navbar/footer); revamp tokens only, phone + desktop.
+- [x] 2.5 Menu entries (admin-nav, landing navbar/footer); revamp tokens only, phone + desktop.
 - [ ] 2.6 Unit tests; screenshots phone/desktop with self-critique.
 
 ## 3. Rabat core — MCP and AI
@@ -60,7 +60,7 @@
 - [x] 3.1 MCP endpoint (stateless Streamable HTTP): `search_concepts`, `get_concept`,
       `suggest_concepts_for_text`, `list_releases`; `package.json` + lock updated together.
 - [x] 3.2 AI switch + server-side OpenAI client with a spend cap.
-- [ ] 3.3 "Auto-match with AI" in the import wizard (headers + 5 rows → field + confidence badge), every selector still editable by hand; "Normalize with AI" for list values.
+- [x] 3.3 "Auto-match with AI" in the import wizard (headers + 5 rows → field + confidence badge), every selector still editable by hand; "Normalize with AI" for list values.
 - [ ] 3.4 Embeddings for semantic search and duplicate detection on proposals and import.
 - [ ] 3.5 Demo: an AI assistant (Claude/ChatGPT) connected to the MCP answering with official terms.
 - [ ] 3.6 Demo "another system via API": a named consumer (PRMS dev or the Hub) calling the API with its key, agreed with its owner before day 1.
