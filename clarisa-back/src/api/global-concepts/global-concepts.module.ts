@@ -13,6 +13,7 @@ import { AiAssistService } from './services/ai-assist.service';
 import { ConceptsSuggestService } from './services/concepts-suggest.service';
 import { McpService } from './services/mcp.service';
 import { ConceptsImportService } from './services/concepts-import.service';
+import { ConceptsCatalogService } from './services/concepts-catalog.service';
 import { GlobalConceptsMcpController } from './controllers/global-concepts-mcp.controller';
 import { OutboxService } from './services/outbox.service';
 import { GlobalConceptsAdminController } from './controllers/global-concepts-admin.controller';
@@ -39,6 +40,7 @@ const providers = [
   ConceptsSuggestService,
   McpService,
   ConceptsImportService,
+  ConceptsCatalogService,
   GlobalConceptsEnabledGuard,
   PublicRateLimitGuard,
 ];

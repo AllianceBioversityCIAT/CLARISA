@@ -272,7 +272,7 @@ export class RequestsService {
       await this.outbox.enqueueEmail(manager, {
         to: row.email,
         subject: `[CLARISA Global Concepts] Follow request #${result.id}`,
-        html: `<p>Your request #${result.id} is registered. Follow it, or update it if changes are requested, here:</p><p>${escapeHtml(this.followLink(result.id, access))}</p>`,
+        html: `<p>Your request #${result.id} is registered. Follow it, or update it if changes are requested, here:</p><p><a href="${escapeHtml(this.followLink(result.id, access))}">${escapeHtml(this.followLink(result.id, access))}</a></p><p>Keep this email: the link is the only key to your request.</p>`,
       });
       return { ...result, access_token: access };
     });
@@ -489,7 +489,13 @@ export class RequestsService {
           html: this.emailBody(
             proposal,
             scheme,
-            `Your request was ${verb}.${dto.note ? ` Note: ${dto.note}` : ''}`,
+            `Your request was ${verb}.${dto.note ? ` Note: ${dto.note}` : ''}${
+              to === GcProposalState.CHANGES_REQUESTED
+                ? proposal.origin === GcProposalOrigin.FORM
+                  ? ' To answer, open the follow link from your confirmation email and update the request there.'
+                  : ' Update the request from the system you sent it with.'
+                : ''
+            }`,
           ),
         });
       }

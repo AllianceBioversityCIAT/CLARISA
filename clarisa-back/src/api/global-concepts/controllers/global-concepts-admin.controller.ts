@@ -30,6 +30,14 @@ import {
   NormalizeValuesDto,
 } from '../dto/ai.dto';
 import { ConceptsImportService } from '../services/concepts-import.service';
+import { ConceptsCatalogService } from '../services/concepts-catalog.service';
+import {
+  CollectionDto,
+  CollectionMembersDto,
+  ListValueDto,
+  UpdateCollectionDto,
+  UpdateListValueDto,
+} from '../dto/catalog.dto';
 import {
   ConceptsAdminService,
   GcActor,
@@ -75,6 +83,7 @@ export class GlobalConceptsAdminController {
     private readonly ai: AiService,
     private readonly assist: AiAssistService,
     private readonly importer: ConceptsImportService,
+    private readonly catalog: ConceptsCatalogService,
   ) {}
 
   private actor(user: UserData): GcActor {
@@ -105,6 +114,66 @@ export class GlobalConceptsAdminController {
   @UseGuards(GlobalConceptsAiEnabledGuard)
   recommend(@Param('id', ParseIntPipe) id: number) {
     return this.assist.recommend(id);
+  }
+
+  // --------------------------------------------------- collections and lists
+
+  @Get(':scheme/collections')
+  collections(@Param('scheme') scheme: string) {
+    return this.catalog.collections(scheme);
+  }
+
+  @Post(':scheme/collections')
+  createCollection(
+    @Param('scheme') scheme: string,
+    @Body() dto: CollectionDto,
+  ) {
+    return this.catalog.createCollection(scheme, dto);
+  }
+
+  @Patch(':scheme/collections/:code')
+  updateCollection(
+    @Param('scheme') scheme: string,
+    @Param('code') code: string,
+    @Body() dto: UpdateCollectionDto,
+  ) {
+    return this.catalog.updateCollection(scheme, code, dto);
+  }
+
+  @Put(':scheme/collections/:code/members')
+  setMembers(
+    @Param('scheme') scheme: string,
+    @Param('code') code: string,
+    @Body() dto: CollectionMembersDto,
+  ) {
+    return this.catalog.setMembers(scheme, code, dto);
+  }
+
+  @Delete(':scheme/collections/:code')
+  deleteCollection(
+    @Param('scheme') scheme: string,
+    @Param('code') code: string,
+  ) {
+    return this.catalog.deleteCollection(scheme, code);
+  }
+
+  @Get(':scheme/lists')
+  listValues(@Param('scheme') scheme: string) {
+    return this.catalog.listValues(scheme);
+  }
+
+  @Post(':scheme/lists')
+  addListValue(@Param('scheme') scheme: string, @Body() dto: ListValueDto) {
+    return this.catalog.addListValue(scheme, dto);
+  }
+
+  @Patch(':scheme/lists/:id')
+  updateListValue(
+    @Param('scheme') scheme: string,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateListValueDto,
+  ) {
+    return this.catalog.updateListValue(scheme, id, dto);
   }
 
   // ------------------------------------------------------------------ import

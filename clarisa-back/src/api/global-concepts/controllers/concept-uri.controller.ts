@@ -77,7 +77,11 @@ export class ConceptUriController {
     res.setHeader('Vary', 'Accept');
     if (!wanted) {
       const meta = await this.read.scheme(scheme);
-      return res.redirect(303, `${GlobalConceptsConfig.webBase}/${meta.code}`);
+      // The public page lists a scheme with `?scheme=`; it has no one-segment route.
+      return res.redirect(
+        303,
+        `${GlobalConceptsConfig.webBase}?scheme=${encodeURIComponent(meta.code)}`,
+      );
     }
     const file = await this.exporter.export(scheme, wanted);
     res.setHeader('Content-Type', file.contentType);
