@@ -2,7 +2,10 @@ import {
   ArrayMaxSize,
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsNotEmpty,
+  IsObject,
+  IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
@@ -34,4 +37,17 @@ export class NormalizeValuesDto {
   @IsString({ each: true })
   @MaxLength(200, { each: true })
   values: string[];
+}
+
+/** Rows of the import wizard, one object per row keyed by schema field. */
+export class ImportConceptsDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(2000)
+  @IsObject({ each: true })
+  rows: Record<string, unknown>[];
+
+  @IsOptional()
+  @IsBoolean()
+  skip_invalid?: boolean;
 }

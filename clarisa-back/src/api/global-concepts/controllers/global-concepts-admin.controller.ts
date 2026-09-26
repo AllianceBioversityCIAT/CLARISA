@@ -24,7 +24,12 @@ import {
 } from '../utils/feature-enabled.guard';
 import { AiService } from '../services/ai.service';
 import { AiAssistService } from '../services/ai-assist.service';
-import { MapColumnsDto, NormalizeValuesDto } from '../dto/ai.dto';
+import {
+  ImportConceptsDto,
+  MapColumnsDto,
+  NormalizeValuesDto,
+} from '../dto/ai.dto';
+import { ConceptsImportService } from '../services/concepts-import.service';
 import {
   ConceptsAdminService,
   GcActor,
@@ -69,6 +74,7 @@ export class GlobalConceptsAdminController {
     private readonly requests: RequestsService,
     private readonly ai: AiService,
     private readonly assist: AiAssistService,
+    private readonly importer: ConceptsImportService,
   ) {}
 
   private actor(user: UserData): GcActor {
@@ -99,6 +105,32 @@ export class GlobalConceptsAdminController {
   @UseGuards(GlobalConceptsAiEnabledGuard)
   recommend(@Param('id', ParseIntPipe) id: number) {
     return this.assist.recommend(id);
+  }
+
+  // ------------------------------------------------------------------ import
+
+  /** Dry run: what the import would do, row by row. Writes nothing. */
+  @Post(':scheme/import/preview')
+  importPreview(
+    @Param('scheme') scheme: string,
+    @Body() dto: ImportConceptsDto,
+  ) {
+    return this.importer.preview(scheme, dto.rows);
+  }
+
+  /** Writes the same plan in one transaction, all or nothing. */
+  @Post(':scheme/import')
+  importRows(
+    @Param('scheme') scheme: string,
+    @Body() dto: ImportConceptsDto,
+    @GetUserData() user: UserData,
+  ) {
+    return this.importer.import(
+      scheme,
+      dto.rows,
+      { email: user.email },
+      dto.skip_invalid === true,
+    );
   }
 
   // ---------------------------------------------------------------- concepts

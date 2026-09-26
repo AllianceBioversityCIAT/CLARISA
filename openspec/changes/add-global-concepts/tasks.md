@@ -34,12 +34,12 @@
 - [x] 1.8 Exports JSON / CSV / Turtle / JSON-LD (reuse the helpers from the glossary export) and
       content negotiation on the concept endpoint.
 - [x] 1.9 Quality gate (S13, S14, S27, cycles, required definition) + releases as immutable files.
-- [ ] 1.10 Bulk import preview/import (generic version of the glossary plan builder) with the
+- [x] 1.10 Bulk import preview/import (generic version of the glossary plan builder) with the
       data-quality report.
 - [ ] 1.11 Swagger: public paths in `PUBLIC_OPENAPI_PATHS`; group in the API reference catalog.
 - [x] 1.10b Public request form (no CLARISA account): email + one-time verification link, rate limit.
 - [x] 1.10c Version pinning (`?version=`), diff between releases, `owl:priorVersion` link; governance description in scheme metadata and exports.
-- [ ] 1.10d Import mapping rules for the Lexicon file: PARENT TERM → `meliaf_phase_primary`, SOURCE prefixes → `derivation`, citation/URL split.
+- [x] 1.10d Import mapping rules for the Lexicon file: PARENT TERM → `meliaf_phase_primary`, SOURCE prefixes → `derivation`, citation/URL split.
 - [ ] 1.12 Unit tests per service + DTO validation specs through the real `ValidationPipe`.
 
 ## 2. Rabat core — front (`clarisa-front`)

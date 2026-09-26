@@ -73,7 +73,7 @@ const VERSIONED_FIELDS = [
 ] as const;
 
 /** Every field copied from a DTO onto the entity. */
-const WRITABLE_FIELDS = [
+export const WRITABLE_FIELDS = [
   'language',
   'definition',
   'short_definition',
@@ -922,10 +922,7 @@ export class ConceptsAdminService {
    * field; list-driven fields must match an active value (or its label) of
    * their list and are stored as the list value.
    */
-  private cleanFields(
-    dto: ConceptFieldsDto,
-    lists: Map<string, Map<string, string>>,
-  ) {
+  cleanFields(dto: ConceptFieldsDto, lists: Map<string, Map<string, string>>) {
     const out: Record<string, unknown> = {};
     for (const field of WRITABLE_FIELDS) {
       const value = (dto as Record<string, unknown>)[field];
