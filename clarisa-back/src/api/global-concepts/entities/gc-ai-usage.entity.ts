@@ -16,6 +16,6 @@ export class GcAiUsage {
   @Column({ type: 'bigint', default: 0 })
   output_tokens: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 4, default: 0 })
+  @Column({ type: 'decimal', precision: 12, scale: 6, default: 0 })
   cost_usd: string;
 }

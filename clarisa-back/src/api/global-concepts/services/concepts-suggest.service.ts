@@ -4,6 +4,7 @@ import { PublicConcept } from '../utils/concept-presenter';
 import { ConceptsReadService } from './concepts-read.service';
 
 export const MAX_SUGGEST_TEXT = 20_000;
+const CACHE_MS = 60_000;
 
 export interface ConceptSuggestion {
   term_id: number;
@@ -16,16 +17,37 @@ export interface ConceptSuggestion {
   replaced_by: PublicConcept['replaced_by'];
 }
 
-const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+interface Entry {
+  tokens: string[];
+  acronym: boolean;
+  label: string;
+  kind: string;
+  concepts: PublicConcept[];
+}
+
+/** A compiled register: label entries indexed by their first token. */
+export interface ConceptMatcher {
+  byFirst: Map<string, Entry[]>;
+}
+
+const WORD = /[\p{L}\p{N}]+/gu;
+const tokens = (text: string) =>
+  [...text.matchAll(WORD)].map((m) => ({
+    raw: m[0],
+    low: m[0].toLowerCase(),
+  }));
 
 /**
  * Finds the official concepts a text mentions, by their preferred,
  * alternative, hidden labels and acronyms (V25, V43). Pure function of the
  * published register: the text is never stored or logged, and it only
- * arrives in a POST body (V24).
+ * arrives in a POST body (V24). The register is compiled once a minute per
+ * scheme, and a text is scanned once, token by token.
  */
 @Injectable()
 export class ConceptsSuggestService {
+  private cache = new Map<string, { at: number; matcher: ConceptMatcher }>();
+
   constructor(private readonly read: ConceptsReadService) {}
 
   async suggest(code: string, text: string, limit = 25) {
@@ -35,75 +57,107 @@ export class ConceptsSuggestService {
       throw new BadRequestException(
         `text is limited to ${MAX_SUGGEST_TEXT} characters`,
       );
-    const concepts = await this.read.list(code, {});
+    const matcher = await this.matcher(code);
     return {
       scheme: code,
-      suggestions: matchConcepts(concepts, text).slice(
+      suggestions: runMatcher(matcher, text).slice(
         0,
         Math.max(1, Math.min(100, limit)),
       ),
       retained: false,
     };
   }
+
+  private async matcher(code: string) {
+    const k = (code ?? '').toLowerCase();
+    const hit = this.cache.get(k);
+    if (hit && Date.now() - hit.at < CACHE_MS) return hit.matcher;
+    const matcher = compileMatcher(await this.read.list(k, {}));
+    this.cache.set(k, { at: Date.now(), matcher });
+    return matcher;
+  }
+}
+
+export function compileMatcher(concepts: PublicConcept[]): ConceptMatcher {
+  const entries = new Map<string, Entry>();
+  const add = (c: PublicConcept, label: string, kind: string) => {
+    const toks = tokens(label ?? '');
+    const text = toks.map((t) => t.low).join(' ');
+    if (!text || text.length < 2) return;
+    const acronym = kind === GcLabelKind.ACRONYM;
+    const id = `${acronym ? toks.map((t) => t.raw).join(' ') : text}|${acronym}`;
+    const e = entries.get(id) ?? {
+      tokens: acronym ? toks.map((t) => t.raw) : toks.map((t) => t.low),
+      acronym,
+      label: label.trim(),
+      kind,
+      concepts: [],
+    };
+    if (!e.concepts.includes(c)) e.concepts.push(c);
+    entries.set(id, e);
+  };
+  for (const c of concepts) {
+    add(c, c.preferred_label, 'pref');
+    for (const p of c.preferred_labels ?? []) add(c, p.label, 'pref');
+    for (const a of c.alternative_labels ?? []) add(c, a.label, a.kind);
+  }
+  const byFirst = new Map<string, Entry[]>();
+  for (const e of entries.values()) {
+    const first = e.tokens[0].toLowerCase();
+    const list = byFirst.get(first) ?? [];
+    list.push(e);
+    byFirst.set(first, list);
+  }
+  for (const list of byFirst.values())
+    list.sort((a, b) => b.tokens.length - a.tokens.length);
+  return { byFirst };
 }
 
 /**
- * Whole-word, case-insensitive match of every label, except acronyms, which
- * match case-sensitively ("IA" the acronym, not "ia" inside a Spanish text).
- * Longer labels win the overlap: "impact assessment" hides "impact" where
- * both start at the same place.
+ * Left-to-right, longest label first: "impact assessment" wins over
+ * "impact" at the same place, and matched words are not reused. Acronyms
+ * compare case-sensitively ("IA", not "ia" inside a Spanish text). A label
+ * two concepts share reports both.
  */
-export function matchConcepts(
-  concepts: PublicConcept[],
+export function runMatcher(
+  matcher: ConceptMatcher,
   text: string,
 ): ConceptSuggestion[] {
-  type Candidate = { concept: PublicConcept; label: string; kind: string };
-  const candidates: Candidate[] = [];
-  for (const c of concepts) {
-    candidates.push({ concept: c, label: c.preferred_label, kind: 'pref' });
-    for (const p of c.preferred_labels ?? [])
-      if (p.label !== c.preferred_label)
-        candidates.push({ concept: c, label: p.label, kind: 'pref' });
-    for (const a of c.alternative_labels ?? [])
-      candidates.push({ concept: c, label: a.label, kind: a.kind });
-  }
-  candidates.sort((a, b) => b.label.length - a.label.length);
-
-  const taken: [number, number][] = [];
-  const overlaps = (s: number, e: number) =>
-    taken.some(([ts, te]) => s < te && e > ts);
+  const toks = tokens(text);
   const hits = new Map<number, ConceptSuggestion>();
-  for (const cand of candidates) {
-    const label = (cand.label ?? '').trim();
-    if (label.length < 2) continue;
-    const re = new RegExp(
-      `(?<![\\p{L}\\p{N}])${escape(label).replace(/\s+/g, '\\s+')}(?![\\p{L}\\p{N}])`,
-      cand.kind === GcLabelKind.ACRONYM ? 'gu' : 'giu',
+  let i = 0;
+  while (i < toks.length) {
+    const candidates = matcher.byFirst.get(toks[i].low);
+    let used = 1;
+    const found = candidates?.find((e) =>
+      e.tokens.every((t, j) => {
+        const tok = toks[i + j];
+        return tok && (e.acronym ? tok.raw === t : tok.low === t);
+      }),
     );
-    let count = 0;
-    for (const m of text.matchAll(re)) {
-      const s = m.index ?? 0;
-      const e = s + m[0].length;
-      if (overlaps(s, e)) continue;
-      taken.push([s, e]);
-      count++;
+    if (found) {
+      used = found.tokens.length;
+      for (const c of found.concepts) {
+        const hit =
+          hits.get(c.term_id) ??
+          ({
+            term_id: c.term_id,
+            term_uri: c.term_uri,
+            preferred_label: c.preferred_label,
+            short_definition: c.short_definition,
+            definition: c.definition,
+            status: c.status,
+            matched: [],
+            replaced_by: c.replaced_by,
+          } as ConceptSuggestion);
+        const m = hit.matched.find((x) => x.label === found.label);
+        if (m) m.count++;
+        else
+          hit.matched.push({ label: found.label, kind: found.kind, count: 1 });
+        hits.set(c.term_id, hit);
+      }
     }
-    if (!count) continue;
-    const c = cand.concept;
-    const hit =
-      hits.get(c.term_id) ??
-      ({
-        term_id: c.term_id,
-        term_uri: c.term_uri,
-        preferred_label: c.preferred_label,
-        short_definition: c.short_definition,
-        definition: c.definition,
-        status: c.status,
-        matched: [],
-        replaced_by: c.replaced_by,
-      } as ConceptSuggestion);
-    hit.matched.push({ label, kind: cand.kind, count });
-    hits.set(c.term_id, hit);
+    i += used;
   }
   const total = (s: ConceptSuggestion) =>
     s.matched.reduce((n, m) => n + m.count, 0);
@@ -112,3 +166,7 @@ export function matchConcepts(
       total(b) - total(a) || a.preferred_label.localeCompare(b.preferred_label),
   );
 }
+
+/** Convenience for tests and one-off calls. */
+export const matchConcepts = (concepts: PublicConcept[], text: string) =>
+  runMatcher(compileMatcher(concepts), text);

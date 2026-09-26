@@ -1,8 +1,17 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DataSource, In, Not } from 'typeorm';
 import { GcConcept, GcConceptStatus } from '../entities/gc-concept.entity';
 import { GcLabel } from '../entities/gc-label.entity';
-import { GcProposal, GcProposalType } from '../entities/gc-proposal.entity';
+import {
+  GcProposal,
+  GcProposalState,
+  GcProposalType,
+} from '../entities/gc-proposal.entity';
 import { GcScheme } from '../entities/gc-scheme.entity';
 import { IMPORT_FIELDS, IMPORT_FIELD_NAMES } from '../utils/import-fields';
 import { AiService } from './ai.service';
@@ -61,13 +70,16 @@ export class AiAssistService {
       throw new BadRequestException('headers must be a non-empty list');
     const cols = headers.slice(0, MAX_COLUMNS).map((h) => cut(h, 100));
     const byKey = new Map(IMPORT_FIELD_NAMES.map((f) => [headerKey(f), f]));
+    const taken = new Set<string>();
     const result: ColumnMatch[] = cols.map((header, column) => {
       const exact = byKey.get(headerKey(header));
-      return exact
-        ? { column, header, field: exact, confidence: 1, source: 'exact' }
-        : { column, header, field: null, confidence: 0, source: 'none' };
+      // One column per field, also between exact headers ("TERM ID", "term_id").
+      if (exact && !taken.has(exact)) {
+        taken.add(exact);
+        return { column, header, field: exact, confidence: 1, source: 'exact' };
+      }
+      return { column, header, field: null, confidence: 0, source: 'none' };
     });
-    const taken = new Set(result.map((r) => r.field).filter(Boolean));
     const pending = result.filter((r) => !r.field && r.header);
     if (pending.length) {
       const samples = (Array.isArray(rows) ? rows : [])
@@ -139,7 +151,7 @@ export class AiAssistService {
     const lists = await this.admin.loadLists(this.dataSource.manager, scheme);
     const list = lists.get(listCode);
     if (!list) throw new BadRequestException(`Unknown list "${listCode}"`);
-    const allowed = [...new Set(list.values())];
+    const allowed = [...new Set(list.values())].filter((v) => v !== 'none');
     const distinct = [...new Set(values.map((v) => cut(v)).filter(Boolean))];
     const out = new Map<string, { value: string | null; source: string }>();
     const pending: string[] = [];
@@ -176,9 +188,12 @@ export class AiAssistService {
           },
         },
       );
+      const byKey = new Map(pending.map((v) => [key(v), v]));
       for (const m of answer?.values ?? []) {
-        if (!pending.includes(m.input) || out.has(m.input)) continue;
-        out.set(m.input, {
+        // The model may echo the input with other case or spacing.
+        const input = byKey.get(key(m.input));
+        if (!input || out.has(input)) continue;
+        out.set(input, {
           value: allowed.includes(m.value) ? m.value : null,
           source: 'ai',
         });
@@ -202,7 +217,14 @@ export class AiAssistService {
   async recommend(proposalId: number) {
     const manager = this.dataSource.manager;
     const p = await manager.findOne(GcProposal, { where: { id: proposalId } });
-    if (!p) throw new BadRequestException('Request not found');
+    if (!p) throw new NotFoundException('Request not found');
+    if (
+      p.state === GcProposalState.APPROVED ||
+      p.state === GcProposalState.REJECTED
+    )
+      throw new ConflictException(
+        'The request is already decided; its recommendation is kept as it was',
+      );
     const scheme = await manager.findOne(GcScheme, {
       where: { id: p.scheme_id },
     });
@@ -330,8 +352,8 @@ export class AiAssistService {
         !!label &&
         !!definition &&
         new RegExp(
-          `\\b${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
-          'i',
+          `(?<![\\p{L}\\p{N}])${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`,
+          'iu',
         ).test(definition);
       out.push({
         check: 'definition_not_circular',

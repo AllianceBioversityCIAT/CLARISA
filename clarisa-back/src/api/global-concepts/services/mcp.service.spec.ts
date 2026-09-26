@@ -57,6 +57,37 @@ describe('matchConcepts', () => {
   });
 });
 
+describe('matchConcepts at scale and with shared labels', () => {
+  it('reports every concept that shares a label', () => {
+    const hits = matchConcepts(
+      [
+        concept(10, 'Indicator', [{ label: 'KPI', kind: GcLabelKind.ACRONYM }]),
+        concept(11, 'Key performance indicator', [
+          { label: 'KPI', kind: GcLabelKind.ACRONYM },
+        ]),
+      ],
+      'Each KPI is tracked',
+    );
+    expect(hits.map((h) => h.term_id).sort()).toEqual([10, 11]);
+  });
+
+  it('scans a 20 000-character text against 1 500 labels quickly', () => {
+    const register = Array.from({ length: 500 }, (_, i) =>
+      concept(i + 1, `term number ${i}`, [
+        { label: `synonym ${i} alpha`, kind: GcLabelKind.ALT },
+        { label: `AC${i}`, kind: GcLabelKind.ACRONYM },
+      ]),
+    );
+    const text = 'term number 42 and synonym 7 alpha plus AC9 '.repeat(450);
+    const start = Date.now();
+    const hits = matchConcepts(register, text.slice(0, 20_000));
+    expect(Date.now() - start).toBeLessThan(1500);
+    expect(hits.map((h) => h.term_id).sort((a, b) => a - b)).toEqual([
+      8, 10, 43,
+    ]);
+  });
+});
+
 describe('McpService', () => {
   const read = {
     list: jest.fn(async () => REGISTER),
@@ -136,6 +167,15 @@ describe('McpService', () => {
     const missing = await call('get_concept', { label: 'Resilience' });
     expect(missing.result.isError).toBe(true);
     expect(missing.result.content[0].text).toMatch(/not an official label/);
+    read.list.mockResolvedValueOnce([
+      concept(10, 'Indicator', [{ label: 'KPI', kind: GcLabelKind.ACRONYM }]),
+      concept(11, 'Key performance indicator', [
+        { label: 'KPI', kind: GcLabelKind.ACRONYM },
+      ]),
+    ]);
+    const shared = await call('get_concept', { label: 'KPI' });
+    expect(shared.result.structuredContent.ambiguous).toBe(true);
+    expect(shared.result.structuredContent.concepts).toHaveLength(2);
     const byId = await call('get_concept', { term_id: 99 });
     expect(byId.result.isError).toBe(true);
   });

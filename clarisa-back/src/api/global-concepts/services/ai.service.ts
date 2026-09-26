@@ -132,7 +132,7 @@ export class AiService {
            input_tokens = input_tokens + VALUES(input_tokens),
            output_tokens = output_tokens + VALUES(output_tokens),
            cost_usd = cost_usd + VALUES(cost_usd)`,
-        [monthKey(), input, output, cost.toFixed(4)],
+        [monthKey(), input, output, cost.toFixed(6)],
       )
       .catch((err) =>
         this.logger.error(`AI usage not recorded: ${(err as Error)?.message}`),

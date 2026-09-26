@@ -7,6 +7,7 @@ import { McpService } from '../services/mcp.service';
 import { ConceptsSuggestService } from '../services/concepts-suggest.service';
 import { ConceptsReadService } from '../services/concepts-read.service';
 import { ConceptsExportService } from '../services/concepts-export.service';
+import { PublicRateLimitGuard } from '../utils/public-rate-limit.guard';
 
 /** The transport over real HTTP: status codes, raw JSON-RPC, route order. */
 describe('GlobalConceptsMcpController (HTTP)', () => {
@@ -27,6 +28,7 @@ describe('GlobalConceptsMcpController (HTTP)', () => {
       providers: [
         McpService,
         ConceptsSuggestService,
+        PublicRateLimitGuard,
         { provide: ConceptsReadService, useValue: read },
         { provide: ConceptsExportService, useValue: {} },
       ],
@@ -59,6 +61,30 @@ describe('GlobalConceptsMcpController (HTTP)', () => {
     const res = await request(app.getHttpServer()).get('/mcp');
     expect(res.status).toBe(405);
     expect(read.scheme).not.toHaveBeenCalled();
+  });
+
+  it('refuses batches larger than ten messages', async () => {
+    const batch = Array.from({ length: 11 }, (_, i) => ({
+      jsonrpc: '2.0',
+      id: i,
+      method: 'ping',
+    }));
+    const res = await request(app.getHttpServer()).post('/mcp').send(batch);
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe(-32600);
+  });
+
+  it('rate-limits one client on the anonymous routes', async () => {
+    let status = 200;
+    for (let i = 0; i < 125 && status !== 429; i++) {
+      status = (
+        await request(app.getHttpServer())
+          .post('/mcp')
+          .set('X-Forwarded-For', '203.0.113.9')
+          .send({ jsonrpc: '2.0', id: i, method: 'ping' })
+      ).status;
+    }
+    expect(status).toBe(429);
   });
 
   it('suggests over POST with the text in the body', async () => {

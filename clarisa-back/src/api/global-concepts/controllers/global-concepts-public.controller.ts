@@ -17,6 +17,7 @@ import { Response } from 'express';
 import { GlobalConceptsEnabledGuard } from '../utils/feature-enabled.guard';
 import { ConceptsReadService } from '../services/concepts-read.service';
 import { ConceptsSuggestService } from '../services/concepts-suggest.service';
+import { PublicRateLimitGuard } from '../utils/public-rate-limit.guard';
 import {
   ConceptExportFormat,
   ConceptsExportService,
@@ -38,6 +39,7 @@ export class GlobalConceptsPublicController {
 
   @Post(':scheme/suggest')
   @HttpCode(200)
+  @UseGuards(PublicRateLimitGuard)
   @ApiOperation({
     summary: 'Find the official concepts a text mentions',
     description:

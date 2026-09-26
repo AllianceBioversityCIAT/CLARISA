@@ -24,6 +24,7 @@ import { ConceptsAdminService } from './services/concepts-admin.service';
 import { ConceptsExportService } from './services/concepts-export.service';
 import { ReleasesService } from './services/releases.service';
 import { GlobalConceptsEnabledGuard } from './utils/feature-enabled.guard';
+import { PublicRateLimitGuard } from './utils/public-rate-limit.guard';
 
 const providers = [
   ConceptGraphLoader,
@@ -39,6 +40,7 @@ const providers = [
   McpService,
   ConceptsImportService,
   GlobalConceptsEnabledGuard,
+  PublicRateLimitGuard,
 ];
 
 /**

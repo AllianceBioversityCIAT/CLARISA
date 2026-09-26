@@ -12,6 +12,10 @@ import { ApiExcludeController } from '@nestjs/swagger';
 import { Response } from 'express';
 import { GlobalConceptsEnabledGuard } from '../utils/feature-enabled.guard';
 import { McpService } from '../services/mcp.service';
+import { PublicRateLimitGuard } from '../utils/public-rate-limit.guard';
+
+/** MCP 2025-06-18 dropped batching; older clients batch a handful at most. */
+const MAX_BATCH = 10;
 
 /**
  * `api/global-concepts/mcp` — stateless Streamable HTTP MCP endpoint (D7).
@@ -28,19 +32,22 @@ export class GlobalConceptsMcpController {
 
   @Post()
   @HttpCode(200)
+  @UseGuards(PublicRateLimitGuard)
   async post(@Body() body: unknown, @Res() res: Response) {
     if (body === undefined || body === null || typeof body !== 'object') {
       res.status(400).json(this.mcp.error(null, -32700, 'Parse error'));
       return;
     }
     const messages = Array.isArray(body) ? body : [body];
-    if (!messages.length) {
+    if (!messages.length || messages.length > MAX_BATCH) {
       res.status(400).json(this.mcp.error(null, -32600, 'Invalid request'));
       return;
     }
-    const answers = (
-      await Promise.all(messages.map((m) => this.mcp.handle(m)))
-    ).filter((a) => a !== null);
+    const answers = [];
+    for (const m of messages) {
+      const a = await this.mcp.handle(m);
+      if (a !== null) answers.push(a);
+    }
     if (!answers.length) {
       res.status(202).end();
       return;

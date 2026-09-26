@@ -1,4 +1,8 @@
-import { ServiceUnavailableException } from '@nestjs/common';
+import {
+  ConflictException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { AiAssistService } from './ai-assist.service';
 import { AiService, costOf } from './ai.service';
 import { ConceptsAdminService } from './concepts-admin.service';
@@ -77,6 +81,36 @@ describe('AiAssistService', () => {
     expect(sent.fields.some((f: any) => f.field === 'preferred_label')).toBe(
       false,
     );
+  });
+
+  it('maps two exact headers of the same field only once', async () => {
+    ai.json.mockResolvedValue({ matches: [] });
+    const r = await service.mapColumns(['TERM ID', 'term_id', 'Definition']);
+    expect(r.columns.map((c) => c.field)).toEqual([
+      'term_id',
+      null,
+      'definition',
+    ]);
+  });
+
+  it('answers 404 for a missing request and 409 for a decided one', async () => {
+    await expect(service.recommend(999)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    const p = db.seed(GcProposal, {
+      type: GcProposalType.NEW,
+      scheme_id: scheme.id,
+      payload: { preferred_label: 'X' },
+      state: GcProposalState.APPROVED,
+      ai_recommendation: { verdict: 'approve' },
+    });
+    await expect(service.recommend(p.id)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(db.rows(GcProposal)[0].ai_recommendation).toEqual({
+      verdict: 'approve',
+    });
+    expect(ai.json).not.toHaveBeenCalled();
   });
 
   it('does not call the model when every header is exact', async () => {
@@ -203,7 +237,7 @@ describe('AiService', () => {
     expect(init.headers.Authorization).toBe('Bearer sk-test');
     expect(query).toHaveBeenCalledTimes(1);
     expect((query.mock.calls[0] as any[])[1][3]).toBe(
-      costOf('gpt-5-mini', 1000, 100).toFixed(4),
+      costOf('gpt-5-mini', 1000, 100).toFixed(6),
     );
   });
 });

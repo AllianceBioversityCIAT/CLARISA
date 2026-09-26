@@ -289,7 +289,7 @@ export class CreateGlobalConcepts1790500000000 implements MigrationInterface {
       \`calls\` int NOT NULL DEFAULT 0,
       \`input_tokens\` bigint NOT NULL DEFAULT 0,
       \`output_tokens\` bigint NOT NULL DEFAULT 0,
-      \`cost_usd\` decimal(10,4) NOT NULL DEFAULT 0,
+      \`cost_usd\` decimal(12,6) NOT NULL DEFAULT 0,
       PRIMARY KEY (\`month\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
   ];

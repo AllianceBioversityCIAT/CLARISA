@@ -221,12 +221,20 @@ export class McpService {
         if (!label) throw new ToolError('Give term_id or label');
         const key = label.toLowerCase();
         const rows = await this.read.list(scheme, { q: label });
-        const hit = rows.find(
+        const hits = rows.filter(
           (c) =>
             c.preferred_label.toLowerCase() === key ||
             c.preferred_labels.some((p) => p.label.toLowerCase() === key) ||
             c.alternative_labels.some((a) => a.label.toLowerCase() === key),
         );
+        // A shared synonym or acronym names several concepts: say so.
+        if (hits.length > 1)
+          return {
+            ambiguous: true,
+            message: `"${label}" is a label of ${hits.length} official concepts; pick one by term_id.`,
+            concepts: hits.map(brief),
+          };
+        const hit = hits[0];
         if (!hit)
           throw new ToolError(
             `"${label}" is not an official label in scheme "${scheme}". Try search_concepts.`,
