@@ -31,7 +31,9 @@ const TYPES: Record<string, string> = {
 @Component({
   selector: 'app-gc-request-follow',
   templateUrl: './request-follow.component.html',
-  styleUrls: ['./request-follow.component.scss']
+  styleUrls: ['./request-follow.component.scss'],
+  // The shared Global Concepts kit is declared once, globally (src/styles/_global-concepts.scss).
+  host: { class: 'gc-kit' }
 })
 export class RequestFollowComponent implements OnInit {
   readonly base = GC_BASE;

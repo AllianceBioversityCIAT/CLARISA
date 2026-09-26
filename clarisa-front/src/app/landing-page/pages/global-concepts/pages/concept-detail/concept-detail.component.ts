@@ -31,7 +31,9 @@ const LABEL_KINDS: Record<string, string> = { alt: 'Alternative', hidden: 'Searc
 @Component({
   selector: 'app-gc-concept-detail',
   templateUrl: './concept-detail.component.html',
-  styleUrls: ['./concept-detail.component.scss']
+  styleUrls: ['./concept-detail.component.scss'],
+  // The shared Global Concepts kit is declared once, globally (src/styles/_global-concepts.scss).
+  host: { class: 'gc-kit' }
 })
 export class ConceptDetailComponent implements OnInit, OnDestroy {
   readonly base = GC_BASE;

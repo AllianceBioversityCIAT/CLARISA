@@ -32,7 +32,9 @@ export const SEARCH_DEBOUNCE = 300;
 @Component({
   selector: 'app-gc-concept-list',
   templateUrl: './concept-list.component.html',
-  styleUrls: ['./concept-list.component.scss']
+  styleUrls: ['./concept-list.component.scss'],
+  // The shared Global Concepts kit is declared once, globally (src/styles/_global-concepts.scss).
+  host: { class: 'gc-kit' }
 })
 export class ConceptListComponent implements OnInit, OnDestroy {
   readonly base = GC_BASE;

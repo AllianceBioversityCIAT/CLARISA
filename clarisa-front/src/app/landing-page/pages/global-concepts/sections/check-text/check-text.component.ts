@@ -10,7 +10,9 @@ import { DEFAULT_SCHEME, GC_BASE, MAX_SUGGEST_TEXT, humanError } from '../../glo
 @Component({
   selector: 'app-gc-check-text',
   templateUrl: './check-text.component.html',
-  styleUrls: ['./check-text.component.scss']
+  styleUrls: ['./check-text.component.scss'],
+  // The shared Global Concepts kit is declared once, globally (src/styles/_global-concepts.scss).
+  host: { class: 'gc-kit' }
 })
 export class CheckTextComponent {
   @Input() scheme = DEFAULT_SCHEME;

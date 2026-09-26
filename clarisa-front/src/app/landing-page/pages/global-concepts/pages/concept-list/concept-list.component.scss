@@ -1,7 +1,7 @@
 @use '../../gc' as gc;
 
 :host {
-  @include gc.kit;
+  display: block;
 }
 
 // ------------------------------------------------------------ banner copy

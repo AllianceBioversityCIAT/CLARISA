@@ -38,7 +38,9 @@ export const proposeRules =
 @Component({
   selector: 'app-gc-propose-form',
   templateUrl: './propose-form.component.html',
-  styleUrls: ['./propose-form.component.scss']
+  styleUrls: ['./propose-form.component.scss'],
+  // The shared Global Concepts kit is declared once, globally (src/styles/_global-concepts.scss).
+  host: { class: 'gc-kit' }
 })
 export class ProposeFormComponent implements OnChanges {
   @Input() scheme = DEFAULT_SCHEME;

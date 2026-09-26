@@ -1,8 +1,11 @@
 //
 // Global Concepts — shared kit for every screen of the section.
 //
-// Included under `:host` by each component (`:host { @include gc.kit; }`), so
-// the classes stay scoped to this section and never leak into the landing.
+// Emitted ONCE, globally, as `.gc-kit` (src/styles/_global-concepts.scss); each
+// component of the section carries that class on its host. Including it per
+// component copied the whole kit into every stylesheet and broke the 10 kB
+// component budget of the production build. Scoped by `.gc-kit`, so the
+// classes never leak into the rest of the landing.
 // Colours come only from the `--cl-*` tokens of `styles.scss` (DESIGN.md § 2);
 // sizes in px because the theme sets 1rem = 10px (DESIGN.md § 1).
 //

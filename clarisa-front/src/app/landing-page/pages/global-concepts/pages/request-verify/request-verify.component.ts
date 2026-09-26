@@ -12,7 +12,9 @@ import { GC_BASE, accessKey, humanError, readSession, verifiedKey, writeSession 
 @Component({
   selector: 'app-gc-request-verify',
   templateUrl: './request-verify.component.html',
-  styleUrls: ['./request-verify.component.scss']
+  styleUrls: ['./request-verify.component.scss'],
+  // The shared Global Concepts kit is declared once, globally (src/styles/_global-concepts.scss).
+  host: { class: 'gc-kit' }
 })
 export class RequestVerifyComponent implements OnInit {
   readonly base = GC_BASE;
