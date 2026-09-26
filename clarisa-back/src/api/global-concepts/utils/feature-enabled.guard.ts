@@ -11,3 +11,14 @@ export class GlobalConceptsEnabledGuard implements CanActivate {
     return true;
   }
 }
+
+/** 404 on the AI routes while AI is off or has no key (spec: AI disabled). */
+@Injectable()
+export class GlobalConceptsAiEnabledGuard implements CanActivate {
+  canActivate(): boolean {
+    if (!GlobalConceptsConfig.enabled || !GlobalConceptsConfig.aiEnabled) {
+      throw new NotFoundException();
+    }
+    return true;
+  }
+}

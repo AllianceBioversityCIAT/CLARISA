@@ -8,6 +8,11 @@ import {
   GlobalConceptsRequestsController,
 } from './controllers/global-concepts-requests.controller';
 import { RequestsService } from './services/requests.service';
+import { AiService } from './services/ai.service';
+import { AiAssistService } from './services/ai-assist.service';
+import { ConceptsSuggestService } from './services/concepts-suggest.service';
+import { McpService } from './services/mcp.service';
+import { GlobalConceptsMcpController } from './controllers/global-concepts-mcp.controller';
 import { OutboxService } from './services/outbox.service';
 import { GlobalConceptsAdminController } from './controllers/global-concepts-admin.controller';
 import { GlobalConceptsPublicController } from './controllers/global-concepts-public.controller';
@@ -27,6 +32,10 @@ const providers = [
   ReleasesService,
   RequestsService,
   OutboxService,
+  AiService,
+  AiAssistService,
+  ConceptsSuggestService,
+  McpService,
   GlobalConceptsEnabledGuard,
 ];
 
@@ -42,6 +51,7 @@ const providers = [
     GlobalConceptsAdminController,
     GlobalConceptsPlatformController,
     GlobalConceptsRequestsController,
+    GlobalConceptsMcpController,
     GlobalConceptsPublicController,
   ],
   providers: [...providers, MessagingMicroservice, HandlebarsCompiler],

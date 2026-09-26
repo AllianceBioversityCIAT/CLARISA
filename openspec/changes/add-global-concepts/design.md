@@ -400,6 +400,22 @@ work. Each item is a rule the code enforces (and a test to write).
 - V43. "No retention of user text" is precise: the alignment endpoint stores nothing; phrases the user
   explicitly ticks as "suggest as new terms" become requests and are stored as such.
 
+**Implementation notes (2026-09-25)**
+- V44. No new dependencies. The MCP endpoint is a hand-written stateless JSON-RPC handler (initialize,
+  ping, tools/list, tools/call; notifications answered 202; GET/DELETE 405), and the OpenAI client is
+  one `fetch` to Chat Completions with a strict JSON schema. Four read-only tools and three advisory
+  calls do not justify `@modelcontextprotocol/sdk` or `openai` in a lockfile shared with the rest of
+  CLARISA. Revisit if the MCP grows prompts, resources or sessions.
+- V45. AI spend cap lives in `gc_ai_usage` (one row per UTC month, atomic upsert), checked before every
+  call; `GLOBAL_CONCEPTS_AI_MONTHLY_CAP_USD` defaults to 10. Unknown models are priced at the most
+  expensive known rate so the cap errs on the safe side. AI is on only when
+  `GLOBAL_CONCEPTS_AI_ENABLED=true` **and** `OPENAI_API_KEY` is set; otherwise every AI route is 404.
+- V46. Column matching resolves exact headers without the model and filters the model's answer to
+  known fields, one column per field; list normalization accepts only values of the list. The
+  request recommendation writes only `ai_recommendation` and never sends the requester's email.
+- V47. Only platforms assert `requester_email` / `external_request_id`; the public form and signed-in
+  users are always their verified identity (adversarial review of phase 2).
+
 **Lists, versions, reads**
 - V21. List values are immutable once used (add a new value and deactivate the old); only labels and
   order change. Concepts reference values by text, so a renamed value would orphan them.

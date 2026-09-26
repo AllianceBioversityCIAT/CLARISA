@@ -14,31 +14,31 @@
 
 ## 1. Rabat core — back (`clarisa-back/src/api/global-concepts`)
 
-- [ ] 1.1 Migration: all `gc_` tables (schemes, concepts, labels, relations, collections, mappings,
+- [x] 1.1 Migration: all `gc_` tables (schemes, concepts, labels, relations, collections, mappings,
       icons, lists, history, proposals, releases), idempotent, no foreign keys outside the module;
       seed of controlled lists and the `meliaf` scheme.
-- [ ] 1.2 Migration: `/api/global-concepts/admin` permission copied from the glossary admin grant.
-- [ ] 1.3 Entities, repositories, module registered in `api.routes.ts` / `api.module.ts`; feature
+- [x] 1.2 Migration: `/api/global-concepts/admin` permission copied from the glossary admin grant.
+- [x] 1.3 Entities, repositories, module registered in `api.routes.ts` / `api.module.ts`; feature
       switch `GLOBAL_CONCEPTS_ENABLED`.
-- [ ] 1.4 Public read: list/filter/search/get, history, releases, change feed; only approved +
+- [x] 1.4 Public read: list/filter/search/get, history, releases, change feed; only approved +
       deprecated.
 - [ ] 1.5 Admin: CRUD, labels, relations (polyhierarchy), mappings, collections, editorial status
       with replacement, lists.
-- [ ] 1.6 Change log written in the same transaction as every write.
-- [ ] 1.7 Concept requests (Partner Requests pattern): submit (signed-in user or API key), reviewer comment, admin approve / request changes / reject with justification and email; admin direct writes flagged `direct_edit`.
-- [ ] 1.7b AI recommendation on a request (advisory, stored, never changes state).
-- [ ] 1.7c Platform integration: scopes `global-concepts:read|request|write|review` on the existing API
+- [x] 1.6 Change log written in the same transaction as every write.
+- [x] 1.7 Concept requests (Partner Requests pattern): submit (signed-in user or API key), reviewer comment, admin approve / request changes / reject with justification and email; admin direct writes flagged `direct_edit`.
+- [x] 1.7b AI recommendation on a request (advisory, stored, never changes state).
+- [x] 1.7c Platform integration: scopes `global-concepts:read|request|write|review` on the existing API
       keys, platform-owned schemes, `origin_platform` + `acting_user_email` + `external_request_id`
       (idempotency) + signed `callback_url`, `promote` requests, rate limit per key.
 - [ ] 1.7d Add the four scopes to the API keys admin ("Microservices & API keys") so an admin can grant them.
-- [ ] 1.8 Exports JSON / CSV / Turtle / JSON-LD (reuse the helpers from the glossary export) and
+- [x] 1.8 Exports JSON / CSV / Turtle / JSON-LD (reuse the helpers from the glossary export) and
       content negotiation on the concept endpoint.
-- [ ] 1.9 Quality gate (S13, S14, S27, cycles, required definition) + releases as immutable files.
+- [x] 1.9 Quality gate (S13, S14, S27, cycles, required definition) + releases as immutable files.
 - [ ] 1.10 Bulk import preview/import (generic version of the glossary plan builder) with the
       data-quality report.
 - [ ] 1.11 Swagger: public paths in `PUBLIC_OPENAPI_PATHS`; group in the API reference catalog.
-- [ ] 1.10b Public request form (no CLARISA account): email + one-time verification link, rate limit.
-- [ ] 1.10c Version pinning (`?version=`), diff between releases, `owl:priorVersion` link; governance description in scheme metadata and exports.
+- [x] 1.10b Public request form (no CLARISA account): email + one-time verification link, rate limit.
+- [x] 1.10c Version pinning (`?version=`), diff between releases, `owl:priorVersion` link; governance description in scheme metadata and exports.
 - [ ] 1.10d Import mapping rules for the Lexicon file: PARENT TERM → `meliaf_phase_primary`, SOURCE prefixes → `derivation`, citation/URL split.
 - [ ] 1.12 Unit tests per service + DTO validation specs through the real `ValidationPipe`.
 
@@ -57,9 +57,9 @@
 
 ## 3. Rabat core — MCP and AI
 
-- [ ] 3.1 MCP endpoint (stateless Streamable HTTP): `search_concepts`, `get_concept`,
+- [x] 3.1 MCP endpoint (stateless Streamable HTTP): `search_concepts`, `get_concept`,
       `suggest_concepts_for_text`, `list_releases`; `package.json` + lock updated together.
-- [ ] 3.2 AI switch + server-side OpenAI client with a spend cap.
+- [x] 3.2 AI switch + server-side OpenAI client with a spend cap.
 - [ ] 3.3 "Auto-match with AI" in the import wizard (headers + 5 rows → field + confidence badge), every selector still editable by hand; "Normalize with AI" for list values.
 - [ ] 3.4 Embeddings for semantic search and duplicate detection on proposals and import.
 - [ ] 3.5 Demo: an AI assistant (Claude/ChatGPT) connected to the MCP answering with official terms.

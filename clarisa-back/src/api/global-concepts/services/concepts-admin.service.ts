@@ -95,7 +95,7 @@ const WRITABLE_FIELDS = [
 ] as const;
 
 /** Which controlled list each list-driven field is checked against. */
-const LIST_FIELDS: Record<string, string> = {
+export const LIST_FIELDS: Record<string, string> = {
   term_type: 'term_type',
   meliaf_function: 'meliaf_function',
   meliaf_phase_primary: 'meliaf_phase',

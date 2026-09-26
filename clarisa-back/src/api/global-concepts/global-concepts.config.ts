@@ -18,6 +18,24 @@ export const GlobalConceptsConfig = {
       env.GLOBAL_CONCEPTS_URI_BASE ?? 'https://api.clarisa.cgiar.org/concepts'
     ).replace(/\/+$/, '');
   },
+  /**
+   * AI assistance (D8) needs both the switch and a server-side key; without
+   * either, every AI route answers 404 and the module works unchanged.
+   */
+  get aiEnabled(): boolean {
+    return (
+      (env.GLOBAL_CONCEPTS_AI_ENABLED ?? 'false').toLowerCase() === 'true' &&
+      !!env.OPENAI_API_KEY
+    );
+  },
+  get aiModel(): string {
+    return env.GLOBAL_CONCEPTS_AI_MODEL ?? 'gpt-5-mini';
+  },
+  /** Hard monthly cap in USD; calls stop (503) once it is reached. */
+  get aiMonthlyCapUsd(): number {
+    const cap = Number(env.GLOBAL_CONCEPTS_AI_MONTHLY_CAP_USD ?? 10);
+    return Number.isFinite(cap) && cap >= 0 ? cap : 10;
+  },
   /** Base of the human page a browser is sent to (the CLARISA landing site). */
   get webBase(): string {
     return (

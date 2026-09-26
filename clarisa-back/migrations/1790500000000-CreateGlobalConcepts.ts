@@ -284,10 +284,19 @@ export class CreateGlobalConcepts1790500000000 implements MigrationInterface {
       PRIMARY KEY (\`id\`),
       KEY \`IDX_gc_outbox_pending\` (\`delivered_at\`, \`next_attempt_at\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+    `CREATE TABLE IF NOT EXISTS \`gc_ai_usage\` (
+      \`month\` char(7) NOT NULL,
+      \`calls\` int NOT NULL DEFAULT 0,
+      \`input_tokens\` bigint NOT NULL DEFAULT 0,
+      \`output_tokens\` bigint NOT NULL DEFAULT 0,
+      \`cost_usd\` decimal(10,4) NOT NULL DEFAULT 0,
+      PRIMARY KEY (\`month\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
   ];
 
   /** In reverse creation order, for `down`. */
   static readonly TABLE_NAMES = [
+    'gc_ai_usage',
     'gc_outbox',
     'gc_releases',
     'gc_email_verifications',

@@ -3,6 +3,9 @@ import {
   Controller,
   DefaultValuePipe,
   Get,
+  HttpCode,
+  Post,
+  Body,
   Param,
   ParseIntPipe,
   Query,
@@ -13,6 +16,7 @@ import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { GlobalConceptsEnabledGuard } from '../utils/feature-enabled.guard';
 import { ConceptsReadService } from '../services/concepts-read.service';
+import { ConceptsSuggestService } from '../services/concepts-suggest.service';
 import {
   ConceptExportFormat,
   ConceptsExportService,
@@ -29,7 +33,21 @@ export class GlobalConceptsPublicController {
   constructor(
     private readonly read: ConceptsReadService,
     private readonly exporter: ConceptsExportService,
+    private readonly suggester: ConceptsSuggestService,
   ) {}
+
+  @Post(':scheme/suggest')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Find the official concepts a text mentions',
+    description:
+      'Body `{ "text": "…" }` (up to 20 000 characters). Matches preferred, alternative and hidden ' +
+      'labels and acronyms as whole words. The text is never stored, and it travels in the body, ' +
+      'never in the URL, because request logs keep URLs.',
+  })
+  suggest(@Param('scheme') scheme: string, @Body() body: { text?: unknown }) {
+    return this.suggester.suggest(scheme, body?.text as string);
+  }
 
   @Get('schemes')
   @ApiOperation({

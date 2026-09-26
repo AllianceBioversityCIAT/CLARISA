@@ -18,7 +18,13 @@ import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../../shared/guards/permission.guard';
 import { GetUserData } from '../../../shared/decorators/user-data.decorator';
 import { UserData } from '../../../shared/interfaces/user-data';
-import { GlobalConceptsEnabledGuard } from '../utils/feature-enabled.guard';
+import {
+  GlobalConceptsAiEnabledGuard,
+  GlobalConceptsEnabledGuard,
+} from '../utils/feature-enabled.guard';
+import { AiService } from '../services/ai.service';
+import { AiAssistService } from '../services/ai-assist.service';
+import { MapColumnsDto, NormalizeValuesDto } from '../dto/ai.dto';
 import {
   ConceptsAdminService,
   GcActor,
@@ -61,11 +67,41 @@ export class GlobalConceptsAdminController {
     private readonly admin: ConceptsAdminService,
     private readonly releases: ReleasesService,
     private readonly requests: RequestsService,
+    private readonly ai: AiService,
+    private readonly assist: AiAssistService,
   ) {}
 
   private actor(user: UserData): GcActor {
     return { email: user.email, action: GcHistoryAction.DIRECT_EDIT };
   }
+
+  // ------------------------------------------------------------ AI (advisory)
+
+  /** Lets the front hide the AI buttons; answers even while AI is off. */
+  @Get('ai/status')
+  aiStatus() {
+    return this.ai.usage();
+  }
+
+  @Post('ai/map-columns')
+  @UseGuards(GlobalConceptsAiEnabledGuard)
+  mapColumns(@Body() dto: MapColumnsDto) {
+    return this.assist.mapColumns(dto.headers, dto.rows);
+  }
+
+  @Post(':scheme/ai/normalize')
+  @UseGuards(GlobalConceptsAiEnabledGuard)
+  normalize(@Param('scheme') scheme: string, @Body() dto: NormalizeValuesDto) {
+    return this.assist.normalizeValues(scheme, dto.list, dto.values);
+  }
+
+  @Post('requests/:id/ai-recommendation')
+  @UseGuards(GlobalConceptsAiEnabledGuard)
+  recommend(@Param('id', ParseIntPipe) id: number) {
+    return this.assist.recommend(id);
+  }
+
+  // ---------------------------------------------------------------- concepts
 
   @Get(':scheme/concepts')
   list(@Param('scheme') scheme: string, @Query('status') status?: string) {
