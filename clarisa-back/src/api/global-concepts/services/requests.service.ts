@@ -10,7 +10,7 @@ import {
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import { createHash, randomBytes, randomUUID } from 'crypto';
-import { DataSource, EntityManager, MoreThan } from 'typeorm';
+import { DataSource, EntityManager, In, IsNull, MoreThan } from 'typeorm';
 import {
   GcEmailVerification,
   GcProposal,
@@ -152,10 +152,18 @@ export class RequestsService {
           : null,
       payload,
       rationale: dto.rationale.trim(),
-      requester_email: (dto.requester_email ?? who.email).toLowerCase(),
+      // Only a platform asserts the person behind it (V38); the form and a
+      // signed-in user are always the verified identity, never the body.
+      requester_email: (who.origin === GcProposalOrigin.PLATFORM
+        ? (dto.requester_email as string)
+        : who.email
+      ).toLowerCase(),
       origin: who.origin,
       origin_platform: who.platform ?? null,
-      external_request_id: dto.external_request_id ?? null,
+      external_request_id:
+        who.origin === GcProposalOrigin.PLATFORM
+          ? (dto.external_request_id ?? null)
+          : null,
       access_token_hash: accessTokenHash,
       state: GcProposalState.SUBMITTED,
     });
@@ -207,7 +215,12 @@ export class RequestsService {
       await this.resolveRefs(manager, scheme, dto);
       this.validatePayload(dto.type, dto.payload ?? {});
       const token = newToken();
-      const { email: _omit, ...draft } = dto;
+      const {
+        email: _omit,
+        requester_email: _asserted,
+        external_request_id: _external,
+        ...draft
+      } = dto;
       await manager.save(
         GcEmailVerification,
         manager.create(GcEmailVerification, {
@@ -236,8 +249,15 @@ export class RequestsService {
       if (!row || row.used_at || row.expires_at.getTime() < Date.now()) {
         throw new BadRequestException('This link is invalid or has expired');
       }
-      row.used_at = new Date();
-      await manager.save(GcEmailVerification, row);
+      // Conditional claim: two parallel clicks create one request, not two.
+      const claimed = await manager.update(
+        GcEmailVerification,
+        { id: row.id, used_at: IsNull() },
+        { used_at: new Date() },
+      );
+      if (!claimed.affected) {
+        throw new BadRequestException('This link is invalid or has expired');
+      }
       const { scheme: code, ...dto } =
         row.proposal_draft as unknown as SubmitRequestDto & { scheme: string };
       const scheme = await this.admin.lockScheme(manager, code);
@@ -342,9 +362,7 @@ export class RequestsService {
   async transition(id: number, dto: RequestTransitionDto, decider: GcDecider) {
     const outcome = await this.dataSource.transaction(async (manager) => {
       const proposal = await this.find(manager, id);
-      const scheme = await manager.findOne(GcScheme, {
-        where: { id: proposal.scheme_id },
-      });
+      const scheme = await this.lockSchemes(manager, proposal);
       this.assertDecider(proposal, scheme, decider);
       if (proposal.state !== dto.expected_state) {
         throw new ConflictException(
@@ -749,6 +767,23 @@ export class RequestsService {
         throw new BadRequestException(
           `Unexpected field(s): ${extra.join(', ')}`,
         );
+      const { replaced_by_term_id: to, reason } = payload;
+      if (
+        to !== undefined &&
+        to !== null &&
+        !(Number.isInteger(to) && (to as number) > 0)
+      )
+        throw new BadRequestException(
+          'replaced_by_term_id must be a positive integer',
+        );
+      if (
+        reason !== undefined &&
+        reason !== null &&
+        (typeof reason !== 'string' || reason.length > 2000)
+      )
+        throw new BadRequestException(
+          'reason must be text of up to 2000 characters',
+        );
       return payload;
     }
     const { deprecate_source, status: _ignored, ...fields } = payload;
@@ -796,6 +831,27 @@ export class RequestsService {
       preferred_label: c.preferred_label,
       status: c.status,
     }));
+  }
+
+  /**
+   * Locks the scheme of the request (and the target of a promote) before any
+   * check or write, like every direct admin write does: term ids, label
+   * clashes and replacement chains are only safe under that lock. Always in
+   * id order, so two promotes in opposite directions cannot deadlock.
+   */
+  private async lockSchemes(manager: EntityManager, p: GcProposal) {
+    const ids = [p.scheme_id, p.target_scheme_id]
+      .filter((v): v is number => v !== null && v !== undefined)
+      .map(Number);
+    const schemes = await manager.find(GcScheme, {
+      where: { id: In([...new Set(ids)]) },
+    });
+    let own: GcScheme | null = null;
+    for (const s of [...schemes].sort((a, b) => Number(a.id) - Number(b.id))) {
+      const locked = await this.admin.lockScheme(manager, s.code);
+      if (Number(s.id) === Number(p.scheme_id)) own = locked;
+    }
+    return own;
   }
 
   private assertDecider(p: GcProposal, scheme: GcScheme | null, d: GcDecider) {

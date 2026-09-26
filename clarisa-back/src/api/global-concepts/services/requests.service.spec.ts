@@ -556,5 +556,93 @@ describe('RequestsService', () => {
         BadRequestException,
       );
     });
+    it('files the request under the verified email, never one in the body', async () => {
+      await service.startPublic('meliaf', {
+        ...body,
+        requester_email: 'victim@cgiar.org',
+        external_request_id: 'x-1',
+      });
+      const draft = db.rows(GcEmailVerification)[0].proposal_draft as any;
+      expect(draft.requester_email).toBeUndefined();
+      expect(draft.external_request_id).toBeUndefined();
+      const token = decodeURIComponent(
+        /token=([^"&<]+)/.exec((db.rows(GcOutbox)[0].payload as any).html)![1],
+      );
+      await service.verifyPublic(token);
+      expect(db.rows(GcProposal)[0].requester_email).toBe('person@cgiar.org');
+      expect(db.rows(GcProposal)[0].external_request_id).toBeNull();
+    });
+
+    it('creates one request when the same link is confirmed twice at once', async () => {
+      await service.startPublic('meliaf', body);
+      const token = decodeURIComponent(
+        /token=([^"&<]+)/.exec((db.rows(GcOutbox)[0].payload as any).html)![1],
+      );
+      const results = await Promise.allSettled([
+        service.verifyPublic(token),
+        service.verifyPublic(token),
+      ]);
+      expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+      expect(db.rows(GcProposal)).toHaveLength(1);
+    });
+  });
+
+  describe('hardening', () => {
+    it('ignores a requester email asserted by a signed-in user', async () => {
+      await service.submit(
+        'meliaf',
+        {
+          type: GcProposalType.NEW,
+          payload: { preferred_label: 'Baseline' },
+          rationale: 'r',
+          requester_email: 'someone.else@cgiar.org',
+        },
+        user,
+      );
+      expect(db.rows(GcProposal)[0].requester_email).toBe('user@cgiar.org');
+    });
+
+    it('type-checks a deprecation payload at submit', async () => {
+      concept(1, 'Output');
+      await expect(
+        service.submit(
+          'meliaf',
+          {
+            type: GcProposalType.DEPRECATE,
+            term_id: 1,
+            payload: { replaced_by_term_id: 'two' },
+            rationale: 'r',
+          },
+          user,
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('never lets exhausted outbox rows block newer emails', async () => {
+      const sent: string[] = [];
+      const outbox = new OutboxService(fakeDataSource(db), {
+        sendPlainEmail: async (to: string) => {
+          sent.push(to);
+        },
+      } as any);
+      const past = new Date(Date.now() - 1000);
+      db.seed(GcOutbox, {
+        kind: 'email',
+        payload: { to: 'dead@x.org', subject: 's', html: 'h' },
+        attempts: 8,
+        next_attempt_at: past,
+        delivered_at: null,
+      });
+      db.seed(GcOutbox, {
+        kind: 'email',
+        payload: { to: 'fresh@x.org', subject: 's', html: 'h' },
+        attempts: 0,
+        next_attempt_at: past,
+        delivered_at: null,
+      });
+      await outbox.deliverPending();
+      expect(sent).toEqual(['fresh@x.org']);
+      expect(db.rows(GcOutbox)[1].delivered_at).toBeInstanceOf(Date);
+    });
   });
 });

@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { DataSource, EntityManager, IsNull, LessThanOrEqual } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  IsNull,
+  LessThan,
+  LessThanOrEqual,
+} from 'typeorm';
 import { GcOutbox } from '../entities/gc-proposal.entity';
 import { MessagingMicroservice } from '../../../integration/microservices/messaging/messaging.microservice';
 import { GlobalConceptsConfig } from '../global-concepts.config';
@@ -13,6 +19,8 @@ export interface GcEmail {
 
 /** Give up after this many attempts; the row stays for inspection. */
 const MAX_ATTEMPTS = 8;
+/** A leased row is not picked again for this long, even if the sender dies. */
+const LEASE_MS = 5 * 60_000;
 
 /**
  * Transactional outbox (V30): an email is written in the same transaction as
@@ -48,15 +56,25 @@ export class OutboxService {
     this.running = true;
     try {
       const due = await this.dataSource.manager.find(GcOutbox, {
+        // Exhausted rows are left out of the query, so they can never fill
+        // the batch and starve newer emails.
         where: {
           delivered_at: IsNull(),
+          attempts: LessThan(MAX_ATTEMPTS),
           next_attempt_at: LessThanOrEqual(new Date()),
         },
         order: { id: 'ASC' },
         take: limit,
       });
       for (const row of due) {
-        if (row.attempts >= MAX_ATTEMPTS) continue;
+        // Lease the row first: with more than one API instance only the one
+        // whose conditional update wins sends it, so no email goes out twice.
+        const lease = await this.dataSource.manager.update(
+          GcOutbox,
+          { id: row.id, attempts: row.attempts, delivered_at: IsNull() },
+          { next_attempt_at: new Date(Date.now() + LEASE_MS) },
+        );
+        if (!lease.affected) continue;
         try {
           const email = row.payload as unknown as GcEmail;
           await this.messaging.sendPlainEmail(

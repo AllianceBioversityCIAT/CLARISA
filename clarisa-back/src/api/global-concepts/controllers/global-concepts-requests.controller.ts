@@ -3,6 +3,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Patch,
@@ -12,7 +13,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { ApiKeyGuard } from '../../../shared/guards/api-key.guard';
 import { GetUserData } from '../../../shared/decorators/user-data.decorator';
@@ -84,8 +85,18 @@ export class GlobalConceptsRequestsController {
   @ApiOperation({
     summary: 'Follow a request with the token from the confirmation email',
   })
-  follow(@Param('id', ParseIntPipe) id: number, @Query('token') token: string) {
-    return this.requests.getForRequester(id, { accessToken: token });
+  @ApiHeader({
+    name: 'x-gc-access-token',
+    required: false,
+    description:
+      'Follow-up token (preferred over `?token=`, which request logs keep)',
+  })
+  follow(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('token') token: string,
+    @Headers('x-gc-access-token') header?: string,
+  ) {
+    return this.requests.getForRequester(id, { accessToken: header || token });
   }
 
   @Post('requests/:id/resubmit')
@@ -97,9 +108,10 @@ export class GlobalConceptsRequestsController {
     @Param('id', ParseIntPipe) id: number,
     @Query('token') token: string,
     @Body() dto: ResubmitRequestDto,
+    @Headers('x-gc-access-token') header?: string,
   ) {
     return this.requests.resubmit(id, dto, {
-      accessToken: token,
+      accessToken: header || token,
       email: 'requester',
     });
   }

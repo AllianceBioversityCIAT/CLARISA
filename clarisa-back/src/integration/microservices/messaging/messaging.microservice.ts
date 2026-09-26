@@ -142,14 +142,6 @@ export class MessagingMicroservice extends BaseMicroservice {
   }
 
   /**
-   * Sends an email based on the provided email template and partner request.
-   *
-   * @param emailCase - The template of the email to be sent.
-   * @param partnerRequest - The partner request data used to generate the email content.
-   * @returns A promise that resolves when the email is successfully sent.
-   * @throws Will throw an error if the email template is not found or if there is an error sending the email.
-   */
-  /**
    * Sends a ready-made HTML email that needs no stored template, through the
    * same transport and sender as the partner-request emails. Added for the
    * Global Concepts module, whose request emails are built in code so the
@@ -186,6 +178,14 @@ export class MessagingMicroservice extends BaseMicroservice {
     this.logger.verbose(`mail sent to "${to}" with subject "${subject}"`);
   }
 
+  /**
+   * Sends an email based on the provided email template and partner request.
+   *
+   * @param emailCase - The template of the email to be sent.
+   * @param partnerRequest - The partner request data used to generate the email content.
+   * @returns A promise that resolves when the email is successfully sent.
+   * @throws Will throw an error if the email template is not found or if there is an error sending the email.
+   */
   public async sendPartnerRequestEmail(
     emailCase: EmailTemplate,
     partnerRequest: PartnerRequest,

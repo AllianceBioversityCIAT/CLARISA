@@ -22,6 +22,7 @@ const matches = (row: Row, where: Row | undefined): boolean => {
       if (op.type === 'not') return String(row[k]) !== String(op.value);
       if (op.type === 'moreThan') return row[k] > op.value;
       if (op.type === 'lessThanOrEqual') return row[k] <= op.value;
+      if (op.type === 'lessThan') return row[k] < op.value;
       if (op.type === 'isNull') return row[k] === null || row[k] === undefined;
       throw new Error(`Unsupported operator ${op.type}`);
     }
