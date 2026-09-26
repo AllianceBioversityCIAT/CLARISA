@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { DataSource, In, Not } from 'typeorm';
 import { GcConcept, GcConceptStatus } from '../entities/gc-concept.entity';
@@ -15,6 +16,7 @@ import {
 import { GcScheme } from '../entities/gc-scheme.entity';
 import { IMPORT_FIELDS, IMPORT_FIELD_NAMES } from '../utils/import-fields';
 import { AiService } from './ai.service';
+import { EmbeddingsService } from './embeddings.service';
 import { ConceptsAdminService, LIST_FIELDS } from './concepts-admin.service';
 
 const MAX_COLUMNS = 60;
@@ -58,6 +60,7 @@ export class AiAssistService {
     private readonly dataSource: DataSource,
     private readonly ai: AiService,
     private readonly admin: ConceptsAdminService,
+    @Optional() private readonly embeddings?: EmbeddingsService,
   ) {}
 
   /**
@@ -235,6 +238,14 @@ export class AiAssistService {
       : null;
     const checks = await this.checks(p, scheme, payload, current);
     const similar = await this.similar(scheme, payload, current);
+    // Meaning, not only spelling: near-duplicates by embeddings when the scheme has them.
+    const semantic = await this.semanticSimilar(
+      scheme,
+      payload,
+      current,
+      similar,
+    );
+    similar.push(...semantic);
 
     const answer = await this.ai.json<{
       verdict: Verdict;
@@ -450,6 +461,38 @@ export class AiAssistService {
         definition: cut(c.definition, 600),
         status: c.status,
       }));
+  }
+
+  private async semanticSimilar(
+    scheme: GcScheme,
+    payload: Record<string, unknown>,
+    current: GcConcept | null,
+    lexical: { term_id: number }[],
+  ) {
+    if (!this.embeddings) return [];
+    const label = cut(payload.preferred_label ?? current?.preferred_label, 500);
+    const definition = cut(payload.definition ?? current?.definition, 4000);
+    if (!label) return [];
+    const hits = await this.embeddings
+      .search(
+        scheme,
+        `${label}${definition ? `: ${definition}` : ''}`,
+        5,
+        current ? Number(current.id) : undefined,
+      )
+      .catch(() => []);
+    const seen = new Set(lexical.map((l) => l.term_id));
+    const keep = hits.filter((h) => h.score >= 0.8 && !seen.has(h.term_id));
+    if (!keep.length) return [];
+    const rows = await this.dataSource.manager.find(GcConcept, {
+      where: { scheme_id: scheme.id, term_id: In(keep.map((h) => h.term_id)) },
+    });
+    return rows.map((c) => ({
+      term_id: Number(c.term_id),
+      preferred_label: c.preferred_label,
+      definition: cut(c.definition, 600),
+      status: c.status,
+    }));
   }
 
   /** The payload without internal notes or anything personal. */

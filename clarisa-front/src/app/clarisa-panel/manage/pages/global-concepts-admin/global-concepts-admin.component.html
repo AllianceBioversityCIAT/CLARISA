@@ -53,7 +53,11 @@
   </header>
 
   <main>
-    <app-gc-concepts-panel *ngIf="activeSection === 'concepts'" [scheme]="scheme" [reloadToken]="conceptsReloadToken"></app-gc-concepts-panel>
+    <app-gc-concepts-panel
+      *ngIf="activeSection === 'concepts'"
+      [scheme]="scheme"
+      [reloadToken]="conceptsReloadToken"
+      [aiEnabled]="aiEnabled"></app-gc-concepts-panel>
     <app-gc-requests-panel *ngIf="activeSection === 'requests'" [scheme]="scheme" [aiEnabled]="aiEnabled"></app-gc-requests-panel>
     <app-gc-import-panel
       *ngIf="activeSection === 'import'"

@@ -16,6 +16,16 @@
         aria-label="Reload"
         pTooltip="Reload"
         (click)="load()"></button>
+      <button
+        *ngIf="aiEnabled"
+        pButton
+        type="button"
+        [label]="indexing ? 'Updating AI index…' : 'Update AI index'"
+        icon="pi pi-bolt"
+        class="btn-ghost"
+        [disabled]="indexing"
+        pTooltip="Embeds new or edited concepts so the request recommendation also finds duplicates by meaning. Costs cents."
+        (click)="refreshIndex()"></button>
       <button pButton type="button" label="New concept" icon="pi pi-plus" class="btn-brand" (click)="openCreate()"></button>
     </div>
   </div>

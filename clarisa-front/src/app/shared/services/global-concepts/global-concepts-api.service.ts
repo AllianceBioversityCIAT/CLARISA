@@ -374,4 +374,19 @@ export class GlobalConceptsApiService {
   importRows(scheme: string, rows: Record<string, unknown>[], skipInvalid = false): Observable<ImportResult> {
     return this._http.post<ImportResult>(`${this.admin}/${encodeURIComponent(scheme)}/import`, { rows, skip_invalid: skipInvalid });
   }
+
+  refreshEmbeddings(scheme: string): Observable<{ embedded: number; unchanged: number }> {
+    return this._http.post<{ embedded: number; unchanged: number }>(`${this.admin}/${encodeURIComponent(scheme)}/ai/embeddings/refresh`, {});
+  }
+
+  semanticSearch(
+    scheme: string,
+    text: string,
+    limit = 10
+  ): Observable<{ term_id: number; preferred_label: string; status: string; score: number }[]> {
+    return this._http.post<{ term_id: number; preferred_label: string; status: string; score: number }[]>(
+      `${this.admin}/${encodeURIComponent(scheme)}/ai/semantic-search`,
+      { text, limit }
+    );
+  }
 }

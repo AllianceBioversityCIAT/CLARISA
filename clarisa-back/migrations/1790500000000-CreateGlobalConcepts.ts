@@ -284,6 +284,14 @@ export class CreateGlobalConcepts1790500000000 implements MigrationInterface {
       PRIMARY KEY (\`id\`),
       KEY \`IDX_gc_outbox_pending\` (\`delivered_at\`, \`next_attempt_at\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+    `CREATE TABLE IF NOT EXISTS \`gc_embeddings\` (
+      \`concept_id\` bigint NOT NULL,
+      \`model\` varchar(60) NOT NULL,
+      \`text_hash\` char(64) NOT NULL,
+      \`vector\` mediumtext NOT NULL,
+      \`updated_at\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (\`concept_id\`, \`model\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
     `CREATE TABLE IF NOT EXISTS \`gc_ai_usage\` (
       \`month\` char(7) NOT NULL,
       \`calls\` int NOT NULL DEFAULT 0,
@@ -297,6 +305,7 @@ export class CreateGlobalConcepts1790500000000 implements MigrationInterface {
   /** In reverse creation order, for `down`. */
   static readonly TABLE_NAMES = [
     'gc_ai_usage',
+    'gc_embeddings',
     'gc_outbox',
     'gc_releases',
     'gc_email_verifications',

@@ -3,6 +3,9 @@ import {
   ArrayNotEmpty,
   IsArray,
   IsBoolean,
+  IsInt,
+  Max,
+  Min,
   IsNotEmpty,
   IsObject,
   IsOptional,
@@ -50,4 +53,17 @@ export class ImportConceptsDto {
   @IsOptional()
   @IsBoolean()
   skip_invalid?: boolean;
+}
+
+export class SemanticSearchDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(8000)
+  text: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number;
 }

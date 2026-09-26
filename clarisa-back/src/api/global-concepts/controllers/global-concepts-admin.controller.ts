@@ -24,10 +24,14 @@ import {
 } from '../utils/feature-enabled.guard';
 import { AiService } from '../services/ai.service';
 import { AiAssistService } from '../services/ai-assist.service';
+import { EmbeddingsService } from '../services/embeddings.service';
+import { ConceptGraphLoader } from '../services/concept-graph.loader';
+import { DataSource } from 'typeorm';
 import {
   ImportConceptsDto,
   MapColumnsDto,
   NormalizeValuesDto,
+  SemanticSearchDto,
 } from '../dto/ai.dto';
 import { ConceptsImportService } from '../services/concepts-import.service';
 import { ConceptsCatalogService } from '../services/concepts-catalog.service';
@@ -84,6 +88,9 @@ export class GlobalConceptsAdminController {
     private readonly assist: AiAssistService,
     private readonly importer: ConceptsImportService,
     private readonly catalog: ConceptsCatalogService,
+    private readonly embeddings: EmbeddingsService,
+    private readonly loader: ConceptGraphLoader,
+    private readonly dataSource: DataSource,
   ) {}
 
   private actor(user: UserData): GcActor {
@@ -108,6 +115,29 @@ export class GlobalConceptsAdminController {
   @UseGuards(GlobalConceptsAiEnabledGuard)
   normalize(@Param('scheme') scheme: string, @Body() dto: NormalizeValuesDto) {
     return this.assist.normalizeValues(scheme, dto.list, dto.values);
+  }
+
+  /** Embeds concepts whose label or definition changed; costs cents for a whole scheme. */
+  @Post(':scheme/ai/embeddings/refresh')
+  @UseGuards(GlobalConceptsAiEnabledGuard)
+  async refreshEmbeddings(@Param('scheme') scheme: string) {
+    return this.embeddings.refresh(
+      await this.loader.scheme(this.dataSource.manager, scheme),
+    );
+  }
+
+  /** Semantic search for editors; the text is embedded and discarded. */
+  @Post(':scheme/ai/semantic-search')
+  @UseGuards(GlobalConceptsAiEnabledGuard)
+  async semanticSearch(
+    @Param('scheme') scheme: string,
+    @Body() dto: SemanticSearchDto,
+  ) {
+    return this.embeddings.search(
+      await this.loader.scheme(this.dataSource.manager, scheme),
+      dto.text,
+      dto.limit ?? 10,
+    );
   }
 
   @Post('requests/:id/ai-recommendation')

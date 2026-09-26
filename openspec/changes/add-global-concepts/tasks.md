@@ -61,7 +61,7 @@
       `suggest_concepts_for_text`, `list_releases`; `package.json` + lock updated together.
 - [x] 3.2 AI switch + server-side OpenAI client with a spend cap.
 - [x] 3.3 "Auto-match with AI" in the import wizard (headers + 5 rows → field + confidence badge), every selector still editable by hand; "Normalize with AI" for list values.
-- [ ] 3.4 Embeddings for semantic search and duplicate detection on proposals and import.
+- [x] 3.4 Embeddings for semantic search and duplicate detection on proposals and import.
 - [ ] 3.5 Demo: an AI assistant (Claude/ChatGPT) connected to the MCP answering with official terms.
 - [ ] 3.6 Demo "another system via API": a named consumer (PRMS dev or the Hub) calling the API with its key, agreed with its owner before day 1.
 

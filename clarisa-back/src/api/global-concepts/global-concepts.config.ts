@@ -31,6 +31,9 @@ export const GlobalConceptsConfig = {
   get aiModel(): string {
     return env.GLOBAL_CONCEPTS_AI_MODEL ?? 'gpt-5-mini';
   },
+  get aiEmbeddingModel(): string {
+    return env.GLOBAL_CONCEPTS_AI_EMBEDDING_MODEL ?? 'text-embedding-3-small';
+  },
   /** Hard monthly cap in USD; calls stop (503) once it is reached. */
   get aiMonthlyCapUsd(): number {
     const cap = Number(env.GLOBAL_CONCEPTS_AI_MONTHLY_CAP_USD ?? 10);

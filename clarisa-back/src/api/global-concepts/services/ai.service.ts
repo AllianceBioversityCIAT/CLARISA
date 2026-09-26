@@ -14,10 +14,15 @@ const PRICES: Record<string, [number, number]> = {
   'gpt-5-mini': [0.25, 2],
   'gpt-5.4-mini': [0.75, 4.5],
   'gpt-5.4-nano': [0.2, 1.25],
+  'text-embedding-3-small': [0.02, 0],
+  'text-embedding-3-large': [0.13, 0],
 };
 const FALLBACK_PRICE: [number, number] = [5, 30];
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const EMBEDDINGS_URL = 'https://api.openai.com/v1/embeddings';
+/** Inputs per embeddings request; the API accepts more, this keeps one call small. */
+const EMBED_BATCH = 100;
 const TIMEOUT_MS = 60_000;
 
 export const costOf = (model: string, input: number, output: number) => {
@@ -119,6 +124,61 @@ export class AiService {
     } catch {
       throw new BadGatewayException('The AI service returned no usable answer');
     }
+  }
+
+  /**
+   * Embeddings for semantic similarity (task 3.4), in batches, under the same
+   * monthly cap. Returns one vector per input, in order.
+   */
+  async embed(texts: string[]): Promise<number[][]> {
+    const model = GlobalConceptsConfig.aiEmbeddingModel;
+    const out: number[][] = [];
+    for (let i = 0; i < texts.length; i += EMBED_BATCH) {
+      const { spent_usd, cap_usd } = await this.usage();
+      if (spent_usd >= cap_usd) {
+        throw new ServiceUnavailableException(
+          'The monthly AI budget of Global Concepts is used up; the feature is available again next month.',
+        );
+      }
+      const batch = texts
+        .slice(i, i + EMBED_BATCH)
+        .map((t) => t.slice(0, 8000));
+      let res: Response;
+      try {
+        res = await fetch(EMBEDDINGS_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${env.OPEN_AI_CLARISA_ASSISTANT_TOKEN}`,
+          },
+          body: JSON.stringify({ model, input: batch }),
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+        });
+      } catch (err) {
+        this.logger.warn(`embeddings: ${(err as Error)?.message}`);
+        throw new BadGatewayException('The AI service did not answer');
+      }
+      const data = (await res.json().catch(() => null)) as {
+        data?: { index: number; embedding: number[] }[];
+        usage?: { prompt_tokens?: number };
+        error?: { message?: string };
+      } | null;
+      if (data?.usage)
+        await this.record(model, data.usage.prompt_tokens ?? 0, 0);
+      if (
+        !res.ok ||
+        !Array.isArray(data?.data) ||
+        data.data.length !== batch.length
+      ) {
+        this.logger.warn(
+          `embeddings: HTTP ${res.status} ${data?.error?.message}`,
+        );
+        throw new BadGatewayException('The AI service returned an error');
+      }
+      for (const row of [...data.data].sort((a, b) => a.index - b.index))
+        out.push(row.embedding);
+    }
+    return out;
   }
 
   /** Atomic upsert, so concurrent calls never lose spend. */

@@ -101,4 +101,11 @@ describe('GcConceptsPanelComponent', () => {
 
     expect(api['setStatus']).toHaveBeenCalledWith('meliaf', 2, { status: 'deprecated', replaced_by_term_id: 1 });
   });
+
+  it('updates the AI index and reports what was embedded', () => {
+    api['refreshEmbeddings'] = jest.fn(() => of({ embedded: 3, unchanged: 40 }));
+    component.refreshIndex();
+    expect(api['refreshEmbeddings']).toHaveBeenCalledWith('meliaf');
+    expect(component.indexing).toBe(false);
+  });
 });

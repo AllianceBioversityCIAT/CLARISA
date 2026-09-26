@@ -143,6 +143,8 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
   @Input() scheme = 'meliaf';
   /** Bumped by the shell after an import. */
   @Input() reloadToken = 0;
+  @Input() aiEnabled = false;
+  indexing = false;
 
   loading = false;
   loadError: string | null = null;
@@ -398,5 +400,25 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
 
   private toastError(error: unknown, fallback?: string): void {
     this._messageService.add({ severity: 'error', summary: 'Error', detail: apiErrorMessage(error, fallback) });
+  }
+
+  /** Semantic index for duplicate detection (task 3.4); only concepts that changed are paid for. */
+  refreshIndex(): void {
+    if (this.indexing) return;
+    this.indexing = true;
+    this._api.refreshEmbeddings(this.scheme).subscribe({
+      next: result => {
+        this.indexing = false;
+        this._messageService.add({
+          severity: 'success',
+          summary: 'AI index updated',
+          detail: `${result.embedded} concept(s) embedded, ${result.unchanged} unchanged.`
+        });
+      },
+      error: error => {
+        this.indexing = false;
+        this.toastError(error);
+      }
+    });
   }
 }
