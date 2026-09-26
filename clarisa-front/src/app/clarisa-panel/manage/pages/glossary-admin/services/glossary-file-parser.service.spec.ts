@@ -8,6 +8,11 @@ describe('GlossaryFileParserService', () => {
   });
 
   describe('parseText', () => {
+    it('keeps the source line of each row when blank lines are skipped', () => {
+      const table = service.parseText('term,definition\nOutcome,A change\n\n\nOutput,A product');
+      expect(table.sourceLines).toEqual([2, 5]);
+    });
+
     it('reads a comma separated file with a header row', () => {
       const table = service.parseText('term,definition\nOutcome,A change in behaviour\nOutput,A tangible product');
 

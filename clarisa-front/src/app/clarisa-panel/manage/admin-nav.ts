@@ -56,6 +56,11 @@ export const ADMIN_GROUPS: AdminGroup[] = [
         label: 'Glossary',
         route: '/clarisa-panel/manage/glossary-admin',
         icon: 'fa fa-book'
+      },
+      {
+        label: 'Global Concepts',
+        route: '/clarisa-panel/manage/global-concepts-admin',
+        icon: 'fa fa-sitemap'
       }
     ]
   },

@@ -1,0 +1,88 @@
+//
+// Global Concepts banner — the glossary band (`glossary/sections/banner`),
+// extended with an eyebrow and a projected description.
+//
+// `style-landing.css` § 16 paints `.inner-banner` with a stock photo and a
+// 60 % black veil; both go, the band is `--cl-brand-deep` with white (7.16).
+// `:host` adds (0,1,0) and beats `.inner-banner h2` (0,1,1) without `!important`.
+
+:host {
+  display: block;
+}
+
+:host .inner-banner {
+  background-image: none;
+  background-color: var(--cl-brand-deep);
+  padding: 40px 0 38px;
+  text-align: left;
+}
+
+:host .inner-banner::before {
+  display: none;
+}
+
+.gc-banner__body {
+  max-width: 820px;
+}
+
+:host .inner-banner h2 {
+  margin: 0 0 10px;
+  color: var(--cl-surface);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+.gc-banner__eyebrow {
+  margin: 0 0 6px;
+  // 7.16 on the band: the eyebrow is text, not decoration.
+  color: var(--cl-brand-ring);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+:host .inner-breadcrumb {
+  margin: 0 0 14px;
+  padding: 0;
+}
+
+:host .inner-breadcrumb li {
+  color: var(--cl-brand-ring);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+:host .inner-breadcrumb li:last-child {
+  color: var(--cl-surface);
+  font-weight: 600;
+}
+
+:host .inner-breadcrumb li a {
+  color: var(--cl-brand-ring);
+
+  &:hover,
+  &:focus {
+    color: var(--cl-surface);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cl-brand-ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (max-width: 576px) {
+  :host .inner-banner {
+    padding: 28px 0 26px;
+  }
+
+  :host .inner-banner h2 {
+    font-size: 25px;
+  }
+}

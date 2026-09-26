@@ -23,5 +23,9 @@ export class FooterComponent {
       name: 'Glossary',
       link: '/landing-page/glossary',
     },
+    {
+      name: 'Global Concepts',
+      link: '/landing-page/global-concepts',
+    },
   ];
 }

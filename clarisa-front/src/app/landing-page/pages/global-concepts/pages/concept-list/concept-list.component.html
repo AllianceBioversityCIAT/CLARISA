@@ -1,0 +1,176 @@
+<app-gc-banner
+  eyebrow="Global Concepts"
+  [title]="scheme?.title || 'Global Concepts'"
+  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'Global Concepts' }]">
+  <div class="gc-banner-copy">
+    <p class="gc-banner-copy__lede" *ngIf="scheme?.description">{{ scheme?.description }}</p>
+    <p class="gc-banner-copy__lede" *ngIf="!scheme && !schemeError">The official concepts CGIAR uses to plan, monitor, evaluate and learn.</p>
+    <p class="gc-banner-copy__governance" *ngIf="scheme?.governance_description">{{ scheme?.governance_description }}</p>
+    <ul class="gc-banner-copy__facts" *ngIf="scheme?.license || scheme?.publisher">
+      <li *ngIf="scheme?.publisher"><span>Publisher</span>{{ scheme?.publisher }}</li>
+      <li *ngIf="scheme?.license"><span>License</span>{{ scheme?.license }}</li>
+    </ul>
+  </div>
+</app-gc-banner>
+
+<section class="gc-section">
+  <div class="container">
+    <div class="gc-note gc-note--error gc-scheme-error" *ngIf="schemeError" role="alert">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      <p>{{ schemeError }}</p>
+    </div>
+
+    <!-- Toolbar: search, facets, deprecated toggle and downloads -->
+    <div class="gc-toolbar" role="search">
+      <div class="gc-toolbar__row">
+        <div class="gc-search">
+          <i class="pi pi-search" aria-hidden="true"></i>
+          <label class="gc-sr-only" for="gc-search-input">Search concepts</label>
+          <input
+            id="gc-search-input"
+            class="gc-input"
+            type="search"
+            autocomplete="off"
+            placeholder="Search a concept, acronym or definition..."
+            [ngModel]="q"
+            (ngModelChange)="onQueryInput($event)" />
+        </div>
+
+        <select
+          class="gc-select gc-scheme-switch"
+          *ngIf="schemes.length > 1"
+          aria-label="Concept scheme"
+          [ngModel]="schemeCode"
+          (ngModelChange)="switchScheme($event)">
+          <option *ngFor="let item of schemes" [value]="item.code">{{ item.title }}</option>
+        </select>
+
+        <details class="gc-download">
+          <summary class="gc-btn gc-btn--ghost"><i class="pi pi-download" aria-hidden="true"></i>Download</summary>
+          <div class="gc-download__menu">
+            <a *ngFor="let item of exports" class="gc-download__item" [href]="exportUrl(item.format)" rel="noopener" download>
+              <strong>{{ item.label }}</strong>
+              <span>{{ item.hint }}</span>
+            </a>
+          </div>
+        </details>
+      </div>
+
+      <div class="gc-toolbar__row gc-toolbar__row--facets">
+        <ng-container *ngFor="let facet of facets">
+          <div class="gc-field gc-facet" *ngIf="options(facet.code).length">
+            <label [attr.for]="'gc-facet-' + facet.code">{{ facet.label }}</label>
+            <select class="gc-select" [id]="'gc-facet-' + facet.code" [ngModel]="filters[facet.code]" (ngModelChange)="setFilter(facet.code, $event)">
+              <option value="">{{ facet.all }}</option>
+              <option *ngFor="let option of options(facet.code)" [value]="option.value">{{ option.label }}</option>
+            </select>
+          </div>
+        </ng-container>
+
+        <label class="gc-switch">
+          <input type="checkbox" [ngModel]="includeDeprecated" (ngModelChange)="toggleDeprecated($event)" />
+          <span class="gc-switch__track" aria-hidden="true"><span class="gc-switch__thumb"></span></span>
+          <span class="gc-switch__label">Include deprecated</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="gc-layout">
+      <div class="gc-results" aria-live="polite" [attr.aria-busy]="loading">
+        <div class="gc-results__head" *ngIf="!loading && !error">
+          <p class="gc-meta">
+            <strong>{{ concepts.length }}</strong> {{ concepts.length === 1 ? 'concept' : 'concepts' }}
+            <ng-container *ngIf="hasFilters"> match your search</ng-container>
+          </p>
+          <button type="button" class="gc-link gc-clear" *ngIf="hasFilters" (click)="clearFilters()">Clear filters</button>
+        </div>
+
+        <!-- Loading: the shape of the cards that are coming -->
+        <div class="gc-list" *ngIf="loading">
+          <div class="gc-card gc-concept gc-concept--ghost" *ngFor="let i of [1, 2, 3, 4]" aria-hidden="true">
+            <span class="gc-skeleton gc-skeleton--title"></span>
+            <span class="gc-skeleton"></span>
+            <span class="gc-skeleton gc-skeleton--short"></span>
+          </div>
+          <span class="gc-sr-only">Loading concepts</span>
+        </div>
+
+        <div class="gc-state gc-state--error" *ngIf="!loading && error" role="alert">
+          <span class="gc-state__icon"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i></span>
+          <h4>The concepts could not be loaded</h4>
+          <p>{{ error }}</p>
+          <button type="button" class="gc-btn gc-btn--small" (click)="search()">Try again</button>
+        </div>
+
+        <div class="gc-state" *ngIf="!loading && !error && !concepts.length">
+          <span class="gc-state__icon"><i class="pi pi-search" aria-hidden="true"></i></span>
+          <ng-container *ngIf="hasFilters; else emptyScheme">
+            <h4>No concept matches this search</h4>
+            <p>
+              Try a shorter word or an acronym, turn on "Include deprecated", or clear the filters. If the concept you need does not exist, propose
+              it.
+            </p>
+            <div class="gc-state__actions">
+              <button type="button" class="gc-btn gc-btn--small gc-btn--ghost" (click)="clearFilters()">Clear filters</button>
+              <button type="button" class="gc-btn gc-btn--small" (click)="openPropose()">Propose a concept</button>
+            </div>
+          </ng-container>
+          <ng-template #emptyScheme>
+            <h4>No concepts published yet</h4>
+            <p>This scheme has no approved concepts yet. You can propose the first one; the stewards review every request.</p>
+            <button type="button" class="gc-btn gc-btn--small" (click)="openPropose()">Propose a concept</button>
+          </ng-template>
+        </div>
+
+        <div class="gc-list" *ngIf="!loading && !error && concepts.length">
+          <article
+            class="gc-card gc-concept"
+            *ngFor="let concept of concepts; trackBy: trackById"
+            [class.is-deprecated]="concept.status === 'deprecated'">
+            <header class="gc-concept__head">
+              <h3 class="gc-concept__title">
+                <a [routerLink]="conceptLink(concept)">{{ concept.preferred_label }}</a>
+              </h3>
+              <span class="gc-concept__id gc-mono">TERM {{ concept.term_id }} · v{{ concept.version }}</span>
+            </header>
+
+            <p class="gc-concept__summary" *ngIf="summary(concept)">{{ summary(concept) }}</p>
+            <p class="gc-concept__summary gc-concept__summary--empty" *ngIf="!summary(concept)">No definition published yet.</p>
+
+            <div
+              class="gc-chips"
+              *ngIf="concept.meliaf_function.length || concept.meliaf_phase_primary || concept.term_type || concept.status === 'deprecated'">
+              <span class="gc-chip gc-chip--warn" *ngIf="concept.status === 'deprecated'"
+                ><i class="pi pi-history" aria-hidden="true"></i>Deprecated</span
+              >
+              <span class="gc-chip" *ngFor="let fn of concept.meliaf_function">{{ label('meliaf_function', fn) }}</span>
+              <span class="gc-chip gc-chip--plain" *ngIf="concept.meliaf_phase_primary"
+                >Phase · {{ label('meliaf_phase', concept.meliaf_phase_primary) }}</span
+              >
+              <span class="gc-chip gc-chip--plain" *ngIf="concept.term_type">{{ label('term_type', concept.term_type) }}</span>
+            </div>
+
+            <p class="gc-concept__replaced" *ngIf="concept.status === 'deprecated' && concept.replaced_by">
+              Deprecated <span aria-hidden="true">→</span><span class="gc-sr-only">,</span> replaced by
+              <a class="gc-link" [routerLink]="conceptLink(concept.replaced_by)">{{ concept.replaced_by.preferred_label }}</a>
+            </p>
+          </article>
+        </div>
+      </div>
+
+      <aside class="gc-aside">
+        <app-gc-check-text [scheme]="schemeCode"></app-gc-check-text>
+
+        <div class="gc-card gc-cta" *ngIf="!proposeOpen">
+          <h3 class="gc-h3">Missing a concept?</h3>
+          <p class="gc-lede">Propose a new concept or a change to an existing one. We confirm your email first, then the stewards review it.</p>
+          <button type="button" class="gc-btn" (click)="openPropose()"><i class="pi pi-plus" aria-hidden="true"></i>Propose a concept</button>
+        </div>
+      </aside>
+    </div>
+
+    <div id="gc-propose" class="gc-propose-slot" *ngIf="proposeOpen">
+      <app-gc-propose-form [scheme]="schemeCode" [closable]="true" (closed)="proposeOpen = false"></app-gc-propose-form>
+    </div>
+  </div>
+</section>

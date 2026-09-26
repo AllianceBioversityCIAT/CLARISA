@@ -12,6 +12,8 @@ export interface ParsedTable {
   generatedHeaders: boolean[];
   /** Columns the source declared, before the empty ones were dropped. */
   sourceColumns: number;
+  /** 1-based line of the source each entry of `rows` came from (blank lines are skipped, so it is not index + offset). */
+  sourceLines?: number[];
 }
 
 const MAX_ROWS = 2000;
@@ -201,7 +203,12 @@ export class GlossaryFileParserService {
    * takes the first row as headers when it looks like one, and pads short rows.
    */
   private toTable(matrix: string[][], sourceName: string): ParsedTable {
-    const nonEmpty = (matrix ?? []).filter(row => (row ?? []).some(cell => (cell ?? '').toString().trim().length));
+    const lines: number[] = [];
+    const nonEmpty = (matrix ?? []).filter((row, index) => {
+      const keep = (row ?? []).some(cell => (cell ?? '').toString().trim().length);
+      if (keep) lines.push(index + 1);
+      return keep;
+    });
 
     if (!nonEmpty.length) {
       throw new Error('No readable rows were found');
@@ -225,6 +232,7 @@ export class GlossaryFileParserService {
     const generatedHeaders = looksLikeHeader ? first.map(cell => !cell.length) : first.map(() => true);
 
     const rows = looksLikeHeader ? rest : trimmed;
+    const sourceLines = looksLikeHeader ? lines.slice(1) : lines;
 
     if (rows.length > MAX_ROWS) {
       throw new Error(`The file has ${rows.length} rows and the limit is ${MAX_ROWS}. Split it and load it in parts.`);
@@ -234,7 +242,7 @@ export class GlossaryFileParserService {
       throw new Error('The file only has a header row, there is no data to load');
     }
 
-    return { headers, rows, sourceName, generatedHeaders, sourceColumns };
+    return { headers, rows, sourceName, generatedHeaders, sourceColumns, sourceLines };
   }
 
   /**

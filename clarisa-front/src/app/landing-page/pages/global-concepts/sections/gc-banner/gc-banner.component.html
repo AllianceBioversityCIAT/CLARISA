@@ -1,0 +1,15 @@
+<div class="inner-banner gc-banner">
+  <div class="container">
+    <div class="gc-banner__body">
+      <ul class="inner-breadcrumb" *ngIf="crumbs.length">
+        <li *ngFor="let crumb of crumbs; let last = last">
+          <a *ngIf="crumb.link && !last; else plainCrumb" [routerLink]="crumb.link">{{ crumb.label }}</a>
+          <ng-template #plainCrumb>{{ crumb.label }}</ng-template>
+        </li>
+      </ul>
+      <p class="gc-banner__eyebrow" *ngIf="eyebrow">{{ eyebrow }}</p>
+      <h2>{{ title }}</h2>
+      <ng-content></ng-content>
+    </div>
+  </div>
+</div>

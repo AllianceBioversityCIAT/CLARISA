@@ -1,0 +1,350 @@
+<div class="gc-panel">
+  <div class="gc-bar">
+    <div>
+      <h2 class="gc-bar__title">Concepts</h2>
+      <p class="gc-bar__hint">
+        Every concept of the scheme, whatever its status. Open a row to edit it; saving here is a direct admin edit and goes into the concept history
+        under your name.
+      </p>
+    </div>
+    <div class="gc-bar__actions">
+      <button
+        pButton
+        type="button"
+        icon="pi pi-refresh"
+        class="btn-ghost p-button-icon-only"
+        aria-label="Reload"
+        pTooltip="Reload"
+        (click)="load()"></button>
+      <button pButton type="button" label="New concept" icon="pi pi-plus" class="btn-brand" (click)="openCreate()"></button>
+    </div>
+  </div>
+
+  <div class="admin-table-toolbar gc-toolbar gc-filter">
+    <span class="p-input-icon-left">
+      <i class="pi pi-search"></i>
+      <input
+        type="text"
+        pInputText
+        placeholder="Search TERM ID, label or definition"
+        aria-label="Search TERM ID, label or definition"
+        [(ngModel)]="search"
+        (ngModelChange)="applyFilters()" />
+    </span>
+    <p-dropdown
+      panelStyleClass="admin-dropdown-panel"
+      appendTo="body"
+      ariaLabel="Filter by status"
+      [options]="statusOptions"
+      [(ngModel)]="statusFilter"
+      (onChange)="applyFilters()">
+    </p-dropdown>
+    <button
+      *ngIf="hasFilters"
+      pButton
+      type="button"
+      label="Clear"
+      icon="pi pi-filter-slash"
+      class="p-button-text p-button-sm"
+      (click)="clearFilters()"></button>
+    <span class="admin-table-toolbar__count" *ngIf="!loading && !loadError">{{ rows.length }} of {{ concepts.length }} concepts</span>
+  </div>
+
+  <div class="gc-card">
+    <div class="gc-skeleton" *ngIf="loading && !concepts.length" aria-busy="true" aria-label="Loading concepts">
+      <div class="gc-skeleton__row" *ngFor="let _ of [1, 2, 3, 4, 5, 6]">
+        <span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span
+        ><span class="gc-skeleton__bar"></span>
+      </div>
+    </div>
+
+    <div class="gc-state gc-state--error" *ngIf="!loading && loadError">
+      <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
+      <p class="gc-state__title">The concepts did not load</p>
+      <p class="gc-state__text">{{ loadError }}</p>
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost" (click)="load()"></button>
+    </div>
+
+    <div class="gc-state" *ngIf="!loading && !loadError && !concepts.length">
+      <span class="gc-state__icon"><i class="pi pi-sitemap"></i></span>
+      <p class="gc-state__title">No concepts yet</p>
+      <p class="gc-state__text">
+        Create the first one with <strong>New concept</strong>, or load a whole spreadsheet from the <strong>Import</strong> tab.
+      </p>
+    </div>
+
+    <p-table
+      *ngIf="!loadError && concepts.length"
+      [value]="rows"
+      [loading]="loading"
+      sortField="preferred_label"
+      [sortOrder]="1"
+      [rows]="15"
+      [paginator]="rows.length > 15"
+      [rowsPerPageOptions]="[15, 30, 50, 100]"
+      styleClass="p-datatable-sm admin-table gc-concepts-table"
+      responsiveLayout="scroll">
+      <ng-template pTemplate="header">
+        <tr>
+          <th scope="col" pSortableColumn="term_id" style="width: 104px">TERM ID <p-sortIcon field="term_id"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="preferred_label" style="width: 220px">
+            Preferred label <p-sortIcon field="preferred_label"></p-sortIcon>
+          </th>
+          <th scope="col" pSortableColumn="definition">Definition <p-sortIcon field="definition"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="status" style="width: 124px">Status <p-sortIcon field="status"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="functionsText" style="width: 190px">Function <p-sortIcon field="functionsText"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="version" style="width: 96px">Version <p-sortIcon field="version"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="date_modified" style="width: 128px">Last modified <p-sortIcon field="date_modified"></p-sortIcon></th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-row>
+        <tr
+          class="gc-row"
+          tabindex="0"
+          [attr.aria-label]="'Edit ' + row.preferred_label"
+          (click)="openEdit(row.concept)"
+          (keydown.enter)="openEdit(row.concept)">
+          <td data-label="TERM ID">
+            <span class="gc-id">{{ row.term_id }}</span>
+          </td>
+          <td data-card-title data-label="Preferred label" class="cell-primary">{{ row.preferred_label }}</td>
+          <td data-label="Definition">
+            <span class="cell-clamp" *ngIf="row.definition; else noDefinition" [title]="row.definition">{{ row.definition }}</span>
+            <ng-template #noDefinition><span class="cell-empty">No definition yet</span></ng-template>
+          </td>
+          <td data-label="Status"><p-tag [value]="statusLabel(row.status)" [severity]="statusSeverity(row.status)"></p-tag></td>
+          <td data-label="Function">
+            <ng-container *ngIf="row.functions.length; else noFunction">
+              <span class="cell-chip" *ngFor="let fn of row.functions">{{ fn }}</span>
+            </ng-container>
+            <ng-template #noFunction><span class="cell-empty">—</span></ng-template>
+          </td>
+          <td data-label="Version" class="cell-num">{{ row.version || '—' }}</td>
+          <td data-label="Last modified" class="cell-num">{{ row.date_modified ? (row.date_modified | date: 'yyyy-MM-dd') : '—' }}</td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7" class="cell-empty gc-empty-cell">No concept matches these filters. Clear them to see the whole scheme.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------- dialog -->
+<p-dialog
+  [(visible)]="dialogVisible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [dismissableMask]="!saving && !changingStatus"
+  [style]="{ width: '860px' }"
+  [breakpoints]="{ '960px': '94vw' }"
+  styleClass="admin-dialog gc-concept-dialog"
+  [header]="editing ? editing.term_id + ' · ' + editing.preferred_label : 'New concept'">
+  <form class="admin-form gc-concept-form" (ngSubmit)="save()" autocomplete="off">
+    <p class="admin-note">
+      <i class="pi pi-info-circle"></i>
+      <span>
+        Saving writes straight to the published scheme and is logged as a <strong>direct admin edit</strong>.
+        <ng-container *ngIf="editing">Only the fields you change are recorded.</ng-container>
+      </span>
+    </p>
+
+    <div class="admin-form__grid">
+      <div class="field" *ngIf="!editing">
+        <label for="gc-term-id">TERM ID <span class="tag-opt">Optional</span></label>
+        <input id="gc-term-id" name="term_id" type="number" min="1" pInputText [(ngModel)]="form.term_id" />
+        <small class="field-hint">Keep the code of an existing register. Left empty, the next free one is assigned.</small>
+      </div>
+
+      <div class="field" [class.admin-form__span]="editing">
+        <label for="gc-label">Preferred label <span class="tag-req">Required</span></label>
+        <input id="gc-label" name="preferred_label" type="text" maxlength="500" pInputText [(ngModel)]="form.preferred_label" />
+      </div>
+
+      <div class="field admin-form__span">
+        <label for="gc-definition">Definition</label>
+        <textarea id="gc-definition" name="definition" pInputTextarea rows="4" [(ngModel)]="form.definition"></textarea>
+      </div>
+
+      <div class="field admin-form__span">
+        <label for="gc-short">Short definition <span class="tag-opt">Optional</span></label>
+        <input id="gc-short" name="short_definition" type="text" maxlength="500" pInputText [(ngModel)]="form.short_definition" />
+        <small class="field-hint">One line, used in tooltips. {{ form.short_definition.length }}/500</small>
+      </div>
+
+      <div class="field">
+        <label for="gc-scope">Scope note <span class="tag-opt">Optional</span></label>
+        <textarea id="gc-scope" name="scope_note" pInputTextarea rows="3" [(ngModel)]="form.scope_note"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="gc-example">Example of use <span class="tag-opt">Optional</span></label>
+        <textarea id="gc-example" name="example_of_use" pInputTextarea rows="3" [(ngModel)]="form.example_of_use"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="gc-term-type">Term type</label>
+        <p-dropdown
+          inputId="gc-term-type"
+          name="term_type"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          placeholder="Not set"
+          [showClear]="true"
+          [options]="optionsFor('term_type')"
+          [(ngModel)]="form.term_type">
+        </p-dropdown>
+      </div>
+
+      <div class="field">
+        <label for="gc-function">MELIAF function</label>
+        <p-multiSelect
+          inputId="gc-function"
+          name="meliaf_function"
+          appendTo="body"
+          display="chip"
+          placeholder="Not set"
+          [showHeader]="false"
+          [options]="optionsFor('meliaf_function')"
+          [(ngModel)]="form.meliaf_function">
+        </p-multiSelect>
+      </div>
+
+      <div class="field">
+        <label for="gc-phase">Primary MELIAF phase</label>
+        <p-dropdown
+          inputId="gc-phase"
+          name="meliaf_phase_primary"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          placeholder="Not set"
+          [showClear]="true"
+          [options]="optionsFor('meliaf_phase')"
+          [(ngModel)]="form.meliaf_phase_primary">
+        </p-dropdown>
+      </div>
+
+      <div class="field">
+        <label for="gc-derivation">Derivation</label>
+        <p-dropdown
+          inputId="gc-derivation"
+          name="derivation"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          placeholder="Not set"
+          [showClear]="true"
+          [options]="optionsFor('derivation')"
+          [(ngModel)]="form.derivation">
+        </p-dropdown>
+      </div>
+
+      <div class="field">
+        <label for="gc-citation">Source citation</label>
+        <input id="gc-citation" name="source_citation" type="text" pInputText [(ngModel)]="form.source_citation" />
+      </div>
+
+      <div class="field">
+        <label for="gc-url">Source URL</label>
+        <input id="gc-url" name="source_url" type="url" maxlength="1000" pInputText placeholder="https://" [(ngModel)]="form.source_url" />
+      </div>
+
+      <div class="field">
+        <label for="gc-steward">Steward</label>
+        <input id="gc-steward" name="steward" type="text" maxlength="255" pInputText [(ngModel)]="form.steward" />
+        <small class="field-hint">Person or team responsible for the term.</small>
+      </div>
+
+      <div class="field">
+        <label for="gc-notes">Internal notes</label>
+        <textarea id="gc-notes" name="notes" pInputTextarea rows="2" [(ngModel)]="form.notes"></textarea>
+        <small class="field-hint"><i class="pi pi-lock"></i> Never published — only admins see this.</small>
+      </div>
+    </div>
+
+    <p class="field-error gc-form-error" *ngIf="formError">{{ formError }}</p>
+
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="btn-ghost" (click)="dialogVisible = false"></button>
+      <button
+        pButton
+        type="submit"
+        class="btn-brand"
+        icon="pi pi-check"
+        [label]="editing ? 'Save changes' : 'Create concept'"
+        [disabled]="!!formError || (!!editing && !hasChanges)"
+        [loading]="saving"></button>
+    </div>
+  </form>
+
+  <!-- Status lives apart from the fields: it is a separate write with its own rules. -->
+  <section class="admin-card gc-status" *ngIf="editing">
+    <h3 class="admin-card__title">Status</h3>
+    <p class="admin-card__hint">
+      Now <p-tag [value]="statusLabel(editing.status)" [severity]="statusSeverity(editing.status)"></p-tag>
+      <ng-container *ngIf="editing.replaced_by">
+        · replaced by {{ editing.replaced_by.term_id }} — {{ editing.replaced_by.preferred_label }}</ng-container
+      >
+    </p>
+
+    <div class="admin-form">
+      <div class="admin-form__grid">
+        <div class="field">
+          <label for="gc-new-status">New status</label>
+          <p-dropdown
+            inputId="gc-new-status"
+            appendTo="body"
+            panelStyleClass="admin-dropdown-panel"
+            placeholder="Pick a status"
+            [options]="statusChoices"
+            [(ngModel)]="newStatus">
+          </p-dropdown>
+        </div>
+
+        <ng-container *ngIf="newStatus === 'deprecated'">
+          <div class="field">
+            <label for="gc-replacement">Replaced by</label>
+            <p-dropdown
+              inputId="gc-replacement"
+              appendTo="body"
+              panelStyleClass="admin-dropdown-panel"
+              placeholder="No replacement"
+              filterBy="label"
+              [filter]="true"
+              [showClear]="true"
+              [virtualScroll]="replacementOptions.length > 100"
+              [itemSize]="36"
+              [options]="replacementOptions"
+              [(ngModel)]="replacementTermId">
+            </p-dropdown>
+          </div>
+          <div class="field admin-form__span">
+            <label for="gc-reason"
+              >Reason <span class="tag-opt" *ngIf="replacementTermId">Optional</span
+              ><span class="tag-req" *ngIf="!replacementTermId">Required</span></label
+            >
+            <textarea id="gc-reason" pInputTextarea rows="2" maxlength="2000" [(ngModel)]="deprecationReason"></textarea>
+            <small class="field-hint">Without a replacement, readers need to know why the concept is no longer used.</small>
+          </div>
+        </ng-container>
+      </div>
+
+      <div class="admin-form__actions">
+        <span class="field-hint gc-status__why" *ngIf="newStatus && statusChangeError">{{ statusChangeError }}</span>
+        <button
+          pButton
+          type="button"
+          icon="pi pi-flag"
+          label="Change status"
+          [ngClass]="newStatus === 'deprecated' ? 'btn-caution' : 'btn-brand'"
+          [disabled]="!!statusChangeError"
+          [loading]="changingStatus"
+          (click)="changeStatus()"></button>
+      </div>
+    </div>
+  </section>
+</p-dialog>

@@ -1,0 +1,429 @@
+//
+// Global Concepts — shared kit for every screen of the section.
+//
+// Included under `:host` by each component (`:host { @include gc.kit; }`), so
+// the classes stay scoped to this section and never leak into the landing.
+// Colours come only from the `--cl-*` tokens of `styles.scss` (DESIGN.md § 2);
+// sizes in px because the theme sets 1rem = 10px (DESIGN.md § 1).
+//
+// Same language as the glossary page: field = login field (full border,
+// radius 8, 16px), card = `.admin-card` (1px border, card radius, no shadow),
+// active = soft pill (`--cl-brand-soft` + `--cl-brand-deeper`, 7.80).
+
+@mixin focus-ring {
+  outline: 2px solid var(--cl-brand-ring);
+  outline-offset: 2px;
+}
+
+@mixin kit {
+  display: block;
+  color: var(--cl-ink-2);
+  font-family: 'Poppins', sans-serif;
+
+  .gc-section {
+    padding: 40px 0 72px;
+    background-color: var(--cl-surface-2);
+  }
+
+  // 🛑 `.container` is never made flex or grid here: Bootstrap 3 hangs its
+  // clearfix `::before/::after { display: table }` on it (DESIGN.md § 6.4) and
+  // they would become layout items. Layouts live in a child wrapper.
+
+  .gc-card {
+    padding: 22px 24px;
+    border: 1px solid var(--cl-line);
+    border-radius: var(--cl-radius-card);
+    background: var(--cl-surface);
+    min-width: 0;
+  }
+
+  .gc-h3 {
+    margin: 0 0 6px;
+    color: var(--cl-ink);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  .gc-lede {
+    margin: 0;
+    max-width: 68ch;
+    color: var(--cl-ink-2);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .gc-meta {
+    color: var(--cl-ink-2);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .gc-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+  }
+
+  a.gc-link,
+  .gc-link {
+    color: var(--cl-brand-deeper);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--cl-brand-ring);
+    text-underline-offset: 3px;
+    overflow-wrap: anywhere;
+
+    &:hover {
+      color: var(--cl-brand-deep);
+      text-decoration-color: currentColor;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
+  // ------------------------------------------------------------------ fields
+
+  .gc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+
+    > label,
+    > .gc-field__label {
+      color: var(--cl-ink);
+      font-size: 14px;
+      font-weight: 600;
+    }
+  }
+
+  .gc-field__hint {
+    color: var(--cl-ink-2);
+    font-size: 13px;
+    font-weight: 400;
+  }
+
+  .gc-field__error {
+    color: var(--cl-error);
+    font-size: 13px;
+  }
+
+  .gc-input,
+  .gc-select,
+  .gc-textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--cl-line);
+    border-radius: var(--cl-radius-control);
+    background: var(--cl-surface);
+    color: var(--cl-ink);
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 1.4;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition:
+      border-color 0.16s ease,
+      box-shadow 0.16s ease;
+
+    // `--cl-ink-3` measures 3.89 on white; placeholders need 4.5 (DESIGN.md § 6.1).
+    &::placeholder {
+      color: var(--cl-ink-2);
+    }
+
+    &:hover {
+      border-color: var(--cl-ink-3);
+    }
+
+    &:focus {
+      border-color: var(--cl-brand);
+      box-shadow: 0 0 0 3px var(--cl-brand-ring);
+    }
+
+    &.is-invalid {
+      border-color: var(--cl-error);
+    }
+  }
+
+  .gc-select {
+    padding-right: 36px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--cl-ink-2) 50%), linear-gradient(135deg, var(--cl-ink-2) 50%, transparent 50%);
+    background-position:
+      calc(100% - 19px) 50%,
+      calc(100% - 14px) 50%;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+    cursor: pointer;
+  }
+
+  .gc-textarea {
+    padding: 12px 14px;
+    resize: vertical;
+  }
+
+  // ------------------------------------------------------------------ buttons
+
+  .gc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 20px;
+    border: 1px solid transparent;
+    border-radius: var(--cl-radius-control);
+    background: var(--cl-brand-strong);
+    color: var(--cl-surface);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color 0.16s ease,
+      border-color 0.16s ease,
+      color 0.16s ease;
+
+    &:hover:not(:disabled) {
+      background: var(--cl-brand-deep);
+      color: var(--cl-surface);
+      text-decoration: none;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      background: var(--cl-line);
+      color: var(--cl-ink-2);
+    }
+  }
+
+  .gc-btn--ghost {
+    border-color: var(--cl-line);
+    background: var(--cl-surface);
+    color: var(--cl-ink);
+
+    &:hover:not(:disabled) {
+      border-color: var(--cl-ink-3);
+      background: var(--cl-surface);
+      color: var(--cl-ink);
+    }
+  }
+
+  .gc-btn--small {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 14px;
+  }
+
+  // ------------------------------------------------------------------ chips
+
+  .gc-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .gc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .gc-chip--plain {
+    background: var(--cl-surface-2);
+    color: var(--cl-ink-2);
+    box-shadow: inset 0 0 0 1px var(--cl-line);
+  }
+
+  .gc-chip--warn {
+    background: var(--cl-surface);
+    color: var(--cl-warn);
+    box-shadow: inset 0 0 0 1px var(--cl-warn);
+  }
+
+  // ------------------------------------------------------------------ notes
+
+  .gc-note {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    border: 1px solid var(--cl-line);
+    border-left: 4px solid var(--cl-brand-deep);
+    border-radius: var(--cl-radius-control);
+    background: var(--cl-surface);
+    color: var(--cl-ink-2);
+    font-size: 14px;
+    line-height: 1.55;
+
+    > i {
+      margin-top: 2px;
+      color: var(--cl-brand-deep);
+      font-size: 16px;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    strong {
+      color: var(--cl-ink);
+    }
+  }
+
+  .gc-note--warn {
+    border-left-color: var(--cl-warn);
+
+    > i {
+      color: var(--cl-warn);
+    }
+  }
+
+  .gc-note--error {
+    border-left-color: var(--cl-error);
+
+    > i {
+      color: var(--cl-error);
+    }
+  }
+
+  .gc-note--ok {
+    border-left-color: var(--cl-ok);
+
+    > i {
+      color: var(--cl-ok);
+    }
+  }
+
+  // ------------------------------------------------------------------ states
+
+  .gc-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 48px 20px;
+    border: 1px dashed var(--cl-line);
+    border-radius: var(--cl-radius-card);
+    background: var(--cl-surface);
+    text-align: center;
+
+    h4 {
+      margin: 0;
+      color: var(--cl-ink);
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    p {
+      max-width: 52ch;
+      margin: 0;
+      color: var(--cl-ink-2);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+  }
+
+  .gc-state__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+    font-size: 20px;
+  }
+
+  .gc-state--error .gc-state__icon {
+    background: var(--cl-surface-2);
+    color: var(--cl-error);
+  }
+
+  // Loading = the shape of what is coming, in the page's own surfaces.
+  .gc-skeleton {
+    display: block;
+    height: 14px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--cl-surface-2) 0%, var(--cl-line) 50%, var(--cl-surface-2) 100%);
+    background-size: 200% 100%;
+    animation: gc-shimmer 1.3s ease-in-out infinite;
+  }
+
+  @keyframes gc-shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gc-skeleton {
+      animation: none;
+    }
+  }
+
+  // Button spinner in brand colours; never the default grey wheel.
+  .gc-spin {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: gc-rotate 0.7s linear infinite;
+  }
+
+  @keyframes gc-rotate {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .gc-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (max-width: 576px) {
+    .gc-section {
+      padding: 28px 0 56px;
+    }
+
+    .gc-card {
+      padding: 18px 16px;
+    }
+  }
+}

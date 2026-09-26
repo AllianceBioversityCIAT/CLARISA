@@ -44,6 +44,13 @@ const routes: Routes = [
           ),
       },
       {
+        path: 'global-concepts',
+        loadChildren: () =>
+          import('./pages/global-concepts/global-concepts.module').then(
+            (m) => m.GlobalConceptsModule
+          ),
+      },
+      {
         path: 'institutionsRequestBi',
         loadChildren: () =>
           import(

@@ -54,6 +54,14 @@ const routes: Routes = [
           ),
         canActivate: [LoginGuardGuard],
       },
+      {
+        path: 'global-concepts-admin',
+        loadChildren: () =>
+          import(
+            './pages/global-concepts-admin/global-concepts-admin.module'
+          ).then((m) => m.GlobalConceptsAdminModule),
+        canActivate: [LoginGuardGuard],
+      },
     ],
   },
 ];

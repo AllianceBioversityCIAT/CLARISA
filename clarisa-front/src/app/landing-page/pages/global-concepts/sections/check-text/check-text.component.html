@@ -1,0 +1,61 @@
+<section class="gc-card gc-check" aria-labelledby="gc-check-title">
+  <h3 class="gc-h3" id="gc-check-title">Check a text</h3>
+  <p class="gc-lede">Paste a paragraph from a report or proposal to see which official concepts it uses.</p>
+
+  <div class="gc-field">
+    <label for="gc-check-input" class="gc-sr-only">Text to check</label>
+    <textarea
+      id="gc-check-input"
+      class="gc-textarea"
+      rows="6"
+      [attr.maxlength]="max"
+      placeholder="Paste your text here..."
+      [(ngModel)]="text"
+      aria-describedby="gc-check-counter gc-check-privacy"></textarea>
+    <div class="gc-check__meta">
+      <span id="gc-check-privacy" class="gc-check__privacy"><i class="pi pi-lock" aria-hidden="true"></i>Your text is not stored.</span>
+      <span id="gc-check-counter" class="gc-check__counter" [class.is-full]="length >= max">{{ length | number }} / {{ max | number }}</span>
+    </div>
+  </div>
+
+  <div class="gc-check__actions">
+    <button type="button" class="gc-btn" [disabled]="!canCheck" (click)="check()">
+      <span class="gc-spin" *ngIf="checking" aria-hidden="true"></span>
+      {{ checking ? 'Checking...' : 'Find official terms' }}
+    </button>
+    <button type="button" class="gc-btn gc-btn--ghost gc-btn--small" *ngIf="text || suggestions" (click)="reset()">Clear</button>
+  </div>
+
+  <div class="gc-note gc-note--error" *ngIf="error" role="alert">
+    <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+    <p>{{ error }}</p>
+  </div>
+
+  <div class="gc-check__results" *ngIf="suggestions" aria-live="polite">
+    <p class="gc-meta gc-check__count" *ngIf="suggestions.length">
+      <strong>{{ suggestions.length }}</strong> official {{ suggestions.length === 1 ? 'concept' : 'concepts' }} found
+    </p>
+
+    <div class="gc-check__none" *ngIf="!suggestions.length">
+      <p><strong>No official concept found in this text.</strong></p>
+      <p>Matches are whole words. Try a longer passage, or search a single term in the box above.</p>
+    </div>
+
+    <ul class="gc-check__list" *ngIf="suggestions.length">
+      <li *ngFor="let item of suggestions; trackBy: trackById" class="gc-check__item">
+        <div class="gc-check__item-head">
+          <a class="gc-link" [routerLink]="[base, scheme, item.term_id]">{{ item.preferred_label }}</a>
+          <span class="gc-meta">{{ totalMatches(item) }}×</span>
+        </div>
+        <div class="gc-chips">
+          <span class="gc-chip gc-chip--plain" *ngFor="let match of item.matched">"{{ match.label }}" × {{ match.count }}</span>
+          <span class="gc-chip gc-chip--warn" *ngIf="item.status === 'deprecated'">Deprecated</span>
+        </div>
+        <p class="gc-check__replaced" *ngIf="item.replaced_by">
+          Use instead:
+          <a class="gc-link" [routerLink]="[base, scheme, item.replaced_by.term_id]">{{ item.replaced_by.preferred_label }}</a>
+        </p>
+      </li>
+    </ul>
+  </div>
+</section>

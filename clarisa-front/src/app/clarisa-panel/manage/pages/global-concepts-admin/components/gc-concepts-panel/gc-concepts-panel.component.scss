@@ -1,0 +1,54 @@
+@import '../gc-panel';
+
+.gc-empty-cell {
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.gc-form-error {
+  margin: 4px 0 0;
+}
+
+.gc-status {
+  margin-top: 20px;
+  background: var(--cl-surface-2);
+}
+
+.gc-status__why {
+  margin-right: auto;
+}
+
+/* The fields and textareas fill their cell; the global form skin sets height and 16px type. */
+:host ::ng-deep .gc-concept-form,
+:host ::ng-deep .gc-status {
+  .field input.p-inputtext,
+  .field textarea.p-inputtextarea,
+  p-dropdown,
+  p-multiselect,
+  .p-dropdown,
+  .p-multiselect {
+    display: block;
+    width: 100%;
+  }
+
+  .p-dropdown,
+  .p-multiselect {
+    display: inline-flex;
+  }
+
+  textarea.p-inputtextarea {
+    font-size: 16px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+
+  .admin-note {
+    margin-bottom: 18px;
+  }
+}
+
+:host ::ng-deep .gc-concepts-table.admin-table.p-datatable {
+  .p-datatable-tbody > tr.gc-row:hover > td {
+    background: var(--cl-brand-soft);
+  }
+}
