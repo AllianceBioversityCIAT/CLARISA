@@ -2,6 +2,7 @@ import { ActionAreaModule } from './action-area/action-area.module';
 import { RoleModule } from './role/role.module';
 import { UserModule } from './user/user.module';
 import { GlossaryModule } from './glossary/glossary.module';
+import { GlobalConceptsModule } from './global-concepts/global-concepts.module';
 import { ImpactAreaModule } from './impact-area/impact-area.module';
 import { StudyTypeModule } from './study-type/study-type.module';
 import { SdgModule } from './sdg/sdg.module';
@@ -404,5 +405,9 @@ export const apiRoutes = [
   {
     path: 'metrics',
     module: MetricsModule,
+  },
+  {
+    path: 'global-concepts',
+    module: GlobalConceptsModule,
   },
 ];

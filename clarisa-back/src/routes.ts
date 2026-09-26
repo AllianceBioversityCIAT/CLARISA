@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { authRoutes } from './auth/auth.routes';
 import { IntegrationModule } from './integration/integration.module';
 import { integrationRoutes } from './integration/integration.routes';
+import { GlobalConceptsUriModule } from './api/global-concepts/global-concepts.module';
 
 export const routes: Routes = [
   {
@@ -21,5 +22,9 @@ export const routes: Routes = [
     path: 'integration',
     module: IntegrationModule,
     children: integrationRoutes,
+  },
+  {
+    path: 'concepts',
+    module: GlobalConceptsUriModule,
   },
 ];

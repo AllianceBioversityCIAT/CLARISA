@@ -1,0 +1,326 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { DataSource, In } from 'typeorm';
+import {
+  GC_PUBLIC_STATUSES,
+  GcConcept,
+  GcConceptStatus,
+} from '../entities/gc-concept.entity';
+import {
+  GcCollection,
+  GcCollectionMember,
+} from '../entities/gc-collection.entity';
+import { GcHistory } from '../entities/gc-history.entity';
+import { GcLabel } from '../entities/gc-label.entity';
+import { GcListValue } from '../entities/gc-list-value.entity';
+import { GcRelease } from '../entities/gc-release.entity';
+import { GcScheme } from '../entities/gc-scheme.entity';
+import { schemeUri } from '../global-concepts.config';
+import { PublicConcept, presentConcepts } from '../utils/concept-presenter';
+import { ConceptGraphLoader } from './concept-graph.loader';
+
+export interface ConceptQuery {
+  q?: string;
+  status?: string;
+  meliaf_function?: string;
+  meliaf_phase?: string;
+  term_type?: string;
+  collection?: string;
+  version?: string;
+}
+
+const isPublic = (c: GcConcept) => GC_PUBLIC_STATUSES.includes(c.status);
+
+/** Escapes `%`, `_` and `\` for a MySQL LIKE pattern. */
+export const likePattern = (text: string) =>
+  `%${text.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
+
+/**
+ * Public, read-only side of the module. Only approved and deprecated concepts
+ * are ever returned; drafts and concepts under review do not exist here.
+ */
+@Injectable()
+export class ConceptsReadService {
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly loader: ConceptGraphLoader,
+  ) {}
+
+  async schemes() {
+    const schemes = await this.dataSource.manager.find(GcScheme, {
+      order: { code: 'ASC' },
+    });
+    return schemes.map((s) => this.presentScheme(s));
+  }
+
+  presentScheme(s: GcScheme) {
+    return {
+      code: s.code,
+      uri: schemeUri(s),
+      title: s.title,
+      description: s.description,
+      default_language: s.default_language,
+      license: s.license,
+      publisher: s.publisher,
+      governance_description: s.governance_description,
+      owner_platform: s.owner_platform,
+    };
+  }
+
+  async scheme(code: string) {
+    return this.presentScheme(
+      await this.loader.scheme(this.dataSource.manager, code),
+    );
+  }
+
+  /** Live list, or the list as frozen in a release when `version` is given (V23). */
+  async list(code: string, query: ConceptQuery = {}): Promise<PublicConcept[]> {
+    const manager = this.dataSource.manager;
+    const scheme = await this.loader.scheme(manager, code);
+    if (query.version) {
+      return this.filterSnapshot(
+        await this.releaseConcepts(scheme, query.version),
+        query,
+      );
+    }
+
+    const qb = manager
+      .createQueryBuilder(GcConcept, 'c')
+      .where('c.scheme_id = :scheme', { scheme: scheme.id })
+      .andWhere('c.status IN (:...statuses)', {
+        statuses: this.statusesFor(query.status),
+      });
+    if (query.term_type) {
+      qb.andWhere('c.term_type = :type', { type: query.term_type });
+    }
+    if (query.meliaf_phase) {
+      qb.andWhere(
+        '(c.meliaf_phase_primary = :phase OR c.meliaf_phase_also LIKE :phaseLike)',
+        {
+          phase: query.meliaf_phase,
+          phaseLike: likePattern(`"${query.meliaf_phase}"`),
+        },
+      );
+    }
+    if (query.meliaf_function) {
+      qb.andWhere('c.meliaf_function LIKE :fn', {
+        fn: likePattern(`"${query.meliaf_function}"`),
+      });
+    }
+    if (query.collection) {
+      const collection = await manager.findOne(GcCollection, {
+        where: { scheme_id: scheme.id, code: query.collection },
+      });
+      if (!collection) return [];
+      const members = await manager.find(GcCollectionMember, {
+        where: { collection_id: collection.id },
+      });
+      if (!members.length) return [];
+      qb.andWhere('c.id IN (:...members)', {
+        members: members.map((m) => Number(m.concept_id)),
+      });
+    }
+    const q = (query.q ?? '').trim();
+    if (q) {
+      // LIKE and not FULLTEXT: FULLTEXT ignores tokens under 3 characters,
+      // and "IA" is exactly the kind of search this has to answer (V25).
+      const pattern = likePattern(q);
+      const labelHits = await manager
+        .createQueryBuilder(GcLabel, 'l')
+        .select('DISTINCT l.concept_id', 'id')
+        .where('l.label LIKE :p', { p: pattern })
+        .getRawMany<{ id: string }>();
+      const ids = labelHits.map((r) => Number(r.id));
+      qb.andWhere(
+        ids.length
+          ? '(c.preferred_label LIKE :p OR c.definition LIKE :p OR c.id IN (:...ids))'
+          : '(c.preferred_label LIKE :p OR c.definition LIKE :p)',
+        ids.length ? { p: pattern, ids } : { p: pattern },
+      );
+    }
+    const concepts = await qb.orderBy('c.preferred_label', 'ASC').getMany();
+    const graph = await this.loader.load(manager, scheme, concepts);
+    return presentConcepts(graph, isPublic);
+  }
+
+  async get(code: string, termId: number, version?: string) {
+    const manager = this.dataSource.manager;
+    const scheme = await this.loader.scheme(manager, code);
+    if (version) {
+      const hit = (await this.releaseConcepts(scheme, version)).find(
+        (c) => c.term_id === Number(termId),
+      );
+      if (!hit) throw this.notFound(code, termId);
+      return hit;
+    }
+    const concept = await manager.findOne(GcConcept, {
+      where: { scheme_id: scheme.id, term_id: termId },
+    });
+    if (!concept || !isPublic(concept)) throw this.notFound(code, termId);
+    const graph = await this.loader.load(manager, scheme, [concept]);
+    return presentConcepts(graph, isPublic)[0];
+  }
+
+  /** Public change log of one concept: what changed and when, never who. */
+  async history(code: string, termId: number) {
+    const manager = this.dataSource.manager;
+    const scheme = await this.loader.scheme(manager, code);
+    const concept = await manager.findOne(GcConcept, {
+      where: { scheme_id: scheme.id, term_id: termId },
+    });
+    if (!concept || !isPublic(concept)) throw this.notFound(code, termId);
+    const rows = await manager.find(GcHistory, {
+      where: { concept_id: concept.id },
+      order: { id: 'ASC' },
+    });
+    return rows.map((h) => ({
+      action: h.action,
+      changes: this.publicChanges(h.changes),
+      changed_at: h.changed_at,
+    }));
+  }
+
+  /**
+   * Incremental sync (D11): every history row after `since` (an opaque
+   * cursor, the history id — V31) for concepts that are public now.
+   */
+  async changes(code: string, since = 0, limit = 500) {
+    const manager = this.dataSource.manager;
+    const scheme = await this.loader.scheme(manager, code);
+    const rows = await manager
+      .createQueryBuilder(GcHistory, 'h')
+      .innerJoin(GcConcept, 'c', 'c.id = h.concept_id')
+      .where('c.scheme_id = :scheme', { scheme: scheme.id })
+      .andWhere('h.id > :since', { since: Number(since) || 0 })
+      .andWhere('c.status IN (:...statuses)', { statuses: GC_PUBLIC_STATUSES })
+      .select([
+        'h.id AS cursor',
+        'c.term_id AS term_id',
+        'h.action AS action',
+        'h.changed_at AS changed_at',
+      ])
+      .orderBy('h.id', 'ASC')
+      .limit(Math.min(Math.max(Number(limit) || 500, 1), 1000))
+      .getRawMany<{
+        cursor: string;
+        term_id: string;
+        action: string;
+        changed_at: Date;
+      }>();
+    return {
+      changes: rows.map((r) => ({
+        cursor: Number(r.cursor),
+        term_id: Number(r.term_id),
+        action: r.action,
+        changed_at: r.changed_at,
+      })),
+      next_cursor: rows.length
+        ? Number(rows[rows.length - 1].cursor)
+        : Number(since) || 0,
+    };
+  }
+
+  async releases(code: string) {
+    const manager = this.dataSource.manager;
+    const scheme = await this.loader.scheme(manager, code);
+    const rows = await manager.find(GcRelease, {
+      where: { scheme_id: scheme.id },
+      order: { id: 'DESC' },
+      select: [
+        'id',
+        'version',
+        'release_uri',
+        'previous_release_id',
+        'released_at',
+        'notes',
+        'license',
+      ],
+    });
+    const byId = new Map(rows.map((r) => [Number(r.id), r]));
+    return rows.map((r) => ({
+      version: r.version,
+      release_uri: r.release_uri,
+      previous_version: r.previous_release_id
+        ? (byId.get(Number(r.previous_release_id))?.version ?? null)
+        : null,
+      released_at: r.released_at,
+      notes: r.notes,
+      license: r.license,
+    }));
+  }
+
+  /** Controlled lists, shared ones plus those scoped to the scheme. */
+  async lists(code?: string) {
+    const scopes = code ? ['', code.toLowerCase()] : [''];
+    const rows = await this.dataSource.manager.find(GcListValue, {
+      where: { scope: In(scopes), is_active: true },
+      order: { list_code: 'ASC', sort: 'ASC' },
+    });
+    const out: Record<string, { value: string; label: string }[]> = {};
+    for (const r of rows) {
+      (out[r.list_code] ??= []).push({ value: r.value, label: r.label });
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------------------- helpers
+
+  private statusesFor(status?: string): GcConceptStatus[] {
+    if (status === GcConceptStatus.APPROVED) return [GcConceptStatus.APPROVED];
+    if (status === GcConceptStatus.DEPRECATED)
+      return [GcConceptStatus.DEPRECATED];
+    return GC_PUBLIC_STATUSES;
+  }
+
+  private async releaseConcepts(scheme: GcScheme, version: string) {
+    const release = await this.dataSource.manager.findOne(GcRelease, {
+      where: { scheme_id: scheme.id, version },
+    });
+    if (!release) {
+      throw new NotFoundException(
+        `Release ${version} of "${scheme.code}" was not found`,
+      );
+    }
+    return JSON.parse(release.snapshot) as PublicConcept[];
+  }
+
+  private filterSnapshot(concepts: PublicConcept[], query: ConceptQuery) {
+    const q = (query.q ?? '').trim().toLowerCase();
+    return concepts.filter((c) => {
+      if (query.status && c.status !== query.status) return false;
+      if (query.term_type && c.term_type !== query.term_type) return false;
+      if (
+        query.meliaf_function &&
+        !c.meliaf_function.includes(query.meliaf_function)
+      )
+        return false;
+      if (
+        query.meliaf_phase &&
+        c.meliaf_phase_primary !== query.meliaf_phase &&
+        !c.meliaf_phase_also.includes(query.meliaf_phase)
+      ) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        c.preferred_label.toLowerCase().includes(q) ||
+        (c.definition ?? '').toLowerCase().includes(q) ||
+        c.alternative_labels.some((l) => l.label.toLowerCase().includes(q))
+      );
+    });
+  }
+
+  /** Drops internal fields that must never reach the public history. */
+  private publicChanges(
+    changes: Record<string, { from: unknown; to: unknown }>,
+  ) {
+    const out = { ...(changes ?? {}) };
+    delete out.notes;
+    delete out.updated_by_email;
+    delete out.created_by_email;
+    return out;
+  }
+
+  private notFound(code: string, termId: number) {
+    return new NotFoundException(`Concept ${code}/${termId} was not found`);
+  }
+}
