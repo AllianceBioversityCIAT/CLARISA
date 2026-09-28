@@ -386,7 +386,14 @@ export class CreateGlobalConcepts1790500000000 implements MigrationInterface {
            WHERE NOT EXISTS (
              SELECT 1 FROM \`gc_lists\` WHERE scope = '' AND list_code = ? AND value = ?
            )`,
-          [listCode, toValue(label), label, index, listCode, toValue(label)],
+          [
+            listCode,
+            CreateGlobalConcepts1790500000000.toValue(label),
+            label,
+            index,
+            listCode,
+            CreateGlobalConcepts1790500000000.toValue(label),
+          ],
         );
       }
     }
@@ -397,17 +404,19 @@ export class CreateGlobalConcepts1790500000000 implements MigrationInterface {
       await queryRunner.query(`DROP TABLE IF EXISTS \`${table}\``);
     }
   }
-}
 
-/**
- * Machine value of a list entry: `In review` → `in_review`,
- * `IA (ex ante)` → `ia_ex_ante`. Language codes stay as they are.
- */
-export function toValue(label: string): string {
-  return label
-    .trim()
-    .toLowerCase()
-    .replace(/[()]/g, '')
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_|_$/g, '');
+  /**
+   * Machine value of a list entry: `In review` → `in_review`,
+   * `IA (ex ante)` → `ia_ex_ante`. Language codes stay as they are.
+   * A static method, not an exported function: TypeORM instantiates every
+   * export of a migration file, and a bare function crashes `migration:run`.
+   */
+  static toValue(label: string): string {
+    return label
+      .trim()
+      .toLowerCase()
+      .replace(/[()]/g, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '');
+  }
 }

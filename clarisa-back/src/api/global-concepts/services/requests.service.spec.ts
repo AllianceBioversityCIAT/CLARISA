@@ -24,10 +24,9 @@ import {
 } from '../entities/gc-proposal.entity';
 import { GcMapping } from '../entities/gc-mapping.entity';
 import { GcRequestAction } from '../dto/request.dto';
-import {
-  CreateGlobalConcepts1790500000000,
-  toValue,
-} from '../../../../migrations/1790500000000-CreateGlobalConcepts';
+import { CreateGlobalConcepts1790500000000 } from '../../../../migrations/1790500000000-CreateGlobalConcepts';
+
+const { toValue } = CreateGlobalConcepts1790500000000;
 
 const admin = { email: 'admin@cgiar.org' };
 const user = { origin: GcProposalOrigin.CLARISA_USER, email: 'user@cgiar.org' };

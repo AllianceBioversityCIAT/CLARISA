@@ -13,10 +13,9 @@ import {
 } from '../entities/gc-label.entity';
 import { GcRelation, GcRelationKind } from '../entities/gc-relation.entity';
 import { GcField, GcFieldType } from '../entities/gc-field.entity';
-import {
-  CreateGlobalConcepts1790500000000,
-  toValue,
-} from '../../../../migrations/1790500000000-CreateGlobalConcepts';
+import { CreateGlobalConcepts1790500000000 } from '../../../../migrations/1790500000000-CreateGlobalConcepts';
+
+const { toValue } = CreateGlobalConcepts1790500000000;
 
 const admin = { email: 'admin@cgiar.org' };
 
