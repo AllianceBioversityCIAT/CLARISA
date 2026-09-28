@@ -3,7 +3,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subject, of } from 'rxjs';
 import { catchError, debounceTime, map, switchMap, takeUntil } from 'rxjs/operators';
-import { ConceptScheme, GlobalConceptsApiService, PublicConcept } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
+import {
+  ConceptScheme,
+  GlobalConceptsApiService,
+  PublicConcept,
+  SearchMatch
+} from '../../../../../shared/services/global-concepts/global-concepts-api.service';
+import { ResultView, resultView } from '../../search-highlight';
 import { DEFAULT_SCHEME, GC_BASE, ListsByCode, humanError, labelOf, normalizeLists } from '../../global-concepts.utils';
 import {
   FacetCode,
@@ -94,7 +100,13 @@ export class ConceptListComponent implements OnInit, OnDestroy {
   schemeError: string | null = null;
   proposeOpen = false;
 
+  /** What each card shows (marks included), by term id; rebuilt in `recompute`. */
+  views = new Map<number, ResultView>();
+
   private serverHits: ReadonlySet<number> | null = null;
+  /** The back's order and match of each hit for `serverQ`. */
+  private serverRank: ReadonlyMap<number, number> | null = null;
+  private serverMatch: ReadonlyMap<number, SearchMatch> | null = null;
   private serverQ = '';
   /** Last q this page wrote to the URL, in its URL form: its echo must not overwrite newer typing. */
   private lastUrlQ = '';
@@ -143,21 +155,22 @@ export class ConceptListComponent implements OnInit, OnDestroy {
       .pipe(
         switchMap(q =>
           q.length < SERVER_SEARCH_MIN
-            ? of({ q, hits: null as ReadonlySet<number> | null })
+            ? of({ q, rows: null as PublicConcept[] | null })
             : this._api.concepts(this.schemeCode, { q, track: 0 }).pipe(
-                map(rows => ({ q, hits: new Set((rows ?? []).map(c => c.term_id)) as ReadonlySet<number> | null })),
-                catchError(() => of({ q, hits: null as ReadonlySet<number> | null }))
+                map(rows => ({ q, rows: (rows ?? []) as PublicConcept[] | null })),
+                // A failed search falls back to the local match; it never empties the page.
+                catchError(() => of({ q, rows: null as PublicConcept[] | null }))
               )
         ),
         takeUntil(this.destroy$)
       )
       .subscribe({
-        next: ({ q, hits }) => {
+        next: ({ q, rows }) => {
           this.serverQ = q;
-          this.serverHits = hits;
+          this.setServerAnswer(rows);
           this.recompute();
         },
-        error: () => (this.serverHits = null)
+        error: () => this.setServerAnswer(null)
       });
 
     this.typed$.pipe(debounceTime(SEARCH_DEBOUNCE), takeUntil(this.destroy$)).subscribe({
@@ -202,13 +215,19 @@ export class ConceptListComponent implements OnInit, OnDestroy {
     this.schemeCode = scheme;
     if (scheme !== this.loadedScheme) {
       this.loadedScheme = scheme;
-      this.serverHits = null;
+      this.setServerAnswer(null);
       this.serverQ = '';
       this.loadScheme();
     }
     const q = next.q.trim();
     if (q !== this.serverQ) this.serverSearch$.next(q);
     this.recompute();
+  }
+
+  private setServerAnswer(rows: PublicConcept[] | null): void {
+    this.serverHits = rows ? new Set(rows.map(c => c.term_id)) : null;
+    this.serverRank = rows ? new Map(rows.map((c, i) => [c.term_id, i])) : null;
+    this.serverMatch = rows ? new Map(rows.filter(c => c.match).map(c => [c.term_id, c.match as SearchMatch])) : null;
   }
 
   private loadScheme(): void {
@@ -251,12 +270,25 @@ export class ConceptListComponent implements OnInit, OnDestroy {
     this.reload$.next();
   }
 
+  /**
+   * The server's answer for what is typed has not arrived yet. An empty local
+   * match then means "still looking", not "nothing": a similar-spelling hit
+   * only the server finds would otherwise flash a false "No concept matches".
+   */
+  get searching(): boolean {
+    const q = this.q.trim();
+    return q.length >= SERVER_SEARCH_MIN && this.serverQ !== q;
+  }
+
   /** Everything the template draws, computed once per change (not per change detection). */
   recompute(): void {
     const live: FilterState = { ...this.state, q: this.q };
-    const hits = this.serverQ && this.serverQ === this.q.trim() ? this.serverHits : null;
+    const current = !!this.serverQ && this.serverQ === this.q.trim();
+    const hits = current ? this.serverHits : null;
     this.facets = facetViews(this.all, live, this.lists, hits);
-    this.results = sortConcepts(applyFilters(this.all, live, hits), live.sort);
+    this.results = sortConcepts(applyFilters(this.all, live, hits), live.sort, current ? this.serverRank : null);
+    const matches = current ? this.serverMatch : null;
+    this.views = new Map(this.results.map(c => [c.term_id, resultView(c, matches?.get(c.term_id))]));
     this.chips = activeChips(live, this.facets);
     this.total = this.all.filter(c => live.deprecated || c.status !== 'deprecated').length;
   }

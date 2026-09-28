@@ -36,8 +36,10 @@ describe('GcConceptsPanelComponent', () => {
       lists: jest.fn(() => of({ meliaf_function: [{ value: 'monitoring', label: 'Monitoring' }] })),
       updateConcept: jest.fn(() => of(concept(1, 'Outcomes'))),
       createConcept: jest.fn(() => of(concept(3, 'New'))),
-      setStatus: jest.fn(() => of(concept(2, 'Output', 'deprecated')))
+      setStatus: jest.fn(() => of(concept(2, 'Output', 'deprecated'))),
+      fields: jest.fn(() => of([]))
     };
+    localStorage.clear();
     component = new GcConceptsPanelComponent(api as unknown as GlobalConceptsApiService, { add: jest.fn() } as unknown as MessageService);
     component.ngOnInit();
   });
@@ -146,5 +148,58 @@ describe('GcConceptsPanelComponent', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  describe('custom-field columns', () => {
+    const linkField = {
+      id: 7,
+      code: 'related',
+      label: 'Related indicator',
+      type: 'term_link',
+      list_code: null,
+      required: false,
+      is_public: true,
+      sort: 0,
+      is_active: true,
+      help: null
+    };
+    const oldField = { ...linkField, id: 8, code: 'old', label: 'Old', is_active: false };
+
+    const withExtra = () => {
+      const linked = { ...concept(1, 'Outcome'), extra: { related: [2] } };
+      api['adminConcepts'].mockReturnValue(of([linked, concept(2, 'Output', 'draft')]));
+      api['fields'].mockReturnValue(of([linkField, oldField]));
+    };
+
+    it('offers only active fields and shows a linked concept by its label', () => {
+      withExtra();
+      const panel = new GcConceptsPanelComponent(api as unknown as GlobalConceptsApiService, { add: jest.fn() } as unknown as MessageService);
+      panel.ngOnInit();
+
+      expect(panel.fieldColumnOptions).toEqual([{ label: 'Related indicator', value: 'related' }]);
+      expect(panel.shownColumns).toEqual([]);
+      expect(panel.rows.find(row => row.term_id === 1)?.x['related']).toBe('Output');
+      expect(panel.rows.find(row => row.term_id === 2)?.x['related']).toBe('');
+    });
+
+    it('remembers the columns switched on, and drops a code whose field is gone', () => {
+      withExtra();
+      localStorage.setItem('gc-concepts-columns:meliaf', JSON.stringify(['related', 'deleted_field']));
+      const panel = new GcConceptsPanelComponent(api as unknown as GlobalConceptsApiService, { add: jest.fn() } as unknown as MessageService);
+      panel.ngOnInit();
+      expect(panel.shownColumns.map(field => field.code)).toEqual(['related']);
+
+      panel.shownFields = [];
+      panel.onColumnsChange();
+      expect(localStorage.getItem('gc-concepts-columns:meliaf')).toBe('[]');
+    });
+
+    it('keeps the table working when the fields fail to load', () => {
+      api['fields'].mockReturnValue(throwError(() => ({ status: 500 })));
+      const panel = new GcConceptsPanelComponent(api as unknown as GlobalConceptsApiService, { add: jest.fn() } as unknown as MessageService);
+      panel.ngOnInit();
+      expect(panel.customFields).toEqual([]);
+      expect(panel.rows.length).toBe(2);
+    });
   });
 });

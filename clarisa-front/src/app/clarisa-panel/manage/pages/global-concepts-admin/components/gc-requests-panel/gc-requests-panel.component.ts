@@ -89,10 +89,25 @@ export class GcRequestsPanelComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.load();
+    this.loadScheme();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['scheme'] && !changes['scheme'].firstChange) this.load();
+    if (changes['scheme'] && !changes['scheme'].firstChange) {
+      this.load();
+      this.loadScheme();
+    }
+  }
+
+  /** Whether the scheme has a validation step; null until known (then every action is offered). */
+  hasValidation: boolean | null = null;
+
+  private loadScheme(): void {
+    this.hasValidation = null;
+    this._api.scheme(this.scheme).subscribe({
+      next: scheme => (this.hasValidation = typeof scheme?.validator_required === 'boolean' ? scheme.validator_required : null),
+      error: () => (this.hasValidation = null)
+    });
   }
 
   load(): void {
@@ -204,7 +219,7 @@ export class GcRequestsPanelComponent implements OnInit, OnChanges {
   }
 
   get actions(): RequestActionOption[] {
-    return this.detail ? allowedActions(this.detail.state) : [];
+    return this.detail ? allowedActions(this.detail.state, this.hasValidation) : [];
   }
 
   get showAiButton(): boolean {

@@ -106,7 +106,9 @@ export class GlobalConceptsPublicController {
   @ApiOperation({
     summary: 'List or search the published concepts of a scheme',
     description:
-      '`q` searches preferred, alternative and hidden labels and definitions (partial words). ' +
+      '`q` searches the TERM ID, preferred, alternative and hidden labels, short definition and definition, in three tiers: ' +
+      'the exact phrase (last word may be partial), then every word in any order, then similar spelling (typos). ' +
+      'Each hit carries `match` {tier, score, highlights} with the character ranges to mark. ' +
       'Filters: status (approved|deprecated), meliaf_function, meliaf_phase, term_type, collection. ' +
       '`version` pins the answer to a published release.',
   })

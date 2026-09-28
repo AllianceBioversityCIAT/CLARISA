@@ -117,6 +117,12 @@
       background: var(--cl-surface);
       color: var(--cl-brand-deeper);
     }
+
+    // The admin side, set apart from the section's public pages.
+    &.gc-banner__manage {
+      margin-left: auto;
+      border-style: dashed;
+    }
   }
 }
 

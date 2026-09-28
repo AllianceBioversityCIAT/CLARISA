@@ -292,3 +292,11 @@
     flex: 1 1 140px;
   }
 }
+
+/* The shared card layout lifts the two-line clamp under 720px but keeps its fallback
+   max-height, so a long definition spilled over the next rows of the card. */
+@media (max-width: 720px) {
+  :host ::ng-deep .gc-concepts-table .cell-clamp {
+    max-height: none;
+  }
+}

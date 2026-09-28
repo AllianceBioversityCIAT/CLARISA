@@ -325,3 +325,44 @@
     width: 100%;
   }
 }
+
+/* Search marks: the words the back matched, on a soft yellow with an underline. */
+.gc-hit {
+  padding: 0 2px;
+  color: inherit;
+  background: var(--cl-hit);
+  border-radius: 3px;
+  box-shadow: inset 0 -2px 0 var(--cl-hit-line);
+}
+
+.gc-concept__aka {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 0;
+  color: var(--cl-ink-2);
+  font-size: 13px;
+}
+
+.gc-concept__aka-label {
+  color: var(--cl-ink-3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gc-concept__similar {
+  padding: 1px 8px;
+  color: var(--cl-warn);
+  font-size: 12px;
+  background: var(--cl-surface-2);
+  border: 1px solid var(--cl-line);
+  border-radius: 999px;
+}
+
+.gc-state--searching {
+  gap: 10px;
+  color: var(--cl-ink-2);
+}

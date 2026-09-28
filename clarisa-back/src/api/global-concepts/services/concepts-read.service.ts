@@ -10,7 +10,7 @@ import {
   GcCollectionMember,
 } from '../entities/gc-collection.entity';
 import { GcHistory } from '../entities/gc-history.entity';
-import { GcLabel } from '../entities/gc-label.entity';
+import { GcLabel, GcLabelKind } from '../entities/gc-label.entity';
 import { GcListValue } from '../entities/gc-list-value.entity';
 import { GcRelease } from '../entities/gc-release.entity';
 import { GcScheme } from '../entities/gc-scheme.entity';
@@ -19,6 +19,11 @@ import { schemeUri } from '../global-concepts.config';
 import { PublicConcept, presentConcepts } from '../utils/concept-presenter';
 import { CUSTOM_COLUMN_PREFIX, publicFields } from '../utils/custom-fields';
 import { ConceptGraphLoader } from './concept-graph.loader';
+import {
+  SearchDoc,
+  SearchMatch,
+  searchConcepts,
+} from '../utils/concept-search';
 
 export interface ConceptQuery {
   q?: string;
@@ -36,35 +41,46 @@ const isPublic = (c: GcConcept) => GC_PUBLIC_STATUSES.includes(c.status);
 export const likePattern = (text: string) =>
   `%${text.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
 
+/** Search documents of already presented concepts (release snapshots, other callers). */
+export function searchDocsOf(concepts: PublicConcept[]): SearchDoc[] {
+  return concepts.map((c, i) => ({
+    id: c.term_id,
+    order: i,
+    texts: [
+      { field: 'term_id' as const, text: String(c.term_id) },
+      { field: 'preferred_label' as const, text: c.preferred_label },
+      ...(c.preferred_labels ?? [])
+        .slice(1)
+        .map((l) => ({ field: 'alternative_labels' as const, text: l.label })),
+      ...(c.alternative_labels ?? []).map((l) => ({
+        field:
+          l.kind === GcLabelKind.HIDDEN
+            ? ('hidden_labels' as const)
+            : ('alternative_labels' as const),
+        text: l.label,
+      })),
+      { field: 'short_definition' as const, text: c.short_definition ?? '' },
+      { field: 'definition' as const, text: c.definition ?? '' },
+    ],
+  }));
+}
+
+/** A search hit carries how it matched: tier, score and the ranges to highlight. */
+export type SearchedConcept = PublicConcept & { match?: SearchMatch };
+
 /**
- * Best match first for a text search: LIKE finds "ia" inside "social" too,
- * so the exact label or acronym must outrank a definition that merely
- * contains the letters. Stable within a score (alphabetical, as queried).
+ * Text search over presented concepts (see `utils/concept-search`): only the
+ * matches, best first, each with its `match`. Kept under its old name for callers.
  */
-export function rankByRelevance(concepts: PublicConcept[], q: string) {
-  const needle = q.trim().toLowerCase();
-  const wordStart = new RegExp(
-    `(^|[^\\p{L}\\p{N}])${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
-    'iu',
-  );
-  const score = (c: PublicConcept) => {
-    const pref = c.preferred_label.toLowerCase();
-    const alts = (c.alternative_labels ?? []).map((a) => a.label.toLowerCase());
-    if (pref === needle) return 100;
-    if (alts.includes(needle)) return 90;
-    if (pref.startsWith(needle)) return 80;
-    if (alts.some((a) => a.startsWith(needle))) return 70;
-    if (wordStart.test(pref)) return 60;
-    if (alts.some((a) => wordStart.test(a))) return 50;
-    if (pref.includes(needle) || alts.some((a) => a.includes(needle)))
-      return 40;
-    if (wordStart.test(c.definition ?? '')) return 20;
-    return 10;
-  };
-  return concepts
-    .map((c, i) => ({ c, i, s: score(c) }))
-    .sort((a, b) => b.s - a.s || a.i - b.i)
-    .map((x) => x.c);
+export function rankByRelevance(
+  concepts: PublicConcept[],
+  q: string,
+): SearchedConcept[] {
+  const byId = new Map(concepts.map((c) => [c.term_id, c]));
+  return searchConcepts(searchDocsOf(concepts), q).map((hit) => ({
+    ...byId.get(hit.id),
+    match: hit.match,
+  }));
 }
 
 /**
@@ -96,6 +112,8 @@ export class ConceptsReadService {
       publisher: s.publisher,
       governance_description: s.governance_description,
       owner_platform: s.owner_platform,
+      // Whether requests go through a validation step before approval (additive, 2026-09-28).
+      validator_required: !!s.validator_required,
     };
   }
 
@@ -155,27 +173,70 @@ export class ConceptsReadService {
       });
     }
     const q = (query.q ?? '').trim();
-    if (q) {
-      // LIKE and not FULLTEXT: FULLTEXT ignores tokens under 3 characters,
-      // and "IA" is exactly the kind of search this has to answer (V25).
-      const pattern = likePattern(q);
-      const labelHits = await manager
-        .createQueryBuilder(GcLabel, 'l')
-        .select('DISTINCT l.concept_id', 'id')
-        .where('l.label LIKE :p', { p: pattern })
-        .getRawMany<{ id: string }>();
-      const ids = labelHits.map((r) => Number(r.id));
-      qb.andWhere(
-        ids.length
-          ? '(c.preferred_label LIKE :p OR c.definition LIKE :p OR c.id IN (:...ids))'
-          : '(c.preferred_label LIKE :p OR c.definition LIKE :p)',
-        ids.length ? { p: pattern, ids } : { p: pattern },
-      );
-    }
     const concepts = await qb.orderBy('c.preferred_label', 'ASC').getMany();
-    const graph = await this.loader.load(manager, scheme, concepts);
-    const presented = presentConcepts(graph, isPublic);
-    return q ? rankByRelevance(presented, q) : presented;
+    if (!q) {
+      const graph = await this.loader.load(manager, scheme, concepts);
+      return presentConcepts(graph, isPublic);
+    }
+    return this.search(manager, scheme, concepts, q);
+  }
+
+  /**
+   * Ranks the filtered concepts on their texts alone (labels, alternative and
+   * hidden labels, definition), then loads the full graph only for the hits,
+   * so a search costs one label query plus the graph of what it returns.
+   */
+  private async search(
+    manager: DataSource['manager'],
+    scheme: GcScheme,
+    concepts: GcConcept[],
+    q: string,
+  ): Promise<SearchedConcept[]> {
+    if (!concepts.length) return [];
+    const labels = await manager.find(GcLabel, {
+      select: { concept_id: true, label: true, kind: true },
+      where: { concept_id: In(concepts.map((c) => Number(c.id))) },
+    });
+    const labelsOf = new Map<number, GcLabel[]>();
+    for (const l of labels) {
+      const id = Number(l.concept_id);
+      labelsOf.set(id, [...(labelsOf.get(id) ?? []), l]);
+    }
+    const docs: SearchDoc[] = concepts.map((c, i) => ({
+      id: Number(c.id),
+      order: i,
+      texts: [
+        { field: 'term_id', text: String(c.term_id) },
+        { field: 'preferred_label', text: c.preferred_label },
+        ...(labelsOf.get(Number(c.id)) ?? []).map((l) => ({
+          // Hidden labels (misspellings kept on purpose) match but are never shown as "matched".
+          field:
+            l.kind === GcLabelKind.HIDDEN
+              ? ('hidden_labels' as const)
+              : ('alternative_labels' as const),
+          text: l.label,
+        })),
+        { field: 'short_definition', text: c.short_definition ?? '' },
+        { field: 'definition', text: c.definition ?? '' },
+      ],
+    }));
+    const hits = searchConcepts(docs, q);
+    if (!hits.length) return [];
+    const byId = new Map(concepts.map((c) => [Number(c.id), c]));
+    const graph = await this.loader.load(
+      manager,
+      scheme,
+      hits.map((h) => byId.get(h.id)),
+    );
+    const presented = new Map(
+      presentConcepts(graph, isPublic).map((c) => [c.term_id, c]),
+    );
+    const out: SearchedConcept[] = [];
+    for (const h of hits) {
+      const c = presented.get(Number(byId.get(h.id).term_id));
+      if (c) out.push({ ...c, match: h.match });
+    }
+    return out;
   }
 
   async get(code: string, termId: number, version?: string) {
@@ -325,7 +386,6 @@ export class ConceptsReadService {
   }
 
   private filterSnapshot(concepts: PublicConcept[], query: ConceptQuery) {
-    const q = (query.q ?? '').trim().toLowerCase();
     return concepts.filter((c) => {
       if (query.status && c.status !== query.status) return false;
       if (query.term_type && c.term_type !== query.term_type) return false;
@@ -341,12 +401,8 @@ export class ConceptsReadService {
       ) {
         return false;
       }
-      if (!q) return true;
-      return (
-        c.preferred_label.toLowerCase().includes(q) ||
-        (c.definition ?? '').toLowerCase().includes(q) ||
-        c.alternative_labels.some((l) => l.label.toLowerCase().includes(q))
-      );
+      // The text itself is matched by rankByRelevance (same three tiers as the live list).
+      return true;
     });
   }
 

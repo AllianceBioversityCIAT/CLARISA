@@ -1,9 +1,15 @@
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { MessageService } from 'primeng/api';
-import { AdminConceptDetail, ConceptStatus, GlobalConceptsApiService } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
+import {
+  AdminConceptDetail,
+  ConceptStatus,
+  CustomField,
+  GlobalConceptsApiService
+} from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
 import { ConceptFilters, emptyFilters, FilterChip, filterChips, hasIcon, IconFilter, matchesFilters, removeChip } from '../../utils/concept-filters';
 import { STATUS_LABELS, statusSeverity } from '../../utils/concept-form';
+import { activeFields, customCellText } from '../../utils/custom-fields';
 import { groupLists, ListOption, listLabel } from '../../utils/list-values';
 import { GcConceptDialogComponent } from '../gc-concept-dialog/gc-concept-dialog.component';
 
@@ -25,7 +31,12 @@ export interface ConceptRow {
   date_modified: string;
   /** 1 with an icon, 0 without: the Icon column sorts on it. */
   icon: number;
+  /** Display text of each custom field, by field code: the optional columns show and sort on it. */
+  x: Record<string, string>;
 }
+
+/** Remembered per browser; a missing or blocked storage just starts with no extra columns. */
+const COLUMNS_KEY = 'gc-concepts-columns';
 
 export interface SemanticHit {
   term_id: number;
@@ -64,6 +75,14 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
   concepts: AdminConceptDetail[] = [];
   rows: ConceptRow[] = [];
   lists: Record<string, ListOption[]> = {};
+  /** Active custom fields: each one can be switched on as a table column. */
+  customFields: CustomField[] = [];
+  /** Codes of the custom-field columns switched on. */
+  shownFields: string[] = [];
+  /** Kept as fields, not getters: a new array on every check re-renders the picker under the click. */
+  fieldColumnOptions: { label: string; value: string }[] = [];
+  /** The switched-on columns, in the fields' own order. */
+  shownColumns: CustomField[] = [];
 
   filters: ConceptFilters = emptyFilters();
   chips: FilterChip[] = [];
@@ -84,11 +103,15 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
 
   private handledCreateToken: number | null = null;
 
-  constructor(private readonly _api: GlobalConceptsApiService, private readonly _messageService: MessageService) {}
+  constructor(
+    private readonly _api: GlobalConceptsApiService,
+    private readonly _messageService: MessageService
+  ) {}
 
   ngOnInit(): void {
     this.load();
     this.loadLists();
+    this.loadFields();
     this.handleCreateRequest();
   }
 
@@ -98,6 +121,7 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
       this.load();
       if (changes['scheme'] && !changes['scheme'].firstChange) {
         this.loadLists();
+        this.loadFields();
         this.clearSemantic();
       }
     }
@@ -142,6 +166,44 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
     });
   }
 
+  private loadFields(): void {
+    this._api.fields(this.scheme).subscribe({
+      next: fields => {
+        this.customFields = activeFields(Array.isArray(fields) ? fields : []);
+        const known = new Set(this.customFields.map(field => field.code));
+        this.fieldColumnOptions = this.customFields.map(field => ({ label: field.label, value: field.code }));
+        this.shownFields = this.readShownFields().filter(code => known.has(code));
+        this.syncColumns();
+        this.applyFilters();
+      },
+      error: error => this.toastError(error, 'The custom fields could not be loaded; their columns are not available')
+    });
+  }
+
+  // ------------------------------------------------------------ columns
+
+  onColumnsChange(): void {
+    this.syncColumns();
+    try {
+      localStorage.setItem(`${COLUMNS_KEY}:${this.scheme}`, JSON.stringify(this.shownFields));
+    } catch {
+      // Storage blocked: the choice lasts until the page closes.
+    }
+  }
+
+  private syncColumns(): void {
+    this.shownColumns = this.customFields.filter(field => this.shownFields.includes(field.code));
+  }
+
+  private readShownFields(): string[] {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(`${COLUMNS_KEY}:${this.scheme}`) ?? '[]');
+      return Array.isArray(parsed) ? parsed.filter(code => typeof code === 'string') : [];
+    } catch {
+      return [];
+    }
+  }
+
   // ------------------------------------------------------------ filters
 
   applyFilters(): void {
@@ -165,7 +227,9 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
 
   /** How many of the secondary filters are on, for the badge of the "More filters" button. */
   get moreFiltersCount(): number {
-    return (this.filters.icon !== 'any' ? 1 : 0) + (this.filters.missingDefinition ? 1 : 0) + this.filters.termTypes.length + this.filters.phases.length;
+    return (
+      (this.filters.icon !== 'any' ? 1 : 0) + (this.filters.missingDefinition ? 1 : 0) + this.filters.termTypes.length + this.filters.phases.length
+    );
   }
 
   private toRow(concept: AdminConceptDetail): ConceptRow {
@@ -180,8 +244,13 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
       functionsText: functions.join(', '),
       version: concept.version ?? '',
       date_modified: concept.date_modified ?? '',
-      icon: hasIcon(concept) ? 1 : 0
+      icon: hasIcon(concept) ? 1 : 0,
+      x: Object.fromEntries(this.customFields.map(field => [field.code, customCellText(field, concept.extra, this.lists, id => this.labelOf(id))]))
     };
+  }
+
+  private labelOf(termId: number): string | undefined {
+    return this.concepts.find(concept => concept.term_id === termId)?.preferred_label ?? undefined;
   }
 
   statusLabel(status: ConceptStatus | string): string {

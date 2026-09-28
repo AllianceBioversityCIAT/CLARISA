@@ -164,8 +164,25 @@ describe('UsageService', () => {
         suggest: 1,
       });
       expect(s.by_day).toHaveLength(30);
-      expect(s.by_day[29]).toEqual({ day: day(), search: 8, view: 9 });
-      expect(s.by_day[28]).toEqual({ day: day(1), search: 2, view: 1 });
+      // Every counted kind per day; `api` is not a reported kind and never shows up.
+      expect(s.by_day[29]).toMatchObject({
+        day: day(),
+        search: 8,
+        view: 9,
+        export: 2,
+        mcp: 6,
+        suggest: 1,
+      });
+      expect(s.by_day[28]).toMatchObject({ day: day(1), search: 2, view: 1 });
+      expect(Object.keys(s.by_day[0]).sort()).toEqual([
+        'day',
+        'export',
+        'mcp',
+        'search',
+        'suggest',
+        'view',
+        'zero_search',
+      ]);
       expect(s.top_searches).toEqual([
         { item: 'ia', count: 7 },
         { item: 'outcome', count: 3 },

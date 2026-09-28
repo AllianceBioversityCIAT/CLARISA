@@ -125,3 +125,50 @@ export function usageViewModel(summary: UsageSummary | null, days: number, today
     zeroShare: searches ? Math.round((Number(totals.zero_search ?? 0) / searches) * 100) : 0
   };
 }
+
+/** One series of the stacked daily chart (the shape the panel's shared chart draws). */
+export interface UsageSeries {
+  key: keyof UsageSummary['totals'];
+  label: string;
+  color: string;
+  values: number[];
+}
+
+/** Daily mix: one colour per kind, the same colours in the chart, the tiles and the legend. */
+export const USAGE_COLORS: Record<keyof UsageSummary['totals'], string> = {
+  search: '#0f8a63',
+  view: '#2563eb',
+  export: '#d97706',
+  mcp: '#7c3aed',
+  suggest: '#db2777',
+  zero_search: '#dc2626'
+};
+
+const MIX: { key: keyof UsageSummary['totals']; label: string }[] = [
+  { key: 'search', label: 'Searches' },
+  { key: 'view', label: 'Concept views' },
+  { key: 'export', label: 'Exports' },
+  { key: 'mcp', label: 'MCP calls' },
+  { key: 'suggest', label: 'Text checks' }
+];
+
+/**
+ * Every day of the period with every kind, oldest first and zero-filled: the
+ * labels of the x axis, the stacked series and one sparkline per tile. A
+ * search with no result is already counted in `search`, so it has a tile and a
+ * sparkline but no band of its own in the stack.
+ */
+export function usageSeries(
+  summary: UsageSummary | null,
+  days: number,
+  today: Date = new Date()
+): { labels: string[]; series: UsageSeries[]; sparks: Record<string, number[]> } {
+  const points = fillDays(summary?.by_day ?? [], days, today);
+  const known = new Map((summary?.by_day ?? []).map(row => [String(row.day).slice(0, 10), row]));
+  const value = (day: string, key: keyof UsageSummary['totals']) => Number((known.get(day) as Record<string, unknown> | undefined)?.[key] ?? 0) || 0;
+  const labels = points.map(p => p.day);
+  const series = MIX.map(m => ({ key: m.key, label: m.label, color: USAGE_COLORS[m.key], values: labels.map(d => value(d, m.key)) }));
+  const sparks: Record<string, number[]> = {};
+  for (const key of Object.keys(USAGE_COLORS) as (keyof UsageSummary['totals'])[]) sparks[key] = labels.map(d => value(d, key));
+  return { labels, series, sparks };
+}

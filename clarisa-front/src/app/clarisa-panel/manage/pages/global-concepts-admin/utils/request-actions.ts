@@ -21,16 +21,18 @@ const OPTIONS: Record<RequestAction, RequestActionOption> = {
  * Actions an admin can take on a request in `state`, mirroring
  * `RequestsService.nextState` in the back. `changes_requested` waits on the
  * requester, so the only admin move there is to reject; approved and rejected
- * are final. Whether the scheme has a validation step is only known to the
- * back: when it does not, `send_to_validation` answers 400 and the message is
- * shown as is.
+ * are final. `hasValidation` comes from the scheme (`validator_required`):
+ * without the step, "Send to validation" is not offered (the back answers 400).
  */
-export function allowedActions(state: RequestState): RequestActionOption[] {
+export function allowedActions(state: RequestState, hasValidation: boolean | null = null): RequestActionOption[] {
   switch (state) {
     case 'submitted':
       return [OPTIONS.start_review, OPTIONS.reject];
     case 'in_review':
-      return [OPTIONS.approve, OPTIONS.request_changes, OPTIONS.send_to_validation, OPTIONS.reject];
+      // Unknown (older back) keeps the button; a scheme without the step never offers it.
+      return hasValidation === false
+        ? [OPTIONS.approve, OPTIONS.request_changes, OPTIONS.reject]
+        : [OPTIONS.approve, OPTIONS.request_changes, OPTIONS.send_to_validation, OPTIONS.reject];
     case 'validation':
       return [OPTIONS.approve, OPTIONS.request_changes, OPTIONS.reject];
     case 'changes_requested':

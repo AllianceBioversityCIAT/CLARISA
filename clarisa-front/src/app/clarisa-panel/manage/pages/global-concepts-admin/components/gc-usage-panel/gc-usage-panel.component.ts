@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { GlobalConceptsApiService, UsageSummary } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
-import { UsageChart, usageViewModel, UsageViewModel } from '../../utils/usage-view';
+import { USAGE_COLORS, UsageChart, usageSeries, UsageSeries, usageViewModel, UsageViewModel } from '../../utils/usage-view';
 
 /** Which terms are searched for and used (checklist row 10, contract v2 § 3). */
 @Component({
@@ -25,6 +25,9 @@ export class GcUsagePanelComponent implements OnInit, OnChanges {
   loadError: string | null = null;
   summary: UsageSummary | null = null;
   view: UsageViewModel = usageViewModel(null, 30);
+  /** Stacked daily mix and one sparkline per tile, for the shared panel charts. */
+  mix: { labels: string[]; series: UsageSeries[]; sparks: Record<string, number[]> } = usageSeries(null, 30);
+  readonly colors = USAGE_COLORS;
   /** Index of the day under the pointer, for the tooltip. */
   hover: number | null = null;
   private requestId = 0;
@@ -56,6 +59,7 @@ export class GcUsagePanelComponent implements OnInit, OnChanges {
         this.loading = false;
         this.summary = summary ?? null;
         this.view = usageViewModel(this.summary, this.days);
+        this.mix = usageSeries(this.summary, this.days);
         this.hover = null;
       },
       error: error => {

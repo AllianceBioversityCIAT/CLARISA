@@ -35,7 +35,12 @@ const c = (term_id: number, label: string, extra: Partial<FilterableConcept> = {
 const data: FilterableConcept[] = [
   c(1, 'Outcome', { meliaf_function: ['mel', 'learning'], meliaf_phase_primary: 'design', term_type: 'core', date_modified: '2026-09-01' }),
   c(2, 'Output', { meliaf_function: ['mel'], meliaf_phase_primary: 'implementation', term_type: 'core', date_modified: '2026-09-20' }),
-  c(3, 'Évaluation', { meliaf_function: ['evaluation'], meliaf_phase_primary: 'design', meliaf_phase_also: ['implementation'], term_type: 'process' }),
+  c(3, 'Évaluation', {
+    meliaf_function: ['evaluation'],
+    meliaf_phase_primary: 'design',
+    meliaf_phase_also: ['implementation'],
+    term_type: 'process'
+  }),
   c(4, 'Old outcome', { meliaf_function: ['mel'], status: 'deprecated', term_type: 'core', date_modified: '2026-09-25' }),
   c(5, 'Learning agenda', {
     meliaf_function: ['learning'],
@@ -111,7 +116,12 @@ describe('global-concepts.filters', () => {
     });
 
     it('draws options in list order with labels, and hides a facet nobody uses', () => {
-      const lists = { term_type: [{ value: 'process', label: 'Process step' }, { value: 'core', label: 'Core term' }] };
+      const lists = {
+        term_type: [
+          { value: 'process', label: 'Process step' },
+          { value: 'core', label: 'Core term' }
+        ]
+      };
       const views = facetViews(data, state(), lists);
       const type = views.find(v => v.code === 'term_type');
       expect(type?.options.map(o => [o.value, o.label, o.count])).toEqual([
@@ -135,7 +145,12 @@ describe('global-concepts.filters', () => {
 
   describe('URL', () => {
     it('round-trips every part of the state', () => {
-      const s = state({ q: 'learning', sort: 'updated', deprecated: true, facets: { meliaf_function: ['mel', 'learning'], collection: ['starter'] } });
+      const s = state({
+        q: 'learning',
+        sort: 'updated',
+        deprecated: true,
+        facets: { meliaf_function: ['mel', 'learning'], collection: ['starter'] }
+      });
       const params = filterParams(s);
       expect(params).toEqual({
         q: 'learning',
@@ -152,8 +167,16 @@ describe('global-concepts.filters', () => {
     });
 
     it('drops defaults and ignores an unknown sort', () => {
-      expect(filterParams(emptyState())).toEqual({ q: null, sort: null, deprecated: null, meliaf_function: null, meliaf_phase: null, term_type: null, collection: null });
-      expect(parseFilterParams(new URLSearchParams('sort=random&meliaf_phase=,a,,a')).sort).toBe('az');
+      expect(filterParams(emptyState())).toEqual({
+        q: null,
+        sort: null,
+        deprecated: null,
+        meliaf_function: null,
+        meliaf_phase: null,
+        term_type: null,
+        collection: null
+      });
+      expect(parseFilterParams(new URLSearchParams('sort=random&meliaf_phase=,a,,a')).sort).toBe('best');
       expect(parseFilterParams(new URLSearchParams('meliaf_phase=,a,,a')).facets.meliaf_phase).toEqual(['a']);
     });
   });

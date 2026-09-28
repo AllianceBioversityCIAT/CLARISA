@@ -1,3 +1,4 @@
+import { AdminChartsModule } from '../microservices-admin/components/charts/admin-charts.module';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -61,6 +62,7 @@ import { GlossaryFileParserService } from '../glossary-admin/services/glossary-f
   ],
   imports: [
     CommonModule,
+    AdminChartsModule,
     FormsModule,
     GlobalConceptsAdminRoutingModule,
     AutoCompleteModule,

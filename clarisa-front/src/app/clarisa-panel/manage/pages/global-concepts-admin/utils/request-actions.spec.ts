@@ -35,4 +35,10 @@ describe('Global Concepts requests — actions per state', () => {
     expect(stateLabel('changes_requested')).toBe('Changes requested');
     expect(stateLabel(null)).toBe('—');
   });
+
+  it('never offers "Send to validation" for a scheme without that step, and keeps it when unknown', () => {
+    expect(allowedActions('in_review', false).map(a => a.action)).toEqual(['approve', 'request_changes', 'reject']);
+    expect(allowedActions('in_review', null).map(a => a.action)).toContain('send_to_validation');
+    expect(allowedActions('in_review', true).map(a => a.action)).toContain('send_to_validation');
+  });
 });

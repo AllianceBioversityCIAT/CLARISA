@@ -83,7 +83,10 @@ describe('ConceptListComponent', () => {
           term_type: [{ value: 'core', label: 'Core term' }]
         })
       ),
-      concepts: jest.fn((scheme: string, query: any) => of(query?.q ? [] : concepts)),
+      // The back answers a search with its own matches; this stand-in matches the label.
+      concepts: jest.fn((scheme: string, query: any) =>
+        of(query?.q ? concepts.filter(c => c.preferred_label.toLowerCase().includes(String(query.q).toLowerCase())) : concepts)
+      ),
       exportUrl: jest.fn((scheme: string, format: string) => `https://api/${scheme}/export?format=${format}`),
       suggest: jest.fn()
     };
@@ -159,7 +162,7 @@ describe('ConceptListComponent', () => {
     // The back button: the router emits the previous URL and the page follows it.
     params.next(convertToParamMap({ meliaf_function: 'monitoring' }));
     expect(component.state.facets.meliaf_function).toEqual(['monitoring']);
-    expect(component.state.sort).toBe('az');
+    expect(component.state.sort).toBe('best');
     expect(labels()).toEqual(['Outcome']);
   });
 
@@ -296,6 +299,28 @@ describe('ConceptListComponent', () => {
     tick(SEARCH_SETTLE);
   }));
 
+  it('lets the back decide once it answers, in its order, and marks what it matched', fakeAsync(() => {
+    api.concepts.mockImplementation((_: string, query: any) =>
+      of(
+        query?.q
+          ? [
+              { ...concepts[1], match: { tier: 'similar', score: 0.8, highlights: [{ field: 'preferred_label', ranges: [[0, 4]] }] } },
+              { ...concepts[0], match: { tier: 'similar', score: 0.75, highlights: [] } }
+            ]
+          : concepts
+      )
+    );
+    fixture.detectChanges();
+    component.onQueryInput('basline');
+    tick(SEARCH_DEBOUNCE);
+    // Neither label contains "basline": only the back's similar-word answer finds them, in its order.
+    expect(labels()).toEqual(['Baseline', 'Outcome']);
+    fixture.detectChanges();
+    const marks = [...fixture.nativeElement.querySelectorAll('mark.gc-hit')].map((m: HTMLElement) => m.textContent);
+    expect(marks).toEqual(['Base']);
+    tick(SEARCH_SETTLE);
+  }));
+
   it('keeps the local match when the back search fails', fakeAsync(() => {
     api.concepts.mockImplementation((_: string, query: any) => (query?.q ? throwError(() => new HttpErrorResponse({ status: 500 })) : of(concepts)));
     fixture.detectChanges();
@@ -316,15 +341,21 @@ describe('ConceptListComponent', () => {
     expect(labels()).toEqual(['Baseline', 'Outcome']);
   });
 
-  it('suggests clearing filters or proposing the searched term when nothing matches', () => {
+  it('says it is searching until the back answers, then suggests clearing filters or proposing the term', fakeAsync(() => {
     fixture.detectChanges();
     component.onQueryInput('zzz');
+    fixture.detectChanges();
+    // No false "nothing" while the back (which knows similar spellings) has not answered.
+    expect(fixture.nativeElement.textContent).toContain('Searching…');
+    expect(fixture.nativeElement.textContent).not.toContain('No concept matches');
+    tick(SEARCH_DEBOUNCE);
     fixture.detectChanges();
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('No concept matches "zzz"');
     expect(text).toContain('Clear all filters');
     expect(text).toContain('Propose "zzz"');
-  });
+    tick(SEARCH_SETTLE);
+  }));
 
   it('shows labels from the lists and the replacement of a deprecated concept', () => {
     params.next(convertToParamMap({ deprecated: '1' }));

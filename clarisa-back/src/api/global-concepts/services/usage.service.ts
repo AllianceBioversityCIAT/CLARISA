@@ -94,23 +94,29 @@ export class UsageService {
       mcp: 0,
       suggest: 0,
     };
-    const byDay = new Map<
-      string,
-      { day: string; search: number; view: number }
-    >();
+    // Every counted kind per day (additive: `search` and `view` keep their meaning).
+    type DaySlot = { day: string } & typeof totals;
+    const byDay = new Map<string, DaySlot>();
     for (let i = 0; i < span; i++) {
       const d = new Date(Date.parse(`${since}T00:00:00Z`) + i * 86_400_000)
         .toISOString()
         .slice(0, 10);
-      byDay.set(d, { day: d, search: 0, view: 0 });
+      byDay.set(d, {
+        day: d,
+        search: 0,
+        zero_search: 0,
+        view: 0,
+        export: 0,
+        mcp: 0,
+        suggest: 0,
+      });
     }
     const tally = new Map<GcUsageKind, Map<string, number>>();
     for (const r of rows) {
       const n = Number(r.count) || 0;
       if (r.kind in totals) totals[r.kind as keyof typeof totals] += n;
       const slot = byDay.get(dayOf(r.day));
-      if (slot && r.kind === GcUsageKind.SEARCH) slot.search += n;
-      if (slot && r.kind === GcUsageKind.VIEW) slot.view += n;
+      if (slot && r.kind in totals) slot[r.kind as keyof typeof totals] += n;
       const m = tally.get(r.kind) ?? new Map<string, number>();
       m.set(r.item, (m.get(r.item) ?? 0) + n);
       tally.set(r.kind, m);

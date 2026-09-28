@@ -42,6 +42,7 @@ describe('GcRequestsPanelComponent', () => {
 
   beforeEach(() => {
     api = {
+      scheme: jest.fn(() => of({ code: 'meliaf', validator_required: false })),
       requests: jest.fn(() => of(all)),
       request: jest.fn((id: number) => of(all.find(r => r.id === id))),
       transition: jest.fn(() => of(request(2, 'approved'))),
@@ -145,5 +146,9 @@ describe('GcRequestsPanelComponent', () => {
     expect(payloadValue({ label: 'Outcome' })).toBe('Outcome');
     expect(requestConceptLabel(request(9, 'submitted', { concept: { term_id: 3, preferred_label: 'Stored' } }))).toBe('Stored');
     expect(requestConceptLabel(request(9, 'submitted'))).toBe('Concept 9');
+  });
+
+  it('does not offer "Send to validation" when the scheme has no validation step', () => {
+    expect(component.hasValidation).toBe(false);
   });
 });

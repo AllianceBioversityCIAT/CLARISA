@@ -163,7 +163,7 @@ describe('rankByRelevance', () => {
       definition,
     }) as unknown as PublicConcept;
 
-  it('puts the acronym match above definitions that only contain the letters', () => {
+  it('finds the acronym and no longer the letters hidden inside other words', () => {
     const ranked = rankByRelevance(
       [
         c(1, 'Action Area', [], 'Genetic innovation in Asia'),
@@ -172,10 +172,11 @@ describe('rankByRelevance', () => {
       ],
       'IA',
     );
-    expect(ranked.map((x) => x.term_id)).toEqual([3, 1, 2]);
+    expect(ranked.map((x) => x.term_id)).toEqual([3]);
+    expect(ranked[0].match?.tier).toBe('exact');
   });
 
-  it('ranks exact, then prefix, then word-start matches', () => {
+  it('ranks the whole label, then the label start, then a later word, then a similar word', () => {
     const ranked = rankByRelevance(
       [
         c(1, 'Participatory evaluation'),

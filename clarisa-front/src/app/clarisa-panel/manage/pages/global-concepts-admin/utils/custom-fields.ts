@@ -1,4 +1,5 @@
 import { CustomField, CustomFieldType } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
+import { ListOption, listLabel } from './list-values';
 
 /** The control drawn for each field type. One type, one control; nothing is guessed from the value. */
 export type CustomControl = 'text' | 'textarea' | 'chips' | 'dropdown' | 'multiselect' | 'concepts' | 'url' | 'date' | 'number';
@@ -116,7 +117,12 @@ export function buildExtra(
  * required field has to be filled on create, and cannot be emptied on update;
  * urls are http(s), dates YYYY-MM-DD, numbers numeric.
  */
-export function customFieldsError(fields: CustomField[], values: Record<string, CustomValue>, creating: boolean, original: Record<string, CustomValue> | null): string | null {
+export function customFieldsError(
+  fields: CustomField[],
+  values: Record<string, CustomValue>,
+  creating: boolean,
+  original: Record<string, CustomValue> | null
+): string | null {
   for (const field of fields) {
     const value = values[field.code];
     const touched = creating || normalised(value) !== normalised(original?.[field.code]);
@@ -138,4 +144,26 @@ export function slugify(label: string): string {
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
     .slice(0, 50);
+}
+
+/**
+ * What a table cell shows for one custom field of one concept: list values by
+ * their label, linked concepts by their preferred label (the TERM ID when the
+ * concept is unknown), several values joined. `''` when the concept has none.
+ */
+export function customCellText(
+  field: CustomField,
+  extra: Record<string, unknown> | null | undefined,
+  lists: Record<string, ListOption[]>,
+  labelOf: (termId: number) => string | undefined
+): string {
+  const value = valuesFromExtra([field], extra)[field.code];
+  if (isEmpty(value)) return '';
+  const items = Array.isArray(value) ? value : [value];
+  const texts = items.map(item => {
+    if (field.type === 'term_link') return labelOf(Number(item)) ?? `TERM ${item}`;
+    if (needsList(field.type) && field.list_code) return listLabel(lists, field.list_code, String(item));
+    return String(item);
+  });
+  return texts.join(', ');
 }

@@ -17,7 +17,8 @@ import { ListsByCode, labelOf } from './global-concepts.utils';
  */
 
 export type FacetCode = 'meliaf_function' | 'meliaf_phase' | 'term_type' | 'collection';
-export type SortCode = 'az' | 'za' | 'updated';
+/** `best` = relevance while searching (the back's order), A to Z otherwise. */
+export type SortCode = 'best' | 'az' | 'za' | 'updated';
 
 export interface FacetDef {
   code: FacetCode;
@@ -34,6 +35,7 @@ export const FACET_DEFS: FacetDef[] = [
 ];
 
 export const SORTS: { code: SortCode; label: string }[] = [
+  { code: 'best', label: 'Best match' },
   { code: 'az', label: 'A to Z' },
   { code: 'za', label: 'Z to A' },
   { code: 'updated', label: 'Recently updated' }
@@ -77,7 +79,7 @@ export type FilterableConcept = PublicConcept & {
 
 export const emptyFacets = (): Record<FacetCode, string[]> => ({ meliaf_function: [], meliaf_phase: [], term_type: [], collection: [] });
 
-export const emptyState = (): FilterState => ({ q: '', facets: emptyFacets(), sort: 'az', deprecated: false });
+export const emptyState = (): FilterState => ({ q: '', facets: emptyFacets(), sort: 'best', deprecated: false });
 
 // ------------------------------------------------------------------ values
 
@@ -95,11 +97,7 @@ export function valuesOf(concept: FilterableConcept, code: FacetCode): string[] 
   }
 }
 
-const fold = (text: string | null | undefined) =>
-  (text ?? '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+const fold = (text: string | null | undefined) => (text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /**
  * Instant, local text match while the reader types: labels, acronyms,
@@ -127,8 +125,8 @@ export function matchesText(concept: FilterableConcept, q: string): boolean {
 
 /**
  * Concepts that pass the state. `except` leaves one facet out (for its own
- * counts). `serverHits` = term ids the back matched for the same `q`; a
- * concept passes the text test when it matches locally OR the back found it.
+ * counts). `serverHits` = term ids the back matched for the same `q`: once
+ * given, it is the text test; before it arrives the local match stands in.
  */
 export function applyFilters(
   concepts: FilterableConcept[],
@@ -139,7 +137,9 @@ export function applyFilters(
   const q = state.q.trim();
   return concepts.filter(concept => {
     if (!state.deprecated && concept.status === 'deprecated') return false;
-    if (q && !matchesText(concept, q) && !serverHits?.has(concept.term_id)) return false;
+    // The back's answer for this `q` decides (exact, mixed words, similar words);
+    // the local match only fills the moments before it arrives.
+    if (q && (serverHits ? !serverHits.has(concept.term_id) : !matchesText(concept, q))) return false;
     for (const def of FACET_DEFS) {
       if (def.code === except) continue;
       const wanted = state.facets[def.code];
@@ -227,9 +227,14 @@ const time = (value: string | null | undefined) => {
   return Number.isNaN(t) ? -Infinity : t;
 };
 
-export function sortConcepts<T extends PublicConcept>(concepts: T[], sort: SortCode): T[] {
+/** `rank` = position of each term id in the back's answer; `best` follows it when given. */
+export function sortConcepts<T extends PublicConcept>(concepts: T[], sort: SortCode, rank: ReadonlyMap<number, number> | null = null): T[] {
   const byLabel = (a: T, b: T) => a.preferred_label.localeCompare(b.preferred_label, 'en', { sensitivity: 'base', numeric: true });
   const rows = [...concepts];
+  if (sort === 'best' && rank) {
+    const at = (c: T) => rank.get(c.term_id) ?? Number.MAX_SAFE_INTEGER;
+    return rows.sort((a, b) => at(a) - at(b) || byLabel(a, b));
+  }
   if (sort === 'za') return rows.sort((a, b) => byLabel(b, a));
   if (sort === 'updated') return rows.sort((a, b) => time(b.date_modified) - time(a.date_modified) || byLabel(a, b));
   return rows.sort(byLabel);
@@ -296,7 +301,7 @@ export function parseFilterParams(params: ParamReader): FilterState {
     ];
   }
   const sort = params.get('sort') as SortCode;
-  state.sort = SORT_CODES.includes(sort) ? sort : 'az';
+  state.sort = SORT_CODES.includes(sort) ? sort : 'best';
   state.deprecated = params.get('deprecated') === '1';
   return state;
 }
@@ -308,7 +313,7 @@ export function parseFilterParams(params: ParamReader): FilterState {
 export function filterParams(state: FilterState): Record<string, string | null> {
   const out: Record<string, string | null> = {
     q: urlQuery(state.q) || null,
-    sort: state.sort === 'az' ? null : state.sort,
+    sort: state.sort === 'best' ? null : state.sort,
     deprecated: state.deprecated ? '1' : null
   };
   for (const def of FACET_DEFS) out[def.code] = state.facets[def.code].length ? state.facets[def.code].join(',') : null;

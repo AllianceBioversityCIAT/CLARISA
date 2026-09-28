@@ -70,6 +70,19 @@ export interface PublicConcept {
   replaced_by: ConceptRef | null;
   rights_note: string | null;
   mappings: ConceptMapping[];
+  /** Only on a `q` search: how the concept matched and which characters to mark. */
+  match?: SearchMatch;
+}
+
+/**
+ * How a search hit matched (the back's `utils/concept-search`): `exact` = the
+ * words together and in order, `words` = every word somewhere, `similar` =
+ * close words (typos, missing letters). `ranges` are `[start, end)` offsets.
+ */
+export interface SearchMatch {
+  tier: 'exact' | 'words' | 'similar';
+  score: number;
+  highlights: { field: 'preferred_label' | 'alternative_labels' | 'short_definition' | 'definition'; text?: string; ranges: [number, number][] }[];
 }
 
 export interface AdminConcept extends PublicConcept {
@@ -88,6 +101,8 @@ export interface ConceptScheme {
   publisher: string | null;
   governance_description: string | null;
   owner_platform: string | null;
+  /** Requests go through validation before approval; absent from an older back. */
+  validator_required?: boolean;
 }
 
 export interface ListValue {
@@ -529,9 +544,7 @@ export class GlobalConceptsApiService {
 
   /** Import columns: built-in schema fields plus `x:<code>` for each active custom field. */
   importFields(scheme: string): Observable<ImportFieldInfo[]> {
-    return this._http.get<ImportFieldInfo[]>(
-      `${this.admin}/${encodeURIComponent(scheme)}/import-fields`
-    );
+    return this._http.get<ImportFieldInfo[]>(`${this.admin}/${encodeURIComponent(scheme)}/import-fields`);
   }
 }
 
@@ -638,7 +651,8 @@ export interface ConceptCollection {
 export interface UsageSummary {
   days: number;
   totals: { search: number; zero_search: number; view: number; export: number; mcp: number; suggest: number };
-  by_day: { day: string; search: number; view: number }[];
+  /** Every counted kind per day; the extra kinds are optional for an older back. */
+  by_day: { day: string; search: number; view: number; zero_search?: number; export?: number; mcp?: number; suggest?: number }[];
   top_searches: { item: string; count: number }[];
   zero_result_searches: { item: string; count: number }[];
   top_viewed: { term_id: number; preferred_label: string; count: number }[];
