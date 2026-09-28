@@ -4,7 +4,7 @@
       <h3 class="gc-ed__title">Mappings</h3>
       <p class="gc-ed__hint">The same idea in an outside vocabulary. Published as SKOS matches, so other systems can line their terms up with ours.</p>
     </div>
-    <button *ngIf="!showForm" pButton type="button" label="Add mapping" icon="pi pi-plus" class="btn-ghost" (click)="openForm()"></button>
+    <button *ngIf="!showForm" pButton type="button" label="Add mapping" icon="pi pi-plus" class="p-button-outlined" (click)="openForm()"></button>
   </div>
 
   <div class="gc-ed__empty" *ngIf="!mappings.length && !showForm">
@@ -99,7 +99,7 @@
     </div>
     <p class="gc-ed__error" *ngIf="formError && (form.target_scheme || form.target_uri || form.confidence !== null)"><i class="pi pi-info-circle"></i><span>{{ formError }}</span></p>
     <div class="admin-form__actions">
-      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="adding" (click)="showForm = false"></button>
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="adding" (click)="showForm = false"></button>
       <button
         pButton
         type="submit"

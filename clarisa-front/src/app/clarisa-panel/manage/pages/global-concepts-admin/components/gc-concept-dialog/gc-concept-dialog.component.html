@@ -102,7 +102,7 @@
               <p class="gc-ai-draft__text">{{ suggestion }}</p>
               <div class="gc-ai-draft__actions">
                 <button pButton type="button" label="Discard" class="p-button-text p-button-sm" (click)="discardDraft(item.field)"></button>
-                <button pButton type="button" label="Accept" icon="pi pi-check" class="btn-ghost gc-ai-draft__accept" (click)="acceptDraft(item.field)"></button>
+                <button pButton type="button" label="Accept" icon="pi pi-check" class="p-button-outlined gc-ai-draft__accept" (click)="acceptDraft(item.field)"></button>
               </div>
             </div>
             <small class="field-error" *ngIf="draftErrors[item.field]">{{ draftErrors[item.field] }}</small>
@@ -204,7 +204,7 @@
         <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
         <p class="gc-state__title">The custom fields did not load</p>
         <p class="gc-state__text">{{ fieldsError }}</p>
-        <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost" (click)="retryFields()"></button>
+        <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="retryFields()"></button>
       </div>
 
       <div class="gc-state" *ngIf="!fieldsLoading && !fieldsError && !fields.length">
@@ -227,7 +227,7 @@
 
     <div class="admin-form__actions">
       <span class="gc-actions-note" *ngIf="editing">Saves Details and Custom fields together.</span>
-      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="close()"></button>
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="saving" (click)="close()"></button>
       <button
         pButton
         type="submit"
@@ -289,7 +289,7 @@
           type="button"
           icon="pi pi-flag"
           label="Change status"
-          [ngClass]="newStatus === 'deprecated' ? 'btn-caution' : 'btn-ghost'"
+          [ngClass]="newStatus === 'deprecated' ? 'btn-caution' : 'p-button-outlined'"
           [disabled]="!!statusChangeError || changingStatus"
           [loading]="changingStatus"
           (click)="changeStatus()"></button>
@@ -352,7 +352,7 @@
         <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
         <p class="gc-state__title">The history did not load</p>
         <p class="gc-state__text">{{ historyError }}</p>
-        <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost" (click)="loadHistory(true)"></button>
+        <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="loadHistory(true)"></button>
       </div>
       <div class="gc-ed__empty" *ngIf="!historyLoading && !historyError && !history.length"><i class="pi pi-history"></i><span>No recorded change yet.</span></div>
 
@@ -373,7 +373,7 @@
     </section>
 
     <div class="gc-tab-close" *ngIf="tab !== 'details' && tab !== 'fields'">
-      <button pButton type="button" label="Close" class="btn-ghost" (click)="close()"></button>
+      <button pButton type="button" label="Close" class="p-button-outlined" (click)="close()"></button>
     </div>
   </div>
 </p-dialog>

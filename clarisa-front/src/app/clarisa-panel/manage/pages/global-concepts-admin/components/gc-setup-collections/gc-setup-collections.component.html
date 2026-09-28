@@ -4,7 +4,7 @@
       <h3 class="gc-ed__title">Collections</h3>
       <p class="gc-ed__hint">Hand-picked groups of concepts — a platform's glossary, a training set — published as SKOS collections. They do not change broader / narrower.</p>
     </div>
-    <button *ngIf="!creating" pButton type="button" label="New collection" icon="pi pi-plus" class="btn-ghost" [disabled]="!!busy" (click)="creating = true"></button>
+    <button *ngIf="!creating" pButton type="button" label="New collection" icon="pi pi-plus" class="p-button-outlined" [disabled]="!!busy" (click)="creating = true"></button>
   </div>
 
   <form class="admin-card admin-form gc-new-collection" *ngIf="creating" (ngSubmit)="create()" autocomplete="off">
@@ -22,7 +22,7 @@
     </div>
     <p class="gc-ed__error" *ngIf="createError && newLabel"><i class="pi pi-info-circle"></i><span>{{ createError }}</span></p>
     <div class="admin-form__actions">
-      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="isBusy('create')" (click)="creating = false"></button>
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="isBusy('create')" (click)="creating = false"></button>
       <button
         pButton
         type="submit"
@@ -46,7 +46,7 @@
       <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
       <p class="gc-state__title">The collections did not load</p>
       <p class="gc-state__text">{{ loadError }}</p>
-      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost" (click)="load()"></button>
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
     </div>
   </div>
 
@@ -69,7 +69,7 @@
           <label class="gc-sr-only" [for]="'gc-rename-' + collection.code">New name</label>
           <input [id]="'gc-rename-' + collection.code" name="label" type="text" pInputText maxlength="255" [(ngModel)]="renameLabel" [disabled]="!!busy" />
           <button pButton type="button" label="Cancel" class="p-button-text p-button-sm" [disabled]="!!busy" (click)="renaming = null"></button>
-          <button pButton type="submit" label="Save" class="btn-ghost" [disabled]="!!busy || !renameLabel.trim()" [loading]="isBusy('rename:' + collection.code)"></button>
+          <button pButton type="submit" label="Save" class="p-button-outlined" [disabled]="!!busy || !renameLabel.trim()" [loading]="isBusy('rename:' + collection.code)"></button>
         </form>
         <div class="gc-collection__actions" *ngIf="renaming !== collection.code">
           <button pButton type="button" label="Rename" icon="pi pi-pencil" class="p-button-text p-button-sm" [disabled]="!!busy" (click)="startRename(collection)"></button>
@@ -121,7 +121,7 @@
           (picked)="addMember($event)"></app-gc-concept-picker>
         <div class="gc-ed__foot">
           <span class="gc-ed__foot-note">{{ editingMembers?.members?.length || 0 }} concept(s). The set is replaced when you save.</span>
-          <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="!!busy" (click)="editingMembers = null"></button>
+          <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="!!busy" (click)="editingMembers = null"></button>
           <button
             pButton
             type="button"

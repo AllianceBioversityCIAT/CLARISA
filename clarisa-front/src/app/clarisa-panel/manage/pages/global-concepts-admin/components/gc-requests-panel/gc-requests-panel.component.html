@@ -44,7 +44,7 @@
       <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
       <p class="gc-state__title">The requests did not load</p>
       <p class="gc-state__text">{{ loadError }}</p>
-      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost" (click)="load()"></button>
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
     </div>
 
     <div class="gc-state" *ngIf="!loading && !loadError && !requests.length">
@@ -176,7 +176,7 @@
           *ngIf="showAiButton"
           pButton
           type="button"
-          class="btn-ghost p-button-sm gc-ai__button"
+          class="p-button-outlined p-button-sm gc-ai__button"
           icon="pi pi-bolt"
           [label]="recommendation ? 'Refresh' : 'Get AI recommendation'"
           [loading]="aiLoading"
@@ -248,7 +248,7 @@
           <small class="field-hint">Recorded in the history and sent with the notification.</small>
         </div>
         <div class="admin-form__actions">
-          <button pButton type="button" label="Back" class="btn-ghost" [disabled]="transitioning" (click)="cancelAction()"></button>
+          <button pButton type="button" label="Back" class="p-button-outlined" [disabled]="transitioning" (click)="cancelAction()"></button>
           <button
             pButton
             type="button"

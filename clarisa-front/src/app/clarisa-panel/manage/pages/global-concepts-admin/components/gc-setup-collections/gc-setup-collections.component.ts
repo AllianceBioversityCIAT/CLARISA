@@ -200,7 +200,7 @@ export class GcSetupCollectionsComponent implements OnInit, OnChanges {
       acceptLabel: 'Delete collection',
       rejectLabel: 'Cancel',
       acceptButtonStyleClass: 'btn-caution',
-      rejectButtonStyleClass: 'btn-ghost',
+      rejectButtonStyleClass: 'p-button-outlined',
       accept: () => {
         if (this.busy) return;
         this.busy = `delete:${collection.code}`;

@@ -7,7 +7,7 @@
         <strong>discouraged</strong> ones are published as "do not use".
       </p>
     </div>
-    <button pButton type="button" label="Add label" icon="pi pi-plus" class="btn-ghost" [disabled]="saving" (click)="add()"></button>
+    <button pButton type="button" label="Add label" icon="pi pi-plus" class="p-button-outlined" [disabled]="saving" (click)="add()"></button>
   </div>
 
   <div class="gc-ed__empty" *ngIf="!rows.length">
@@ -55,7 +55,7 @@
 
   <div class="gc-ed__foot">
     <span class="gc-ed__foot-note">The whole set is replaced when you save. Empty rows are ignored.</span>
-    <button pButton type="button" label="Undo changes" class="btn-ghost" *ngIf="dirty" [disabled]="saving" (click)="reset()"></button>
+    <button pButton type="button" label="Undo changes" class="p-button-outlined" *ngIf="dirty" [disabled]="saving" (click)="reset()"></button>
     <button
       pButton
       type="button"

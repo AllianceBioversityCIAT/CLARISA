@@ -321,7 +321,7 @@ export class GcImportPanelComponent implements OnChanges, OnInit {
       acceptLabel: 'Import',
       rejectLabel: 'Cancel',
       acceptButtonStyleClass: 'btn-brand',
-      rejectButtonStyleClass: 'btn-ghost',
+      rejectButtonStyleClass: 'p-button-outlined',
       accept: () => this.runImport()
     });
   }

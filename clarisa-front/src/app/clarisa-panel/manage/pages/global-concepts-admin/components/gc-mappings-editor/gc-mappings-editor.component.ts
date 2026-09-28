@@ -147,7 +147,7 @@ export class GcMappingsEditorComponent {
       acceptLabel: 'Remove',
       rejectLabel: 'Cancel',
       acceptButtonStyleClass: 'btn-caution',
-      rejectButtonStyleClass: 'btn-ghost',
+      rejectButtonStyleClass: 'p-button-outlined',
       accept: () => {
         this.deletingId = id;
         this.error = null;

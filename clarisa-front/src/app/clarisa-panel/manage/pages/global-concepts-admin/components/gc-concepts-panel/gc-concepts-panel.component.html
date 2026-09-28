@@ -21,7 +21,7 @@
         type="button"
         [label]="indexing ? 'Updating AI index…' : 'Update AI index'"
         icon="pi pi-bolt"
-        class="btn-ghost"
+        class="p-button-outlined"
         [disabled]="indexing"
         pTooltip="Embeds new or edited concepts so the request recommendation also finds duplicates by meaning. Costs cents."
         (click)="refreshIndex()"></button>
@@ -45,7 +45,7 @@
       <button
         pButton
         type="submit"
-        class="btn-ghost"
+        class="p-button-outlined"
         icon="pi pi-search"
         [label]="semanticBusy ? 'Searching…' : 'Semantic search'"
         [disabled]="semanticBusy || !semanticText.trim()"
@@ -197,7 +197,7 @@
       <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
       <p class="gc-state__title">The concepts did not load</p>
       <p class="gc-state__text">{{ loadError }}</p>
-      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost" (click)="load()"></button>
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
     </div>
 
     <div class="gc-state" *ngIf="!loading && !loadError && !concepts.length">

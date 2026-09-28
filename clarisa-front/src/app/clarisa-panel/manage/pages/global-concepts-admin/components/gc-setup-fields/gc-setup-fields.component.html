@@ -21,7 +21,7 @@
       <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
       <p class="gc-state__title">The custom fields did not load</p>
       <p class="gc-state__text">{{ loadError }}</p>
-      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost" (click)="load()"></button>
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
     </div>
 
     <div class="gc-state" *ngIf="!loading && !loadError && !fields.length">
@@ -161,7 +161,7 @@
     <p class="gc-ed__error" role="alert" *ngIf="saveError"><i class="pi pi-times-circle"></i><span>{{ saveError }}</span></p>
 
     <div class="admin-form__actions">
-      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="dialogVisible = false"></button>
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="saving" (click)="dialogVisible = false"></button>
       <button
         pButton
         type="submit"

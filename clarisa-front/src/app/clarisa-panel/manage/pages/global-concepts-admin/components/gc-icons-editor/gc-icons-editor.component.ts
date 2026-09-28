@@ -151,7 +151,7 @@ export class GcIconsEditorComponent implements OnInit {
       acceptLabel: 'Delete icon',
       rejectLabel: 'Cancel',
       acceptButtonStyleClass: 'btn-caution',
-      rejectButtonStyleClass: 'btn-ghost',
+      rejectButtonStyleClass: 'p-button-outlined',
       accept: () => {
         this.deletingId = icon.id;
         this._api.deleteIcon(this.scheme, icon.id).subscribe({

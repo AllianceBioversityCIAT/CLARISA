@@ -376,7 +376,7 @@ export class GcConceptDialogComponent {
       acceptLabel: 'Change status',
       rejectLabel: 'Cancel',
       acceptButtonStyleClass: status === 'deprecated' ? 'btn-caution' : 'btn-brand',
-      rejectButtonStyleClass: 'btn-ghost',
+      rejectButtonStyleClass: 'p-button-outlined',
       accept: () => {
         if (this.changingStatus) return;
         this.changingStatus = true;

@@ -7,7 +7,7 @@
         and add a new one.
       </p>
     </div>
-    <button *ngIf="!creatingList" pButton type="button" label="New list" icon="pi pi-plus" class="btn-ghost" [disabled]="!!busy" (click)="creatingList = true"></button>
+    <button *ngIf="!creatingList" pButton type="button" label="New list" icon="pi pi-plus" class="p-button-outlined" [disabled]="!!busy" (click)="creatingList = true"></button>
   </div>
 
   <form class="admin-card admin-form gc-new-list" *ngIf="creatingList" (ngSubmit)="createList()" autocomplete="off">
@@ -23,7 +23,7 @@
       </div>
     </div>
     <div class="admin-form__actions">
-      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="isBusy('list')" (click)="creatingList = false"></button>
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="isBusy('list')" (click)="creatingList = false"></button>
       <button
         pButton
         type="submit"
@@ -44,7 +44,7 @@
       <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
       <p class="gc-state__title">The lists did not load</p>
       <p class="gc-state__text">{{ loadError }}</p>
-      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost" (click)="load()"></button>
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
     </div>
 
     <div class="gc-state" *ngIf="!loading && !loadError && !groups.length">
@@ -90,7 +90,7 @@
             <label class="gc-sr-only" [for]="'gc-relabel-' + value.id">New label for {{ value.value }}</label>
             <input [id]="'gc-relabel-' + value.id" name="label" type="text" pInputText maxlength="255" [(ngModel)]="editLabel" [disabled]="!!busy" />
             <button pButton type="button" label="Cancel" class="p-button-text p-button-sm" [disabled]="!!busy" (click)="editingId = null"></button>
-            <button pButton type="submit" label="Save" class="btn-ghost" [disabled]="!!busy || !editLabel.trim()" [loading]="isBusy('label:' + value.id)"></button>
+            <button pButton type="submit" label="Save" class="p-button-outlined" [disabled]="!!busy || !editLabel.trim()" [loading]="isBusy('label:' + value.id)"></button>
           </form>
 
           <span class="gc-value__actions" *ngIf="editingId !== value.id">
@@ -117,7 +117,7 @@
           <input id="gc-new-value-code" name="value" type="text" pInputText maxlength="100" placeholder="From the label" [(ngModel)]="newValue" [disabled]="!!busy" />
         </div>
         <label class="gc-flag"><p-checkbox name="shared" [binary]="true" [(ngModel)]="newShared" [disabled]="!!busy"></p-checkbox><span>Every scheme</span></label>
-        <button pButton type="submit" class="btn-ghost" icon="pi pi-plus" label="Add value" [disabled]="!!busy || !newLabel.trim()" [loading]="isBusy('add')"></button>
+        <button pButton type="submit" class="p-button-outlined" icon="pi pi-plus" label="Add value" [disabled]="!!busy || !newLabel.trim()" [loading]="isBusy('add')"></button>
       </form>
     </ng-container>
   </div>

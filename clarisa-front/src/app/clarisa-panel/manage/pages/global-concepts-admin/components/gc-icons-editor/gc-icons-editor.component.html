@@ -4,7 +4,7 @@
       <h3 class="gc-ed__title">Icons</h3>
       <p class="gc-ed__hint">Visual symbols for the concept. Link the hosted file; a <strong>final</strong> icon must say in words what it shows (alt text).</p>
     </div>
-    <button *ngIf="editingId === null" pButton type="button" label="Add icon" icon="pi pi-plus" class="btn-ghost" [disabled]="loading || !!loadError" (click)="openNew()"></button>
+    <button *ngIf="editingId === null" pButton type="button" label="Add icon" icon="pi pi-plus" class="p-button-outlined" [disabled]="loading || !!loadError" (click)="openNew()"></button>
   </div>
 
   <div class="gc-icon-grid" *ngIf="loading && !icons.length" aria-busy="true" aria-label="Loading icons">
@@ -15,7 +15,7 @@
     <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
     <p class="gc-state__title">The icons did not load</p>
     <p class="gc-state__text">{{ loadError }}</p>
-    <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost" (click)="load()"></button>
+    <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
   </div>
 
   <div class="gc-ed__empty" *ngIf="!loading && !loadError && !icons.length && editingId === null">
@@ -125,7 +125,7 @@
     <p class="gc-ed__error" role="alert" *ngIf="saveError"><i class="pi pi-times-circle"></i><span>{{ saveError }}</span></p>
 
     <div class="admin-form__actions">
-      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="cancel()"></button>
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="saving" (click)="cancel()"></button>
       <button
         pButton
         type="submit"
