@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { GuardsModule } from '../../shared/guards/guards.module';
+import { ApiKeyModule } from '../api-key/api-key.module';
 import { HandlebarsTemplateModule } from '../handlebars-template/handlebars-template.module';
 import { HandlebarsCompiler } from '../../shared/utils/handlebars-compiler';
 import { MessagingMicroservice } from '../../integration/microservices/messaging/messaging.microservice';
@@ -60,7 +61,9 @@ const providers = [
  * public `:scheme/...` routes.
  */
 @Module({
-  imports: [GuardsModule, HandlebarsTemplateModule],
+  // ApiKeyModule: `@UseGuards(ApiKeyGuard)` builds the guard in THIS module's
+  // context, so ApiKeyService must be visible here (GuardsModule's export is not enough).
+  imports: [GuardsModule, ApiKeyModule, HandlebarsTemplateModule],
   controllers: [
     GlobalConceptsAdminController,
     GlobalConceptsPlatformController,
