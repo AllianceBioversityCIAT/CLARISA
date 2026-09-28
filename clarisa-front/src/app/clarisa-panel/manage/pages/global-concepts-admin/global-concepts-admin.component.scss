@@ -18,6 +18,13 @@
   gap: 10px;
 }
 
+/* Five sections do not fit a phone: the rail scrolls inside itself, never the page. */
+.gc-admin__tabs {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 @media (max-width: 991px) {
   .gc-admin {
     padding: 20px 16px 28px;

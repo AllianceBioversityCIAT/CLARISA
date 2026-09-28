@@ -1,0 +1,91 @@
+<section class="gc-ed">
+  <div class="gc-ed__head">
+    <div>
+      <h3 class="gc-ed__title">Mappings</h3>
+      <p class="gc-ed__hint">The same idea in an outside vocabulary. Published as SKOS matches, so other systems can line their terms up with ours.</p>
+    </div>
+    <button *ngIf="!showForm" pButton type="button" label="Add mapping" icon="pi pi-plus" class="btn-ghost" (click)="openForm()"></button>
+  </div>
+
+  <div class="gc-ed__empty" *ngIf="!mappings.length && !showForm">
+    <i class="pi pi-link"></i>
+    <span>Not mapped yet. AGROVOC and Wikidata are the usual targets.</span>
+  </div>
+
+  <div class="gc-ed__list" *ngIf="mappings.length">
+    <div class="gc-ed__row" *ngFor="let mapping of mappings">
+      <span class="gc-map-badge">{{ matchLabel(mapping.match_type) }}</span>
+      <div class="gc-ed__grow">
+        <span class="gc-ed__main">{{ mapping.target_scheme }} · {{ mapping.target_label || 'no label' }}</span>
+        <span class="gc-ed__sub"><a [href]="mapping.target_uri" target="_blank" rel="noopener">{{ mapping.target_uri }}</a></span>
+        <span class="gc-ed__sub" *ngIf="mapping.justification">{{ mapping.justification }}</span>
+      </div>
+      <button
+        *ngIf="mapping.id"
+        pButton
+        type="button"
+        class="p-button-text gc-icon-btn"
+        [icon]="deletingId === mapping.id ? 'pi pi-spin pi-spinner' : 'pi pi-trash'"
+        [attr.aria-label]="'Remove mapping to ' + mapping.target_uri"
+        pTooltip="Remove"
+        [disabled]="!!deletingId"
+        (click)="remove(mapping)"></button>
+    </div>
+  </div>
+
+  <form class="admin-form admin-card gc-map-form" *ngIf="showForm" (ngSubmit)="add()" autocomplete="off">
+    <div class="admin-form__grid">
+      <div class="field">
+        <label for="gc-map-scheme">Target vocabulary <span class="tag-req">Required</span></label>
+        <input id="gc-map-scheme" name="target_scheme" type="text" pInputText maxlength="50" placeholder="AGROVOC" [(ngModel)]="form.target_scheme" />
+      </div>
+      <div class="field">
+        <label for="gc-map-type">Match type</label>
+        <p-dropdown
+          inputId="gc-map-type"
+          name="match_type"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          [options]="matchTypes"
+          [(ngModel)]="form.match_type">
+          <ng-template let-option pTemplate="item">
+            <span class="gc-map-option">{{ option.label }}<small>{{ option.hint }}</small></span>
+          </ng-template>
+        </p-dropdown>
+      </div>
+      <div class="field admin-form__span">
+        <label for="gc-map-uri">Target URI <span class="tag-req">Required</span></label>
+        <input
+          id="gc-map-uri"
+          name="target_uri"
+          type="url"
+          pInputText
+          maxlength="1000"
+          placeholder="http://aims.fao.org/aos/agrovoc/c_…"
+          [(ngModel)]="form.target_uri" />
+      </div>
+      <div class="field">
+        <label for="gc-map-label">Target label <span class="tag-opt">Optional</span></label>
+        <input id="gc-map-label" name="target_label" type="text" pInputText maxlength="500" [(ngModel)]="form.target_label" />
+      </div>
+      <div class="field">
+        <label for="gc-map-why">Justification <span class="tag-opt">Optional</span></label>
+        <input id="gc-map-why" name="justification" type="text" pInputText maxlength="2000" [(ngModel)]="form.justification" />
+      </div>
+    </div>
+    <p class="gc-ed__error" *ngIf="formError && (form.target_scheme || form.target_uri)"><i class="pi pi-info-circle"></i><span>{{ formError }}</span></p>
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="adding" (click)="showForm = false"></button>
+      <button
+        pButton
+        type="submit"
+        class="btn-brand"
+        icon="pi pi-check"
+        [label]="adding ? 'Adding…' : 'Add mapping'"
+        [disabled]="adding || !!formError"
+        [loading]="adding"></button>
+    </div>
+  </form>
+
+  <p class="gc-ed__error" role="alert" *ngIf="error"><i class="pi pi-times-circle"></i><span>{{ error }}</span></p>
+</section>

@@ -4,6 +4,8 @@ import { ConceptListComponent } from './pages/concept-list/concept-list.componen
 import { ConceptDetailComponent } from './pages/concept-detail/concept-detail.component';
 import { RequestVerifyComponent } from './pages/request-verify/request-verify.component';
 import { RequestFollowComponent } from './pages/request-follow/request-follow.component';
+import { DevelopersComponent } from './pages/developers/developers.component';
+import { GuideComponent } from './pages/guide/guide.component';
 
 /**
  * 🛑 The `requests/*` routes go BEFORE `:scheme/:termId`: both are two
@@ -14,6 +16,8 @@ import { RequestFollowComponent } from './pages/request-follow/request-follow.co
  */
 const routes: Routes = [
   { path: '', component: ConceptListComponent },
+  { path: 'developers', component: DevelopersComponent },
+  { path: 'guide', component: GuideComponent },
   { path: 'requests/verify', component: RequestVerifyComponent },
   { path: 'requests/:id', component: RequestFollowComponent },
   { path: ':scheme/:termId', component: ConceptDetailComponent }

@@ -1,0 +1,140 @@
+<section class="gc-ed">
+  <div class="gc-ed__head">
+    <div>
+      <h3 class="gc-ed__title">Collections</h3>
+      <p class="gc-ed__hint">Hand-picked groups of concepts — a platform's glossary, a training set — published as SKOS collections. They do not change broader / narrower.</p>
+    </div>
+    <button *ngIf="!creating" pButton type="button" label="New collection" icon="pi pi-plus" class="btn-ghost" [disabled]="!!busy" (click)="creating = true"></button>
+  </div>
+
+  <form class="admin-card admin-form gc-new-collection" *ngIf="creating" (ngSubmit)="create()" autocomplete="off">
+    <div class="admin-form__grid">
+      <div class="field">
+        <label for="gc-col-label">Name <span class="tag-req">Required</span></label>
+        <input id="gc-col-label" name="label" type="text" pInputText maxlength="255" [(ngModel)]="newLabel" (ngModelChange)="onNewLabel($event)" />
+      </div>
+      <div class="field">
+        <label for="gc-col-code">Code <span class="tag-req">Required</span></label>
+        <input id="gc-col-code" name="code" type="text" pInputText maxlength="100" [(ngModel)]="newCode" (ngModelChange)="onNewCode()" />
+        <small class="field-hint">Part of the collection's URI; it cannot change later.</small>
+      </div>
+      <label class="gc-flag admin-form__span"><p-checkbox name="ordered" [binary]="true" [(ngModel)]="newOrdered"></p-checkbox><span>Ordered (members keep the order you give them)</span></label>
+    </div>
+    <p class="gc-ed__error" *ngIf="createError && newLabel"><i class="pi pi-info-circle"></i><span>{{ createError }}</span></p>
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="isBusy('create')" (click)="creating = false"></button>
+      <button
+        pButton
+        type="submit"
+        class="btn-brand"
+        icon="pi pi-check"
+        [label]="isBusy('create') ? 'Creating…' : 'Create collection'"
+        [disabled]="!!busy || !!createError"
+        [loading]="isBusy('create')"></button>
+    </div>
+  </form>
+  <p class="gc-ed__error" role="alert" *ngIf="error && error.code === null"><i class="pi pi-times-circle"></i><span>{{ error.message }}</span></p>
+
+  <div class="gc-card" *ngIf="loading && !collections.length">
+    <div class="gc-skeleton" aria-busy="true" aria-label="Loading collections">
+      <div class="gc-skeleton__row" *ngFor="let _ of [1, 2, 3]"><span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span></div>
+    </div>
+  </div>
+
+  <div class="gc-card" *ngIf="!loading && loadError">
+    <div class="gc-state gc-state--error">
+      <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
+      <p class="gc-state__title">The collections did not load</p>
+      <p class="gc-state__text">{{ loadError }}</p>
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost" (click)="load()"></button>
+    </div>
+  </div>
+
+  <div class="gc-card" *ngIf="!loading && !loadError && !collections.length && !creating">
+    <div class="gc-state">
+      <span class="gc-state__icon"><i class="pi pi-folder"></i></span>
+      <p class="gc-state__title">No collections yet</p>
+      <p class="gc-state__text">Group the concepts one platform or course uses, and publish them as a set.</p>
+    </div>
+  </div>
+
+  <div class="gc-collections" *ngIf="collections.length">
+    <article class="admin-card gc-collection" *ngFor="let collection of collections">
+      <header class="gc-collection__head">
+        <div class="gc-collection__title" *ngIf="renaming !== collection.code">
+          <h4 class="admin-card__title">{{ collection.label }}</h4>
+          <span class="gc-ed__sub"><code class="gc-code">{{ collection.code }}</code> · {{ collection.members.length || 0 }} concept(s)<ng-container *ngIf="collection.ordered"> · ordered</ng-container></span>
+        </div>
+        <form class="gc-collection__rename" *ngIf="renaming === collection.code" (ngSubmit)="rename(collection)">
+          <label class="gc-sr-only" [for]="'gc-rename-' + collection.code">New name</label>
+          <input [id]="'gc-rename-' + collection.code" name="label" type="text" pInputText maxlength="255" [(ngModel)]="renameLabel" [disabled]="!!busy" />
+          <button pButton type="button" label="Cancel" class="p-button-text p-button-sm" [disabled]="!!busy" (click)="renaming = null"></button>
+          <button pButton type="submit" label="Save" class="btn-ghost" [disabled]="!!busy || !renameLabel.trim()" [loading]="isBusy('rename:' + collection.code)"></button>
+        </form>
+        <div class="gc-collection__actions" *ngIf="renaming !== collection.code">
+          <button pButton type="button" label="Rename" icon="pi pi-pencil" class="p-button-text p-button-sm" [disabled]="!!busy" (click)="startRename(collection)"></button>
+          <button
+            *ngIf="editingMembers?.code !== collection.code"
+            pButton
+            type="button"
+            label="Edit members"
+            icon="pi pi-users"
+            class="p-button-text p-button-sm"
+            [disabled]="!!busy || !!editingMembers"
+            (click)="startMembers(collection)"></button>
+          <button
+            pButton
+            type="button"
+            class="p-button-text gc-icon-btn"
+            [icon]="isBusy('delete:' + collection.code) ? 'pi pi-spin pi-spinner' : 'pi pi-trash'"
+            [attr.aria-label]="'Delete ' + collection.label"
+            [disabled]="!!busy"
+            (click)="remove(collection)"></button>
+        </div>
+      </header>
+
+      <ng-container *ngIf="editingMembers?.code !== collection.code">
+        <div class="gc-ed__chips gc-collection__members" *ngIf="collection.members.length; else noMembers">
+          <span class="gc-ed__chip gc-ed__chip--static" *ngFor="let member of collection.members">
+            <span class="gc-ed__chip-id">{{ member.term_id }}</span><span class="gc-ed__chip-text">{{ member.preferred_label }}</span>
+          </span>
+        </div>
+        <ng-template #noMembers><p class="gc-ed__sub">Empty. Use <strong>Edit members</strong> to add concepts.</p></ng-template>
+      </ng-container>
+
+      <div class="gc-collection__editor" *ngIf="editingMembers?.code === collection.code">
+        <div class="gc-ed__chips" *ngIf="editingMembers?.members?.length">
+          <span class="gc-ed__chip" *ngFor="let member of editingMembers?.members">
+            <span class="gc-ed__chip-id">{{ member.term_id }}</span>
+            <span class="gc-ed__chip-text">{{ member.preferred_label }}</span>
+            <button type="button" class="gc-ed__chip-x" [attr.aria-label]="'Remove ' + member.preferred_label" [disabled]="!!busy" (click)="removeMember(member.term_id)">
+              <i class="pi pi-times"></i>
+            </button>
+          </span>
+        </div>
+        <app-gc-concept-picker
+          [inputId]="'gc-members-' + collection.code"
+          [options]="conceptOptions"
+          [exclude]="memberIds()"
+          [disabled]="!!busy"
+          placeholder="Add a concept to the collection…"
+          (picked)="addMember($event)"></app-gc-concept-picker>
+        <div class="gc-ed__foot">
+          <span class="gc-ed__foot-note">{{ editingMembers?.members?.length || 0 }} concept(s). The set is replaced when you save.</span>
+          <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="!!busy" (click)="editingMembers = null"></button>
+          <button
+            pButton
+            type="button"
+            class="btn-brand"
+            icon="pi pi-check"
+            [label]="isBusy('members:' + collection.code) ? 'Saving…' : 'Save members'"
+            [disabled]="!!busy || !membersDirty(collection)"
+            [loading]="isBusy('members:' + collection.code)"
+            (click)="saveMembers(collection)"></button>
+        </div>
+      </div>
+
+      <p class="gc-ed__error" role="alert" *ngIf="error?.code === collection.code"><i class="pi pi-times-circle"></i><span>{{ error?.message }}</span></p>
+    </article>
+  </div>
+</section>

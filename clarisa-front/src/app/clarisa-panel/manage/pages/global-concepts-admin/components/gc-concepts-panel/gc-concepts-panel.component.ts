@@ -1,12 +1,19 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
-import { ConfirmationService, MessageService } from 'primeng/api';
-import { AdminConcept, ConceptStatus, GlobalConceptsApiService } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
+import { Component, Input, OnChanges, OnInit, SimpleChanges, ViewChild } from '@angular/core';
+import { MessageService } from 'primeng/api';
+import { AdminConceptDetail, ConceptStatus, GlobalConceptsApiService } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
+import { ConceptFilters, emptyFilters, FilterChip, filterChips, hasIcon, IconFilter, matchesFilters, removeChip } from '../../utils/concept-filters';
+import { STATUS_LABELS, statusSeverity } from '../../utils/concept-form';
 import { groupLists, ListOption, listLabel } from '../../utils/list-values';
+import { GcConceptDialogComponent } from '../gc-concept-dialog/gc-concept-dialog.component';
+
+// The form helpers moved to utils/concept-form; re-exported so existing imports keep working.
+export { buildConceptBody, emptyForm, formFromConcept, STATUS_LABELS, statusSeverity } from '../../utils/concept-form';
+export type { ConceptForm } from '../../utils/concept-form';
 
 /** A table row: flat, so every column sorts on the value it shows. */
 export interface ConceptRow {
-  concept: AdminConcept;
+  concept: AdminConceptDetail;
   term_id: number;
   preferred_label: string;
   definition: string;
@@ -16,122 +23,24 @@ export interface ConceptRow {
   functionsText: string;
   version: string;
   date_modified: string;
+  /** 1 with an icon, 0 without: the Icon column sorts on it. */
+  icon: number;
 }
 
-/** Everything the concept form edits. Text fields are strings, never null, so inputs bind cleanly. */
-export interface ConceptForm {
-  term_id: number | null;
+export interface SemanticHit {
+  term_id: number;
   preferred_label: string;
-  definition: string;
-  short_definition: string;
-  scope_note: string;
-  example_of_use: string;
-  term_type: string | null;
-  meliaf_function: string[];
-  meliaf_phase_primary: string | null;
-  derivation: string | null;
-  source_citation: string;
-  source_url: string;
-  steward: string;
-  notes: string;
+  status: string;
+  score: number;
+  /** 0–100, for the bar. */
+  percent: number;
+  concept: AdminConceptDetail | null;
 }
 
-const TEXT_FIELDS = [
-  'preferred_label',
-  'definition',
-  'short_definition',
-  'scope_note',
-  'example_of_use',
-  'source_citation',
-  'source_url',
-  'steward',
-  'notes'
-] as const;
-const LIST_FIELDS = ['term_type', 'meliaf_phase_primary', 'derivation'] as const;
-
-export const STATUS_LABELS: Record<ConceptStatus, string> = {
-  draft: 'Draft',
-  in_review: 'In review',
-  approved: 'Approved',
-  deprecated: 'Deprecated'
-};
-
-export function statusSeverity(status: ConceptStatus): string {
-  switch (status) {
-    case 'approved':
-      return 'success';
-    case 'deprecated':
-      return 'danger';
-    case 'in_review':
-      return 'warning';
-    default:
-      return 'info';
-  }
-}
-
-export function emptyForm(): ConceptForm {
-  return {
-    term_id: null,
-    preferred_label: '',
-    definition: '',
-    short_definition: '',
-    scope_note: '',
-    example_of_use: '',
-    term_type: null,
-    meliaf_function: [],
-    meliaf_phase_primary: null,
-    derivation: null,
-    source_citation: '',
-    source_url: '',
-    steward: '',
-    notes: ''
-  };
-}
-
-export function formFromConcept(concept: AdminConcept): ConceptForm {
-  return {
-    term_id: concept.term_id,
-    preferred_label: concept.preferred_label ?? '',
-    definition: concept.definition ?? '',
-    short_definition: concept.short_definition ?? '',
-    scope_note: concept.scope_note ?? '',
-    example_of_use: concept.example_of_use ?? '',
-    term_type: concept.term_type ?? null,
-    meliaf_function: [...(concept.meliaf_function ?? [])],
-    meliaf_phase_primary: concept.meliaf_phase_primary ?? null,
-    derivation: concept.derivation ?? null,
-    source_citation: concept.source_citation ?? '',
-    source_url: concept.source_url ?? '',
-    steward: concept.steward ?? '',
-    notes: concept.notes ?? ''
-  };
-}
-
-/**
- * Body of the write. On create every filled field travels; on update only the
- * fields that changed, so the history the back writes names what the admin
- * actually touched. An emptied field is sent as `''`, which the back stores as
- * null — that is how a value is cleared.
- */
-export function buildConceptBody(form: ConceptForm, original: ConceptForm | null): Record<string, unknown> {
-  const body: Record<string, unknown> = {};
-
-  for (const field of TEXT_FIELDS) {
-    const value = (form[field] ?? '').trim();
-    if (original ? value !== (original[field] ?? '').trim() : value) body[field] = value;
-  }
-  for (const field of LIST_FIELDS) {
-    const value = form[field] ?? null;
-    if (original ? value !== (original[field] ?? null) : value) body[field] = value ?? '';
-  }
-
-  const functions = [...(form.meliaf_function ?? [])];
-  const before = [...(original?.meliaf_function ?? [])];
-  if (original ? functions.join('|') !== before.join('|') : functions.length) body['meliaf_function'] = functions;
-
-  if (!original && form.term_id) body['term_id'] = Number(form.term_id);
-
-  return body;
+/** A request to open the create dialog with a label, from the Usage tab. The token makes the same label open twice. */
+export interface CreateRequest {
+  label: string;
+  token: number;
 }
 
 @Component({
@@ -144,54 +53,61 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
   /** Bumped by the shell after an import. */
   @Input() reloadToken = 0;
   @Input() aiEnabled = false;
+  @Input() createRequest: CreateRequest | null = null;
+  @ViewChild(GcConceptDialogComponent) dialog?: GcConceptDialogComponent;
   indexing = false;
 
   loading = false;
   loadError: string | null = null;
-  concepts: AdminConcept[] = [];
+  concepts: AdminConceptDetail[] = [];
   rows: ConceptRow[] = [];
   lists: Record<string, ListOption[]> = {};
 
-  search = '';
-  statusFilter: ConceptStatus | 'all' = 'all';
-  readonly statusOptions = [
-    { label: 'All statuses', value: 'all' },
-    { label: 'Draft', value: 'draft' },
-    { label: 'In review', value: 'in_review' },
-    { label: 'Approved', value: 'approved' },
-    { label: 'Deprecated', value: 'deprecated' }
+  filters: ConceptFilters = emptyFilters();
+  chips: FilterChip[] = [];
+  showMoreFilters = false;
+  readonly statusChoices = (Object.keys(STATUS_LABELS) as ConceptStatus[]).map(value => ({ label: STATUS_LABELS[value], value }));
+  readonly iconChoices: { label: string; value: IconFilter }[] = [
+    { label: 'Any', value: 'any' },
+    { label: 'With icon', value: 'with' },
+    { label: 'Without', value: 'without' }
   ];
-  readonly statusChoices = this.statusOptions.slice(1);
 
-  // --- dialog --------------------------------------------------------
-  dialogVisible = false;
-  editing: AdminConcept | null = null;
-  form: ConceptForm = emptyForm();
-  private original: ConceptForm | null = null;
-  saving = false;
+  // --- semantic search ---------------------------------------------------
+  semanticText = '';
+  semanticBusy = false;
+  semanticError: string | null = null;
+  semanticHits: SemanticHit[] | null = null;
+  semanticQuery = '';
 
-  newStatus: ConceptStatus | null = null;
-  replacementTermId: number | null = null;
-  deprecationReason = '';
-  changingStatus = false;
+  private handledCreateToken: number | null = null;
 
-  constructor(
-    private readonly _api: GlobalConceptsApiService,
-    private readonly _messageService: MessageService,
-    private readonly _confirmationService: ConfirmationService
-  ) {}
+  constructor(private readonly _api: GlobalConceptsApiService, private readonly _messageService: MessageService) {}
 
   ngOnInit(): void {
     this.load();
     this.loadLists();
+    this.handleCreateRequest();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     const changed = ['scheme', 'reloadToken'].some(key => changes[key] && !changes[key].firstChange);
     if (changed) {
       this.load();
-      if (changes['scheme'] && !changes['scheme'].firstChange) this.loadLists();
+      if (changes['scheme'] && !changes['scheme'].firstChange) {
+        this.loadLists();
+        this.clearSemantic();
+      }
     }
+    if (changes['createRequest'] && !changes['createRequest'].firstChange) this.handleCreateRequest();
+  }
+
+  /** The dialog is a view child: it exists after the first change detection, so the open waits one tick. */
+  private handleCreateRequest(): void {
+    const request = this.createRequest;
+    if (!request || request.token === this.handledCreateToken) return;
+    this.handledCreateToken = request.token;
+    setTimeout(() => this.openCreate(request.label));
   }
 
   load(): void {
@@ -200,7 +116,7 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
     this._api.adminConcepts(this.scheme).subscribe({
       next: concepts => {
         this.loading = false;
-        this.concepts = Array.isArray(concepts) ? concepts : [];
+        this.concepts = (Array.isArray(concepts) ? concepts : []) as AdminConceptDetail[];
         this.applyFilters();
       },
       error: error => {
@@ -221,34 +137,33 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
     });
   }
 
-  // ------------------------------------------------------------ table
+  // ------------------------------------------------------------ filters
 
   applyFilters(): void {
-    const needle = this.search.trim().toLowerCase();
-    this.rows = this.concepts
-      .filter(concept => this.statusFilter === 'all' || concept.status === this.statusFilter)
-      .filter(
-        concept =>
-          !needle ||
-          String(concept.term_id).includes(needle) ||
-          (concept.preferred_label ?? '').toLowerCase().includes(needle) ||
-          (concept.definition ?? '').toLowerCase().includes(needle) ||
-          (concept.alternative_labels ?? []).some(label => (label.label ?? '').toLowerCase().includes(needle))
-      )
-      .map(concept => this.toRow(concept));
+    this.rows = this.concepts.filter(concept => matchesFilters(concept, this.filters)).map(concept => this.toRow(concept));
+    this.chips = filterChips(this.filters, this.lists);
+  }
+
+  removeFilter(chip: FilterChip): void {
+    this.filters = removeChip(this.filters, chip);
+    this.applyFilters();
   }
 
   clearFilters(): void {
-    this.search = '';
-    this.statusFilter = 'all';
+    this.filters = emptyFilters();
     this.applyFilters();
   }
 
   get hasFilters(): boolean {
-    return !!this.search.trim() || this.statusFilter !== 'all';
+    return this.chips.length > 0;
   }
 
-  private toRow(concept: AdminConcept): ConceptRow {
+  /** How many of the secondary filters are on, for the badge of the "More filters" button. */
+  get moreFiltersCount(): number {
+    return (this.filters.icon !== 'any' ? 1 : 0) + (this.filters.missingDefinition ? 1 : 0) + this.filters.termTypes.length + this.filters.phases.length;
+  }
+
+  private toRow(concept: AdminConceptDetail): ConceptRow {
     const functions = (concept.meliaf_function ?? []).map(value => listLabel(this.lists, 'meliaf_function', value));
     return {
       concept,
@@ -259,143 +174,66 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
       functions,
       functionsText: functions.join(', '),
       version: concept.version ?? '',
-      date_modified: concept.date_modified ?? ''
+      date_modified: concept.date_modified ?? '',
+      icon: hasIcon(concept) ? 1 : 0
     };
   }
 
-  statusLabel(status: ConceptStatus): string {
-    return STATUS_LABELS[status] ?? status;
+  statusLabel(status: ConceptStatus | string): string {
+    return STATUS_LABELS[status as ConceptStatus] ?? status;
   }
 
-  statusSeverity(status: ConceptStatus): string {
-    return statusSeverity(status);
+  statusSeverity(status: ConceptStatus | string): string {
+    return statusSeverity(status as ConceptStatus);
   }
 
   optionsFor(code: string): ListOption[] {
     return this.lists[code] ?? [];
   }
 
-  // ----------------------------------------------------------- dialog
+  // ----------------------------------------------------- semantic search
 
-  openCreate(): void {
-    this.editing = null;
-    this.form = emptyForm();
-    this.original = null;
-    this.resetStatusForm();
-    this.dialogVisible = true;
-  }
-
-  openEdit(concept: AdminConcept): void {
-    this.editing = concept;
-    this.form = formFromConcept(concept);
-    this.original = formFromConcept(concept);
-    this.resetStatusForm();
-    this.dialogVisible = true;
-  }
-
-  private resetStatusForm(): void {
-    this.newStatus = null;
-    this.replacementTermId = null;
-    this.deprecationReason = '';
-  }
-
-  get formError(): string | null {
-    if (!this.form.preferred_label.trim()) return 'The preferred label is required.';
-    if (this.form.short_definition.length > 500) return 'The short definition is limited to 500 characters.';
-    const url = this.form.source_url.trim();
-    if (url && !/^https?:\/\//i.test(url)) return 'The source URL must start with http:// or https://.';
-    return null;
-  }
-
-  get hasChanges(): boolean {
-    return Object.keys(buildConceptBody(this.form, this.original)).length > 0;
-  }
-
-  save(): void {
-    if (this.formError || this.saving) return;
-    const body = buildConceptBody(this.form, this.original);
-    if (this.editing && !Object.keys(body).length) {
-      this.dialogVisible = false;
-      return;
-    }
-
-    this.saving = true;
-    const request = this.editing ? this._api.updateConcept(this.scheme, this.editing.term_id, body) : this._api.createConcept(this.scheme, body);
-
-    request.subscribe({
-      next: concept => {
-        this.saving = false;
-        this.dialogVisible = false;
-        this._messageService.add({
-          severity: 'success',
-          summary: this.editing ? 'Concept updated' : 'Concept created',
-          detail: `${concept?.preferred_label ?? body['preferred_label'] ?? ''} — logged as a direct admin edit.`
-        });
-        this.load();
+  runSemantic(): void {
+    const text = this.semanticText.trim();
+    if (!this.aiEnabled || !text || this.semanticBusy) return;
+    this.semanticBusy = true;
+    this.semanticError = null;
+    this._api.semanticSearch(this.scheme, text, 15).subscribe({
+      next: hits => {
+        this.semanticBusy = false;
+        this.semanticQuery = text;
+        const list = Array.isArray(hits) ? hits : [];
+        const top = Math.max(0, ...list.map(hit => Number(hit.score) || 0));
+        this.semanticHits = [...list]
+          .sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0))
+          .map(hit => ({
+            ...hit,
+            score: Number(hit.score) || 0,
+            percent: top > 1 ? Math.round(((Number(hit.score) || 0) / top) * 100) : Math.round((Number(hit.score) || 0) * 100),
+            concept: this.concepts.find(concept => concept.term_id === hit.term_id) ?? null
+          }));
       },
       error: error => {
-        this.saving = false;
-        this.toastError(error);
+        this.semanticBusy = false;
+        this.semanticError = apiErrorMessage(error, 'The semantic search failed');
       }
     });
   }
 
-  /** Concepts a deprecated one can point to: same scheme, approved (the back refuses anything else), not itself. */
-  get replacementOptions(): { label: string; value: number }[] {
-    return this.concepts
-      .filter(concept => concept.term_id !== this.editing?.term_id && concept.status === 'approved')
-      .map(concept => ({ label: `${concept.term_id} — ${concept.preferred_label}`, value: concept.term_id }));
+  clearSemantic(): void {
+    this.semanticHits = null;
+    this.semanticQuery = '';
+    this.semanticError = null;
   }
 
-  get statusChangeError(): string | null {
-    if (!this.newStatus || !this.editing) return 'Pick the new status.';
-    if (this.newStatus === this.editing.status) return 'The concept already has this status.';
-    if (this.newStatus === 'deprecated' && !this.replacementTermId && !this.deprecationReason.trim()) {
-      return 'To deprecate, name the replacement concept or give a reason.';
-    }
-    return null;
+  // ------------------------------------------------------------- dialog
+
+  openCreate(label = ''): void {
+    this.dialog?.openCreate(label);
   }
 
-  changeStatus(): void {
-    const concept = this.editing;
-    const status = this.newStatus;
-    if (!concept || !status || this.statusChangeError || this.changingStatus) return;
-
-    const body: { status: ConceptStatus; replaced_by_term_id?: number; reason?: string } = { status };
-    if (status === 'deprecated') {
-      if (this.replacementTermId) body.replaced_by_term_id = this.replacementTermId;
-      if (this.deprecationReason.trim()) body.reason = this.deprecationReason.trim();
-    }
-
-    this._confirmationService.confirm({
-      header: `Mark as ${this.statusLabel(status).toLowerCase()}?`,
-      message: `“${concept.preferred_label}” goes from ${this.statusLabel(concept.status)} to ${this.statusLabel(
-        status
-      )}. The change is logged as a direct admin edit.`,
-      acceptLabel: 'Change status',
-      rejectLabel: 'Cancel',
-      acceptButtonStyleClass: status === 'deprecated' ? 'btn-caution' : 'btn-brand',
-      rejectButtonStyleClass: 'btn-ghost',
-      accept: () => {
-        this.changingStatus = true;
-        this._api.setStatus(this.scheme, concept.term_id, body).subscribe({
-          next: updated => {
-            this.changingStatus = false;
-            this.dialogVisible = false;
-            this._messageService.add({
-              severity: 'success',
-              summary: 'Status changed',
-              detail: `${updated?.preferred_label ?? concept.preferred_label} is now ${this.statusLabel(updated?.status ?? status)}.`
-            });
-            this.load();
-          },
-          error: error => {
-            this.changingStatus = false;
-            this.toastError(error);
-          }
-        });
-      }
-    });
+  openEdit(concept: AdminConceptDetail | null): void {
+    if (concept) this.dialog?.openEdit(concept);
   }
 
   private toastError(error: unknown, fallback?: string): void {

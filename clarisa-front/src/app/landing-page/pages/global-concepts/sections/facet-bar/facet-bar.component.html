@@ -1,0 +1,106 @@
+<!-- One facet's values: checkboxes with the live count. Shared by the dropdown and the phone sheet. -->
+<ng-template #optionList let-facet="facet" let-prefix="prefix">
+  <ul class="gc-fb__options" role="group" [attr.aria-label]="facet.label">
+    <li *ngFor="let option of facet.options; trackBy: trackByValue">
+      <label class="gc-check" [class.is-empty]="!option.count && !option.checked">
+        <input
+          type="checkbox"
+          [id]="prefix + facet.code + '-' + option.value"
+          [checked]="option.checked"
+          [disabled]="!option.count && !option.checked"
+          (change)="toggleValue.emit({ code: facet.code, value: option.value })" />
+        <span class="gc-check__box" aria-hidden="true"><i class="pi pi-check"></i></span>
+        <span class="gc-check__label">{{ option.label }}</span>
+        <span class="gc-check__count" [attr.aria-label]="option.count + ' concepts'">{{ option.count }}</span>
+      </label>
+    </li>
+  </ul>
+</ng-template>
+
+<div class="gc-fb">
+  <div class="gc-fb__row">
+    <!-- Desktop / tablet: one dropdown per facet -->
+    <div class="gc-fb__facets">
+      <div class="gc-dd" *ngFor="let facet of facets; trackBy: trackByCode" [class.is-open]="openFacet === facet.code">
+        <button
+          type="button"
+          class="gc-dd__btn"
+          [class.is-active]="facet.selected"
+          [attr.aria-expanded]="openFacet === facet.code"
+          [attr.aria-controls]="'gc-dd-' + facet.code"
+          (click)="toggleDropdown(facet.code)">
+          {{ facet.label }}
+          <span class="gc-dd__badge" *ngIf="facet.selected">{{ facet.selected }}</span>
+          <i class="pi pi-chevron-down" aria-hidden="true"></i>
+        </button>
+        <div class="gc-dd__panel" [id]="'gc-dd-' + facet.code" *ngIf="openFacet === facet.code">
+          <ng-container *ngTemplateOutlet="optionList; context: { facet: facet, prefix: 'dd-' }"></ng-container>
+          <div class="gc-dd__foot" *ngIf="facet.selected">
+            <button type="button" class="gc-link gc-fb__textbtn" (click)="clearFacet.emit(facet.code)">Clear {{ facet.label }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phone: the facets fold into one button -->
+    <button type="button" class="gc-btn gc-btn--ghost gc-fb__phone-btn" [attr.aria-expanded]="sheetOpen" (click)="toggleSheet()">
+      <i class="pi pi-sliders-h" aria-hidden="true"></i>Filters<ng-container *ngIf="selected"> ({{ selected }})</ng-container>
+    </button>
+
+    <div class="gc-fb__tail">
+      <label class="gc-switch gc-fb__deprecated">
+        <input type="checkbox" [checked]="deprecated" (change)="deprecatedChange.emit($any($event.target).checked)" />
+        <span class="gc-switch__track" aria-hidden="true"><span class="gc-switch__thumb"></span></span>
+        <span class="gc-switch__label">Include deprecated</span>
+      </label>
+
+      <div class="gc-fb__sort">
+        <label class="gc-sr-only" for="gc-sort">Sort by</label>
+        <select id="gc-sort" class="gc-select gc-select--compact" [value]="sort" (change)="sortChange.emit($any($event.target).value)">
+          <option *ngFor="let item of sorts" [value]="item.code" [selected]="item.code === sort">{{ item.label }}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active filters -->
+  <div class="gc-fb__chips" *ngIf="chips.length" aria-label="Active filters">
+    <span class="gc-filter-chip" *ngFor="let chip of chips">
+      {{ chip.label }}
+      <button type="button" class="gc-filter-chip__x" [attr.aria-label]="'Remove ' + chip.label" (click)="removeChip.emit(chip)">
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </span>
+    <button type="button" class="gc-link gc-fb__textbtn" (click)="clearAll.emit()">Clear all</button>
+  </div>
+</div>
+
+<!-- Phone bottom sheet -->
+<div class="gc-sheet" *ngIf="sheetOpen">
+  <div class="gc-sheet__veil" (click)="closeSheet()" aria-hidden="true"></div>
+  <div class="gc-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="gc-sheet-title">
+    <header class="gc-sheet__head">
+      <h3 class="gc-sheet__title" id="gc-sheet-title" tabindex="-1">Filters</h3>
+      <button type="button" class="gc-sheet__close" aria-label="Close filters" (click)="closeSheet()">
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </header>
+    <div class="gc-sheet__body">
+      <fieldset class="gc-sheet__group" *ngFor="let facet of facets; trackBy: trackByCode">
+        <legend>{{ facet.label }}</legend>
+        <ng-container *ngTemplateOutlet="optionList; context: { facet: facet, prefix: 'sh-' }"></ng-container>
+      </fieldset>
+      <label class="gc-switch">
+        <input type="checkbox" [checked]="deprecated" (change)="deprecatedChange.emit($any($event.target).checked)" />
+        <span class="gc-switch__track" aria-hidden="true"><span class="gc-switch__thumb"></span></span>
+        <span class="gc-switch__label">Include deprecated</span>
+      </label>
+    </div>
+    <footer class="gc-sheet__foot">
+      <button type="button" class="gc-btn gc-btn--ghost" [disabled]="!chips.length" (click)="clearAll.emit()">Clear all</button>
+      <button type="button" class="gc-btn gc-sheet__show" (click)="closeSheet()">
+        Show {{ resultCount }} {{ resultCount === 1 ? 'concept' : 'concepts' }}
+      </button>
+    </footer>
+  </div>
+</div>

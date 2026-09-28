@@ -77,6 +77,49 @@
   }
 }
 
+// Section navigation on the band: ring text (7.16 family), white when active.
+.gc-banner__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--cl-brand-strong);
+    border-radius: 999px;
+    color: var(--cl-brand-ring);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+
+    i {
+      font-size: 13px;
+    }
+
+    &:hover {
+      border-color: var(--cl-brand-ring);
+      color: var(--cl-surface);
+      text-decoration: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--cl-brand-ring);
+      outline-offset: 2px;
+    }
+
+    &.is-active {
+      border-color: var(--cl-surface);
+      background: var(--cl-surface);
+      color: var(--cl-brand-deeper);
+    }
+  }
+}
+
 @media (max-width: 576px) {
   :host .inner-banner {
     padding: 28px 0 26px;

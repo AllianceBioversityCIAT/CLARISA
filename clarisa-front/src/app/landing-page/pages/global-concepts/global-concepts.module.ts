@@ -10,6 +10,12 @@ import { ConceptListComponent } from './pages/concept-list/concept-list.componen
 import { ConceptDetailComponent } from './pages/concept-detail/concept-detail.component';
 import { RequestVerifyComponent } from './pages/request-verify/request-verify.component';
 import { RequestFollowComponent } from './pages/request-follow/request-follow.component';
+import { FacetBarComponent } from './sections/facet-bar/facet-bar.component';
+import { ConceptIconsComponent } from './sections/concept-icons/concept-icons.component';
+import { CustomFieldsComponent } from './sections/custom-fields/custom-fields.component';
+import { GcFooterComponent } from './sections/gc-footer/gc-footer.component';
+import { DevelopersComponent } from './pages/developers/developers.component';
+import { GuideComponent } from './pages/guide/guide.component';
 
 @NgModule({
   declarations: [
@@ -19,7 +25,13 @@ import { RequestFollowComponent } from './pages/request-follow/request-follow.co
     ConceptListComponent,
     ConceptDetailComponent,
     RequestVerifyComponent,
-    RequestFollowComponent
+    RequestFollowComponent,
+    FacetBarComponent,
+    ConceptIconsComponent,
+    CustomFieldsComponent,
+    GcFooterComponent,
+    DevelopersComponent,
+    GuideComponent
   ],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, GlobalConceptsRoutingModule]
 })

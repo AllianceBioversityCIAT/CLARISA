@@ -49,6 +49,8 @@ export class ProposeFormComponent implements OnChanges {
   /** Shows a Close button that emits `closed`. */
   @Input() closable = false;
   @Output() closed = new EventEmitter<void>();
+  /** Prefills the preferred label of a new concept (e.g. the search that found nothing). */
+  @Input() initialLabel = '';
 
   readonly limits = LIMITS;
   readonly form: FormGroup;
@@ -78,6 +80,8 @@ export class ProposeFormComponent implements OnChanges {
   ngOnChanges(): void {
     if (this.concept) {
       this.form.patchValue({ type: 'edit', term_id: String(this.concept.term_id) });
+    } else if (this.initialLabel.trim() && !String(this.form.value.preferred_label ?? '').trim()) {
+      this.form.patchValue({ preferred_label: this.initialLabel.trim().slice(0, LIMITS.label) });
     }
     this.form.updateValueAndValidity();
   }

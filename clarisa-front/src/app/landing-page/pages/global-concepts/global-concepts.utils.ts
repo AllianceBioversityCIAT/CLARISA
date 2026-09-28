@@ -150,3 +150,45 @@ export function writeSession(key: string, value: string): void {
     // Private mode or blocked storage: the page still works from the email link.
   }
 }
+
+// ------------------------------------------------------------ clipboard and anchors
+
+/** Copies a text; resolves `false` when the browser refuses (no permission, old engine). */
+export function copyText(text: string): Promise<boolean> {
+  const fallback = () => {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    try {
+      return document.execCommand('copy');
+    } catch {
+      return false;
+    } finally {
+      document.body.removeChild(area);
+    }
+  };
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text).then(
+      () => true,
+      () => fallback()
+    );
+  }
+  return Promise.resolve(fallback());
+}
+
+/**
+ * Scrolls to an in-page section. The router does not scroll to fragments
+ * (`anchorScrolling` is off app-wide), so the documentation pages do it on
+ * each fragment change, which also makes a shared `#section` link land.
+ */
+export function scrollToSection(id: string | null | undefined, smooth = true): void {
+  if (!id) return;
+  const target = document.getElementById(id);
+  if (!target) return;
+  const reduce = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  target.scrollIntoView({ behavior: smooth && !reduce ? 'smooth' : 'auto', block: 'start' });
+}

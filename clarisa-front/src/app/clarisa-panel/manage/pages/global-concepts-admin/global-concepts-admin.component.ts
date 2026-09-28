@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ConceptScheme, GlobalConceptsApiService } from '../../../../shared/services/global-concepts/global-concepts-api.service';
+import { CreateRequest } from './components/gc-concepts-panel/gc-concepts-panel.component';
 
-export type GlobalConceptsSection = 'concepts' | 'requests' | 'import';
+export type GlobalConceptsSection = 'concepts' | 'requests' | 'import' | 'setup' | 'usage';
 
 /** The only scheme today. The picker appears on its own once the back lists a second one. */
 export const DEFAULT_SCHEME = 'meliaf';
@@ -24,6 +25,17 @@ export class GlobalConceptsAdminComponent implements OnInit {
 
   /** Bumped after an import so the concepts table reloads when it is opened. */
   conceptsReloadToken = 0;
+
+  readonly sections: { id: GlobalConceptsSection; label: string }[] = [
+    { id: 'concepts', label: 'Concepts' },
+    { id: 'requests', label: 'Requests' },
+    { id: 'import', label: 'Import' },
+    { id: 'setup', label: 'Setup' },
+    { id: 'usage', label: 'Usage' }
+  ];
+
+  /** A search nobody found, sent from Usage: the Concepts tab opens its create dialog with it. */
+  createRequest: CreateRequest | null = null;
 
   constructor(private readonly _api: GlobalConceptsApiService) {}
 
@@ -52,6 +64,12 @@ export class GlobalConceptsAdminComponent implements OnInit {
 
   setSection(section: GlobalConceptsSection): void {
     this.activeSection = section;
+  }
+
+  /** "Create concept" from a search with no result: switch to Concepts and open the dialog prefilled. */
+  createFromSearch(label: string): void {
+    this.createRequest = { label, token: (this.createRequest?.token ?? 0) + 1 };
+    this.activeSection = 'concepts';
   }
 
   /** The wizard stays on its result step; the concepts table is marked stale. */

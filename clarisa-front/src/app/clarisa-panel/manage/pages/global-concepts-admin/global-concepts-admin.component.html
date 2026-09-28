@@ -17,33 +17,16 @@
         [(ngModel)]="scheme">
       </p-dropdown>
 
-      <nav class="admin-tabs" role="tablist" aria-label="Global Concepts sections">
+      <nav class="admin-tabs gc-admin__tabs" role="tablist" aria-label="Global Concepts sections">
         <button
+          *ngFor="let section of sections"
           type="button"
           role="tab"
           class="admin-tabs__item"
-          [class.is-active]="activeSection === 'concepts'"
-          [attr.aria-selected]="activeSection === 'concepts'"
-          (click)="setSection('concepts')">
-          <span>Concepts</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="admin-tabs__item"
-          [class.is-active]="activeSection === 'requests'"
-          [attr.aria-selected]="activeSection === 'requests'"
-          (click)="setSection('requests')">
-          <span>Requests</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="admin-tabs__item"
-          [class.is-active]="activeSection === 'import'"
-          [attr.aria-selected]="activeSection === 'import'"
-          (click)="setSection('import')">
-          <span>Import</span>
+          [class.is-active]="activeSection === section.id"
+          [attr.aria-selected]="activeSection === section.id"
+          (click)="setSection(section.id)">
+          <span>{{ section.label }}</span>
         </button>
       </nav>
     </div>
@@ -54,6 +37,7 @@
       *ngIf="activeSection === 'concepts'"
       [scheme]="scheme"
       [reloadToken]="conceptsReloadToken"
+      [createRequest]="createRequest"
       [aiEnabled]="aiEnabled"></app-gc-concepts-panel>
     <app-gc-requests-panel *ngIf="activeSection === 'requests'" [scheme]="scheme" [aiEnabled]="aiEnabled"></app-gc-requests-panel>
     <app-gc-import-panel
@@ -62,6 +46,8 @@
       [aiEnabled]="aiEnabled"
       (imported)="onImported()"
       (openConcepts)="setSection('concepts')"></app-gc-import-panel>
+    <app-gc-setup-panel *ngIf="activeSection === 'setup'" [scheme]="scheme"></app-gc-setup-panel>
+    <app-gc-usage-panel *ngIf="activeSection === 'usage'" [scheme]="scheme" (createConcept)="createFromSearch($event)"></app-gc-usage-panel>
   </main>
 </div>
 

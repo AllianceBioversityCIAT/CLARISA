@@ -1,0 +1,39 @@
+@import '../gc-editor';
+
+.gc-map-badge {
+  flex: 0 0 auto;
+  min-width: 104px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.gc-map-form {
+  margin-top: 12px;
+  background: var(--cl-surface-2);
+}
+
+.gc-map-option {
+  display: flex;
+  flex-direction: column;
+
+  small {
+    font-size: 12px;
+    color: var(--cl-ink-3);
+  }
+}
+
+:host ::ng-deep .gc-map-form {
+  input.p-inputtext {
+    font-size: 16px;
+  }
+
+  p-dropdown,
+  .p-dropdown {
+    width: 100%;
+  }
+}

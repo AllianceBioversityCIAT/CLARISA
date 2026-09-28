@@ -389,4 +389,287 @@ export class GlobalConceptsApiService {
       { text, limit }
     );
   }
+
+  // ------------------------------------------- admin · concept editor (contract v2)
+
+  /** One concept as the admin sees it, with `mappings_all` (ids) and its history rows. */
+  adminConcept(scheme: string, termId: number): Observable<AdminConceptDetail> {
+    return this._http.get<AdminConceptDetail>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}`);
+  }
+
+  addRelation(scheme: string, termId: number, body: { kind: RelationKind; target_term_id: number }): Observable<AdminConceptDetail> {
+    return this._http.post<AdminConceptDetail>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/relations`, body);
+  }
+
+  removeRelation(scheme: string, termId: number, body: { kind: RelationKind; target_term_id: number }): Observable<AdminConceptDetail> {
+    return this._http.post<AdminConceptDetail>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/relations/remove`, body);
+  }
+
+  addMapping(scheme: string, termId: number, body: MappingInput): Observable<AdminConceptDetail> {
+    return this._http.post<AdminConceptDetail>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/mappings`, body);
+  }
+
+  removeMapping(scheme: string, termId: number, mappingId: number): Observable<AdminConceptDetail> {
+    return this._http.delete<AdminConceptDetail>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/mappings/${mappingId}`);
+  }
+
+  icons(scheme: string, termId: number): Observable<AdminIcon[]> {
+    return this._http.get<AdminIcon[]>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/icons`);
+  }
+
+  createIcon(scheme: string, termId: number, body: IconInput): Observable<AdminIcon> {
+    return this._http.post<AdminIcon>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/icons`, body);
+  }
+
+  updateIcon(scheme: string, id: number, body: Partial<IconInput>): Observable<AdminIcon> {
+    return this._http.patch<AdminIcon>(`${this.admin}/${encodeURIComponent(scheme)}/icons/${id}`, body);
+  }
+
+  deleteIcon(scheme: string, id: number): Observable<{ deleted: number }> {
+    return this._http.delete<{ deleted: number }>(`${this.admin}/${encodeURIComponent(scheme)}/icons/${id}`);
+  }
+
+  /** Every custom field definition of the scheme, active and inactive. */
+  fields(scheme: string): Observable<CustomField[]> {
+    return this._http.get<CustomField[]>(`${this.admin}/${encodeURIComponent(scheme)}/fields`);
+  }
+
+  createField(scheme: string, body: CustomFieldInput): Observable<CustomField> {
+    return this._http.post<CustomField>(`${this.admin}/${encodeURIComponent(scheme)}/fields`, body);
+  }
+
+  /** `code` and `type` are immutable once created; the back rejects them here. */
+  updateField(scheme: string, id: number, body: CustomFieldPatch): Observable<CustomField> {
+    return this._http.patch<CustomField>(`${this.admin}/${encodeURIComponent(scheme)}/fields/${id}`, body);
+  }
+
+  /** Every value the scheme sees, inactive included, with the ids the PATCH needs. */
+  adminLists(scheme: string): Observable<AdminListValue[]> {
+    return this._http.get<AdminListValue[]>(`${this.admin}/${encodeURIComponent(scheme)}/lists`);
+  }
+
+  addListValue(
+    scheme: string,
+    body: { list_code: string; label: string; value?: string; sort?: number; shared?: boolean; new_list?: boolean }
+  ): Observable<AdminListValue> {
+    return this._http.post<AdminListValue>(`${this.admin}/${encodeURIComponent(scheme)}/lists`, body);
+  }
+
+  updateListValue(scheme: string, id: number, body: { label?: string; sort?: number; is_active?: boolean }): Observable<AdminListValue> {
+    return this._http.patch<AdminListValue>(`${this.admin}/${encodeURIComponent(scheme)}/lists/${id}`, body);
+  }
+
+  collections(scheme: string): Observable<ConceptCollection[]> {
+    return this._http.get<ConceptCollection[]>(`${this.admin}/${encodeURIComponent(scheme)}/collections`);
+  }
+
+  createCollection(scheme: string, body: { code: string; label: string; ordered?: boolean }): Observable<ConceptCollection> {
+    return this._http.post<ConceptCollection>(`${this.admin}/${encodeURIComponent(scheme)}/collections`, body);
+  }
+
+  updateCollection(scheme: string, code: string, body: { label?: string; ordered?: boolean }): Observable<ConceptCollection> {
+    return this._http.patch<ConceptCollection>(`${this.admin}/${encodeURIComponent(scheme)}/collections/${encodeURIComponent(code)}`, body);
+  }
+
+  setCollectionMembers(scheme: string, code: string, termIds: number[]): Observable<ConceptCollection> {
+    return this._http.put<ConceptCollection>(`${this.admin}/${encodeURIComponent(scheme)}/collections/${encodeURIComponent(code)}/members`, {
+      term_ids: termIds
+    });
+  }
+
+  deleteCollection(scheme: string, code: string): Observable<{ deleted: string }> {
+    return this._http.delete<{ deleted: string }>(`${this.admin}/${encodeURIComponent(scheme)}/collections/${encodeURIComponent(code)}`);
+  }
+
+  usage(scheme: string, days: number): Observable<UsageSummary> {
+    return this._http.get<UsageSummary>(`${this.admin}/${encodeURIComponent(scheme)}/usage`, { params: params({ days }) });
+  }
+
+  /** Advisory: nothing is saved until the editor accepts the text and saves the concept. */
+  aiDraft(
+    scheme: string,
+    body: { preferred_label: string; definition: string; fields: AiDraftField[] }
+  ): Observable<Partial<Record<AiDraftField, string>>> {
+    return this._http.post<Partial<Record<AiDraftField, string>>>(`${this.admin}/${encodeURIComponent(scheme)}/ai/draft`, body);
+  }
+
+  // ------------------------------------------------- public (contract v2, developers page)
+
+  /** Root of the module's routes, for documentation and live examples. */
+  get publicBase(): string {
+    return this.base;
+  }
+
+  /** Active public custom fields of a scheme (`GET :scheme/fields`). */
+  publicFields(scheme: string): Observable<PublicFieldDef[]> {
+    return this._http.get<PublicFieldDef[]>(`${this.base}/${encodeURIComponent(scheme)}/fields`);
+  }
+
+  /** URL of the stateless Streamable HTTP MCP endpoint. */
+  get mcpUrl(): string {
+    return `${this.base}/mcp`;
+  }
+
+  /** One JSON-RPC message to the MCP endpoint (answered with plain JSON). */
+  mcpCall(body: McpRequest): Observable<unknown> {
+    return this._http.post<unknown>(this.mcpUrl, body, { headers: { Accept: 'application/json, text/event-stream' } });
+  }
+
+  /** Import columns: built-in schema fields plus `x:<code>` for each active custom field. */
+  importFields(scheme: string): Observable<{ field: string; hint: string; custom: boolean; type?: string; list_code?: string | null }[]> {
+    return this._http.get<{ field: string; hint: string; custom: boolean; type?: string; list_code?: string | null }[]>(
+      `${this.admin}/${encodeURIComponent(scheme)}/import-fields`
+    );
+  }
+}
+
+// ------------------------------------------------ admin types (contract v2)
+
+export type RelationKind = 'broader' | 'related';
+export type MatchType = 'exact' | 'close' | 'broad' | 'narrow' | 'related';
+
+export interface AdminMapping extends ConceptMapping {
+  id: number;
+}
+
+export interface MappingInput {
+  target_scheme: string;
+  target_uri: string;
+  target_label?: string;
+  match_type?: MatchType;
+  justification?: string;
+  confidence?: number;
+}
+
+/** The admin shape as it arrives: the public one plus ids and the raw `extra`. */
+export interface AdminConceptDetail extends AdminConcept {
+  mappings_all?: AdminMapping[];
+  extra?: Record<string, unknown>;
+  icons?: { icon_code: string | null; status: string; format: string | null; alt_text: string | null; url: string | null }[];
+  history?: unknown[];
+}
+
+export interface IconInput {
+  icon_code?: string | null;
+  icon_status: string;
+  file_format?: string | null;
+  file_name?: string | null;
+  designer?: string | null;
+  designer_country?: string | null;
+  year_created?: number | null;
+  rights_and_licence?: string | null;
+  alt_text?: string | null;
+  file_link_primary?: string | null;
+  file_link_backup?: string | null;
+  date_added?: string | null;
+}
+
+export interface AdminIcon extends IconInput {
+  id: number;
+}
+
+export type CustomFieldType = 'text' | 'long_text' | 'multi_text' | 'list' | 'multi_list' | 'term_link' | 'url' | 'date' | 'number';
+
+export interface CustomField {
+  id: number;
+  code: string;
+  label: string;
+  type: CustomFieldType;
+  list_code: string | null;
+  required: boolean;
+  is_public: boolean;
+  sort: number;
+  is_active: boolean;
+  help: string | null;
+  created_at?: string;
+}
+
+export interface CustomFieldInput {
+  code: string;
+  label: string;
+  type: CustomFieldType;
+  list_code?: string;
+  required?: boolean;
+  is_public?: boolean;
+  sort?: number;
+  help?: string;
+}
+
+export interface CustomFieldPatch {
+  label?: string;
+  help?: string;
+  required?: boolean;
+  is_public?: boolean;
+  sort?: number;
+  is_active?: boolean;
+}
+
+export interface AdminListValue {
+  id: number;
+  list_code: string;
+  value: string;
+  label: string;
+  sort: number;
+  is_active: boolean;
+  shared: boolean;
+}
+
+export interface ConceptCollection {
+  code: string;
+  label: string;
+  ordered: boolean;
+  members: { term_id: number; preferred_label: string; status: string }[];
+}
+
+export interface UsageSummary {
+  days: number;
+  totals: { search: number; zero_search: number; view: number; export: number; mcp: number; suggest: number };
+  by_day: { day: string; search: number; view: number }[];
+  top_searches: { item: string; count: number }[];
+  zero_result_searches: { item: string; count: number }[];
+  top_viewed: { term_id: number; preferred_label: string; count: number }[];
+}
+
+export type AiDraftField = 'short_definition' | 'scope_note' | 'example_of_use';
+
+// ----------------------------------------------------------- public shape v2 (contract-v2.md)
+
+/** An icon as published: `url` is the primary link only when it is http(s). */
+export interface PublicIcon {
+  icon_code: string | null;
+  status: string | null;
+  format: string | null;
+  alt_text: string | null;
+  url: string | null;
+  rights_and_licence: string | null;
+  designer: string | null;
+}
+
+/** A public custom field value; `term_link` values arrive resolved to concept refs. */
+export interface PublicCustomField {
+  code: string;
+  label: string;
+  type: CustomFieldType;
+  value: unknown;
+}
+
+export interface PublicFieldDef {
+  code: string;
+  label: string;
+  type: CustomFieldType;
+  list_code: string | null;
+  help: string | null;
+}
+
+/** The public concept with the v2 additions (older backs omit them). */
+export type PublicConceptV2 = PublicConcept & {
+  icons?: PublicIcon[];
+  custom_fields?: PublicCustomField[];
+};
+
+export interface McpRequest {
+  jsonrpc: '2.0';
+  id: number | string;
+  method: string;
+  params?: Record<string, unknown>;
 }

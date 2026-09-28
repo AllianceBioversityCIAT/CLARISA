@@ -8,7 +8,8 @@ import {
   ConceptLabel,
   ConceptRef,
   GlobalConceptsApiService,
-  PublicConcept
+  PublicConceptV2,
+  PublicFieldDef
 } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { DEFAULT_SCHEME, GC_BASE, ListsByCode, dateLabel, humanError, labelOf, normalizeLists, safeHttpUrl } from '../../global-concepts.utils';
 
@@ -40,7 +41,9 @@ export class ConceptDetailComponent implements OnInit, OnDestroy {
 
   schemeCode = DEFAULT_SCHEME;
   termId = 0;
-  concept: PublicConcept | null = null;
+  concept: PublicConceptV2 | null = null;
+  /** Public field definitions: only used to name list values of custom fields. */
+  fieldDefs: PublicFieldDef[] = [];
   history: ConceptHistoryEntry[] = [];
   historyError = false;
   lists: ListsByCode = {};
@@ -75,6 +78,7 @@ export class ConceptDetailComponent implements OnInit, OnDestroy {
 
   load(): void {
     this.concept = null;
+    this.fieldDefs = [];
     this.history = [];
     this.historyError = false;
     this.error = null;
@@ -119,6 +123,18 @@ export class ConceptDetailComponent implements OnInit, OnDestroy {
         }
       });
     this._api
+      .publicFields(this.schemeCode)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: defs => {
+          if (current()) this.fieldDefs = Array.isArray(defs) ? defs : [];
+        },
+        // Optional: without it custom list values show their code.
+        error: () => {
+          if (current()) this.fieldDefs = [];
+        }
+      });
+    this._api
       .lists(this.schemeCode)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -129,6 +145,17 @@ export class ConceptDetailComponent implements OnInit, OnDestroy {
           if (current()) this.lists = {};
         }
       });
+  }
+
+  /** Whether a field of this concept was drafted with AI assistance (contract-v2 § 4). */
+  ai(field: string): boolean {
+    return !!this.concept?.ai_generated_fields?.includes(field);
+  }
+
+  /** The AI-assisted fields, named for a reader. */
+  get aiFieldNames(): string[] {
+    const custom = new Map((this.concept?.custom_fields ?? []).map(f => [f.code, f.label]));
+    return (this.concept?.ai_generated_fields ?? []).map(f => custom.get(f) ?? f.replace(/_/g, ' '));
   }
 
   get isDeprecated(): boolean {

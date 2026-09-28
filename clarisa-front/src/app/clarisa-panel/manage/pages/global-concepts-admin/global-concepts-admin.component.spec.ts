@@ -42,4 +42,16 @@ describe('GlobalConceptsAdminComponent', () => {
     expect(component.conceptsReloadToken).toBe(1);
     expect(component.activeSection).toBe('import');
   });
+
+  it('lists the five sections and opens Concepts with a create request from Usage', () => {
+    const component = build({ schemes: jest.fn(() => of([])), aiStatus: jest.fn(() => of({ enabled: false })) });
+    expect(component.sections.map(section => section.id)).toEqual(['concepts', 'requests', 'import', 'setup', 'usage']);
+
+    component.setSection('usage');
+    component.createFromSearch('theory of change');
+    component.createFromSearch('theory of change');
+
+    expect(component.activeSection).toBe('concepts');
+    expect(component.createRequest).toEqual({ label: 'theory of change', token: 2 });
+  });
 });

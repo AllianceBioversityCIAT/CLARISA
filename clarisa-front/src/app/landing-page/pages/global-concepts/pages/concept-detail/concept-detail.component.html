@@ -88,23 +88,23 @@
             </div>
 
             <section class="gc-prose">
-              <h3 class="gc-h4">Definition</h3>
+              <h3 class="gc-h4">Definition <span class="gc-tag" *ngIf="ai('definition')"><i class="pi pi-bolt" aria-hidden="true"></i>AI-assisted</span></h3>
               <p *ngIf="c.definition" class="gc-text">{{ c.definition }}</p>
               <p *ngIf="!c.definition" class="gc-text gc-text--empty">No definition published yet.</p>
             </section>
 
             <section class="gc-prose" *ngIf="c.short_definition">
-              <h3 class="gc-h4">Short definition</h3>
+              <h3 class="gc-h4">Short definition <span class="gc-tag" *ngIf="ai('short_definition')"><i class="pi pi-bolt" aria-hidden="true"></i>AI-assisted</span></h3>
               <p class="gc-text">{{ c.short_definition }}</p>
             </section>
 
             <section class="gc-prose" *ngIf="c.scope_note">
-              <h3 class="gc-h4">Scope note</h3>
+              <h3 class="gc-h4">Scope note <span class="gc-tag" *ngIf="ai('scope_note')"><i class="pi pi-bolt" aria-hidden="true"></i>AI-assisted</span></h3>
               <p class="gc-text">{{ c.scope_note }}</p>
             </section>
 
             <section class="gc-prose" *ngIf="c.example_of_use">
-              <h3 class="gc-h4">Example of use</h3>
+              <h3 class="gc-h4">Example of use <span class="gc-tag" *ngIf="ai('example_of_use')"><i class="pi pi-bolt" aria-hidden="true"></i>AI-assisted</span></h3>
               <p class="gc-text gc-text--example">{{ c.example_of_use }}</p>
             </section>
 
@@ -118,11 +118,18 @@
               </ul>
             </section>
 
-            <p class="gc-ai-note gc-meta" *ngIf="c.ai_generated_fields.length">
+            <p class="gc-ai-note gc-meta" *ngIf="aiFieldNames.length">
               <i class="pi pi-info-circle" aria-hidden="true"></i>
-              Drafted with AI assistance and reviewed by the stewards: {{ c.ai_generated_fields.join(', ') }}.
+              Fields marked AI-assisted were drafted with AI assistance and accepted by an editor before publication: {{ aiFieldNames.join(', ') }}.
             </p>
           </article>
+
+          <app-gc-custom-fields
+            [fields]="c.custom_fields"
+            [aiFields]="c.ai_generated_fields"
+            [lists]="lists"
+            [defs]="fieldDefs"
+            [scheme]="schemeCode"></app-gc-custom-fields>
 
           <article class="gc-card gc-block" *ngIf="hasRelations">
             <h3 class="gc-h3">Related concepts</h3>
@@ -199,6 +206,9 @@
         </div>
 
         <aside class="gc-detail__aside">
+          <!-- Only when the back publishes icons: an older back omits the key, and "no icon yet" would be a claim. -->
+          <app-gc-concept-icons *ngIf="c.icons" [icons]="c.icons" [conceptLabel]="c.preferred_label"></app-gc-concept-icons>
+
           <div class="gc-card gc-facts">
             <h3 class="gc-h3">About this concept</h3>
             <dl>
@@ -271,3 +281,5 @@
     </ng-container>
   </div>
 </section>
+
+<app-gc-footer></app-gc-footer>

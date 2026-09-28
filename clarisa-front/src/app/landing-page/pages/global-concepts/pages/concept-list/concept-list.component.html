@@ -20,7 +20,7 @@
       <p>{{ schemeError }}</p>
     </div>
 
-    <!-- Toolbar: search, facets, deprecated toggle and downloads -->
+    <!-- Toolbar: search, downloads, then the facet bar -->
     <div class="gc-toolbar" role="search">
       <div class="gc-toolbar__row">
         <div class="gc-search">
@@ -56,33 +56,27 @@
         </details>
       </div>
 
-      <div class="gc-toolbar__row gc-toolbar__row--facets">
-        <ng-container *ngFor="let facet of facets">
-          <div class="gc-field gc-facet" *ngIf="options(facet.code).length">
-            <label [attr.for]="'gc-facet-' + facet.code">{{ facet.label }}</label>
-            <select class="gc-select" [id]="'gc-facet-' + facet.code" [ngModel]="filters[facet.code]" (ngModelChange)="setFilter(facet.code, $event)">
-              <option value="">{{ facet.all }}</option>
-              <option *ngFor="let option of options(facet.code)" [value]="option.value">{{ option.label }}</option>
-            </select>
-          </div>
-        </ng-container>
-
-        <label class="gc-switch">
-          <input type="checkbox" [ngModel]="includeDeprecated" (ngModelChange)="toggleDeprecated($event)" />
-          <span class="gc-switch__track" aria-hidden="true"><span class="gc-switch__thumb"></span></span>
-          <span class="gc-switch__label">Include deprecated</span>
-        </label>
-      </div>
+      <app-gc-facet-bar
+        [facets]="facets"
+        [chips]="chips"
+        [sort]="state.sort"
+        [deprecated]="state.deprecated"
+        [selected]="selected"
+        [resultCount]="results.length"
+        (toggleValue)="toggleValue($event.code, $event.value)"
+        (clearFacet)="clearFacet($event)"
+        (sortChange)="setSort($event)"
+        (deprecatedChange)="toggleDeprecated($event)"
+        (removeChip)="removeChip($event)"
+        (clearAll)="clearAll()"></app-gc-facet-bar>
     </div>
 
     <div class="gc-layout">
       <div class="gc-results" aria-live="polite" [attr.aria-busy]="loading">
-        <div class="gc-results__head" *ngIf="!loading && !error">
-          <p class="gc-meta">
-            <strong>{{ concepts.length }}</strong> {{ concepts.length === 1 ? 'concept' : 'concepts' }}
-            <ng-container *ngIf="hasFilters"> match your search</ng-container>
+        <div class="gc-results__head" *ngIf="!loading && !error && all.length">
+          <p class="gc-meta" role="status">
+            <strong>{{ results.length }}</strong> of {{ total }} {{ total === 1 ? 'concept' : 'concepts' }}
           </p>
-          <button type="button" class="gc-link gc-clear" *ngIf="hasFilters" (click)="clearFilters()">Clear filters</button>
         </div>
 
         <!-- Loading: the shape of the cards that are coming -->
@@ -99,20 +93,22 @@
           <span class="gc-state__icon"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i></span>
           <h4>The concepts could not be loaded</h4>
           <p>{{ error }}</p>
-          <button type="button" class="gc-btn gc-btn--small" (click)="search()">Try again</button>
+          <button type="button" class="gc-btn gc-btn--small" (click)="reload()">Try again</button>
         </div>
 
-        <div class="gc-state" *ngIf="!loading && !error && !concepts.length">
+        <div class="gc-state" *ngIf="!loading && !error && !results.length">
           <span class="gc-state__icon"><i class="pi pi-search" aria-hidden="true"></i></span>
-          <ng-container *ngIf="hasFilters; else emptyScheme">
-            <h4>No concept matches this search</h4>
+          <ng-container *ngIf="all.length; else emptyScheme">
+            <h4>No concept matches<ng-container *ngIf="q.trim()"> "{{ q.trim() }}"</ng-container></h4>
             <p>
-              Try a shorter word or an acronym, turn on "Include deprecated", or clear the filters. If the concept you need does not exist, propose
-              it.
+              Try a shorter word or an acronym, remove a filter or turn on "Include deprecated". If the concept you need does not exist yet, propose
+              it: the stewards review every request.
             </p>
             <div class="gc-state__actions">
-              <button type="button" class="gc-btn gc-btn--small gc-btn--ghost" (click)="clearFilters()">Clear filters</button>
-              <button type="button" class="gc-btn gc-btn--small" (click)="openPropose()">Propose a concept</button>
+              <button type="button" class="gc-btn gc-btn--small gc-btn--ghost" *ngIf="hasFilters" (click)="clearAll()">Clear all filters</button>
+              <button type="button" class="gc-btn gc-btn--small" (click)="openPropose()">
+                <i class="pi pi-plus" aria-hidden="true"></i>{{ q.trim() ? 'Propose "' + q.trim() + '"' : 'Propose a concept' }}
+              </button>
             </div>
           </ng-container>
           <ng-template #emptyScheme>
@@ -122,10 +118,10 @@
           </ng-template>
         </div>
 
-        <div class="gc-list" *ngIf="!loading && !error && concepts.length">
+        <div class="gc-list" *ngIf="!loading && !error && results.length">
           <article
             class="gc-card gc-concept"
-            *ngFor="let concept of concepts; trackBy: trackById"
+            *ngFor="let concept of results; trackBy: trackById"
             [class.is-deprecated]="concept.status === 'deprecated'">
             <header class="gc-concept__head">
               <h3 class="gc-concept__title">
@@ -170,7 +166,9 @@
     </div>
 
     <div id="gc-propose" class="gc-propose-slot" *ngIf="proposeOpen">
-      <app-gc-propose-form [scheme]="schemeCode" [closable]="true" (closed)="proposeOpen = false"></app-gc-propose-form>
+      <app-gc-propose-form [scheme]="schemeCode" [initialLabel]="q" [closable]="true" (closed)="proposeOpen = false"></app-gc-propose-form>
     </div>
   </div>
 </section>
+
+<app-gc-footer></app-gc-footer>

@@ -420,6 +420,440 @@
     }
   }
 
+  // ------------------------------------------------------------------ switch
+  // A real checkbox, visually a track. Focus is drawn on the track.
+
+  .gc-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    margin: 0;
+    color: var(--cl-ink);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+    }
+  }
+
+  .gc-switch__track {
+    position: relative;
+    flex: none;
+    width: 40px;
+    height: 24px;
+    border-radius: 999px;
+    background: var(--cl-ink-3);
+    transition: background-color 0.16s ease;
+  }
+
+  .gc-switch__thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--cl-surface);
+    transition: transform 0.16s ease;
+  }
+
+  .gc-switch input:checked + .gc-switch__track {
+    background: var(--cl-brand-strong);
+
+    .gc-switch__thumb {
+      transform: translateX(16px);
+    }
+  }
+
+  .gc-switch input:focus-visible + .gc-switch__track {
+    @include focus-ring;
+  }
+
+  // ------------------------------------------------------------------ checkbox row
+  // Label + count, 44px tall: a thumb target on a phone.
+
+  .gc-check {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 10px;
+    border-radius: var(--cl-radius-control);
+    color: var(--cl-ink);
+    font-size: 15px;
+    font-weight: 400;
+    cursor: pointer;
+
+    input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+    }
+
+    &:hover {
+      background: var(--cl-surface-2);
+    }
+
+    &.is-empty {
+      cursor: default;
+      color: var(--cl-ink-2);
+
+      &:hover {
+        background: none;
+      }
+    }
+  }
+
+  .gc-check__box {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--cl-ink-3);
+    border-radius: 5px;
+    background: var(--cl-surface);
+    color: var(--cl-surface);
+    transition:
+      background-color 0.12s ease,
+      border-color 0.12s ease;
+
+    i {
+      font-size: 11px;
+      opacity: 0;
+    }
+  }
+
+  .gc-check input:checked + .gc-check__box {
+    border-color: var(--cl-brand-strong);
+    background: var(--cl-brand-strong);
+
+    i {
+      opacity: 1;
+    }
+  }
+
+  .gc-check input:focus-visible + .gc-check__box {
+    @include focus-ring;
+  }
+
+  .gc-check__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .gc-check__count {
+    flex: none;
+    min-width: 28px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--cl-surface-2);
+    color: var(--cl-ink-2);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  // ------------------------------------------------------------------ small tag
+  // "AI-assisted" and similar provenance marks next to a heading.
+
+  .gc-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 20px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--cl-surface-2);
+    box-shadow: inset 0 0 0 1px var(--cl-line);
+    color: var(--cl-ink-2);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    vertical-align: middle;
+    white-space: nowrap;
+
+    i {
+      font-size: 10px;
+    }
+  }
+
+  // ------------------------------------------------------------------ documentation pages
+  // Developers and Guide: anchored table of contents + readable column.
+
+  .gc-doc {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 32px;
+    align-items: start;
+  }
+
+  .gc-toc {
+    position: sticky;
+    top: 96px;
+    padding: 16px 12px;
+    border: 1px solid var(--cl-line);
+    border-radius: var(--cl-radius-card);
+    background: var(--cl-surface);
+
+    p {
+      margin: 0 0 6px 10px;
+      color: var(--cl-ink-2);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    ol {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    a {
+      display: block;
+      padding: 7px 10px;
+      border-radius: var(--cl-radius-control);
+      color: var(--cl-ink-2);
+      font-size: 14px;
+      line-height: 1.35;
+      text-decoration: none;
+
+      &:hover {
+        background: var(--cl-surface-2);
+        color: var(--cl-ink);
+      }
+
+      &.is-active {
+        background: var(--cl-brand-soft);
+        color: var(--cl-brand-deeper);
+        font-weight: 600;
+      }
+
+      &:focus-visible {
+        @include focus-ring;
+      }
+    }
+  }
+
+  .gc-doc__body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  .gc-doc__section {
+    scroll-margin-top: 96px;
+
+    > p,
+    > ul,
+    > ol {
+      max-width: 72ch;
+      margin: 0 0 12px;
+      color: var(--cl-ink-2);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    > ul,
+    > ol {
+      padding-left: 20px;
+    }
+
+    li + li {
+      margin-top: 4px;
+    }
+
+    strong {
+      color: var(--cl-ink);
+    }
+  }
+
+  .gc-h2 {
+    margin: 0 0 10px;
+    color: var(--cl-ink);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+
+  .gc-h4 {
+    margin: 18px 0 6px;
+    color: var(--cl-ink);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  // Code: dark on the page's own charcoal, copy button in the corner.
+  .gc-code {
+    position: relative;
+    margin: 8px 0 14px;
+    border-radius: var(--cl-radius-control);
+    background: var(--cl-admin-nav);
+
+    pre {
+      margin: 0;
+      padding: 14px 16px;
+      padding-right: 88px;
+      overflow-x: auto;
+      border: 0;
+      border-radius: inherit;
+      background: transparent;
+      color: var(--cl-admin-nav-ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre;
+      word-break: normal;
+    }
+  }
+
+  .gc-code__label {
+    display: block;
+    padding: 10px 16px 0;
+    color: var(--cl-admin-nav-muted);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .gc-copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--cl-admin-nav-line);
+    border-radius: var(--cl-radius-control);
+    background: var(--cl-admin-nav-2);
+    color: var(--cl-admin-nav-ink);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--cl-admin-nav-dim);
+    }
+
+    &.is-done {
+      color: var(--cl-admin-nav-accent);
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
+  // Reference table; becomes stacked cards on a phone.
+  .gc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+
+    th {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--cl-line);
+      color: var(--cl-ink-2);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-align: left;
+      text-transform: uppercase;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--cl-line);
+      color: var(--cl-ink-2);
+      line-height: 1.5;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td {
+      background: var(--cl-surface-2);
+    }
+  }
+
+  .gc-method {
+    display: inline-block;
+    min-width: 44px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .gc-illustration {
+    display: block;
+    width: 100%;
+    max-width: 420px;
+    height: auto;
+    margin: 6px 0 16px;
+  }
+
+  @media (max-width: 991px) {
+    .gc-doc {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+    }
+
+    .gc-toc {
+      position: static;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .gc-table {
+      thead {
+        display: none;
+      }
+
+      tr {
+        display: block;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--cl-line);
+      }
+
+      td {
+        display: block;
+        padding: 3px 0;
+        border: 0;
+        background: none;
+      }
+
+      tr:nth-child(even) td {
+        background: none;
+      }
+    }
+  }
+
   .gc-sr-only {
     position: absolute;
     width: 1px;

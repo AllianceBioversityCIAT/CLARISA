@@ -1,0 +1,244 @@
+@import '../gc-panel';
+@import '../gc-editor';
+
+.gc-dialog-tabs {
+  display: flex;
+  max-width: 100%;
+  margin-bottom: 18px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-tabs__item.is-locked {
+  color: var(--cl-ink-3);
+  cursor: not-allowed;
+
+  .pi-lock {
+    margin-right: 4px;
+    font-size: 11px;
+  }
+}
+
+.gc-form-error {
+  margin: 4px 0 0;
+}
+
+.gc-actions-note {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--cl-ink-3);
+}
+
+.gc-label-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+
+  label {
+    margin-bottom: 0;
+  }
+}
+
+.gc-ai-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: middle;
+
+  .pi {
+    font-size: 9px;
+  }
+}
+
+.gc-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--cl-brand-ring);
+  border-radius: 999px;
+  background: var(--cl-surface);
+  color: var(--cl-brand-deeper);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+
+  .pi {
+    font-size: 11px;
+  }
+
+  &:hover:enabled,
+  &:focus-visible {
+    background: var(--cl-brand-soft);
+    outline: none;
+  }
+
+  &:disabled {
+    color: var(--cl-ink-3);
+    border-color: var(--cl-line);
+    cursor: not-allowed;
+  }
+}
+
+/* The suggestion sits under its field, lit like the AI button, so it reads as "not yours yet". */
+.gc-ai-draft {
+  margin-top: 8px;
+  padding: 12px 14px 8px;
+  border: 1px dashed var(--cl-brand);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-brand-soft);
+}
+
+.gc-ai-draft__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cl-brand-deeper);
+}
+
+.gc-ai-draft__text {
+  margin: 6px 0 4px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--cl-ink);
+  white-space: pre-line;
+}
+
+.gc-ai-draft__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.gc-status {
+  margin-top: 20px;
+  background: var(--cl-surface-2);
+}
+
+.gc-status__why {
+  margin-right: auto;
+}
+
+.gc-tab-body {
+  min-height: 220px;
+}
+
+.gc-tab-close {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cl-line);
+}
+
+.gc-public-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cl-brand-deeper);
+}
+
+.gc-timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gc-timeline__item {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding: 0 0 16px 2px;
+}
+
+.gc-timeline__item:not(:last-child)::after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 16px;
+  bottom: 0;
+  left: 7px;
+  width: 2px;
+  background: var(--cl-line);
+}
+
+.gc-timeline__dot {
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border: 2px solid var(--cl-brand);
+  border-radius: 50%;
+  background: var(--cl-surface);
+}
+
+.gc-timeline__body {
+  min-width: 0;
+}
+
+.gc-timeline__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+/* The fields and textareas fill their cell; the global form skin sets height, the 16px is ours. */
+:host ::ng-deep .gc-concept-form,
+:host ::ng-deep .gc-status {
+  .field input.p-inputtext,
+  .field textarea.p-inputtextarea,
+  p-dropdown,
+  p-multiselect,
+  .p-dropdown,
+  .p-multiselect {
+    display: block;
+    width: 100%;
+  }
+
+  .field input.p-inputtext {
+    font-size: 16px;
+  }
+
+  .p-dropdown,
+  .p-multiselect {
+    display: inline-flex;
+  }
+
+  textarea.p-inputtextarea {
+    font-size: 16px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+
+  .admin-note {
+    margin-bottom: 18px;
+  }
+}
+
+@media (max-width: 600px) {
+  .gc-actions-note {
+    flex-basis: 100%;
+  }
+
+  .gc-label-row {
+    flex-wrap: wrap;
+  }
+}

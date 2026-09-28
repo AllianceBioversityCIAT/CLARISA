@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import {
   GlobalConceptsApiService,
@@ -7,7 +7,7 @@ import {
 } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { GlossaryFileParserService, ParsedTable } from '../../../glossary-admin/services/glossary-file-parser.service';
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
-import { applyAiMatches, buildImportRows, ColumnMapping, confidenceLabel, exactMapping, pickField } from '../../utils/column-mapping';
+import { applyAiMatches, buildImportRows, ColumnMapping, confidenceLabel, exactMapping, headerKey, pickField } from '../../utils/column-mapping';
 import { IMPORT_FIELDS, REQUIRED_IMPORT_FIELD } from '../../utils/import-fields';
 
 /** Same ceiling as the glossary upload: checked before a byte is parsed. */
@@ -31,7 +31,7 @@ export interface ReviewRow extends ImportRowResult {
   templateUrl: './gc-import-panel.component.html',
   styleUrls: ['./gc-import-panel.component.scss']
 })
-export class GcImportPanelComponent implements OnChanges {
+export class GcImportPanelComponent implements OnChanges, OnInit {
   @Input() scheme = 'meliaf';
   @Input() aiEnabled = false;
   /** Emitted once rows were written, so the concepts table reloads. */
@@ -39,7 +39,10 @@ export class GcImportPanelComponent implements OnChanges {
   @Output() openConcepts = new EventEmitter<void>();
 
   readonly acceptedExtensions = GlossaryFileParserService.ACCEPTED_EXTENSIONS.join(',');
-  readonly fieldOptions = IMPORT_FIELDS.map(field => ({ label: field.field, value: field.field, hint: field.hint }));
+  /** Built-in schema fields, plus the scheme's custom fields as `x:<code>` once they load. */
+  fieldOptions: { label: string; value: string; hint: string }[] = IMPORT_FIELDS.map(field => ({ label: field.field, value: field.field, hint: field.hint }));
+  /** Header words that name a custom field (its label or code), for the exact match. */
+  private customByHeader = new Map<string, string>();
   readonly requiredField = REQUIRED_IMPORT_FIELD;
 
   step: WizardStep = 'source';
@@ -75,8 +78,47 @@ export class GcImportPanelComponent implements OnChanges {
     private readonly _confirmationService: ConfirmationService
   ) {}
 
+  ngOnInit(): void {
+    this.loadImportFields();
+  }
+
+  /** Custom fields become import columns too (contract v2 §2); a failure leaves the built-in ones. */
+  private loadImportFields(): void {
+    this._api.importFields(this.scheme).subscribe({
+      next: fields => {
+        const custom = (fields ?? []).filter(f => f.custom);
+        this.customByHeader = new Map();
+        for (const f of custom) {
+          const code = f.field.replace(/^x:/, '');
+          this.customByHeader.set(headerKey(code), f.field);
+          this.customByHeader.set(headerKey(f.field), f.field);
+          const label = /^(.*) \(custom field/.exec(f.hint)?.[1];
+          if (label) this.customByHeader.set(headerKey(label), f.field);
+        }
+        this.fieldOptions = [
+          ...IMPORT_FIELDS.map(field => ({ label: field.field, value: field.field, hint: field.hint })),
+          ...custom.map(f => ({ label: f.field, value: f.field, hint: f.hint }))
+        ];
+      },
+      error: () => undefined
+    });
+  }
+
+  /** Exact match for custom fields too, one column per field, never over a built-in match. */
+  private withCustomFields(mappings: ColumnMapping[]): ColumnMapping[] {
+    const taken = new Set(mappings.map(m => m.field).filter(Boolean));
+    return mappings.map(m => {
+      if (m.field) return m;
+      const custom = this.customByHeader.get(headerKey(m.header));
+      if (!custom || taken.has(custom)) return m;
+      taken.add(custom);
+      return { ...m, field: custom, source: 'exact', confidence: 1 };
+    });
+  }
+
   /** A preview belongs to one scheme: switching scheme sends the wizard back to the mapping. */
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['scheme'] && !changes['scheme'].firstChange) this.loadImportFields();
     if (changes['scheme'] && !changes['scheme'].firstChange && this.step === 'review') {
       this.backToMapping();
     }
@@ -112,7 +154,7 @@ export class GcImportPanelComponent implements OnChanges {
     try {
       const table = await read();
       this.table = table;
-      this.mappings = exactMapping(table.headers);
+      this.mappings = this.withCustomFields(exactMapping(table.headers));
       this.columnSamples = table.headers.map((_, column) =>
         table.rows
           .map(row => (row[column] ?? '').trim())
@@ -152,7 +194,7 @@ export class GcImportPanelComponent implements OnChanges {
   }
 
   hintFor(field: string | null): string {
-    return IMPORT_FIELDS.find(option => option.field === field)?.hint ?? '';
+    return this.fieldOptions.find(option => option.value === field)?.hint ?? '';
   }
 
   badge(mapping: ColumnMapping): string | null {

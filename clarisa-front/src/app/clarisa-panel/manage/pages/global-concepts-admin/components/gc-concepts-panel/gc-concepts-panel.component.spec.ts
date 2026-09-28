@@ -1,5 +1,5 @@
 import { of, throwError } from 'rxjs';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { MessageService } from 'primeng/api';
 import { AdminConcept, GlobalConceptsApiService } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { buildConceptBody, emptyForm, formFromConcept, GcConceptsPanelComponent } from './gc-concepts-panel.component';
 
@@ -38,23 +38,18 @@ describe('GcConceptsPanelComponent', () => {
       createConcept: jest.fn(() => of(concept(3, 'New'))),
       setStatus: jest.fn(() => of(concept(2, 'Output', 'deprecated')))
     };
-    component = new GcConceptsPanelComponent(
-      api as unknown as GlobalConceptsApiService,
-      { add: jest.fn() } as unknown as MessageService,
-      { confirm: jest.fn(({ accept }) => accept()) } as unknown as ConfirmationService
-    );
+    component = new GcConceptsPanelComponent(api as unknown as GlobalConceptsApiService, { add: jest.fn() } as unknown as MessageService);
     component.ngOnInit();
   });
 
   it('shows function labels and filters by status and by alternative label', () => {
     expect(component.rows[0].functionsText).toBe('Monitoring');
 
-    component.statusFilter = 'draft';
+    component.filters = { ...component.filters, statuses: ['draft'] };
     component.applyFilters();
     expect(component.rows.map(row => row.term_id)).toEqual([2]);
 
-    component.statusFilter = 'all';
-    component.search = 'oc';
+    component.filters = { ...component.filters, statuses: [], search: 'oc' };
     component.applyFilters();
     expect(component.rows.map(row => row.term_id)).toEqual([1, 2]);
   });
@@ -81,31 +76,55 @@ describe('GcConceptsPanelComponent', () => {
     expect(buildConceptBody(form, null)).toEqual({ preferred_label: 'New', term_type: 'concept', term_id: 2374 });
   });
 
-  it('updates the concept being edited', () => {
-    component.openEdit(component.concepts[0]);
-    component.form.preferred_label = 'Outcomes';
-    component.save();
-
-    expect(api['updateConcept']).toHaveBeenCalledWith('meliaf', 1, { preferred_label: 'Outcomes' });
-    expect(component.dialogVisible).toBe(false);
-  });
-
-  it('asks for a replacement or a reason before deprecating', () => {
-    component.openEdit(component.concepts[1]);
-    component.newStatus = 'deprecated';
-    expect(component.statusChangeError).toContain('replacement');
-
-    component.replacementTermId = 1;
-    expect(component.statusChangeError).toBeNull();
-    component.changeStatus();
-
-    expect(api['setStatus']).toHaveBeenCalledWith('meliaf', 2, { status: 'deprecated', replaced_by_term_id: 1 });
-  });
-
   it('updates the AI index and reports what was embedded', () => {
     api['refreshEmbeddings'] = jest.fn(() => of({ embedded: 3, unchanged: 40 }));
     component.refreshIndex();
     expect(api['refreshEmbeddings']).toHaveBeenCalledWith('meliaf');
     expect(component.indexing).toBe(false);
+  });
+
+  it('shows a chip per active filter, removes one with its ×, and clears all', () => {
+    component.filters = { ...component.filters, statuses: ['draft', 'approved'], functions: ['monitoring'], missingDefinition: true };
+    component.applyFilters();
+    expect(component.chips.map(chip => chip.label)).toEqual(['Status: Draft', 'Status: Approved', 'Function: Monitoring', 'Missing definition']);
+    expect(component.rows).toEqual([]);
+
+    component.removeFilter(component.chips[3]);
+    expect(component.rows.map(row => row.term_id)).toEqual([1, 2]);
+    component.removeFilter(component.chips[0]);
+    expect(component.rows.map(row => row.term_id)).toEqual([1]);
+
+    component.clearFilters();
+    expect(component.hasFilters).toBe(false);
+    expect(component.rows.length).toBe(2);
+  });
+
+  it('ranks the semantic search by score and links each hit to its concept', () => {
+    component.aiEnabled = true;
+    api['semanticSearch'] = jest.fn(() =>
+      of([
+        { term_id: 2, preferred_label: 'Output', status: 'draft', score: 0.41 },
+        { term_id: 1, preferred_label: 'Outcome', status: 'approved', score: 0.82 }
+      ])
+    );
+    component.semanticText = 'what changes';
+    component.runSemantic();
+
+    expect(api['semanticSearch']).toHaveBeenCalledWith('meliaf', 'what changes', 15);
+    expect(component.semanticHits?.map(hit => [hit.term_id, hit.percent])).toEqual([
+      [1, 82],
+      [2, 41]
+    ]);
+    expect(component.semanticHits?.[0].concept?.preferred_label).toBe('Outcome');
+
+    component.clearSemantic();
+    expect(component.semanticHits).toBeNull();
+  });
+
+  it('does not run the semantic search without AI', () => {
+    api['semanticSearch'] = jest.fn();
+    component.semanticText = 'x';
+    component.runSemantic();
+    expect(api['semanticSearch']).not.toHaveBeenCalled();
   });
 });

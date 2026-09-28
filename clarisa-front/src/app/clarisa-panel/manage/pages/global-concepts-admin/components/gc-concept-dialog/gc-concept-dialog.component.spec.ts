@@ -1,0 +1,190 @@
+import { Subject, of, throwError } from 'rxjs';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { AdminConceptDetail, GlobalConceptsApiService } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
+import { GcConceptDialogComponent } from './gc-concept-dialog.component';
+
+describe('GcConceptDialogComponent', () => {
+  const concept = (termId: number, label: string, extra: Partial<AdminConceptDetail> = {}): AdminConceptDetail =>
+    ({
+      term_id: termId,
+      preferred_label: label,
+      definition: `Definition of ${label}`,
+      short_definition: null,
+      scope_note: null,
+      example_of_use: null,
+      term_type: null,
+      meliaf_function: [],
+      meliaf_phase_primary: null,
+      derivation: null,
+      source_citation: null,
+      source_url: null,
+      steward: null,
+      notes: null,
+      status: 'approved',
+      version: '1.0',
+      preferred_labels: [{ label, language: 'en' }],
+      alternative_labels: [],
+      ai_generated_fields: ['scope_note'],
+      replaced_by: null,
+      extra: { owner: 'Ana' },
+      ...extra
+    }) as unknown as AdminConceptDetail;
+
+  const fields = [
+    { id: 1, code: 'owner', label: 'Owner', type: 'text', list_code: null, required: true, is_public: true, sort: 0, is_active: true, help: null },
+    { id: 2, code: 'old', label: 'Old', type: 'text', list_code: null, required: false, is_public: true, sort: 1, is_active: false, help: null }
+  ];
+
+  let api: Record<string, jest.Mock>;
+  let messages: { add: jest.Mock };
+  let component: GcConceptDialogComponent;
+
+  beforeEach(() => {
+    api = {
+      fields: jest.fn(() => of(fields)),
+      updateConcept: jest.fn(() => of(concept(1, 'Outcomes'))),
+      createConcept: jest.fn(() => of(concept(9, 'New'))),
+      setStatus: jest.fn(() => of(concept(2, 'Output', { status: 'deprecated' }))),
+      aiDraft: jest.fn(() => of({ short_definition: 'A change caused by the work.' })),
+      adminConcept: jest.fn(() => of({ ...concept(1, 'Outcome'), history: [{ action: 'update', changes: { definition: {} }, changed_at: '2026-09-01' }] }))
+    };
+    messages = { add: jest.fn() };
+    component = new GcConceptDialogComponent(
+      api as unknown as GlobalConceptsApiService,
+      messages as unknown as MessageService,
+      { confirm: jest.fn(({ accept }) => accept()) } as unknown as ConfirmationService
+    );
+    component.concepts = [concept(1, 'Outcome'), concept(2, 'Output', { status: 'draft' })];
+  });
+
+  it('opens on Details, loads only the active custom fields and fills them from extra', () => {
+    component.openEdit(component.concepts[0], 'labels');
+
+    expect(component.visible).toBe(true);
+    expect(component.tab).toBe('labels');
+    expect(component.fields.map(field => field.code)).toEqual(['owner']);
+    expect(component.values).toEqual({ owner: 'Ana' });
+  });
+
+  it('locks the concept-only tabs while creating and prefills the label', () => {
+    component.openCreate('  theory of change ');
+
+    expect(component.form.preferred_label).toBe('theory of change');
+    component.selectTab(component.tabs.find(tab => tab.id === 'relations')!);
+    expect(component.tab).toBe('details');
+    component.selectTab(component.tabs.find(tab => tab.id === 'fields')!);
+    expect(component.tab).toBe('fields');
+  });
+
+  it('sends the changed details and the changed custom values in one PATCH', () => {
+    component.openEdit(component.concepts[0]);
+    component.form.preferred_label = 'Outcomes';
+    component.values['owner'] = 'Luis';
+    component.save();
+
+    expect(api['updateConcept']).toHaveBeenCalledWith('meliaf', 1, { preferred_label: 'Outcomes', extra: { owner: 'Luis' } });
+    expect(component.visible).toBe(false);
+  });
+
+  it('blocks the save when a required custom field is emptied', () => {
+    component.openEdit(component.concepts[0]);
+    component.values['owner'] = '';
+
+    expect(component.formError).toContain('Owner is required');
+    component.save();
+    expect(api['updateConcept']).not.toHaveBeenCalled();
+  });
+
+  it('locks the save on the first click until the back answers', () => {
+    const answer = new Subject<AdminConceptDetail>();
+    api['updateConcept'].mockReturnValue(answer);
+    component.openEdit(component.concepts[0]);
+    component.form.preferred_label = 'Outcomes';
+
+    component.save();
+    component.save();
+    expect(component.saving).toBe(true);
+    expect(api['updateConcept']).toHaveBeenCalledTimes(1);
+
+    answer.error({ error: { message: 'Conflict' } });
+    expect(component.saving).toBe(false);
+    expect(messages.add).toHaveBeenCalledWith(expect.objectContaining({ severity: 'error', detail: 'Conflict' }));
+  });
+
+  it('shows the AI draft inline; accepting fills the field and marks it AI-generated on save', () => {
+    component.aiEnabled = true;
+    component.openEdit(component.concepts[0]);
+    component.draft('short_definition');
+
+    expect(api['aiDraft']).toHaveBeenCalledWith('meliaf', { preferred_label: 'Outcome', definition: 'Definition of Outcome', fields: ['short_definition'] });
+    expect(component.drafts.short_definition).toBe('A change caused by the work.');
+    expect(component.form.short_definition).toBe('');
+
+    component.acceptDraft('short_definition');
+    expect(component.form.short_definition).toBe('A change caused by the work.');
+    expect(component.drafts.short_definition).toBeUndefined();
+
+    component.save();
+    expect(api['updateConcept']).toHaveBeenCalledWith('meliaf', 1, {
+      short_definition: 'A change caused by the work.',
+      ai_generated_fields: ['scope_note', 'short_definition']
+    });
+  });
+
+  it('discarding a draft changes nothing', () => {
+    component.aiEnabled = true;
+    component.openEdit(component.concepts[0]);
+    component.draft('short_definition');
+    component.discardDraft('short_definition');
+
+    expect(component.hasChanges).toBe(false);
+    expect(component.aiAccepted.size).toBe(0);
+  });
+
+  it('keeps a new concept open in edit mode so labels and relations unlock', () => {
+    component.openCreate('New');
+    component.values['owner'] = 'Ana';
+    component.save();
+
+    expect(api['createConcept']).toHaveBeenCalledWith('meliaf', { preferred_label: 'New', extra: { owner: 'Ana' } });
+    expect(component.visible).toBe(true);
+    expect(component.editing?.term_id).toBe(9);
+    expect(component.tabs.every(tab => !tab.lockedReason)).toBe(true);
+  });
+
+  it('tells the host to reload once, when the dialog closes after a write', () => {
+    const changed = jest.fn();
+    component.changed.subscribe(changed);
+    component.openEdit(component.concepts[0]);
+    component.onConceptUpdated(concept(1, 'Outcome', { broader_terms: [] }));
+    expect(changed).not.toHaveBeenCalled();
+
+    component.close();
+    expect(changed).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for a replacement or a reason before deprecating', () => {
+    component.openEdit(component.concepts[1]);
+    component.newStatus = 'deprecated';
+    expect(component.statusChangeError).toContain('replacement');
+
+    component.replacementTermId = 1;
+    expect(component.statusChangeError).toBeNull();
+    component.changeStatus();
+
+    expect(api['setStatus']).toHaveBeenCalledWith('meliaf', 2, { status: 'deprecated', replaced_by_term_id: 1 });
+  });
+
+  it('loads the history newest first, once, and says why when it fails', () => {
+    component.openEdit(component.concepts[0]);
+    component.selectTab(component.tabs.find(tab => tab.id === 'history')!);
+    component.selectTab(component.tabs.find(tab => tab.id === 'history')!);
+
+    expect(api['adminConcept']).toHaveBeenCalledTimes(1);
+    expect(component.history.length).toBe(1);
+
+    api['adminConcept'].mockReturnValueOnce(throwError(() => ({ error: { message: 'Not found' } })));
+    component.loadHistory(true);
+    expect(component.historyError).toBe('Not found');
+  });
+});
