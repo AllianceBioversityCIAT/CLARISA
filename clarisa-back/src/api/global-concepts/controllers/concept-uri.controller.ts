@@ -57,7 +57,8 @@ export class ConceptUriController {
     res.setHeader('Vary', 'Accept');
     if (!wanted) {
       const concept = await this.read.get(scheme, termId); // 404 when not public
-      this.usage.record(scheme, GcUsageKind.VIEW, concept.term_id);
+      // Not counted here: the page it redirects to reads the concept and that
+      // read is the view (counting both made every human visit count twice).
       return res.redirect(
         303,
         `${GlobalConceptsConfig.webBase}/${concept.scheme}/${concept.term_id}`,

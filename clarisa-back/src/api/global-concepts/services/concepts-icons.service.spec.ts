@@ -232,4 +232,30 @@ describe('ConceptsIconsService', () => {
     ]);
     expect(JSON.stringify(pub.icons)).not.toContain('concept_id');
   });
+
+  it('returns the first icon when the same file is attached again (retry / double submit)', async () => {
+    // Two parallel writes are serialised by the scheme row lock in MySQL; the
+    // fake manager has no locks, so this covers the retry that lands after it.
+    concept(8);
+    const body = {
+      icon_status: 'Draft',
+      file_link_primary: 'https://cdn.example.org/ic8.svg',
+    };
+    const a = await service.create('meliaf', 8, body, actor);
+    const b = await service.create('meliaf', 8, body, actor);
+    expect(b.id).toBe(a.id);
+    expect(await service.list('meliaf', 8)).toHaveLength(1);
+  });
+
+  it('refuses an impossible date_added with a 400, not a database error', async () => {
+    concept(9);
+    await expect(
+      service.create(
+        'meliaf',
+        9,
+        { icon_status: 'Draft', date_added: '2026-02-31' },
+        actor,
+      ),
+    ).rejects.toThrow(/real date/);
+  });
 });

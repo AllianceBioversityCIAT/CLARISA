@@ -414,30 +414,30 @@ describe('Custom fields', () => {
       expect(JSON.stringify(entry)).not.toContain('SECRET-9');
     });
 
-    it('adds AI provenance marks and never drops the existing ones', async () => {
+    it('takes the sent AI marks as the full list, and keeps them when not sent', async () => {
       const c = concept(1, { ai_generated_fields: ['scope_note'] });
       await admin.update(
         'meliaf',
         1,
         {
           short_definition: 'Short',
-          ai_generated_fields: ['short_definition'],
+          ai_generated_fields: ['scope_note', 'short_definition'],
         },
         actor,
       );
       expect(c.ai_generated_fields).toEqual(['scope_note', 'short_definition']);
+      await admin.update('meliaf', 1, { definition: 'Changed' }, actor);
+      expect(c.ai_generated_fields).toEqual(['scope_note', 'short_definition']);
+      // The editor rewrote the scope note by hand: the front sends the list without it.
+      await admin.update(
+        'meliaf',
+        1,
+        { scope_note: 'By hand', ai_generated_fields: ['short_definition'] },
+        actor,
+      );
       expect((await read.get('meliaf', 1)).ai_generated_fields).toEqual([
-        'scope_note',
         'short_definition',
       ]);
-      await expect(
-        admin.update(
-          'meliaf',
-          1,
-          { ai_generated_fields: ['created_by_email'] },
-          actor,
-        ),
-      ).rejects.toThrow(/field names only/);
     });
 
     it('keeps working for a concept whose extra is null', async () => {

@@ -11,6 +11,7 @@ import { GcIcon } from '../entities/gc-icon.entity';
 import { GcScheme } from '../entities/gc-scheme.entity';
 import { IconDto, UpdateIconDto } from '../dto/icon.dto';
 import { presentIcon } from '../utils/concept-presenter';
+import { isRealDay } from '../utils/custom-fields';
 import { ConceptsAdminService, GcActor } from './concepts-admin.service';
 
 /** Columns an icon DTO writes; `id` and `concept_id` are never taken from a body. */
@@ -72,6 +73,16 @@ export class ConceptsIconsService {
     return this.dataSource.transaction(async (manager) => {
       const scheme = await this.admin.lockScheme(manager, code);
       const concept = await this.admin.findConcept(manager, scheme, termId);
+      // Double submit: the same file attached twice returns the first one.
+      if (dto.file_link_primary) {
+        const same = await manager.findOne(GcIcon, {
+          where: {
+            concept_id: Number(concept.id),
+            file_link_primary: dto.file_link_primary,
+          },
+        });
+        if (same) return this.present(same, concept);
+      }
       const icon = manager.create(GcIcon, { concept_id: Number(concept.id) });
       await this.apply(manager, scheme, icon, dto);
       const saved = await manager.save(GcIcon, icon);
@@ -139,6 +150,11 @@ export class ConceptsIconsService {
     icon: GcIcon,
     dto: Partial<IconDto>,
   ) {
+    if (dto.date_added && !isRealDay(dto.date_added)) {
+      throw new BadRequestException(
+        'date_added must be a real date (YYYY-MM-DD)',
+      );
+    }
     const lists = await this.admin.loadLists(manager, scheme);
     const target = icon as unknown as Record<string, unknown>;
     for (const field of ICON_FIELDS) {

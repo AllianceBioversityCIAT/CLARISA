@@ -117,6 +117,12 @@ export class GlobalConceptsPublicController {
   @ApiQuery({ name: 'term_type', required: false })
   @ApiQuery({ name: 'collection', required: false })
   @ApiQuery({ name: 'version', required: false })
+  @ApiQuery({
+    name: 'track',
+    required: false,
+    description:
+      '`0` = do not count this read in usage analytics (search-as-you-type sends it, then one counted request when the query settles).',
+  })
   async list(
     @Param('scheme') scheme: string,
     @Query('q') q?: string,
@@ -126,6 +132,7 @@ export class GlobalConceptsPublicController {
     @Query('term_type') term_type?: string,
     @Query('collection') collection?: string,
     @Query('version') version?: string,
+    @Query('track') track?: string,
   ) {
     const rows = await this.read.list(scheme, {
       q,
@@ -136,7 +143,7 @@ export class GlobalConceptsPublicController {
       collection,
       version,
     });
-    this.usage.recordList(scheme, q, rows.length);
+    if (track !== '0') this.usage.recordList(scheme, q, rows.length);
     return rows;
   }
 

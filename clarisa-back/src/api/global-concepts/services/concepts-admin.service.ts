@@ -632,7 +632,11 @@ export class ConceptsAdminService {
         target_uri: dto.target_uri.trim(),
         target_label: dto.target_label ? norm(dto.target_label) : null,
         match_type: match,
-        justification: GcMappingJustification.MANUAL,
+        justification: dto.justification ?? GcMappingJustification.MANUAL,
+        confidence:
+          dto.confidence === undefined
+            ? (existing?.confidence ?? null)
+            : dto.confidence,
         author_email: existing?.author_email ?? actor.email,
         reviewed_by_email: actor.email,
         status: GcMappingStatus.APPROVED,
@@ -972,8 +976,9 @@ export class ConceptsAdminService {
   }
 
   /**
-   * AI provenance: the fields already marked plus the ones sent, limited to
-   * the writable field names. Marks are only added (see the DTO).
+   * AI provenance, limited to the writable field names. When the editor sends
+   * the list it is the full, current list (so a field rewritten by hand can be
+   * unmarked); when it does not, the stored marks stay.
    */
   private aiFields(current: string[] | null | undefined, sent?: string[]) {
     const allowed = new Set<string>(WRITABLE_FIELDS);
@@ -983,7 +988,8 @@ export class ConceptsAdminService {
         `ai_generated_fields accepts field names only: ${bad.join(', ')}`,
       );
     }
-    return [...new Set([...(current ?? []), ...(sent ?? [])])];
+    if (sent === undefined) return [...(current ?? [])];
+    return [...new Set(sent)];
   }
 
   /**

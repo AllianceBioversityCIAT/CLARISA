@@ -13,13 +13,19 @@ import {
   Min,
   ValidateIf,
   ValidateNested,
+  IsIn,
+  IsNumber,
+  Max,
 } from 'class-validator';
 import {
   GcConceptOrigin,
   GcConceptStatus,
 } from '../entities/gc-concept.entity';
 import { GcLabelKind, GcLabelStatus } from '../entities/gc-label.entity';
-import { GcMatchType } from '../entities/gc-mapping.entity';
+import {
+  GcMappingJustification,
+  GcMatchType,
+} from '../entities/gc-mapping.entity';
 import { GcRelationKind } from '../entities/gc-relation.entity';
 
 /** `YYYY-MM-DD`; an empty string clears the stored day. */
@@ -243,6 +249,17 @@ export class MappingDto {
   @IsOptional()
   @IsEnum(GcMatchType)
   match_type?: GcMatchType;
+
+  /** How the match was made (SSSOM mapping justification). AI suggestions come from the module itself, never from a form. */
+  @IsOptional()
+  @IsIn([GcMappingJustification.MANUAL, GcMappingJustification.LEXICAL])
+  justification?: GcMappingJustification;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  confidence?: number;
 }
 
 export class MergeDto {

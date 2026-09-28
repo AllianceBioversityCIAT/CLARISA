@@ -663,6 +663,8 @@ export class RequestsService {
           example_of_use: concept.example_of_use ?? undefined,
           source_citation: concept.source_citation ?? undefined,
           source_url: concept.source_url ?? undefined,
+          // Provenance travels with the text into the global scheme.
+          ai_generated_fields: concept.ai_generated_fields ?? [],
           status: GcConceptStatus.APPROVED,
           ...(payload as unknown as CreateConceptDto),
         };
@@ -823,7 +825,13 @@ export class RequestsService {
         );
       return payload;
     }
-    const { deprecate_source, status: _ignored, ...fields } = payload;
+    // A requester never asserts AI provenance: only an editor accepting a draft does.
+    const {
+      deprecate_source,
+      status: _ignored,
+      ai_generated_fields: _aiMarks,
+      ...fields
+    } = payload;
     const instance = plainToInstance(cls, fields);
     const errors = validateSync(instance as object, {
       whitelist: true,

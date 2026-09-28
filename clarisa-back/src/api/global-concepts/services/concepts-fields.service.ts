@@ -136,6 +136,7 @@ export class ConceptsFieldsService {
       ...IMPORT_FIELDS.map((f) => ({ ...f, custom: false })),
       ...sortFields(custom).map((f) => ({
         field: `${CUSTOM_COLUMN_PREFIX}${f.code}`,
+        label: f.label,
         hint: f.help?.trim() || `${f.label} (custom field, ${f.type})`,
         custom: true,
         type: f.type,

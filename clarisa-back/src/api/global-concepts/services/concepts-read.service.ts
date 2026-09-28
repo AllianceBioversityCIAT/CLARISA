@@ -110,10 +110,12 @@ export class ConceptsReadService {
     const manager = this.dataSource.manager;
     const scheme = await this.loader.scheme(manager, code);
     if (query.version) {
-      return this.filterSnapshot(
+      const pinned = this.filterSnapshot(
         await this.releaseConcepts(scheme, query.version),
         query,
       );
+      const text = (query.q ?? '').trim();
+      return text ? rankByRelevance(pinned, text) : pinned;
     }
 
     const qb = manager

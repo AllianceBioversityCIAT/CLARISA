@@ -53,7 +53,7 @@ export const isHttpUrl = (v: string) => {
   }
 };
 
-const isRealDay = (v: string) => {
+export const isRealDay = (v: string) => {
   if (!DAY.test(v)) return false;
   const d = new Date(`${v}T00:00:00Z`);
   return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
