@@ -22,6 +22,7 @@ const ACTIONS: Record<string, string> = {
   labels: 'Labels changed',
   relations: 'Relations changed',
   mappings: 'Mappings changed',
+  icons: 'Icon changed',
   merge: 'Merged',
   import: 'Imported',
   request_applied: 'Change request applied'
