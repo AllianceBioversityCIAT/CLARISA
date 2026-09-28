@@ -221,6 +221,17 @@ export class ConceptsImportService {
       if (c.status !== GcConceptStatus.DEPRECATED)
         byLabel.set(`${c.language}|${key(c.preferred_label)}`, c);
     const lists = await this.admin.loadLists(manager, scheme);
+    const labelsByConcept = new Map<number, Set<string>>();
+    if (existing.length) {
+      for (const l of await manager.find(GcLabel, {
+        where: { concept_id: In(existing.map((c) => Number(c.id))) },
+      })) {
+        const set =
+          labelsByConcept.get(Number(l.concept_id)) ?? new Set<string>();
+        set.add(key(l.label));
+        labelsByConcept.set(Number(l.concept_id), set);
+      }
+    }
     const seenIds = new Set<number>();
     const seenLabels = new Map<string, number>();
     const claimed = new Set<number>();
@@ -313,7 +324,8 @@ export class ConceptsImportService {
         r.term_id = Number(target.term_id);
         claimed.add(Number(target.id));
         r.changes = this.diff(target, dto, lists);
-        if (r.alt.length) r.changes.push('alternative_labels');
+        if (r.alt.length && this.addsLabels(target, r.alt, labelsByConcept))
+          r.changes.push('alternative_labels');
         if (dto.status && dto.status !== target.status)
           r.warnings.push(
             `Status stays ${target.status}: change it from the concept page`,
@@ -387,6 +399,17 @@ export class ConceptsImportService {
     }
     dto.preferred_label = norm(String(dto.preferred_label ?? ''));
     return dto as unknown as CreateConceptDto;
+  }
+
+  /** True when the file brings a label the concept does not have yet. */
+  private addsLabels(
+    c: GcConcept,
+    alt: string[],
+    labelsByConcept: Map<number, Set<string>>,
+  ) {
+    const have = labelsByConcept.get(Number(c.id)) ?? new Set<string>();
+    const pref = key(c.preferred_label);
+    return alt.some((a) => key(a) !== pref && !have.has(key(a)));
   }
 
   /** Fields whose normalised value differs from what is stored. */

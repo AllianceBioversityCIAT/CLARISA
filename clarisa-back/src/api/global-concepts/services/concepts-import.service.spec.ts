@@ -204,4 +204,18 @@ describe('ConceptsImportService', () => {
     expect(r.summary).toMatchObject({ to_create: 1, invalid: 1 });
     expect(db.rows(GcConcept)).toHaveLength(1);
   });
+
+  it('reports a re-import of the same file as unchanged, labels included', async () => {
+    const rows = [
+      {
+        term_id: 9,
+        preferred_label: 'Theory of change',
+        definition: 'How change happens',
+        alternative_labels: 'ToC',
+      },
+    ];
+    await service.import('meliaf', rows, admin);
+    const again = await service.preview('meliaf', rows);
+    expect(again.summary).toMatchObject({ unchanged: 1, to_update: 0 });
+  });
 });

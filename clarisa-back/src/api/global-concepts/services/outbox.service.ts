@@ -46,6 +46,10 @@ export class OutboxService {
         kind: 'email',
         payload: { ...email },
         attempts: 0,
+        // Written by the app, like the value it is compared with in
+        // deliverPending: a DB default would be in the DB's time zone and a
+        // server in another zone would hold every email for hours.
+        next_attempt_at: new Date(),
       }),
     );
   }
