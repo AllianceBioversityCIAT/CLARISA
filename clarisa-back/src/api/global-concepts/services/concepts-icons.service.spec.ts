@@ -9,10 +9,9 @@ import { GcConcept, GcConceptStatus } from '../entities/gc-concept.entity';
 import { GcListValue } from '../entities/gc-list-value.entity';
 import { GcIcon } from '../entities/gc-icon.entity';
 import { GcHistory, GcHistoryAction } from '../entities/gc-history.entity';
-import {
-  CreateGlobalConcepts1790500000000,
-  toValue,
-} from '../../../../migrations/1790500000000-CreateGlobalConcepts';
+import { CreateGlobalConcepts1790500000000 } from '../../../../migrations/1790500000000-CreateGlobalConcepts';
+
+const { toValue } = CreateGlobalConcepts1790500000000;
 
 const actor = { email: 'admin@cgiar.org', action: GcHistoryAction.DIRECT_EDIT };
 

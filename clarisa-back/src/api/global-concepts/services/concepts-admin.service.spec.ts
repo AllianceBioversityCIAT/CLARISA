@@ -17,10 +17,9 @@ import {
   GcMappingStatus,
   GcMatchType,
 } from '../entities/gc-mapping.entity';
-import {
-  CreateGlobalConcepts1790500000000,
-  toValue,
-} from '../../../../migrations/1790500000000-CreateGlobalConcepts';
+import { CreateGlobalConcepts1790500000000 } from '../../../../migrations/1790500000000-CreateGlobalConcepts';
+
+const { toValue } = CreateGlobalConcepts1790500000000;
 
 const actor = { email: 'admin@cgiar.org', action: GcHistoryAction.DIRECT_EDIT };
 
