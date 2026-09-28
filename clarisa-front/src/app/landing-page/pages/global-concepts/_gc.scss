@@ -28,6 +28,18 @@
     background-color: var(--cl-surface-2);
   }
 
+  // 🛑 style-landing.css:125 gives every <section> `float: left; width: 100%;
+  // padding: 70px 0`. Inside the kit a <section> is a content block, so it is
+  // reset here once instead of in each component (it opened 140px holes
+  // between the blocks of the concept page).
+  // `:where` keeps it at .gc-kit specificity: it beats the bare `section` rule
+  // and loses to any class, so cards keep their own padding.
+  :where(section:not(.gc-section)) {
+    float: none;
+    width: auto;
+    padding: 0;
+  }
+
   // 🛑 `.container` is never made flex or grid here: Bootstrap 3 hangs its
   // clearfix `::before/::after { display: table }` on it (DESIGN.md § 6.4) and
   // they would become layout items. Layouts live in a child wrapper.

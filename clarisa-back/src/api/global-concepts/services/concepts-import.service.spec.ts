@@ -218,4 +218,14 @@ describe('ConceptsImportService', () => {
     const again = await service.preview('meliaf', rows);
     expect(again.summary).toMatchObject({ unchanged: 1, to_update: 0 });
   });
+
+  it('reads a SOURCE that only names a derivation as the derivation', async () => {
+    await service.import(
+      'meliaf',
+      [{ preferred_label: 'Foresight', source_citation: 'Newly written' }],
+      admin,
+    );
+    expect(db.rows(GcConcept)[0].derivation).toBe('newly_written');
+    expect(db.rows(GcConcept)[0].source_citation).toBeFalsy();
+  });
 });

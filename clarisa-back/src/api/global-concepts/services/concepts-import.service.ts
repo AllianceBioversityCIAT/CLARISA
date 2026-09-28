@@ -262,7 +262,7 @@ export class ConceptsImportService {
       if (unknown.length)
         r.warnings.push(`Ignored column(s): ${unknown.join(', ')}`);
 
-      const dto = this.toDto(raw, r);
+      const dto = this.toDto(raw, r, lists);
       r.dto = dto;
       r.preferred_label = dto.preferred_label;
       if (!dto.preferred_label) r.errors.push('No preferred label');
@@ -340,7 +340,11 @@ export class ConceptsImportService {
   }
 
   /** Row → concept DTO; 1.10d rules for the Lexicon file. */
-  private toDto(raw: Record<string, unknown>, r: PlannedRow): CreateConceptDto {
+  private toDto(
+    raw: Record<string, unknown>,
+    r: PlannedRow,
+    lists: Map<string, Map<string, string>>,
+  ): CreateConceptDto {
     const dto: Record<string, unknown> = {};
     for (const field of IMPORT_FIELD_NAMES) {
       const value = MULTI.has(field) ? splitList(raw[field]) : cell(raw[field]);
@@ -388,6 +392,12 @@ export class ConceptsImportService {
       if (url && !dto.source_url) {
         dto.source_url = url.replace(/[.,;]+$/, '');
         citation = citation.replace(url, '').replace(/\s*[-–,;:]\s*$/, '');
+      }
+      // A SOURCE that only names a derivation ("Newly written") is not a citation.
+      const asDerivation = lists.get('derivation')?.get(key(citation));
+      if (asDerivation) {
+        if (!dto.derivation) dto.derivation = asDerivation;
+        citation = '';
       }
       dto.source_citation = norm(citation) || undefined;
       if (!dto.source_citation) delete dto.source_citation;
