@@ -241,3 +241,95 @@ describe('AiService', () => {
     );
   });
 });
+
+describe('AiAssistService.draft', () => {
+  let ai: { json: jest.Mock };
+  let service: AiAssistService;
+
+  beforeEach(() => {
+    const db = new FakeManager();
+    db.seed(GcScheme, {
+      code: 'meliaf',
+      title: 'MELIAF',
+      default_language: 'en',
+      next_term_id: 1,
+    });
+    ai = { json: jest.fn() };
+    const ds = fakeDataSource(db);
+    service = new AiAssistService(
+      ds,
+      ai as unknown as AiService,
+      new ConceptsAdminService(ds, new ConceptGraphLoader()),
+    );
+  });
+
+  it('sends only label and definition with a strict schema and returns only what was asked', async () => {
+    ai.json.mockResolvedValue({
+      short_definition: '  A change in state.  ',
+      scope_note: 'Unrequested text',
+      example_of_use: null,
+    });
+    const out = await service.draft('meliaf', {
+      preferred_label: 'Outcome',
+      definition: 'A change in state, behaviour or capacity.',
+      fields: ['short_definition', 'example_of_use'],
+    });
+    expect(out).toEqual({ short_definition: 'A change in state.' });
+    const [task, , user, schema] = ai.json.mock.calls[0];
+    expect(task).toBe('concept_field_draft');
+    expect(user).toEqual({
+      term: 'Outcome',
+      definition: 'A change in state, behaviour or capacity.',
+      requested_fields: ['short_definition', 'example_of_use'],
+    });
+    expect(schema).toMatchObject({
+      type: 'object',
+      additionalProperties: false,
+      required: ['short_definition', 'scope_note', 'example_of_use'],
+    });
+    expect(schema.properties.scope_note).toEqual({ type: ['string', 'null'] });
+  });
+
+  it('never forwards anything but the label and the definition', async () => {
+    ai.json.mockResolvedValue({
+      short_definition: 'x',
+      scope_note: null,
+      example_of_use: null,
+    });
+    await service.draft('meliaf', {
+      preferred_label: 'Outcome',
+      definition: 'A change.',
+      fields: ['short_definition'],
+      notes: 'internal: ask ana@cgiar.org',
+      created_by_email: 'ana@cgiar.org',
+    } as any);
+    expect(JSON.stringify(ai.json.mock.calls[0][2])).not.toMatch(
+      /ana@cgiar\.org|internal/,
+    );
+  });
+
+  it('refuses a draft without definition, fields, or for an unknown scheme, without calling the model', async () => {
+    await expect(
+      service.draft('meliaf', {
+        preferred_label: 'Outcome',
+        definition: '  ',
+        fields: ['scope_note'],
+      }),
+    ).rejects.toThrow(/label and the definition/);
+    await expect(
+      service.draft('meliaf', {
+        preferred_label: 'Outcome',
+        definition: 'x',
+        fields: ['notes' as any],
+      }),
+    ).rejects.toThrow(/fields must name/);
+    await expect(
+      service.draft('nope', {
+        preferred_label: 'Outcome',
+        definition: 'x',
+        fields: ['scope_note'],
+      }),
+    ).rejects.toThrow(/Unknown scheme/);
+    expect(ai.json).not.toHaveBeenCalled();
+  });
+});

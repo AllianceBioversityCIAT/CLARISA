@@ -10,6 +10,13 @@ import { GcRelationKind } from '../entities/gc-relation.entity';
 import { GcScheme } from '../entities/gc-scheme.entity';
 import { CreateConceptDto, UpdateConceptDto } from '../dto/concept-admin.dto';
 import { IMPORT_FIELD_NAMES } from '../utils/import-fields';
+import { GcField } from '../entities/gc-field.entity';
+import {
+  CUSTOM_COLUMN_PREFIX,
+  ExtraContext,
+  MULTI_FIELD_TYPES,
+  mergeExtra,
+} from '../utils/custom-fields';
 import {
   ConceptsAdminService,
   GcActor,
@@ -221,6 +228,16 @@ export class ConceptsImportService {
       if (c.status !== GcConceptStatus.DEPRECATED)
         byLabel.set(`${c.language}|${key(c.preferred_label)}`, c);
     const lists = await this.admin.loadLists(manager, scheme);
+    // Custom fields: `x:<code>` columns. term_link values resolve against the
+    // concepts that exist before the import (a row cannot link to a concept
+    // the same file creates: its term_id may still change).
+    const extraCtx: ExtraContext = {
+      ...(await this.admin.extraContext(manager, scheme, lists)),
+      concepts: byTermId,
+    };
+    const customByColumn = new Map(
+      extraCtx.fields.map((f) => [`${CUSTOM_COLUMN_PREFIX}${f.code}`, f]),
+    );
     const labelsByConcept = new Map<number, Set<string>>();
     if (existing.length) {
       for (const l of await manager.find(GcLabel, {
@@ -257,12 +274,15 @@ export class ConceptsImportService {
         return r;
       }
       const unknown = Object.keys(raw).filter(
-        (k) => k !== '__row' && !IMPORT_FIELD_NAMES.includes(k),
+        (k) =>
+          k !== '__row' &&
+          !IMPORT_FIELD_NAMES.includes(k) &&
+          !customByColumn.has(k),
       );
       if (unknown.length)
         r.warnings.push(`Ignored column(s): ${unknown.join(', ')}`);
 
-      const dto = this.toDto(raw, r, lists);
+      const dto = this.toDto(raw, r, lists, customByColumn);
       r.dto = dto;
       r.preferred_label = dto.preferred_label;
       if (!dto.preferred_label) r.errors.push('No preferred label');
@@ -314,6 +334,17 @@ export class ConceptsImportService {
       } catch (err) {
         r.errors.push((err as Error).message);
       }
+      let mergedExtra: Record<string, unknown> | null = null;
+      try {
+        mergedExtra = mergeExtra(
+          extraCtx,
+          target?.extra ?? {},
+          dto.extra,
+          !target,
+        );
+      } catch (err) {
+        r.errors.push((err as Error).message);
+      }
       if (dto.status === GcConceptStatus.DEPRECATED && !target)
         r.errors.push('A new concept cannot start as deprecated');
       if (!dto.definition && !target?.definition)
@@ -324,6 +355,12 @@ export class ConceptsImportService {
         r.term_id = Number(target.term_id);
         claimed.add(Number(target.id));
         r.changes = this.diff(target, dto, lists);
+        if (
+          dto.extra &&
+          mergedExtra &&
+          JSON.stringify(mergedExtra) !== JSON.stringify(target.extra ?? {})
+        )
+          r.changes.push('extra');
         if (r.alt.length && this.addsLabels(target, r.alt, labelsByConcept))
           r.changes.push('alternative_labels');
         if (dto.status && dto.status !== target.status)
@@ -344,12 +381,22 @@ export class ConceptsImportService {
     raw: Record<string, unknown>,
     r: PlannedRow,
     lists: Map<string, Map<string, string>>,
+    customByColumn: Map<string, GcField> = new Map(),
   ): CreateConceptDto {
     const dto: Record<string, unknown> = {};
     for (const field of IMPORT_FIELD_NAMES) {
       const value = MULTI.has(field) ? splitList(raw[field]) : cell(raw[field]);
       if (value !== undefined) dto[field] = value;
     }
+    // Same rule as every other column: an empty cell never clears a value.
+    const extra: Record<string, unknown> = {};
+    for (const [column, f] of customByColumn) {
+      const value = MULTI_FIELD_TYPES.includes(f.type)
+        ? splitList(raw[column])
+        : cell(raw[column]);
+      if (value !== undefined) extra[f.code] = value;
+    }
+    if (Object.keys(extra).length) dto.extra = extra;
     r.alt = (dto.alternative_labels as string[]) ?? [];
     r.broader = (dto.broader_terms as string[]) ?? [];
     r.related = (dto.related_terms as string[]) ?? [];

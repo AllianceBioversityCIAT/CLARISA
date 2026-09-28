@@ -19,6 +19,8 @@ import {
 import { ConceptGraphLoader } from '../services/concept-graph.loader';
 import { DataSource } from 'typeorm';
 import { GlobalConceptsConfig } from '../global-concepts.config';
+import { UsageService } from '../services/usage.service';
+import { GcUsageKind } from '../entities/gc-usage-daily.entity';
 
 /**
  * Resolves persistent URIs: `/concepts/{scheme}/{term_id}` and
@@ -40,6 +42,7 @@ export class ConceptUriController {
     private readonly exporter: ConceptsExportService,
     private readonly loader: ConceptGraphLoader,
     private readonly dataSource: DataSource,
+    private readonly usage: UsageService,
   ) {}
 
   @Get(':scheme/:termId')
@@ -54,12 +57,14 @@ export class ConceptUriController {
     res.setHeader('Vary', 'Accept');
     if (!wanted) {
       const concept = await this.read.get(scheme, termId); // 404 when not public
+      this.usage.record(scheme, GcUsageKind.VIEW, concept.term_id);
       return res.redirect(
         303,
         `${GlobalConceptsConfig.webBase}/${concept.scheme}/${concept.term_id}`,
       );
     }
     const concept = await this.read.get(scheme, termId);
+    this.usage.record(scheme, GcUsageKind.VIEW, concept.term_id);
     const schemeRow = await this.loader.scheme(this.dataSource.manager, scheme);
     const file = this.exporter.render(schemeRow, [concept], wanted);
     res.setHeader('Content-Type', file.contentType);
@@ -84,6 +89,7 @@ export class ConceptUriController {
       );
     }
     const file = await this.exporter.export(scheme, wanted);
+    this.usage.record(scheme, GcUsageKind.EXPORT, wanted);
     res.setHeader('Content-Type', file.contentType);
     return res.status(200).send(file.body);
   }

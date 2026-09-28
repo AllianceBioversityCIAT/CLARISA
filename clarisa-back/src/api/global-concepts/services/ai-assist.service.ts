@@ -16,6 +16,7 @@ import {
 import { GcScheme } from '../entities/gc-scheme.entity';
 import { IMPORT_FIELDS, IMPORT_FIELD_NAMES } from '../utils/import-fields';
 import { AiService } from './ai.service';
+import { AI_DRAFT_FIELDS, AiDraftField } from '../dto/ai.dto';
 import { EmbeddingsService } from './embeddings.service';
 import { ConceptsAdminService, LIST_FIELDS } from './concepts-admin.service';
 
@@ -210,6 +211,67 @@ export class AiAssistService {
         ...(out.get(input) ?? { value: null, source: 'none' }),
       })),
     };
+  }
+
+  /**
+   * Drafts the short definition, scope note or example of use of a concept
+   * from its label and definition (contract v2 §4). Advisory: nothing is
+   * saved — the editor reviews the draft in the form, and when it is
+   * accepted the form marks the field in `ai_generated_fields`. Only the
+   * label and the definition reach the model: no email, no internal note,
+   * nothing else of the record.
+   */
+  async draft(
+    code: string,
+    input: {
+      preferred_label: string;
+      definition: string;
+      fields: AiDraftField[];
+    },
+  ): Promise<Partial<Record<AiDraftField, string>>> {
+    await this.scheme(code);
+    const label = cut(input?.preferred_label, 500);
+    const definition = String(input?.definition ?? '')
+      .trim()
+      .slice(0, 8000);
+    const wanted = [...new Set(input?.fields ?? [])].filter((f) =>
+      (AI_DRAFT_FIELDS as readonly string[]).includes(f),
+    );
+    if (!label || !definition)
+      throw new BadRequestException(
+        'A draft needs the preferred label and the definition',
+      );
+    if (!wanted.length)
+      throw new BadRequestException(
+        `fields must name at least one of: ${AI_DRAFT_FIELDS.join(', ')}`,
+      );
+    const nullableText = { type: ['string', 'null'] };
+    const answer = await this.ai.json<Record<AiDraftField, string | null>>(
+      'concept_field_draft',
+      'You help the editors of an official CGIAR taxonomy. From the term and its definition, ' +
+        'draft only the requested fields, in the language of the definition, and answer null for ' +
+        'the others. short_definition: one plain sentence of at most 200 characters for a tooltip, ' +
+        'not starting with the term. scope_note: when to use the term and when not, in 1 to 3 ' +
+        'sentences. example_of_use: one realistic sentence that uses the term. Do not add facts ' +
+        'that the definition does not support.',
+      { term: label, definition, requested_fields: wanted },
+      {
+        type: 'object',
+        additionalProperties: false,
+        required: [...AI_DRAFT_FIELDS],
+        properties: Object.fromEntries(
+          AI_DRAFT_FIELDS.map((f) => [f, nullableText]),
+        ),
+      },
+    );
+    // Only what was asked, trimmed; short_definition fits its column (500).
+    const out: Partial<Record<AiDraftField, string>> = {};
+    for (const f of wanted) {
+      const v = answer?.[f];
+      if (typeof v !== 'string' || !v.trim()) continue;
+      out[f] = f === 'short_definition' ? cut(v, 500) : v.trim().slice(0, 4000);
+    }
+    return out;
   }
 
   /**

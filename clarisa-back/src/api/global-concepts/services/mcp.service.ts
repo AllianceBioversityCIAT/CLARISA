@@ -1,4 +1,6 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, Injectable, Optional } from '@nestjs/common';
+import { GcUsageKind } from '../entities/gc-usage-daily.entity';
+import { UsageService } from './usage.service';
 import { PublicConcept } from '../utils/concept-presenter';
 import { ConceptsReadService } from './concepts-read.service';
 import {
@@ -110,6 +112,7 @@ export class McpService {
   constructor(
     private readonly read: ConceptsReadService,
     private readonly suggester: ConceptsSuggestService,
+    @Optional() private readonly usage?: UsageService,
   ) {}
 
   /** Handles one JSON-RPC message; `null` for notifications (no answer). */
@@ -173,6 +176,8 @@ export class McpService {
     const scheme = str(args.scheme) || 'meliaf';
     try {
       const data = await this.run(tool.name, scheme, args);
+      // The tool name only: arguments (a query, a text) are never stored.
+      this.usage?.record(scheme, GcUsageKind.MCP, tool.name);
       return {
         content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
         structuredContent: data,

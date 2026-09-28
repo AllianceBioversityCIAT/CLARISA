@@ -14,8 +14,10 @@ import { GcLabel } from '../entities/gc-label.entity';
 import { GcListValue } from '../entities/gc-list-value.entity';
 import { GcRelease } from '../entities/gc-release.entity';
 import { GcScheme } from '../entities/gc-scheme.entity';
+import { GcField } from '../entities/gc-field.entity';
 import { schemeUri } from '../global-concepts.config';
 import { PublicConcept, presentConcepts } from '../utils/concept-presenter';
+import { CUSTOM_COLUMN_PREFIX, publicFields } from '../utils/custom-fields';
 import { ConceptGraphLoader } from './concept-graph.loader';
 
 export interface ConceptQuery {
@@ -33,6 +35,37 @@ const isPublic = (c: GcConcept) => GC_PUBLIC_STATUSES.includes(c.status);
 /** Escapes `%`, `_` and `\` for a MySQL LIKE pattern. */
 export const likePattern = (text: string) =>
   `%${text.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
+
+/**
+ * Best match first for a text search: LIKE finds "ia" inside "social" too,
+ * so the exact label or acronym must outrank a definition that merely
+ * contains the letters. Stable within a score (alphabetical, as queried).
+ */
+export function rankByRelevance(concepts: PublicConcept[], q: string) {
+  const needle = q.trim().toLowerCase();
+  const wordStart = new RegExp(
+    `(^|[^\\p{L}\\p{N}])${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+    'iu',
+  );
+  const score = (c: PublicConcept) => {
+    const pref = c.preferred_label.toLowerCase();
+    const alts = (c.alternative_labels ?? []).map((a) => a.label.toLowerCase());
+    if (pref === needle) return 100;
+    if (alts.includes(needle)) return 90;
+    if (pref.startsWith(needle)) return 80;
+    if (alts.some((a) => a.startsWith(needle))) return 70;
+    if (wordStart.test(pref)) return 60;
+    if (alts.some((a) => wordStart.test(a))) return 50;
+    if (pref.includes(needle) || alts.some((a) => a.includes(needle)))
+      return 40;
+    if (wordStart.test(c.definition ?? '')) return 20;
+    return 10;
+  };
+  return concepts
+    .map((c, i) => ({ c, i, s: score(c) }))
+    .sort((a, b) => b.s - a.s || a.i - b.i)
+    .map((x) => x.c);
+}
 
 /**
  * Public, read-only side of the module. Only approved and deprecated concepts
@@ -139,7 +172,8 @@ export class ConceptsReadService {
     }
     const concepts = await qb.orderBy('c.preferred_label', 'ASC').getMany();
     const graph = await this.loader.load(manager, scheme, concepts);
-    return presentConcepts(graph, isPublic);
+    const presented = presentConcepts(graph, isPublic);
+    return q ? rankByRelevance(presented, q) : presented;
   }
 
   async get(code: string, termId: number, version?: string) {
@@ -172,9 +206,14 @@ export class ConceptsReadService {
       where: { concept_id: concept.id },
       order: { id: 'ASC' },
     });
+    const shown = new Set(
+      publicFields(await this.loader.fields(manager, scheme)).map(
+        (f) => f.code,
+      ),
+    );
     return rows.map((h) => ({
       action: h.action,
-      changes: this.publicChanges(h.changes),
+      changes: this.publicChanges(h.changes, shown),
       changed_at: h.changed_at,
     }));
   }
@@ -309,15 +348,48 @@ export class ConceptsReadService {
     });
   }
 
-  /** Drops internal fields that must never reach the public history. */
+  /**
+   * Drops internal fields that must never reach the public history. The raw
+   * `extra` diff is admin-only (it carries non-public fields and reserved
+   * keys); what is public of it is republished as one `x:<code>` change per
+   * active public field that actually changed.
+   */
   private publicChanges(
     changes: Record<string, { from: unknown; to: unknown }>,
+    publicCodes: Set<string> = new Set(),
   ) {
     const out = { ...(changes ?? {}) };
     delete out.notes;
     delete out.updated_by_email;
     delete out.created_by_email;
+    const extra = out.extra;
+    delete out.extra;
+    if (extra) {
+      const side = (v: unknown) =>
+        v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
+      for (const code of publicCodes) {
+        const from = side(extra.from)[code] ?? null;
+        const to = side(extra.to)[code] ?? null;
+        if (JSON.stringify(from) !== JSON.stringify(to))
+          out[`${CUSTOM_COLUMN_PREFIX}${code}`] = { from, to };
+      }
+    }
     return out;
+  }
+
+  /** Active + public custom field definitions of a scheme (contract v2 §2). */
+  async fields(code: string) {
+    const manager = this.dataSource.manager;
+    const scheme = await this.loader.scheme(manager, code);
+    return publicFields(await this.loader.fields(manager, scheme)).map(
+      (f: GcField) => ({
+        code: f.code,
+        label: f.label,
+        type: f.type,
+        list_code: f.list_code ?? null,
+        help: f.help ?? null,
+      }),
+    );
   }
 
   private notFound(code: string, termId: number) {

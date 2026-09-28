@@ -28,6 +28,7 @@ import { EmbeddingsService } from '../services/embeddings.service';
 import { ConceptGraphLoader } from '../services/concept-graph.loader';
 import { DataSource } from 'typeorm';
 import {
+  AiDraftDto,
   ImportConceptsDto,
   MapColumnsDto,
   NormalizeValuesDto,
@@ -60,6 +61,11 @@ import {
 import { PublishReleaseDto } from '../dto/release.dto';
 import { RequestsService } from '../services/requests.service';
 import { RequestTransitionDto } from '../dto/request.dto';
+import { IconDto, UpdateIconDto } from '../dto/icon.dto';
+import { CreateFieldDto, UpdateFieldDto } from '../dto/field.dto';
+import { ConceptsIconsService } from '../services/concepts-icons.service';
+import { ConceptsFieldsService } from '../services/concepts-fields.service';
+import { UsageService } from '../services/usage.service';
 
 /**
  * Admin surface of Global Concepts (`/api/global-concepts/admin`). Every write
@@ -91,6 +97,9 @@ export class GlobalConceptsAdminController {
     private readonly embeddings: EmbeddingsService,
     private readonly loader: ConceptGraphLoader,
     private readonly dataSource: DataSource,
+    private readonly icons: ConceptsIconsService,
+    private readonly fields: ConceptsFieldsService,
+    private readonly usage: UsageService,
   ) {}
 
   private actor(user: UserData): GcActor {
@@ -138,6 +147,13 @@ export class GlobalConceptsAdminController {
       dto.text,
       dto.limit ?? 10,
     );
+  }
+
+  /** Drafts editorial fields from label + definition; nothing is saved. */
+  @Post(':scheme/ai/draft')
+  @UseGuards(GlobalConceptsAiEnabledGuard)
+  draft(@Param('scheme') scheme: string, @Body() dto: AiDraftDto) {
+    return this.assist.draft(scheme, dto);
   }
 
   @Post('requests/:id/ai-recommendation')
@@ -204,6 +220,41 @@ export class GlobalConceptsAdminController {
     @Body() dto: UpdateListValueDto,
   ) {
     return this.catalog.updateListValue(scheme, id, dto);
+  }
+
+  // ----------------------------------------------------------- custom fields
+
+  @Get(':scheme/fields')
+  fieldList(@Param('scheme') scheme: string) {
+    return this.fields.list(scheme);
+  }
+
+  @Post(':scheme/fields')
+  createField(@Param('scheme') scheme: string, @Body() dto: CreateFieldDto) {
+    return this.fields.create(scheme, dto);
+  }
+
+  /** `code` and `type` are not in the DTO: sending them is a 400. */
+  @Patch(':scheme/fields/:id')
+  updateField(
+    @Param('scheme') scheme: string,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateFieldDto,
+  ) {
+    return this.fields.update(scheme, id, dto);
+  }
+
+  /** Built-in import targets plus `x:<code>` per active custom field. */
+  @Get(':scheme/import-fields')
+  importFields(@Param('scheme') scheme: string) {
+    return this.fields.importFields(scheme);
+  }
+
+  // ------------------------------------------------------------------- usage
+
+  @Get(':scheme/usage')
+  usageSummary(@Param('scheme') scheme: string, @Query('days') days?: string) {
+    return this.usage.summary(scheme, days === undefined ? 30 : Number(days));
   }
 
   // ------------------------------------------------------------------ import
@@ -333,6 +384,43 @@ export class GlobalConceptsAdminController {
       mappingId,
       this.actor(user),
     );
+  }
+
+  @Get(':scheme/concepts/:termId/icons')
+  iconList(
+    @Param('scheme') scheme: string,
+    @Param('termId', ParseIntPipe) termId: number,
+  ) {
+    return this.icons.list(scheme, termId);
+  }
+
+  @Post(':scheme/concepts/:termId/icons')
+  createIcon(
+    @Param('scheme') scheme: string,
+    @Param('termId', ParseIntPipe) termId: number,
+    @Body() dto: IconDto,
+    @GetUserData() user: UserData,
+  ) {
+    return this.icons.create(scheme, termId, dto, this.actor(user));
+  }
+
+  @Patch(':scheme/icons/:id')
+  updateIcon(
+    @Param('scheme') scheme: string,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateIconDto,
+    @GetUserData() user: UserData,
+  ) {
+    return this.icons.update(scheme, id, dto, this.actor(user));
+  }
+
+  @Delete(':scheme/icons/:id')
+  removeIcon(
+    @Param('scheme') scheme: string,
+    @Param('id', ParseIntPipe) id: number,
+    @GetUserData() user: UserData,
+  ) {
+    return this.icons.remove(scheme, id, this.actor(user));
   }
 
   @Post(':scheme/concepts/:termId/merge')

@@ -1,4 +1,10 @@
+import {
+  GcCollection,
+  GcCollectionMember,
+} from '../entities/gc-collection.entity';
 import { GcConcept } from '../entities/gc-concept.entity';
+import { GcField, GcFieldType } from '../entities/gc-field.entity';
+import { GcIcon } from '../entities/gc-icon.entity';
 import {
   GcLabel,
   GcLabelKind,
@@ -8,6 +14,7 @@ import { GcMapping, GcMappingStatus } from '../entities/gc-mapping.entity';
 import { GcRelation, GcRelationKind } from '../entities/gc-relation.entity';
 import { GcScheme } from '../entities/gc-scheme.entity';
 import { conceptUri } from '../global-concepts.config';
+import { PublicCustomField, isHttpUrl, publicFields } from './custom-fields';
 
 /** A label as published: language-tagged, with its kind and status. */
 export interface PublicLabel {
@@ -30,6 +37,21 @@ export interface PublicMapping {
   match_type: string;
   justification: string;
   confidence: number | null;
+}
+
+/**
+ * An icon as published. `url` is the primary link only when it is http(s):
+ * a network path or a file name typed by hand is not something a reader can
+ * open, and it must never become an `<img src>` or an RDF IRI.
+ */
+export interface PublicIcon {
+  icon_code: string | null;
+  status: string | null;
+  format: string | null;
+  alt_text: string | null;
+  url: string | null;
+  rights_and_licence: string | null;
+  designer: string | null;
 }
 
 /**
@@ -71,7 +93,11 @@ export interface PublicConcept {
   replaced_by: PublicConceptRef | null;
   rights_note: string | null;
   mappings: PublicMapping[];
-  extra: Record<string, unknown>;
+  icons: PublicIcon[];
+  /** Curated subsets the concept belongs to, e.g. "Core terms". */
+  collections: { code: string; label: string }[];
+  /** Active + public custom fields only; the raw `extra` is admin-only. */
+  custom_fields: PublicCustomField[];
 }
 
 /** Everything the presenter needs, loaded in bulk by the caller (no N+1). */
@@ -83,7 +109,29 @@ export interface ConceptGraph {
   mappings: GcMapping[];
   /** Concepts referenced by relations / replacements that may not be in `concepts`. */
   referenced?: GcConcept[];
+  /** Icons of `concepts`. Optional: a graph built before icons existed still presents. */
+  icons?: GcIcon[];
+  /** Active custom field definitions of the scheme. */
+  fields?: GcField[];
+  /** Concepts named by `term_link` values that may not be in `concepts`. */
+  linked?: GcConcept[];
+  /** Collections the concepts belong to (the public list filters by them). */
+  collections?: GcCollection[];
+  collectionMembers?: GcCollectionMember[];
 }
+
+export const presentIcon = (i: GcIcon): PublicIcon => ({
+  icon_code: i.icon_code ?? null,
+  status: i.icon_status ?? null,
+  format: i.file_format ?? null,
+  alt_text: i.alt_text ?? null,
+  url:
+    i.file_link_primary && isHttpUrl(i.file_link_primary)
+      ? i.file_link_primary
+      : null,
+  rights_and_licence: i.rights_and_licence ?? null,
+  designer: i.designer ?? null,
+});
 
 const day = (value: string | Date | null | undefined): string | null => {
   if (!value) return null;
@@ -106,6 +154,11 @@ export function presentConcepts(
   const byId = new Map<number, GcConcept>();
   for (const c of [...(graph.referenced ?? []), ...graph.concepts]) {
     byId.set(Number(c.id), c);
+  }
+  const byTermId = new Map<number, GcConcept>();
+  for (const c of [...(graph.linked ?? []), ...graph.concepts]) {
+    if (Number(c.scheme_id) === Number(graph.scheme.id))
+      byTermId.set(Number(c.term_id), c);
   }
   const ref = (id: number | null | undefined): PublicConceptRef | null => {
     if (id === null || id === undefined) return null;
@@ -145,6 +198,47 @@ export function presentConcepts(
       push(related, b, a);
     }
   }
+  const iconsOf = new Map<number, GcIcon[]>();
+  const collectionById = new Map(
+    (graph.collections ?? []).map((k) => [Number(k.id), k]),
+  );
+  const collectionsOf = new Map<number, GcCollection[]>();
+  for (const m of graph.collectionMembers ?? []) {
+    const k = collectionById.get(Number(m.collection_id));
+    if (!k) continue;
+    const list = collectionsOf.get(Number(m.concept_id)) ?? [];
+    list.push(k);
+    collectionsOf.set(Number(m.concept_id), list);
+  }
+  for (const i of [...(graph.icons ?? [])].sort(
+    (a, b) => Number(a.id) - Number(b.id),
+  )) {
+    const k = Number(i.concept_id);
+    iconsOf.set(k, [...(iconsOf.get(k) ?? []), i]);
+  }
+  const shownFields = publicFields(graph.fields);
+  // A term_link value is published like a relation: only to public concepts.
+  const termLink = (termId: unknown) => {
+    const c = byTermId.get(Number(termId));
+    if (!c || !isPublic(c)) return null;
+    return {
+      term_id: Number(c.term_id),
+      preferred_label: c.preferred_label,
+      uri: conceptUri(graph.scheme, Number(c.term_id)),
+    };
+  };
+  const customFields = (c: GcConcept): PublicCustomField[] =>
+    shownFields.map((f) => {
+      const raw = (c.extra ?? {})[f.code];
+      let value: unknown = raw === undefined ? null : raw;
+      if (f.type === GcFieldType.TERM_LINK) {
+        value = (Array.isArray(raw) ? raw : raw == null ? [] : [raw])
+          .map(termLink)
+          .filter((x) => x !== null);
+      }
+      return { code: f.code, label: f.label, type: f.type, value };
+    });
+
   const refs = (ids: number[] | undefined) =>
     (ids ?? [])
       .map((id) => ref(id))
@@ -207,7 +301,12 @@ export function presentConcepts(
         justification: m.justification,
         confidence: m.confidence === null ? null : Number(m.confidence),
       })),
-      extra: c.extra ?? {},
+      icons: (iconsOf.get(id) ?? []).map(presentIcon),
+      collections: (collectionsOf.get(id) ?? []).map((k) => ({
+        code: k.code,
+        label: k.label,
+      })),
+      custom_fields: customFields(c),
     };
   });
 }

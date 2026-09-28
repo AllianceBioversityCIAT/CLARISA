@@ -7,6 +7,7 @@ import { PublicConcept } from '../utils/concept-presenter';
 import { ConceptGraphLoader } from './concept-graph.loader';
 import {
   CONCEPT_CSV_COLUMNS,
+  CONCEPT_CSV_EXTRA_COLUMNS,
   ConceptsExportService,
 } from './concepts-export.service';
 
@@ -27,6 +28,7 @@ const uri = (t: number) => `https://api.clarisa.cgiar.org/concepts/meliaf/${t}`;
 const publicConcept = (
   overrides: Partial<PublicConcept> = {},
 ): PublicConcept => ({
+  collections: [],
   scheme: 'meliaf',
   term_id: 2374,
   term_uri: uri(2374),
@@ -105,7 +107,8 @@ const publicConcept = (
       confidence: null,
     },
   ],
-  extra: {},
+  icons: [],
+  custom_fields: [],
   ...overrides,
 });
 
@@ -172,13 +175,18 @@ describe('ConceptsExportService', () => {
       );
       expect(body.charCodeAt(0)).toBe(0xfeff);
       const lines = body.slice(1).split('\r\n');
-      expect(lines[0]).toBe(CONCEPT_CSV_COLUMNS.join(','));
+      // The template columns first, untouched; additions only after them.
+      expect(lines[0]).toBe(
+        [...CONCEPT_CSV_COLUMNS, ...CONCEPT_CSV_EXTRA_COLUMNS].join(','),
+      );
       expect(
         lines[0].startsWith(
           'term_uri,term_id,preferred_label,alternative_labels',
         ),
       ).toBe(true);
-      expect(lines[0].endsWith('replaced_by,maps_to_external')).toBe(true);
+      expect(lines[0].endsWith('replaced_by,maps_to_external,icons')).toBe(
+        true,
+      );
       expect(lines[lines.length - 1]).toBe('');
       expect(contentType).toBe('text/csv; charset=utf-8');
       expect(fileName).toMatch(/^meliaf-\d{4}-\d{2}-\d{2}\.csv$/);
@@ -190,7 +198,9 @@ describe('ConceptsExportService', () => {
       const cells = parseCsvLine(row);
       const get = (col: string) =>
         cells[CONCEPT_CSV_COLUMNS.indexOf(col as any)];
-      expect(cells).toHaveLength(CONCEPT_CSV_COLUMNS.length);
+      expect(cells).toHaveLength(
+        CONCEPT_CSV_COLUMNS.length + CONCEPT_CSV_EXTRA_COLUMNS.length,
+      );
       expect(get('term_uri')).toBe(uri(2374));
       // Hidden and discouraged labels are for matching, not for the sheet.
       expect(get('alternative_labels')).toBe('Result; OC');
@@ -495,6 +505,122 @@ describe('ConceptsExportService', () => {
       await expect(
         service.export('meliaf', 'xml' as any),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  // ------------------------------------------ icons + custom fields (v2)
+
+  describe('icons and custom fields', () => {
+    const withExtras = () =>
+      publicConcept({
+        icons: [
+          {
+            icon_code: 'IC1',
+            status: 'final',
+            format: 'svg',
+            alt_text: 'A scale',
+            url: 'https://cdn.example.org/a.svg',
+            rights_and_licence: 'CC BY 4.0',
+            designer: 'Ana',
+          },
+          {
+            icon_code: 'IC2',
+            status: 'draft',
+            format: 'png',
+            alt_text: null,
+            url: null,
+            rights_and_licence: null,
+            designer: null,
+          },
+          {
+            icon_code: 'IC3',
+            status: 'final',
+            format: 'png',
+            alt_text: 'B',
+            url: 'https://cdn.example.org/b.png',
+            rights_and_licence: null,
+            designer: null,
+          },
+        ],
+        custom_fields: [
+          { code: 'owner', label: 'Owner', type: 'text' as any, value: 'PPT' },
+          {
+            code: 'regions',
+            label: 'Regions',
+            type: 'multi_list' as any,
+            value: ['africa', 'asia'],
+          },
+          {
+            code: 'see_also',
+            label: 'See also',
+            type: 'term_link' as any,
+            value: [{ term_id: 10, preferred_label: 'X', uri: uri(10) }],
+          },
+          { code: 'weight', label: 'W', type: 'number' as any, value: null },
+        ],
+      });
+
+    it('adds the icons column and one x:<code> column per public field', () => {
+      const { body } = service.render(scheme, [withExtras()], 'csv');
+      const [header, row] = body.slice(1).split('\r\n');
+      const columns = header.split(',');
+      expect(columns.slice(-5)).toEqual([
+        'icons',
+        'x:owner',
+        'x:regions',
+        'x:see_also',
+        'x:weight',
+      ]);
+      const cells = parseCsvLine(row);
+      const get = (col: string) => cells[columns.indexOf(col)];
+      expect(cells).toHaveLength(columns.length);
+      expect(get('icons')).toBe(
+        'https://cdn.example.org/a.svg | https://cdn.example.org/b.png',
+      );
+      expect(get('x:owner')).toBe('PPT');
+      expect(get('x:regions')).toBe('africa; asia');
+      expect(get('x:see_also')).toBe('10');
+      expect(get('x:weight')).toBe('');
+    });
+
+    it('reads an old snapshot without icons nor custom fields', () => {
+      const old = publicConcept();
+      delete (old as any).icons;
+      delete (old as any).custom_fields;
+      const { body } = service.render(scheme, [old], 'csv');
+      const [header, row] = body.slice(1).split('\r\n');
+      expect(header.endsWith('maps_to_external,icons')).toBe(true);
+      expect(parseCsvLine(row)).toHaveLength(header.split(',').length);
+    });
+
+    it('depicts each icon with a url in SKOS and JSON-LD', () => {
+      const ttl = service.render(scheme, [withExtras()], 'skos').body;
+      expect(ttl).toContain('@prefix foaf: <http://xmlns.com/foaf/0.1/>');
+      expect(ttl).toContain('foaf:depiction <https://cdn.example.org/a.svg>');
+      expect(ttl).toContain('foaf:depiction <https://cdn.example.org/b.png>');
+      expect(ttl.match(/foaf:depiction/g)).toHaveLength(2);
+      const doc = JSON.parse(
+        service.render(scheme, [withExtras()], 'jsonld').body,
+      );
+      const node = doc['@graph'].find((n: any) => n['@id'] === uri(2374));
+      expect(node['foaf:depiction']).toEqual([
+        { '@id': 'https://cdn.example.org/a.svg' },
+        { '@id': 'https://cdn.example.org/b.png' },
+      ]);
+    });
+
+    it('carries icons and custom_fields in the JSON export as in the public shape', () => {
+      const doc = JSON.parse(
+        service.render(scheme, [withExtras()], 'json').body,
+      );
+      expect(doc.concepts[0].icons).toHaveLength(3);
+      expect(doc.concepts[0].custom_fields[0]).toEqual({
+        code: 'owner',
+        label: 'Owner',
+        type: 'text',
+        value: 'PPT',
+      });
+      expect(doc.concepts[0].extra).toBeUndefined();
     });
   });
 });

@@ -8,6 +8,7 @@ import { ConceptsSuggestService } from '../services/concepts-suggest.service';
 import { ConceptsReadService } from '../services/concepts-read.service';
 import { ConceptsExportService } from '../services/concepts-export.service';
 import { PublicRateLimitGuard } from '../utils/public-rate-limit.guard';
+import { UsageService } from '../services/usage.service';
 
 /** The transport over real HTTP: status codes, raw JSON-RPC, route order. */
 describe('GlobalConceptsMcpController (HTTP)', () => {
@@ -31,6 +32,10 @@ describe('GlobalConceptsMcpController (HTTP)', () => {
         PublicRateLimitGuard,
         { provide: ConceptsReadService, useValue: read },
         { provide: ConceptsExportService, useValue: {} },
+        {
+          provide: UsageService,
+          useValue: { record: jest.fn(), recordList: jest.fn() },
+        },
       ],
     }).compile();
     app = mod.createNestApplication();

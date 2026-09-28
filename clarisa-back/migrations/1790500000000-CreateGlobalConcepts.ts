@@ -292,6 +292,34 @@ export class CreateGlobalConcepts1790500000000 implements MigrationInterface {
       \`updated_at\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (\`concept_id\`, \`model\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+    // Custom metadata fields a scheme defines for itself (contract v2 §2).
+    // Their values live in gc_concepts.extra, keyed by `code`.
+    `CREATE TABLE IF NOT EXISTS \`gc_fields\` (
+      \`id\` bigint NOT NULL AUTO_INCREMENT,
+      \`scheme_id\` bigint NOT NULL,
+      \`code\` varchar(50) NOT NULL,
+      \`label\` varchar(255) NOT NULL,
+      \`type\` varchar(20) NOT NULL,
+      \`list_code\` varchar(50) NULL,
+      \`required\` tinyint NOT NULL DEFAULT 0,
+      \`is_public\` tinyint NOT NULL DEFAULT 1,
+      \`sort\` int NOT NULL DEFAULT 0,
+      \`is_active\` tinyint NOT NULL DEFAULT 1,
+      \`help\` text NULL,
+      \`created_at\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (\`id\`),
+      UNIQUE KEY \`UQ_gc_fields_code\` (\`scheme_id\`, \`code\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+    // Aggregated usage per day (contract v2 §3). The composite key is what the
+    // atomic `INSERT … ON DUPLICATE KEY UPDATE` counts against.
+    `CREATE TABLE IF NOT EXISTS \`gc_usage_daily\` (
+      \`day\` date NOT NULL,
+      \`scheme_id\` bigint NOT NULL,
+      \`kind\` varchar(20) NOT NULL,
+      \`item\` varchar(191) NOT NULL,
+      \`count\` int NOT NULL DEFAULT 0,
+      PRIMARY KEY (\`day\`, \`scheme_id\`, \`kind\`, \`item\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
     `CREATE TABLE IF NOT EXISTS \`gc_ai_usage\` (
       \`month\` char(7) NOT NULL,
       \`calls\` int NOT NULL DEFAULT 0,
@@ -305,6 +333,8 @@ export class CreateGlobalConcepts1790500000000 implements MigrationInterface {
   /** In reverse creation order, for `down`. */
   static readonly TABLE_NAMES = [
     'gc_ai_usage',
+    'gc_usage_daily',
+    'gc_fields',
     'gc_embeddings',
     'gc_outbox',
     'gc_releases',

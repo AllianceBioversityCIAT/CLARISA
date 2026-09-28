@@ -12,6 +12,7 @@ import {
   GcConceptStatus,
 } from '../entities/gc-concept.entity';
 import { GcCollectionMember } from '../entities/gc-collection.entity';
+import { GcField } from '../entities/gc-field.entity';
 import {
   GcFieldChange,
   GcHistory,
@@ -44,6 +45,7 @@ import {
   UpdateConceptDto,
 } from '../dto/concept-admin.dto';
 import { presentConcepts } from '../utils/concept-presenter';
+import { ExtraContext, mergeExtra, termLinkIds } from '../utils/custom-fields';
 import { ConceptGraphLoader } from './concept-graph.loader';
 
 /** Who is writing: the person, and whether it is a direct admin edit or an approved request. */
@@ -70,6 +72,7 @@ const VERSIONED_FIELDS = [
   'derivation',
   'status',
   'replaced_by_id',
+  'extra',
 ] as const;
 
 /** Every field copied from a DTO onto the entity. */
@@ -176,6 +179,13 @@ export class ConceptsAdminService {
     const fields = this.cleanFields(dto, lists);
     const language = (fields.language as string) ?? scheme.default_language;
     await this.assertPreferredLabelFree(manager, scheme, label, language);
+    const extra = mergeExtra(
+      await this.extraContext(manager, scheme, lists, dto.extra),
+      {},
+      dto.extra,
+      true,
+    );
+    const aiFields = this.aiFields([], dto.ai_generated_fields);
 
     const termId = await this.allocateTermId(manager, scheme, dto.term_id);
     const status = dto.status ?? GcConceptStatus.DRAFT;
@@ -190,6 +200,8 @@ export class ConceptsAdminService {
       preferred_label: label,
       language,
       status,
+      extra,
+      ai_generated_fields: aiFields,
       version: '1.0',
       date_created: today,
       date_modified: today,
@@ -234,6 +246,20 @@ export class ConceptsAdminService {
     const before = this.snapshot(concept);
     const lists = await this.loadLists(manager, scheme);
     Object.assign(concept, this.cleanFields(dto, lists));
+    if (dto.extra !== undefined) {
+      concept.extra = mergeExtra(
+        await this.extraContext(manager, scheme, lists, dto.extra),
+        concept.extra,
+        dto.extra,
+        false,
+      );
+    }
+    if (dto.ai_generated_fields !== undefined) {
+      concept.ai_generated_fields = this.aiFields(
+        concept.ai_generated_fields,
+        dto.ai_generated_fields,
+      );
+    }
     if (dto.preferred_label !== undefined) {
       const label = norm(dto.preferred_label);
       if (!label)
@@ -918,6 +944,49 @@ export class ConceptsAdminService {
   }
 
   /**
+   * What custom-field validation needs: the active definitions, the lists,
+   * and the concepts named by the payload's `term_link` values (only those,
+   * so a save never loads the whole scheme).
+   */
+  async extraContext(
+    manager: EntityManager,
+    scheme: GcScheme,
+    lists: Map<string, Map<string, string>>,
+    incoming?: Record<string, unknown>,
+  ): Promise<ExtraContext> {
+    const fields = await manager.find(GcField, {
+      where: { scheme_id: scheme.id, is_active: true },
+      order: { sort: 'ASC' },
+    });
+    const ids = termLinkIds(fields, incoming);
+    const concepts = ids.length
+      ? await manager.find(GcConcept, {
+          where: { scheme_id: scheme.id, term_id: In(ids) },
+        })
+      : [];
+    return {
+      fields,
+      lists,
+      concepts: new Map(concepts.map((c) => [Number(c.term_id), c])),
+    };
+  }
+
+  /**
+   * AI provenance: the fields already marked plus the ones sent, limited to
+   * the writable field names. Marks are only added (see the DTO).
+   */
+  private aiFields(current: string[] | null | undefined, sent?: string[]) {
+    const allowed = new Set<string>(WRITABLE_FIELDS);
+    const bad = (sent ?? []).filter((f) => !allowed.has(f));
+    if (bad.length) {
+      throw new BadRequestException(
+        `ai_generated_fields accepts field names only: ${bad.join(', ')}`,
+      );
+    }
+    return [...new Set([...(current ?? []), ...(sent ?? [])])];
+  }
+
+  /**
    * Copies the DTO fields that are present, normalised. `''` clears a text
    * field; list-driven fields must match an active value (or its label) of
    * their list and are stored as the list value.
@@ -1121,6 +1190,31 @@ export class ConceptsAdminService {
     );
   }
 
+  /**
+   * A change stored outside the concept row (icons today): revises a
+   * published concept and logs it, in the caller's transaction.
+   */
+  async touch(
+    manager: EntityManager,
+    concept: GcConcept,
+    action: GcHistoryAction,
+    changes: Record<string, GcFieldChange>,
+    actor: GcActor,
+    txId: string = randomUUID(),
+  ) {
+    await this.bumpIfPublished(manager, concept, actor);
+    await this.log(
+      manager,
+      concept.id,
+      action,
+      null,
+      null,
+      actor,
+      txId,
+      changes,
+    );
+  }
+
   /** Label, relation and mapping changes also revise a published concept (V22). */
   private async bumpIfPublished(
     manager: EntityManager,
@@ -1190,6 +1284,10 @@ export class ConceptsAdminService {
       const v = (c as unknown as Record<string, unknown>)[f];
       out[f] = v === undefined ? null : v;
     }
+    // Copies, so a later in-place change cannot rewrite the "before" side.
+    // An empty object is null, like the column stores it.
+    out.extra = c.extra && Object.keys(c.extra).length ? { ...c.extra } : null;
+    out.ai_generated_fields = [...(c.ai_generated_fields ?? [])];
     return out;
   }
 
@@ -1210,6 +1308,8 @@ export class ConceptsAdminService {
       return {
         ...p,
         notes: c?.notes ?? null,
+        // Raw custom-field values, reserved keys included: admin-only.
+        extra: c?.extra ?? {},
         created_by_email: c?.created_by_email ?? null,
         updated_by_email: c?.updated_by_email ?? null,
         mappings_all: graph.mappings

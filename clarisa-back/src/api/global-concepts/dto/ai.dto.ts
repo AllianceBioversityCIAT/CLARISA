@@ -1,5 +1,7 @@
 import {
   ArrayMaxSize,
+  ArrayUnique,
+  IsIn,
   ArrayNotEmpty,
   IsArray,
   IsBoolean,
@@ -66,4 +68,31 @@ export class SemanticSearchDto {
   @Min(1)
   @Max(50)
   limit?: number;
+}
+
+/** The fields an AI draft can write; everything else stays an editor's text. */
+export const AI_DRAFT_FIELDS = [
+  'short_definition',
+  'scope_note',
+  'example_of_use',
+] as const;
+export type AiDraftField = (typeof AI_DRAFT_FIELDS)[number];
+
+/** Only the label and the definition reach the model: no emails, no notes. */
+export class AiDraftDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  preferred_label: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(8000)
+  definition: string;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayUnique()
+  @IsIn(AI_DRAFT_FIELDS, { each: true })
+  fields: AiDraftField[];
 }

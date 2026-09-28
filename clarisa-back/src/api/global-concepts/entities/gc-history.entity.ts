@@ -11,6 +11,7 @@ export enum GcHistoryAction {
   LABELS = 'labels',
   RELATIONS = 'relations',
   MAPPINGS = 'mappings',
+  ICONS = 'icons',
   MERGE = 'merge',
   IMPORT = 'import',
   REQUEST_APPLIED = 'request_applied',

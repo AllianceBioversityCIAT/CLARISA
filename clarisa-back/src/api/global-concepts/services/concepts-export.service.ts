@@ -15,6 +15,7 @@ import { GcRelease } from '../entities/gc-release.entity';
 import { GcScheme } from '../entities/gc-scheme.entity';
 import { schemeUri } from '../global-concepts.config';
 import { PublicConcept, presentConcepts } from '../utils/concept-presenter';
+import { CUSTOM_COLUMN_PREFIX } from '../utils/custom-fields';
 import { ConceptGraphLoader } from './concept-graph.loader';
 
 export type ConceptExportFormat = 'json' | 'csv' | 'skos' | 'jsonld';
@@ -78,11 +79,19 @@ export const CONCEPT_CSV_COLUMNS = [
   'maps_to_external',
 ] as const;
 
+/**
+ * Columns added after the template, always after its last column so a sheet
+ * built on the template keeps its positions: the icon URLs, then one
+ * `x:<code>` column per public custom field (contract v2 §1, §2).
+ */
+export const CONCEPT_CSV_EXTRA_COLUMNS = ['icons'] as const;
+
 const PREFIXES = {
   skos: 'http://www.w3.org/2004/02/skos/core#',
   dcterms: 'http://purl.org/dc/terms/',
   xsd: 'http://www.w3.org/2001/XMLSchema#',
   owl: 'http://www.w3.org/2002/07/owl#',
+  foaf: 'http://xmlns.com/foaf/0.1/',
 };
 
 const MATCH_PROPERTY: Record<string, string> = {
@@ -292,7 +301,31 @@ export class ConceptsExportService {
       return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
     };
     const list = (values: (string | number)[]) => values.join('; ');
-    const lines = [CONCEPT_CSV_COLUMNS.join(',')];
+    // Custom columns come from the concepts themselves, so a release file
+    // (rendered from its snapshot) has the fields that were public then.
+    const custom: string[] = [];
+    for (const c of concepts)
+      for (const f of c.custom_fields ?? [])
+        if (!custom.includes(f.code)) custom.push(f.code);
+    const customCell = (c: PublicConcept, code: string) => {
+      const value = (c.custom_fields ?? []).find((f) => f.code === code)?.value;
+      if (value === null || value === undefined) return null;
+      if (!Array.isArray(value)) return this.toPlainText(String(value));
+      return list(
+        value.map((v) =>
+          v && typeof v === 'object' && 'term_id' in v
+            ? Number((v as { term_id: number }).term_id)
+            : String(v),
+        ),
+      );
+    };
+    const lines = [
+      [
+        ...CONCEPT_CSV_COLUMNS,
+        ...CONCEPT_CSV_EXTRA_COLUMNS,
+        ...custom.map((code) => `${CUSTOM_COLUMN_PREFIX}${code}`),
+      ].join(','),
+    ];
     for (const c of concepts) {
       // The template's `alternative_labels` are the labels a person may use:
       // alt and acronym, active. Hidden and discouraged labels are for
@@ -335,6 +368,11 @@ export class ConceptsExportService {
           c.steward,
           c.replaced_by?.term_id ?? null,
           list(c.mappings.map((m) => m.target_uri)),
+          (c.icons ?? [])
+            .map((i) => i.url)
+            .filter((u): u is string => !!u)
+            .join(' | '),
+          ...custom.map((code) => customCell(c, code)),
         ]
           .map(cell)
           .join(','),
@@ -453,6 +491,10 @@ export class ConceptsExportService {
       const sourceIri = this.iri(c.source_url);
       if (sourceIri) push(node, 'dcterms:source', { iri: sourceIri });
       push(node, 'dcterms:rights', text(c.rights_note));
+      for (const i of c.icons ?? []) {
+        const depiction = this.iri(i.url);
+        if (depiction) push(node, 'foaf:depiction', { iri: depiction });
+      }
       for (const [pred, value] of [
         ['dcterms:created', c.date_created],
         ['dcterms:modified', c.date_modified],

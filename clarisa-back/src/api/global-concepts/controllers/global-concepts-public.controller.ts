@@ -22,10 +22,17 @@ import {
   ConceptExportFormat,
   ConceptsExportService,
 } from '../services/concepts-export.service';
+import { UsageService } from '../services/usage.service';
+import { GcUsageKind } from '../entities/gc-usage-daily.entity';
 
 /**
  * Public, anonymous read of Global Concepts. Only approved and deprecated
  * concepts exist here; drafts and concepts under review never do.
+ *
+ * Usage is counted here, after a successful answer and without waiting for
+ * it (`UsageService.record` is fire-and-forget), so a counter can never fail
+ * or slow a read. Services stay uncounted: the MCP tools and the text
+ * matcher call them too.
  */
 @ApiTags('Global Concepts')
 @Controller()
@@ -35,6 +42,7 @@ export class GlobalConceptsPublicController {
     private readonly read: ConceptsReadService,
     private readonly exporter: ConceptsExportService,
     private readonly suggester: ConceptsSuggestService,
+    private readonly usage: UsageService,
   ) {}
 
   @Post(':scheme/suggest')
@@ -47,8 +55,14 @@ export class GlobalConceptsPublicController {
       'labels and acronyms as whole words. The text is never stored, and it travels in the body, ' +
       'never in the URL, because request logs keep URLs.',
   })
-  suggest(@Param('scheme') scheme: string, @Body() body: { text?: unknown }) {
-    return this.suggester.suggest(scheme, body?.text as string);
+  async suggest(
+    @Param('scheme') scheme: string,
+    @Body() body: { text?: unknown },
+  ) {
+    const answer = await this.suggester.suggest(scheme, body?.text as string);
+    // Counted under a fixed item: the text itself is never stored (V24).
+    this.usage.record(scheme, GcUsageKind.SUGGEST, 'text');
+    return answer;
   }
 
   @Get('schemes')
@@ -67,6 +81,17 @@ export class GlobalConceptsPublicController {
   @ApiQuery({ name: 'scheme', required: false })
   lists(@Query('scheme') scheme?: string) {
     return this.read.lists(scheme);
+  }
+
+  @Get(':scheme/fields')
+  @ApiOperation({
+    summary: 'Custom metadata fields of a scheme (active and public)',
+    description:
+      'Each concept carries their values in `custom_fields`, in this order. ' +
+      '`term_link` values are other concepts of the same scheme.',
+  })
+  fields(@Param('scheme') scheme: string) {
+    return this.read.fields(scheme);
   }
 
   @Get(':scheme')
@@ -92,7 +117,7 @@ export class GlobalConceptsPublicController {
   @ApiQuery({ name: 'term_type', required: false })
   @ApiQuery({ name: 'collection', required: false })
   @ApiQuery({ name: 'version', required: false })
-  list(
+  async list(
     @Param('scheme') scheme: string,
     @Query('q') q?: string,
     @Query('status') status?: string,
@@ -102,7 +127,7 @@ export class GlobalConceptsPublicController {
     @Query('collection') collection?: string,
     @Query('version') version?: string,
   ) {
-    return this.read.list(scheme, {
+    const rows = await this.read.list(scheme, {
       q,
       status,
       meliaf_function,
@@ -111,6 +136,8 @@ export class GlobalConceptsPublicController {
       collection,
       version,
     });
+    this.usage.recordList(scheme, q, rows.length);
+    return rows;
   }
 
   @Get(':scheme/concepts/:termId')
@@ -119,12 +146,14 @@ export class GlobalConceptsPublicController {
       'One published concept (JSON). Its persistent URI also answers Turtle / JSON-LD.',
   })
   @ApiQuery({ name: 'version', required: false })
-  get(
+  async get(
     @Param('scheme') scheme: string,
     @Param('termId', ParseIntPipe) termId: number,
     @Query('version') version?: string,
   ) {
-    return this.read.get(scheme, termId, version);
+    const concept = await this.read.get(scheme, termId, version);
+    this.usage.record(scheme, GcUsageKind.VIEW, concept.term_id);
+    return concept;
   }
 
   @Get(':scheme/concepts/:termId/history')
@@ -175,11 +204,9 @@ export class GlobalConceptsPublicController {
     @Query('format') format = 'json',
     @Query('version') version?: string,
   ) {
-    const file = await this.exporter.export(
-      scheme,
-      this.format(format),
-      version,
-    );
+    const wanted = this.format(format);
+    const file = await this.exporter.export(scheme, wanted, version);
+    this.usage.record(scheme, GcUsageKind.EXPORT, wanted);
     res.setHeader('Content-Type', file.contentType);
     res.setHeader(
       'Content-Disposition',

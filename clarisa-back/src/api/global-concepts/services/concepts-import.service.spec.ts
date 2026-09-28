@@ -12,6 +12,7 @@ import {
   GcLabelStatus,
 } from '../entities/gc-label.entity';
 import { GcRelation, GcRelationKind } from '../entities/gc-relation.entity';
+import { GcField, GcFieldType } from '../entities/gc-field.entity';
 import {
   CreateGlobalConcepts1790500000000,
   toValue,
@@ -227,5 +228,119 @@ describe('ConceptsImportService', () => {
     );
     expect(db.rows(GcConcept)[0].derivation).toBe('newly_written');
     expect(db.rows(GcConcept)[0].source_citation).toBeFalsy();
+  });
+
+  describe('custom fields (x:<code> columns)', () => {
+    const def = (
+      code: string,
+      type: GcFieldType,
+      more: Partial<GcField> = {},
+    ) =>
+      db.seed(GcField, {
+        scheme_id: meliaf.id,
+        code,
+        label: code,
+        type,
+        list_code: null,
+        required: false,
+        is_public: true,
+        sort: 0,
+        is_active: true,
+        ...more,
+      });
+
+    beforeEach(() => {
+      def('owner', GcFieldType.TEXT);
+      def('phases', GcFieldType.MULTI_LIST, { list_code: 'meliaf_phase' });
+      def('see_also', GcFieldType.TERM_LINK);
+    });
+
+    it('maps x:<code> to custom fields, splitting multi types on ; or |', async () => {
+      concept(5, 'Outcome');
+      const r = await service.import(
+        'meliaf',
+        [
+          {
+            preferred_label: 'Baseline',
+            'x:owner': ' PPT ',
+            'x:phases': 'Design | Analysis;design',
+            'x:see_also': '5',
+          },
+        ],
+        admin,
+      );
+      expect(r.rows[0].action).toBe(ImportAction.CREATE);
+      expect(r.rows[0].warnings).not.toContainEqual(
+        expect.stringMatching(/Ignored/),
+      );
+      const created = db
+        .rows(GcConcept)
+        .find((c) => c.preferred_label === 'Baseline')!;
+      expect(created.extra).toEqual({
+        owner: 'PPT',
+        phases: ['design', 'analysis'],
+        see_also: [5],
+      });
+    });
+
+    it('updates only what the file brings: empty cells keep stored values', async () => {
+      concept(5, 'Outcome', { extra: { owner: 'PPT', see_also: [5] } });
+      const plan = await service.preview('meliaf', [
+        {
+          term_id: 5,
+          preferred_label: 'Outcome',
+          'x:owner': 'MEL CoP',
+          'x:see_also': '',
+        },
+      ]);
+      expect(plan.rows[0].action).toBe(ImportAction.UPDATE);
+      expect(plan.rows[0].changes).toEqual(['extra']);
+      await service.import(
+        'meliaf',
+        [{ term_id: 5, preferred_label: 'Outcome', 'x:owner': 'MEL CoP' }],
+        admin,
+      );
+      expect(db.rows(GcConcept)[0].extra).toEqual({
+        owner: 'MEL CoP',
+        see_also: [5],
+      });
+      const again = await service.preview('meliaf', [
+        { term_id: 5, preferred_label: 'Outcome', 'x:owner': 'MEL CoP' },
+      ]);
+      expect(again.rows[0].action).toBe(ImportAction.SKIP);
+    });
+
+    it('marks invalid values in the preview and ignores inactive or unknown columns', async () => {
+      def('retired', GcFieldType.TEXT, { is_active: false });
+      const plan = await service.preview('meliaf', [
+        { preferred_label: 'A', 'x:phases': 'Astrology' },
+        { preferred_label: 'B', 'x:see_also': '999' },
+        { preferred_label: 'C', 'x:retired': 'x', 'x:nope': 'y' },
+      ]);
+      expect(plan.rows.map((x) => x.action)).toEqual([
+        ImportAction.INVALID,
+        ImportAction.INVALID,
+        ImportAction.CREATE,
+      ]);
+      expect(plan.rows[1].errors.join(' ')).toMatch(/term_id 999/);
+      expect(plan.rows[2].warnings.join(' ')).toMatch(
+        /Ignored column\(s\): x:retired, x:nope/,
+      );
+    });
+
+    it('refuses a new row that lacks a required custom field', async () => {
+      def('must', GcFieldType.TEXT, { required: true });
+      const plan = await service.preview('meliaf', [
+        { preferred_label: 'A' },
+        { preferred_label: 'B', 'x:must': 'yes' },
+      ]);
+      expect(plan.rows.map((x) => x.action)).toEqual([
+        ImportAction.INVALID,
+        ImportAction.CREATE,
+      ]);
+      await expect(
+        service.import('meliaf', [{ preferred_label: 'A' }], admin),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
   });
 });

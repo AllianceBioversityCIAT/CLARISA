@@ -21,6 +21,7 @@ const matches = (row: Row, where: Row | undefined): boolean => {
         return (op.value as any[]).map(String).includes(String(row[k]));
       if (op.type === 'not') return String(row[k]) !== String(op.value);
       if (op.type === 'moreThan') return row[k] > op.value;
+      if (op.type === 'moreThanOrEqual') return row[k] >= op.value;
       if (op.type === 'lessThanOrEqual') return row[k] <= op.value;
       if (op.type === 'lessThan') return row[k] < op.value;
       if (op.type === 'isNull') return row[k] === null || row[k] === undefined;
@@ -112,6 +113,13 @@ export class FakeManager {
     return { affected };
   };
 
+  /** Raw SQL the services send; recorded so a test can assert on it. */
+  queries: { sql: string; params: unknown[] }[] = [];
+  query = async (sql: string, params: unknown[] = []) => {
+    this.queries.push({ sql, params });
+    return [];
+  };
+
   /** Query builders used by the services: scheme lock and preferred-label clash checks. */
   createQueryBuilder = (entity: any) => {
     const params: Row = {};
@@ -169,5 +177,6 @@ export class FakeManager {
 export const fakeDataSource = (manager: FakeManager) =>
   ({
     manager,
+    query: (sql: string, params?: unknown[]) => manager.query(sql, params),
     transaction: async (cb: (m: FakeManager) => any) => cb(manager),
   }) as any;

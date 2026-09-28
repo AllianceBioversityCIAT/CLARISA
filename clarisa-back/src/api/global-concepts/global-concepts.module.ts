@@ -25,6 +25,9 @@ import { ConceptsReadService } from './services/concepts-read.service';
 import { ConceptsAdminService } from './services/concepts-admin.service';
 import { ConceptsExportService } from './services/concepts-export.service';
 import { ReleasesService } from './services/releases.service';
+import { ConceptsIconsService } from './services/concepts-icons.service';
+import { ConceptsFieldsService } from './services/concepts-fields.service';
+import { UsageService } from './services/usage.service';
 import { GlobalConceptsEnabledGuard } from './utils/feature-enabled.guard';
 import { PublicRateLimitGuard } from './utils/public-rate-limit.guard';
 
@@ -43,6 +46,9 @@ const providers = [
   ConceptsImportService,
   ConceptsCatalogService,
   EmbeddingsService,
+  ConceptsIconsService,
+  ConceptsFieldsService,
+  UsageService,
   GlobalConceptsEnabledGuard,
   PublicRateLimitGuard,
 ];

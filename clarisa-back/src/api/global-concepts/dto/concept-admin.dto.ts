@@ -5,6 +5,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -116,6 +117,26 @@ export class ConceptFieldsDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  /**
+   * Values of the scheme's custom fields, keyed by field code. Checked by the
+   * service against the active definitions (they are data, like the lists);
+   * keys not sent are kept, and `''` / `null` / `[]` clears one.
+   */
+  @IsOptional()
+  @IsObject()
+  extra?: Record<string, unknown>;
+
+  /**
+   * Fields whose text the editor accepted from an AI draft. Added to the
+   * fields already marked, never removing one: the brief wants every term to
+   * keep its original source, so AI provenance is not erased by a later save.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(30)
+  @IsString({ each: true })
+  ai_generated_fields?: string[];
 }
 
 export class CreateConceptDto extends ConceptFieldsDto {

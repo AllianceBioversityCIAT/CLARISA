@@ -1,5 +1,10 @@
 import { NotFoundException } from '@nestjs/common';
-import { ConceptsReadService, likePattern } from './concepts-read.service';
+import {
+  ConceptsReadService,
+  likePattern,
+  rankByRelevance,
+} from './concepts-read.service';
+import { PublicConcept } from '../utils/concept-presenter';
 import { ConceptGraphLoader } from './concept-graph.loader';
 import { FakeManager, fakeDataSource } from '../utils/fake-manager.spec-helper';
 import { GcScheme } from '../entities/gc-scheme.entity';
@@ -141,5 +146,45 @@ describe('ConceptsReadService', () => {
 
   it('escapes LIKE wildcards in searches', () => {
     expect(likePattern('50%_a\\b')).toBe('%50\\%\\_a\\\\b%');
+  });
+});
+
+describe('rankByRelevance', () => {
+  const c = (
+    term_id: number,
+    preferred_label: string,
+    alts: string[] = [],
+    definition = '',
+  ) =>
+    ({
+      term_id,
+      preferred_label,
+      alternative_labels: alts.map((label) => ({ label, kind: 'alt' })),
+      definition,
+    }) as unknown as PublicConcept;
+
+  it('puts the acronym match above definitions that only contain the letters', () => {
+    const ranked = rankByRelevance(
+      [
+        c(1, 'Action Area', [], 'Genetic innovation in Asia'),
+        c(2, 'Adoption', [], 'social innovations'),
+        c(3, 'Impact assessment', ['IA']),
+      ],
+      'IA',
+    );
+    expect(ranked.map((x) => x.term_id)).toEqual([3, 1, 2]);
+  });
+
+  it('ranks exact, then prefix, then word-start matches', () => {
+    const ranked = rankByRelevance(
+      [
+        c(1, 'Participatory evaluation'),
+        c(2, 'Evaluation'),
+        c(3, 'Evaluation design'),
+        c(4, 'Reevaluation'),
+      ],
+      'evaluation',
+    );
+    expect(ranked.map((x) => x.term_id)).toEqual([2, 3, 1, 4]);
   });
 });
