@@ -1,0 +1,32 @@
+/**
+ * Global Concepts admin shell. Colour only from the `--cl-*` tokens, sizes in
+ * px (the landing sets `html { font-size: 62.5% }`). The header and the tabs
+ * are the global `.admin-page` / `.admin-tabs`, not drawn here.
+ */
+.gc-admin {
+  display: block;
+  padding: 24px 28px 32px;
+  min-height: 100vh;
+  background: var(--cl-surface-2);
+  box-sizing: border-box;
+}
+
+.gc-admin__aside {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Five sections do not fit a phone: the rail scrolls inside itself, never the page. */
+.gc-admin__tabs {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 991px) {
+  .gc-admin {
+    padding: 20px 16px 28px;
+  }
+}

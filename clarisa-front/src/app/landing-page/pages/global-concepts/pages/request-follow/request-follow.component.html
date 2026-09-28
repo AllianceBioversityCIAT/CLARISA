@@ -1,0 +1,98 @@
+<app-gc-banner
+  eyebrow="Global Concepts"
+  [title]="id > 0 ? 'Request #' + id : 'Follow a request'"
+  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'Global Concepts', link: base }, { label: 'Request' }]">
+</app-gc-banner>
+
+<section class="gc-section">
+  <div class="container">
+    <div class="gc-narrow">
+      <div class="gc-card gc-ghost" *ngIf="loading" aria-busy="true">
+        <span class="gc-skeleton gc-skeleton--title"></span>
+        <span class="gc-skeleton"></span>
+        <span class="gc-skeleton gc-skeleton--short"></span>
+        <span class="gc-sr-only">Loading your request</span>
+      </div>
+
+      <div class="gc-state gc-state--error" *ngIf="!loading && error" role="alert">
+        <span class="gc-state__icon"><i class="pi pi-lock" aria-hidden="true"></i></span>
+        <h4>This request cannot be shown</h4>
+        <p>{{ error }}</p>
+        <div class="gc-state__actions">
+          <button type="button" class="gc-btn gc-btn--small gc-btn--ghost" *ngIf="id > 0" (click)="reload()">Try again</button>
+          <a class="gc-btn gc-btn--small" [routerLink]="base">Go to Global Concepts</a>
+        </div>
+      </div>
+
+      <article class="gc-card gc-follow" *ngIf="!loading && !error && request && state">
+        <header class="gc-follow__head">
+          <div>
+            <p class="gc-meta">{{ typeLabel(request.type) }} · sent {{ date(request.created_at) }}</p>
+            <h3 class="gc-h3">{{ subject || 'Request #' + request.id }}</h3>
+          </div>
+          <span class="gc-pill" [ngClass]="'gc-pill--' + state.tone">{{ state.label }}</span>
+        </header>
+
+        <ol class="gc-steps" aria-label="Progress">
+          <li *ngFor="let step of steps; let i = index" [class.is-done]="i < stepIndex" [class.is-current]="i === stepIndex">
+            <span class="gc-steps__dot" aria-hidden="true"></span>{{ stepLabel(step) }}
+          </li>
+          <li [class.is-done]="stepIndex === steps.length" [class.is-rejected]="request.state === 'rejected'">
+            <span class="gc-steps__dot" aria-hidden="true"></span>{{ request.state === 'rejected' ? 'Not approved' : 'Decision' }}
+          </li>
+        </ol>
+
+        <p class="gc-lede">{{ state.help }}</p>
+
+        <div
+          class="gc-note"
+          *ngIf="request.decision_note"
+          [ngClass]="{ 'gc-note--warn': state.tone === 'warn', 'gc-note--error': state.tone === 'error', 'gc-note--ok': state.tone === 'ok' }">
+          <i class="pi pi-comment" aria-hidden="true"></i>
+          <div>
+            <p><strong>Note from the stewards</strong></p>
+            <p class="gc-pre">{{ request.decision_note }}</p>
+          </div>
+        </div>
+
+        <form class="gc-answer" *ngIf="canAnswer" (ngSubmit)="sendAnswer()" novalidate aria-labelledby="gc-answer-title">
+          <h4 class="gc-answer__title" id="gc-answer-title">Update your request</h4>
+          <div class="gc-field" *ngFor="let f of answerFields">
+            <label [attr.for]="'gc-a-' + f.key">{{ f.label }}</label>
+            <textarea
+              *ngIf="f.long; else line"
+              class="gc-textarea"
+              rows="5"
+              [id]="'gc-a-' + f.key"
+              [name]="f.key"
+              [(ngModel)]="answer[f.key]"></textarea>
+            <ng-template #line>
+              <input class="gc-input" type="text" [id]="'gc-a-' + f.key" [name]="f.key" [(ngModel)]="answer[f.key]" />
+            </ng-template>
+          </div>
+          <div class="gc-field">
+            <label for="gc-a-rationale">What changed and why</label>
+            <textarea class="gc-textarea" rows="3" id="gc-a-rationale" name="rationale" [(ngModel)]="answerRationale"></textarea>
+          </div>
+          <p class="gc-field__error" *ngIf="answerError" role="alert">{{ answerError }}</p>
+          <div class="gc-answer__actions">
+            <button type="submit" class="gc-btn" [disabled]="sending">{{ sending ? 'Sending…' : 'Send back to the stewards' }}</button>
+          </div>
+        </form>
+
+        <p class="gc-meta" *ngIf="request.no_objection_until">Open for objections until {{ date(request.no_objection_until) }}.</p>
+
+        <dl class="gc-follow__facts">
+          <div *ngIf="request.rationale">
+            <dt>Your reason</dt>
+            <dd class="gc-pre">{{ request.rationale }}</dd>
+          </div>
+          <div>
+            <dt>Last update</dt>
+            <dd>{{ date(request.updated_at) }}</dd>
+          </div>
+        </dl>
+      </article>
+    </div>
+  </div>
+</section>

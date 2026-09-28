@@ -54,6 +54,32 @@ export const API_KEY_SCOPE_CATALOG: ApiKeyScopeDefinition[] = [
     group: 'CLARISA API',
   },
   {
+    value: 'global-concepts:read',
+    label: 'Global Concepts — read',
+    description: 'Read and search concepts, measured per platform',
+    group: 'CLARISA API',
+  },
+  {
+    value: 'global-concepts:request',
+    label: 'Global Concepts — request',
+    description: 'Submit concept requests and follow their status',
+    group: 'CLARISA API',
+  },
+  {
+    value: 'global-concepts:write',
+    label: 'Global Concepts — write own scheme',
+    description:
+      'Create and edit concepts directly, only in the scheme the platform owns',
+    group: 'CLARISA API',
+  },
+  {
+    value: 'global-concepts:review',
+    label: 'Global Concepts — review own scheme',
+    description:
+      'Decide concept requests, only of the scheme the platform owns',
+    group: 'CLARISA API',
+  },
+  {
     value: 'email:send',
     label: 'Email service — send',
     description: 'Send email via the email microservice flow',

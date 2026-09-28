@@ -1,0 +1,33 @@
+<section class="gc-card gc-fields" *ngIf="views.length">
+  <h3 class="gc-h3">Additional information</h3>
+  <dl class="gc-fields__list">
+    <div class="gc-fields__row" *ngFor="let f of views" [attr.data-field]="f.code">
+      <dt>
+        {{ f.label }}
+        <span class="gc-tag" *ngIf="f.ai" title="Drafted with AI assistance and accepted by an editor"
+          ><i class="pi pi-bolt" aria-hidden="true"></i>AI-assisted</span
+        >
+      </dt>
+      <dd [ngSwitch]="f.kind">
+        <div class="gc-chips" *ngSwitchCase="'chips'">
+          <span class="gc-chip gc-chip--plain" *ngFor="let chip of f.chips">{{ chip }}</span>
+        </div>
+        <ul class="gc-fields__links" *ngSwitchCase="'links'">
+          <li *ngFor="let ref of f.links">
+            <a class="gc-link" [routerLink]="link(ref.term_id)">{{ ref.label }}</a>
+          </li>
+        </ul>
+        <ng-container *ngSwitchCase="'url'">
+          <a class="gc-link" *ngIf="f.url; else plainUrl" [href]="f.url" target="_blank" rel="noopener noreferrer"
+            >{{ f.text }} <i class="pi pi-external-link" aria-hidden="true"></i><span class="gc-sr-only"> (opens in a new tab)</span></a
+          >
+          <ng-template #plainUrl
+            ><span class="gc-mono">{{ f.text }}</span></ng-template
+          >
+        </ng-container>
+        <p class="gc-fields__long" *ngSwitchCase="'long'">{{ f.text }}</p>
+        <ng-container *ngSwitchDefault>{{ f.text }}</ng-container>
+      </dd>
+    </div>
+  </dl>
+</section>

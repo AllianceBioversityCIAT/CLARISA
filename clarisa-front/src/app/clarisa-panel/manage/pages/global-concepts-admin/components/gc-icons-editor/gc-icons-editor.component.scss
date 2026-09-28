@@ -1,0 +1,144 @@
+@import '../gc-panel';
+@import '../gc-editor';
+
+.gc-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.gc-icon-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-card);
+  background: var(--cl-surface);
+  overflow: hidden;
+
+  &.is-editing {
+    border-color: var(--cl-brand);
+    box-shadow: 0 0 0 2px var(--cl-brand-ring);
+  }
+}
+
+.gc-icon-card--ghost {
+  height: 220px;
+  padding: 16px;
+}
+
+/* A checkerboard in the two surface tokens: transparent SVG/PNG read as what they are. */
+.gc-icon-card__preview,
+.gc-icon-form__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--cl-surface-2);
+  background-image: linear-gradient(45deg, var(--cl-surface) 25%, transparent 25%, transparent 75%, var(--cl-surface) 75%),
+    linear-gradient(45deg, var(--cl-surface) 25%, transparent 25%, transparent 75%, var(--cl-surface) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+  color: var(--cl-ink-3);
+
+  img {
+    max-width: 72%;
+    max-height: 72%;
+    object-fit: contain;
+  }
+
+  .pi {
+    font-size: 28px;
+  }
+}
+
+.gc-icon-card__preview {
+  height: 120px;
+  border-bottom: 1px solid var(--cl-line);
+}
+
+.gc-icon-card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px 4px;
+  min-width: 0;
+}
+
+.gc-icon-card__code {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cl-ink);
+  overflow-wrap: anywhere;
+}
+
+.gc-icon-card__alt {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+
+  &.is-missing {
+    font-style: italic;
+  }
+}
+
+.gc-icon-status {
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--cl-surface-2);
+  color: var(--cl-ink-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+
+  &[data-status='final'] {
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+  }
+
+  &[data-status='draft'] {
+    color: var(--cl-warn);
+  }
+}
+
+.gc-icon-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding: 4px 6px 6px 8px;
+}
+
+.gc-icon-form {
+  margin-top: 14px;
+  background: var(--cl-surface-2);
+}
+
+.gc-icon-form__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.gc-icon-form__preview {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+}
+
+:host ::ng-deep .gc-icon-form {
+  input.p-inputtext {
+    font-size: 16px;
+  }
+
+  p-dropdown,
+  .p-dropdown {
+    width: 100%;
+  }
+}

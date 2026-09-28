@@ -16,6 +16,7 @@
 @import 'styles/admin-form';
 @import 'styles/admin-stats';
 @import 'styles/admin-usage';
+@import 'styles/global-concepts';
 
 /* Design tokens - the single source of colour for the application.
    A literal hex outside this block is a review error; see DESIGN.md section 2.
@@ -42,6 +43,8 @@
   /* State, independent of the brand */
   --cl-ok:    #2c6b3c;
   --cl-warn:  #9a6b00;
+  --cl-hit:      #fff1b8;  /* search match surface; --cl-ink on it is 15.9 */
+  --cl-hit-line: #e0b100;  /* underline of a search match */
   --cl-error: #b42318;
 
   /* Shape */

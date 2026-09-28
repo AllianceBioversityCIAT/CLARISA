@@ -23,6 +23,7 @@ import { IntegrationModule } from './integration/integration.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { GlobalModule } from './global.module';
 import { HealthModule } from './health/health.module';
+import { GlobalConceptsUriModule } from './api/global-concepts/global-concepts.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { HealthModule } from './health/health.module';
       isGlobal: true,
     }),
     ApiModule,
+    GlobalConceptsUriModule,
     AuthModule,
     IntegrationModule,
     GuardsModule,

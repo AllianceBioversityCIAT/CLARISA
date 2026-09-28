@@ -1,0 +1,37 @@
+<app-gc-banner
+  eyebrow="Global Concepts"
+  title="Confirm your request"
+  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'Global Concepts', link: base }, { label: 'Confirm request' }]">
+</app-gc-banner>
+
+<section class="gc-section">
+  <div class="container">
+    <div class="gc-narrow">
+      <div class="gc-card gc-ghost" *ngIf="loading" aria-busy="true">
+        <span class="gc-skeleton gc-skeleton--title"></span>
+        <span class="gc-skeleton"></span>
+        <span class="gc-sr-only">Confirming your request</span>
+      </div>
+
+      <div class="gc-state gc-state--error" *ngIf="!loading && error" role="alert">
+        <span class="gc-state__icon"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i></span>
+        <h4>We could not confirm this request</h4>
+        <p>{{ error }}</p>
+        <a class="gc-btn gc-btn--small" [routerLink]="base">Go to Global Concepts</a>
+      </div>
+
+      <div class="gc-state gc-state--ok" *ngIf="!loading && !error && requestId" role="status">
+        <span class="gc-state__icon"><i class="pi pi-check" aria-hidden="true"></i></span>
+        <h4>Request #{{ requestId }} is registered</h4>
+        <p>
+          The stewards will review it. We also emailed you a link to follow it; keep that email, it is the only way to open the request from another
+          device.
+        </p>
+        <div class="gc-state__actions">
+          <a class="gc-btn gc-btn--small" [routerLink]="[base, 'requests', requestId]">Follow request #{{ requestId }}</a>
+          <a class="gc-btn gc-btn--small gc-btn--ghost" [routerLink]="base">Back to Global Concepts</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,59 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+:host ::ng-deep .gc-picker {
+  display: flex;
+  width: 100%;
+
+  .p-autocomplete-input {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    font-size: 16px;
+    color: var(--cl-ink-2);
+    border: 1px solid var(--cl-line);
+    border-radius: var(--cl-radius-control);
+  }
+
+  .p-autocomplete-input:enabled:focus {
+    border-color: var(--cl-brand);
+    box-shadow: 0 0 0 2px var(--cl-brand-ring);
+  }
+}
+
+// The suggestion panel is appended to <body>, outside :host, so its rows are styled globally by panel class.
+::ng-deep .gc-picker__panel .gc-picker__item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+::ng-deep .gc-picker__panel .gc-picker__id {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--cl-ink-3);
+}
+
+::ng-deep .gc-picker__panel .gc-picker__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--cl-ink);
+}
+
+::ng-deep .gc-picker__panel .gc-picker__status {
+  flex: none;
+  margin-left: auto;
+  padding: 1px 8px;
+  font-size: 11px;
+  text-transform: capitalize;
+  color: var(--cl-warn);
+  background: var(--cl-surface-2);
+  border-radius: var(--cl-radius-control);
+}

@@ -1,0 +1,139 @@
+<section class="gc-ed">
+  <div class="gc-ed__head">
+    <div>
+      <h3 class="gc-ed__title">Icons</h3>
+      <p class="gc-ed__hint">Visual symbols for the concept. Link the hosted file; a <strong>final</strong> icon must say in words what it shows (alt text).</p>
+    </div>
+    <button *ngIf="editingId === null" pButton type="button" label="Add icon" icon="pi pi-plus" class="p-button-outlined" [disabled]="loading || !!loadError" (click)="openNew()"></button>
+  </div>
+
+  <div class="gc-icon-grid" *ngIf="loading && !icons.length" aria-busy="true" aria-label="Loading icons">
+    <div class="gc-icon-card gc-icon-card--ghost" *ngFor="let _ of [1, 2, 3]"><span class="gc-skeleton__bar"></span></div>
+  </div>
+
+  <div class="gc-state gc-state--error" *ngIf="!loading && loadError">
+    <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
+    <p class="gc-state__title">The icons did not load</p>
+    <p class="gc-state__text">{{ loadError }}</p>
+    <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
+  </div>
+
+  <div class="gc-ed__empty" *ngIf="!loading && !loadError && !icons.length && editingId === null">
+    <i class="pi pi-image"></i>
+    <span>No icon yet. Add one with its link, status and alt text.</span>
+  </div>
+
+  <div class="gc-icon-grid" *ngIf="icons.length">
+    <article class="gc-icon-card" *ngFor="let icon of icons" [class.is-editing]="editingId === icon.id">
+      <div class="gc-icon-card__preview">
+        <img *ngIf="previewUrl(icon) as url; else noPreview" [src]="url" [alt]="icon.alt_text || ''" loading="lazy" (error)="onPreviewError(icon)" />
+        <ng-template #noPreview><i class="pi pi-image" aria-hidden="true"></i></ng-template>
+      </div>
+      <div class="gc-icon-card__body">
+        <span class="gc-icon-card__code">{{ icon.icon_code || 'No code' }}</span>
+        <span class="gc-icon-status" [attr.data-status]="icon.icon_status">{{ statusLabel(icon.icon_status) }}</span>
+        <span class="gc-ed__sub" *ngIf="icon.file_format">{{ formatLabel(icon.file_format) }}</span>
+        <span class="gc-ed__sub gc-icon-card__alt" [class.is-missing]="!icon.alt_text">{{ icon.alt_text || 'No alt text' }}</span>
+      </div>
+      <div class="gc-icon-card__actions">
+        <button pButton type="button" label="Edit" icon="pi pi-pencil" class="p-button-text p-button-sm" [disabled]="saving || !!deletingId" (click)="openEdit(icon)"></button>
+        <button
+          pButton
+          type="button"
+          class="p-button-text gc-icon-btn"
+          [icon]="deletingId === icon.id ? 'pi pi-spin pi-spinner' : 'pi pi-trash'"
+          [attr.aria-label]="'Delete icon ' + (icon.icon_code || '')"
+          [disabled]="saving || !!deletingId"
+          (click)="remove(icon)"></button>
+      </div>
+    </article>
+  </div>
+
+  <form class="admin-form admin-card gc-icon-form" *ngIf="editingId !== null" (ngSubmit)="save()" autocomplete="off">
+    <div class="gc-icon-form__head">
+      <h4 class="admin-card__title">{{ editingId ? 'Edit icon' : 'New icon' }}</h4>
+      <div class="gc-icon-form__preview">
+        <img *ngIf="formPreview as url; else noFormPreview" [src]="url" [alt]="form.alt_text || ''" />
+        <ng-template #noFormPreview><i class="pi pi-image" aria-hidden="true"></i></ng-template>
+      </div>
+    </div>
+
+    <div class="admin-form__grid">
+      <div class="field">
+        <label for="gc-icon-status">Status <span class="tag-req">Required</span></label>
+        <p-dropdown inputId="gc-icon-status" name="icon_status" appendTo="body" panelStyleClass="admin-dropdown-panel" [options]="statusOptions" [(ngModel)]="form.icon_status"></p-dropdown>
+      </div>
+      <div class="field">
+        <label for="gc-icon-code">Icon code <span class="tag-opt">Optional</span></label>
+        <input id="gc-icon-code" name="icon_code" type="text" pInputText maxlength="50" [(ngModel)]="form.icon_code" />
+      </div>
+      <div class="field admin-form__span">
+        <label for="gc-icon-alt">
+          Alt text <span class="tag-req" *ngIf="altRequired">Required</span><span class="tag-opt" *ngIf="!altRequired">Optional until final</span>
+        </label>
+        <input id="gc-icon-alt" name="alt_text" type="text" pInputText maxlength="500" placeholder="What the icon shows, in a few words" [(ngModel)]="form.alt_text" />
+        <small class="field-hint">Read aloud by screen readers in place of the image. {{ form.alt_text.length }}/500</small>
+      </div>
+      <div class="field admin-form__span">
+        <label for="gc-icon-primary">Primary file link <span class="tag-opt">Optional</span></label>
+        <input id="gc-icon-primary" name="file_link_primary" type="url" pInputText maxlength="1000" placeholder="https://" [(ngModel)]="form.file_link_primary" />
+        <small class="field-hint">Only an http(s) link is published and previewed.</small>
+      </div>
+      <div class="field admin-form__span">
+        <label for="gc-icon-backup">Backup file link <span class="tag-opt">Optional</span></label>
+        <input id="gc-icon-backup" name="file_link_backup" type="url" pInputText maxlength="1000" placeholder="https://" [(ngModel)]="form.file_link_backup" />
+      </div>
+      <div class="field">
+        <label for="gc-icon-format">File format</label>
+        <p-dropdown
+          inputId="gc-icon-format"
+          name="file_format"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          placeholder="Not set"
+          [showClear]="true"
+          [options]="formatOptions"
+          [(ngModel)]="form.file_format"></p-dropdown>
+      </div>
+      <div class="field">
+        <label for="gc-icon-file">File name</label>
+        <input id="gc-icon-file" name="file_name" type="text" pInputText maxlength="255" [(ngModel)]="form.file_name" />
+      </div>
+      <div class="field">
+        <label for="gc-icon-designer">Designer</label>
+        <input id="gc-icon-designer" name="designer" type="text" pInputText maxlength="255" [(ngModel)]="form.designer" />
+      </div>
+      <div class="field">
+        <label for="gc-icon-country">Designer country</label>
+        <input id="gc-icon-country" name="designer_country" type="text" pInputText maxlength="100" [(ngModel)]="form.designer_country" />
+      </div>
+      <div class="field">
+        <label for="gc-icon-year">Year created</label>
+        <input id="gc-icon-year" name="year_created" type="number" min="1900" max="2200" step="1" pInputText [(ngModel)]="form.year_created" />
+      </div>
+      <div class="field">
+        <label for="gc-icon-date">Date added</label>
+        <input id="gc-icon-date" name="date_added" type="date" pInputText [(ngModel)]="form.date_added" />
+      </div>
+      <div class="field admin-form__span">
+        <label for="gc-icon-rights">Rights and licence</label>
+        <input id="gc-icon-rights" name="rights_and_licence" type="text" pInputText maxlength="255" placeholder="CC BY 4.0" [(ngModel)]="form.rights_and_licence" />
+      </div>
+    </div>
+
+    <p class="gc-ed__error" *ngIf="formError"><i class="pi pi-info-circle"></i><span>{{ formError }}</span></p>
+    <p class="gc-ed__error" role="alert" *ngIf="saveError"><i class="pi pi-times-circle"></i><span>{{ saveError }}</span></p>
+
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="saving" (click)="cancel()"></button>
+      <button
+        pButton
+        type="submit"
+        class="btn-brand"
+        icon="pi pi-check"
+        [label]="saving ? 'Saving…' : editingId ? 'Save icon' : 'Add icon'"
+        [disabled]="saving || !!formError || (!!editingId && !dirty)"
+        [loading]="saving"></button>
+    </div>
+  </form>
+</section>

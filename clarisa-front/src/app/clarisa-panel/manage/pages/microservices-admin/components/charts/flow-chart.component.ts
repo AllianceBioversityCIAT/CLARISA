@@ -218,7 +218,8 @@ export class FlowChartComponent implements OnChanges, AfterViewInit, OnDestroy {
     if (w && w !== this.width) {
       this.width = w;
       this.layout();
-      this.cdr.markForCheck();
+      // ResizeObserver fires outside Angular's zone: draw now, a mark alone may never be picked up.
+      this.cdr.detectChanges();
     }
   }
 

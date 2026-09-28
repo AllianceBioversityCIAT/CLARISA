@@ -1,0 +1,273 @@
+<div class="gc-panel">
+  <div class="gc-bar">
+    <div>
+      <p class="gc-bar__hint">
+        Proposals from the public form, the platforms and CLARISA users. Move each one through review; an approval writes the change into the scheme
+        and the requester is notified.
+      </p>
+    </div>
+    <div class="gc-bar__actions">
+      <button
+        pButton
+        type="button"
+        icon="pi pi-refresh"
+        class="p-button-text p-button-icon-only"
+        aria-label="Reload"
+        pTooltip="Reload"
+        (click)="load()"></button>
+    </div>
+  </div>
+
+  <nav class="admin-tabs gc-toolbar gc-state-tabs" role="tablist" aria-label="Filter requests by state">
+    <button
+      type="button"
+      role="tab"
+      class="admin-tabs__item"
+      *ngFor="let option of filters"
+      [class.is-active]="filter === option.value"
+      [attr.aria-selected]="filter === option.value"
+      (click)="setFilter(option.value)">
+      <span>{{ option.label }}</span>
+      <span class="admin-tabs__count" *ngIf="!loading && !loadError">{{ counts[option.value] || 0 }}</span>
+    </button>
+  </nav>
+
+  <div class="gc-card">
+    <div class="gc-skeleton" *ngIf="loading && !requests.length" aria-busy="true" aria-label="Loading requests">
+      <div class="gc-skeleton__row" *ngFor="let _ of [1, 2, 3, 4, 5]">
+        <span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span
+        ><span class="gc-skeleton__bar"></span>
+      </div>
+    </div>
+
+    <div class="gc-state gc-state--error" *ngIf="!loading && loadError">
+      <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
+      <p class="gc-state__title">The requests did not load</p>
+      <p class="gc-state__text">{{ loadError }}</p>
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
+    </div>
+
+    <div class="gc-state" *ngIf="!loading && !loadError && !requests.length">
+      <span class="gc-state__icon"><i class="pi pi-inbox"></i></span>
+      <p class="gc-state__title">No requests yet</p>
+      <p class="gc-state__text">When someone proposes a new concept or a change, it lands here for review. Nothing to do for now.</p>
+    </div>
+
+    <p-table
+      *ngIf="!loadError && requests.length"
+      [value]="rows"
+      [loading]="loading"
+      sortField="created_at"
+      [sortOrder]="-1"
+      [rows]="15"
+      [paginator]="rows.length > 15"
+      [rowsPerPageOptions]="[15, 30, 50]"
+      styleClass="p-datatable-sm admin-table gc-requests-table"
+      responsiveLayout="scroll">
+      <ng-template pTemplate="header">
+        <tr>
+          <th scope="col" pSortableColumn="id" style="width: 84px"># <p-sortIcon field="id"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="type" style="width: 110px">Type <p-sortIcon field="type"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="concept">Concept <p-sortIcon field="concept"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="requester" style="width: 260px">Requester <p-sortIcon field="requester"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="state" style="width: 160px">State <p-sortIcon field="state"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="created_at" style="width: 124px">Created <p-sortIcon field="created_at"></p-sortIcon></th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-row>
+        <tr class="gc-row" tabindex="0" [attr.aria-label]="'Open request ' + row.id" (click)="open(row.request)" (keydown.enter)="open(row.request)">
+          <td data-label="#">
+            <span class="gc-id">#{{ row.id }}</span>
+          </td>
+          <td data-label="Type">
+            <span class="cell-chip">{{ typeLabel(row.type) }}</span>
+          </td>
+          <td data-card-title data-label="Concept" class="cell-primary">
+            <span *ngIf="row.concept; else noConcept">{{ row.concept }}</span>
+            <ng-template #noConcept><span class="cell-empty">Unnamed</span></ng-template>
+          </td>
+          <td data-label="Requester">
+            <span class="cell-ellipsis" [title]="row.requester">{{ row.requester || '—' }}</span>
+            <span class="gc-meta" *ngIf="row.origin">{{ row.origin }}</span>
+          </td>
+          <td data-label="State"><p-tag [value]="stateLabel(row.state)" [severity]="stateSeverity(row.state)"></p-tag></td>
+          <td data-label="Created" class="cell-num">{{ row.created_at | date: 'yyyy-MM-dd' }}</td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6" class="cell-empty gc-empty-cell">No request in this state. Pick another tab above, or <strong>All</strong>.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------- detail -->
+<p-dialog
+  [(visible)]="dialogVisible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [dismissableMask]="!transitioning"
+  [style]="{ width: '860px' }"
+  [breakpoints]="{ '960px': '94vw' }"
+  styleClass="admin-dialog gc-request-dialog"
+  [header]="detail ? 'Request #' + detail.id : 'Request'">
+  <ng-container *ngIf="detail">
+    <div class="gc-request-head">
+      <p-tag [value]="stateLabel(detail.state)" [severity]="stateSeverity(detail.state)"></p-tag>
+      <span class="cell-chip">{{ typeLabel(detail.type) }}</span>
+      <span class="gc-request-head__concept">{{ detail.concept?.preferred_label || detail.payload?.['preferred_label'] || 'Unnamed concept' }}</span>
+      <span class="gc-meta gc-request-head__by">
+        {{ detail.requester_email || 'Unknown requester' }} · {{ originLabel(detail) }} · {{ detail.created_at | date: 'yyyy-MM-dd HH:mm' }}
+      </span>
+    </div>
+
+    <p class="field-error" *ngIf="detailError">{{ detailError }}</p>
+
+    <div class="gc-request-grid">
+      <section class="gc-request-section">
+        <h3 class="gc-section-title">Proposed content</h3>
+        <dl class="gc-fields" *ngIf="payloadEntries.length; else noPayload">
+          <ng-container *ngFor="let entry of payloadEntries">
+            <dt>{{ entry.label }}</dt>
+            <dd>{{ entry.value }}</dd>
+          </ng-container>
+        </dl>
+        <ng-template #noPayload><p class="cell-empty">The request carries no field values.</p></ng-template>
+
+        <h3 class="gc-section-title">Rationale</h3>
+        <p class="gc-prose">{{ detail.rationale || 'No rationale given.' }}</p>
+
+        <ng-container *ngIf="detail.decision_note">
+          <h3 class="gc-section-title">Decision note</h3>
+          <p class="gc-prose">{{ detail.decision_note }}</p>
+        </ng-container>
+      </section>
+
+      <section class="gc-request-section">
+        <h3 class="gc-section-title">History</h3>
+        <div class="gc-skeleton gc-skeleton--inline" *ngIf="detailLoading && !detail.events">
+          <span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span>
+        </div>
+        <ol class="gc-timeline" *ngIf="detail.events?.length; else noEvents">
+          <li class="gc-timeline__item" *ngFor="let event of detail.events">
+            <span class="gc-timeline__dot" aria-hidden="true"></span>
+            <div>
+              <strong>{{ event.from_state ? stateLabel(event.from_state) + ' → ' : '' }}{{ stateLabel(event.to_state) }}</strong>
+              <span class="gc-meta">{{ event.actor_email || 'System' }} · {{ event.at | date: 'yyyy-MM-dd HH:mm' }}</span>
+              <p class="gc-timeline__note" *ngIf="event.note">{{ event.note }}</p>
+            </div>
+          </li>
+        </ol>
+        <ng-template #noEvents><p class="cell-empty" *ngIf="!detailLoading">No history recorded yet.</p></ng-template>
+      </section>
+    </div>
+
+    <!-- ------------------------------------------------------ AI -->
+    <section class="gc-ai" *ngIf="recommendation || showAiButton">
+      <div class="gc-ai__head">
+        <h3 class="gc-section-title">AI recommendation</h3>
+        <span class="gc-advisory"><i class="pi pi-info-circle"></i> Advisory — a person decides</span>
+        <button
+          *ngIf="showAiButton"
+          pButton
+          type="button"
+          class="p-button-outlined p-button-sm gc-ai__button"
+          icon="pi pi-bolt"
+          [label]="recommendation ? 'Refresh' : 'Get AI recommendation'"
+          [loading]="aiLoading"
+          (click)="askAi()"></button>
+      </div>
+
+      <p class="gc-state__text" *ngIf="!recommendation && !aiLoading">
+        Ask for a second opinion: the AI checks the proposal against the scheme and looks for similar concepts. It never decides.
+      </p>
+
+      <div class="gc-ai__body" *ngIf="recommendation">
+        <div class="gc-ai__verdict">
+          <p-tag [value]="verdictLabel(recommendation.verdict)" [severity]="verdictSeverity(recommendation.verdict)"></p-tag>
+          <span class="gc-meta">Generated {{ recommendation.generated_at | date: 'yyyy-MM-dd HH:mm' }}</span>
+        </div>
+        <p class="gc-prose">{{ recommendation.summary }}</p>
+
+        <ul class="gc-reasons" *ngIf="recommendation.reasons?.length">
+          <li *ngFor="let reason of recommendation.reasons" [ngClass]="severityClass(reason.severity)">
+            <span class="gc-reasons__severity">{{ reason.severity }}</span>
+            <span>{{ reason.message }}</span>
+          </li>
+        </ul>
+
+        <p class="gc-prose" *ngIf="recommendation.suggested_changes"><strong>Suggested changes:</strong> {{ recommendation.suggested_changes }}</p>
+
+        <ng-container *ngIf="recommendation.checks?.length">
+          <h4 class="gc-subtitle">Automatic checks</h4>
+          <ul class="gc-checks">
+            <li *ngFor="let check of recommendation.checks" [class.is-ok]="check.ok" [class.is-fail]="!check.ok">
+              <span class="gc-checks__mark" [attr.aria-label]="check.ok ? 'Passed' : 'Failed'">{{ check.ok ? '✓' : '✕' }}</span>
+              <span
+                ><strong>{{ check.check }}</strong
+                ><span *ngIf="check.detail"> — {{ check.detail }}</span></span
+              >
+            </li>
+          </ul>
+        </ng-container>
+
+        <ng-container *ngIf="recommendation.similar?.length">
+          <h4 class="gc-subtitle">Similar concepts</h4>
+          <span class="cell-chip" *ngFor="let similar of recommendation.similar">{{ similar.term_id }} · {{ similar.preferred_label }}</span>
+        </ng-container>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------- decision -->
+    <section class="gc-decision admin-form" *ngIf="actions.length">
+      <ng-container *ngIf="!pendingAction; else confirmBlock">
+        <div class="gc-decision__actions">
+          <button
+            *ngFor="let option of actions"
+            pButton
+            type="button"
+            [label]="option.label"
+            [ngClass]="'btn-' + option.tone"
+            (click)="chooseAction(option)"></button>
+        </div>
+      </ng-container>
+
+      <ng-template #confirmBlock>
+        <div class="field">
+          <label for="gc-note">
+            Note for the requester
+            <span class="tag-req" *ngIf="pendingAction?.noteRequired">Required</span>
+            <span class="tag-opt" *ngIf="!pendingAction?.noteRequired">Optional</span>
+          </label>
+          <textarea id="gc-note" pInputTextarea rows="3" maxlength="5000" [(ngModel)]="note"></textarea>
+          <small class="field-hint">Recorded in the history and sent with the notification.</small>
+        </div>
+        <div class="admin-form__actions">
+          <button pButton type="button" label="Back" class="p-button-outlined" [disabled]="transitioning" (click)="cancelAction()"></button>
+          <button
+            pButton
+            type="button"
+            [label]="pendingAction?.label || ''"
+            [ngClass]="pendingAction?.tone === 'caution' ? 'btn-caution' : 'btn-brand'"
+            [disabled]="noteMissing"
+            [loading]="transitioning"
+            (click)="confirmAction()"></button>
+        </div>
+      </ng-template>
+    </section>
+
+    <p class="admin-note gc-final" *ngIf="detail.state === 'changes_requested'">
+      <i class="pi pi-clock"></i>
+      <span>Waiting on the requester to resubmit; it comes back to review on its own. Rejecting it is still possible.</span>
+    </p>
+    <p class="admin-note gc-final" *ngIf="detail.state === 'approved' || detail.state === 'rejected'">
+      <i class="pi pi-lock"></i>
+      <span>This request is closed. Nothing else to do here.</span>
+    </p>
+  </ng-container>
+</p-dialog>

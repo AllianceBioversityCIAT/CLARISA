@@ -13,6 +13,13 @@ describe('admin navigation', () => {
     expect(adminSectionLabel('/clarisa-panel/manage/manage-user?page=2#top')).toBe('Users');
   });
 
+  it('lists Global Concepts in Manage, right after Glossary', () => {
+    const manage = ADMIN_GROUPS.find(group => group.title === 'Manage')?.links.map(link => link.label) ?? [];
+
+    expect(manage.indexOf('Global Concepts')).toBe(manage.indexOf('Glossary') + 1);
+    expect(adminSectionLabel('/clarisa-panel/manage/global-concepts-admin')).toBe('Global Concepts');
+  });
+
   it('claims nothing outside the panel', () => {
     expect(adminSectionLabel('/landing-page/home')).toBeNull();
     // Prefijo parecido, sección distinta: `manage-user` no puede quedarse con esto.

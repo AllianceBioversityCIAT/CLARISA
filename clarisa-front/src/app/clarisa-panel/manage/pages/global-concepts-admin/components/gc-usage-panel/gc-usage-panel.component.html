@@ -1,0 +1,168 @@
+<div class="gc-panel gc-usage">
+  <div class="gc-bar">
+    <p class="gc-bar__hint">What people look for in the public vocabulary, what they open and what they cannot find. Counted per day, never per person.</p>
+    <div class="gc-bar__actions">
+      <div class="gc-period" role="radiogroup" aria-label="Period">
+        <button
+          *ngFor="let period of periods"
+          type="button"
+          role="radio"
+          class="gc-period__item"
+          [class.is-active]="days === period.value"
+          [attr.aria-checked]="days === period.value"
+          [disabled]="loading && days === period.value"
+          (click)="setPeriod(period.value)">
+          {{ period.label }}
+        </button>
+      </div>
+      <button pButton type="button" icon="pi pi-refresh" class="p-button-text p-button-icon-only" aria-label="Reload" pTooltip="Reload" [disabled]="loading" (click)="load()"></button>
+    </div>
+  </div>
+
+  <div class="gc-card" *ngIf="loadError && !loading">
+    <div class="gc-state gc-state--error">
+      <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
+      <p class="gc-state__title">The usage figures did not load</p>
+      <p class="gc-state__text">{{ loadError }}</p>
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loadError">
+    <!-- KPI tiles -->
+    <div class="gc-kpis" [class.is-loading]="loading" [attr.aria-busy]="loading">
+      <div class="gc-kpi" *ngFor="let kpi of view.kpis" [class.gc-kpi--alert]="kpi.key === 'zero_search' && kpi.value > 0">
+        <span class="gc-kpi__label">{{ kpi.label }}</span>
+        <span class="gc-kpi__value" *ngIf="summary || !loading; else kpiLoading">{{ kpi.value | number }}</span>
+        <ng-template #kpiLoading><span class="gc-skeleton__bar gc-kpi__skeleton"></span></ng-template>
+        <app-sparkline
+          *ngIf="summary"
+          class="gc-kpi__spark"
+          [values]="mix.sparks[kpi.key] || []"
+          [labels]="mix.labels"
+          [color]="colors[kpi.key]"
+          [height]="34"></app-sparkline>
+        <span class="gc-kpi__hint">
+          {{ kpi.hint }}<ng-container *ngIf="kpi.key === 'zero_search' && view.zeroShare"> · {{ view.zeroShare }}% of searches</ng-container>
+        </span>
+      </div>
+    </div>
+
+    <!-- Daily mix: the panel's shared chart, one colour per kind -->
+    <section class="gc-card gc-chart-card">
+      <header class="gc-chart-card__head">
+        <div>
+          <h3 class="gc-ed__title">What happened each day</h3>
+          <p class="gc-ed__hint">
+            Last {{ days }} days, stacked by kind: searches, concept views, exports, calls from AI assistants (MCP) and text checks. Point at a day for its
+            numbers.
+          </p>
+        </div>
+        <ul class="gc-legend">
+          <li *ngFor="let s of mix.series"><span class="gc-legend__swatch" [style.background]="s.color"></span>{{ s.label }}</li>
+        </ul>
+      </header>
+      <app-usage-chart
+        *ngIf="!loading || summary; else chartLoading"
+        [labels]="mix.labels"
+        [series]="mix.series"
+        mode="stack"
+        [height]="300"
+        ariaLabel="Global Concepts usage per day, by kind"
+        emptyText="No traffic recorded in this period yet."></app-usage-chart>
+      <ng-template #chartLoading><div class="gc-chart gc-chart--loading"><span class="gc-skeleton__bar"></span></div></ng-template>
+    </section>
+
+    <!-- Tables -->
+    <div class="gc-usage-grid">
+      <section class="gc-card gc-usage-table">
+        <header class="gc-usage-table__head">
+          <h3 class="gc-ed__title">Top searches</h3>
+        </header>
+        <p-table [value]="summary?.top_searches ?? []" sortField="count" [sortOrder]="-1" styleClass="p-datatable-sm admin-table gc-mini-table" responsiveLayout="scroll">
+          <ng-template pTemplate="header">
+            <tr>
+              <th scope="col" pSortableColumn="item">Search <p-sortIcon field="item"></p-sortIcon></th>
+              <th scope="col" pSortableColumn="count" style="width: 104px">Times <p-sortIcon field="count"></p-sortIcon></th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr>
+              <td data-label="Search" class="cell-primary">{{ row.item }}</td>
+              <td data-label="Times" class="cell-num">{{ row.count | number }}</td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr><td colspan="2" class="cell-empty gc-empty-cell">{{ loading ? 'Loading…' : 'Nobody searched in this period.' }}</td></tr>
+          </ng-template>
+        </p-table>
+      </section>
+
+      <section class="gc-card gc-usage-table">
+        <header class="gc-usage-table__head">
+          <h3 class="gc-ed__title">Searches with no result</h3>
+          <p class="gc-ed__hint">Candidate new terms — or missing alternative labels.</p>
+        </header>
+        <p-table
+          [value]="summary?.zero_result_searches ?? []"
+          sortField="count"
+          [sortOrder]="-1"
+          styleClass="p-datatable-sm admin-table gc-mini-table"
+          responsiveLayout="scroll">
+          <ng-template pTemplate="header">
+            <tr>
+              <th scope="col" pSortableColumn="item">Search <p-sortIcon field="item"></p-sortIcon></th>
+              <th scope="col" pSortableColumn="count" style="width: 90px">Times <p-sortIcon field="count"></p-sortIcon></th>
+              <th scope="col" style="width: 150px"><span class="gc-sr-only">Action</span></th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr>
+              <td data-label="Search" class="cell-primary">{{ row.item }}</td>
+              <td data-label="Times" class="cell-num">{{ row.count | number }}</td>
+              <td>
+                <button pButton type="button" label="Create concept" icon="pi pi-plus" class="p-button-text p-button-sm" (click)="create(row.item)"></button>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr><td colspan="3" class="cell-empty gc-empty-cell">{{ loading ? 'Loading…' : 'Every search found something.' }}</td></tr>
+          </ng-template>
+        </p-table>
+      </section>
+
+      <section class="gc-card gc-usage-table gc-usage-table--wide">
+        <header class="gc-usage-table__head">
+          <h3 class="gc-ed__title">Most viewed concepts</h3>
+        </header>
+        <p-table [value]="summary?.top_viewed ?? []" sortField="count" [sortOrder]="-1" styleClass="p-datatable-sm admin-table gc-mini-table" responsiveLayout="scroll">
+          <ng-template pTemplate="header">
+            <tr>
+              <th scope="col" pSortableColumn="term_id" style="width: 104px">TERM ID <p-sortIcon field="term_id"></p-sortIcon></th>
+              <th scope="col" pSortableColumn="preferred_label">Concept <p-sortIcon field="preferred_label"></p-sortIcon></th>
+              <th scope="col" pSortableColumn="count" style="width: 104px">Views <p-sortIcon field="count"></p-sortIcon></th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr>
+              <td data-label="TERM ID"><span class="gc-id">{{ row.term_id }}</span></td>
+              <td data-card-title data-label="Concept" class="cell-primary">{{ row.preferred_label }}</td>
+              <td data-label="Views" class="cell-num">{{ row.count | number }}</td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr><td colspan="3" class="cell-empty gc-empty-cell">{{ loading ? 'Loading…' : 'No concept page was opened in this period.' }}</td></tr>
+          </ng-template>
+        </p-table>
+      </section>
+    </div>
+
+    <p class="admin-note gc-privacy">
+      <i class="pi pi-shield"></i>
+      <span>
+        <strong>Privacy.</strong> What a person types in the public search box is stored, normalised and aggregated per day; texts sent to “Check a text” and to
+        MCP are never stored.
+      </span>
+    </p>
+  </ng-container>
+</div>

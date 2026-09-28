@@ -1,0 +1,127 @@
+<section class="gc-card gc-propose" aria-labelledby="gc-propose-title">
+  <header class="gc-propose__head">
+    <div>
+      <h3 class="gc-h3" id="gc-propose-title">{{ concept ? 'Propose a change' : 'Propose a concept' }}</h3>
+      <p class="gc-lede" *ngIf="concept">
+        You are proposing a change to <strong>{{ concept.preferred_label }}</strong> (TERM {{ concept.term_id }}). Fill only what should change.
+      </p>
+      <p class="gc-lede" *ngIf="!concept">
+        Anyone in CGIAR can propose a new concept or a change to an existing one. The stewards review every request.
+      </p>
+    </div>
+    <button type="button" class="gc-btn gc-btn--ghost gc-btn--small" *ngIf="closable" (click)="closed.emit()">Close</button>
+  </header>
+
+  <!-- Sent: step 1 done, the reader has to open their inbox -->
+  <div class="gc-propose__sent" *ngIf="sentHours !== null; else formTpl" role="status">
+    <span class="gc-state__icon"><i class="pi pi-envelope" aria-hidden="true"></i></span>
+    <h4>Check your inbox, the link is valid for {{ sentHours }} hours</h4>
+    <p>
+      We sent a confirmation link to <strong>{{ form.value.email }}</strong
+      >. Your request reaches the stewards only after you open it. If it does not arrive in a few minutes, look in your spam folder.
+    </p>
+    <button type="button" class="gc-btn gc-btn--ghost gc-btn--small" (click)="again()">Send another request</button>
+  </div>
+
+  <ng-template #formTpl>
+    <form class="gc-propose__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <fieldset class="gc-propose__type" *ngIf="!concept">
+        <legend class="gc-field__label">What do you want to do?</legend>
+        <label class="gc-radio" [class.is-active]="type === 'new'">
+          <input type="radio" formControlName="type" value="new" />
+          <span><strong>Add a new concept</strong><small>It does not exist yet</small></span>
+        </label>
+        <label class="gc-radio" [class.is-active]="type === 'edit'">
+          <input type="radio" formControlName="type" value="edit" />
+          <span><strong>Change an existing one</strong><small>Its label, definition or source</small></span>
+        </label>
+      </fieldset>
+
+      <div class="gc-propose__grid">
+        <div class="gc-field">
+          <label for="gc-p-email">Your email <span class="gc-req">Required</span></label>
+          <input
+            id="gc-p-email"
+            class="gc-input"
+            type="email"
+            autocomplete="email"
+            formControlName="email"
+            (blur)="trim('email')"
+            [class.is-invalid]="show('email')" />
+          <span class="gc-field__error" *ngIf="show('email')">
+            {{ form.get('email')?.hasError('required') ? 'Enter your email: the confirmation link goes there.' : 'Enter a valid email address.' }}
+          </span>
+        </div>
+
+        <div class="gc-field" *ngIf="type === 'edit' && !concept">
+          <label for="gc-p-term">TERM ID of the concept <span class="gc-req">Required</span></label>
+          <input
+            id="gc-p-term"
+            class="gc-input"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            formControlName="term_id"
+            [class.is-invalid]="showGroup('termRequired')" />
+          <span class="gc-field__hint">Shown on each concept card, e.g. TERM 2374.</span>
+          <span class="gc-field__error" *ngIf="showGroup('termRequired')">Enter the TERM ID of the concept you want to change.</span>
+        </div>
+
+        <div class="gc-field gc-field--wide">
+          <label for="gc-p-label">
+            {{ type === 'new' ? 'Preferred label' : 'New preferred label' }}
+            <span class="gc-req" *ngIf="type === 'new'">Required</span>
+          </label>
+          <input
+            id="gc-p-label"
+            class="gc-input"
+            type="text"
+            [attr.maxlength]="limits.label"
+            formControlName="preferred_label"
+            [class.is-invalid]="showGroup('labelRequired')" />
+          <span class="gc-field__error" *ngIf="showGroup('labelRequired')">Enter the preferred label of the new concept.</span>
+        </div>
+
+        <div class="gc-field gc-field--wide">
+          <label for="gc-p-definition">{{ type === 'new' ? 'Definition' : 'New definition' }}</label>
+          <textarea id="gc-p-definition" class="gc-textarea" rows="4" formControlName="definition"></textarea>
+        </div>
+
+        <div class="gc-field gc-field--wide">
+          <label for="gc-p-source">Source <span class="gc-field__hint">Document, standard or body the definition comes from</span></label>
+          <input id="gc-p-source" class="gc-input" type="text" formControlName="source_citation" />
+        </div>
+
+        <div class="gc-field gc-field--wide">
+          <label for="gc-p-rationale">Why is this needed? <span class="gc-req">Required</span></label>
+          <textarea
+            id="gc-p-rationale"
+            class="gc-textarea"
+            rows="3"
+            [attr.maxlength]="limits.rationale"
+            formControlName="rationale"
+            [class.is-invalid]="show('rationale')"></textarea>
+          <span class="gc-field__error" *ngIf="show('rationale')">Tell the stewards why this concept or change is needed.</span>
+        </div>
+      </div>
+
+      <div class="gc-note gc-note--warn" *ngIf="showGroup('changeRequired')" role="alert">
+        <i class="pi pi-info-circle" aria-hidden="true"></i>
+        <p>Fill at least one field that should change: the label, the definition or the source.</p>
+      </div>
+
+      <div class="gc-note gc-note--error" *ngIf="error" role="alert">
+        <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+        <p>{{ error }}</p>
+      </div>
+
+      <div class="gc-propose__actions">
+        <p class="gc-meta">We only use your email to confirm the request and tell you the decision.</p>
+        <button type="submit" class="gc-btn" [disabled]="sending">
+          <span class="gc-spin" *ngIf="sending" aria-hidden="true"></span>
+          {{ sending ? 'Sending...' : 'Send request' }}
+        </button>
+      </div>
+    </form>
+  </ng-template>
+</section>

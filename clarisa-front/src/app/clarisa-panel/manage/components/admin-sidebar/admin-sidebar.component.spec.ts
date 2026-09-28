@@ -57,9 +57,10 @@ describe('AdminSidebarComponent', () => {
   it('lists every section, grouped, when nothing is typed', () => {
     expect(component.groups.map(group => group.title)).toEqual(['Manage', 'Access', 'System']);
     expect(labels()).toContain('Glossary');
-    // 5 links directos: los 6 de siempre menos «Microservices & API keys», que
+    expect(labels()).toContain('Global Concepts');
+    // 6 links directos: los 7 de la lista menos «Microservices & API keys», que
     // ahora es un toggle (botón) en vez de un link.
-    expect(labels()?.length).toBe(5);
+    expect(labels()?.length).toBe(6);
   });
 
   // La columna blanca que esto reemplazó mostraba sus tres pestañas siempre a

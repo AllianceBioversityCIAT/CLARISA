@@ -1,0 +1,115 @@
+:host {
+  display: block;
+}
+
+// Named apart from the kit's `.gc-check` (the 44px centred checkbox row) and
+// written against the landing's element rules (`section { float; width; padding }`,
+// inherited `text-align: center`): the card reads left-aligned and full-width,
+// like "Missing a concept?" beside it.
+.gc-textcheck {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  float: none;
+  width: auto;
+  text-align: left;
+}
+
+.gc-textcheck__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 12px;
+  font-size: 13px;
+}
+
+.gc-textcheck__privacy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cl-ok);
+  font-weight: 600;
+
+  i {
+    font-size: 12px;
+  }
+}
+
+.gc-textcheck__counter {
+  color: var(--cl-ink-2);
+  font-variant-numeric: tabular-nums;
+
+  &.is-full {
+    color: var(--cl-error);
+    font-weight: 600;
+  }
+}
+
+.gc-textcheck__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.gc-textcheck__results {
+  padding-top: 14px;
+  border-top: 1px solid var(--cl-line);
+}
+
+.gc-textcheck__count {
+  margin: 0 0 10px;
+
+  strong {
+    color: var(--cl-ink);
+  }
+}
+
+.gc-textcheck__none p {
+  margin: 0 0 4px;
+  color: var(--cl-ink-2);
+  font-size: 14px;
+  line-height: 1.55;
+
+  strong {
+    color: var(--cl-ink);
+  }
+}
+
+.gc-textcheck__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 420px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.gc-textcheck__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface-2);
+}
+
+.gc-textcheck__item-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+
+  .gc-link {
+    font-size: 15px;
+  }
+}
+
+.gc-textcheck__replaced {
+  margin: 0;
+  color: var(--cl-ink-2);
+  font-size: 13px;
+}

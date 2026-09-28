@@ -1,0 +1,54 @@
+@import '../gc-editor';
+
+.gc-label-row__text {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.gc-label-row__kind {
+  flex: 0 0 210px;
+  min-width: 0;
+}
+
+.gc-label-row__lang {
+  flex: 0 0 76px;
+}
+
+.gc-label-row__flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cl-ink-3);
+  cursor: pointer;
+
+  &.is-on {
+    color: var(--cl-warn);
+  }
+}
+
+:host ::ng-deep .gc-label-row {
+  input.p-inputtext {
+    width: 100%;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  p-dropdown,
+  .p-dropdown {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .gc-label-row__text {
+    flex-basis: 100%;
+  }
+
+  .gc-label-row__kind {
+    flex: 1 1 150px;
+  }
+}

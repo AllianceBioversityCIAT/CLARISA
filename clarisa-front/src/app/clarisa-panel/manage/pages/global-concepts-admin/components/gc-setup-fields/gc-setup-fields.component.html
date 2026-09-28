@@ -1,0 +1,175 @@
+<section class="gc-ed">
+  <div class="gc-ed__head">
+    <div>
+      <h3 class="gc-ed__title">Custom fields</h3>
+      <p class="gc-ed__hint">
+        Metadata this scheme needs beyond the standard ones. A new field appears in every concept at once — no rebuild. Values are stored per concept under
+        the field's code.
+      </p>
+    </div>
+    <button pButton type="button" label="New field" icon="pi pi-plus" class="btn-brand" (click)="openCreate()"></button>
+  </div>
+
+  <div class="gc-card">
+    <div class="gc-skeleton" *ngIf="loading && !fields.length" aria-busy="true" aria-label="Loading custom fields">
+      <div class="gc-skeleton__row" *ngFor="let _ of [1, 2, 3]">
+        <span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span>
+      </div>
+    </div>
+
+    <div class="gc-state gc-state--error" *ngIf="!loading && loadError">
+      <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
+      <p class="gc-state__title">The custom fields did not load</p>
+      <p class="gc-state__text">{{ loadError }}</p>
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
+    </div>
+
+    <div class="gc-state" *ngIf="!loading && !loadError && !fields.length">
+      <span class="gc-state__icon"><i class="pi pi-list"></i></span>
+      <p class="gc-state__title">No custom fields yet</p>
+      <p class="gc-state__text">Add one when the standard MELIAF fields are not enough — a funding source, a linked indicator, a review date.</p>
+    </div>
+
+    <p-table
+      *ngIf="!loadError && fields.length"
+      [value]="rows"
+      [loading]="loading"
+      sortField="sort"
+      [sortOrder]="1"
+      styleClass="p-datatable-sm admin-table gc-setup-table"
+      responsiveLayout="scroll">
+      <ng-template pTemplate="header">
+        <tr>
+          <th scope="col" pSortableColumn="sort" style="width: 84px">Order <p-sortIcon field="sort"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="label">Label <p-sortIcon field="label"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="code" style="width: 170px">Code <p-sortIcon field="code"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="typeLabel" style="width: 190px">Type <p-sortIcon field="typeLabel"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="required" style="width: 110px">Required <p-sortIcon field="required"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="is_public" style="width: 104px">Public <p-sortIcon field="is_public"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="is_active" style="width: 104px">Status <p-sortIcon field="is_active"></p-sortIcon></th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr class="gc-row" tabindex="0" [class.is-inactive]="!row.is_active" [attr.aria-label]="'Edit ' + row.label" (click)="openEdit(row.field)" (keydown.enter)="openEdit(row.field)">
+          <td data-label="Order" class="cell-num">{{ row.sort }}</td>
+          <td data-card-title data-label="Label" class="cell-primary">
+            {{ row.label }}
+            <span class="gc-meta" *ngIf="row.field.help">{{ row.field.help }}</span>
+          </td>
+          <td data-label="Code"><code class="gc-code">{{ row.code }}</code></td>
+          <td data-label="Type">
+            {{ row.typeLabel }}
+            <span class="gc-meta" *ngIf="row.list_code">from {{ row.list_code }}</span>
+          </td>
+          <td data-label="Required">{{ row.required ? 'Required' : 'Optional' }}</td>
+          <td data-label="Public">{{ row.is_public ? 'Public' : 'Internal' }}</td>
+          <td data-label="Status"><p-tag [value]="row.is_active ? 'Active' : 'Inactive'" [severity]="row.is_active ? 'success' : 'warning'"></p-tag></td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</section>
+
+<p-dialog
+  [(visible)]="dialogVisible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [dismissableMask]="!saving"
+  [style]="{ width: '640px' }"
+  [breakpoints]="{ '720px': '94vw' }"
+  styleClass="admin-dialog"
+  [header]="editing ? 'Edit field · ' + form.code : 'New custom field'">
+  <form class="admin-form gc-field-form" (ngSubmit)="save()" autocomplete="off">
+    <p class="admin-note" *ngIf="editing">
+      <i class="pi pi-lock"></i>
+      <span>
+        <strong>Code and type cannot change.</strong> Every stored value is filed under this code and was checked against this type; changing either would
+        orphan or corrupt them. To change the type, create a new field and deactivate this one.
+      </span>
+    </p>
+
+    <div class="admin-form__grid">
+      <div class="field admin-form__span">
+        <label for="gc-field-label">Label <span class="tag-req">Required</span></label>
+        <input id="gc-field-label" name="label" type="text" pInputText maxlength="255" [(ngModel)]="form.label" (ngModelChange)="onLabelChange($event)" />
+      </div>
+
+      <div class="field">
+        <label for="gc-field-code">Code <span class="tag-req" *ngIf="!editing">Required</span><span class="gc-locked" *ngIf="locked('code')"><i class="pi pi-lock"></i> Fixed</span></label>
+        <input
+          id="gc-field-code"
+          name="code"
+          type="text"
+          pInputText
+          maxlength="50"
+          [readonly]="locked('code')"
+          [class.is-readonly]="locked('code')"
+          [(ngModel)]="form.code"
+          (ngModelChange)="onCodeChange()" />
+        <small class="field-hint">{{ editing ? 'Imports use it as the column x:' + form.code + '.' : 'Suggested from the label. Imports read it as the column x:your_code.' }}</small>
+      </div>
+
+      <div class="field">
+        <label for="gc-field-type">Type <span class="gc-locked" *ngIf="locked('type')"><i class="pi pi-lock"></i> Fixed</span></label>
+        <p-dropdown
+          *ngIf="!locked('type')"
+          inputId="gc-field-type"
+          name="type"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          [options]="typeOptions"
+          [(ngModel)]="form.type"></p-dropdown>
+        <input *ngIf="locked('type')" id="gc-field-type" type="text" pInputText readonly class="is-readonly" [value]="typeLabel(form.type)" />
+      </div>
+
+      <div class="field admin-form__span" *ngIf="needsList(form.type)">
+        <label for="gc-field-list">Values come from <span class="tag-req" *ngIf="!editing">Required</span><span class="gc-locked" *ngIf="locked('list_code')"><i class="pi pi-lock"></i> Fixed</span></label>
+        <p-dropdown
+          *ngIf="!locked('list_code')"
+          inputId="gc-field-list"
+          name="list_code"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          placeholder="Pick a controlled list"
+          [filter]="listOptions.length > 15"
+          [options]="listOptions"
+          [(ngModel)]="form.list_code"></p-dropdown>
+        <input *ngIf="locked('list_code')" id="gc-field-list" type="text" pInputText readonly class="is-readonly" [value]="form.list_code" />
+        <small class="field-hint">Manage its values under Controlled lists.</small>
+      </div>
+
+      <div class="field admin-form__span">
+        <label for="gc-field-help">Help text <span class="tag-opt">Optional</span></label>
+        <input id="gc-field-help" name="help" type="text" pInputText maxlength="500" placeholder="Shown under the field to the editor" [(ngModel)]="form.help" />
+      </div>
+
+      <div class="field">
+        <label for="gc-field-sort">Order</label>
+        <input id="gc-field-sort" name="sort" type="number" step="1" pInputText [(ngModel)]="form.sort" />
+      </div>
+
+      <div class="field gc-field-flags">
+        <label class="gc-flag"><p-checkbox name="required" [binary]="true" [(ngModel)]="form.required"></p-checkbox><span>Required</span></label>
+        <label class="gc-flag"><p-checkbox name="is_public" [binary]="true" [(ngModel)]="form.is_public"></p-checkbox><span>Published (API, exports)</span></label>
+        <label class="gc-flag" *ngIf="editing"><p-checkbox name="is_active" [binary]="true" [(ngModel)]="form.is_active"></p-checkbox><span>Active</span></label>
+      </div>
+    </div>
+
+    <p class="gc-ed__error" *ngIf="formError && (form.label || editing)"><i class="pi pi-info-circle"></i><span>{{ formError }}</span></p>
+    <p class="gc-ed__error" role="alert" *ngIf="saveError"><i class="pi pi-times-circle"></i><span>{{ saveError }}</span></p>
+
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="saving" (click)="dialogVisible = false"></button>
+      <button
+        pButton
+        type="submit"
+        class="btn-brand"
+        icon="pi pi-check"
+        [label]="saving ? 'Saving…' : editing ? 'Save field' : 'Create field'"
+        [disabled]="saving || !!formError || (editing && !dirty)"
+        [loading]="saving"></button>
+    </div>
+  </form>
+</p-dialog>
