@@ -1,3 +1,6 @@
+// The spec tsconfig carries no Node typings; jest runs on Node, so both exist at runtime.
+declare const require: (id: string) => any;
+declare const __dirname: string;
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -84,5 +87,27 @@ describe('CheckTextComponent', () => {
     component.check();
     expect(component.checking).toBe(false);
     expect(component.error).toContain('Too many attempts');
+  });
+
+  describe('layout inside the card', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const html: string = fs.readFileSync(path.join(__dirname, 'check-text.component.html'), 'utf8');
+    const scss: string = fs.readFileSync(path.join(__dirname, 'check-text.component.scss'), 'utf8');
+    const kit: string = fs.readFileSync(path.join(__dirname, '..', '..', '_gc.scss'), 'utf8');
+    const classes = (html.match(/class="[^"]+"/g) ?? []).flatMap(attr => attr.slice(7, -1).split(/\s+/));
+
+    it('does not reuse the kit class of the centred checkbox row (.gc-check / .gc-check__*)', () => {
+      expect(kit).toMatch(/\.gc-check \{[^}]*align-items: center/);
+      expect(classes.filter(name => name === 'gc-check' || name.startsWith('gc-check__'))).toEqual([]);
+    });
+
+    it('stretches its title and textarea to the card width, left-aligned, against the landing element rules', () => {
+      const root = scss.match(/\.gc-textcheck \{([^}]*)\}/)?.[1] ?? '';
+      expect(root).toContain('align-items: stretch');
+      expect(root).toContain('text-align: left');
+      expect(root).toContain('float: none');
+      expect(fixture.nativeElement.querySelector('section')?.classList).toContain('gc-textcheck');
+    });
   });
 });

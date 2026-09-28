@@ -15,8 +15,18 @@ export interface MappingForm {
   target_uri: string;
   target_label: string;
   match_type: MatchType;
-  justification: string;
+  /** How the match was made; '' = not said. The back only accepts these two from a form. */
+  justification: MappingJustification | '' | null;
+  /** 0–1, as typed; '' / null = not said. */
+  confidence: number | string | null;
 }
+
+export type MappingJustification = 'manual' | 'lexical';
+
+export const MAPPING_JUSTIFICATIONS: { label: string; value: MappingJustification }[] = [
+  { label: 'Manual review', value: 'manual' },
+  { label: 'Lexical match', value: 'lexical' }
+];
 
 export const MATCH_TYPES: { label: string; value: MatchType; hint: string }[] = [
   { label: 'Exact match', value: 'exact', hint: 'Interchangeable in any context' },
@@ -27,20 +37,32 @@ export const MATCH_TYPES: { label: string; value: MatchType; hint: string }[] = 
 ];
 
 export function emptyMappingForm(): MappingForm {
-  return { target_scheme: '', target_uri: '', target_label: '', match_type: 'exact', justification: '' };
+  return { target_scheme: '', target_uri: '', target_label: '', match_type: 'exact', justification: '', confidence: null };
 }
 
 export function mappingFormError(form: MappingForm): string | null {
   if (!form.target_scheme.trim()) return 'Name the target vocabulary (AGROVOC, Wikidata…).';
   if (!form.target_uri.trim()) return 'Paste the URI of the target concept.';
   if (!isHttpUrl(form.target_uri)) return 'The target URI must start with http:// or https://.';
+  if (confidenceValue(form.confidence) === undefined && !confidenceEmpty(form.confidence)) return 'Confidence is a number between 0 and 1.';
   return null;
+}
+
+const confidenceEmpty = (value: MappingForm['confidence']): boolean => value === null || value === undefined || String(value).trim() === '';
+
+/** A finite number in 0..1, or undefined when empty / out of range. */
+export function confidenceValue(value: MappingForm['confidence']): number | undefined {
+  if (confidenceEmpty(value)) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 && n <= 1 ? n : undefined;
 }
 
 export function mappingBody(form: MappingForm): MappingInput {
   const body: MappingInput = { target_scheme: form.target_scheme.trim(), target_uri: form.target_uri.trim(), match_type: form.match_type };
   if (form.target_label.trim()) body.target_label = form.target_label.trim();
-  if (form.justification.trim()) body.justification = form.justification.trim();
+  if (MAPPING_JUSTIFICATIONS.some(option => option.value === form.justification)) body.justification = form.justification as MappingJustification;
+  const confidence = confidenceValue(form.confidence);
+  if (confidence !== undefined) body.confidence = confidence;
   return body;
 }
 
@@ -56,6 +78,7 @@ export class GcMappingsEditorComponent {
   @Output() updated = new EventEmitter<AdminConceptDetail>();
 
   readonly matchTypes = MATCH_TYPES;
+  readonly justifications = MAPPING_JUSTIFICATIONS;
   form: MappingForm = emptyMappingForm();
   adding = false;
   deletingId: number | null = null;
@@ -75,6 +98,13 @@ export class GcMappingsEditorComponent {
 
   matchLabel(value: string): string {
     return MATCH_TYPES.find(type => type.value === value)?.label ?? value;
+  }
+
+  /** Rows carry the SSSOM code (`manual`, `lexical`, `ai_suggested`); show it in words. */
+  justificationLabel(value: string | null | undefined): string {
+    if (!value) return '';
+    if (value === 'ai_suggested') return 'AI suggestion';
+    return MAPPING_JUSTIFICATIONS.find(option => option.value === value)?.label ?? value;
   }
 
   get formError(): string | null {

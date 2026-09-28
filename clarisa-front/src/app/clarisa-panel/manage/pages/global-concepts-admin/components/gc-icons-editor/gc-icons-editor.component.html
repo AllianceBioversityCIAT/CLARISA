@@ -105,11 +105,11 @@
       </div>
       <div class="field">
         <label for="gc-icon-country">Designer country</label>
-        <input id="gc-icon-country" name="designer_country" type="text" pInputText maxlength="255" [(ngModel)]="form.designer_country" />
+        <input id="gc-icon-country" name="designer_country" type="text" pInputText maxlength="100" [(ngModel)]="form.designer_country" />
       </div>
       <div class="field">
         <label for="gc-icon-year">Year created</label>
-        <input id="gc-icon-year" name="year_created" type="number" min="1900" max="2100" step="1" pInputText [(ngModel)]="form.year_created" />
+        <input id="gc-icon-year" name="year_created" type="number" min="1900" max="2200" step="1" pInputText [(ngModel)]="form.year_created" />
       </div>
       <div class="field">
         <label for="gc-icon-date">Date added</label>
@@ -117,7 +117,7 @@
       </div>
       <div class="field admin-form__span">
         <label for="gc-icon-rights">Rights and licence</label>
-        <input id="gc-icon-rights" name="rights_and_licence" type="text" pInputText maxlength="1000" placeholder="CC BY 4.0" [(ngModel)]="form.rights_and_licence" />
+        <input id="gc-icon-rights" name="rights_and_licence" type="text" pInputText maxlength="255" placeholder="CC BY 4.0" [(ngModel)]="form.rights_and_licence" />
       </div>
     </div>
 

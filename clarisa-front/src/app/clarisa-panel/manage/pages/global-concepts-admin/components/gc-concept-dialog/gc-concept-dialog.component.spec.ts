@@ -1,3 +1,6 @@
+// The spec tsconfig carries no Node typings; jest runs on Node, so both exist at runtime.
+declare const require: (id: string) => any;
+declare const __dirname: string;
 import { Subject, of, throwError } from 'rxjs';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { AdminConceptDetail, GlobalConceptsApiService } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
@@ -131,6 +134,17 @@ describe('GcConceptDialogComponent', () => {
     });
   });
 
+  it('drops the AI mark of a field the editor rewrites by hand', () => {
+    component.openEdit(component.concepts[0]);
+    component.form.scope_note = 'Written by a person';
+
+    component.save();
+    expect(api['updateConcept']).toHaveBeenCalledWith('meliaf', 1, {
+      scope_note: 'Written by a person',
+      ai_generated_fields: []
+    });
+  });
+
   it('discarding a draft changes nothing', () => {
     component.aiEnabled = true;
     component.openEdit(component.concepts[0]);
@@ -186,5 +200,64 @@ describe('GcConceptDialogComponent', () => {
     api['adminConcept'].mockReturnValueOnce(throwError(() => ({ error: { message: 'Not found' } })));
     component.loadHistory(true);
     expect(component.historyError).toBe('Not found');
+  });
+
+  describe('answers that arrive after another concept was opened', () => {
+    const tabOption = (id: string) => component.tabs.find(option => option.id === id)!;
+
+    it('drops a late history and lets the new concept load its own', () => {
+      const late = new Subject<AdminConceptDetail>();
+      api['adminConcept'].mockReturnValueOnce(late);
+      component.openEdit(component.concepts[0]);
+      component.selectTab(tabOption('history'));
+      expect(component.historyLoading).toBe(true);
+
+      component.openEdit(component.concepts[1]);
+      expect(component.historyLoading).toBe(false);
+      late.next({ ...concept(1, 'Outcome'), history: [{ action: 'update', changes: {}, changed_at: '2026-01-01' }] } as unknown as AdminConceptDetail);
+      expect(component.history).toEqual([]);
+
+      component.selectTab(tabOption('history'));
+      expect(api['adminConcept']).toHaveBeenLastCalledWith('meliaf', 2);
+      expect(component.history).toHaveLength(1);
+    });
+
+    it('drops a late AI draft written for the previous concept', () => {
+      const late = new Subject<Record<string, string>>();
+      api['aiDraft'].mockReturnValueOnce(late);
+      component.aiEnabled = true;
+      component.openEdit(component.concepts[0]);
+      component.draft('short_definition');
+
+      component.openEdit(component.concepts[1]);
+      late.next({ short_definition: 'Text about Outcome' });
+
+      expect(component.drafts).toEqual({});
+      expect(component.drafting).toEqual({});
+    });
+  });
+
+  describe('switching tab while a sub-editor saves', () => {
+    it('keeps every opened sub-editor mounted for the session, and starts clean for the next concept', () => {
+      component.openEdit(component.concepts[0]);
+      for (const id of ['labels', 'relations', 'mappings', 'icons', 'details']) component.selectTab(component.tabs.find(option => option.id === id)!);
+      expect([...component.visited].sort()).toEqual(['details', 'icons', 'labels', 'mappings', 'relations']);
+
+      const session = component.session;
+      component.openEdit(component.concepts[1], 'labels');
+      expect(component.session).toBe(session + 1);
+      expect([...component.visited]).toEqual(['labels']);
+    });
+
+    it('hides the sub-editors instead of destroying them on tab change (the template)', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const html: string = fs.readFileSync(path.join(__dirname, 'gc-concept-dialog.component.html'), 'utf8');
+      for (const editor of ['labels', 'relations', 'mappings', 'icons']) {
+        const tag = html.match(new RegExp(`<app-gc-${editor}-editor[^>]*>`, 's'))?.[0] ?? '';
+        expect(tag).toContain(`[hidden]="tab !== '${editor}'"`);
+        expect(tag).not.toContain(`*ngIf="tab === '${editor}'"`);
+      }
+    });
   });
 });

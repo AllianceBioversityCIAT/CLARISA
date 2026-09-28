@@ -20,7 +20,8 @@ import {
   hasAnyFilter,
   parseFilterParams,
   selectedCount,
-  sortConcepts
+  sortConcepts,
+  urlQuery
 } from '../../global-concepts.filters';
 
 export type ExportFormat = 'json' | 'csv' | 'skos' | 'jsonld';
@@ -36,6 +37,13 @@ export const SEARCH_DEBOUNCE = 300;
 
 /** Below this length the back is not asked (every word already matches locally). */
 const SERVER_SEARCH_MIN = 2;
+
+/**
+ * A search counts in the usage analytics once the reader stops typing for this
+ * long (or presses Enter / leaves the box). The requests made while typing go
+ * with `track=0`, so "outc", "outco", "outcom" are not three searches.
+ */
+export const SEARCH_SETTLE = 1500;
 
 /**
  * Public list of a concept scheme with faceted search.
@@ -88,11 +96,14 @@ export class ConceptListComponent implements OnInit, OnDestroy {
 
   private serverHits: ReadonlySet<number> | null = null;
   private serverQ = '';
-  /** Last q this page wrote to the URL: its echo must not overwrite newer typing. */
+  /** Last q this page wrote to the URL, in its URL form: its echo must not overwrite newer typing. */
   private lastUrlQ = '';
+  /** Last search sent as counted, so the same query is not counted twice in a row. */
+  private lastCountedQ = '';
   private loadedScheme: string | null = null;
 
   private readonly typed$ = new Subject<void>();
+  private readonly settled$ = new Subject<void>();
   private readonly reload$ = new Subject<void>();
   private readonly serverSearch$ = new Subject<string>();
   private readonly destroy$ = new Subject<void>();
@@ -133,7 +144,7 @@ export class ConceptListComponent implements OnInit, OnDestroy {
         switchMap(q =>
           q.length < SERVER_SEARCH_MIN
             ? of({ q, hits: null as ReadonlySet<number> | null })
-            : this._api.concepts(this.schemeCode, { q }).pipe(
+            : this._api.concepts(this.schemeCode, { q, track: 0 }).pipe(
                 map(rows => ({ q, hits: new Set((rows ?? []).map(c => c.term_id)) as ReadonlySet<number> | null })),
                 catchError(() => of({ q, hits: null as ReadonlySet<number> | null }))
               )
@@ -151,6 +162,11 @@ export class ConceptListComponent implements OnInit, OnDestroy {
 
     this.typed$.pipe(debounceTime(SEARCH_DEBOUNCE), takeUntil(this.destroy$)).subscribe({
       next: () => this.navigate({ ...this.state, q: this.q }, true),
+      error: () => undefined
+    });
+
+    this.settled$.pipe(debounceTime(SEARCH_SETTLE), takeUntil(this.destroy$)).subscribe({
+      next: () => this.countSearch(),
       error: () => undefined
     });
 
@@ -178,8 +194,9 @@ export class ConceptListComponent implements OnInit, OnDestroy {
   private fromUrl(params: { get(name: string): string | null }): void {
     const scheme = (params.get('scheme') || DEFAULT_SCHEME).toLowerCase();
     const next = parseFilterParams(params);
-    // The echo of our own debounced write must not undo what the reader typed since.
-    if (next.q !== this.lastUrlQ) this.q = next.q;
+    // The echo of our own debounced write must not undo what the reader typed
+    // since, nor eat a trailing space: both sides are compared in URL form.
+    if (next.q !== this.lastUrlQ && next.q !== urlQuery(this.q)) this.q = next.q;
     this.lastUrlQ = next.q;
     this.state = next;
     this.schemeCode = scheme;
@@ -250,7 +267,7 @@ export class ConceptListComponent implements OnInit, OnDestroy {
     // Applied at once, so the page answers before the router does; the URL
     // echo then finds the same state and changes nothing.
     this.state = next;
-    this.lastUrlQ = next.q;
+    this.lastUrlQ = urlQuery(next.q);
     this.recompute();
     this._router.navigate([], {
       relativeTo: this._route,
@@ -264,6 +281,23 @@ export class ConceptListComponent implements OnInit, OnDestroy {
     this.q = value ?? '';
     this.recompute();
     this.typed$.next();
+    this.settled$.next();
+  }
+
+  /** Enter or leaving the box: the reader is done with this search, count it now. */
+  commitSearch(): void {
+    this.countSearch();
+  }
+
+  /** One counted request per settled search; never an empty one, never the same twice in a row. */
+  private countSearch(): void {
+    const q = urlQuery(this.q);
+    if (!q || q === this.lastCountedQ) return;
+    this.lastCountedQ = q;
+    this._api
+      .concepts(this.schemeCode, { q })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: () => undefined, error: () => undefined });
   }
 
   toggleValue(code: FacetCode, value: string): void {

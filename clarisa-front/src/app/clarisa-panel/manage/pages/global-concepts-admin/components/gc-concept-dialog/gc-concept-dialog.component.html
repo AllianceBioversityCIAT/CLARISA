@@ -299,21 +299,40 @@
 
   <!-- ========================================================== sub-editors -->
   <div class="gc-tab-body" *ngIf="editing">
-    <app-gc-labels-editor *ngIf="tab === 'labels'" [scheme]="scheme" [concept]="editing" (updated)="onConceptUpdated($event)"></app-gc-labels-editor>
-    <app-gc-relations-editor
-      *ngIf="tab === 'relations'"
-      [scheme]="scheme"
-      [concept]="editing"
-      [options]="conceptOptions"
-      (updated)="onConceptUpdated($event)"></app-gc-relations-editor>
-    <app-gc-mappings-editor *ngIf="tab === 'mappings'" [scheme]="scheme" [concept]="editing" (updated)="onConceptUpdated($event)"></app-gc-mappings-editor>
-    <app-gc-icons-editor
-      *ngIf="tab === 'icons'"
-      [scheme]="scheme"
-      [termId]="editing.term_id"
-      [conceptLabel]="editing.preferred_label"
-      [lists]="lists"
-      (changed)="onSubWrite()"></app-gc-icons-editor>
+    <!--
+      A sub-editor stays mounted (only hidden) once its tab was opened, so a save
+      still in flight when the user switches tab lands and its (updated) reaches
+      the dialog. The ngFor over [session] rebuilds them for each concept opened.
+    -->
+    <ng-container *ngFor="let _ of [session]">
+      <app-gc-labels-editor
+        *ngIf="visited.has('labels')"
+        [hidden]="tab !== 'labels'"
+        [scheme]="scheme"
+        [concept]="editing"
+        (updated)="onConceptUpdated($event)"></app-gc-labels-editor>
+      <app-gc-relations-editor
+        *ngIf="visited.has('relations')"
+        [hidden]="tab !== 'relations'"
+        [scheme]="scheme"
+        [concept]="editing"
+        [options]="conceptOptions"
+        (updated)="onConceptUpdated($event)"></app-gc-relations-editor>
+      <app-gc-mappings-editor
+        *ngIf="visited.has('mappings')"
+        [hidden]="tab !== 'mappings'"
+        [scheme]="scheme"
+        [concept]="editing"
+        (updated)="onConceptUpdated($event)"></app-gc-mappings-editor>
+      <app-gc-icons-editor
+        *ngIf="visited.has('icons')"
+        [hidden]="tab !== 'icons'"
+        [scheme]="scheme"
+        [termId]="editing.term_id"
+        [conceptLabel]="editing.preferred_label"
+        [lists]="lists"
+        (changed)="onSubWrite()"></app-gc-icons-editor>
+    </ng-container>
 
     <section class="gc-ed" *ngIf="tab === 'history'">
       <div class="gc-ed__head">

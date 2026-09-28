@@ -32,8 +32,11 @@
             type="search"
             autocomplete="off"
             placeholder="Search a concept, acronym or definition..."
+            maxlength="200"
             [ngModel]="q"
-            (ngModelChange)="onQueryInput($event)" />
+            (ngModelChange)="onQueryInput($event)"
+            (keydown.enter)="commitSearch()"
+            (blur)="commitSearch()" />
         </div>
 
         <select

@@ -9,6 +9,7 @@ import {
   filterParams,
   matchesText,
   parseFilterParams,
+  urlQuery,
   sameState,
   selectedCount,
   sortConcepts
@@ -162,5 +163,20 @@ describe('global-concepts.filters', () => {
     const chips = activeChips(s, facetViews(data, s, { term_type: [{ value: 'core', label: 'Core term' }] }));
     expect(chips.map(ch => ch.label)).toEqual(['"out"', 'Term type: Core term', 'Including deprecated']);
     expect(selectedCount(s)).toBe(1);
+  });
+
+  describe('urlQuery (the search as the URL carries it)', () => {
+    it('trims and caps, so the page can recognise the echo of its own write', () => {
+      expect(urlQuery('soil ')).toBe('soil');
+      expect(urlQuery(' a'.repeat(150))).toHaveLength(200 - 1);
+      expect(urlQuery('x'.repeat(250))).toHaveLength(200);
+      expect(urlQuery(null)).toBe('');
+    });
+
+    it('writes and reads back the same form', () => {
+      const q = 'y'.repeat(230) + ' ';
+      const written = filterParams({ ...emptyState(), q })['q'] as string;
+      expect(parseFilterParams({ get: (name: string) => (name === 'q' ? written : null) }).q).toBe(urlQuery(q));
+    });
   });
 });

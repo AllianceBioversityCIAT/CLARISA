@@ -127,4 +127,24 @@ describe('GcConceptsPanelComponent', () => {
     component.runSemantic();
     expect(api['semanticSearch']).not.toHaveBeenCalled();
   });
+
+  it('opens the create dialog from a request once and tells the shell it was used', () => {
+    jest.useFakeTimers();
+    try {
+      const panel = new GcConceptsPanelComponent(api as unknown as GlobalConceptsApiService, { add: jest.fn() } as unknown as MessageService);
+      const openCreate = jest.fn();
+      panel.dialog = { openCreate } as never;
+      const handled = jest.fn();
+      panel.createHandled.subscribe(handled);
+      panel.createRequest = { label: 'theory of change', token: 4 };
+
+      panel.ngOnInit();
+      jest.runOnlyPendingTimers();
+
+      expect(openCreate).toHaveBeenCalledWith('theory of change');
+      expect(handled).toHaveBeenCalledWith(4);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

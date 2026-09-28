@@ -21,7 +21,11 @@
   <div class="gc-fb__row">
     <!-- Desktop / tablet: one dropdown per facet -->
     <div class="gc-fb__facets">
-      <div class="gc-dd" *ngFor="let facet of facets; trackBy: trackByCode" [class.is-open]="openFacet === facet.code">
+      <div
+        class="gc-dd"
+        *ngFor="let facet of facets; trackBy: trackByCode"
+        [class.is-open]="openFacet === facet.code"
+        (focusout)="onDropdownFocusOut($event, facet.code)">
         <button
           type="button"
           class="gc-dd__btn"
@@ -78,7 +82,7 @@
 <!-- Phone bottom sheet -->
 <div class="gc-sheet" *ngIf="sheetOpen">
   <div class="gc-sheet__veil" (click)="closeSheet()" aria-hidden="true"></div>
-  <div class="gc-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="gc-sheet-title">
+  <div class="gc-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="gc-sheet-title" (keydown)="trapFocus($event)">
     <header class="gc-sheet__head">
       <h3 class="gc-sheet__title" id="gc-sheet-title" tabindex="-1">Filters</h3>
       <button type="button" class="gc-sheet__close" aria-label="Close filters" (click)="closeSheet()">

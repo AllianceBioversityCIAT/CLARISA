@@ -265,13 +265,25 @@ export interface ParamReader {
 
 const SORT_CODES = SORTS.map(s => s.code);
 
+/** Longest search the URL carries. */
+export const MAX_QUERY = 200;
+
+/**
+ * The search as it travels in the URL: trimmed and capped. The box may hold
+ * more (a trailing space while typing, a long paste); comparing against this
+ * form is how the page recognises the URL echo of its own write.
+ */
+export function urlQuery(q: string | null | undefined): string {
+  return (q ?? '').trim().slice(0, MAX_QUERY).trim();
+}
+
 /**
  * URL -> state. Multi values travel comma-joined (`meliaf_function=mel,monitoring`),
  * the same parameter names the API uses, so a shared link reads on its own.
  */
 export function parseFilterParams(params: ParamReader): FilterState {
   const state = emptyState();
-  state.q = (params.get('q') ?? '').slice(0, 200);
+  state.q = urlQuery(params.get('q'));
   for (const def of FACET_DEFS) {
     const raw = params.get(def.code) ?? '';
     state.facets[def.code] = [
@@ -295,7 +307,7 @@ export function parseFilterParams(params: ParamReader): FilterState {
  */
 export function filterParams(state: FilterState): Record<string, string | null> {
   const out: Record<string, string | null> = {
-    q: state.q.trim() || null,
+    q: urlQuery(state.q) || null,
     sort: state.sort === 'az' ? null : state.sort,
     deprecated: state.deprecated ? '1' : null
   };

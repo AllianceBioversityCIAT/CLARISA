@@ -54,4 +54,16 @@ describe('GlobalConceptsAdminComponent', () => {
     expect(component.activeSection).toBe('concepts');
     expect(component.createRequest).toEqual({ label: 'theory of change', token: 2 });
   });
+
+  it('clears the create request once the concepts panel used it, and never repeats a token', () => {
+    const component = build({ schemes: jest.fn(() => of([])), aiStatus: jest.fn(() => of({ enabled: false })) });
+    component.createFromSearch('theory of change');
+    component.onCreateHandled(1);
+    expect(component.createRequest).toBeNull();
+
+    // An older answer never clears a newer request.
+    component.createFromSearch('impact pathway');
+    component.onCreateHandled(1);
+    expect(component.createRequest).toEqual({ label: 'impact pathway', token: 2 });
+  });
 });

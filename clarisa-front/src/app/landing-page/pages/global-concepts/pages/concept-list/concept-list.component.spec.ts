@@ -4,7 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 
-import { ConceptListComponent, SEARCH_DEBOUNCE } from './concept-list.component';
+import { ConceptListComponent, SEARCH_DEBOUNCE, SEARCH_SETTLE } from './concept-list.component';
 import { GlobalConceptsApiService } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
 
 describe('ConceptListComponent', () => {
@@ -206,10 +206,85 @@ describe('ConceptListComponent', () => {
     tick(1);
     expect(url['q']).toBe('outc');
     expect(api.concepts).toHaveBeenCalledTimes(1);
-    expect(api.concepts).toHaveBeenCalledWith('meliaf', { q: 'outc' });
+    expect(api.concepts).toHaveBeenCalledWith('meliaf', { q: 'outc', track: 0 });
     // A URL write replaces the entry: typing does not flood the history.
     expect(router.navigate.mock.calls[router.navigate.mock.calls.length - 1][1].replaceUrl).toBe(true);
+    tick(SEARCH_SETTLE);
   }));
+
+  describe('the search box and its URL echo', () => {
+    it('keeps a trailing space while typing: the echo of "soil" does not rewrite "soil "', fakeAsync(() => {
+      fixture.detectChanges();
+      component.onQueryInput('soil ');
+      tick(SEARCH_DEBOUNCE);
+      expect(url['q']).toBe('soil');
+      expect(component.q).toBe('soil ');
+      tick(SEARCH_SETTLE);
+    }));
+
+    it('does not cut a long paste in the box to the 200 characters the URL carries', fakeAsync(() => {
+      fixture.detectChanges();
+      const long = 'a'.repeat(250);
+      component.onQueryInput(long);
+      tick(SEARCH_DEBOUNCE);
+      expect(url['q']).toHaveLength(200);
+      expect(component.q).toBe(long);
+      tick(SEARCH_SETTLE);
+    }));
+
+    it('still follows the URL when it really changes (back button, shared link)', fakeAsync(() => {
+      fixture.detectChanges();
+      component.onQueryInput('soil ');
+      tick(SEARCH_DEBOUNCE);
+      params.next(convertToParamMap({ q: 'water' }));
+      expect(component.q).toBe('water');
+      tick(SEARCH_SETTLE);
+    }));
+  });
+
+  describe('usage hygiene', () => {
+    const counted = () => api.concepts.mock.calls.filter(([, query]: [string, any]) => query?.q && query.track === undefined);
+    const uncounted = () => api.concepts.mock.calls.filter(([, query]: [string, any]) => query?.q && query.track === 0);
+
+    it('searches while typing with track=0 and counts once when the query settles', fakeAsync(() => {
+      fixture.detectChanges();
+      api.concepts.mockClear();
+      component.onQueryInput('ou');
+      tick(SEARCH_DEBOUNCE);
+      component.onQueryInput('outco');
+      tick(SEARCH_DEBOUNCE);
+      component.onQueryInput('outcome');
+      tick(SEARCH_DEBOUNCE);
+      expect(uncounted().length).toBeGreaterThan(0);
+      expect(counted()).toEqual([]);
+
+      tick(SEARCH_SETTLE - SEARCH_DEBOUNCE - 1);
+      expect(counted()).toEqual([]);
+      tick(1);
+      expect(counted()).toEqual([['meliaf', { q: 'outcome' }]]);
+    }));
+
+    it('counts on Enter or blur at once, and not again for the same query', fakeAsync(() => {
+      fixture.detectChanges();
+      api.concepts.mockClear();
+      component.onQueryInput('baseline ');
+      component.commitSearch();
+      expect(counted()).toEqual([['meliaf', { q: 'baseline' }]]);
+
+      component.commitSearch();
+      tick(SEARCH_SETTLE);
+      expect(counted()).toHaveLength(1);
+    }));
+
+    it('never counts an empty search', fakeAsync(() => {
+      fixture.detectChanges();
+      api.concepts.mockClear();
+      component.onQueryInput('   ');
+      component.commitSearch();
+      tick(SEARCH_SETTLE);
+      expect(counted()).toEqual([]);
+    }));
+  });
 
   it('adds what the back found by a hidden search term', fakeAsync(() => {
     api.concepts.mockImplementation((_: string, query: any) => of(query?.q ? [concepts[1]] : concepts));
@@ -218,6 +293,7 @@ describe('ConceptListComponent', () => {
     expect(labels()).toEqual([]);
     tick(SEARCH_DEBOUNCE);
     expect(labels()).toEqual(['Baseline']);
+    tick(SEARCH_SETTLE);
   }));
 
   it('keeps the local match when the back search fails', fakeAsync(() => {
@@ -227,6 +303,7 @@ describe('ConceptListComponent', () => {
     tick(SEARCH_DEBOUNCE);
     expect(component.error).toBeNull();
     expect(labels()).toEqual(['Outcome']);
+    tick(SEARCH_SETTLE);
   }));
 
   it('turns a failed load into a message and loads again on retry', () => {

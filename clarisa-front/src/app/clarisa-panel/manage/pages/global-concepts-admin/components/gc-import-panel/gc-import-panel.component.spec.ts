@@ -116,4 +116,14 @@ describe('GcImportPanelComponent', () => {
     expect(component.previewing).toBe(false);
     expect(component.step).toBe('mapping');
   });
+
+  it('matches a custom field by the label the back sends, not by parsing its free-text hint', async () => {
+    api['importFields'] = jest.fn(() =>
+      of([{ field: 'x:owner', label: 'Owner team', hint: 'Who answers for the term', custom: true, type: 'text', list_code: null }])
+    );
+    component.ngOnInit();
+    await component.readSource(async () => ({ ...table, headers: ['definition', 'Owner team'], rows: [['A change', 'MEL']], generatedHeaders: [false, false], sourceColumns: 2 }));
+
+    expect(component.mappings.map(m => m.field)).toEqual(['definition', 'x:owner']);
+  });
 });

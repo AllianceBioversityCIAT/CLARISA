@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { AdminConceptDetail, ConceptStatus, GlobalConceptsApiService } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
@@ -54,6 +54,8 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
   @Input() reloadToken = 0;
   @Input() aiEnabled = false;
   @Input() createRequest: CreateRequest | null = null;
+  /** The create request was used: the shell clears it, so a recreated panel does not open it again. */
+  @Output() createHandled = new EventEmitter<number>();
   @ViewChild(GcConceptDialogComponent) dialog?: GcConceptDialogComponent;
   indexing = false;
 
@@ -107,7 +109,10 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
     const request = this.createRequest;
     if (!request || request.token === this.handledCreateToken) return;
     this.handledCreateToken = request.token;
-    setTimeout(() => this.openCreate(request.label));
+    setTimeout(() => {
+      this.openCreate(request.label);
+      this.createHandled.emit(request.token);
+    });
   }
 
   load(): void {

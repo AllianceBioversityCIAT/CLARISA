@@ -18,7 +18,9 @@
       <div class="gc-ed__grow">
         <span class="gc-ed__main">{{ mapping.target_scheme }} · {{ mapping.target_label || 'no label' }}</span>
         <span class="gc-ed__sub"><a [href]="mapping.target_uri" target="_blank" rel="noopener">{{ mapping.target_uri }}</a></span>
-        <span class="gc-ed__sub" *ngIf="mapping.justification">{{ mapping.justification }}</span>
+        <span class="gc-ed__sub" *ngIf="mapping.justification || mapping.confidence !== null && mapping.confidence !== undefined">
+          {{ justificationLabel(mapping.justification) }}<ng-container *ngIf="mapping.confidence !== null && mapping.confidence !== undefined">{{ mapping.justification ? ' · ' : '' }}confidence {{ mapping.confidence }}</ng-container>
+        </span>
       </div>
       <button
         *ngIf="mapping.id"
@@ -69,11 +71,33 @@
         <input id="gc-map-label" name="target_label" type="text" pInputText maxlength="500" [(ngModel)]="form.target_label" />
       </div>
       <div class="field">
-        <label for="gc-map-why">Justification <span class="tag-opt">Optional</span></label>
-        <input id="gc-map-why" name="justification" type="text" pInputText maxlength="2000" [(ngModel)]="form.justification" />
+        <label for="gc-map-why">How was it matched? <span class="tag-opt">Optional</span></label>
+        <p-dropdown
+          inputId="gc-map-why"
+          name="justification"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          placeholder="Not said"
+          [showClear]="true"
+          [options]="justifications"
+          [(ngModel)]="form.justification"></p-dropdown>
+      </div>
+      <div class="field">
+        <label for="gc-map-confidence">Confidence <span class="tag-opt">Optional, 0 to 1</span></label>
+        <input
+          id="gc-map-confidence"
+          name="confidence"
+          type="number"
+          pInputText
+          min="0"
+          max="1"
+          step="0.05"
+          inputmode="decimal"
+          placeholder="0.9"
+          [(ngModel)]="form.confidence" />
       </div>
     </div>
-    <p class="gc-ed__error" *ngIf="formError && (form.target_scheme || form.target_uri)"><i class="pi pi-info-circle"></i><span>{{ formError }}</span></p>
+    <p class="gc-ed__error" *ngIf="formError && (form.target_scheme || form.target_uri || form.confidence !== null)"><i class="pi pi-info-circle"></i><span>{{ formError }}</span></p>
     <div class="admin-form__actions">
       <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="adding" (click)="showForm = false"></button>
       <button

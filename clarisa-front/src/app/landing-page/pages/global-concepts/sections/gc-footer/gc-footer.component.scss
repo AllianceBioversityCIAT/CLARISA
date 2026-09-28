@@ -1,5 +1,8 @@
 :host {
   display: block;
+  // The section above floats (style-landing.css:125 `section { float: left }`):
+  // without clearing it, this block started beside it, 82px off screen.
+  clear: both;
 }
 
 .gc-footer {

@@ -36,6 +36,8 @@ export class GlobalConceptsAdminComponent implements OnInit {
 
   /** A search nobody found, sent from Usage: the Concepts tab opens its create dialog with it. */
   createRequest: CreateRequest | null = null;
+  /** Kept apart from `createRequest`, which is cleared once used: tokens never repeat. */
+  private createToken = 0;
 
   constructor(private readonly _api: GlobalConceptsApiService) {}
 
@@ -68,8 +70,13 @@ export class GlobalConceptsAdminComponent implements OnInit {
 
   /** "Create concept" from a search with no result: switch to Concepts and open the dialog prefilled. */
   createFromSearch(label: string): void {
-    this.createRequest = { label, token: (this.createRequest?.token ?? 0) + 1 };
+    this.createRequest = { label, token: ++this.createToken };
     this.activeSection = 'concepts';
+  }
+
+  /** The panel opened the dialog: forget the request, or the next panel instance (after a tab switch) opens it again. */
+  onCreateHandled(token: number): void {
+    if (this.createRequest?.token === token) this.createRequest = null;
   }
 
   /** The wizard stays on its result step; the concepts table is marked stale. */

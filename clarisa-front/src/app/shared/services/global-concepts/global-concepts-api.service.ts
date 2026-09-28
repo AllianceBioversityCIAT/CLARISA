@@ -179,6 +179,16 @@ export interface ImportField {
   hint: string;
 }
 
+/** One target of the import wizard; custom fields also carry their `label` (the header an exact match compares with). */
+export interface ImportFieldInfo {
+  field: string;
+  hint: string;
+  custom: boolean;
+  label?: string;
+  type?: string;
+  list_code?: string | null;
+}
+
 export interface AiStatus {
   enabled: boolean;
   model: string;
@@ -206,6 +216,8 @@ export interface ConceptQuery {
   meliaf_phase?: string;
   term_type?: string;
   version?: string;
+  /** `0` = not counted in the usage analytics (search-as-you-type). */
+  track?: 0;
 }
 
 const params = (query: object = {}) => {
@@ -516,8 +528,8 @@ export class GlobalConceptsApiService {
   }
 
   /** Import columns: built-in schema fields plus `x:<code>` for each active custom field. */
-  importFields(scheme: string): Observable<{ field: string; hint: string; custom: boolean; type?: string; list_code?: string | null }[]> {
-    return this._http.get<{ field: string; hint: string; custom: boolean; type?: string; list_code?: string | null }[]>(
+  importFields(scheme: string): Observable<ImportFieldInfo[]> {
+    return this._http.get<ImportFieldInfo[]>(
       `${this.admin}/${encodeURIComponent(scheme)}/import-fields`
     );
   }
@@ -537,7 +549,9 @@ export interface MappingInput {
   target_uri: string;
   target_label?: string;
   match_type?: MatchType;
-  justification?: string;
+  /** How the match was made (SSSOM). A form only sends these two; `ai_suggested` is written by the module. */
+  justification?: 'manual' | 'lexical';
+  /** 0..1. */
   confidence?: number;
 }
 

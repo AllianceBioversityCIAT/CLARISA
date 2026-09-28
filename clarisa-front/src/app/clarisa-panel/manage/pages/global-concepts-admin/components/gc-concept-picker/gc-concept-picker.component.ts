@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
 
 export interface ConceptOption {
   term_id: number;
@@ -71,6 +71,16 @@ export class GcConceptPickerComponent {
 
   complete(query: string): void {
     this.suggestions = filterConceptOptions(this.options, query, this.exclude);
+  }
+
+  /**
+   * Enter belongs to the picker: with the panel open the autocomplete picks the
+   * highlighted option; with it closed the key would reach the dialog's
+   * `<form (ngSubmit)>` and save the concept half-edited.
+   */
+  @HostListener('keydown.enter', ['$event'])
+  keepEnterInside(event: Event): void {
+    event.preventDefault();
   }
 
   select(option: ConceptOption | { value?: ConceptOption }): void {

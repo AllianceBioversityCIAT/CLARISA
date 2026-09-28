@@ -92,8 +92,8 @@ export class GcImportPanelComponent implements OnChanges, OnInit {
           const code = f.field.replace(/^x:/, '');
           this.customByHeader.set(headerKey(code), f.field);
           this.customByHeader.set(headerKey(f.field), f.field);
-          const label = /^(.*) \(custom field/.exec(f.hint)?.[1];
-          if (label) this.customByHeader.set(headerKey(label), f.field);
+          // The back sends the field's label; the hint is free text (the field's help) and says nothing reliable.
+          if (f.label?.trim()) this.customByHeader.set(headerKey(f.label), f.field);
         }
         this.fieldOptions = [
           ...IMPORT_FIELDS.map(field => ({ label: field.field, value: field.field, hint: field.hint })),

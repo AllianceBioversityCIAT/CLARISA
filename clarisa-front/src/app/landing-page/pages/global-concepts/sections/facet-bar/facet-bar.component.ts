@@ -34,6 +34,9 @@ export class FacetBarComponent implements OnDestroy {
   readonly sorts = SORTS;
   openFacet: FacetCode | null = null;
   sheetOpen = false;
+  /** True only while this component is the one holding `body { overflow: hidden }`. */
+  private scrollLocked = false;
+  private previousOverflow = '';
 
   constructor(private _host: ElementRef<HTMLElement>) {}
 
@@ -81,8 +84,49 @@ export class FacetBarComponent implements OnDestroy {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (this.sheetOpen) this.closeSheet();
-    else this.openFacet = null;
+    if (this.sheetOpen) {
+      this.closeSheet();
+      return;
+    }
+    const code = this.openFacet;
+    if (!code) return;
+    this.openFacet = null;
+    // Focus goes back where the reader opened it from, not to the top of the page.
+    this.triggerOf(code)?.focus();
+  }
+
+  /** Tabbing out of a dropdown (button + panel) closes it, like a click elsewhere. */
+  onDropdownFocusOut(event: FocusEvent, code: FacetCode): void {
+    if (this.openFacet !== code) return;
+    const box = event.currentTarget as HTMLElement | null;
+    const next = event.relatedTarget as Node | null;
+    if (!next || !box?.contains(next)) this.openFacet = null;
+  }
+
+  /** The sheet is modal: Tab and Shift+Tab cycle inside it. */
+  trapFocus(event: KeyboardEvent): void {
+    if (event.key !== 'Tab') return;
+    const panel = event.currentTarget as HTMLElement | null;
+    if (!panel) return;
+    const focusable = Array.from(
+      panel.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement as HTMLElement | null;
+    const inside = !!active && panel.contains(active);
+    if (event.shiftKey && (active === first || !inside)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (active === last || !inside)) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  private triggerOf(code: FacetCode): HTMLElement | null {
+    return this._host.nativeElement.querySelector<HTMLElement>(`.gc-dd__btn[aria-controls="gc-dd-${code}"]`);
   }
 
   facetLabel(code: FacetCode): string {
@@ -100,7 +144,16 @@ export class FacetBarComponent implements OnDestroy {
   /** The page behind the sheet must not scroll under the reader's thumb. */
   private lockScroll(on: boolean): void {
     try {
-      document.body.style.overflow = on ? 'hidden' : '';
+      const style = document.body.style;
+      if (on && !this.scrollLocked) {
+        this.previousOverflow = style.overflow;
+        style.overflow = 'hidden';
+        this.scrollLocked = true;
+      } else if (!on && this.scrollLocked) {
+        // Only undo our own lock: a dialog that locked the page before us keeps it.
+        style.overflow = this.previousOverflow;
+        this.scrollLocked = false;
+      }
     } catch {
       // No document (server render): nothing to lock.
     }

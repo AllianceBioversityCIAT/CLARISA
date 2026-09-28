@@ -38,6 +38,7 @@
       [scheme]="scheme"
       [reloadToken]="conceptsReloadToken"
       [createRequest]="createRequest"
+      (createHandled)="onCreateHandled($event)"
       [aiEnabled]="aiEnabled"></app-gc-concepts-panel>
     <app-gc-requests-panel *ngIf="activeSection === 'requests'" [scheme]="scheme" [aiEnabled]="aiEnabled"></app-gc-requests-panel>
     <app-gc-import-panel

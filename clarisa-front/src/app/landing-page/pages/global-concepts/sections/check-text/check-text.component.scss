@@ -2,13 +2,21 @@
   display: block;
 }
 
-.gc-check {
+// Named apart from the kit's `.gc-check` (the 44px centred checkbox row) and
+// written against the landing's element rules (`section { float; width; padding }`,
+// inherited `text-align: center`): the card reads left-aligned and full-width,
+// like "Missing a concept?" beside it.
+.gc-textcheck {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 14px;
+  float: none;
+  width: auto;
+  text-align: left;
 }
 
-.gc-check__meta {
+.gc-textcheck__meta {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -16,7 +24,7 @@
   font-size: 13px;
 }
 
-.gc-check__privacy {
+.gc-textcheck__privacy {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -28,7 +36,7 @@
   }
 }
 
-.gc-check__counter {
+.gc-textcheck__counter {
   color: var(--cl-ink-2);
   font-variant-numeric: tabular-nums;
 
@@ -38,19 +46,19 @@
   }
 }
 
-.gc-check__actions {
+.gc-textcheck__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }
 
-.gc-check__results {
+.gc-textcheck__results {
   padding-top: 14px;
   border-top: 1px solid var(--cl-line);
 }
 
-.gc-check__count {
+.gc-textcheck__count {
   margin: 0 0 10px;
 
   strong {
@@ -58,7 +66,7 @@
   }
 }
 
-.gc-check__none p {
+.gc-textcheck__none p {
   margin: 0 0 4px;
   color: var(--cl-ink-2);
   font-size: 14px;
@@ -69,7 +77,7 @@
   }
 }
 
-.gc-check__list {
+.gc-textcheck__list {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -80,7 +88,7 @@
   list-style: none;
 }
 
-.gc-check__item {
+.gc-textcheck__item {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -89,7 +97,7 @@
   background: var(--cl-surface-2);
 }
 
-.gc-check__item-head {
+.gc-textcheck__item-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -100,7 +108,7 @@
   }
 }
 
-.gc-check__replaced {
+.gc-textcheck__replaced {
   margin: 0;
   color: var(--cl-ink-2);
   font-size: 13px;

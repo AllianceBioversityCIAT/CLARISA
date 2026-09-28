@@ -47,6 +47,10 @@ export class GcConceptDialogComponent {
   private original: ConceptForm | null = null;
   saving = false;
   private wrote = false;
+  /** Bumped each time a concept is opened: answers from an earlier one are dropped. */
+  session = 0;
+  /** Sub-editor tabs opened in this session; they stay mounted (hidden) so an in-flight save is not lost. */
+  visited = new Set<ConceptTab>();
 
   // --- custom fields ---------------------------------------------------
   fields: CustomField[] = [];
@@ -102,6 +106,7 @@ export class GcConceptDialogComponent {
   }
 
   private startSession(tab: ConceptTab = 'details'): void {
+    this.session++;
     this.wrote = false;
     this.saving = false;
     this.drafts = {};
@@ -110,10 +115,12 @@ export class GcConceptDialogComponent {
     this.aiAccepted = new Set();
     this.history = [];
     this.historyFor = null;
+    this.historyLoading = false;
     this.historyError = null;
     this.resetStatusForm();
     this.tabs = conceptTabs(!this.editing);
     this.tab = resolveTab(tab, !this.editing);
+    this.visited = new Set([this.tab]);
     this.syncValues();
     this.loadFields();
   }
@@ -135,6 +142,7 @@ export class GcConceptDialogComponent {
   selectTab(option: ConceptTabOption): void {
     if (option.lockedReason) return;
     this.tab = option.id;
+    this.visited.add(option.id);
     if (option.id === 'history') this.loadHistory();
   }
 
@@ -214,18 +222,22 @@ export class GcConceptDialogComponent {
 
   draft(field: AiDraftField): void {
     if (!this.canDraft() || this.drafting[field]) return;
+    const session = this.session;
     this.drafting = { ...this.drafting, [field]: true };
     this.draftErrors = { ...this.draftErrors, [field]: undefined };
     this._api
       .aiDraft(this.scheme, { preferred_label: this.form.preferred_label.trim(), definition: this.form.definition.trim(), fields: [field] })
       .subscribe({
         next: answer => {
+          // The dialog moved on to another concept: this text describes the old one.
+          if (session !== this.session) return;
           this.drafting = { ...this.drafting, [field]: false };
           const text = (answer?.[field] ?? '').trim();
           if (text) this.drafts = { ...this.drafts, [field]: text };
           else this.draftErrors = { ...this.draftErrors, [field]: 'The AI had nothing to suggest. Add a definition and try again.' };
         },
         error: error => {
+          if (session !== this.session) return;
           this.drafting = { ...this.drafting, [field]: false };
           this.draftErrors = { ...this.draftErrors, [field]: apiErrorMessage(error, 'The draft could not be generated') };
         }
@@ -262,8 +274,12 @@ export class GcConceptDialogComponent {
     const body = buildConceptBody(this.form, this.original);
     const extra = buildExtra(this.fields, this.values, this.originalValues);
     if (extra) body['extra'] = extra;
-    if (this.aiAccepted.size) {
-      body['ai_generated_fields'] = [...new Set([...(this.editing?.ai_generated_fields ?? []), ...this.aiAccepted])];
+    // AI provenance is the full list: accepted drafts join it, and a marked
+    // field the editor rewrote by hand (changed without accepting a draft) leaves it.
+    const marked = this.editing?.ai_generated_fields ?? [];
+    const rewritten = marked.filter(f => f in body && !this.aiAccepted.has(f as AiDraftField));
+    if (this.aiAccepted.size || rewritten.length) {
+      body['ai_generated_fields'] = [...new Set([...marked.filter(f => !rewritten.includes(f)), ...this.aiAccepted])];
     }
     return body;
   }
@@ -389,16 +405,20 @@ export class GcConceptDialogComponent {
   loadHistory(force = false): void {
     const concept = this.editing;
     if (!concept || this.historyLoading || (!force && this.historyFor === concept.term_id)) return;
+    const session = this.session;
     this.historyLoading = true;
     this.historyError = null;
     this._api.adminConcept(this.scheme, concept.term_id).subscribe({
       next: detail => {
+        // Another concept is open now: this history is not its history.
+        if (session !== this.session || this.editing?.term_id !== concept.term_id) return;
         this.historyLoading = false;
         this.historyFor = concept.term_id;
         const rows = (Array.isArray(detail?.history) ? detail.history : []) as GcConceptDialogComponent['history'];
         this.history = [...rows].sort((a, b) => String(b.changed_at).localeCompare(String(a.changed_at)));
       },
       error: error => {
+        if (session !== this.session) return;
         this.historyLoading = false;
         this.historyError = apiErrorMessage(error, 'The history could not be loaded');
       }

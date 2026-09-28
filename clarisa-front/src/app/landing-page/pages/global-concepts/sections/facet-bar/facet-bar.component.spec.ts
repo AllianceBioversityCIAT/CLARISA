@@ -110,4 +110,72 @@ describe('FacetBarComponent', () => {
     document.body.click();
     expect(component.openFacet).toBeNull();
   });
+
+  describe('keyboard', () => {
+    const trigger = () => el().querySelector('.gc-dd__btn') as HTMLButtonElement;
+
+    it('Escape closes the dropdown and puts focus back on its button', () => {
+      trigger().click();
+      fixture.detectChanges();
+      (el().querySelector('.gc-dd__panel input') as HTMLInputElement).focus();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      fixture.detectChanges();
+
+      expect(component.openFacet).toBeNull();
+      expect(document.activeElement).toBe(trigger());
+    });
+
+    it('closes the dropdown when focus tabs out of it, and not while it moves inside', () => {
+      trigger().click();
+      fixture.detectChanges();
+      const box = el().querySelector('.gc-dd') as HTMLElement;
+      const inside = el().querySelector('.gc-dd__panel input') as HTMLInputElement;
+
+      box.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: inside }));
+      expect(component.openFacet).toBe('meliaf_function');
+
+      box.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: el().querySelector('#gc-sort') }));
+      expect(component.openFacet).toBeNull();
+    });
+
+    it('keeps Tab inside the open phone sheet', fakeAsync(() => {
+      component.openSheet();
+      fixture.detectChanges();
+      tick();
+      const panel = el().querySelector('.gc-sheet__panel') as HTMLElement;
+      const focusable = Array.from(panel.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])'));
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      last.focus();
+      const forward = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+      last.dispatchEvent(forward);
+      expect(forward.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(first);
+
+      const back = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+      first.dispatchEvent(back);
+      expect(document.activeElement).toBe(last);
+      component.closeSheet();
+      tick();
+    }));
+
+    it('leaves the page scroll lock of someone else in place when the sheet closes', fakeAsync(() => {
+      document.body.style.overflow = 'hidden';
+      component.openSheet();
+      tick();
+      component.closeSheet();
+      tick();
+      expect(document.body.style.overflow).toBe('hidden');
+
+      document.body.style.overflow = 'auto';
+      component.openSheet();
+      tick();
+      expect(document.body.style.overflow).toBe('hidden');
+      component.closeSheet();
+      tick();
+      expect(document.body.style.overflow).toBe('auto');
+    }));
+  });
 });
