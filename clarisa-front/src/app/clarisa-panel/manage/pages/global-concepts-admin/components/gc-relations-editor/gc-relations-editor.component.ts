@@ -8,6 +8,7 @@ import {
 } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
 import { ConceptOption } from '../gc-concept-picker/gc-concept-picker.component';
+import { FIELD_INFO } from '../../utils/field-info';
 
 /**
  * Broader and related links, each written on its own (add / remove answer the
@@ -29,6 +30,7 @@ export class GcRelationsEditorComponent {
   busy: string | null = null;
   error: { kind: RelationKind; message: string } | null = null;
 
+  readonly info = FIELD_INFO.relation;
   readonly sections: { kind: RelationKind; title: string; hint: string; empty: string }[] = [
     {
       kind: 'broader',

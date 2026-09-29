@@ -39,6 +39,7 @@ import { GcSetupFieldsComponent } from './components/gc-setup-fields/gc-setup-fi
 import { GcSetupListsComponent } from './components/gc-setup-lists/gc-setup-lists.component';
 import { GcSetupCollectionsComponent } from './components/gc-setup-collections/gc-setup-collections.component';
 import { GcUsagePanelComponent } from './components/gc-usage-panel/gc-usage-panel.component';
+import { GcInfoComponent } from './components/gc-info/gc-info.component';
 import { GlossaryFileParserService } from '../glossary-admin/services/glossary-file-parser.service';
 
 @NgModule({
@@ -58,7 +59,8 @@ import { GlossaryFileParserService } from '../glossary-admin/services/glossary-f
     GcSetupFieldsComponent,
     GcSetupListsComponent,
     GcSetupCollectionsComponent,
-    GcUsagePanelComponent
+    GcUsagePanelComponent,
+    GcInfoComponent
   ],
   imports: [
     CommonModule,

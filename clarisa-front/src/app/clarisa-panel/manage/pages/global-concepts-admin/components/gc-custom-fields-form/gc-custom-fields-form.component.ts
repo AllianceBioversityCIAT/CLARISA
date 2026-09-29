@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CustomField } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
-import { controlFor, CustomControl, CustomValue } from '../../utils/custom-fields';
+import { controlFor, CustomControl, CustomValue, FIELD_TYPE_LABELS } from '../../utils/custom-fields';
 import { ListOption } from '../../utils/list-values';
 import { ConceptOption } from '../gc-concept-picker/gc-concept-picker.component';
 
@@ -45,6 +45,18 @@ export class GcCustomFieldsFormComponent {
 
   unlink(field: CustomField, termId: number): void {
     this.values[field.code] = ((this.values[field.code] as number[]) ?? []).filter(id => id !== termId);
+  }
+
+  /**
+   * Text of the (i) next to the label: the help the admin wrote in Setup, or,
+   * when there is none, what kind of value the field takes and where it lives.
+   */
+  info(field: CustomField): string {
+    const help = (field.help ?? '').trim();
+    if (help) return help;
+    const kind = FIELD_TYPE_LABELS[field.type] ?? field.type;
+    const visibility = field.is_public ? 'Published with the concept' : 'Internal: never published';
+    return `Custom field of this scheme (${kind.toLowerCase()}), defined in Setup → Custom fields. ${visibility}. Imports read it from the column x:${field.code}.`;
   }
 
   inputId(field: CustomField): string {

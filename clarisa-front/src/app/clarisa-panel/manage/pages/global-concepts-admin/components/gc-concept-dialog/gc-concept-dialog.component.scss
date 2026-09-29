@@ -31,10 +31,14 @@
 
 .gc-label-row {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 6px;
+
+  .gc-field-head {
+    margin-bottom: 0;
+  }
 
   label {
     margin-bottom: 0;
@@ -125,9 +129,21 @@
   gap: 8px;
 }
 
-.gc-status {
-  margin-top: 20px;
+/* Status is its own write: a quiet box inside the last section, with its own button. */
+.gc-status__box {
+  padding: 16px;
+  border: 1px solid var(--cl-line);
+  border-radius: 10px;
   background: var(--cl-surface-2);
+}
+
+.gc-status__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 .gc-status__why {
@@ -138,12 +154,10 @@
   min-height: 220px;
 }
 
+/* Sticky footer of the sub-editor tabs (skin in `_gc-form.scss`). */
 .gc-tab-close {
   display: flex;
   justify-content: flex-end;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--cl-line);
 }
 
 .gc-public-link {
@@ -229,7 +243,7 @@
   }
 
   .admin-note {
-    margin-bottom: 18px;
+    margin-bottom: 20px;
   }
 }
 

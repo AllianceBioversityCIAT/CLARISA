@@ -8,6 +8,7 @@ import {
 } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
 import { allowedActions, isFinalState, REQUEST_STATES, RequestActionOption, stateLabel, stateSeverity } from '../../utils/request-actions';
+import { FIELD_INFO } from '../../utils/field-info';
 
 export type RequestFilter = 'open' | 'all' | RequestState;
 
@@ -54,6 +55,7 @@ export function requestConceptLabel(request: ConceptRequest): string {
   styleUrls: ['./gc-requests-panel.component.scss']
 })
 export class GcRequestsPanelComponent implements OnInit, OnChanges {
+  readonly info = FIELD_INFO.request;
   @Input() scheme = 'meliaf';
   @Input() aiEnabled = false;
 

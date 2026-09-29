@@ -4,6 +4,7 @@ import { AdminIcon, GlobalConceptsApiService, IconInput } from '../../../../../.
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
 import { emptyIconForm, ICON_STATUS_FALLBACK, iconBody, iconFormError, iconFormFrom, IconForm, isHttpUrl } from '../../utils/concept-editor';
 import { ListOption, listLabel } from '../../utils/list-values';
+import { FIELD_INFO } from '../../utils/field-info';
 
 /** The icons attached to one concept (contract v2 § 1). The term stays the record; an icon hangs from it. */
 @Component({
@@ -18,6 +19,7 @@ export class GcIconsEditorComponent implements OnInit {
   @Input() lists: Record<string, ListOption[]> = {};
   /** Tells the dialog something was written, so the table (Has icon filter) reloads on close. */
   @Output() changed = new EventEmitter<void>();
+  readonly info = FIELD_INFO.icon;
 
   loading = false;
   loadError: string | null = null;

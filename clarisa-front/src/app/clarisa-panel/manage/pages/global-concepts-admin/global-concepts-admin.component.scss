@@ -3,6 +3,12 @@
  * px (the landing sets `html { font-size: 62.5% }`). The header and the tabs
  * are the global `.admin-page` / `.admin-tabs`, not drawn here.
  */
+@import 'components/gc-form';
+
+/* The module's form and dialog skin, once for every panel (see the partial). */
+:host ::ng-deep {
+  @include gc-form-skin;
+}
 .gc-admin {
   display: block;
   padding: 24px 28px 32px;

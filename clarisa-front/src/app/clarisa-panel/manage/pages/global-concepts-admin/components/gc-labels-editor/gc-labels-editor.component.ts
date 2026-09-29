@@ -3,6 +3,7 @@ import { MessageService } from 'primeng/api';
 import { AdminConceptDetail, GlobalConceptsApiService } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
 import { LABEL_KIND_OPTIONS, LabelRow, labelRowsFrom, labelsError, labelsPayload, sameLabels } from '../../utils/concept-editor';
+import { FIELD_INFO } from '../../utils/field-info';
 
 /** Every label but the main preferred one, edited as a list and saved as one set (the PUT replaces it). */
 @Component({
@@ -16,6 +17,7 @@ export class GcLabelsEditorComponent implements OnChanges {
   @Output() updated = new EventEmitter<AdminConceptDetail>();
 
   readonly kindOptions = LABEL_KIND_OPTIONS;
+  readonly info = FIELD_INFO.label;
   rows: LabelRow[] = [];
   private original: LabelRow[] = [];
   saving = false;

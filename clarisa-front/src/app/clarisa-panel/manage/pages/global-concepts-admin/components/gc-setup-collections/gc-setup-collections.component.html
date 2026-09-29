@@ -10,15 +10,24 @@
   <form class="admin-card admin-form gc-new-collection" *ngIf="creating" (ngSubmit)="create()" autocomplete="off">
     <div class="admin-form__grid">
       <div class="field">
-        <label for="gc-col-label">Name <span class="tag-req">Required</span></label>
+        <div class="gc-field-head">
+          <label for="gc-col-label">Name <span class="tag-req">Required</span></label>
+          <app-gc-info [text]="info.label"></app-gc-info>
+        </div>
         <input id="gc-col-label" name="label" type="text" pInputText maxlength="255" [(ngModel)]="newLabel" (ngModelChange)="onNewLabel($event)" />
       </div>
       <div class="field">
-        <label for="gc-col-code">Code <span class="tag-req">Required</span></label>
+        <div class="gc-field-head">
+          <label for="gc-col-code">Code <span class="tag-req">Required</span></label>
+          <app-gc-info [text]="info.code"></app-gc-info>
+        </div>
         <input id="gc-col-code" name="code" type="text" pInputText maxlength="100" [(ngModel)]="newCode" (ngModelChange)="onNewCode()" />
         <small class="field-hint">Part of the collection's URI; it cannot change later.</small>
       </div>
-      <label class="gc-flag admin-form__span"><p-checkbox name="ordered" [binary]="true" [(ngModel)]="newOrdered"></p-checkbox><span>Ordered (members keep the order you give them)</span></label>
+      <span class="gc-flag-row admin-form__span">
+        <label class="gc-flag"><p-checkbox name="ordered" [binary]="true" [(ngModel)]="newOrdered"></p-checkbox><span>Ordered (members keep the order you give them)</span></label>
+        <app-gc-info [text]="info.ordered"></app-gc-info>
+      </span>
     </div>
     <p class="gc-ed__error" *ngIf="createError && newLabel"><i class="pi pi-info-circle"></i><span>{{ createError }}</span></p>
     <div class="admin-form__actions">

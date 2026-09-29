@@ -1,7 +1,10 @@
 <section class="gc-ed" *ngFor="let section of sections">
   <div class="gc-ed__head">
     <div>
-      <h3 class="gc-ed__title">{{ section.title }}</h3>
+      <div class="gc-ed__title-row">
+        <h3 class="gc-ed__title">{{ section.title }}</h3>
+        <app-gc-info [text]="info[section.kind]"></app-gc-info>
+      </div>
       <p class="gc-ed__hint">{{ section.hint }}</p>
     </div>
   </div>
@@ -43,7 +46,10 @@
 <section class="gc-ed">
   <div class="gc-ed__head">
     <div>
-      <h3 class="gc-ed__title">Narrower concepts</h3>
+      <div class="gc-ed__title-row">
+        <h3 class="gc-ed__title">Narrower concepts</h3>
+        <app-gc-info [text]="info.narrower"></app-gc-info>
+      </div>
       <p class="gc-ed__hint">Concepts that name this one as broader. Change them from the narrower concept.</p>
     </div>
   </div>

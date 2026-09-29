@@ -13,6 +13,7 @@ import { activeFields, buildExtra, customFieldsError, CustomValue, valuesFromExt
 import { ListOption } from '../../utils/list-values';
 import { ConceptOption } from '../gc-concept-picker/gc-concept-picker.component';
 import { buildConceptBody, ConceptForm, emptyForm, formFromConcept, STATUS_LABELS, statusSeverity } from '../../utils/concept-form';
+import { FIELD_INFO } from '../../utils/field-info';
 
 export const AI_DRAFT_FIELDS: { field: AiDraftField; label: string }[] = [
   { field: 'short_definition', label: 'Short definition' },
@@ -62,6 +63,7 @@ export class GcConceptDialogComponent {
 
   // --- AI drafts -------------------------------------------------------
   readonly draftFields = AI_DRAFT_FIELDS;
+  readonly info = FIELD_INFO.concept;
   drafts: Partial<Record<AiDraftField, string>> = {};
   drafting: Partial<Record<AiDraftField, boolean>> = {};
   draftErrors: Partial<Record<AiDraftField, string>> = {};
