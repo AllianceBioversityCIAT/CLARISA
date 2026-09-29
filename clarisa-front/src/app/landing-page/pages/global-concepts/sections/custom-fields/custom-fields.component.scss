@@ -1,0 +1,58 @@
+:host {
+  display: block;
+}
+
+.gc-fields__list {
+  display: flex;
+  flex-direction: column;
+  margin: 12px 0 0;
+}
+
+.gc-fields__row {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) minmax(0, 1fr);
+  gap: 6px 20px;
+  padding: 12px 0;
+  border-top: 1px solid var(--cl-line);
+
+  &:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  dt {
+    color: var(--cl-ink);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  dd {
+    margin: 0;
+    min-width: 0;
+    color: var(--cl-ink-2);
+    font-size: 15px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+}
+
+.gc-fields__long {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.gc-fields__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 576px) {
+  .gc-fields__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

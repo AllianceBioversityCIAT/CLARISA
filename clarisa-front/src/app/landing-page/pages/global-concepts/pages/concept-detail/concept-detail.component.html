@@ -1,0 +1,285 @@
+<app-gc-banner
+  [eyebrow]="concept ? 'TERM ' + concept.term_id + ' · v' + concept.version : 'MELIAF Taxonomy'"
+  [title]="concept?.preferred_label || (loading ? 'Loading concept...' : 'Concept not available')"
+  [crumbs]="[
+    { label: 'Home', link: '/landing-page/home' },
+    { label: 'MELIAF Taxonomy', link: base },
+    { label: concept?.preferred_label || 'Concept' }
+  ]">
+</app-gc-banner>
+
+<section class="gc-section">
+  <div class="container">
+    <!-- Loading -->
+    <div class="gc-detail" *ngIf="loading" aria-busy="true">
+      <div class="gc-card gc-ghost" aria-hidden="true">
+        <span class="gc-skeleton gc-skeleton--title"></span>
+        <span class="gc-skeleton"></span>
+        <span class="gc-skeleton"></span>
+        <span class="gc-skeleton gc-skeleton--short"></span>
+      </div>
+      <div class="gc-card gc-ghost" aria-hidden="true">
+        <span class="gc-skeleton gc-skeleton--short"></span>
+        <span class="gc-skeleton"></span>
+      </div>
+      <span class="gc-sr-only">Loading concept</span>
+    </div>
+
+    <!-- Error -->
+    <div class="gc-state gc-state--error" *ngIf="!loading && error" role="alert">
+      <span class="gc-state__icon"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i></span>
+      <h4>This concept could not be shown</h4>
+      <p>{{ error }}</p>
+      <div class="gc-state__actions">
+        <a class="gc-btn gc-btn--small gc-btn--ghost" [routerLink]="base">Back to the MELIAF Taxonomy</a>
+        <button type="button" class="gc-btn gc-btn--small" (click)="load()">Try again</button>
+      </div>
+    </div>
+
+    <ng-container *ngIf="!loading && concept as c">
+      <!-- Deprecated -->
+      <div class="gc-note gc-note--warn gc-deprecated" *ngIf="isDeprecated" role="status">
+        <i class="pi pi-history" aria-hidden="true"></i>
+        <p *ngIf="c.replaced_by">
+          <strong>This concept is deprecated.</strong> Use
+          <a class="gc-link" [routerLink]="link(c.replaced_by)">{{ c.replaced_by.preferred_label }}</a>
+          (TERM {{ c.replaced_by.term_id }}) instead. It stays published so existing references keep resolving.
+        </p>
+        <p *ngIf="!c.replaced_by">
+          <strong>This concept is deprecated</strong> and has no replacement. It stays published so existing references keep resolving.
+        </p>
+      </div>
+
+      <div class="gc-detail">
+        <div class="gc-detail__main">
+          <article class="gc-card gc-block">
+            <div class="gc-uri">
+              <span class="gc-uri__label">Persistent URI</span>
+              <div class="gc-uri__row">
+                <a
+                  class="gc-link gc-mono"
+                  [href]="safeUrl(c.term_uri)"
+                  *ngIf="safeUrl(c.term_uri); else plainUri"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >{{ c.term_uri }}</a
+                >
+                <ng-template #plainUri
+                  ><span class="gc-mono">{{ c.term_uri }}</span></ng-template
+                >
+                <button
+                  type="button"
+                  class="gc-btn gc-btn--ghost gc-btn--small gc-uri__copy"
+                  (click)="copyUri()"
+                  [attr.aria-label]="'Copy the URI of ' + c.preferred_label">
+                  <i class="pi" [class.pi-copy]="!copied" [class.pi-check]="copied" aria-hidden="true"></i>{{ copied ? 'Copied' : 'Copy' }}
+                </button>
+              </div>
+              <span class="gc-sr-only" aria-live="polite">{{ copied ? 'URI copied to the clipboard' : '' }}</span>
+            </div>
+
+            <div class="gc-chips" *ngIf="c.meliaf_function.length || phases.length || c.term_type">
+              <span class="gc-chip gc-chip--warn" *ngIf="isDeprecated">Deprecated</span>
+              <span class="gc-chip" *ngFor="let fn of c.meliaf_function">{{ label('meliaf_function', fn) }}</span>
+              <span class="gc-chip gc-chip--plain" *ngFor="let phase of phases; let first = first"
+                >{{ first ? 'Phase' : 'Also' }} · {{ label('meliaf_phase', phase) }}</span
+              >
+              <span class="gc-chip gc-chip--plain" *ngIf="c.term_type">{{ label('term_type', c.term_type) }}</span>
+            </div>
+
+            <section class="gc-prose">
+              <h3 class="gc-h4">Definition <span class="gc-tag" *ngIf="ai('definition')"><i class="pi pi-bolt" aria-hidden="true"></i>AI-assisted</span></h3>
+              <p *ngIf="c.definition" class="gc-text">{{ c.definition }}</p>
+              <p *ngIf="!c.definition" class="gc-text gc-text--empty">No definition published yet.</p>
+            </section>
+
+            <section class="gc-prose" *ngIf="c.short_definition">
+              <h3 class="gc-h4">Short definition <span class="gc-tag" *ngIf="ai('short_definition')"><i class="pi pi-bolt" aria-hidden="true"></i>AI-assisted</span></h3>
+              <p class="gc-text">{{ c.short_definition }}</p>
+            </section>
+
+            <section class="gc-prose" *ngIf="c.scope_note">
+              <h3 class="gc-h4">Scope note <span class="gc-tag" *ngIf="ai('scope_note')"><i class="pi pi-bolt" aria-hidden="true"></i>AI-assisted</span></h3>
+              <p class="gc-text">{{ c.scope_note }}</p>
+            </section>
+
+            <section class="gc-prose" *ngIf="c.example_of_use">
+              <h3 class="gc-h4">Example of use <span class="gc-tag" *ngIf="ai('example_of_use')"><i class="pi pi-bolt" aria-hidden="true"></i>AI-assisted</span></h3>
+              <p class="gc-text gc-text--example">{{ c.example_of_use }}</p>
+            </section>
+
+            <section class="gc-prose" *ngIf="c.alternative_labels.length">
+              <h3 class="gc-h4">Alternative labels and acronyms</h3>
+              <ul class="gc-labels">
+                <li *ngFor="let alt of c.alternative_labels" [class.is-discouraged]="alt.discouraged">
+                  <span class="gc-labels__text">{{ alt.label }}</span>
+                  <span class="gc-meta">{{ labelKind(alt) }} · {{ alt.language }}<ng-container *ngIf="alt.discouraged"> · avoid</ng-container></span>
+                </li>
+              </ul>
+            </section>
+
+            <p class="gc-ai-note gc-meta" *ngIf="aiFieldNames.length">
+              <i class="pi pi-info-circle" aria-hidden="true"></i>
+              Fields marked AI-assisted were drafted with AI assistance and accepted by an editor before publication: {{ aiFieldNames.join(', ') }}.
+            </p>
+          </article>
+
+          <app-gc-custom-fields
+            [fields]="c.custom_fields"
+            [aiFields]="c.ai_generated_fields"
+            [lists]="lists"
+            [defs]="fieldDefs"
+            [scheme]="schemeCode"></app-gc-custom-fields>
+
+          <article class="gc-card gc-block" *ngIf="hasRelations">
+            <h3 class="gc-h3">Related concepts</h3>
+            <div class="gc-relations">
+              <div *ngIf="c.broader_terms.length">
+                <h4 class="gc-h4">Broader</h4>
+                <ul>
+                  <li *ngFor="let ref of c.broader_terms">
+                    <a class="gc-link" [routerLink]="link(ref)">{{ ref.preferred_label }}</a>
+                  </li>
+                </ul>
+              </div>
+              <div *ngIf="c.narrower_terms.length">
+                <h4 class="gc-h4">Narrower</h4>
+                <ul>
+                  <li *ngFor="let ref of c.narrower_terms">
+                    <a class="gc-link" [routerLink]="link(ref)">{{ ref.preferred_label }}</a>
+                  </li>
+                </ul>
+              </div>
+              <div *ngIf="c.related_terms.length">
+                <h4 class="gc-h4">Related</h4>
+                <ul>
+                  <li *ngFor="let ref of c.related_terms">
+                    <a class="gc-link" [routerLink]="link(ref)">{{ ref.preferred_label }}</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <article class="gc-card gc-block" *ngIf="c.mappings.length">
+            <h3 class="gc-h3">Mappings to other vocabularies</h3>
+            <ul class="gc-mappings">
+              <li *ngFor="let m of c.mappings">
+                <div class="gc-mappings__head">
+                  <span class="gc-chip gc-chip--plain">{{ m.match_type }}</span>
+                  <span class="gc-meta">{{ m.target_scheme }}</span>
+                </div>
+                <a
+                  class="gc-link"
+                  *ngIf="safeUrl(m.target_uri); else plainTarget"
+                  [href]="safeUrl(m.target_uri)"
+                  target="_blank"
+                  rel="noopener noreferrer">
+                  {{ m.target_label || m.target_uri }} <i class="pi pi-external-link" aria-hidden="true"></i
+                  ><span class="gc-sr-only"> (opens in a new tab)</span>
+                </a>
+                <ng-template #plainTarget
+                  ><span class="gc-mono">{{ m.target_label || m.target_uri }}</span></ng-template
+                >
+                <p class="gc-meta gc-mappings__why" *ngIf="m.justification">{{ m.justification }}</p>
+              </li>
+            </ul>
+          </article>
+
+          <article class="gc-card gc-block">
+            <h3 class="gc-h3">History</h3>
+            <p class="gc-meta" *ngIf="historyError">The change history could not be loaded right now. The concept itself is up to date.</p>
+            <p class="gc-meta" *ngIf="!historyError && !history.length">No recorded changes yet.</p>
+            <ol class="gc-timeline" *ngIf="history.length">
+              <li *ngFor="let entry of history">
+                <span class="gc-timeline__dot" aria-hidden="true"></span>
+                <div>
+                  <p class="gc-timeline__title">
+                    <strong>{{ actionLabel(entry.action) }}</strong>
+                    <span class="gc-meta">{{ date(entry.changed_at) }}</span>
+                  </p>
+                  <p class="gc-meta" *ngIf="changedFields(entry).length">Changed: {{ changedFields(entry).join(', ') }}</p>
+                </div>
+              </li>
+            </ol>
+          </article>
+        </div>
+
+        <aside class="gc-detail__aside">
+          <!-- Only when the back publishes icons: an older back omits the key, and "no icon yet" would be a claim. -->
+          <app-gc-concept-icons *ngIf="c.icons" [icons]="c.icons" [conceptLabel]="c.preferred_label"></app-gc-concept-icons>
+
+          <div class="gc-card gc-facts">
+            <h3 class="gc-h3">About this concept</h3>
+            <dl>
+              <div>
+                <dt>TERM ID</dt>
+                <dd class="gc-mono">{{ c.term_id }}</dd>
+              </div>
+              <div>
+                <dt>Version</dt>
+                <dd>{{ c.version }}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>{{ isDeprecated ? 'Deprecated' : 'Approved' }}</dd>
+              </div>
+              <div *ngIf="c.source_citation || c.source_url">
+                <dt>Source</dt>
+                <dd>
+                  <ng-container *ngIf="c.source_citation">{{ c.source_citation }}</ng-container>
+                  <a
+                    class="gc-link gc-facts__source"
+                    *ngIf="safeUrl(c.source_url)"
+                    [href]="safeUrl(c.source_url)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >{{ c.source_citation ? 'Open source' : c.source_url }} <i class="pi pi-external-link" aria-hidden="true"></i
+                  ></a>
+                </dd>
+              </div>
+              <div *ngIf="c.derivation">
+                <dt>Derivation</dt>
+                <dd>{{ label('derivation', c.derivation) }}</dd>
+              </div>
+              <div *ngIf="c.validated_by.length">
+                <dt>Validated by</dt>
+                <dd>
+                  {{ c.validated_by.join(', ') }}<ng-container *ngIf="c.date_validated"> · {{ date(c.date_validated) }}</ng-container>
+                </dd>
+              </div>
+              <div *ngIf="c.steward">
+                <dt>Steward</dt>
+                <dd>{{ c.steward }}</dd>
+              </div>
+              <div *ngIf="c.date_created">
+                <dt>Created</dt>
+                <dd>{{ date(c.date_created) }}</dd>
+              </div>
+              <div *ngIf="c.date_modified">
+                <dt>Last modified</dt>
+                <dd>{{ date(c.date_modified) }}</dd>
+              </div>
+              <div *ngIf="c.rights_note">
+                <dt>Rights</dt>
+                <dd>{{ c.rights_note }}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="gc-card gc-cta" *ngIf="!proposeOpen">
+            <h3 class="gc-h3">Something to improve?</h3>
+            <p class="gc-lede">Propose a change to this concept. The stewards review it and you follow the decision by email.</p>
+            <button type="button" class="gc-btn" (click)="openPropose()"><i class="pi pi-pencil" aria-hidden="true"></i>Propose a change</button>
+          </div>
+        </aside>
+      </div>
+
+      <div id="gc-propose" class="gc-propose-slot" *ngIf="proposeOpen">
+        <app-gc-propose-form [scheme]="schemeCode" [concept]="c" [closable]="true" (closed)="proposeOpen = false"></app-gc-propose-form>
+      </div>
+    </ng-container>
+  </div>
+</section>
+
+<app-gc-footer></app-gc-footer>

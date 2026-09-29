@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  Matches,
   IsIn,
   IsInt,
   IsOptional,
@@ -28,6 +29,16 @@ export class UsageSummaryQueryDto extends UsageDateRangeQueryDto {
   @Type(() => Number)
   @IsInt()
   mis_id?: number;
+
+  /**
+   * Several systems at once, comma-separated MIS ids (`3,7,12`). `0` stands
+   * for the keys with no MIS. Combines with `mis_id` as an AND.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  @Matches(/^\d+(,\d+)*$/, { message: 'mis_ids must be comma-separated ids' })
+  mis_ids?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -64,4 +75,14 @@ export class UsageLogsQueryDto extends UsageSummaryQueryDto {
   @IsInt()
   @Min(0)
   offset?: number = 0;
+}
+
+export class UsageEndpointsQueryDto extends UsageSummaryQueryDto {
+  /** Maximum number of endpoints returned (busiest first). */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(500)
+  limit?: number = 200;
 }

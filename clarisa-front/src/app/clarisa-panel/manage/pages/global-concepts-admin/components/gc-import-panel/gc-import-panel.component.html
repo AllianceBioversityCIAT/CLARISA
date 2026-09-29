@@ -1,0 +1,276 @@
+<div class="gc-panel">
+  <div class="gc-bar">
+    <div>
+      <p class="gc-bar__hint">
+        Load many concepts at once from the MELIAF Excel or a CSV. Rows are matched by TERM ID, then by preferred label; an empty cell never clears a
+        stored value. Nothing is written until the preview is reviewed and confirmed.
+      </p>
+    </div>
+  </div>
+
+  <ol class="gc-steps" aria-label="Import steps">
+    <li class="gc-steps__item" [class.is-active]="step === 'source'" [class.is-done]="step !== 'source'">
+      <span class="gc-steps__num">1</span> Content
+    </li>
+    <li class="gc-steps__item" [class.is-active]="step === 'mapping'" [class.is-done]="step === 'review' || step === 'done'">
+      <span class="gc-steps__num">2</span> Columns
+    </li>
+    <li class="gc-steps__item" [class.is-active]="step === 'review'" [class.is-done]="step === 'done'">
+      <span class="gc-steps__num">3</span> Preview
+    </li>
+    <li class="gc-steps__item" [class.is-active]="step === 'done'"><span class="gc-steps__num">4</span> Import</li>
+  </ol>
+
+  <!-- ----------------------------------------------------- 1 · source -->
+  <div class="admin-card" *ngIf="step === 'source'">
+    <div class="gc-source">
+      <section class="gc-source__block">
+        <h3 class="admin-card__title">Upload a file</h3>
+        <p class="admin-card__hint">Accepted: {{ acceptedExtensions }}. The first row is read as the header.</p>
+        <label class="gc-dropzone" [class.is-busy]="parsing">
+          <i class="pi" [ngClass]="parsing ? 'pi-spin pi-spinner' : 'pi-file-import'"></i>
+          <span class="gc-dropzone__text">{{ parsing ? 'Reading…' : 'Choose a file' }}</span>
+          <input type="file" [accept]="acceptedExtensions" [disabled]="parsing" (change)="onFileSelected($event)" hidden />
+        </label>
+      </section>
+
+      <div class="gc-source__divider"><span>or</span></div>
+
+      <section class="gc-source__block admin-form">
+        <h3 class="admin-card__title">Paste from a spreadsheet</h3>
+        <p class="admin-card__hint">Copy the cells, header row included, and paste them here. Tabs, commas and semicolons are understood.</p>
+        <textarea
+          pInputTextarea
+          rows="8"
+          class="gc-paste"
+          aria-label="Spreadsheet rows to import"
+          placeholder="TERM ID&#9;TERM&#9;DEFINITION&#10;2374&#9;Outcome&#9;A change in…"
+          [(ngModel)]="pastedText"></textarea>
+        <div class="admin-form__actions gc-source__actions">
+          <button
+            pButton
+            type="button"
+            label="Read pasted content"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            class="btn-brand"
+            [disabled]="!pastedText.trim()"
+            [loading]="parsing"
+            (click)="usePastedText()"></button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- 2 · mapping -->
+  <div class="admin-card" *ngIf="step === 'mapping' && table">
+    <div class="gc-recap">
+      <i class="pi pi-check-circle"></i>
+      <span
+        ><strong>{{ table.rows.length }}</strong> row(s) from <strong>{{ table.sourceName }}</strong> · {{ mappedCount }} of
+        {{ mappings.length }} columns mapped</span
+      >
+      <button pButton type="button" label="Change source" class="p-button-text p-button-sm" (click)="backToSource()"></button>
+    </div>
+
+    <div class="gc-map-head">
+      <p class="admin-card__hint">
+        Pick the schema field each column fills, or leave it as <em>Ignore</em>. Headers that match a field name were mapped already.
+      </p>
+      <button
+        *ngIf="aiEnabled"
+        pButton
+        type="button"
+        class="p-button-outlined"
+        icon="pi pi-bolt"
+        label="Auto-match with AI"
+        pTooltip="Only the headers and the first 5 rows are sent. Nothing you picked by hand is changed."
+        [loading]="aiMapping"
+        (click)="autoMatch()"></button>
+    </div>
+
+    <p class="admin-note gc-map-note" *ngIf="mappingNote" role="status">
+      <i class="pi pi-info-circle"></i>
+      <span>{{ mappingNote }}</span>
+    </p>
+
+    <ul class="gc-map">
+      <li class="gc-map__row" *ngFor="let mapping of mappings; trackBy: trackByColumn" [class.is-mapped]="mapping.field">
+        <div class="gc-map__column">
+          <span class="gc-ed__title-row">
+            <span class="gc-map__header">{{ mapping.header }}</span>
+            <app-gc-info [text]="columnInfo(mapping.header)"></app-gc-info>
+          </span>
+          <span class="gc-meta gc-map__sample" *ngFor="let sample of samples(mapping.column)" [title]="sample">{{ sample }}</span>
+        </div>
+        <i class="pi pi-arrow-right gc-map__arrow" aria-hidden="true"></i>
+        <div class="gc-map__field admin-form">
+          <p-dropdown
+            appendTo="body"
+            panelStyleClass="admin-dropdown-panel"
+            placeholder="Ignore this column"
+            filterBy="label,hint"
+            [ariaLabel]="'Field for column ' + mapping.header"
+            [filter]="true"
+            [showClear]="true"
+            [options]="fieldOptions"
+            [ngModel]="mapping.field"
+            (ngModelChange)="onPick(mapping.column, $event)">
+            <ng-template let-option pTemplate="item">
+              <div class="gc-field-option">
+                <span class="gc-field-option__name">{{ option.label }}</span>
+                <span class="gc-meta">{{ option.hint }}</span>
+              </div>
+            </ng-template>
+          </p-dropdown>
+          <span class="gc-map__meta">
+            <span class="gc-confidence" *ngIf="badge(mapping) as label" [class.is-ai]="mapping.source === 'ai'">{{ label }}</span>
+            <span class="gc-meta" *ngIf="mapping.field">{{ hintFor(mapping.field) }}</span>
+          </span>
+        </div>
+      </li>
+    </ul>
+
+    <p class="field-error gc-map-error" *ngIf="mappingError"><i class="pi pi-exclamation-triangle"></i> {{ mappingError }}</p>
+
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Back" class="p-button-outlined" (click)="backToSource()"></button>
+      <button
+        pButton
+        type="button"
+        label="Preview the import"
+        icon="pi pi-search"
+        class="btn-brand"
+        [disabled]="!!mappingError"
+        [loading]="previewing"
+        (click)="runPreview()"></button>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- 3 · preview -->
+  <div class="admin-card" *ngIf="step === 'review' && preview">
+    <div class="gc-summary">
+      <div class="gc-summary__item">
+        <span class="gc-summary__value">{{ preview.summary.total }}</span
+        ><span class="gc-summary__label">Rows</span>
+      </div>
+      <div class="gc-summary__item is-create">
+        <span class="gc-summary__value">{{ preview.summary.to_create }}</span
+        ><span class="gc-summary__label">To create</span>
+      </div>
+      <div class="gc-summary__item is-update">
+        <span class="gc-summary__value">{{ preview.summary.to_update }}</span
+        ><span class="gc-summary__label">To update</span>
+      </div>
+      <div class="gc-summary__item">
+        <span class="gc-summary__value">{{ preview.summary.unchanged }}</span
+        ><span class="gc-summary__label">Unchanged</span>
+      </div>
+      <div class="gc-summary__item" [class.is-alert]="invalidCount">
+        <span class="gc-summary__value">{{ preview.summary.invalid }}</span
+        ><span class="gc-summary__label">Invalid</span>
+      </div>
+      <div class="gc-summary__item" [class.is-warn]="preview.summary.with_warnings">
+        <span class="gc-summary__value">{{ preview.summary.with_warnings }}</span
+        ><span class="gc-summary__label">With warnings</span>
+      </div>
+    </div>
+
+    <div class="admin-table-toolbar gc-toolbar gc-filter">
+      <p-dropdown
+        appendTo="body"
+        panelStyleClass="admin-dropdown-panel"
+        ariaLabel="Filter rows by action"
+        [options]="actionFilterOptions"
+        [(ngModel)]="actionFilter"
+        (onChange)="applyActionFilter()"></p-dropdown>
+      <span class="admin-table-toolbar__count">Showing {{ reviewRows.length }} row(s)</span>
+    </div>
+
+    <div class="gc-card">
+      <p-table
+        [value]="reviewRows"
+        sortField="row"
+        [sortOrder]="1"
+        [rows]="20"
+        [paginator]="reviewRows.length > 20"
+        styleClass="p-datatable-sm admin-table gc-review-table"
+        responsiveLayout="scroll">
+        <ng-template pTemplate="header">
+          <tr>
+            <th scope="col" pSortableColumn="row" style="width: 72px">Row <p-sortIcon field="row"></p-sortIcon></th>
+            <th scope="col" pSortableColumn="action" style="width: 116px">Action <p-sortIcon field="action"></p-sortIcon></th>
+            <th scope="col" pSortableColumn="term_id" style="width: 100px">TERM ID <p-sortIcon field="term_id"></p-sortIcon></th>
+            <th scope="col" pSortableColumn="preferred_label" style="width: 200px">Label <p-sortIcon field="preferred_label"></p-sortIcon></th>
+            <th scope="col" pSortableColumn="changesText">Changes <p-sortIcon field="changesText"></p-sortIcon></th>
+            <th scope="col" pSortableColumn="errorsText" style="width: 200px">Errors <p-sortIcon field="errorsText"></p-sortIcon></th>
+            <th scope="col" pSortableColumn="warningsText" style="width: 200px">Warnings <p-sortIcon field="warningsText"></p-sortIcon></th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+          <tr [class.gc-row-invalid]="row.action === 'invalid'">
+            <td data-label="Row" class="cell-num">{{ row.row }}</td>
+            <td data-label="Action"><p-tag [value]="actionLabel(row.action)" [severity]="actionSeverity(row.action)"></p-tag></td>
+            <td data-label="TERM ID" class="cell-num">{{ row.term_id ?? 'New' }}</td>
+            <td data-card-title data-label="Label" class="cell-primary">{{ row.preferred_label || '—' }}</td>
+            <td data-label="Changes">
+              <ng-container *ngIf="row.changes?.length; else noChanges">
+                <span class="cell-chip" *ngFor="let change of row.changes">{{ change }}</span>
+              </ng-container>
+              <ng-template #noChanges><span class="cell-empty">—</span></ng-template>
+            </td>
+            <td data-label="Errors">
+              <span class="gc-msg is-error" *ngFor="let message of row.errors">{{ message }}</span>
+            </td>
+            <td data-label="Warnings">
+              <span class="gc-msg is-warn" *ngFor="let message of row.warnings">{{ message }}</span>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="7" class="cell-empty gc-empty-cell">No row matches this filter.</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+
+    <div class="gc-import-options" *ngIf="invalidCount">
+      <p-checkbox inputId="gc-skip-invalid" [binary]="true" [(ngModel)]="skipInvalid"></p-checkbox>
+      <label for="gc-skip-invalid"
+        >Skip the {{ invalidCount }} invalid row(s) and import the rest. Otherwise fix them in the file and read it again.</label
+      >
+    </div>
+
+    <p class="gc-hint-line" *ngIf="!writableCount">Nothing to write: every row is unchanged or invalid.</p>
+
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Back" class="p-button-outlined" (click)="backToMapping()"></button>
+      <button
+        pButton
+        type="button"
+        icon="pi pi-cloud-upload"
+        class="btn-brand"
+        [label]="'Import ' + writableCount + ' concept(s)'"
+        [disabled]="!canImport"
+        [loading]="importing"
+        (click)="confirmImport()"></button>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------------- 4 · done -->
+  <div class="admin-card" *ngIf="step === 'done' && result">
+    <div class="gc-state">
+      <span class="gc-state__icon"><i class="pi pi-check"></i></span>
+      <p class="gc-state__title">Import finished</p>
+      <p class="gc-state__text">
+        <strong>{{ result.summary.to_create }}</strong> concept(s) created and <strong>{{ result.summary.to_update }}</strong> updated.
+        <ng-container *ngIf="result.summary.invalid"> {{ result.summary.invalid }} invalid row(s) were skipped.</ng-container>
+      </p>
+      <div class="gc-bar__actions">
+        <button pButton type="button" label="Open Concepts" icon="pi pi-list" class="btn-brand" (click)="openConcepts.emit()"></button>
+        <button pButton type="button" label="Import another file" icon="pi pi-plus" class="p-button-outlined" (click)="startOver()"></button>
+      </div>
+    </div>
+  </div>
+</div>

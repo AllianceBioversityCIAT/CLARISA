@@ -113,3 +113,82 @@ export class UsageLogsResponseDto {
   total: number;
   items: UsageLogItemDto[];
 }
+
+export class EndpointConsumerDto {
+  api_key_id: number;
+  api_key_name: string;
+  key_prefix: string;
+  mis_id: number | null;
+  mis_acronym: string | null;
+  total_requests: number;
+  last_used_at: Date | null;
+}
+
+export class EndpointUsageItemDto {
+  /** Name the caller reported (`clarisa-api` for direct calls to this API) */
+  microservice_name: string;
+  /** Request path without its query string */
+  endpoint: string;
+  http_method: string | null;
+  total_requests: number;
+  error_count: number;
+  avg_response_time_ms: number | null;
+  unique_api_keys: number;
+  last_used_at: Date | null;
+  consumers: EndpointConsumerDto[];
+}
+
+export class EndpointUsageResponseDto {
+  period: UsagePeriodDto;
+  total_requests: number;
+  items: EndpointUsageItemDto[];
+}
+
+export class MisActivityItemDto {
+  mis_id: number | null;
+  mis_acronym: string;
+  mis_name: string;
+  total_keys: number;
+  active_keys: number;
+  usage_count: number;
+  last_used_at: Date | null;
+}
+
+export class OverviewSystemDto {
+  /** `null` = keys with no MIS */
+  mis_id: number | null;
+  acronym: string;
+  name: string;
+  environment: string | null;
+  calls: number;
+  errors: number;
+  avg_response_time_ms: number | null;
+  api_keys: number;
+  last_used_at: Date | null;
+}
+
+export class OverviewSeriesPointDto {
+  /** `YYYY-MM-DD`; with `granularity=week`, the Monday of the week */
+  bucket: string;
+  mis_id: number | null;
+  calls: number;
+  errors: number;
+  avg_response_time_ms: number | null;
+}
+
+export class OverviewHeatCellDto {
+  /** 1 = Sunday … 7 = Saturday (MySQL `DAYOFWEEK`) */
+  day_of_week: number;
+  /** 0-23, in the database clock */
+  hour: number;
+  mis_id: number | null;
+  calls: number;
+}
+
+export class UsageOverviewResponseDto {
+  period: UsagePeriodDto;
+  granularity: 'day' | 'week';
+  systems: OverviewSystemDto[];
+  series: OverviewSeriesPointDto[];
+  heatmap: OverviewHeatCellDto[];
+}

@@ -1,0 +1,187 @@
+:host {
+  display: block;
+}
+
+.gc-narrow {
+  max-width: 760px;
+}
+
+.gc-follow {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.gc-follow__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 16px;
+
+  p {
+    margin: 0 0 4px;
+  }
+
+  .gc-h3 {
+    overflow-wrap: anywhere;
+  }
+}
+
+.gc-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.gc-pill--warn {
+  background: var(--cl-surface);
+  color: var(--cl-warn);
+  box-shadow: inset 0 0 0 1px var(--cl-warn);
+}
+
+.gc-pill--ok {
+  background: var(--cl-ok);
+  color: var(--cl-surface);
+}
+
+.gc-pill--error {
+  background: var(--cl-surface);
+  color: var(--cl-error);
+  box-shadow: inset 0 0 0 1px var(--cl-error);
+}
+
+// Progress rail: four steps, wraps on a phone instead of scrolling.
+.gc-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface-2);
+  list-style: none;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--cl-ink-2);
+    font-size: 14px;
+  }
+
+  li.is-done {
+    color: var(--cl-ink);
+  }
+
+  li.is-current {
+    color: var(--cl-brand-deeper);
+    font-weight: 600;
+  }
+
+  li.is-rejected {
+    color: var(--cl-error);
+    font-weight: 600;
+  }
+}
+
+.gc-steps__dot {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--cl-ink-3);
+  border-radius: 50%;
+  background: var(--cl-surface);
+
+  .is-done & {
+    border-color: var(--cl-brand-deep);
+    background: var(--cl-brand-deep);
+  }
+
+  .is-current & {
+    border-color: var(--cl-brand-deep);
+  }
+
+  .is-rejected & {
+    border-color: var(--cl-error);
+    background: var(--cl-error);
+  }
+}
+
+.gc-pre {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.gc-follow__facts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--cl-line);
+
+  dt {
+    color: var(--cl-ink-2);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 2px 0 0;
+    color: var(--cl-ink);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+}
+
+.gc-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.gc-ghost {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .gc-skeleton--title {
+    width: 50%;
+    height: 20px;
+  }
+
+  .gc-skeleton--short {
+    width: 60%;
+  }
+}
+
+.gc-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid var(--cl-line);
+}
+
+.gc-answer__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--cl-ink);
+}
+
+.gc-answer__actions {
+  display: flex;
+  justify-content: flex-end;
+}

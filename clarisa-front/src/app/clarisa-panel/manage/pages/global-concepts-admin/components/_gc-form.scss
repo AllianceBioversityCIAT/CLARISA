@@ -1,0 +1,300 @@
+/**
+ * Form and dialog skin of the MELIAF Taxonomy admin, in the panel's new line
+ * (shadcn-like): white dialog with a hairline, a clear header with subtitle,
+ * the body in titled sections, 38px controls with an 8px radius and a brand
+ * focus ring, a sticky footer with Cancel (outline) before the one primary.
+ *
+ * It is a mixin included ONCE, by the module's root component, under
+ * `:host ::ng-deep`: the dialogs render inside that host (no `appendTo`), so
+ * nothing outside this module changes and the CSS is not repeated in every
+ * child component's budget. The global `_admin-form.scss` stays untouched.
+ *
+ * Tokens only, px only, no `!important`.
+ */
+@mixin gc-form-skin {
+  /* ---- dialog shell --------------------------------------------------- */
+  .gc-dialog.p-dialog {
+    border: 1px solid var(--cl-line);
+    border-radius: 12px;
+    background: var(--cl-surface);
+    box-shadow: 0 1px 2px rgba(16, 36, 28, 0.06), 0 24px 56px -20px rgba(16, 36, 28, 0.32);
+
+    .p-dialog-header {
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--cl-line);
+    }
+
+    .p-dialog-title {
+      min-width: 0;
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    .p-dialog-header-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      color: var(--cl-ink-3);
+
+      &:enabled:hover {
+        background: var(--cl-surface-2);
+        color: var(--cl-ink);
+      }
+
+      &:focus {
+        box-shadow: 0 0 0 3px var(--cl-brand-ring);
+      }
+    }
+
+    .p-dialog-content {
+      padding: 20px 24px 0;
+    }
+
+    /* The confirm dialog keeps PrimeNG's own footer. */
+    .p-dialog-footer {
+      padding: 14px 24px;
+    }
+
+    .admin-note {
+      border-color: var(--cl-line);
+      background: var(--cl-surface-2);
+      color: var(--cl-ink-2);
+
+      i {
+        color: var(--cl-brand-deeper);
+      }
+    }
+  }
+
+  .gc-dialog__title {
+    display: block;
+    color: var(--cl-ink);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+  }
+
+  .gc-dialog__subtitle {
+    display: block;
+    margin-top: 4px;
+    color: var(--cl-ink-3);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  /* Footer that stays in view while the body scrolls; it spans the content
+     padding so its hairline runs edge to edge. */
+  .gc-dialog .gc-dialog-foot {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin: 24px -24px 0;
+    padding: 14px 24px;
+    border-top: 1px solid var(--cl-line);
+    background: var(--cl-surface);
+  }
+
+  /* ---- sections ------------------------------------------------------- */
+  .gc-section {
+    padding: 20px 0;
+    border-top: 1px solid var(--cl-line);
+
+    &:first-of-type {
+      padding-top: 4px;
+      border-top: 0;
+    }
+
+    &:last-of-type {
+      padding-bottom: 0;
+    }
+  }
+
+  .gc-section__head {
+    margin-bottom: 14px;
+  }
+
+  .gc-section__title {
+    margin: 0;
+    color: var(--cl-ink);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .gc-section__hint {
+    margin: 2px 0 0;
+    color: var(--cl-ink-3);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ---- label + (i) ---------------------------------------------------- */
+  .gc-field-head,
+  .gc-ed__title-row,
+  .gc-flag-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .gc-field-head {
+    min-height: 20px;
+    margin-bottom: 6px;
+  }
+
+  .admin-form .field .gc-field-head label {
+    margin-bottom: 0;
+  }
+
+  /* A checkbox label: the global `.field label { display: block }` glued the
+     box to its text. */
+  .admin-form .field label.gc-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+    font-weight: 500;
+  }
+
+  /* ---- fields --------------------------------------------------------- */
+  .admin-form {
+    .admin-form__grid {
+      gap: 16px;
+    }
+
+    .admin-form__grid .field {
+      margin-bottom: 0;
+    }
+
+    .field label {
+      color: var(--cl-ink);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .p-inputtext,
+    .p-dropdown,
+    .p-multiselect,
+    .p-chips .p-chips-multiple-container {
+      min-height: 38px;
+      border: 1px solid var(--cl-line);
+      border-radius: 8px;
+      background: var(--cl-surface);
+      box-shadow: 0 1px 2px rgba(16, 36, 28, 0.04);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .p-inputtext,
+    .p-dropdown {
+      height: 38px;
+    }
+
+    textarea.p-inputtext,
+    .p-multiselect,
+    .p-chips .p-inputtext {
+      height: auto;
+    }
+
+    textarea.p-inputtext {
+      min-height: 84px;
+    }
+
+    /* The dropdown label is itself a `.p-inputtext`: it must not draw a
+       second box inside the control. */
+    .p-dropdown .p-dropdown-label.p-inputtext,
+    .p-chips .p-chips-multiple-container .p-inputtext {
+      min-height: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .p-dropdown .p-dropdown-label.p-inputtext {
+      height: 36px;
+    }
+
+    .p-dropdown .p-dropdown-label,
+    .p-multiselect .p-multiselect-label {
+      line-height: 36px;
+    }
+
+    .p-inputtext:enabled:hover,
+    .p-dropdown:not(.p-disabled):hover,
+    .p-multiselect:not(.p-disabled):hover {
+      border-color: var(--cl-ink-3);
+    }
+
+    .p-inputtext:enabled:focus,
+    .p-dropdown:not(.p-disabled).p-focus,
+    .p-multiselect:not(.p-disabled).p-focus,
+    .p-chips .p-chips-multiple-container.p-focus {
+      border-color: var(--cl-brand);
+      box-shadow: 0 0 0 3px var(--cl-brand-ring);
+    }
+
+    .field-hint {
+      margin-top: 6px;
+      line-height: 1.45;
+    }
+  }
+
+  /* ---- buttons -------------------------------------------------------- */
+  .admin-form__actions {
+    gap: 8px;
+  }
+
+  .gc-dialog .p-button.p-button-outlined,
+  .admin-form .p-button.p-button-outlined {
+    height: 38px;
+    padding: 0 16px;
+    border: 1px solid var(--cl-line);
+    border-radius: 8px;
+    background: var(--cl-surface);
+    box-shadow: 0 1px 2px rgba(16, 36, 28, 0.04);
+    color: var(--cl-ink);
+    font-size: 14px;
+    font-weight: 600;
+
+    &:enabled:hover {
+      border-color: var(--cl-line);
+      background: var(--cl-surface-2);
+      color: var(--cl-ink);
+    }
+
+    &:enabled:focus {
+      box-shadow: 0 0 0 3px var(--cl-brand-ring);
+    }
+  }
+
+  .gc-dialog .btn-brand.p-button,
+  .gc-dialog .btn-caution.p-button,
+  .admin-form .btn-brand.p-button,
+  .admin-form .btn-caution.p-button {
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-weight: 600;
+
+    &:enabled:focus {
+      box-shadow: 0 0 0 3px var(--cl-brand-ring);
+    }
+  }
+
+  @media (max-width: 720px) {
+    .gc-dialog .gc-dialog-foot {
+      flex-wrap: wrap;
+
+      .p-button {
+        flex: 1 1 auto;
+        justify-content: center;
+        min-height: 44px;
+      }
+    }
+  }
+}

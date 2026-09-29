@@ -1,0 +1,476 @@
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving && !changingStatus"
+  [dismissableMask]="!saving && !changingStatus"
+  [style]="{ width: '920px' }"
+  [breakpoints]="{ '960px': '94vw' }"
+  styleClass="admin-dialog gc-dialog gc-concept-dialog"
+  [header]="editing ? editing.term_id + ' · ' + editing.preferred_label : 'New concept'"
+  (onHide)="onHide()">
+  <p-header>
+    <span class="gc-dialog__title">{{ editing ? editing.term_id + ' · ' + editing.preferred_label : 'New concept' }}</span>
+    <span class="gc-dialog__subtitle">{{
+      editing ? 'Every change is logged in the concept history.' : 'Only the preferred label is required; the rest can wait.'
+    }}</span>
+  </p-header>
+  <nav class="admin-tabs gc-dialog-tabs" role="tablist" aria-label="Concept sections">
+    <button
+      *ngFor="let option of tabs"
+      type="button"
+      role="tab"
+      class="admin-tabs__item"
+      [class.is-active]="tab === option.id"
+      [class.is-locked]="!!option.lockedReason"
+      [attr.aria-selected]="tab === option.id"
+      [attr.aria-disabled]="!!option.lockedReason"
+      [pTooltip]="option.lockedReason || ''"
+      tooltipPosition="bottom"
+      (click)="selectTab(option)">
+      <i class="pi pi-lock" *ngIf="option.lockedReason" aria-hidden="true"></i>
+      <span>{{ option.label }}</span>
+    </button>
+  </nav>
+
+  <!-- ============================================================= details -->
+  <form *ngIf="tab === 'details' || tab === 'fields'" class="admin-form gc-concept-form" (ngSubmit)="save()" autocomplete="off">
+    <ng-container *ngIf="tab === 'details'">
+      <p class="admin-note">
+        <i class="pi pi-info-circle"></i>
+        <span>
+          Saving writes straight to the published scheme and is logged as a <strong>direct admin edit</strong>.
+          <ng-container *ngIf="editing">Only the fields you change are recorded.</ng-container>
+          <ng-container *ngIf="!editing">Labels, relations, mappings and icons open once the concept exists.</ng-container>
+        </span>
+      </p>
+
+      <section class="gc-section" aria-labelledby="gc-sec-identity">
+        <header class="gc-section__head">
+          <h3 class="gc-section__title" id="gc-sec-identity">Identity</h3>
+          <p class="gc-section__hint">What the concept is called and what it means.</p>
+        </header>
+        <div class="admin-form__grid">
+          <div class="field" *ngIf="!editing">
+            <div class="gc-field-head">
+              <label for="gc-term-id">TERM ID <span class="tag-opt">Optional</span></label>
+              <app-gc-info [text]="info.term_id"></app-gc-info>
+            </div>
+            <input id="gc-term-id" name="term_id" type="number" min="1" pInputText [(ngModel)]="form.term_id" />
+            <small class="field-hint">Keep the code of an existing register. Left empty, the next free one is assigned.</small>
+          </div>
+
+          <div class="field" [class.admin-form__span]="editing">
+            <div class="gc-field-head">
+              <label for="gc-label">Preferred label <span class="tag-req">Required</span></label>
+              <app-gc-info [text]="info.preferred_label"></app-gc-info>
+            </div>
+            <input id="gc-label" name="preferred_label" type="text" maxlength="500" pInputText [(ngModel)]="form.preferred_label" />
+          </div>
+
+          <div class="field admin-form__span">
+            <div class="gc-field-head">
+              <label for="gc-definition">Definition</label>
+              <app-gc-info [text]="info.definition"></app-gc-info>
+            </div>
+            <textarea id="gc-definition" name="definition" pInputTextarea rows="4" [(ngModel)]="form.definition"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="gc-section" aria-labelledby="gc-sec-guidance">
+        <header class="gc-section__head">
+          <h3 class="gc-section__title" id="gc-sec-guidance">Usage guidance</h3>
+          <p class="gc-section__hint">Help readers pick the right term.<ng-container *ngIf="aiEnabled"> AI can draft each text; nothing is saved until you accept and save.</ng-container></p>
+        </header>
+        <div class="admin-form__grid">
+          <ng-container *ngFor="let item of draftFields">
+            <div class="field" [class.admin-form__span]="item.field === 'short_definition'">
+              <div class="gc-label-row">
+                <div class="gc-field-head">
+                  <label [for]="'gc-' + item.field">
+                    {{ item.label }} <span class="tag-opt">Optional</span>
+                    <span class="gc-ai-mark" *ngIf="aiAccepted.has(item.field) || editing?.ai_generated_fields?.includes(item.field)" title="Text drafted by AI and accepted by an editor"
+                      ><i class="pi pi-bolt"></i> AI</span
+                    >
+                  </label>
+                  <app-gc-info [text]="info[item.field]"></app-gc-info>
+                </div>
+                <button
+                  *ngIf="aiEnabled"
+                  type="button"
+                  class="gc-ai-btn"
+                  [disabled]="!canDraft() || drafting[item.field]"
+                  [attr.aria-label]="'Draft ' + item.label + ' with AI'"
+                  [title]="canDraft() ? 'Suggests a text from the label and the definition. Nothing is saved until you accept and save.' : 'Write the preferred label first'"
+                  (click)="draft(item.field)">
+                  <i class="pi" [ngClass]="drafting[item.field] ? 'pi-spin pi-spinner' : 'pi-bolt'"></i>
+                  {{ drafting[item.field] ? 'Drafting…' : 'Draft with AI' }}
+                </button>
+              </div>
+
+              <input
+                *ngIf="item.field === 'short_definition'"
+                id="gc-short_definition"
+                name="short_definition"
+                type="text"
+                maxlength="500"
+                pInputText
+                [(ngModel)]="form.short_definition" />
+              <textarea *ngIf="item.field === 'scope_note'" id="gc-scope_note" name="scope_note" pInputTextarea rows="3" [(ngModel)]="form.scope_note"></textarea>
+              <textarea
+                *ngIf="item.field === 'example_of_use'"
+                id="gc-example_of_use"
+                name="example_of_use"
+                pInputTextarea
+                rows="3"
+                [(ngModel)]="form.example_of_use"></textarea>
+              <small class="field-hint" *ngIf="item.field === 'short_definition'">One line, used in tooltips. {{ form.short_definition.length }}/500</small>
+
+              <div class="gc-ai-draft" *ngIf="drafts[item.field] as suggestion" role="status">
+                <span class="gc-ai-draft__tag"><i class="pi pi-bolt"></i> AI suggestion · advisory</span>
+                <p class="gc-ai-draft__text">{{ suggestion }}</p>
+                <div class="gc-ai-draft__actions">
+                  <button pButton type="button" label="Discard" class="p-button-text p-button-sm" (click)="discardDraft(item.field)"></button>
+                  <button pButton type="button" label="Accept" icon="pi pi-check" class="p-button-outlined gc-ai-draft__accept" (click)="acceptDraft(item.field)"></button>
+                </div>
+              </div>
+              <small class="field-error" *ngIf="draftErrors[item.field]">{{ draftErrors[item.field] }}</small>
+            </div>
+          </ng-container>
+        </div>
+      </section>
+
+      <section class="gc-section" aria-labelledby="gc-sec-classification">
+        <header class="gc-section__head">
+          <h3 class="gc-section__title" id="gc-sec-classification">Classification</h3>
+          <p class="gc-section__hint">Where the concept sits in MELIAF. Readers and the API filter by these values.</p>
+        </header>
+        <div class="admin-form__grid">
+          <div class="field">
+            <div class="gc-field-head">
+              <label for="gc-term-type">Term type</label>
+              <app-gc-info [text]="info.term_type"></app-gc-info>
+            </div>
+            <p-dropdown
+              inputId="gc-term-type"
+              name="term_type"
+              appendTo="body"
+              panelStyleClass="admin-dropdown-panel"
+              placeholder="Not set"
+              [showClear]="true"
+              [options]="optionsFor('term_type')"
+              [(ngModel)]="form.term_type">
+            </p-dropdown>
+          </div>
+
+          <div class="field">
+            <div class="gc-field-head">
+              <label for="gc-function">MELIAF function</label>
+              <app-gc-info [text]="info.meliaf_function"></app-gc-info>
+            </div>
+            <p-multiSelect
+              inputId="gc-function"
+              name="meliaf_function"
+              appendTo="body"
+              display="chip"
+              placeholder="Not set"
+              [showHeader]="false"
+              [options]="optionsFor('meliaf_function')"
+              [(ngModel)]="form.meliaf_function">
+            </p-multiSelect>
+          </div>
+
+          <div class="field">
+            <div class="gc-field-head">
+              <label for="gc-phase">Primary MELIAF phase</label>
+              <app-gc-info [text]="info.meliaf_phase_primary"></app-gc-info>
+            </div>
+            <p-dropdown
+              inputId="gc-phase"
+              name="meliaf_phase_primary"
+              appendTo="body"
+              panelStyleClass="admin-dropdown-panel"
+              placeholder="Not set"
+              [showClear]="true"
+              [options]="optionsFor('meliaf_phase')"
+              [(ngModel)]="form.meliaf_phase_primary">
+            </p-dropdown>
+          </div>
+
+          <div class="field">
+            <div class="gc-field-head">
+              <label for="gc-derivation">Derivation</label>
+              <app-gc-info [text]="info.derivation"></app-gc-info>
+            </div>
+            <p-dropdown
+              inputId="gc-derivation"
+              name="derivation"
+              appendTo="body"
+              panelStyleClass="admin-dropdown-panel"
+              placeholder="Not set"
+              [showClear]="true"
+              [options]="optionsFor('derivation')"
+              [(ngModel)]="form.derivation">
+            </p-dropdown>
+          </div>
+        </div>
+      </section>
+
+      <section class="gc-section" aria-labelledby="gc-sec-source">
+        <header class="gc-section__head">
+          <h3 class="gc-section__title" id="gc-sec-source">Source and stewardship</h3>
+          <p class="gc-section__hint">Where the definition comes from and who looks after it.</p>
+        </header>
+        <div class="admin-form__grid">
+          <div class="field">
+            <div class="gc-field-head">
+              <label for="gc-citation">Source citation</label>
+              <app-gc-info [text]="info.source_citation"></app-gc-info>
+            </div>
+            <input id="gc-citation" name="source_citation" type="text" pInputText [(ngModel)]="form.source_citation" />
+          </div>
+
+          <div class="field">
+            <div class="gc-field-head">
+              <label for="gc-url">Source URL</label>
+              <app-gc-info [text]="info.source_url"></app-gc-info>
+            </div>
+            <input id="gc-url" name="source_url" type="url" maxlength="1000" pInputText placeholder="https://" [(ngModel)]="form.source_url" />
+          </div>
+
+          <div class="field">
+            <div class="gc-field-head">
+              <label for="gc-steward">Steward</label>
+              <app-gc-info [text]="info.steward"></app-gc-info>
+            </div>
+            <input id="gc-steward" name="steward" type="text" maxlength="255" pInputText [(ngModel)]="form.steward" />
+            <small class="field-hint">Person or team responsible for the term.</small>
+          </div>
+
+          <div class="field">
+            <div class="gc-field-head">
+              <label for="gc-notes">Internal notes</label>
+              <app-gc-info [text]="info.notes"></app-gc-info>
+            </div>
+            <textarea id="gc-notes" name="notes" pInputTextarea rows="2" [(ngModel)]="form.notes"></textarea>
+            <small class="field-hint"><i class="pi pi-lock"></i> Never published — only admins see this.</small>
+          </div>
+        </div>
+      </section>
+    </ng-container>
+
+    <!-- ======================================================= custom fields -->
+    <ng-container *ngIf="tab === 'fields'">
+      <p class="admin-note">
+        <i class="pi pi-info-circle"></i>
+        <span>Fields this scheme defines for itself (Setup → Custom fields). They are saved together with the details.</span>
+      </p>
+
+      <div class="gc-skeleton" *ngIf="fieldsLoading" aria-busy="true" aria-label="Loading custom fields">
+        <div class="gc-skeleton__row" *ngFor="let _ of [1, 2, 3]"><span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span></div>
+      </div>
+
+      <div class="gc-state gc-state--error" *ngIf="!fieldsLoading && fieldsError">
+        <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
+        <p class="gc-state__title">The custom fields did not load</p>
+        <p class="gc-state__text">{{ fieldsError }}</p>
+        <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="retryFields()"></button>
+      </div>
+
+      <div class="gc-state" *ngIf="!fieldsLoading && !fieldsError && !fields.length">
+        <span class="gc-state__icon"><i class="pi pi-list"></i></span>
+        <p class="gc-state__title">No custom fields yet</p>
+        <p class="gc-state__text">Define them in the <strong>Setup</strong> tab; they appear here for every concept at once, no rebuild needed.</p>
+      </div>
+
+      <app-gc-custom-fields-form
+        *ngIf="!fieldsLoading && fields.length"
+        [fields]="fields"
+        [values]="values"
+        [lists]="lists"
+        [conceptOptions]="conceptOptions"
+        [selfTermId]="editing?.term_id ?? null"
+        [disabled]="saving"></app-gc-custom-fields-form>
+    </ng-container>
+
+    <!--
+      Status lives apart from the fields: it is a separate write with its own
+      rules and its own button. It sits inside the form only so the sticky
+      footer closes the dialog; its models are standalone, so they never count
+      as changes to the details and never go out with Save.
+    -->
+    <section class="gc-section gc-status" *ngIf="editing && tab === 'details'" aria-labelledby="gc-sec-status">
+      <header class="gc-section__head">
+        <h3 class="gc-section__title" id="gc-sec-status">Status</h3>
+        <p class="gc-section__hint">
+          Now <p-tag [value]="statusLabel(editing.status)" [severity]="statusSeverity(editing.status)"></p-tag>
+          <ng-container *ngIf="editing.replaced_by"> · replaced by {{ editing.replaced_by.term_id }} — {{ editing.replaced_by.preferred_label }}</ng-container>
+          · changed on its own, not with Save.
+        </p>
+      </header>
+
+      <div class="gc-status__box">
+        <div class="admin-form__grid">
+          <div class="field">
+            <div class="gc-field-head">
+              <label for="gc-new-status">New status</label>
+              <app-gc-info [text]="info.new_status"></app-gc-info>
+            </div>
+            <p-dropdown
+              inputId="gc-new-status"
+              appendTo="body"
+              panelStyleClass="admin-dropdown-panel"
+              placeholder="Pick a status"
+              [options]="statusChoices"
+              [ngModelOptions]="{ standalone: true }"
+              [(ngModel)]="newStatus">
+            </p-dropdown>
+          </div>
+
+          <ng-container *ngIf="newStatus === 'deprecated'">
+            <div class="field">
+              <div class="gc-field-head">
+                <label for="gc-replacement">Replaced by</label>
+                <app-gc-info [text]="info.replaced_by"></app-gc-info>
+              </div>
+              <p-dropdown
+                inputId="gc-replacement"
+                appendTo="body"
+                panelStyleClass="admin-dropdown-panel"
+                placeholder="No replacement"
+                filterBy="label"
+                [filter]="true"
+                [showClear]="true"
+                [virtualScroll]="replacementOptions.length > 100"
+                [itemSize]="36"
+                [options]="replacementOptions"
+                [ngModelOptions]="{ standalone: true }"
+                [(ngModel)]="replacementTermId">
+              </p-dropdown>
+            </div>
+            <div class="field admin-form__span">
+              <div class="gc-field-head">
+                <label for="gc-reason"
+                  >Reason <span class="tag-opt" *ngIf="replacementTermId">Optional</span><span class="tag-req" *ngIf="!replacementTermId">Required</span></label
+                >
+                <app-gc-info [text]="info.reason"></app-gc-info>
+              </div>
+              <textarea id="gc-reason" pInputTextarea rows="2" maxlength="2000" [ngModelOptions]="{ standalone: true }" [(ngModel)]="deprecationReason"></textarea>
+              <small class="field-hint">Without a replacement, readers need to know why the concept is no longer used.</small>
+            </div>
+          </ng-container>
+        </div>
+
+        <div class="gc-status__actions">
+          <span class="field-hint gc-status__why" *ngIf="newStatus && statusChangeError">{{ statusChangeError }}</span>
+          <button
+            pButton
+            type="button"
+            icon="pi pi-flag"
+            label="Change status"
+            [ngClass]="newStatus === 'deprecated' ? 'btn-caution' : 'p-button-outlined'"
+            [disabled]="!!statusChangeError || changingStatus"
+            [loading]="changingStatus"
+            (click)="changeStatus()"></button>
+        </div>
+      </div>
+    </section>
+
+    <p class="field-error gc-form-error" *ngIf="formError">{{ formError }}</p>
+
+    <div class="admin-form__actions gc-dialog-foot">
+      <span class="gc-actions-note" *ngIf="editing">Saves Details and Custom fields together.</span>
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="saving" (click)="close()"></button>
+      <button
+        pButton
+        type="submit"
+        class="btn-brand"
+        icon="pi pi-check"
+        [label]="saving ? 'Saving…' : editing ? 'Save changes' : 'Create concept'"
+        [disabled]="saving || !!formError || (!!editing && !hasChanges)"
+        [loading]="saving"></button>
+    </div>
+  </form>
+
+  <!-- ========================================================== sub-editors -->
+  <div class="gc-tab-body" *ngIf="editing">
+    <!--
+      A sub-editor stays mounted (only hidden) once its tab was opened, so a save
+      still in flight when the user switches tab lands and its (updated) reaches
+      the dialog. The ngFor over [session] rebuilds them for each concept opened.
+    -->
+    <ng-container *ngFor="let _ of [session]">
+      <app-gc-labels-editor
+        *ngIf="visited.has('labels')"
+        [hidden]="tab !== 'labels'"
+        [scheme]="scheme"
+        [concept]="editing"
+        (updated)="onConceptUpdated($event)"></app-gc-labels-editor>
+      <app-gc-relations-editor
+        *ngIf="visited.has('relations')"
+        [hidden]="tab !== 'relations'"
+        [scheme]="scheme"
+        [concept]="editing"
+        [options]="conceptOptions"
+        (updated)="onConceptUpdated($event)"></app-gc-relations-editor>
+      <app-gc-mappings-editor
+        *ngIf="visited.has('mappings')"
+        [hidden]="tab !== 'mappings'"
+        [scheme]="scheme"
+        [concept]="editing"
+        (updated)="onConceptUpdated($event)"></app-gc-mappings-editor>
+      <app-gc-icons-editor
+        *ngIf="visited.has('icons')"
+        [hidden]="tab !== 'icons'"
+        [scheme]="scheme"
+        [termId]="editing.term_id"
+        [conceptLabel]="editing.preferred_label"
+        [lists]="lists"
+        (changed)="onSubWrite()"></app-gc-icons-editor>
+    </ng-container>
+
+    <section class="gc-ed" *ngIf="tab === 'history'">
+      <div class="gc-ed__head">
+        <div>
+          <h3 class="gc-ed__title">History</h3>
+          <p class="gc-ed__hint">Every write on this concept, newest first, with who made it. Approved concepts also show it on their public page.</p>
+        </div>
+        <a *ngIf="publicUrl && (editing.status === 'approved' || editing.status === 'deprecated')" class="gc-public-link" [href]="publicUrl" target="_blank" rel="noopener">
+          Open public page <i class="pi pi-external-link"></i>
+        </a>
+      </div>
+
+      <div class="gc-skeleton" *ngIf="historyLoading" aria-busy="true" aria-label="Loading history">
+        <div class="gc-skeleton__row" *ngFor="let _ of [1, 2, 3, 4]"><span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span></div>
+      </div>
+      <div class="gc-state gc-state--error" *ngIf="!historyLoading && historyError">
+        <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
+        <p class="gc-state__title">The history did not load</p>
+        <p class="gc-state__text">{{ historyError }}</p>
+        <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="loadHistory(true)"></button>
+      </div>
+      <div class="gc-ed__empty" *ngIf="!historyLoading && !historyError && !history.length"><i class="pi pi-history"></i><span>No recorded change yet.</span></div>
+
+      <ol class="gc-timeline" *ngIf="!historyLoading && history.length">
+        <li class="gc-timeline__item" *ngFor="let entry of history">
+          <span class="gc-timeline__dot" aria-hidden="true"></span>
+          <div class="gc-timeline__body">
+            <span class="gc-ed__main">{{ actionLabel(entry.action) }}</span>
+            <span class="gc-ed__sub">
+              {{ entry.changed_at | date: 'yyyy-MM-dd HH:mm' }}<ng-container *ngIf="entry.changed_by_email"> · {{ entry.changed_by_email }}</ng-container>
+            </span>
+            <span class="gc-timeline__fields" *ngIf="changedKeys(entry).length">
+              <span class="cell-chip" *ngFor="let key of changedKeys(entry)">{{ key }}</span>
+            </span>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <div class="gc-tab-close gc-dialog-foot" *ngIf="tab !== 'details' && tab !== 'fields'">
+      <button pButton type="button" label="Close" class="p-button-outlined" (click)="close()"></button>
+    </div>
+  </div>
+</p-dialog>

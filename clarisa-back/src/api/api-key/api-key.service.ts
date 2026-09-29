@@ -4,6 +4,7 @@ import * as crypto from 'crypto';
 import { ApiKeyRepository } from './repositories/api-key.repository';
 import { ApiKeyMapper } from './mappers/api-key.mapper';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
+import { UpdateApiKeyDto } from './dto/update-api-key.dto';
 import { ApiKeyDto, CreateApiKeyResponseDto } from './dto/api-key.dto';
 import { ApiKey } from './entities/api-key.entity';
 import { MisService } from '../mis/mis.service';
@@ -97,6 +98,7 @@ export class ApiKeyService {
 
     const apiKey = this._apiKeyRepository.create({
       name: createApiKeyDto.name.trim(),
+      description: createApiKeyDto.description?.trim() || null,
       mis_id: createApiKeyDto.mis_id ?? null,
       key_prefix: keyPrefix,
       key_hash: keyHash,
@@ -270,6 +272,87 @@ export class ApiKeyService {
     return ResponseDto.buildOkResponse(this._apiKeyMapper.classToDto(loaded));
   }
 
+  /**
+   * Edits the descriptive and access fields of a key without touching its
+   * secret. Absent fields keep their value; `null` (or `''` for the scalars)
+   * clears them. The environment is not editable: it lives in the prefix.
+   */
+  async update(
+    id: number,
+    updateApiKeyDto: UpdateApiKeyDto,
+    userData: UserData,
+  ): Promise<ResponseDto<ApiKeyDto>> {
+    const apiKey = await this._loadForUpdate(id);
+    if (!apiKey.auditableFields?.is_active) {
+      throw new Error('Cannot edit a revoked API key');
+    }
+
+    const has = (key: keyof UpdateApiKeyDto) =>
+      Object.prototype.hasOwnProperty.call(updateApiKeyDto, key) &&
+      updateApiKeyDto[key] !== undefined;
+
+    if (has('name')) {
+      const name = updateApiKeyDto.name?.trim();
+      if (!name) {
+        throw new Error('Name cannot be empty');
+      }
+      apiKey.name = name;
+    }
+
+    if (has('description')) {
+      apiKey.description = updateApiKeyDto.description?.trim() || null;
+    }
+
+    if (has('mis_id')) {
+      const misId = updateApiKeyDto.mis_id;
+      if (misId === null || (misId as unknown) === '') {
+        apiKey.mis_id = null;
+      } else {
+        const mis = await this._misService.findOne(misId);
+        if (!mis) {
+          throw new Error(`MIS with ID "${misId}" not found`);
+        }
+        apiKey.mis_id = misId;
+      }
+    }
+
+    if (has('scopes')) {
+      const scopes = updateApiKeyDto.scopes;
+      assertKnownApiKeyScopes(scopes ?? undefined);
+      apiKey.scopes = scopes && scopes.length ? scopes : null;
+    }
+
+    if (has('allowed_ips')) {
+      const ips = updateApiKeyDto.allowed_ips;
+      apiKey.allowed_ips = ips && ips.length ? ips : null;
+    }
+
+    if (has('expires_at')) {
+      const raw = updateApiKeyDto.expires_at;
+      if (raw === null || raw === '') {
+        apiKey.expires_at = null;
+      } else {
+        const expiresAt = new Date(raw);
+        if (Number.isNaN(expiresAt.getTime())) {
+          throw new Error('Invalid expires_at date');
+        }
+        if (expiresAt <= new Date()) {
+          throw new Error('expires_at must be a future date');
+        }
+        apiKey.expires_at = expiresAt;
+      }
+    }
+
+    apiKey.auditableFields.updated_by = userData.userId;
+    await this._apiKeyRepository.save(apiKey);
+
+    const loaded = await this._apiKeyRepository.findOne({
+      where: { id },
+      ...this._where,
+    });
+    return ResponseDto.buildOkResponse(this._apiKeyMapper.classToDto(loaded));
+  }
+
   async remove(id: number): Promise<ResponseDto<{ success: boolean }>> {
     const apiKey = await this._apiKeyRepository.findOneBy({ id });
     if (!apiKey) {
@@ -306,6 +389,7 @@ export class ApiKeyService {
     return this.create(
       {
         name: existing.name,
+        description: existing.description ?? undefined,
         mis_id: existing.mis_id ?? undefined,
         scopes: existing.scopes ?? undefined,
         environment: environmentAcronym,

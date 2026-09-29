@@ -57,15 +57,16 @@ describe('AdminSidebarComponent', () => {
   it('lists every section, grouped, when nothing is typed', () => {
     expect(component.groups.map(group => group.title)).toEqual(['Manage', 'Access', 'System']);
     expect(labels()).toContain('Glossary');
-    // 5 links directos: los 6 de siempre menos «Microservices & API keys», que
+    expect(labels()).toContain('MELIAF Taxonomy');
+    // 6 links directos: los 7 de la lista menos «Microservices & API keys», que
     // ahora es un toggle (botón) en vez de un link.
-    expect(labels()?.length).toBe(5);
+    expect(labels()?.length).toBe(6);
   });
 
   // La columna blanca que esto reemplazó mostraba sus tres pestañas siempre a
   // la vista, así que el desplegable nace abierto, no colapsado.
   it('shows the Microservices sub-menu open by default, with its three tabs', () => {
-    expect(subLabels()).toEqual(['API Keys', 'Usage & Analytics', 'MIS Registry']);
+    expect(subLabels()).toEqual(['Overview', 'MIS Registry', 'API Keys']);
 
     const toggle = fixture.nativeElement.querySelector('.admin-sidebar__list-toggle') as HTMLElement;
     expect(toggle.textContent).toContain('Microservices & API keys');
@@ -85,7 +86,7 @@ describe('AdminSidebarComponent', () => {
     component.toggleLink(microservices!);
     fixture.detectChanges();
     expect(component.isLinkCollapsed(microservices!)).toBe(false);
-    expect(subLabels()).toEqual(['API Keys', 'Usage & Analytics', 'MIS Registry']);
+    expect(subLabels()).toEqual(['Overview', 'MIS Registry', 'API Keys']);
   });
 
   // El buscador es del menú: filtra en memoria y no llama a nadie.

@@ -1,0 +1,108 @@
+:host {
+  display: block;
+}
+
+.gc-icons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gc-icons__list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gc-icon {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.gc-icon--none {
+  align-items: center;
+
+  p {
+    margin: 0;
+  }
+}
+
+.gc-icon__art {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface-2);
+
+  img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.gc-icon__art--empty {
+  padding: 4px;
+  border-style: dashed;
+}
+
+.gc-ph__tile {
+  fill: var(--cl-brand-soft);
+}
+
+.gc-ph__ring {
+  fill: var(--cl-surface);
+  stroke: var(--cl-brand-ring);
+  stroke-width: 3;
+}
+
+.gc-ph__plus,
+.gc-ph__line {
+  fill: none;
+  stroke: var(--cl-brand-deep);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.gc-ph__line {
+  stroke: var(--cl-brand-ring);
+}
+
+.gc-icon__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.gc-icon__key {
+  display: block;
+  color: var(--cl-ink);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

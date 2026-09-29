@@ -1,0 +1,82 @@
+<div class="admin-form gc-xf">
+  <div class="admin-form__grid">
+    <div class="field" *ngFor="let field of fields; trackBy: trackField" [class.admin-form__span]="control(field) === 'textarea' || control(field) === 'chips' || control(field) === 'concepts' || control(field) === 'multiselect'">
+      <div class="gc-field-head">
+        <label [for]="inputId(field)">
+          {{ field.label }}
+          <span class="tag-custom" title="Custom field defined in Setup">Custom</span>
+          <span class="tag-req" *ngIf="field.required">Required</span>
+          <span class="gc-xf__private" *ngIf="!field.is_public" title="Not published: only admins see this value"><i class="pi pi-lock"></i> Internal</span>
+        </label>
+        <app-gc-info [text]="info(field)"></app-gc-info>
+      </div>
+
+      <ng-container [ngSwitch]="control(field)">
+        <textarea *ngSwitchCase="'textarea'" [id]="inputId(field)" [name]="field.code" pInputTextarea rows="3" [disabled]="disabled" [(ngModel)]="values[field.code]"></textarea>
+
+        <p-chips
+          *ngSwitchCase="'chips'"
+          [inputId]="inputId(field)"
+          [name]="field.code"
+          [addOnBlur]="true"
+          [allowDuplicate]="false"
+          separator=","
+          placeholder="Type a value and press Enter"
+          [disabled]="disabled"
+          [(ngModel)]="values[field.code]"></p-chips>
+
+        <p-dropdown
+          *ngSwitchCase="'dropdown'"
+          [inputId]="inputId(field)"
+          [name]="field.code"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          placeholder="Not set"
+          [showClear]="true"
+          [filter]="optionsFor(field).length > 15"
+          [options]="optionsFor(field)"
+          [disabled]="disabled"
+          [(ngModel)]="values[field.code]"></p-dropdown>
+
+        <p-multiSelect
+          *ngSwitchCase="'multiselect'"
+          [inputId]="inputId(field)"
+          [name]="field.code"
+          appendTo="body"
+          display="chip"
+          placeholder="Not set"
+          [filter]="optionsFor(field).length > 15"
+          [showHeader]="optionsFor(field).length > 15"
+          [options]="optionsFor(field)"
+          [disabled]="disabled"
+          [(ngModel)]="values[field.code]"></p-multiSelect>
+
+        <div *ngSwitchCase="'concepts'">
+          <div class="gc-ed__chips" *ngIf="linked(field).length">
+            <span class="gc-ed__chip" *ngFor="let option of linked(field)">
+              <span class="gc-ed__chip-id">{{ option.term_id }}</span>
+              <span class="gc-ed__chip-text">{{ option.preferred_label }}</span>
+              <button type="button" class="gc-ed__chip-x" [attr.aria-label]="'Remove ' + option.preferred_label" [disabled]="disabled" (click)="unlink(field, option.term_id)">
+                <i class="pi pi-times"></i>
+              </button>
+            </span>
+          </div>
+          <app-gc-concept-picker
+            [inputId]="inputId(field)"
+            [options]="conceptOptions"
+            [exclude]="excluded(field)"
+            [disabled]="disabled"
+            placeholder="Link a concept…"
+            (picked)="link(field, $event)"></app-gc-concept-picker>
+        </div>
+
+        <input *ngSwitchCase="'url'" [id]="inputId(field)" [name]="field.code" type="url" pInputText placeholder="https://" [disabled]="disabled" [(ngModel)]="values[field.code]" />
+        <input *ngSwitchCase="'date'" [id]="inputId(field)" [name]="field.code" type="date" pInputText [disabled]="disabled" [(ngModel)]="values[field.code]" />
+        <input *ngSwitchCase="'number'" [id]="inputId(field)" [name]="field.code" type="number" pInputText [disabled]="disabled" [(ngModel)]="values[field.code]" />
+        <input *ngSwitchDefault [id]="inputId(field)" [name]="field.code" type="text" pInputText [disabled]="disabled" [(ngModel)]="values[field.code]" />
+      </ng-container>
+
+      <small class="field-hint" *ngIf="field.help">{{ field.help }}</small>
+    </div>
+  </div>
+</div>

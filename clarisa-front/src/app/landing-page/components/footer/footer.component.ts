@@ -23,5 +23,9 @@ export class FooterComponent {
       name: 'Glossary',
       link: '/landing-page/glossary',
     },
+    {
+      name: 'MELIAF Taxonomy',
+      link: '/landing-page/global-concepts',
+    },
   ];
 }

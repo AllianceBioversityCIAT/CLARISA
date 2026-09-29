@@ -1,0 +1,133 @@
+<section class="gc-ed">
+  <div class="gc-ed__head">
+    <div>
+      <h3 class="gc-ed__title">Mappings</h3>
+      <p class="gc-ed__hint">The same idea in an outside vocabulary. Published as SKOS matches, so other systems can line their terms up with ours.</p>
+    </div>
+    <button *ngIf="!showForm" pButton type="button" label="Add mapping" icon="pi pi-plus" class="p-button-outlined" (click)="openForm()"></button>
+  </div>
+
+  <div class="gc-ed__empty" *ngIf="!mappings.length && !showForm">
+    <i class="pi pi-link"></i>
+    <span>Not mapped yet. AGROVOC and Wikidata are the usual targets.</span>
+  </div>
+
+  <div class="gc-ed__list" *ngIf="mappings.length">
+    <div class="gc-ed__row" *ngFor="let mapping of mappings">
+      <span class="gc-map-badge">{{ matchLabel(mapping.match_type) }}</span>
+      <div class="gc-ed__grow">
+        <span class="gc-ed__main">{{ mapping.target_scheme }} · {{ mapping.target_label || 'no label' }}</span>
+        <span class="gc-ed__sub"><a [href]="mapping.target_uri" target="_blank" rel="noopener">{{ mapping.target_uri }}</a></span>
+        <span class="gc-ed__sub" *ngIf="mapping.justification || mapping.confidence !== null && mapping.confidence !== undefined">
+          {{ justificationLabel(mapping.justification) }}<ng-container *ngIf="mapping.confidence !== null && mapping.confidence !== undefined">{{ mapping.justification ? ' · ' : '' }}confidence {{ mapping.confidence }}</ng-container>
+        </span>
+      </div>
+      <button
+        *ngIf="mapping.id"
+        pButton
+        type="button"
+        class="p-button-text gc-icon-btn"
+        [icon]="deletingId === mapping.id ? 'pi pi-spin pi-spinner' : 'pi pi-trash'"
+        [attr.aria-label]="'Remove mapping to ' + mapping.target_uri"
+        pTooltip="Remove"
+        [disabled]="!!deletingId"
+        (click)="remove(mapping)"></button>
+    </div>
+  </div>
+
+  <form class="admin-form admin-card gc-map-form" *ngIf="showForm" (ngSubmit)="add()" autocomplete="off">
+    <div class="admin-form__grid">
+      <div class="field">
+        <div class="gc-field-head">
+          <label for="gc-map-scheme">Target vocabulary <span class="tag-req">Required</span></label>
+          <app-gc-info [text]="info.target_scheme"></app-gc-info>
+        </div>
+        <input id="gc-map-scheme" name="target_scheme" type="text" pInputText maxlength="50" placeholder="AGROVOC" [(ngModel)]="form.target_scheme" />
+      </div>
+      <div class="field">
+        <div class="gc-field-head">
+          <label for="gc-map-type">Match type</label>
+          <app-gc-info [text]="info.match_type"></app-gc-info>
+        </div>
+        <p-dropdown
+          inputId="gc-map-type"
+          name="match_type"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          [options]="matchTypes"
+          [(ngModel)]="form.match_type">
+          <ng-template let-option pTemplate="item">
+            <span class="gc-map-option">{{ option.label }}<small>{{ option.hint }}</small></span>
+          </ng-template>
+        </p-dropdown>
+      </div>
+      <div class="field admin-form__span">
+        <div class="gc-field-head">
+          <label for="gc-map-uri">Target URI <span class="tag-req">Required</span></label>
+          <app-gc-info [text]="info.target_uri"></app-gc-info>
+        </div>
+        <input
+          id="gc-map-uri"
+          name="target_uri"
+          type="url"
+          pInputText
+          maxlength="1000"
+          placeholder="http://aims.fao.org/aos/agrovoc/c_…"
+          [(ngModel)]="form.target_uri" />
+      </div>
+      <div class="field">
+        <div class="gc-field-head">
+          <label for="gc-map-label">Target label <span class="tag-opt">Optional</span></label>
+          <app-gc-info [text]="info.target_label"></app-gc-info>
+        </div>
+        <input id="gc-map-label" name="target_label" type="text" pInputText maxlength="500" [(ngModel)]="form.target_label" />
+      </div>
+      <div class="field">
+        <div class="gc-field-head">
+          <label for="gc-map-why">How was it matched? <span class="tag-opt">Optional</span></label>
+          <app-gc-info [text]="info.justification"></app-gc-info>
+        </div>
+        <p-dropdown
+          inputId="gc-map-why"
+          name="justification"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          placeholder="Not said"
+          [showClear]="true"
+          [options]="justifications"
+          [(ngModel)]="form.justification"></p-dropdown>
+      </div>
+      <div class="field">
+        <div class="gc-field-head">
+          <label for="gc-map-confidence">Confidence <span class="tag-opt">Optional, 0 to 1</span></label>
+          <app-gc-info [text]="info.confidence"></app-gc-info>
+        </div>
+        <input
+          id="gc-map-confidence"
+          name="confidence"
+          type="number"
+          pInputText
+          min="0"
+          max="1"
+          step="0.05"
+          inputmode="decimal"
+          placeholder="0.9"
+          [(ngModel)]="form.confidence" />
+      </div>
+    </div>
+    <p class="gc-ed__error" *ngIf="formError && (form.target_scheme || form.target_uri || form.confidence !== null)"><i class="pi pi-info-circle"></i><span>{{ formError }}</span></p>
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="adding" (click)="showForm = false"></button>
+      <button
+        pButton
+        type="submit"
+        class="btn-brand"
+        icon="pi pi-check"
+        [label]="adding ? 'Adding…' : 'Add mapping'"
+        [disabled]="adding || !!formError"
+        [loading]="adding"></button>
+    </div>
+  </form>
+
+  <p class="gc-ed__error" role="alert" *ngIf="error"><i class="pi pi-times-circle"></i><span>{{ error }}</span></p>
+</section>
