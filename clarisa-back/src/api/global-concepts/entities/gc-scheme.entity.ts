@@ -29,6 +29,10 @@ export class GcScheme {
   @Column({ type: 'varchar', length: 255, nullable: true })
   uri_base: string | null;
 
+  /** Overrides the module-wide base of the human pages (landing site) for this scheme, when set. */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  web_base: string | null;
+
   @Column({ type: 'varchar', length: 10, default: 'en' })
   default_language: string;
 

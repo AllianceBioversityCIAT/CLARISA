@@ -41,7 +41,7 @@ import {
   StartPublicRequestDto,
   SubmitRequestDto,
 } from '../dto/request.dto';
-import { conceptUri, GlobalConceptsConfig } from '../global-concepts.config';
+import { conceptUri, webBaseOf } from '../global-concepts.config';
 import { ConceptsAdminService } from './concepts-admin.service';
 import { likePattern } from './concepts-read.service';
 import { escapeHtml, OutboxService } from './outbox.service';
@@ -230,7 +230,7 @@ export class RequestsService {
           expires_at: new Date(Date.now() + VERIFICATION_TTL_MS),
         }),
       );
-      const link = `${GlobalConceptsConfig.webBase}/requests/verify?token=${encodeURIComponent(token)}`;
+      const link = `${webBaseOf(scheme)}/requests/verify?token=${encodeURIComponent(token)}`;
       await this.outbox.enqueueEmail(manager, {
         to: email,
         subject: '[CLARISA MELIAF Taxonomy] Confirm your concept request',
@@ -272,7 +272,7 @@ export class RequestsService {
       await this.outbox.enqueueEmail(manager, {
         to: row.email,
         subject: `[CLARISA MELIAF Taxonomy] Follow request #${result.id}`,
-        html: `<p>Your request #${result.id} is registered. Follow it, or update it if changes are requested, here:</p><p><a href="${escapeHtml(this.followLink(result.id, access))}">${escapeHtml(this.followLink(result.id, access))}</a></p><p>Keep this email: the link is the only key to your request.</p>`,
+        html: `<p>Your request #${result.id} is registered. Follow it, or update it if changes are requested, here:</p><p><a href="${escapeHtml(this.followLink(scheme, result.id, access))}">${escapeHtml(this.followLink(scheme, result.id, access))}</a></p><p>Keep this email: the link is the only key to your request.</p>`,
       });
       return { ...result, access_token: access };
     });
@@ -960,8 +960,12 @@ export class RequestsService {
     );
   }
 
-  private followLink(id: number, token: string) {
-    return `${GlobalConceptsConfig.webBase}/requests/${id}?token=${encodeURIComponent(token)}`;
+  private followLink(
+    scheme: { web_base?: string | null },
+    id: number,
+    token: string,
+  ) {
+    return `${webBaseOf(scheme)}/requests/${id}?token=${encodeURIComponent(token)}`;
   }
 
   private emailBody(p: GcProposal, scheme: GcScheme, message: string) {
