@@ -259,7 +259,7 @@
           <th scope="col" pSortableColumn="functionsText" style="width: 190px">Function <p-sortIcon field="functionsText"></p-sortIcon></th>
           <th scope="col" pSortableColumn="icon" style="width: 76px">Icon <p-sortIcon field="icon"></p-sortIcon></th>
           <th scope="col" *ngFor="let field of shownColumns" [pSortableColumn]="'x.' + field.code" class="gc-col-custom" style="width: 180px">
-            {{ field.label }} <p-sortIcon [field]="'x.' + field.code"></p-sortIcon>
+            {{ field.label }} <span class="tag-custom" title="Custom field defined in Setup">Custom</span> <p-sortIcon [field]="'x.' + field.code"></p-sortIcon>
           </th>
           <th scope="col" pSortableColumn="version" style="width: 96px">Version <p-sortIcon field="version"></p-sortIcon></th>
           <th scope="col" pSortableColumn="date_modified" style="width: 128px">Last modified <p-sortIcon field="date_modified"></p-sortIcon></th>
