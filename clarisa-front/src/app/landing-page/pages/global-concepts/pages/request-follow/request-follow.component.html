@@ -1,7 +1,7 @@
 <app-gc-banner
-  eyebrow="Global Concepts"
+  eyebrow="MELIAF Taxonomy"
   [title]="id > 0 ? 'Request #' + id : 'Follow a request'"
-  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'Global Concepts', link: base }, { label: 'Request' }]">
+  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'MELIAF Taxonomy', link: base }, { label: 'Request' }]">
 </app-gc-banner>
 
 <section class="gc-section">
@@ -20,7 +20,7 @@
         <p>{{ error }}</p>
         <div class="gc-state__actions">
           <button type="button" class="gc-btn gc-btn--small gc-btn--ghost" *ngIf="id > 0" (click)="reload()">Try again</button>
-          <a class="gc-btn gc-btn--small" [routerLink]="base">Go to Global Concepts</a>
+          <a class="gc-btn gc-btn--small" [routerLink]="base">Go to the MELIAF Taxonomy</a>
         </div>
       </div>
 

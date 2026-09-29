@@ -38,7 +38,7 @@ export const MCP_TOOLS = [
     name: 'search_concepts',
     title: 'Search official concepts',
     description:
-      'Search the published CGIAR Global Concepts (e.g. the MELIAF taxonomy) by words in labels ' +
+      'Search the published CGIAR MELIAF Taxonomy concepts by words in labels ' +
       'and definitions, with optional filters. Returns official labels, short definitions and URIs.',
     inputSchema: {
       type: 'object',

@@ -34,7 +34,7 @@ import { GcUsageKind } from '../entities/gc-usage-daily.entity';
  * or slow a read. Services stay uncounted: the MCP tools and the text
  * matcher call them too.
  */
-@ApiTags('Global Concepts')
+@ApiTags('MELIAF Taxonomy')
 @Controller()
 @UseGuards(GlobalConceptsEnabledGuard)
 export class GlobalConceptsPublicController {
