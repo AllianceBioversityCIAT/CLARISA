@@ -68,7 +68,7 @@ export class AiService {
     const { spent_usd, cap_usd } = await this.usage();
     if (spent_usd >= cap_usd) {
       throw new ServiceUnavailableException(
-        'The monthly AI budget of Global Concepts is used up; the feature is available again next month.',
+        'The monthly AI budget of the MELIAF Taxonomy is used up; the feature is available again next month.',
       );
     }
     const model = GlobalConceptsConfig.aiModel;
@@ -137,7 +137,7 @@ export class AiService {
       const { spent_usd, cap_usd } = await this.usage();
       if (spent_usd >= cap_usd) {
         throw new ServiceUnavailableException(
-          'The monthly AI budget of Global Concepts is used up; the feature is available again next month.',
+          'The monthly AI budget of the MELIAF Taxonomy is used up; the feature is available again next month.',
         );
       }
       const batch = texts

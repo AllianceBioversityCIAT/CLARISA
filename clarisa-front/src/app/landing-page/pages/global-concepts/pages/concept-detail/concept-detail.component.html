@@ -1,9 +1,9 @@
 <app-gc-banner
-  [eyebrow]="concept ? 'TERM ' + concept.term_id + ' · v' + concept.version : 'Global Concepts'"
+  [eyebrow]="concept ? 'TERM ' + concept.term_id + ' · v' + concept.version : 'MELIAF Taxonomy'"
   [title]="concept?.preferred_label || (loading ? 'Loading concept...' : 'Concept not available')"
   [crumbs]="[
     { label: 'Home', link: '/landing-page/home' },
-    { label: 'Global Concepts', link: base },
+    { label: 'MELIAF Taxonomy', link: base },
     { label: concept?.preferred_label || 'Concept' }
   ]">
 </app-gc-banner>
@@ -31,7 +31,7 @@
       <h4>This concept could not be shown</h4>
       <p>{{ error }}</p>
       <div class="gc-state__actions">
-        <a class="gc-btn gc-btn--small gc-btn--ghost" [routerLink]="base">Back to Global Concepts</a>
+        <a class="gc-btn gc-btn--small gc-btn--ghost" [routerLink]="base">Back to the MELIAF Taxonomy</a>
         <button type="button" class="gc-btn gc-btn--small" (click)="load()">Try again</button>
       </div>
     </div>

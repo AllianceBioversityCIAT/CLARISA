@@ -1,7 +1,7 @@
 <app-gc-banner
-  eyebrow="Global Concepts"
-  [title]="scheme?.title || 'Global Concepts'"
-  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'Global Concepts' }]">
+  eyebrow="Official CGIAR vocabulary"
+  [title]="scheme?.title || 'MELIAF Taxonomy'"
+  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'MELIAF Taxonomy' }]">
   <div class="gc-banner-copy">
     <p class="gc-banner-copy__lede" *ngIf="scheme?.description">{{ scheme?.description }}</p>
     <p class="gc-banner-copy__lede" *ngIf="!scheme && !schemeError">The official concepts CGIAR uses to plan, monitor, evaluate and learn.</p>

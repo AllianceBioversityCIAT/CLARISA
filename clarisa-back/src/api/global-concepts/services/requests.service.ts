@@ -178,7 +178,7 @@ export class RequestsService {
     );
     await this.outbox.enqueueEmail(manager, {
       to: saved.requester_email,
-      subject: `[CLARISA Global Concepts] Request #${saved.id} received`,
+      subject: `[CLARISA MELIAF Taxonomy] Request #${saved.id} received`,
       html: this.emailBody(
         saved,
         scheme,
@@ -233,7 +233,7 @@ export class RequestsService {
       const link = `${GlobalConceptsConfig.webBase}/requests/verify?token=${encodeURIComponent(token)}`;
       await this.outbox.enqueueEmail(manager, {
         to: email,
-        subject: '[CLARISA Global Concepts] Confirm your concept request',
+        subject: '[CLARISA MELIAF Taxonomy] Confirm your concept request',
         html: `<p>Please confirm your request to <b>${escapeHtml(scheme.title)}</b> by opening this link within 24 hours:</p><p><a href="${link}">${link}</a></p><p>If you did not ask for this, ignore this email.</p>`,
       });
       return { status: 'verification_sent', expires_in_hours: 24 };
@@ -271,7 +271,7 @@ export class RequestsService {
       );
       await this.outbox.enqueueEmail(manager, {
         to: row.email,
-        subject: `[CLARISA Global Concepts] Follow request #${result.id}`,
+        subject: `[CLARISA MELIAF Taxonomy] Follow request #${result.id}`,
         html: `<p>Your request #${result.id} is registered. Follow it, or update it if changes are requested, here:</p><p><a href="${escapeHtml(this.followLink(result.id, access))}">${escapeHtml(this.followLink(result.id, access))}</a></p><p>Keep this email: the link is the only key to your request.</p>`,
       });
       return { ...result, access_token: access };
@@ -485,7 +485,7 @@ export class RequestsService {
         }[to as string];
         await this.outbox.enqueueEmail(manager, {
           to: proposal.requester_email,
-          subject: `[CLARISA Global Concepts] Request #${proposal.id} ${verb}`,
+          subject: `[CLARISA MELIAF Taxonomy] Request #${proposal.id} ${verb}`,
           html: this.emailBody(
             proposal,
             scheme,

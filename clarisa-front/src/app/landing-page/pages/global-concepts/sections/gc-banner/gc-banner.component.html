@@ -10,7 +10,7 @@
       <p class="gc-banner__eyebrow" *ngIf="eyebrow">{{ eyebrow }}</p>
       <h2>{{ title }}</h2>
       <ng-content></ng-content>
-      <nav class="gc-banner__nav" *ngIf="nav" aria-label="Global Concepts">
+      <nav class="gc-banner__nav" *ngIf="nav" aria-label="MELIAF Taxonomy">
         <a *ngFor="let item of links" [routerLink]="item.link" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: item.exact }"
           ><i class="pi" [ngClass]="item.icon" aria-hidden="true"></i>{{ item.label }}</a
         >

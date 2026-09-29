@@ -58,7 +58,7 @@ export const ADMIN_GROUPS: AdminGroup[] = [
         icon: 'fa fa-book'
       },
       {
-        label: 'Global Concepts',
+        label: 'MELIAF Taxonomy',
         route: '/clarisa-panel/manage/global-concepts-admin',
         icon: 'fa fa-sitemap'
       }

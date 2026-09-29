@@ -55,26 +55,26 @@ export const API_KEY_SCOPE_CATALOG: ApiKeyScopeDefinition[] = [
   },
   {
     value: 'global-concepts:read',
-    label: 'Global Concepts — read',
+    label: 'MELIAF Taxonomy — read',
     description: 'Read and search concepts, measured per platform',
     group: 'CLARISA API',
   },
   {
     value: 'global-concepts:request',
-    label: 'Global Concepts — request',
+    label: 'MELIAF Taxonomy — request',
     description: 'Submit concept requests and follow their status',
     group: 'CLARISA API',
   },
   {
     value: 'global-concepts:write',
-    label: 'Global Concepts — write own scheme',
+    label: 'MELIAF Taxonomy — write own scheme',
     description:
       'Create and edit concepts directly, only in the scheme the platform owns',
     group: 'CLARISA API',
   },
   {
     value: 'global-concepts:review',
-    label: 'Global Concepts — review own scheme',
+    label: 'MELIAF Taxonomy — review own scheme',
     description:
       'Decide concept requests, only of the scheme the platform owns',
     group: 'CLARISA API',

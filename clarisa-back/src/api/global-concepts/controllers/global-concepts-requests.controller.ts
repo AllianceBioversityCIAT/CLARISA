@@ -57,7 +57,7 @@ const platformOf = (auth: ApiKeyAuthContext | undefined) => {
  * - a signed-in CLARISA user;
  * - a platform with its CLARISA API key, on behalf of its own users.
  */
-@ApiTags('Global Concepts — requests')
+@ApiTags('MELIAF Taxonomy — requests')
 @Controller()
 @UseGuards(GlobalConceptsEnabledGuard)
 @UsePipes(pipe)
@@ -140,7 +140,7 @@ export class GlobalConceptsRequestsController {
  * submits and follows requests; `write` and `review` act only on the scheme
  * the platform owns — never on the global MELIAF scheme (D5c).
  */
-@ApiTags('Global Concepts — platforms')
+@ApiTags('MELIAF Taxonomy — platforms')
 @Controller('platform')
 @UseGuards(GlobalConceptsEnabledGuard, ApiKeyGuard)
 @UsePipes(pipe)
