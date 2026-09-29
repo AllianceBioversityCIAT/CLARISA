@@ -1,2 +1,85 @@
-<p>manage-role works!</p>
-<p>manage-role works!</p>
+<div class="access-admin acc-page">
+  <header class="admin-page">
+    <div class="admin-page__head">
+      <span class="admin-page__eyebrow">Access</span>
+      <h1 class="admin-page__title">Roles</h1>
+      <p class="admin-page__hint">A role bundles permissions; people get them by holding the role. Open a role to change what it opens or who holds it.</p>
+    </div>
+    <div class="admin-page__aside">
+      <button pButton type="button" icon="pi pi-refresh" class="p-button-text p-button-icon-only" aria-label="Reload" pTooltip="Reload" [disabled]="loading" (click)="load()"></button>
+      <button pButton type="button" label="New role" icon="pi pi-plus" class="btn-brand" [disabled]="loading || !!loadError" (click)="openNew()"></button>
+    </div>
+  </header>
+
+  <div class="acc-card" *ngIf="loadError">
+    <div class="acc-state acc-state--error">
+      <span class="acc-state__icon"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i></span>
+      <p class="acc-state__title">The roles did not load</p>
+      <p class="acc-state__text">{{ loadError }}</p>
+      <button pButton type="button" label="Retry" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
+    </div>
+  </div>
+
+  <p-table
+    *ngIf="!loadError"
+    [value]="rows"
+    dataKey="id"
+    sortField="acronym"
+    [sortOrder]="1"
+    styleClass="p-datatable-sm admin-table acc-roles-table"
+    responsiveLayout="scroll">
+    <ng-template pTemplate="header">
+      <tr>
+        <th scope="col" pSortableColumn="acronym" style="width: 170px">Acronym <p-sortIcon field="acronym"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="description">Description <p-sortIcon field="description"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="levelText" style="width: 140px">Level <p-sortIcon field="levelText"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="memberCount" style="width: 120px">Members <p-sortIcon field="memberCount"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="isSystem" style="width: 110px">Type <p-sortIcon field="isSystem"></p-sortIcon></th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-row>
+      <tr *ngIf="isSkeleton(row); else roleRow" aria-hidden="true">
+        <td data-card-title><span class="acc-bone acc-bone--short"></span></td>
+        <td><span class="acc-bone"></span></td>
+        <td><span class="acc-bone acc-bone--short"></span></td>
+        <td><span class="acc-bone acc-bone--short"></span></td>
+        <td><span class="acc-bone acc-bone--short"></span></td>
+      </tr>
+      <ng-template #roleRow>
+        <tr class="acc-row" tabindex="0" [attr.aria-label]="'Open role ' + row.acronym" (click)="open(row)" (keydown.enter)="open(row)">
+          <td data-card-title data-label="Acronym" class="cell-primary">
+            {{ row.acronym }}
+            <span class="acc-status is-off" *ngIf="row.isActive === false">Inactive</span>
+          </td>
+          <td data-label="Description">{{ row.description }}</td>
+          <td data-label="Level"><span class="acc-level" [attr.data-level]="row.level">{{ levelLabel(row.level) }}</span></td>
+          <td data-label="Members" class="cell-num">{{ row.memberCount }}</td>
+          <td data-label="Type">
+            <span class="acc-system" *ngIf="row.isSystem; else custom" pTooltip="Managed by CLARISA: it opens read-only." tooltipPosition="top"
+              ><i class="pi pi-lock" aria-hidden="true"></i> System</span
+            >
+            <ng-template #custom><span class="cell-empty">Custom</span></ng-template>
+          </td>
+        </tr>
+      </ng-template>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr class="admin-table__empty-row">
+        <td colspan="5">
+          <div class="acc-state">
+            <span class="acc-state__icon"><i class="pi pi-shield" aria-hidden="true"></i></span>
+            <p class="acc-state__title">No roles yet</p>
+            <p class="acc-state__text">Create the first one with <strong>New role</strong>.</p>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  <app-role-dialog [(visible)]="dialogOpen" [role]="editing" [catalog]="catalog" [access]="access" [roles]="roles" (saved)="onSaved()"></app-role-dialog>
+
+  <p-toast position="top-right"></p-toast>
+  <app-access-skin></app-access-skin>
+</div>

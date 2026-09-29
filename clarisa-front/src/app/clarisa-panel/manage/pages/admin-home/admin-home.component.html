@@ -1,0 +1,53 @@
+<div class="admin-home">
+  <header class="admin-page">
+    <div class="admin-page__head">
+      <span class="admin-page__eyebrow">Administration</span>
+      <h1 class="admin-page__title">Your sections</h1>
+      <p class="admin-page__hint">What your roles let you manage in CLARISA. The menu on the left shows the same list.</p>
+    </div>
+  </header>
+
+  <p class="admin-home__notice" role="alert" *ngIf="denied && denied !== 'error' && !failed">
+    <i class="pi pi-lock" aria-hidden="true"></i>
+    <span><strong>{{ denied }}</strong> is not part of your roles, so it did not open. Ask a CLARISA admin if you need it.</span>
+  </p>
+
+  <div class="admin-home__state admin-home__state--error" role="alert" *ngIf="failed">
+    <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+    <div>
+      <p class="admin-home__state-title">Your access could not be read</p>
+      <p class="admin-home__state-text">The panel does not know yet which sections your roles open. Try again in a moment.</p>
+    </div>
+    <button pButton type="button" label="Retry" icon="pi pi-refresh" class="p-button-outlined" (click)="retry()"></button>
+  </div>
+
+  <div class="admin-home__grid" *ngIf="loading" aria-busy="true" aria-label="Loading your sections">
+    <span class="admin-home__skeleton" *ngFor="let _ of [1, 2, 3, 4]"></span>
+  </div>
+
+  <div class="admin-home__state" *ngIf="isEmpty">
+    <i class="pi pi-user" aria-hidden="true"></i>
+    <div>
+      <p class="admin-home__state-title">No administration role yet</p>
+      <p class="admin-home__state-text">
+        Your account can use the public pages and the request forms. To manage a part of CLARISA, ask an admin to add you to a role (Users → Assign role).
+      </p>
+    </div>
+  </div>
+
+  <section class="admin-home__group" *ngFor="let group of groups" [attr.aria-label]="group.title">
+    <h2 class="admin-home__group-title">{{ group.title }}</h2>
+    <div class="admin-home__grid">
+      <a
+        class="admin-home__card"
+        *ngFor="let link of group.links"
+        [routerLink]="link.route"
+        [queryParams]="link.children?.length ? link.children![0].queryParams : null">
+        <i class="admin-home__icon {{ link.icon }}" aria-hidden="true"></i>
+        <span class="admin-home__label">{{ link.label }}</span>
+        <span class="admin-home__hint" *ngIf="link.children?.length">{{ link.children!.length }} sections</span>
+        <i class="pi pi-arrow-right admin-home__go" aria-hidden="true"></i>
+      </a>
+    </div>
+  </section>
+</div>

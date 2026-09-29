@@ -17,6 +17,8 @@ export interface AdminSubLink {
   hint: string;
   /** Query params que seleccionan la pestaña, sobre la ruta del link padre. */
   queryParams: Record<string, string>;
+  /** Same meaning as `AdminLink.access`, for this one tab. */
+  access: string[];
 }
 
 export interface AdminLink {
@@ -26,6 +28,14 @@ export interface AdminLink {
   icon: string;
   /** Si existen, el link no navega directo: pliega/despliega estas pestañas. */
   children?: AdminSubLink[];
+  /**
+   * Back routes this screen writes to. The entry opens when the caller holds a
+   * permission the back's `PermissionGuard` would accept for ANY of them (same
+   * `route.includes(permission)` test). Empty = the back has no permission for
+   * it today, so only a Super admin sees it. A link with `children` opens when
+   * any of its tabs does.
+   */
+  access: string[];
 }
 
 export interface AdminGroup {
@@ -45,22 +55,26 @@ export const ADMIN_GROUPS: AdminGroup[] = [
       {
         label: 'Institution requests',
         route: '/clarisa-panel/manage/partner-request',
-        icon: 'fa fa-inbox'
+        icon: 'fa fa-inbox',
+        access: ['/api/partner-requests/respond', '/api/partner-requests/update']
       },
       {
         label: 'Institution lifecycle',
         route: '/clarisa-panel/manage/institution-lifecycle',
-        icon: 'fa fa-history'
+        icon: 'fa fa-history',
+        access: ['/api/institutions/lifecycle/']
       },
       {
         label: 'Glossary',
         route: '/clarisa-panel/manage/glossary-admin',
-        icon: 'fa fa-book'
+        icon: 'fa fa-book',
+        access: ['/api/glossary/admin/terms']
       },
       {
         label: 'MELIAF Taxonomy',
         route: '/clarisa-panel/manage/global-concepts-admin',
-        icon: 'fa fa-sitemap'
+        icon: 'fa fa-sitemap',
+        access: ['/api/meliaf-taxonomy/admin/']
       }
     ]
   },
@@ -70,12 +84,14 @@ export const ADMIN_GROUPS: AdminGroup[] = [
       {
         label: 'Users',
         route: '/clarisa-panel/manage/manage-user',
-        icon: 'fa fa-users'
+        icon: 'fa fa-users',
+        access: ['/api/access-admin/users']
       },
       {
         label: 'Roles',
         route: '/clarisa-panel/manage/manage-role',
-        icon: 'fa fa-shield'
+        icon: 'fa fa-shield',
+        access: ['/api/access-admin/roles']
       }
     ]
   },
@@ -86,6 +102,7 @@ export const ADMIN_GROUPS: AdminGroup[] = [
         label: 'Microservices & API keys',
         route: '/clarisa-panel/manage/microservices-admin',
         icon: 'fa fa-plug',
+        access: [],
         /*
          * El orden es el del flujo, no el de la fecha en que se escribió cada
          * pestaña: primero qué está pasando (Overview: quién consume CLARISA,
@@ -97,17 +114,22 @@ export const ADMIN_GROUPS: AdminGroup[] = [
           {
             label: 'Overview',
             hint: 'Who uses CLARISA, and how much',
-            queryParams: { section: 'overview' }
+            queryParams: { section: 'overview' },
+            // The usage endpoints (`/api/api-keys/usage/*`) carry no permission check today.
+            access: []
           },
           {
             label: 'MIS Registry',
             hint: 'The systems that hold keys',
-            queryParams: { section: 'mises' }
+            queryParams: { section: 'mises' },
+            access: ['/api/mises/create', '/api/mises/deactivate/', '/api/mises/activate/']
           },
           {
             label: 'API Keys',
             hint: 'Create, edit, rotate, and revoke keys',
-            queryParams: { section: 'api-keys' }
+            queryParams: { section: 'api-keys' },
+            // `ApiKeyController` is guarded by JwtAuthGuard only: no permission to map.
+            access: []
           }
         ]
       }
@@ -122,15 +144,51 @@ export const ADMIN_GROUPS: AdminGroup[] = [
  * quede con el título de la vecina.
  */
 export function adminSectionLabel(url: string): string | null {
+  return adminLinkFor(url)?.label ?? null;
+}
+
+/** Minimal view of `MeAccess` the navigation needs. */
+export interface NavAccess {
+  isSuper: boolean;
+  permissions: readonly string[];
+}
+
+function opens(access: readonly string[], who: NavAccess | null): boolean {
+  if (!who) return false;
+  if (who.isSuper) return true;
+  return access.some(route => who.permissions.some(p => !!p && route.includes(p)));
+}
+
+export function canOpenSubLink(child: AdminSubLink, who: NavAccess | null): boolean {
+  return opens(child.access, who);
+}
+
+export function canOpenLink(link: AdminLink, who: NavAccess | null): boolean {
+  if (link.children?.length) return link.children.some(child => canOpenSubLink(child, who));
+  return opens(link.access, who);
+}
+
+/**
+ * The navigation the caller may see: links they cannot open leave, a link with
+ * tabs keeps only its open tabs, and a group left empty leaves with them.
+ */
+export function groupsFor(who: NavAccess | null, groups: AdminGroup[] = ADMIN_GROUPS): AdminGroup[] {
+  return groups
+    .map(group => ({
+      ...group,
+      links: group.links
+        .filter(link => canOpenLink(link, who))
+        .map(link => (link.children ? { ...link, children: link.children.filter(child => canOpenSubLink(child, who)) } : link))
+    }))
+    .filter(group => group.links.length > 0);
+}
+
+/** The entry a panel URL belongs to (longest route prefix), or `null`. */
+export function adminLinkFor(url: string): AdminLink | null {
   const path = url.split('?')[0].split('#')[0];
-
-  return (
-    ADMIN_GROUPS.reduce<AdminLink | null>((best, group) => {
-      const hit = group.links.find(link => path === link.route || path.startsWith(`${link.route}/`));
-
-      if (!hit) return best;
-
-      return !best || hit.route.length > best.route.length ? hit : best;
-    }, null)?.label ?? null
-  );
+  return ADMIN_GROUPS.reduce<AdminLink | null>((best, group) => {
+    const hit = group.links.find(link => path === link.route || path.startsWith(`${link.route}/`));
+    if (!hit) return best;
+    return !best || hit.route.length > best.route.length ? hit : best;
+  }, null);
 }

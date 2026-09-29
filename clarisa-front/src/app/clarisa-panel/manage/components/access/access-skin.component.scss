@@ -1,0 +1,57 @@
+/**
+ * The MELIAF Taxonomy form and dialog skin (`gc-form-skin`), reused as is for
+ * the Users and Roles screens: titled sections, 38px controls, brand focus
+ * ring, sticky footer with one primary.
+ *
+ * Unencapsulated on purpose (see the component): one dialog is appended to
+ * <body>, where no host selector reaches. Scoped to `.access-admin` (the page
+ * root) and `.access-admin-layer` (that dialog's mask), so no other screen
+ * changes. `:is()` keeps one copy of each rule for both scopes.
+ */
+@import '../../pages/global-concepts-admin/components/gc-form';
+
+:is(.access-admin, .access-admin-layer) {
+  @include gc-form-skin;
+
+  .acc-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 12px 0 0;
+    color: var(--cl-error);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .acc-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--cl-brand);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--cl-brand-deeper);
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      color: var(--cl-ink-3);
+      cursor: default;
+    }
+  }
+}
+
+/* Suggestions of the people search, drawn in a panel appended to <body>. */
+.acc-picker__item {
+  display: flex;
+  flex-direction: column;
+
+  small {
+    color: var(--cl-ink-3);
+  }
+}
