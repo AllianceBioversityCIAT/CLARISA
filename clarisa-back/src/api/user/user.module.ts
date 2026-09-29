@@ -5,16 +5,20 @@ import { UserRepository } from './repositories/user.repository';
 import { RoleRepository } from '../role/repositories/role.repository';
 import { UserMisRepository } from './repositories/user-mis.repository';
 import { UserRoleRepository } from './repositories/user-role.repository';
+import { UserAccessService } from './user-access.service';
+import { UserAccessController } from './user-access.controller';
 
 @Module({
-  controllers: [UserController],
+  // `UserAccessController` first: `me/access` is matched before any `:param` route.
+  controllers: [UserAccessController, UserController],
   providers: [
     UserService,
     UserRepository,
     RoleRepository,
     UserMisRepository,
     UserRoleRepository,
+    UserAccessService,
   ],
-  exports: [UserService, UserRepository],
+  exports: [UserService, UserRepository, UserAccessService],
 })
 export class UserModule {}
