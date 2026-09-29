@@ -13,11 +13,17 @@
   <form class="admin-card admin-form gc-new-list" *ngIf="creatingList" (ngSubmit)="createList()" autocomplete="off">
     <div class="admin-form__grid">
       <div class="field">
-        <label for="gc-list-code">List code <span class="tag-req">Required</span></label>
+        <div class="gc-field-head">
+          <label for="gc-list-code">List code <span class="tag-req">Required</span></label>
+          <app-gc-info [text]="info.list_code"></app-gc-info>
+        </div>
         <input id="gc-list-code" name="list_code" type="text" pInputText maxlength="50" placeholder="funding_source" [(ngModel)]="newListCode" />
       </div>
       <div class="field">
-        <label for="gc-list-first">First value <span class="tag-req">Required</span></label>
+        <div class="gc-field-head">
+          <label for="gc-list-first">First value <span class="tag-req">Required</span></label>
+          <app-gc-info [text]="info.first_value"></app-gc-info>
+        </div>
         <input id="gc-list-first" name="label" type="text" pInputText maxlength="255" [(ngModel)]="newListLabel" />
         <small class="field-hint">A list exists from its first value.</small>
       </div>
@@ -56,6 +62,7 @@
     <ng-container *ngIf="!loadError && groups.length">
       <div class="gc-lists-bar">
         <label for="gc-list-pick">List</label>
+        <app-gc-info [text]="info.pick"></app-gc-info>
         <p-dropdown
           inputId="gc-list-pick"
           appendTo="body"
@@ -109,14 +116,23 @@
 
       <form class="gc-inline-form" *ngIf="group" (ngSubmit)="addValue()" autocomplete="off">
         <div class="field">
-          <label for="gc-new-value-label">New value — label</label>
+          <div class="gc-field-head">
+            <label for="gc-new-value-label">New value — label</label>
+            <app-gc-info [text]="info.new_label"></app-gc-info>
+          </div>
           <input id="gc-new-value-label" name="label" type="text" pInputText maxlength="255" [(ngModel)]="newLabel" [disabled]="!!busy" />
         </div>
         <div class="field">
-          <label for="gc-new-value-code">Stored value <span class="tag-opt">Optional</span></label>
+          <div class="gc-field-head">
+            <label for="gc-new-value-code">Stored value <span class="tag-opt">Optional</span></label>
+            <app-gc-info [text]="info.new_value"></app-gc-info>
+          </div>
           <input id="gc-new-value-code" name="value" type="text" pInputText maxlength="100" placeholder="From the label" [(ngModel)]="newValue" [disabled]="!!busy" />
         </div>
-        <label class="gc-flag"><p-checkbox name="shared" [binary]="true" [(ngModel)]="newShared" [disabled]="!!busy"></p-checkbox><span>Every scheme</span></label>
+        <span class="gc-flag-row">
+          <label class="gc-flag"><p-checkbox name="shared" [binary]="true" [(ngModel)]="newShared" [disabled]="!!busy"></p-checkbox><span>Every scheme</span></label>
+          <app-gc-info [text]="info.shared"></app-gc-info>
+        </span>
         <button pButton type="submit" class="p-button-outlined" icon="pi pi-plus" label="Add value" [disabled]="!!busy || !newLabel.trim()" [loading]="isBusy('add')"></button>
       </form>
     </ng-container>

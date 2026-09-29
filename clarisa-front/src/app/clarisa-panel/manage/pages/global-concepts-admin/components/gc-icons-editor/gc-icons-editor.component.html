@@ -58,68 +58,128 @@
       </div>
     </div>
 
-    <div class="admin-form__grid">
-      <div class="field">
-        <label for="gc-icon-status">Status <span class="tag-req">Required</span></label>
-        <p-dropdown inputId="gc-icon-status" name="icon_status" appendTo="body" panelStyleClass="admin-dropdown-panel" [options]="statusOptions" [(ngModel)]="form.icon_status"></p-dropdown>
+    <section class="gc-section" aria-labelledby="gc-icon-sec-identity">
+      <header class="gc-section__head">
+        <h5 class="gc-section__title" id="gc-icon-sec-identity">Identity and status</h5>
+        <p class="gc-section__hint">Which icon this is, and whether readers see it.</p>
+      </header>
+      <div class="admin-form__grid">
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-icon-status">Status <span class="tag-req">Required</span></label>
+            <app-gc-info [text]="info.icon_status"></app-gc-info>
+          </div>
+          <p-dropdown inputId="gc-icon-status" name="icon_status" appendTo="body" panelStyleClass="admin-dropdown-panel" [options]="statusOptions" [(ngModel)]="form.icon_status"></p-dropdown>
+        </div>
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-icon-code">Icon code <span class="tag-opt">Optional</span></label>
+            <app-gc-info [text]="info.icon_code"></app-gc-info>
+          </div>
+          <input id="gc-icon-code" name="icon_code" type="text" pInputText maxlength="50" [(ngModel)]="form.icon_code" />
+        </div>
+        <div class="field admin-form__span">
+          <div class="gc-field-head">
+            <label for="gc-icon-alt">
+              Alt text <span class="tag-req" *ngIf="altRequired">Required</span><span class="tag-opt" *ngIf="!altRequired">Optional until final</span>
+            </label>
+            <app-gc-info [text]="info.alt_text"></app-gc-info>
+          </div>
+          <input id="gc-icon-alt" name="alt_text" type="text" pInputText maxlength="500" placeholder="What the icon shows, in a few words" [(ngModel)]="form.alt_text" />
+          <small class="field-hint">Read aloud by screen readers in place of the image. {{ form.alt_text.length }}/500</small>
+        </div>
       </div>
-      <div class="field">
-        <label for="gc-icon-code">Icon code <span class="tag-opt">Optional</span></label>
-        <input id="gc-icon-code" name="icon_code" type="text" pInputText maxlength="50" [(ngModel)]="form.icon_code" />
+    </section>
+
+    <section class="gc-section" aria-labelledby="gc-icon-sec-file">
+      <header class="gc-section__head">
+        <h5 class="gc-section__title" id="gc-icon-sec-file">File</h5>
+        <p class="gc-section__hint">Where the image is hosted and what file it is.</p>
+      </header>
+      <div class="admin-form__grid">
+        <div class="field admin-form__span">
+          <div class="gc-field-head">
+            <label for="gc-icon-primary">Primary file link <span class="tag-opt">Optional</span></label>
+            <app-gc-info [text]="info.file_link_primary"></app-gc-info>
+          </div>
+          <input id="gc-icon-primary" name="file_link_primary" type="url" pInputText maxlength="1000" placeholder="https://" [(ngModel)]="form.file_link_primary" />
+          <small class="field-hint">Only an http(s) link is published and previewed.</small>
+        </div>
+        <div class="field admin-form__span">
+          <div class="gc-field-head">
+            <label for="gc-icon-backup">Backup file link <span class="tag-opt">Optional</span></label>
+            <app-gc-info [text]="info.file_link_backup"></app-gc-info>
+          </div>
+          <input id="gc-icon-backup" name="file_link_backup" type="url" pInputText maxlength="1000" placeholder="https://" [(ngModel)]="form.file_link_backup" />
+        </div>
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-icon-format">File format</label>
+            <app-gc-info [text]="info.file_format"></app-gc-info>
+          </div>
+          <p-dropdown
+            inputId="gc-icon-format"
+            name="file_format"
+            appendTo="body"
+            panelStyleClass="admin-dropdown-panel"
+            placeholder="Not set"
+            [showClear]="true"
+            [options]="formatOptions"
+            [(ngModel)]="form.file_format"></p-dropdown>
+        </div>
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-icon-file">File name</label>
+            <app-gc-info [text]="info.file_name"></app-gc-info>
+          </div>
+          <input id="gc-icon-file" name="file_name" type="text" pInputText maxlength="255" [(ngModel)]="form.file_name" />
+        </div>
       </div>
-      <div class="field admin-form__span">
-        <label for="gc-icon-alt">
-          Alt text <span class="tag-req" *ngIf="altRequired">Required</span><span class="tag-opt" *ngIf="!altRequired">Optional until final</span>
-        </label>
-        <input id="gc-icon-alt" name="alt_text" type="text" pInputText maxlength="500" placeholder="What the icon shows, in a few words" [(ngModel)]="form.alt_text" />
-        <small class="field-hint">Read aloud by screen readers in place of the image. {{ form.alt_text.length }}/500</small>
+    </section>
+
+    <section class="gc-section" aria-labelledby="gc-icon-sec-credits">
+      <header class="gc-section__head">
+        <h5 class="gc-section__title" id="gc-icon-sec-credits">Credits and rights</h5>
+        <p class="gc-section__hint">Who made the icon and how others may reuse it.</p>
+      </header>
+      <div class="admin-form__grid">
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-icon-designer">Designer</label>
+            <app-gc-info [text]="info.designer"></app-gc-info>
+          </div>
+          <input id="gc-icon-designer" name="designer" type="text" pInputText maxlength="255" [(ngModel)]="form.designer" />
+        </div>
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-icon-country">Designer country</label>
+            <app-gc-info [text]="info.designer_country"></app-gc-info>
+          </div>
+          <input id="gc-icon-country" name="designer_country" type="text" pInputText maxlength="100" [(ngModel)]="form.designer_country" />
+        </div>
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-icon-year">Year created</label>
+            <app-gc-info [text]="info.year_created"></app-gc-info>
+          </div>
+          <input id="gc-icon-year" name="year_created" type="number" min="1900" max="2200" step="1" pInputText [(ngModel)]="form.year_created" />
+        </div>
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-icon-date">Date added</label>
+            <app-gc-info [text]="info.date_added"></app-gc-info>
+          </div>
+          <input id="gc-icon-date" name="date_added" type="date" pInputText [(ngModel)]="form.date_added" />
+        </div>
+        <div class="field admin-form__span">
+          <div class="gc-field-head">
+            <label for="gc-icon-rights">Rights and licence</label>
+            <app-gc-info [text]="info.rights_and_licence"></app-gc-info>
+          </div>
+          <input id="gc-icon-rights" name="rights_and_licence" type="text" pInputText maxlength="255" placeholder="CC BY 4.0" [(ngModel)]="form.rights_and_licence" />
+        </div>
       </div>
-      <div class="field admin-form__span">
-        <label for="gc-icon-primary">Primary file link <span class="tag-opt">Optional</span></label>
-        <input id="gc-icon-primary" name="file_link_primary" type="url" pInputText maxlength="1000" placeholder="https://" [(ngModel)]="form.file_link_primary" />
-        <small class="field-hint">Only an http(s) link is published and previewed.</small>
-      </div>
-      <div class="field admin-form__span">
-        <label for="gc-icon-backup">Backup file link <span class="tag-opt">Optional</span></label>
-        <input id="gc-icon-backup" name="file_link_backup" type="url" pInputText maxlength="1000" placeholder="https://" [(ngModel)]="form.file_link_backup" />
-      </div>
-      <div class="field">
-        <label for="gc-icon-format">File format</label>
-        <p-dropdown
-          inputId="gc-icon-format"
-          name="file_format"
-          appendTo="body"
-          panelStyleClass="admin-dropdown-panel"
-          placeholder="Not set"
-          [showClear]="true"
-          [options]="formatOptions"
-          [(ngModel)]="form.file_format"></p-dropdown>
-      </div>
-      <div class="field">
-        <label for="gc-icon-file">File name</label>
-        <input id="gc-icon-file" name="file_name" type="text" pInputText maxlength="255" [(ngModel)]="form.file_name" />
-      </div>
-      <div class="field">
-        <label for="gc-icon-designer">Designer</label>
-        <input id="gc-icon-designer" name="designer" type="text" pInputText maxlength="255" [(ngModel)]="form.designer" />
-      </div>
-      <div class="field">
-        <label for="gc-icon-country">Designer country</label>
-        <input id="gc-icon-country" name="designer_country" type="text" pInputText maxlength="100" [(ngModel)]="form.designer_country" />
-      </div>
-      <div class="field">
-        <label for="gc-icon-year">Year created</label>
-        <input id="gc-icon-year" name="year_created" type="number" min="1900" max="2200" step="1" pInputText [(ngModel)]="form.year_created" />
-      </div>
-      <div class="field">
-        <label for="gc-icon-date">Date added</label>
-        <input id="gc-icon-date" name="date_added" type="date" pInputText [(ngModel)]="form.date_added" />
-      </div>
-      <div class="field admin-form__span">
-        <label for="gc-icon-rights">Rights and licence</label>
-        <input id="gc-icon-rights" name="rights_and_licence" type="text" pInputText maxlength="255" placeholder="CC BY 4.0" [(ngModel)]="form.rights_and_licence" />
-      </div>
-    </div>
+    </section>
 
     <p class="gc-ed__error" *ngIf="formError"><i class="pi pi-info-circle"></i><span>{{ formError }}</span></p>
     <p class="gc-ed__error" role="alert" *ngIf="saveError"><i class="pi pi-times-circle"></i><span>{{ saveError }}</span></p>

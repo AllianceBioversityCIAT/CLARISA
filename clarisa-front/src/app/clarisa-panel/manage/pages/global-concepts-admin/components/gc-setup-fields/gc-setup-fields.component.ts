@@ -4,6 +4,7 @@ import { CustomField, CustomFieldType, GlobalConceptsApiService } from '../../..
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
 import { FIELD_TYPE_LABELS, needsList } from '../../utils/custom-fields';
 import { emptyFieldForm, fieldCreateBody, FieldForm, fieldFormError, fieldFormFrom, fieldPatchBody, isLocked, suggestCode } from '../../utils/setup-fields';
+import { FIELD_INFO } from '../../utils/field-info';
 
 export interface FieldRow {
   field: CustomField;
@@ -24,6 +25,7 @@ export interface FieldRow {
   styleUrls: ['./gc-setup-fields.component.scss']
 })
 export class GcSetupFieldsComponent implements OnInit, OnChanges {
+  readonly info = FIELD_INFO.setupField;
   @Input() scheme = 'meliaf';
   /** List codes the list types can point to. */
   @Input() listCodes: string[] = [];

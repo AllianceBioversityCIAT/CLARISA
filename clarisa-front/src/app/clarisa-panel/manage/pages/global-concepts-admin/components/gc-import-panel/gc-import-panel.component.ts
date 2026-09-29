@@ -9,6 +9,7 @@ import { GlossaryFileParserService, ParsedTable } from '../../../glossary-admin/
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
 import { applyAiMatches, buildImportRows, ColumnMapping, confidenceLabel, exactMapping, headerKey, pickField } from '../../utils/column-mapping';
 import { IMPORT_FIELDS, REQUIRED_IMPORT_FIELD } from '../../utils/import-fields';
+import { importColumnInfo } from '../../utils/field-info';
 
 /** Same ceiling as the glossary upload: checked before a byte is parsed. */
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
@@ -199,6 +200,11 @@ export class GcImportPanelComponent implements OnChanges, OnInit {
 
   badge(mapping: ColumnMapping): string | null {
     return confidenceLabel(mapping);
+  }
+
+  /** Text of the (i) next to a column header in the mapping step. */
+  columnInfo(header: string): string {
+    return importColumnInfo(header);
   }
 
   trackByColumn(_: number, mapping: ColumnMapping): number {

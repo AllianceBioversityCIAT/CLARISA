@@ -4,6 +4,7 @@ import { ConceptCollection, GlobalConceptsApiService } from '../../../../../../s
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
 import { slugify } from '../../utils/custom-fields';
 import { ConceptOption } from '../gc-concept-picker/gc-concept-picker.component';
+import { FIELD_INFO } from '../../utils/field-info';
 
 interface MemberDraft {
   code: string;
@@ -17,6 +18,7 @@ interface MemberDraft {
   styleUrls: ['./gc-setup-collections.component.scss']
 })
 export class GcSetupCollectionsComponent implements OnInit, OnChanges {
+  readonly info = FIELD_INFO.collection;
   @Input() scheme = 'meliaf';
   @Input() conceptOptions: ConceptOption[] = [];
 

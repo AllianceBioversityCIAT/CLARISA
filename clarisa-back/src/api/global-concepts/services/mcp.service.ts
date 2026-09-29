@@ -11,7 +11,7 @@ import {
 /** Protocol revisions this server speaks; the first is the preferred one. */
 export const MCP_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26'];
 
-const SERVER_INFO = { name: 'clarisa-global-concepts', version: '1.0.0' };
+const SERVER_INFO = { name: 'clarisa-meliaf-taxonomy', version: '1.0.0' };
 const MAX_RESULTS = 50;
 
 interface JsonRpcRequest {

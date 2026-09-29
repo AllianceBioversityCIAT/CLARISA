@@ -4,6 +4,7 @@ import { forkJoin } from 'rxjs';
 import { AdminListValue, GlobalConceptsApiService } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
 import { groupListValues, ListGroup, reorderPatches } from '../../utils/setup-fields';
+import { FIELD_INFO } from '../../utils/field-info';
 
 /** The controlled lists the scheme sees, one list at a time. */
 @Component({
@@ -12,6 +13,7 @@ import { groupListValues, ListGroup, reorderPatches } from '../../utils/setup-fi
   styleUrls: ['./gc-setup-lists.component.scss']
 })
 export class GcSetupListsComponent implements OnInit, OnChanges {
+  readonly info = FIELD_INFO.setupList;
   @Input() scheme = 'meliaf';
   /** The list codes, for the field form of the sibling section. */
   @Output() listCodes = new EventEmitter<string[]>();

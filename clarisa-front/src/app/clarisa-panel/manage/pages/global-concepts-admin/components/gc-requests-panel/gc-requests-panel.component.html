@@ -114,8 +114,12 @@
   [dismissableMask]="!transitioning"
   [style]="{ width: '860px' }"
   [breakpoints]="{ '960px': '94vw' }"
-  styleClass="admin-dialog gc-request-dialog"
+  styleClass="admin-dialog gc-dialog gc-request-dialog"
   [header]="detail ? 'Request #' + detail.id : 'Request'">
+  <p-header>
+    <span class="gc-dialog__title">{{ detail ? 'Request #' + detail.id : 'Request' }}</span>
+    <span class="gc-dialog__subtitle">Review the proposed change and decide what happens next.</span>
+  </p-header>
   <ng-container *ngIf="detail">
     <div class="gc-request-head">
       <p-tag [value]="stateLabel(detail.state)" [severity]="stateSeverity(detail.state)"></p-tag>
@@ -239,11 +243,14 @@
 
       <ng-template #confirmBlock>
         <div class="field">
-          <label for="gc-note">
-            Note for the requester
-            <span class="tag-req" *ngIf="pendingAction?.noteRequired">Required</span>
-            <span class="tag-opt" *ngIf="!pendingAction?.noteRequired">Optional</span>
-          </label>
+          <div class="gc-field-head">
+            <label for="gc-note">
+              Note for the requester
+              <span class="tag-req" *ngIf="pendingAction?.noteRequired">Required</span>
+              <span class="tag-opt" *ngIf="!pendingAction?.noteRequired">Optional</span>
+            </label>
+            <app-gc-info [text]="info.note"></app-gc-info>
+          </div>
           <textarea id="gc-note" pInputTextarea rows="3" maxlength="5000" [(ngModel)]="note"></textarea>
           <small class="field-hint">Recorded in the history and sent with the notification.</small>
         </div>

@@ -9,6 +9,7 @@ import {
 } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
 import { isHttpUrl } from '../../utils/concept-editor';
+import { FIELD_INFO } from '../../utils/field-info';
 
 export interface MappingForm {
   target_scheme: string;
@@ -79,6 +80,7 @@ export class GcMappingsEditorComponent {
 
   readonly matchTypes = MATCH_TYPES;
   readonly justifications = MAPPING_JUSTIFICATIONS;
+  readonly info = FIELD_INFO.mapping;
   form: MappingForm = emptyMappingForm();
   adding = false;
   deletingId: number | null = null;

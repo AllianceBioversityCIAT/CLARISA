@@ -97,7 +97,10 @@
     <ul class="gc-map">
       <li class="gc-map__row" *ngFor="let mapping of mappings; trackBy: trackByColumn" [class.is-mapped]="mapping.field">
         <div class="gc-map__column">
-          <span class="gc-map__header">{{ mapping.header }}</span>
+          <span class="gc-ed__title-row">
+            <span class="gc-map__header">{{ mapping.header }}</span>
+            <app-gc-info [text]="columnInfo(mapping.header)"></app-gc-info>
+          </span>
           <span class="gc-meta gc-map__sample" *ngFor="let sample of samples(mapping.column)" [title]="sample">{{ sample }}</span>
         </div>
         <i class="pi pi-arrow-right gc-map__arrow" aria-hidden="true"></i>

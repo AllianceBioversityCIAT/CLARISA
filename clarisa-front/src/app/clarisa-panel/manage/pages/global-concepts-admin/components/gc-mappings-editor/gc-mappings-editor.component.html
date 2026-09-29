@@ -38,11 +38,17 @@
   <form class="admin-form admin-card gc-map-form" *ngIf="showForm" (ngSubmit)="add()" autocomplete="off">
     <div class="admin-form__grid">
       <div class="field">
-        <label for="gc-map-scheme">Target vocabulary <span class="tag-req">Required</span></label>
+        <div class="gc-field-head">
+          <label for="gc-map-scheme">Target vocabulary <span class="tag-req">Required</span></label>
+          <app-gc-info [text]="info.target_scheme"></app-gc-info>
+        </div>
         <input id="gc-map-scheme" name="target_scheme" type="text" pInputText maxlength="50" placeholder="AGROVOC" [(ngModel)]="form.target_scheme" />
       </div>
       <div class="field">
-        <label for="gc-map-type">Match type</label>
+        <div class="gc-field-head">
+          <label for="gc-map-type">Match type</label>
+          <app-gc-info [text]="info.match_type"></app-gc-info>
+        </div>
         <p-dropdown
           inputId="gc-map-type"
           name="match_type"
@@ -56,7 +62,10 @@
         </p-dropdown>
       </div>
       <div class="field admin-form__span">
-        <label for="gc-map-uri">Target URI <span class="tag-req">Required</span></label>
+        <div class="gc-field-head">
+          <label for="gc-map-uri">Target URI <span class="tag-req">Required</span></label>
+          <app-gc-info [text]="info.target_uri"></app-gc-info>
+        </div>
         <input
           id="gc-map-uri"
           name="target_uri"
@@ -67,11 +76,17 @@
           [(ngModel)]="form.target_uri" />
       </div>
       <div class="field">
-        <label for="gc-map-label">Target label <span class="tag-opt">Optional</span></label>
+        <div class="gc-field-head">
+          <label for="gc-map-label">Target label <span class="tag-opt">Optional</span></label>
+          <app-gc-info [text]="info.target_label"></app-gc-info>
+        </div>
         <input id="gc-map-label" name="target_label" type="text" pInputText maxlength="500" [(ngModel)]="form.target_label" />
       </div>
       <div class="field">
-        <label for="gc-map-why">How was it matched? <span class="tag-opt">Optional</span></label>
+        <div class="gc-field-head">
+          <label for="gc-map-why">How was it matched? <span class="tag-opt">Optional</span></label>
+          <app-gc-info [text]="info.justification"></app-gc-info>
+        </div>
         <p-dropdown
           inputId="gc-map-why"
           name="justification"
@@ -83,7 +98,10 @@
           [(ngModel)]="form.justification"></p-dropdown>
       </div>
       <div class="field">
-        <label for="gc-map-confidence">Confidence <span class="tag-opt">Optional, 0 to 1</span></label>
+        <div class="gc-field-head">
+          <label for="gc-map-confidence">Confidence <span class="tag-opt">Optional, 0 to 1</span></label>
+          <app-gc-info [text]="info.confidence"></app-gc-info>
+        </div>
         <input
           id="gc-map-confidence"
           name="confidence"

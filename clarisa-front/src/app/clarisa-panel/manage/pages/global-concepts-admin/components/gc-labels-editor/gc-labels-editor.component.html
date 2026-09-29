@@ -16,6 +16,12 @@
   </div>
 
   <div class="gc-ed__list admin-form" *ngIf="rows.length">
+    <div class="gc-ed__row gc-label-legend">
+      <span class="gc-label-row__text gc-label-legend__cell">Label <app-gc-info [text]="info.label"></app-gc-info></span>
+      <span class="gc-label-row__kind gc-label-legend__cell">Kind <app-gc-info [text]="info.kind"></app-gc-info></span>
+      <span class="gc-label-row__lang gc-label-legend__cell">Language <app-gc-info [text]="info.language"></app-gc-info></span>
+      <span class="gc-label-legend__cell gc-label-legend__flag">Discouraged <app-gc-info [text]="info.discouraged"></app-gc-info></span>
+    </div>
     <div class="gc-ed__row gc-label-row" *ngFor="let row of rows; let i = index; trackBy: trackRow">
       <div class="gc-label-row__text">
         <label class="gc-sr-only" [for]="'gc-lbl-' + i">Label</label>

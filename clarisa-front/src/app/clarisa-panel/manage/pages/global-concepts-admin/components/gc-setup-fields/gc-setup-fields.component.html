@@ -79,8 +79,14 @@
   [dismissableMask]="!saving"
   [style]="{ width: '640px' }"
   [breakpoints]="{ '720px': '94vw' }"
-  styleClass="admin-dialog"
+  styleClass="admin-dialog gc-dialog"
   [header]="editing ? 'Edit field · ' + form.code : 'New custom field'">
+  <p-header>
+    <span class="gc-dialog__title">{{ editing ? 'Edit field · ' + form.code : 'New custom field' }}</span>
+    <span class="gc-dialog__subtitle">{{
+      editing ? 'Relabel it, reorder it or change who sees it.' : 'It appears in every concept of this scheme at once, no rebuild needed.'
+    }}</span>
+  </p-header>
   <form class="admin-form gc-field-form" (ngSubmit)="save()" autocomplete="off">
     <p class="admin-note" *ngIf="editing">
       <i class="pi pi-lock"></i>
@@ -90,77 +96,118 @@
       </span>
     </p>
 
-    <div class="admin-form__grid">
-      <div class="field admin-form__span">
-        <label for="gc-field-label">Label <span class="tag-req">Required</span></label>
-        <input id="gc-field-label" name="label" type="text" pInputText maxlength="255" [(ngModel)]="form.label" (ngModelChange)="onLabelChange($event)" />
-      </div>
+    <section class="gc-section" aria-labelledby="gc-field-sec-def">
+      <header class="gc-section__head">
+        <h3 class="gc-section__title" id="gc-field-sec-def">Definition</h3>
+        <p class="gc-section__hint">What the field is called, how it is stored and what it accepts.</p>
+      </header>
+      <div class="admin-form__grid">
+        <div class="field admin-form__span">
+          <div class="gc-field-head">
+            <label for="gc-field-label">Label <span class="tag-req">Required</span></label>
+            <app-gc-info [text]="info.label"></app-gc-info>
+          </div>
+          <input id="gc-field-label" name="label" type="text" pInputText maxlength="255" [(ngModel)]="form.label" (ngModelChange)="onLabelChange($event)" />
+        </div>
 
-      <div class="field">
-        <label for="gc-field-code">Code <span class="tag-req" *ngIf="!editing">Required</span><span class="gc-locked" *ngIf="locked('code')"><i class="pi pi-lock"></i> Fixed</span></label>
-        <input
-          id="gc-field-code"
-          name="code"
-          type="text"
-          pInputText
-          maxlength="50"
-          [readonly]="locked('code')"
-          [class.is-readonly]="locked('code')"
-          [(ngModel)]="form.code"
-          (ngModelChange)="onCodeChange()" />
-        <small class="field-hint">{{ editing ? 'Imports use it as the column x:' + form.code + '.' : 'Suggested from the label. Imports read it as the column x:your_code.' }}</small>
-      </div>
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-field-code">Code <span class="tag-req" *ngIf="!editing">Required</span><span class="gc-locked" *ngIf="locked('code')"><i class="pi pi-lock"></i> Fixed</span></label>
+            <app-gc-info [text]="info.code"></app-gc-info>
+          </div>
+          <input
+            id="gc-field-code"
+            name="code"
+            type="text"
+            pInputText
+            maxlength="50"
+            [readonly]="locked('code')"
+            [class.is-readonly]="locked('code')"
+            [(ngModel)]="form.code"
+            (ngModelChange)="onCodeChange()" />
+          <small class="field-hint">{{ editing ? 'Imports use it as the column x:' + form.code + '.' : 'Suggested from the label. Imports read it as the column x:your_code.' }}</small>
+        </div>
 
-      <div class="field">
-        <label for="gc-field-type">Type <span class="gc-locked" *ngIf="locked('type')"><i class="pi pi-lock"></i> Fixed</span></label>
-        <p-dropdown
-          *ngIf="!locked('type')"
-          inputId="gc-field-type"
-          name="type"
-          appendTo="body"
-          panelStyleClass="admin-dropdown-panel"
-          [options]="typeOptions"
-          [(ngModel)]="form.type"></p-dropdown>
-        <input *ngIf="locked('type')" id="gc-field-type" type="text" pInputText readonly class="is-readonly" [value]="typeLabel(form.type)" />
-      </div>
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-field-type">Type <span class="gc-locked" *ngIf="locked('type')"><i class="pi pi-lock"></i> Fixed</span></label>
+            <app-gc-info [text]="info.type"></app-gc-info>
+          </div>
+          <p-dropdown
+            *ngIf="!locked('type')"
+            inputId="gc-field-type"
+            name="type"
+            appendTo="body"
+            panelStyleClass="admin-dropdown-panel"
+            [options]="typeOptions"
+            [(ngModel)]="form.type"></p-dropdown>
+          <input *ngIf="locked('type')" id="gc-field-type" type="text" pInputText readonly class="is-readonly" [value]="typeLabel(form.type)" />
+        </div>
 
-      <div class="field admin-form__span" *ngIf="needsList(form.type)">
-        <label for="gc-field-list">Values come from <span class="tag-req" *ngIf="!editing">Required</span><span class="gc-locked" *ngIf="locked('list_code')"><i class="pi pi-lock"></i> Fixed</span></label>
-        <p-dropdown
-          *ngIf="!locked('list_code')"
-          inputId="gc-field-list"
-          name="list_code"
-          appendTo="body"
-          panelStyleClass="admin-dropdown-panel"
-          placeholder="Pick a controlled list"
-          [filter]="listOptions.length > 15"
-          [options]="listOptions"
-          [(ngModel)]="form.list_code"></p-dropdown>
-        <input *ngIf="locked('list_code')" id="gc-field-list" type="text" pInputText readonly class="is-readonly" [value]="form.list_code" />
-        <small class="field-hint">Manage its values under Controlled lists.</small>
+        <div class="field admin-form__span" *ngIf="needsList(form.type)">
+          <div class="gc-field-head">
+            <label for="gc-field-list">Values come from <span class="tag-req" *ngIf="!editing">Required</span><span class="gc-locked" *ngIf="locked('list_code')"><i class="pi pi-lock"></i> Fixed</span></label>
+            <app-gc-info [text]="info.list_code"></app-gc-info>
+          </div>
+          <p-dropdown
+            *ngIf="!locked('list_code')"
+            inputId="gc-field-list"
+            name="list_code"
+            appendTo="body"
+            panelStyleClass="admin-dropdown-panel"
+            placeholder="Pick a controlled list"
+            [filter]="listOptions.length > 15"
+            [options]="listOptions"
+            [(ngModel)]="form.list_code"></p-dropdown>
+          <input *ngIf="locked('list_code')" id="gc-field-list" type="text" pInputText readonly class="is-readonly" [value]="form.list_code" />
+          <small class="field-hint">Manage its values under Controlled lists.</small>
+        </div>
       </div>
+    </section>
 
-      <div class="field admin-form__span">
-        <label for="gc-field-help">Help text <span class="tag-opt">Optional</span></label>
-        <input id="gc-field-help" name="help" type="text" pInputText maxlength="500" placeholder="Shown under the field to the editor" [(ngModel)]="form.help" />
-      </div>
+    <section class="gc-section" aria-labelledby="gc-field-sec-behaviour">
+      <header class="gc-section__head">
+        <h3 class="gc-section__title" id="gc-field-sec-behaviour">Behaviour</h3>
+        <p class="gc-section__hint">How editors see it and who can read its values.</p>
+      </header>
+      <div class="admin-form__grid">
+        <div class="field admin-form__span">
+          <div class="gc-field-head">
+            <label for="gc-field-help">Help text <span class="tag-opt">Optional</span></label>
+            <app-gc-info [text]="info.help"></app-gc-info>
+          </div>
+          <input id="gc-field-help" name="help" type="text" pInputText maxlength="500" placeholder="Shown under the field to the editor" [(ngModel)]="form.help" />
+        </div>
 
-      <div class="field">
-        <label for="gc-field-sort">Order</label>
-        <input id="gc-field-sort" name="sort" type="number" step="1" pInputText [(ngModel)]="form.sort" />
-      </div>
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-field-sort">Order</label>
+            <app-gc-info [text]="info.sort"></app-gc-info>
+          </div>
+          <input id="gc-field-sort" name="sort" type="number" step="1" pInputText [(ngModel)]="form.sort" />
+        </div>
 
-      <div class="field gc-field-flags">
-        <label class="gc-flag"><p-checkbox name="required" [binary]="true" [(ngModel)]="form.required"></p-checkbox><span>Required</span></label>
-        <label class="gc-flag"><p-checkbox name="is_public" [binary]="true" [(ngModel)]="form.is_public"></p-checkbox><span>Published (API, exports)</span></label>
-        <label class="gc-flag" *ngIf="editing"><p-checkbox name="is_active" [binary]="true" [(ngModel)]="form.is_active"></p-checkbox><span>Active</span></label>
+        <div class="field gc-field-flags">
+          <span class="gc-flag-row">
+            <label class="gc-flag"><p-checkbox name="required" [binary]="true" [(ngModel)]="form.required"></p-checkbox><span>Required</span></label>
+            <app-gc-info [text]="info.required"></app-gc-info>
+          </span>
+          <span class="gc-flag-row">
+            <label class="gc-flag"><p-checkbox name="is_public" [binary]="true" [(ngModel)]="form.is_public"></p-checkbox><span>Published (API, exports)</span></label>
+            <app-gc-info [text]="info.is_public"></app-gc-info>
+          </span>
+          <span class="gc-flag-row" *ngIf="editing">
+            <label class="gc-flag"><p-checkbox name="is_active" [binary]="true" [(ngModel)]="form.is_active"></p-checkbox><span>Active</span></label>
+            <app-gc-info [text]="info.is_active"></app-gc-info>
+          </span>
+        </div>
       </div>
-    </div>
+    </section>
 
     <p class="gc-ed__error" *ngIf="formError && (form.label || editing)"><i class="pi pi-info-circle"></i><span>{{ formError }}</span></p>
     <p class="gc-ed__error" role="alert" *ngIf="saveError"><i class="pi pi-times-circle"></i><span>{{ saveError }}</span></p>
 
-    <div class="admin-form__actions">
+    <div class="admin-form__actions gc-dialog-foot">
       <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="saving" (click)="dialogVisible = false"></button>
       <button
         pButton

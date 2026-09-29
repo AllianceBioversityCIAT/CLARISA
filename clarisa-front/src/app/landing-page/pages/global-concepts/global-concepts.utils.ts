@@ -19,7 +19,7 @@ export type ListsByCode = Record<string, ListOption[]>;
 /**
  * The controlled lists grouped by list code.
  *
- * `GET api/global-concepts/lists` answers an object keyed by list code
+ * `GET api/meliaf-taxonomy/lists` answers an object keyed by list code
  * (`concepts-read.service.ts` `lists()`), while the shared client types it as
  * a flat `ListValue[]`. Both shapes are accepted so the page keeps working
  * whichever of the two is corrected.
