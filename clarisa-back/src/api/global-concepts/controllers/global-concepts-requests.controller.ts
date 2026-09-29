@@ -151,7 +151,7 @@ export class GlobalConceptsPlatformController {
   ) {}
 
   @Post(':scheme/requests')
-  @RequireApiKeyScope('global-concepts:request')
+  @RequireApiKeyScope('meliaf-taxonomy:request')
   submit(
     @Param('scheme') scheme: string,
     @Body() dto: SubmitRequestDto,
@@ -166,7 +166,7 @@ export class GlobalConceptsPlatformController {
   }
 
   @Get('requests/:id')
-  @RequireApiKeyScope('global-concepts:request')
+  @RequireApiKeyScope('meliaf-taxonomy:request')
   status(
     @Param('id', ParseIntPipe) id: number,
     @GetApiKeyAuth() auth: ApiKeyAuthContext,
@@ -175,7 +175,7 @@ export class GlobalConceptsPlatformController {
   }
 
   @Post('requests/:id/resubmit')
-  @RequireApiKeyScope('global-concepts:request')
+  @RequireApiKeyScope('meliaf-taxonomy:request')
   resubmit(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ResubmitRequestDto,
@@ -189,7 +189,7 @@ export class GlobalConceptsPlatformController {
   }
 
   @Post('requests/:id/transition')
-  @RequireApiKeyScope('global-concepts:review')
+  @RequireApiKeyScope('meliaf-taxonomy:review')
   transition(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: RequestTransitionDto,
@@ -203,7 +203,7 @@ export class GlobalConceptsPlatformController {
   }
 
   @Post(':scheme/concepts')
-  @RequireApiKeyScope('global-concepts:write')
+  @RequireApiKeyScope('meliaf-taxonomy:write')
   async create(
     @Param('scheme') scheme: string,
     @Body() dto: CreateConceptDto,
@@ -217,7 +217,7 @@ export class GlobalConceptsPlatformController {
   }
 
   @Patch(':scheme/concepts/:termId')
-  @RequireApiKeyScope('global-concepts:write')
+  @RequireApiKeyScope('meliaf-taxonomy:write')
   async update(
     @Param('scheme') scheme: string,
     @Param('termId', ParseIntPipe) termId: number,

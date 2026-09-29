@@ -1373,8 +1373,8 @@ function specOpFor(route) {
   const p = '/' + route.replace(/^\/+/, '');
   const paths = state.spec?.paths || {};
   if (paths[p]?.get) return paths[p].get;
-  // Templated spec paths ("/api/global-concepts/{scheme}/concepts") match a
-  // concrete catalog route ("api/global-concepts/meliaf/concepts").
+  // Templated spec paths ("/api/meliaf-taxonomy/{scheme}/concepts") match a
+  // concrete catalog route ("api/meliaf-taxonomy/meliaf/concepts").
   for (const [tpl, ops] of Object.entries(paths)) {
     if (!ops?.get || !tpl.includes('{')) continue;
     const re = new RegExp('^' + tpl.split(/\{[^}]+\}/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[^/]+') + '$');

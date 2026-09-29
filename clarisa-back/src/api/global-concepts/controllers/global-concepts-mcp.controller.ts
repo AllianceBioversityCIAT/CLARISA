@@ -18,7 +18,7 @@ import { PublicRateLimitGuard } from '../utils/public-rate-limit.guard';
 const MAX_BATCH = 10;
 
 /**
- * `api/global-concepts/mcp` — stateless Streamable HTTP MCP endpoint (D7).
+ * `api/meliaf-taxonomy/mcp` — stateless Streamable HTTP MCP endpoint (D7).
  * POST carries JSON-RPC and is answered with plain JSON; there is no session
  * and no server-to-client stream, so GET and DELETE answer 405 as the
  * transport specification allows. Declared before the public controller so

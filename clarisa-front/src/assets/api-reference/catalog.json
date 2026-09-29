@@ -301,27 +301,27 @@
           "endpoints": [
             {
               "name": "Concept schemes",
-              "route": "api/global-concepts/schemes",
+              "route": "api/meliaf-taxonomy/schemes",
               "method": "get"
             },
             {
               "name": "Controlled lists",
-              "route": "api/global-concepts/lists",
+              "route": "api/meliaf-taxonomy/lists",
               "method": "get"
             },
             {
               "name": "MELIAF concepts",
-              "route": "api/global-concepts/meliaf/concepts",
+              "route": "api/meliaf-taxonomy/meliaf/concepts",
               "method": "get"
             },
             {
               "name": "MELIAF releases",
-              "route": "api/global-concepts/meliaf/releases",
+              "route": "api/meliaf-taxonomy/meliaf/releases",
               "method": "get"
             },
             {
               "name": "MELIAF change feed",
-              "route": "api/global-concepts/meliaf/changes",
+              "route": "api/meliaf-taxonomy/meliaf/changes",
               "method": "get"
             }
           ]

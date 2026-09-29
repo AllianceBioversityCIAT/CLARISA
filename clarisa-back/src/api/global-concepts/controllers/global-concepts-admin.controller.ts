@@ -68,12 +68,13 @@ import { ConceptsFieldsService } from '../services/concepts-fields.service';
 import { UsageService } from '../services/usage.service';
 
 /**
- * Admin surface of Global Concepts (`/api/global-concepts/admin`). Every write
+ * Admin surface of Global Concepts (`/api/meliaf-taxonomy/admin`). Every write
  * made here is a direct admin edit and is logged as such (`direct_edit`); the
  * people who are not admins go through concept requests instead.
  *
  * `PermissionGuard` matches the path against the user's permissions, seeded by
- * `SeedGlobalConceptsAdminPermission1790500100000`.
+ * `SeedGlobalConceptsAdminPermission1790500100000` and moved to the
+ * `meliaf-taxonomy` prefix by `RenameGlobalConceptsRoutesToMeliafTaxonomy1790500300000`.
  */
 @ApiExcludeController()
 @Controller('admin')

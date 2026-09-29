@@ -5,9 +5,9 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 
 /**
- * Client of the Global Concepts module (`api/global-concepts`), shared by the
+ * Client of the Global Concepts module (`api/meliaf-taxonomy`), shared by the
  * admin section and the public page. Shapes mirror the back's presenters
- * (clarisa-back/src/api/global-concepts); field names follow the MELIAF data
+ * (clarisa-back/src/api/meliaf-taxonomy); field names follow the MELIAF data
  * schema template.
  */
 
@@ -245,7 +245,7 @@ const params = (query: object = {}) => {
 
 @Injectable({ providedIn: 'root' })
 export class GlobalConceptsApiService {
-  private readonly base = `${environment.apiUrl}api/global-concepts`;
+  private readonly base = `${environment.apiUrl}api/meliaf-taxonomy`;
 
   constructor(private _http: HttpClient) {}
 
