@@ -570,6 +570,12 @@
   // ------------------------------------------------------------------ small tag
   // "AI-assisted" and similar provenance marks next to a heading.
 
+  .gc-tag.gc-tag--custom {
+    background: var(--cl-brand-soft);
+    box-shadow: inset 0 0 0 1px var(--cl-brand-ring);
+    color: var(--cl-brand-deeper);
+  }
+
   .gc-tag {
     display: inline-flex;
     align-items: center;

@@ -4,6 +4,7 @@
     <div class="gc-fields__row" *ngFor="let f of views" [attr.data-field]="f.code">
       <dt>
         {{ f.label }}
+        <span class="gc-tag gc-tag--custom" title="Field defined by the scheme owners">Custom</span>
         <span class="gc-tag" *ngIf="f.ai" title="Drafted with AI assistance and accepted by an editor"
           ><i class="pi pi-bolt" aria-hidden="true"></i>AI-assisted</span
         >

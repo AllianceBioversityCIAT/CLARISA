@@ -50,8 +50,11 @@ describe('CustomFieldsComponent', () => {
     expect(el.querySelector('[data-field="regions"] .gc-chip')?.textContent).toContain('Latin America');
     expect(el.querySelector('[data-field="see"] a')?.textContent).toContain('Impact');
     expect(el.querySelector('[data-field="doc"] a')?.getAttribute('href')).toBe('https://cgiar.org/guide');
-    expect(el.querySelector('[data-field="summary"] .gc-tag')?.textContent).toContain('AI-assisted');
-    expect(el.querySelector('[data-field="doc"] .gc-tag')).toBeNull();
+    expect(el.querySelector('[data-field="summary"] .gc-tag:not(.gc-tag--custom)')?.textContent).toContain('AI-assisted');
+    expect(el.querySelector('[data-field="doc"] .gc-tag:not(.gc-tag--custom)')).toBeNull();
+    // Every field in this section is a custom field, and says so.
+    expect(el.querySelectorAll('.gc-tag--custom').length).toBe(4);
+    expect(el.querySelector('[data-field="doc"] .gc-tag--custom')?.textContent?.trim()).toBe('Custom');
     expect(component.link(7)).toEqual(['/landing-page/global-concepts', 'meliaf', 7]);
   });
 });

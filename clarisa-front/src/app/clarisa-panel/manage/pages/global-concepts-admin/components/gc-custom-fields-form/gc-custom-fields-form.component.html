@@ -3,6 +3,7 @@
     <div class="field" *ngFor="let field of fields; trackBy: trackField" [class.admin-form__span]="control(field) === 'textarea' || control(field) === 'chips' || control(field) === 'concepts' || control(field) === 'multiselect'">
       <label [for]="inputId(field)">
         {{ field.label }}
+        <span class="tag-custom" title="Custom field defined in Setup">Custom</span>
         <span class="tag-req" *ngIf="field.required">Required</span>
         <span class="gc-xf__private" *ngIf="!field.is_public" title="Not published: only admins see this value"><i class="pi pi-lock"></i> Internal</span>
       </label>
