@@ -18,7 +18,7 @@ import {
 } from '../services/concepts-export.service';
 import { ConceptGraphLoader } from '../services/concept-graph.loader';
 import { DataSource } from 'typeorm';
-import { GlobalConceptsConfig } from '../global-concepts.config';
+import { webBaseOf } from '../global-concepts.config';
 import { UsageService } from '../services/usage.service';
 import { GcUsageKind } from '../entities/gc-usage-daily.entity';
 
@@ -57,11 +57,15 @@ export class ConceptUriController {
     res.setHeader('Vary', 'Accept');
     if (!wanted) {
       const concept = await this.read.get(scheme, termId); // 404 when not public
+      const schemeRow = await this.loader.scheme(
+        this.dataSource.manager,
+        scheme,
+      );
       // Not counted here: the page it redirects to reads the concept and that
       // read is the view (counting both made every human visit count twice).
       return res.redirect(
         303,
-        `${GlobalConceptsConfig.webBase}/${concept.scheme}/${concept.term_id}`,
+        `${webBaseOf(schemeRow)}/${concept.scheme}/${concept.term_id}`,
       );
     }
     const concept = await this.read.get(scheme, termId);
@@ -83,10 +87,14 @@ export class ConceptUriController {
     res.setHeader('Vary', 'Accept');
     if (!wanted) {
       const meta = await this.read.scheme(scheme);
+      const schemeRow = await this.loader.scheme(
+        this.dataSource.manager,
+        scheme,
+      );
       // The public page lists a scheme with `?scheme=`; it has no one-segment route.
       return res.redirect(
         303,
-        `${GlobalConceptsConfig.webBase}?scheme=${encodeURIComponent(meta.code)}`,
+        `${webBaseOf(schemeRow)}?scheme=${encodeURIComponent(meta.code)}`,
       );
     }
     const file = await this.exporter.export(scheme, wanted);

@@ -48,6 +48,14 @@ export const GlobalConceptsConfig = {
   },
 };
 
+/**
+ * Base of the human pages for a scheme, honouring a per-scheme override —
+ * so each environment points at its own landing site from data, not env.
+ */
+export function webBaseOf(scheme?: { web_base?: string | null } | null) {
+  return (scheme?.web_base || GlobalConceptsConfig.webBase).replace(/\/+$/, '');
+}
+
 /** URI of a scheme, honouring a per-scheme override. */
 export function schemeUri(scheme: { code: string; uri_base: string | null }) {
   return `${(scheme.uri_base ?? GlobalConceptsConfig.uriBase).replace(/\/+$/, '')}/${scheme.code}`;
