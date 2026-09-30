@@ -448,15 +448,29 @@ export class GlobalConceptsApiService {
     return this._http.post<AdminIcon>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/icons`, body);
   }
 
-  updateIcon(scheme: string, id: number, body: Partial<IconInput>): Observable<AdminIcon> {
-    return this._http.patch<AdminIcon>(`${this.admin}/${encodeURIComponent(scheme)}/icons/${id}`, body);
+  /**
+   * Nested under the concept (`concepts/:termId/icons/:id`) so a concepts-only
+   * member (`MELIAF_CE`) reaches it; the back answers 404 if the icon belongs
+   * to another concept. Full admins pass too (`/admin` is a substring).
+   */
+  updateIcon(scheme: string, termId: number, id: number, body: Partial<IconInput>): Observable<AdminIcon> {
+    return this._http.patch<AdminIcon>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/icons/${id}`, body);
   }
 
-  deleteIcon(scheme: string, id: number): Observable<{ deleted: number }> {
-    return this._http.delete<{ deleted: number }>(`${this.admin}/${encodeURIComponent(scheme)}/icons/${id}`);
+  deleteIcon(scheme: string, termId: number, id: number): Observable<{ deleted: number }> {
+    return this._http.delete<{ deleted: number }>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/icons/${id}`);
   }
 
-  /** Every custom field definition of the scheme, active and inactive. */
+  /**
+   * Same payload as `fields()`, read-only, under the concept path: what the
+   * concept editor reads, so a concepts-only member can load it without the
+   * Setup permission. Setup keeps `fields()`.
+   */
+  conceptFields(scheme: string): Observable<CustomField[]> {
+    return this._http.get<CustomField[]>(`${this.admin}/${encodeURIComponent(scheme)}/concepts-meta/fields`);
+  }
+
+  /** Every custom field definition of the scheme, active and inactive (Setup). */
   fields(scheme: string): Observable<CustomField[]> {
     return this._http.get<CustomField[]>(`${this.admin}/${encodeURIComponent(scheme)}/fields`);
   }
@@ -518,6 +532,16 @@ export class GlobalConceptsApiService {
     body: { preferred_label: string; definition: string; fields: AiDraftField[] }
   ): Observable<Partial<Record<AiDraftField, string>>> {
     return this._http.post<Partial<Record<AiDraftField, string>>>(`${this.admin}/${encodeURIComponent(scheme)}/ai/draft`, body);
+  }
+
+  /** Whether the concept assistant can answer for this scheme; a user without AI gets `enabled: false` (or a 403). */
+  conceptsAssistStatus(scheme: string): Observable<ConceptsAssistStatus> {
+    return this._http.get<ConceptsAssistStatus>(`${this.admin}/${encodeURIComponent(scheme)}/concepts-assist/status`);
+  }
+
+  /** One assistant turn. Advisory: it returns steps the dialog plays on the form; nothing is saved by the back. */
+  conceptsAssistChat(scheme: string, body: ConceptsAssistRequest): Observable<ConceptsAssistReply> {
+    return this._http.post<ConceptsAssistReply>(`${this.admin}/${encodeURIComponent(scheme)}/concepts-assist/chat`, body);
   }
 
   // ------------------------------------------------- public (contract v2, developers page)
@@ -659,6 +683,49 @@ export interface UsageSummary {
 }
 
 export type AiDraftField = 'short_definition' | 'scope_note' | 'example_of_use';
+
+// ------------------------------------------------ concept assistant (assistant-contract.md)
+
+export interface ConceptsAssistStatus {
+  enabled: boolean;
+  reason?: string;
+  remainingUsd: number;
+}
+
+export interface ConceptsAssistMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** A change the person made by hand, in order. Custom fields are `x:<code>`. */
+export interface ConceptsAssistEdit {
+  seq: number;
+  field: string;
+  tab: string;
+  before: unknown;
+  after: unknown;
+  at: string;
+}
+
+export interface ConceptsAssistRequest {
+  termId?: number;
+  draft: Record<string, unknown>;
+  messages: ConceptsAssistMessage[];
+  edits: ConceptsAssistEdit[];
+}
+
+export interface ConceptsAssistStep {
+  field: string;
+  tab: 'details' | 'fields';
+  value: unknown;
+  reason: string;
+}
+
+export interface ConceptsAssistReply {
+  reply: string;
+  steps: ConceptsAssistStep[];
+  costUsd: number;
+}
 
 // ----------------------------------------------------------- public shape v2 (contract-v2.md)
 

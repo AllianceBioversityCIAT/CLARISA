@@ -23,10 +23,14 @@ export const GlobalConceptsConfig = {
    * either, every AI route answers 404 and the module works unchanged.
    */
   get aiEnabled(): boolean {
-    return (
-      (env.GLOBAL_CONCEPTS_AI_ENABLED ?? 'false').toLowerCase() === 'true' &&
-      !!env.OPEN_AI_CLARISA_ASSISTANT_TOKEN
-    );
+    return this.aiSwitchOn && this.aiHasKey;
+  },
+  /** `GLOBAL_CONCEPTS_AI_ENABLED=true`, key or not (the assistant says which one is missing). */
+  get aiSwitchOn(): boolean {
+    return (env.GLOBAL_CONCEPTS_AI_ENABLED ?? 'false').toLowerCase() === 'true';
+  },
+  get aiHasKey(): boolean {
+    return !!env.OPEN_AI_CLARISA_ASSISTANT_TOKEN;
   },
   get aiModel(): string {
     return env.GLOBAL_CONCEPTS_AI_MODEL ?? 'gpt-5-mini';

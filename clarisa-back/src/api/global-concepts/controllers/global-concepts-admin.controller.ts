@@ -286,6 +286,22 @@ export class GlobalConceptsAdminController {
 
   // ---------------------------------------------------------------- concepts
 
+  /**
+   * Read-only copies of `GET :scheme/fields` and `GET :scheme/lists` under the
+   * concept path: the concept editor needs them, and granting the setup paths
+   * to a concepts-only role would also open their POST/PATCH (the permission
+   * check matches the path, not the method). GET only, on purpose.
+   */
+  @Get(':scheme/concepts-meta/fields')
+  conceptsMetaFields(@Param('scheme') scheme: string) {
+    return this.fields.list(scheme);
+  }
+
+  @Get(':scheme/concepts-meta/lists')
+  conceptsMetaLists(@Param('scheme') scheme: string) {
+    return this.catalog.listValues(scheme);
+  }
+
   @Get(':scheme/concepts')
   list(@Param('scheme') scheme: string, @Query('status') status?: string) {
     return this.admin.list(scheme, status);
@@ -403,6 +419,32 @@ export class GlobalConceptsAdminController {
     @GetUserData() user: UserData,
   ) {
     return this.icons.create(scheme, termId, dto, this.actor(user));
+  }
+
+  /**
+   * Same as `PATCH :scheme/icons/:id`, under the concept path so the
+   * concepts-only permission (`.../admin/meliaf/concepts`) reaches it. The
+   * icon must belong to `termId` (404 otherwise).
+   */
+  @Patch(':scheme/concepts/:termId/icons/:id')
+  updateConceptIcon(
+    @Param('scheme') scheme: string,
+    @Param('termId', ParseIntPipe) termId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateIconDto,
+    @GetUserData() user: UserData,
+  ) {
+    return this.icons.update(scheme, id, dto, this.actor(user), termId);
+  }
+
+  @Delete(':scheme/concepts/:termId/icons/:id')
+  removeConceptIcon(
+    @Param('scheme') scheme: string,
+    @Param('termId', ParseIntPipe) termId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @GetUserData() user: UserData,
+  ) {
+    return this.icons.remove(scheme, id, this.actor(user), termId);
   }
 
   @Patch(':scheme/icons/:id')

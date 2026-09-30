@@ -1,0 +1,105 @@
+<aside class="gc-as" aria-label="Concept assistant">
+  <header class="gc-as__head">
+    <span class="gc-as__mark" aria-hidden="true">
+      <svg viewBox="0 0 16 16">
+        <path d="M8 1.5l1.4 3.6L13 6.5 9.4 7.9 8 11.5 6.6 7.9 3 6.5l3.6-1.4L8 1.5zM12.5 10l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6.6-1.4z" />
+      </svg>
+    </span>
+    <div class="gc-as__titles">
+      <h3 class="gc-as__title">Assistant</h3>
+      <p class="gc-as__sub">Fills the form with you. It proposes; only Save writes.</p>
+    </div>
+    <button type="button" class="gc-as__close" aria-label="Close the assistant" (click)="close()">
+      <i class="pi pi-times" aria-hidden="true"></i>
+    </button>
+  </header>
+
+  <div class="gc-as__list" #list aria-live="polite">
+    <div class="gc-as__intro" *ngIf="!messages.length && !sending">
+      <p class="gc-as__intro-title">What should we work on?</p>
+      <p class="gc-as__intro-text">
+        Ask in your words. The assistant goes to each field, types its proposal and marks it <strong>AI suggestion</strong> so you keep or undo it.
+        Fields you edited by hand are never overwritten.
+      </p>
+      <div class="gc-as__chips">
+        <button type="button" class="gc-as__chip" *ngFor="let text of suggestions" [disabled]="busy" (click)="useSuggestion(text)">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l1.4 3.6L13 6.5 9.4 7.9 8 11.5 6.6 7.9 3 6.5l3.6-1.4L8 1.5z" /></svg>
+          {{ text }}
+        </button>
+      </div>
+    </div>
+
+    <div
+      class="gc-as__msg"
+      *ngFor="let message of messages"
+      [class.gc-as__msg--user]="message.role === 'user'"
+      [class.gc-as__msg--ai]="message.role === 'assistant'">
+      <p class="gc-as__bubble">{{ message.content }}</p>
+      <div
+        class="gc-as__steps"
+        *ngIf="message.role === 'assistant' && (message.filled?.length || message.proposed?.length || message.skipped?.length)">
+        <button
+          type="button"
+          class="gc-as__step"
+          *ngFor="let field of message.filled"
+          (click)="focusField(field)"
+          [title]="'Go to ' + session.label(field)">
+          <i class="pi pi-pencil" aria-hidden="true"></i>{{ session.label(field) }}
+        </button>
+        <button
+          type="button"
+          class="gc-as__step gc-as__step--proposal"
+          *ngFor="let field of message.proposed"
+          (click)="focusField(field)"
+          title="You edited this field: the value waits in a bubble">
+          <i class="pi pi-comment" aria-hidden="true"></i>{{ session.label(field) }} · proposed
+        </button>
+        <span class="gc-as__step gc-as__step--skipped" *ngIf="message.skipped?.length" title="Fields this editor does not show">
+          {{ message.skipped!.length }} not placed
+        </span>
+      </div>
+    </div>
+
+    <div class="gc-as__msg gc-as__msg--ai" *ngIf="sending" aria-label="The assistant is thinking">
+      <p class="gc-as__bubble gc-as__typing"><span></span><span></span><span></span></p>
+    </div>
+  </div>
+
+  <p class="gc-as__live" *ngIf="playing && liveLabel" role="status">
+    <span class="gc-as__live-dot" aria-hidden="true"></span> Filling <strong>{{ liveLabel }}</strong
+    >…
+  </p>
+
+  <p class="gc-as__error" *ngIf="error" role="alert">
+    <i class="pi pi-exclamation-triangle" aria-hidden="true"></i><span>{{ error }}</span>
+  </p>
+
+  <div class="gc-as__trail" *ngIf="editTrail" title="Sent with your next message, so the assistant knows what you changed and in which order">
+    <i class="pi pi-user-edit" aria-hidden="true"></i>
+    <span class="gc-as__trail-label">You changed:</span>
+    <span class="gc-as__trail-list">{{ editTrail }}</span>
+  </div>
+
+  <form class="gc-as__compose" (ngSubmit)="send()" autocomplete="off">
+    <label class="gc-as__sr" for="gc-assist-input">Message to the assistant</label>
+    <textarea
+      #box
+      id="gc-assist-input"
+      name="assist"
+      rows="2"
+      [maxlength]="maxLength"
+      placeholder="Ask about this concept…"
+      [(ngModel)]="input"
+      (keydown)="onKeydown($event)"></textarea>
+    <div class="gc-as__compose-foot">
+      <span class="gc-as__hint"
+        >Enter to send · Shift+Enter for a new line<ng-container *ngIf="remainingUsd !== null">
+          · ${{ remainingUsd | number: '1.2-2' }} left this month</ng-container
+        ></span
+      >
+      <button type="submit" class="gc-as__send" [disabled]="!canSend" [attr.aria-label]="busy ? 'The assistant is working' : 'Send'">
+        <i class="pi" [ngClass]="busy ? 'pi-spin pi-spinner' : 'pi-send'" aria-hidden="true"></i>
+      </button>
+    </div>
+  </form>
+</aside>

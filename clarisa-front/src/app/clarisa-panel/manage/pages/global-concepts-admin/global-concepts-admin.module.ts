@@ -28,6 +28,7 @@ import { GcConceptsPanelComponent } from './components/gc-concepts-panel/gc-conc
 import { GcRequestsPanelComponent } from './components/gc-requests-panel/gc-requests-panel.component';
 import { GcImportPanelComponent } from './components/gc-import-panel/gc-import-panel.component';
 import { GcConceptDialogComponent } from './components/gc-concept-dialog/gc-concept-dialog.component';
+import { GcConceptCreateDialogComponent } from './components/gc-concept-create-dialog/gc-concept-create-dialog.component';
 import { GcConceptPickerComponent } from './components/gc-concept-picker/gc-concept-picker.component';
 import { GcLabelsEditorComponent } from './components/gc-labels-editor/gc-labels-editor.component';
 import { GcRelationsEditorComponent } from './components/gc-relations-editor/gc-relations-editor.component';
@@ -39,7 +40,10 @@ import { GcSetupFieldsComponent } from './components/gc-setup-fields/gc-setup-fi
 import { GcSetupListsComponent } from './components/gc-setup-lists/gc-setup-lists.component';
 import { GcSetupCollectionsComponent } from './components/gc-setup-collections/gc-setup-collections.component';
 import { GcUsagePanelComponent } from './components/gc-usage-panel/gc-usage-panel.component';
-import { GcInfoComponent } from './components/gc-info/gc-info.component';
+import { GcInfoModule } from './components/gc-info/gc-info.module';
+import { GcConceptAssistantComponent } from './components/gc-concept-assistant/gc-concept-assistant.component';
+import { GcAssistMarkComponent } from './components/gc-concept-assistant/gc-assist-mark.component';
+import { GcAssistToggleComponent } from './components/gc-concept-assistant/gc-assist-toggle.component';
 import { GlossaryFileParserService } from '../glossary-admin/services/glossary-file-parser.service';
 
 @NgModule({
@@ -49,6 +53,7 @@ import { GlossaryFileParserService } from '../glossary-admin/services/glossary-f
     GcRequestsPanelComponent,
     GcImportPanelComponent,
     GcConceptDialogComponent,
+    GcConceptCreateDialogComponent,
     GcConceptPickerComponent,
     GcLabelsEditorComponent,
     GcRelationsEditorComponent,
@@ -60,11 +65,14 @@ import { GlossaryFileParserService } from '../glossary-admin/services/glossary-f
     GcSetupListsComponent,
     GcSetupCollectionsComponent,
     GcUsagePanelComponent,
-    GcInfoComponent
+    GcConceptAssistantComponent,
+    GcAssistMarkComponent,
+    GcAssistToggleComponent
   ],
   imports: [
     CommonModule,
     AdminChartsModule,
+    GcInfoModule,
     FormsModule,
     GlobalConceptsAdminRoutingModule,
     AutoCompleteModule,

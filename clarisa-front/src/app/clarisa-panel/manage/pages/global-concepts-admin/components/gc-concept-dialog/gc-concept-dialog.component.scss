@@ -256,3 +256,31 @@
     flex-wrap: wrap;
   }
 }
+
+/* Header: title and subtitle on the left, the assistant toggle on the right of both. */
+:host ::ng-deep .gc-concept-dialog .p-dialog-header p-header {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  min-width: 0;
+
+  > span {
+    grid-column: 1;
+  }
+}
+
+/* Holds the Save button so its "wait for the assistant" tooltip shows while it is disabled. */
+.gc-save-wrap {
+  display: inline-flex;
+}
+
+@media (max-width: 720px) {
+  .gc-save-wrap {
+    flex: 1 1 auto;
+
+    .p-button {
+      width: 100%;
+    }
+  }
+}

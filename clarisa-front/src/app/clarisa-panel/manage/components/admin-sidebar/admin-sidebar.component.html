@@ -126,6 +126,17 @@
     </div>
 
     <p class="admin-sidebar__empty" *ngIf="isEmpty">No section matches «{{ query }}».</p>
+
+    <!-- Until `me/access` answers: placeholders, never the full menu. -->
+    <div class="admin-sidebar__skeleton" *ngIf="accessLoading" aria-busy="true" aria-label="Loading your sections">
+      <span class="admin-sidebar__skeleton-title"></span>
+      <span class="admin-sidebar__skeleton-item" *ngFor="let _ of [1, 2, 3, 4, 5]"></span>
+    </div>
+    <!--
+      No error or "no roles" notice: a failed or slow me/access falls back to
+      the whole menu (as before role filtering), and the entries open to any
+      session always show.
+    -->
   </div>
 
   <!--

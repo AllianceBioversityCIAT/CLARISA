@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CustomField } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { controlFor, CustomControl, CustomValue, FIELD_TYPE_LABELS } from '../../utils/custom-fields';
 import { ListOption } from '../../utils/list-values';
@@ -20,6 +20,8 @@ export class GcCustomFieldsFormComponent {
   @Input() conceptOptions: ConceptOption[] = [];
   @Input() selfTermId: number | null = null;
   @Input() disabled = false;
+  /** A value the PERSON changed (control input, link, unlink); the dialog logs it for the assistant. */
+  @Output() edited = new EventEmitter<{ code: string; value: CustomValue }>();
 
   control(field: CustomField): CustomControl {
     return controlFor(field.type);
@@ -41,10 +43,12 @@ export class GcCustomFieldsFormComponent {
   link(field: CustomField, option: ConceptOption): void {
     const ids = ((this.values[field.code] as number[]) ?? []).filter(id => id !== option.term_id);
     this.values[field.code] = [...ids, option.term_id];
+    this.edited.emit({ code: field.code, value: this.values[field.code] });
   }
 
   unlink(field: CustomField, termId: number): void {
     this.values[field.code] = ((this.values[field.code] as number[]) ?? []).filter(id => id !== termId);
+    this.edited.emit({ code: field.code, value: this.values[field.code] });
   }
 
   /**

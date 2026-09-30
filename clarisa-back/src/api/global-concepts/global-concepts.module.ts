@@ -19,6 +19,8 @@ import { EmbeddingsService } from './services/embeddings.service';
 import { GlobalConceptsMcpController } from './controllers/global-concepts-mcp.controller';
 import { OutboxService } from './services/outbox.service';
 import { GlobalConceptsAdminController } from './controllers/global-concepts-admin.controller';
+import { GlobalConceptsAssistantController } from './controllers/global-concepts-assistant.controller';
+import { ConceptAssistantService } from './services/concept-assistant.service';
 import { GlobalConceptsPublicController } from './controllers/global-concepts-public.controller';
 import { ConceptUriController } from './controllers/concept-uri.controller';
 import { ConceptGraphLoader } from './services/concept-graph.loader';
@@ -42,6 +44,7 @@ const providers = [
   OutboxService,
   AiService,
   AiAssistService,
+  ConceptAssistantService,
   ConceptsSuggestService,
   McpService,
   ConceptsImportService,
@@ -66,6 +69,7 @@ const providers = [
   imports: [GuardsModule, ApiKeyModule, HandlebarsTemplateModule],
   controllers: [
     GlobalConceptsAdminController,
+    GlobalConceptsAssistantController,
     GlobalConceptsPlatformController,
     GlobalConceptsRequestsController,
     GlobalConceptsMcpController,

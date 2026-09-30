@@ -98,10 +98,21 @@ export class ConceptsIconsService {
     });
   }
 
-  async update(code: string, id: number, dto: UpdateIconDto, actor: GcActor) {
+  /**
+   * `termId`, when given (the `concepts/:termId/icons/:id` alias), must be the
+   * concept that owns the icon: the concepts-only permission opens that path,
+   * so an icon of another concept answers 404 instead of being edited.
+   */
+  async update(
+    code: string,
+    id: number,
+    dto: UpdateIconDto,
+    actor: GcActor,
+    termId?: number,
+  ) {
     return this.dataSource.transaction(async (manager) => {
       const scheme = await this.admin.lockScheme(manager, code);
-      const { icon, concept } = await this.find(manager, scheme, id);
+      const { icon, concept } = await this.find(manager, scheme, id, termId);
       const before = this.view(icon);
       await this.apply(manager, scheme, icon, dto);
       await manager.save(GcIcon, icon);
@@ -120,10 +131,10 @@ export class ConceptsIconsService {
     });
   }
 
-  async remove(code: string, id: number, actor: GcActor) {
+  async remove(code: string, id: number, actor: GcActor, termId?: number) {
     return this.dataSource.transaction(async (manager) => {
       const scheme = await this.admin.lockScheme(manager, code);
-      const { icon, concept } = await this.find(manager, scheme, id);
+      const { icon, concept } = await this.find(manager, scheme, id, termId);
       await manager.delete(GcIcon, { id: icon.id });
       await this.admin.touch(
         manager,
@@ -192,13 +203,26 @@ export class ConceptsIconsService {
     }
   }
 
-  /** An icon of this scheme, or 404 — never an icon of another scheme's concept. */
-  private async find(manager: EntityManager, scheme: GcScheme, id: number) {
+  /**
+   * An icon of this scheme (and of concept `termId` when given), or 404 —
+   * never an icon of another scheme's or another concept's record.
+   */
+  private async find(
+    manager: EntityManager,
+    scheme: GcScheme,
+    id: number,
+    termId?: number,
+  ) {
     const icon = await manager.findOne(GcIcon, { where: { id } });
     const concept = icon
       ? await manager.findOne(GcConcept, { where: { id: icon.concept_id } })
       : null;
-    if (!icon || !concept || Number(concept.scheme_id) !== Number(scheme.id)) {
+    if (
+      !icon ||
+      !concept ||
+      Number(concept.scheme_id) !== Number(scheme.id) ||
+      (termId !== undefined && Number(concept.term_id) !== Number(termId))
+    ) {
       throw new NotFoundException(
         `Icon ${id} was not found in "${scheme.code}"`,
       );

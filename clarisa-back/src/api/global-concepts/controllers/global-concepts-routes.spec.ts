@@ -58,6 +58,11 @@ describe('Global Concepts routes (HTTP)', () => {
     get: jest.fn(async () => ({ term_id: 7 })),
   };
   const assist = { draft: hit('assist.draft') };
+  const catalog = {
+    listValues: hit('catalog.listValues'),
+    addListValue: hit('catalog.addListValue'),
+  };
+  const admin = { get: hit('admin.get'), list: hit('admin.list') };
   const exporter = {
     export: jest.fn(async () => ({
       body: '{}',
@@ -79,13 +84,13 @@ describe('Global Concepts routes (HTTP)', () => {
       controllers: order,
       providers: [
         PublicRateLimitGuard,
-        { provide: ConceptsAdminService, useValue: {} },
+        { provide: ConceptsAdminService, useValue: admin },
         { provide: ReleasesService, useValue: {} },
         { provide: RequestsService, useValue: {} },
         { provide: AiService, useValue: {} },
         { provide: AiAssistService, useValue: assist },
         { provide: ConceptsImportService, useValue: {} },
-        { provide: ConceptsCatalogService, useValue: {} },
+        { provide: ConceptsCatalogService, useValue: catalog },
         { provide: EmbeddingsService, useValue: {} },
         { provide: ConceptGraphLoader, useValue: {} },
         { provide: DataSource, useValue: {} },
@@ -136,6 +141,13 @@ describe('Global Concepts routes (HTTP)', () => {
     ['get', '/admin/meliaf/import-fields', 'fields.importFields'],
     ['get', '/admin/meliaf/usage?days=7', 'usage.summary'],
     ['get', '/meliaf/fields', 'read.fields'],
+    ['get', '/admin/meliaf/concepts-meta/fields', 'fields.list'],
+    ['get', '/admin/meliaf/concepts-meta/lists', 'catalog.listValues'],
+    ['get', '/admin/meliaf/lists', 'catalog.listValues'],
+    ['get', '/admin/meliaf/concepts', 'admin.list'],
+    ['get', '/admin/meliaf/concepts/7', 'admin.get'],
+    ['patch', '/admin/meliaf/concepts/7/icons/3', 'icons.update'],
+    ['delete', '/admin/meliaf/concepts/7/icons/3', 'icons.remove'],
   ])('%s %s reaches %s', async (method, path, handler) => {
     const body =
       handler === 'icons.create'
@@ -150,6 +162,65 @@ describe('Global Concepts routes (HTTP)', () => {
       .send(body);
     expect(res.body).toEqual({ handler });
     expect(read.scheme).not.toHaveBeenCalled();
+  });
+
+  it.each(['post', 'put', 'patch', 'delete'])(
+    'the concepts-meta copies are GET only (%s is 404)',
+    async (method) => {
+      for (const path of [
+        '/admin/meliaf/concepts-meta/fields',
+        '/admin/meliaf/concepts-meta/lists',
+        '/admin/meliaf/concepts-meta/fields/2',
+        '/admin/meliaf/concepts-meta/lists/4',
+      ]) {
+        const res = await (request(app.getHttpServer()) as any)
+          [method](path)
+          .send({ label: 'x', list_code: 'x', value: 'x' });
+        expect(res.status).toBe(404);
+      }
+      expect(fields.create).not.toHaveBeenCalled();
+      expect(fields.update).not.toHaveBeenCalled();
+      expect(catalog.addListValue).not.toHaveBeenCalled();
+    },
+  );
+
+  it('the concepts-meta copies call the same services as the setup routes', async () => {
+    await request(app.getHttpServer()).get(
+      '/admin/meliaf/concepts-meta/fields',
+    );
+    expect(fields.list).toHaveBeenCalledWith('meliaf');
+    await request(app.getHttpServer()).get('/admin/meliaf/concepts-meta/lists');
+    expect(catalog.listValues).toHaveBeenCalledWith('meliaf');
+    expect(admin.get).not.toHaveBeenCalled();
+  });
+
+  it('the nested icon aliases pass the concept term id to the service', async () => {
+    await request(app.getHttpServer())
+      .patch('/admin/meliaf/concepts/7/icons/3')
+      .send({ icon_code: 'IC7' });
+    expect(icons.update).toHaveBeenCalledWith(
+      'meliaf',
+      3,
+      { icon_code: 'IC7' },
+      expect.objectContaining({ email: 'admin@cgiar.org' }),
+      7,
+    );
+    await request(app.getHttpServer()).delete(
+      '/admin/meliaf/concepts/7/icons/3',
+    );
+    expect(icons.remove).toHaveBeenCalledWith(
+      'meliaf',
+      3,
+      expect.objectContaining({ email: 'admin@cgiar.org' }),
+      7,
+    );
+    // The old full-admin routes keep working without a concept check.
+    await request(app.getHttpServer()).delete('/admin/meliaf/icons/3');
+    expect(icons.remove).toHaveBeenLastCalledWith(
+      'meliaf',
+      3,
+      expect.objectContaining({ email: 'admin@cgiar.org' }),
+    );
   });
 
   it('passes the usage window as a number', async () => {

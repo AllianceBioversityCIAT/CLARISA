@@ -5,7 +5,7 @@
   [resizable]="false"
   [closable]="!saving && !changingStatus"
   [dismissableMask]="!saving && !changingStatus"
-  [style]="{ width: '920px' }"
+  [style]="dialogStyle"
   [breakpoints]="{ '960px': '94vw' }"
   styleClass="admin-dialog gc-dialog gc-concept-dialog"
   [header]="editing ? editing.term_id + ' · ' + editing.preferred_label : 'New concept'"
@@ -15,7 +15,10 @@
     <span class="gc-dialog__subtitle">{{
       editing ? 'Every change is logged in the concept history.' : 'Only the preferred label is required; the rest can wait.'
     }}</span>
+    <app-gc-assist-toggle *ngIf="assistShown" [on]="assistOpen" [count]="assist.pendingCount" (toggled)="toggleAssist()"></app-gc-assist-toggle>
   </p-header>
+  <div class="gc-assist-layout" [class.is-open]="assistShown && assistOpen">
+  <div class="gc-assist-layout__main">
   <nav class="admin-tabs gc-dialog-tabs" role="tablist" aria-label="Concept sections">
     <button
       *ngFor="let option of tabs"
@@ -66,7 +69,9 @@
               <label for="gc-label">Preferred label <span class="tag-req">Required</span></label>
               <app-gc-info [text]="info.preferred_label"></app-gc-info>
             </div>
-            <input id="gc-label" name="preferred_label" type="text" maxlength="500" pInputText [(ngModel)]="form.preferred_label" />
+            <input id="gc-label" name="preferred_label" type="text" maxlength="500" pInputText [(ngModel)]="form.preferred_label"
+              (ngModelChange)="onHandEdit('preferred_label', $event)" />
+            <app-gc-assist-mark field="preferred_label"></app-gc-assist-mark>
           </div>
 
           <div class="field admin-form__span">
@@ -74,7 +79,9 @@
               <label for="gc-definition">Definition</label>
               <app-gc-info [text]="info.definition"></app-gc-info>
             </div>
-            <textarea id="gc-definition" name="definition" pInputTextarea rows="4" [(ngModel)]="form.definition"></textarea>
+            <textarea id="gc-definition" name="definition" pInputTextarea rows="4" [(ngModel)]="form.definition"
+              (ngModelChange)="onHandEdit('definition', $event)"></textarea>
+            <app-gc-assist-mark field="definition"></app-gc-assist-mark>
           </div>
         </div>
       </section>
@@ -117,16 +124,20 @@
                 type="text"
                 maxlength="500"
                 pInputText
-                [(ngModel)]="form.short_definition" />
-              <textarea *ngIf="item.field === 'scope_note'" id="gc-scope_note" name="scope_note" pInputTextarea rows="3" [(ngModel)]="form.scope_note"></textarea>
+                [(ngModel)]="form.short_definition"
+              (ngModelChange)="onHandEdit('short_definition', $event)" />
+              <textarea *ngIf="item.field === 'scope_note'" id="gc-scope_note" name="scope_note" pInputTextarea rows="3" [(ngModel)]="form.scope_note"
+              (ngModelChange)="onHandEdit('scope_note', $event)"></textarea>
               <textarea
                 *ngIf="item.field === 'example_of_use'"
                 id="gc-example_of_use"
                 name="example_of_use"
                 pInputTextarea
                 rows="3"
-                [(ngModel)]="form.example_of_use"></textarea>
+                [(ngModel)]="form.example_of_use"
+              (ngModelChange)="onHandEdit('example_of_use', $event)"></textarea>
               <small class="field-hint" *ngIf="item.field === 'short_definition'">One line, used in tooltips. {{ form.short_definition.length }}/500</small>
+              <app-gc-assist-mark [field]="item.field"></app-gc-assist-mark>
 
               <div class="gc-ai-draft" *ngIf="drafts[item.field] as suggestion" role="status">
                 <span class="gc-ai-draft__tag"><i class="pi pi-bolt"></i> AI suggestion · advisory</span>
@@ -161,8 +172,10 @@
               placeholder="Not set"
               [showClear]="true"
               [options]="optionsFor('term_type')"
-              [(ngModel)]="form.term_type">
+              [(ngModel)]="form.term_type"
+              (ngModelChange)="onHandEdit('term_type', $event)">
             </p-dropdown>
+            <app-gc-assist-mark field="term_type"></app-gc-assist-mark>
           </div>
 
           <div class="field">
@@ -178,8 +191,10 @@
               placeholder="Not set"
               [showHeader]="false"
               [options]="optionsFor('meliaf_function')"
-              [(ngModel)]="form.meliaf_function">
+              [(ngModel)]="form.meliaf_function"
+              (ngModelChange)="onHandEdit('meliaf_function', $event)">
             </p-multiSelect>
+            <app-gc-assist-mark field="meliaf_function"></app-gc-assist-mark>
           </div>
 
           <div class="field">
@@ -195,8 +210,10 @@
               placeholder="Not set"
               [showClear]="true"
               [options]="optionsFor('meliaf_phase')"
-              [(ngModel)]="form.meliaf_phase_primary">
+              [(ngModel)]="form.meliaf_phase_primary"
+              (ngModelChange)="onHandEdit('meliaf_phase_primary', $event)">
             </p-dropdown>
+            <app-gc-assist-mark field="meliaf_phase_primary"></app-gc-assist-mark>
           </div>
 
           <div class="field">
@@ -212,8 +229,10 @@
               placeholder="Not set"
               [showClear]="true"
               [options]="optionsFor('derivation')"
-              [(ngModel)]="form.derivation">
+              [(ngModel)]="form.derivation"
+              (ngModelChange)="onHandEdit('derivation', $event)">
             </p-dropdown>
+            <app-gc-assist-mark field="derivation"></app-gc-assist-mark>
           </div>
         </div>
       </section>
@@ -229,7 +248,9 @@
               <label for="gc-citation">Source citation</label>
               <app-gc-info [text]="info.source_citation"></app-gc-info>
             </div>
-            <input id="gc-citation" name="source_citation" type="text" pInputText [(ngModel)]="form.source_citation" />
+            <input id="gc-citation" name="source_citation" type="text" pInputText [(ngModel)]="form.source_citation"
+              (ngModelChange)="onHandEdit('source_citation', $event)" />
+            <app-gc-assist-mark field="source_citation"></app-gc-assist-mark>
           </div>
 
           <div class="field">
@@ -237,7 +258,9 @@
               <label for="gc-url">Source URL</label>
               <app-gc-info [text]="info.source_url"></app-gc-info>
             </div>
-            <input id="gc-url" name="source_url" type="url" maxlength="1000" pInputText placeholder="https://" [(ngModel)]="form.source_url" />
+            <input id="gc-url" name="source_url" type="url" maxlength="1000" pInputText placeholder="https://" [(ngModel)]="form.source_url"
+              (ngModelChange)="onHandEdit('source_url', $event)" />
+            <app-gc-assist-mark field="source_url"></app-gc-assist-mark>
           </div>
 
           <div class="field">
@@ -245,7 +268,9 @@
               <label for="gc-steward">Steward</label>
               <app-gc-info [text]="info.steward"></app-gc-info>
             </div>
-            <input id="gc-steward" name="steward" type="text" maxlength="255" pInputText [(ngModel)]="form.steward" />
+            <input id="gc-steward" name="steward" type="text" maxlength="255" pInputText [(ngModel)]="form.steward"
+              (ngModelChange)="onHandEdit('steward', $event)" />
+            <app-gc-assist-mark field="steward"></app-gc-assist-mark>
             <small class="field-hint">Person or team responsible for the term.</small>
           </div>
 
@@ -254,7 +279,9 @@
               <label for="gc-notes">Internal notes</label>
               <app-gc-info [text]="info.notes"></app-gc-info>
             </div>
-            <textarea id="gc-notes" name="notes" pInputTextarea rows="2" [(ngModel)]="form.notes"></textarea>
+            <textarea id="gc-notes" name="notes" pInputTextarea rows="2" [(ngModel)]="form.notes"
+              (ngModelChange)="onHandEdit('notes', $event)"></textarea>
+            <app-gc-assist-mark field="notes"></app-gc-assist-mark>
             <small class="field-hint"><i class="pi pi-lock"></i> Never published — only admins see this.</small>
           </div>
         </div>
@@ -292,7 +319,8 @@
         [lists]="lists"
         [conceptOptions]="conceptOptions"
         [selfTermId]="editing?.term_id ?? null"
-        [disabled]="saving"></app-gc-custom-fields-form>
+        [disabled]="saving"
+        (edited)="onCustomEdit($event)"></app-gc-custom-fields-form>
     </ng-container>
 
     <!--
@@ -383,14 +411,19 @@
     <div class="admin-form__actions gc-dialog-foot">
       <span class="gc-actions-note" *ngIf="editing">Saves Details and Custom fields together.</span>
       <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="saving" (click)="close()"></button>
-      <button
-        pButton
-        type="submit"
-        class="btn-brand"
-        icon="pi pi-check"
-        [label]="saving ? 'Saving…' : editing ? 'Save changes' : 'Create concept'"
-        [disabled]="saving || !!formError || (!!editing && !hasChanges)"
-        [loading]="saving"></button>
+      <!-- A disabled button fires no hover: the tooltip sits on this wrapper so the reason still shows. -->
+      <span class="gc-save-wrap" [pTooltip]="assistBusyReason || ''" [tooltipDisabled]="!assistBusyReason" tooltipPosition="top">
+        <button
+          pButton
+          type="submit"
+          class="btn-brand"
+          icon="pi pi-check"
+          [label]="saving ? 'Saving…' : editing ? 'Save changes' : 'Create concept'"
+          [disabled]="saving || !!formError || (!!editing && !hasChanges) || !!assistBusyReason"
+          [attr.aria-describedby]="assistBusyReason ? 'gc-save-busy' : null"
+          [loading]="saving"></button>
+        <span id="gc-save-busy" class="gc-sr-only" *ngIf="assistBusyReason">{{ assistBusyReason }}</span>
+      </span>
     </div>
   </form>
 
@@ -472,5 +505,11 @@
     <div class="gc-tab-close gc-dialog-foot" *ngIf="tab !== 'details' && tab !== 'fields'">
       <button pButton type="button" label="Close" class="p-button-outlined" (click)="close()"></button>
     </div>
+  </div>
+  </div>
+
+  <div class="gc-assist-layout__side" id="gc-assist-panel" *ngIf="assistShown && assistMounted" [hidden]="!assistOpen">
+    <app-gc-concept-assistant [scheme]="scheme" [remainingUsd]="assistRemaining" (closed)="toggleAssist()"></app-gc-concept-assistant>
+  </div>
   </div>
 </p-dialog>

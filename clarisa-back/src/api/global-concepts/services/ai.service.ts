@@ -32,6 +32,14 @@ export const costOf = (model: string, input: number, output: number) => {
 
 const monthKey = (d = new Date()) => d.toISOString().slice(0, 7);
 
+export const AI_BUDGET_USED_UP =
+  'The monthly AI budget of the MELIAF Taxonomy is used up; the feature is available again next month.';
+
+export interface AiChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 /**
  * Server-side OpenAI client for the advisory features (D8). No SDK: one
  * `fetch` to Chat Completions with a strict JSON schema, so the answer is
@@ -65,22 +73,39 @@ export class AiService {
     user: unknown,
     schema: Record<string, unknown>,
   ): Promise<T> {
-    const { spent_usd, cap_usd } = await this.usage();
-    if (spent_usd >= cap_usd) {
-      throw new ServiceUnavailableException(
-        'The monthly AI budget of the MELIAF Taxonomy is used up; the feature is available again next month.',
-      );
-    }
-    const model = GlobalConceptsConfig.aiModel;
-    const body = {
-      model,
-      messages: [
-        { role: 'system', content: system },
+    const { value } = await this.chatJson<T>(
+      task,
+      system,
+      [
         {
           role: 'user',
           content: typeof user === 'string' ? user : JSON.stringify(user),
         },
       ],
+      schema,
+    );
+    return value;
+  }
+
+  /**
+   * Same structured call with a whole conversation (the concept assistant),
+   * returning what the call cost so the caller can show it. Same cap, same
+   * accounting, same errors as `json`.
+   */
+  async chatJson<T>(
+    task: string,
+    system: string,
+    messages: AiChatMessage[],
+    schema: Record<string, unknown>,
+  ): Promise<{ value: T; costUsd: number }> {
+    const { spent_usd, cap_usd } = await this.usage();
+    if (spent_usd >= cap_usd) {
+      throw new ServiceUnavailableException(AI_BUDGET_USED_UP);
+    }
+    const model = GlobalConceptsConfig.aiModel;
+    const body = {
+      model,
+      messages: [{ role: 'system', content: system }, ...messages],
       response_format: {
         type: 'json_schema',
         json_schema: { name: task, strict: true, schema },
@@ -106,8 +131,9 @@ export class AiService {
       usage?: { prompt_tokens?: number; completion_tokens?: number };
       error?: { message?: string };
     } | null;
+    let costUsd = 0;
     if (data?.usage) {
-      await this.record(
+      costUsd = await this.record(
         model,
         data.usage.prompt_tokens ?? 0,
         data.usage.completion_tokens ?? 0,
@@ -120,7 +146,7 @@ export class AiService {
     const content = data?.choices?.[0]?.message?.content;
     try {
       if (!content) throw new Error('empty');
-      return JSON.parse(content) as T;
+      return { value: JSON.parse(content) as T, costUsd };
     } catch {
       throw new BadGatewayException('The AI service returned no usable answer');
     }
@@ -136,9 +162,7 @@ export class AiService {
     for (let i = 0; i < texts.length; i += EMBED_BATCH) {
       const { spent_usd, cap_usd } = await this.usage();
       if (spent_usd >= cap_usd) {
-        throw new ServiceUnavailableException(
-          'The monthly AI budget of the MELIAF Taxonomy is used up; the feature is available again next month.',
-        );
+        throw new ServiceUnavailableException(AI_BUDGET_USED_UP);
       }
       const batch = texts
         .slice(i, i + EMBED_BATCH)
@@ -181,7 +205,7 @@ export class AiService {
     return out;
   }
 
-  /** Atomic upsert, so concurrent calls never lose spend. */
+  /** Atomic upsert, so concurrent calls never lose spend. Returns the call's cost. */
   private async record(model: string, input: number, output: number) {
     const cost = costOf(model, input, output);
     await this.dataSource
@@ -197,5 +221,6 @@ export class AiService {
       .catch((err) =>
         this.logger.error(`AI usage not recorded: ${(err as Error)?.message}`),
       );
+    return cost;
   }
 }

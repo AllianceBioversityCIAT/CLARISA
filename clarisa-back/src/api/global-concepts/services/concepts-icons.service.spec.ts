@@ -197,6 +197,38 @@ describe('ConceptsIconsService', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
+  it('the concept alias answers 404 for an icon of another concept, and edits its own', async () => {
+    concept(7);
+    concept(8);
+    const icon = await service.create(
+      'meliaf',
+      7,
+      { icon_status: 'draft', icon_code: 'IC7' },
+      actor,
+    );
+    await expect(
+      service.update('meliaf', icon.id, { icon_code: 'X' }, actor, 8),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.remove('meliaf', icon.id, actor, 8),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(db.rows(GcIcon)).toHaveLength(1);
+    expect(db.rows(GcIcon)[0].icon_code).toBe('IC7');
+
+    const updated = await service.update(
+      'meliaf',
+      icon.id,
+      { icon_code: 'IC7b' },
+      actor,
+      7,
+    );
+    expect(updated.icon_code).toBe('IC7b');
+    expect(await service.remove('meliaf', icon.id, actor, 7)).toEqual({
+      deleted: icon.id,
+    });
+    expect(db.rows(GcIcon)).toHaveLength(0);
+  });
+
   it('publishes icons with an http(s) url only, and no internal column', async () => {
     concept(7);
     await service.create(

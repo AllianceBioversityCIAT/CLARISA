@@ -44,12 +44,13 @@ describe('GcConceptDialogComponent', () => {
 
   beforeEach(() => {
     api = {
-      fields: jest.fn(() => of(fields)),
+      conceptFields: jest.fn(() => of(fields)),
       updateConcept: jest.fn(() => of(concept(1, 'Outcomes'))),
       createConcept: jest.fn(() => of(concept(9, 'New'))),
       setStatus: jest.fn(() => of(concept(2, 'Output', { status: 'deprecated' }))),
       aiDraft: jest.fn(() => of({ short_definition: 'A change caused by the work.' })),
-      adminConcept: jest.fn(() => of({ ...concept(1, 'Outcome'), history: [{ action: 'update', changes: { definition: {} }, changed_at: '2026-09-01' }] }))
+      adminConcept: jest.fn(() => of({ ...concept(1, 'Outcome'), history: [{ action: 'update', changes: { definition: {} }, changed_at: '2026-09-01' }] })),
+      conceptsAssistStatus: jest.fn(() => of({ enabled: false, remainingUsd: 0 }))
     };
     messages = { add: jest.fn() };
     component = new GcConceptDialogComponent(
@@ -96,6 +97,52 @@ describe('GcConceptDialogComponent', () => {
     expect(component.formError).toContain('Owner is required');
     component.save();
     expect(api['updateConcept']).not.toHaveBeenCalled();
+  });
+
+  it('refuses to save while the assistant is asking or typing, and says why', () => {
+    component.openEdit(component.concepts[0]);
+    component.form.preferred_label = 'Outcomes';
+    expect(component.assistBusyReason).toBeNull();
+
+    // A turn in flight (request sent, no answer yet).
+    component.assist.turnToken = component.assist.token;
+    component.assist.sending = true;
+    expect(component.assistBusyReason).toBe('Wait until the assistant finishes');
+    component.save();
+    expect(api['updateConcept']).not.toHaveBeenCalled();
+
+    // Its steps being typed on the form.
+    component.assist.sending = false;
+    component.assist.playing = true;
+    component.save();
+    expect(api['updateConcept']).not.toHaveBeenCalled();
+
+    // The turn ended: Save works again.
+    component.assist.playing = false;
+    expect(component.assistBusyReason).toBeNull();
+    component.save();
+    expect(api['updateConcept']).toHaveBeenCalledTimes(1);
+  });
+
+  it('is not locked by a turn of a concept opened earlier', () => {
+    component.openEdit(component.concepts[0]);
+    component.assist.turnToken = component.assist.token;
+    component.assist.playing = true;
+    component.openEdit(component.concepts[1]);
+    component.form.preferred_label = 'Outputs';
+
+    expect(component.assistBusyReason).toBeNull();
+    component.save();
+    expect(api['updateConcept']).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the Save button with the assistant reason as its tooltip', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const html: string = fs.readFileSync(path.join(__dirname, 'gc-concept-dialog.component.html'), 'utf8');
+    const foot = html.slice(html.indexOf('gc-dialog-foot'), html.indexOf('</form>'));
+    expect(foot).toContain('[pTooltip]="assistBusyReason || \'\'"');
+    expect(foot).toMatch(/type="submit"[\s\S]*\[disabled\]="[^"]*!!assistBusyReason"/);
   });
 
   it('locks the save on the first click until the back answers', () => {
@@ -258,6 +305,82 @@ describe('GcConceptDialogComponent', () => {
         expect(tag).toContain(`[hidden]="tab !== '${editor}'"`);
         expect(tag).not.toContain(`*ngIf="tab === '${editor}'"`);
       }
+    });
+  });
+
+  describe('assistant', () => {
+    it('shows the toggle only when concepts-assist/status says enabled, and widens the dialog when open', () => {
+      api['conceptsAssistStatus'].mockReturnValue(of({ enabled: true, remainingUsd: 4.2 }));
+      component.openEdit(component.concepts[0]);
+
+      expect(api['conceptsAssistStatus']).toHaveBeenCalledWith('meliaf');
+      expect(component.assistShown).toBe(true);
+      expect(component.assistRemaining).toBe(4.2);
+      expect(component.dialogStyle['width']).toBe('920px');
+      component.toggleAssist();
+      expect(component.assistOpen).toBe(true);
+      expect(component.dialogStyle['width']).toBe('min(1320px, 96vw)');
+
+      // Asked once per scheme, not on every concept.
+      component.openEdit(component.concepts[1]);
+      expect(api['conceptsAssistStatus']).toHaveBeenCalledTimes(1);
+    });
+
+    it('stays hidden, without an error, when disabled or when the status call fails (no AI for this user)', () => {
+      component.openEdit(component.concepts[0]);
+      expect(component.assistShown).toBe(false);
+      component.toggleAssist();
+      expect(component.assistOpen).toBe(false);
+
+      api['conceptsAssistStatus'].mockReturnValue(throwError(() => ({ status: 403 })));
+      component.scheme = 'other';
+      component.openEdit(component.concepts[0]);
+      expect(component.assistShown).toBe(false);
+      expect(messages.add).not.toHaveBeenCalled();
+    });
+
+    it('is not offered in the full create mode', () => {
+      api['conceptsAssistStatus'].mockReturnValue(of({ enabled: true, remainingUsd: 1 }));
+      component.openEdit(component.concepts[0]);
+      component.openCreate('New');
+      expect(component.assistShown).toBe(false);
+    });
+
+    it('logs hand edits with x:<code> for custom fields, drafts the whitelisted values, and starts clean for the next concept', () => {
+      component.openEdit(component.concepts[0]);
+      component.form.definition = 'Mine';
+      component.onHandEdit('definition', 'Mine');
+      component.values['owner'] = 'Luis';
+      component.onCustomEdit({ code: 'owner', value: 'Luis' });
+
+      expect(component.assist.log.pending().map(edit => [edit.field, edit.tab, edit.before, edit.after])).toEqual([
+        ['definition', 'details', 'Definition of Outcome', 'Mine'],
+        ['x:owner', 'fields', 'Ana', 'Luis']
+      ]);
+      const draft = component.assist.host!.draft();
+      expect(draft['definition']).toBe('Mine');
+      expect(draft['x:owner']).toBe('Luis');
+      expect('x:old' in draft).toBe(false);
+      expect('status' in draft).toBe(false);
+
+      component.openEdit(component.concepts[1]);
+      expect(component.assist.log.size).toBe(0);
+    });
+
+    it('an assistant text kept by the person saves with the AI provenance, through the normal Save payload', () => {
+      component.openEdit(component.concepts[0], 'details');
+      const host = component.assist.host!;
+      component.assist.writeAi('short_definition', 'A change.');
+      component.assist.markSuggested('short_definition', host.baseline('short_definition'), 'A change.', '');
+      component.assist.accept('short_definition');
+
+      expect(component.buildBody()).toEqual({ short_definition: 'A change.', ai_generated_fields: ['scope_note', 'short_definition'] });
+    });
+
+    it('the assistant writes custom values into the same values the Save sends in extra', () => {
+      component.openEdit(component.concepts[0]);
+      component.assist.writeAi('x:owner', 'MEL team');
+      expect(component.buildBody()).toEqual({ extra: { owner: 'MEL team' } });
     });
   });
 });

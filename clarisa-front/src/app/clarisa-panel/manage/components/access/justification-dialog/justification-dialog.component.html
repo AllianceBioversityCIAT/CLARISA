@@ -1,0 +1,49 @@
+<!--
+  Appended to <body>: it can open from inside another dialog (a role's Members
+  tab), and a fixed mask inside a transformed dialog would be positioned
+  against that dialog instead of the window. The mask carries the skin's scope.
+-->
+<p-dialog
+  [visible]="visible"
+  (visibleChange)="$event ? null : close()"
+  [modal]="true"
+  appendTo="body"
+  maskStyleClass="access-admin-layer"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!busy"
+  [dismissableMask]="!busy"
+  [style]="{ width: '480px' }"
+  [breakpoints]="{ '720px': '94vw' }"
+  styleClass="admin-dialog gc-dialog">
+  <p-header>
+    <span class="gc-dialog__title">{{ title }}</span>
+    <span class="gc-dialog__subtitle" *ngIf="message">{{ message }}</span>
+  </p-header>
+
+  <form class="admin-form" (ngSubmit)="submit()" autocomplete="off">
+    <div class="field">
+      <div class="gc-field-head">
+        <label for="acc-justification">Justification <span class="tag-req">Required</span></label>
+        <app-gc-info [text]="info"></app-gc-info>
+      </div>
+      <textarea
+        id="acc-justification"
+        name="justification"
+        pInputTextarea
+        rows="3"
+        [maxlength]="max"
+        [(ngModel)]="text"
+        [disabled]="busy"
+        placeholder="Why is this role removed?"></textarea>
+      <small class="field-hint">{{ text.trim().length }}/{{ max }} · at least {{ min }} characters</small>
+    </div>
+
+    <p class="field-error acc-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <div class="admin-form__actions gc-dialog-foot">
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="busy" (click)="close()"></button>
+      <button pButton type="submit" [label]="busy ? 'Removing…' : confirmLabel" class="btn-caution" [disabled]="disabled" [loading]="busy"></button>
+    </div>
+  </form>
+</p-dialog>

@@ -7,11 +7,26 @@ import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 import { AdminSidebarComponent } from './admin-sidebar.component';
 import { AuthService } from '../../../../shared/services/auth.service';
+import { PanelAccessService, PanelAccessState } from '../../../../shared/services/access-admin/panel-access.service';
+import { BehaviorSubject } from 'rxjs';
+import { ADMIN_GROUPS } from '../../admin-nav';
+
+/** A super by default: every entry, as before the menu was filtered. */
+const superState = (): PanelAccessState => ({
+  status: 'ready',
+  access: { userId: 1, email: 'y.zuniga@cgiar.org', roles: [], permissions: [], isSuper: true }
+});
+
+const accessStub = (initial: PanelAccessState = superState()) => {
+  const state$ = new BehaviorSubject<PanelAccessState>(initial);
+  return { state$, ensure: jest.fn(), reload: jest.fn(), clear: jest.fn() };
+};
 
 describe('AdminSidebarComponent', () => {
   let component: AdminSidebarComponent;
   let fixture: ComponentFixture<AdminSidebarComponent>;
   let auth: { localStorageToken: string | null; localStorageUser: unknown; isSessionExpired: jest.Mock };
+  let access: ReturnType<typeof accessStub>;
 
   beforeEach(async () => {
     auth = {
@@ -19,6 +34,7 @@ describe('AdminSidebarComponent', () => {
       localStorageUser: { name: 'Yecksin Zuñiga', email: 'y.zuniga@cgiar.org' },
       isSessionExpired: jest.fn().mockReturnValue(false)
     };
+    access = accessStub();
 
     await TestBed.configureTestingModule({
       imports: [
@@ -31,7 +47,10 @@ describe('AdminSidebarComponent', () => {
         FormsModule
       ],
       declarations: [AdminSidebarComponent],
-      providers: [{ provide: AuthService, useValue: auth }],
+      providers: [
+        { provide: AuthService, useValue: auth },
+        { provide: PanelAccessService, useValue: access }
+      ],
       schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
 
@@ -130,6 +149,58 @@ describe('AdminSidebarComponent', () => {
     expect(labels()).toEqual(['Glossary']);
   });
 
+  // -------------------------------------------------------------------------
+  // Menu by permission (me/access)
+  // -------------------------------------------------------------------------
+  it('draws skeleton items while the access loads, never the full menu', () => {
+    access.state$.next({ status: 'loading' });
+    fixture.detectChanges();
+
+    expect(labels()).toEqual([]);
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__skeleton')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__toggle, .admin-sidebar__list-toggle')).toBeNull();
+    expect(component.isEmpty).toBe(false);
+  });
+
+  it('shows a module admin what their permissions open, plus the entries open to every session', () => {
+    access.state$.next({
+      status: 'ready',
+      access: { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/meliaf-taxonomy/admin'], isSuper: false }
+    });
+    fixture.detectChanges();
+
+    // `labels()` reads plain links; «Microservices & API keys» is a toggle with its tabs (`subLabels()`).
+    expect(labels()).toEqual(['Institution requests', 'MELIAF Taxonomy']);
+    expect(component.groups.map(group => group.title)).toEqual(['Manage', 'System']);
+    expect(subLabels()).toEqual(['Overview', 'API Keys']);
+  });
+
+  it('keeps the open entries for a user without any role, instead of an empty column', () => {
+    access.state$.next({
+      status: 'ready',
+      access: { userId: 3, email: 'n@cgiar.org', roles: [], permissions: [], isSuper: false }
+    });
+    fixture.detectChanges();
+
+    expect(labels()).toEqual(['Institution requests']);
+    expect(subLabels()).toEqual(['Overview', 'API Keys']);
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__notice')).toBeNull();
+  });
+
+  it('falls back to the whole menu when the access fails or times out, and drops the cache on logout', () => {
+    access.state$.next({ status: 'error' });
+    fixture.detectChanges();
+
+    expect(labels()).toEqual(ADMIN_GROUPS.flatMap(group => group.links.filter(link => !link.children).map(link => link.label)));
+    expect(subLabels()).toEqual(['Overview', 'MIS Registry', 'API Keys']);
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__skeleton')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__notice')).toBeNull();
+
+    (auth as unknown as { logout: jest.Mock }).logout = jest.fn();
+    component.onLogOut();
+    expect(access.clear).toHaveBeenCalled();
+  });
+
   it('names the account at the foot', () => {
     expect(component.displayName).toBe('Yecksin Zuñiga');
     expect(component.email).toBe('y.zuniga@cgiar.org');
@@ -177,7 +248,8 @@ describe('AdminSidebarComponent · atajo de teclado', () => {
         {
           provide: AuthService,
           useValue: { localStorageToken: null, localStorageUser: null, isSessionExpired: () => true }
-        }
+        },
+        { provide: PanelAccessService, useValue: accessStub() }
       ],
       schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
