@@ -49,6 +49,8 @@ describe('PermissionGuard with the MELIAF concepts permission', () => {
     `${BASE}/meliaf/concepts/2374/icons/3`,
     `${BASE}/meliaf/concepts-meta/fields`,
     `${BASE}/meliaf/concepts-meta/lists`,
+    `${BASE}/meliaf/concepts-assist/status`,
+    `${BASE}/meliaf/concepts-assist/chat`,
   ];
   const denied = [
     `${BASE}/meliaf/lists`,
