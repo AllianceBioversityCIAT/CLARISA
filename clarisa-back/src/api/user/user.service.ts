@@ -93,7 +93,7 @@ export class UserService {
    * false if it's being called from the auth module
    * @returns an user or empty, if not found.
    */
-  async findOneByUsername(username: string, isService = false): Promise<User> {
+  async findOneByUsername(username: string, isService = true): Promise<User> {
     const user: User = await this.usersRepository.findOneBy({ username });
     if (!user) {
       return null;
@@ -108,7 +108,28 @@ export class UserService {
     return user;
   }
 
+  /**
+   * The only read that loads the password hash: DB login needs it to compare.
+   * Every other read leaves it out (the column is `select: false`).
+   */
+  async findOneByEmailWithPassword(email: string): Promise<User | null> {
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.email = :email', { email })
+      .getOne();
+  }
+
   async update(updateUserDtoList: UpdateUserDto[]): Promise<User[]> {
-    return await this.usersRepository.save(updateUserDtoList);
+    // A password must never be written through this endpoint: it would be
+    // stored as sent (plain text), not hashed.
+    const safe = (updateUserDtoList ?? []).map((dto) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...rest } = dto as UpdateUserDto & {
+        password?: string;
+      };
+      return rest;
+    });
+    return await this.usersRepository.save(safe);
   }
 }
