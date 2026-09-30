@@ -66,6 +66,7 @@ import { CreateFieldDto, UpdateFieldDto } from '../dto/field.dto';
 import { ConceptsIconsService } from '../services/concepts-icons.service';
 import { ConceptsFieldsService } from '../services/concepts-fields.service';
 import { UsageService } from '../services/usage.service';
+import { PlatformUsageService } from '../services/platform-usage.service';
 
 /**
  * Admin surface of Global Concepts (`/api/meliaf-taxonomy/admin`). Every write
@@ -101,6 +102,7 @@ export class GlobalConceptsAdminController {
     private readonly icons: ConceptsIconsService,
     private readonly fields: ConceptsFieldsService,
     private readonly usage: UsageService,
+    private readonly platformUsage: PlatformUsageService,
   ) {}
 
   private actor(user: UserData): GcActor {
@@ -256,6 +258,21 @@ export class GlobalConceptsAdminController {
   @Get(':scheme/usage')
   usageSummary(@Param('scheme') scheme: string, @Query('days') days?: string) {
     return this.usage.summary(scheme, days === undefined ? 30 : Number(days));
+  }
+
+  /**
+   * Calls per connected system (API key → MIS) to the whole MELIAF Taxonomy
+   * API, next to the anonymous reads of the same period. Under `admin/`, so
+   * only the full admin grant reaches it (never a concepts-only one).
+   */
+  @Get(':scheme/usage/platforms')
+  usageByPlatform(
+    @Param('scheme') scheme: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('days') days?: string,
+  ) {
+    return this.platformUsage.byPlatform(scheme, { from, to, days });
   }
 
   // ------------------------------------------------------------------ import

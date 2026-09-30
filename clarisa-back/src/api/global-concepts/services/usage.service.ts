@@ -3,6 +3,7 @@ import { DataSource, In, MoreThanOrEqual } from 'typeorm';
 import { GcConcept } from '../entities/gc-concept.entity';
 import { GcUsageDaily, GcUsageKind } from '../entities/gc-usage-daily.entity';
 import { ConceptGraphLoader } from './concept-graph.loader';
+import { currentApiKeyCaller } from '../../../shared/utils/api-key-caller-context';
 
 const MAX_ITEM = 100;
 const MAX_DAYS = 365;
@@ -17,6 +18,28 @@ export const normaliseSearch = (q: unknown): string =>
 const today = () => new Date().toISOString().slice(0, 10);
 const dayOf = (v: string | Date) =>
   typeof v === 'string' ? v.slice(0, 10) : v.toISOString().slice(0, 10);
+
+/**
+ * The kinds that stand for one read each. `zero_search` is left out: it is
+ * the same request as its `search`, counted twice on purpose.
+ */
+export const COUNTED_READ_KINDS: readonly GcUsageKind[] = [
+  GcUsageKind.API,
+  GcUsageKind.SEARCH,
+  GcUsageKind.VIEW,
+  GcUsageKind.EXPORT,
+  GcUsageKind.MCP,
+  GcUsageKind.SUGGEST,
+];
+
+export interface CountedReads {
+  /** Every counted read of the period, with or without a key. */
+  total: number;
+  /** Those that came with a valid platform API key. */
+  keyed: number;
+  /** `total − keyed`: the anonymous ones (search portal, scripts without key). */
+  anonymous: number;
+}
 
 /**
  * Usage analytics of the public surfaces (contract v2 §3; checklist row 10:
@@ -46,6 +69,16 @@ export class UsageService {
   record(scheme: string, kind: GcUsageKind, item: string | number): void {
     const text = String(item ?? '').slice(0, MAX_ITEM);
     if (!text) return;
+    this.bump(scheme, kind, text);
+    // A platform read with its API key (OptionalApiKeyUsageInterceptor) is
+    // also tallied apart, so the admin can split anonymous from keyed reads
+    // without changing what every other counter means.
+    if (COUNTED_READ_KINDS.includes(kind) && currentApiKeyCaller()) {
+      this.bump(scheme, GcUsageKind.KEYED, kind);
+    }
+  }
+
+  private bump(scheme: string, kind: GcUsageKind, text: string): void {
     try {
       void this.dataSource
         .query(
@@ -151,6 +184,31 @@ export class UsageService {
         count: v.count,
       })),
     };
+  }
+
+  /**
+   * Counted reads between two UTC days (inclusive), across every scheme: the
+   * platforms' key log carries no scheme, so the two sides of the "By
+   * platform" view are measured over the same ground.
+   */
+  async countedReads(fromDay: string, toDay: string): Promise<CountedReads> {
+    const kinds = [...COUNTED_READ_KINDS, GcUsageKind.KEYED];
+    const rows: { kind: string; n: string | number }[] =
+      await this.dataSource.query(
+        `SELECT kind, SUM(\`count\`) AS n FROM gc_usage_daily
+          WHERE \`day\` BETWEEN ? AND ? AND kind IN (${kinds.map(() => '?').join(', ')})
+          GROUP BY kind`,
+        [fromDay, toDay, ...kinds],
+      );
+    let total = 0;
+    let keyed = 0;
+    for (const r of rows ?? []) {
+      const n = Number(r.n) || 0;
+      if (r.kind === GcUsageKind.KEYED) keyed += n;
+      else total += n;
+    }
+    keyed = Math.min(keyed, total);
+    return { total, keyed, anonymous: total - keyed };
   }
 
   private fail(err: unknown) {

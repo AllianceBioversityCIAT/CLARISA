@@ -7,6 +7,7 @@ import {
   Query,
   Res,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -21,6 +22,7 @@ import { DataSource } from 'typeorm';
 import { webBaseOf } from '../global-concepts.config';
 import { UsageService } from '../services/usage.service';
 import { GcUsageKind } from '../entities/gc-usage-daily.entity';
+import { OptionalApiKeyUsageInterceptor } from '../../../shared/interceptors/optional-api-key-usage.interceptor';
 
 /**
  * Resolves persistent URIs: `/concepts/{scheme}/{term_id}` and
@@ -36,6 +38,8 @@ import { GcUsageKind } from '../entities/gc-usage-daily.entity';
 @ApiExcludeController()
 @Controller()
 @UseGuards(GlobalConceptsEnabledGuard)
+// A platform resolving URIs with its API key is counted per system.
+@UseInterceptors(OptionalApiKeyUsageInterceptor)
 export class ConceptUriController {
   constructor(
     private readonly read: ConceptsReadService,
