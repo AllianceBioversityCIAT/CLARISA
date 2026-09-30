@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { DataSource } from 'typeorm';
+import { DataSource, IsNull, MoreThan } from 'typeorm';
 
 import { MetricsDto } from './dto/metrics.dto';
 import { Institution } from '../institution/entities/institution.entity';
@@ -9,6 +9,9 @@ import { Workpackage } from '../workpackage/entities/workpackage.entity';
 import { Country } from '../country/entities/country.entity';
 import { Initiative } from '../initiative/entities/initiative.entity';
 import { HomepageClarisaEndpoint } from '../homepage-clarisa-endpoint/entities/homepage-clarisa-endpoint.entity';
+import { Mis } from '../mis/entities/mis.entity';
+import { ApiKey } from '../api-key/entities/api-key.entity';
+import { PUBLIC_OPENAPI_PATHS } from '../../shared/swagger/public-endpoints';
 
 /**
  * El tamaño del catálogo, contado contra la base de datos.
@@ -79,6 +82,8 @@ export class MetricsService {
       countries,
       initiatives,
       controlLists,
+      connectedSystems,
+      activeApiKeys,
     ] = await Promise.all([
       this._dataSource.getRepository(Institution).count({ where: active }),
       this._dataSource.getRepository(Project).count({ where: active }),
@@ -88,6 +93,14 @@ export class MetricsService {
       this._dataSource
         .getRepository(HomepageClarisaEndpoint)
         .count({ where: active }),
+      this._dataSource.getRepository(Mis).count({ where: active }),
+      // A key that has expired no longer opens anything: it is not counted.
+      this._dataSource.getRepository(ApiKey).count({
+        where: [
+          { ...active, expires_at: IsNull() },
+          { ...active, expires_at: MoreThan(new Date()) },
+        ],
+      }),
     ]);
 
     return {
@@ -97,6 +110,10 @@ export class MetricsService {
       countries,
       initiatives,
       controlLists,
+      // The public documentation publishes exactly this list of paths.
+      endpoints: PUBLIC_OPENAPI_PATHS.length,
+      connectedSystems,
+      activeApiKeys,
       generatedAt: new Date().toISOString(),
     };
   }

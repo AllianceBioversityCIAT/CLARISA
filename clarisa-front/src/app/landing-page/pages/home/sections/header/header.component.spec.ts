@@ -67,6 +67,9 @@ describe('HeaderComponent', () => {
       countries: 248,
       initiatives: 43,
       controlLists: 41,
+      endpoints: 45,
+      connectedSystems: 31,
+      activeApiKeys: 12,
       generatedAt: '2026-09-17T00:00:00.000Z'
     };
 
@@ -82,12 +85,48 @@ describe('HeaderComponent', () => {
       const porClave = Object.fromEntries(component.indicators.map(i => [i.key, i]));
 
       expect(porClave['institutions'].value).toBe(10630);
-      expect(porClave['initiatives'].value).toBe(43);
       expect(porClave['controlLists'].value).toBe(41);
+      expect(porClave['endpoints'].value).toBe(45);
+      expect(porClave['connectedSystems'].value).toBe(31);
+      expect(porClave['activeApiKeys'].value).toBe(12);
       // La barra más larga es la del mayor; el resto, proporcional.
       expect(porClave['institutions'].share).toBe(1);
-      expect(porClave['projects'].share).toBeCloseTo(1210 / 10630, 5);
+      expect(porClave['countries'].share).toBeCloseTo(248 / 10630, 5);
       expect(component.metricsState).toBe('ready');
+    });
+
+    it('la portada ya no enseña proyectos, work packages ni iniciativas', () => {
+      http.expectOne(`${environment.apiUrl}api/metrics`).flush(payload);
+      expect(component.indicators.map(i => i.key)).toEqual([
+        'institutions',
+        'countries',
+        'endpoints',
+        'controlLists',
+        'connectedSystems',
+        'activeApiKeys'
+      ]);
+      expect(component.endpoints).toEqual([
+        '/institutions',
+        '/countries',
+        '/impact-areas',
+        '/action-areas',
+        '/innovation-types',
+        '/innovation-readiness-levels',
+        '/glossary'
+      ]);
+    });
+
+    it('una clave que el API todavía no manda queda en blanco, no en cero', () => {
+      const { endpoints, connectedSystems, activeApiKeys, ...viejo } = payload;
+      http.expectOne(`${environment.apiUrl}api/metrics`).flush(viejo);
+      const porClave = Object.fromEntries(component.indicators.map(i => [i.key, i]));
+      expect(porClave['endpoints'].value).toBeNull();
+      expect(porClave['institutions'].value).toBe(10630);
+      // Lo que pinta el contador, con el cero que le pasaría a una clave vacía.
+      (component as any).escribir(component.indicators.map(i => i.value ?? 0));
+      const tras = Object.fromEntries(component.indicators.map(i => [i.key, i]));
+      expect(tras['endpoints'].display).toBeNull();
+      expect(tras['institutions'].display).not.toBeNull();
     });
 
     /**
