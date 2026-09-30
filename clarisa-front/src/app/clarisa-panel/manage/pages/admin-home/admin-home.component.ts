@@ -12,8 +12,8 @@ import { AdminGroup, groupsFor, onlyProtectedSection } from '../../admin-nav';
  *
  * When the roles open exactly ONE section (`onlyProtectedSection`), the list
  * is a detour: the home goes straight to it
- * (`replaceUrl`, so Back does not land on the list) — a MELIAF-only member
- * opens the MELIAF Taxonomy. A `?denied=` note is dropped in that case: the
+ * (`replaceUrl`, so Back does not land on the list) — a Concepts-only member
+ * opens Concepts. A `?denied=` note is dropped in that case: the
  * panel has no shared toast outlet, and that section is what the roles are
  * for anyway. Several sections, or a Super admin → the list. None → the
  * "no administration role yet" note (`isEmpty`).

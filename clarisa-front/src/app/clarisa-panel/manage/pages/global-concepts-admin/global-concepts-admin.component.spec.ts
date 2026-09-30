@@ -5,8 +5,8 @@ import { MeAccess } from '../../../../shared/services/access-admin/access-admin-
 import { GlobalConceptsAdminComponent, isMeliafFullAdmin } from './global-concepts-admin.component';
 
 const who = (permissions: string[], isSuper = false): MeAccess => ({ userId: 1, email: 'x@clarisa.test', roles: [], permissions, isSuper });
-const FULL = who(['/api/meliaf-taxonomy/admin']);
-const CONCEPTS_ONLY = who(['/api/meliaf-taxonomy/admin/meliaf/concepts']);
+const FULL = who(['/api/concepts/admin']);
+const CONCEPTS_ONLY = who(['/api/concepts/admin/meliaf/concepts']);
 
 describe('GlobalConceptsAdminComponent', () => {
   const build = (api: Partial<Record<'schemes' | 'aiStatus', jest.Mock>>, access: MeAccess | null | Observable<MeAccess | null> = FULL) => {
@@ -25,7 +25,7 @@ describe('GlobalConceptsAdminComponent', () => {
       expect(ids(build(quiet(), FULL))).toEqual(['concepts', 'requests', 'import', 'setup', 'usage']);
     });
 
-    it('a concepts-only member (MELIAF_CE) sees just Concepts and cannot switch to another tab', () => {
+    it('a concepts-only member (CONCEPTS_CE) sees just Concepts and cannot switch to another tab', () => {
       const component = build(quiet(), CONCEPTS_ONLY);
       expect(ids(component)).toEqual(['concepts']);
       component.setSection('setup');
@@ -48,7 +48,7 @@ describe('GlobalConceptsAdminComponent', () => {
       expect(isMeliafFullAdmin(FULL)).toBe(true);
       expect(isMeliafFullAdmin(who([], true))).toBe(true);
       expect(isMeliafFullAdmin(CONCEPTS_ONLY)).toBe(false);
-      expect(isMeliafFullAdmin(who(['/api/meliaf-taxonomy/admin/meliaf/lists']))).toBe(false);
+      expect(isMeliafFullAdmin(who(['/api/concepts/admin/meliaf/lists']))).toBe(false);
       expect(isMeliafFullAdmin(null)).toBe(false);
     });
   });

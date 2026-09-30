@@ -80,13 +80,13 @@ export const ADMIN_GROUPS: AdminGroup[] = [
         access: ['/api/glossary/admin/terms']
       },
       {
-        label: 'MELIAF Taxonomy',
-        route: '/clarisa-panel/manage/global-concepts-admin',
+        label: 'Concepts',
+        route: '/clarisa-panel/manage/concepts-admin',
         icon: 'fa fa-sitemap',
-        // Both `/api/meliaf-taxonomy/admin` (full admin) and
-        // `/api/meliaf-taxonomy/admin/meliaf/concepts` (MELIAF_CE, concepts
+        // Both `/api/concepts/admin` (full admin) and
+        // `/api/concepts/admin/meliaf/concepts` (CONCEPTS_CE, concepts
         // only) are substrings of this route, so either one opens the screen.
-        access: ['/api/meliaf-taxonomy/admin/meliaf/concepts']
+        access: ['/api/concepts/admin/meliaf/concepts']
       }
     ]
   },
@@ -238,7 +238,7 @@ export function protectedSections(who: NavAccess, groups: AdminGroup[] = ADMIN_G
 /**
  * The one section a member's roles are for (exactly one section open), or
  * `null`: no answer (fail-open), a Super admin, zero or several. The panel home and the sign-in both go straight there, so a
- * MELIAF-only member opens the MELIAF Taxonomy instead of a list of cards.
+ * Concepts-only member opens Concepts instead of a list of cards.
  */
 export function onlyProtectedSection(who: NavAccess | null, groups: AdminGroup[] = ADMIN_GROUPS): ProtectedSection | null {
   if (!who || who.isSuper) return null;

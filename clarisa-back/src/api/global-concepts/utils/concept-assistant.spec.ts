@@ -22,7 +22,7 @@ const field = (data: Partial<GcField>): GcField =>
   });
 
 const ctx = (): AssistContext => ({
-  scheme: { code: 'meliaf', title: 'MELIAF Taxonomy', description: null },
+  scheme: { code: 'meliaf', title: 'Concepts', description: null },
   lists: new Map([
     [
       'meliaf_function',

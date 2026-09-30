@@ -97,7 +97,7 @@ describe('GlobalConceptsMcpController (HTTP)', () => {
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/application\/json/);
     expect(res.body).toMatchObject({ jsonrpc: '2.0', id: 1 });
-    expect(res.body.result.serverInfo.name).toBe('clarisa-meliaf-taxonomy');
+    expect(res.body.result.serverInfo.name).toBe('clarisa-concepts');
   });
 
   it('accepts a notification with 202 and no body', async () => {

@@ -59,9 +59,9 @@ describe('PermissionGuard with the API keys admin permission', () => {
     await expect(guardFor([ROUTE]).canActivate(ctx(url))).resolves.toBe(true);
   });
 
-  it.each(routes)('MELIAF-only is denied %s', async (url) => {
+  it.each(routes)('Concepts-only is denied %s', async (url) => {
     await expect(
-      guardFor(['/api/meliaf-taxonomy/admin']).canActivate(ctx(url)),
+      guardFor(['/api/concepts/admin']).canActivate(ctx(url)),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 

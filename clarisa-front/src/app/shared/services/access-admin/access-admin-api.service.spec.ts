@@ -47,10 +47,10 @@ describe('AccessAdminApiService', () => {
   });
 
   it('creates, patches and sets the permissions of a role on their own routes', () => {
-    service.createRole({ acronym: 'MELIAF_DA', description: 'MELIAF Data Admins', permissionIds: [4] }).subscribe();
+    service.createRole({ acronym: 'CONCEPTS_DA', description: 'Concepts Data Admins', permissionIds: [4] }).subscribe();
     const create = http.expectOne(`${base}/roles`);
     expect(create.request.method).toBe('POST');
-    expect(create.request.body).toEqual({ acronym: 'MELIAF_DA', description: 'MELIAF Data Admins', permissionIds: [4] });
+    expect(create.request.body).toEqual({ acronym: 'CONCEPTS_DA', description: 'Concepts Data Admins', permissionIds: [4] });
     create.flush({});
 
     service.updateRole(9, { description: 'New name' }).subscribe();

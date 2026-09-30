@@ -5,7 +5,7 @@ import { Subject, of, throwError } from 'rxjs';
 import { RoleMembersComponent } from './role-members.component';
 import { AccessAdminApiService, AccessRole, AccessUser } from '../../../../../../shared/services/access-admin/access-admin-api.service';
 
-const role: AccessRole = { id: 9, acronym: 'MELIAF_DA', description: 'MELIAF Data Admins', level: 'module', isSystem: false, memberCount: 1, permissionIds: [1] };
+const role: AccessRole = { id: 9, acronym: 'CONCEPTS_DA', description: 'Concepts Data Admins', level: 'module', isSystem: false, memberCount: 1, permissionIds: [1] };
 const member: AccessUser = { id: 4, firstName: 'Ana', lastName: 'Ruiz', email: 'a@cgiar.org', isCgiarUser: true, lastLogin: null, isActive: true, roles: [] };
 
 describe('RoleMembersComponent', () => {

@@ -55,7 +55,7 @@ describe('ConceptAssistantService', () => {
     db = new FakeManager();
     const scheme = db.seed(GcScheme, {
       code: 'meliaf',
-      title: 'MELIAF Taxonomy',
+      title: 'Concepts',
       default_language: 'en',
       next_term_id: 1,
     });

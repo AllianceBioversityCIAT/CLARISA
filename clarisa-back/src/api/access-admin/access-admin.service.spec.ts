@@ -109,8 +109,8 @@ const seed = (): Tables => ({
     },
     {
       id: MELIAF,
-      acronym: 'MELIAF_DA',
-      description: 'MELIAF Data Admins',
+      acronym: 'CONCEPTS_DA',
+      description: 'Concepts Data Admins',
       is_active: true,
       is_system: false,
       level: 'module',
@@ -134,10 +134,10 @@ const seed = (): Tables => ({
     },
     {
       id: P_MELIAF,
-      name: '/api/meliaf-taxonomy/admin',
+      name: '/api/concepts/admin',
       is_active: true,
-      module: 'MELIAF Taxonomy',
-      label: 'Manage the MELIAF Taxonomy',
+      module: 'Concepts',
+      label: 'Manage Concepts',
     },
     {
       id: P_GLOSS,
@@ -532,14 +532,14 @@ describe('AccessAdminService', () => {
     it('lets a super give any active permission', async () => {
       const role = await service.createRole(
         {
-          acronym: 'meliaf_x',
-          description: 'MELIAF X',
+          acronym: 'concepts_x',
+          description: 'Concepts X',
           permissionIds: [P_MELIAF, P_BULK],
         },
         superAdmin,
       );
       expect(role).toMatchObject({
-        acronym: 'MELIAF_X',
+        acronym: 'CONCEPTS_X',
         level: 'module',
         isSystem: false,
         permissionIds: [P_MELIAF, P_BULK],
@@ -789,7 +789,7 @@ describe('AccessAdminService', () => {
       await service.createRole(
         {
           acronym: 'MDA',
-          description: 'MELIAF Data Admins',
+          description: 'Concepts Data Admins',
           permissionIds: [P_MELIAF],
         },
         superAdmin,
@@ -800,7 +800,7 @@ describe('AccessAdminService', () => {
     it('a repeated submit of the same form returns the same role', async () => {
       const dto = {
         acronym: 'MDA',
-        description: 'MELIAF Data Admins',
+        description: 'Concepts Data Admins',
         permissionIds: [P_MELIAF],
       };
       const first = await service.createRole(dto, superAdmin);
@@ -848,8 +848,8 @@ describe('AccessAdminService', () => {
       const groups = await service.listPermissions();
       expect(groups.map((g) => g.module)).toEqual([
         'Access',
+        'Concepts',
         'Glossary',
-        'MELIAF Taxonomy',
         OTHER_MODULE,
       ]);
       expect(groups[3].items).toEqual([

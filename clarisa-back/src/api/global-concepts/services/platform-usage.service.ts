@@ -6,11 +6,11 @@ import { ConceptGraphLoader } from './concept-graph.loader';
 import { CountedReads, UsageService } from './usage.service';
 
 /**
- * Every path a platform reaches MELIAF Taxonomy through: the module itself
+ * Every path a platform reaches Concepts through: the module itself
  * (public reads, MCP and `platform/*`) and the persistent URIs.
  */
 export const MELIAF_TAXONOMY_ENDPOINT_PREFIXES = [
-  '/api/meliaf-taxonomy/',
+  '/api/concepts/',
   '/concepts/',
 ];
 

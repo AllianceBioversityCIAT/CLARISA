@@ -7,7 +7,7 @@ export const DEFAULT_SCHEME = 'meliaf';
 export const MAX_SUGGEST_TEXT = 20000;
 
 /** Base path of every link of this section. */
-export const GC_BASE = '/landing-page/global-concepts';
+export const GC_BASE = '/landing-page/concepts';
 
 export interface ListOption {
   value: string;
@@ -19,7 +19,7 @@ export type ListsByCode = Record<string, ListOption[]>;
 /**
  * The controlled lists grouped by list code.
  *
- * `GET api/meliaf-taxonomy/lists` answers an object keyed by list code
+ * `GET api/concepts/lists` answers an object keyed by list code
  * (`concepts-read.service.ts` `lists()`), while the shared client types it as
  * a flat `ListValue[]`. Both shapes are accepted so the page keeps working
  * whichever of the two is corrected.

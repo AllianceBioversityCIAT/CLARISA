@@ -28,8 +28,8 @@ const page = (items: AccessUser[], total = items.length): Page<AccessUser> => ({
 
 const meliaf: AccessRole = {
   id: 9,
-  acronym: 'MELIAF_DA',
-  description: 'MELIAF Data Admins',
+  acronym: 'CONCEPTS_DA',
+  description: 'Concepts Data Admins',
   level: 'module',
   isSystem: false,
   memberCount: 2,
@@ -50,7 +50,7 @@ describe('ManageUserComponent', () => {
     api = {
       users,
       roles: jest.fn(() => of([meliaf, superRole])),
-      permissions: jest.fn(() => of([{ module: 'MELIAF Taxonomy', items: [{ id: 1, name: '/api/meliaf-taxonomy/admin', label: 'MELIAF', description: null }] }])),
+      permissions: jest.fn(() => of([{ module: 'Concepts', items: [{ id: 1, name: '/api/concepts/admin', label: 'MELIAF', description: null }] }])),
       addMembers: jest.fn(() => of({ added: [1, 2], alreadyMembers: [] })),
       removeMember: jest.fn(() => of({ removed: true }))
     };
@@ -107,7 +107,7 @@ describe('ManageUserComponent', () => {
   });
 
   it('counts one user and many users in words', async () => {
-    await create(jest.fn(() => of(page([user(1, [{ id: 9, acronym: 'MELIAF_DA', description: 'MELIAF Data Admins' }])]))));
+    await create(jest.fn(() => of(page([user(1, [{ id: 9, acronym: 'CONCEPTS_DA', description: 'Concepts Data Admins' }])]))));
     fixture.detectChanges();
     const count = () => (fixture.nativeElement.querySelector('.admin-table-toolbar__count') as HTMLElement).textContent?.trim();
     expect(count()).toBe('1 user');
@@ -183,13 +183,13 @@ describe('ManageUserComponent', () => {
   });
 
   it('offers a non-super only the roles inside their own permissions', async () => {
-    access = { userId: 5, email: 'm@cgiar.org', roles: [], permissions: ['/api/access-admin', '/api/meliaf-taxonomy/admin'], isSuper: false };
+    access = { userId: 5, email: 'm@cgiar.org', roles: [], permissions: ['/api/access-admin', '/api/concepts/admin'], isSuper: false };
     await create(jest.fn(() => of(page([user(1)]))));
-    expect(component.assignable.map(role => role.acronym)).toEqual(['MELIAF_DA']);
+    expect(component.assignable.map(role => role.acronym)).toEqual(['CONCEPTS_DA']);
   });
 
   it('removes a role only with a justification, once, and updates the drawer', async () => {
-    const held = { id: 9, acronym: 'MELIAF_DA', description: 'MELIAF Data Admins' };
+    const held = { id: 9, acronym: 'CONCEPTS_DA', description: 'Concepts Data Admins' };
     await create(jest.fn(() => of(page([user(1, [held])]))));
     const pending = new Subject<unknown>();
     api['removeMember'].mockReturnValue(pending);
@@ -198,10 +198,10 @@ describe('ManageUserComponent', () => {
     component.askRemove(component.users[0], held);
     fixture.detectChanges();
 
-    component.removeRole('Left the MELIAF team');
-    component.removeRole('Left the MELIAF team');
+    component.removeRole('Left the Concepts team');
+    component.removeRole('Left the Concepts team');
     expect(api['removeMember']).toHaveBeenCalledTimes(1);
-    expect(api['removeMember']).toHaveBeenCalledWith(9, 1, 'Left the MELIAF team');
+    expect(api['removeMember']).toHaveBeenCalledWith(9, 1, 'Left the Concepts team');
 
     pending.next({ removed: true });
     pending.complete();
@@ -225,6 +225,6 @@ describe('ManageUserComponent', () => {
 
     pending.next({ added: [1], alreadyMembers: [] });
     pending.complete();
-    expect(component.drawerUser?.roles.map(role => role.acronym)).toEqual(['MELIAF_DA']);
+    expect(component.drawerUser?.roles.map(role => role.acronym)).toEqual(['CONCEPTS_DA']);
   });
 });

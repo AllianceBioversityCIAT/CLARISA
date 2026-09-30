@@ -21,8 +21,8 @@ import { ConceptAssistantService } from '../services/concept-assistant.service';
 /**
  * Concept assistant (assistant-contract.md), mounted like the admin
  * controller. The paths sit under `:scheme/concepts-assist/...` on purpose:
- * PermissionGuard matches by substring, so the MELIAF_CE permission
- * `/api/meliaf-taxonomy/admin/meliaf/concepts` opens them and nothing else.
+ * PermissionGuard matches by substring, so the CONCEPTS_CE permission
+ * `/api/concepts/admin/meliaf/concepts` opens them and nothing else.
  * Unlike the other AI routes (404 while AI is off), these answer 503 with a
  * human message, so the chat can say why it is unavailable.
  */

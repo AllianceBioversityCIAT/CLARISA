@@ -1,17 +1,17 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { ModuleRef, Reflector } from '@nestjs/core';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
-import { AddMeliafConceptsEditorRole1790600100000 } from '../../../migrations/1790600100000-AddMeliafConceptsEditorRole';
+import { RenameMeliafAccessToConcepts1790600400000 } from '../../../migrations/1790600400000-RenameMeliafAccessToConcepts';
 
 /**
  * The real PermissionGuard (path substring match) with the permission the
- * MELIAF_CE role holds: it must open the concept routes and nothing else of
- * the MELIAF admin, while the full-admin permission keeps opening everything.
+ * CONCEPTS_CE role holds: it must open the concept routes and nothing else of
+ * the Concepts admin, while the full-admin permission keeps opening everything.
  */
-describe('PermissionGuard with the MELIAF concepts permission', () => {
-  const CONCEPTS = AddMeliafConceptsEditorRole1790600100000.CONCEPTS_ROUTE;
-  const FULL = AddMeliafConceptsEditorRole1790600100000.FULL_ROUTE;
-  const BASE = '/api/meliaf-taxonomy/admin';
+describe('PermissionGuard with the concepts-editor permission', () => {
+  const CONCEPTS = RenameMeliafAccessToConcepts1790600400000.CONCEPTS_ROUTE;
+  const FULL = RenameMeliafAccessToConcepts1790600400000.FULL_ROUTE;
+  const BASE = '/api/concepts/admin';
 
   const guardFor = (permissions: string[]) => {
     const users = {

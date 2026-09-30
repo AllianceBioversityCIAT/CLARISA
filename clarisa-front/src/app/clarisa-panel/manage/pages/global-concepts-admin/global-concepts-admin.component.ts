@@ -19,11 +19,11 @@ const ALL_SECTIONS: { id: GlobalConceptsSection; label: string }[] = [
 ];
 
 /**
- * A back route only the full MELIAF admin permission (`/api/meliaf-taxonomy/admin`)
- * opens: the concepts-only one (`…/admin/meliaf/concepts`, role MELIAF_CE) is
+ * A back route only the full MELIAF admin permission (`/api/concepts/admin`)
+ * opens: the concepts-only one (`…/admin/meliaf/concepts`, role CONCEPTS_CE) is
  * not a substring of it. Same `route.includes(permission)` test as the back.
  */
-export const MELIAF_FULL_ADMIN_ROUTE = '/api/meliaf-taxonomy/admin/meliaf/requests';
+export const MELIAF_FULL_ADMIN_ROUTE = '/api/concepts/admin/meliaf/requests';
 
 /** Whether the caller may use Requests, Import, Setup and Usage, not only Concepts. */
 export function isMeliafFullAdmin(access: MeAccess | null): boolean {
@@ -50,7 +50,7 @@ export class GlobalConceptsAdminComponent implements OnInit {
   conceptsReloadToken = 0;
 
   /**
-   * Full admin (all tabs) or concepts-only (MELIAF_CE). Until the access
+   * Full admin (all tabs) or concepts-only (CONCEPTS_CE). Until the access
    * answers — or if it fails — only Concepts shows: the other tabs would only
    * collect 403s, and the back refuses them anyway.
    */

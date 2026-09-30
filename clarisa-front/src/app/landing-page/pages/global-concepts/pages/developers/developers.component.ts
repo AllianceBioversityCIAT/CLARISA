@@ -19,7 +19,7 @@ export interface Endpoint {
 export interface DocBases {
   /** `environment.apiUrl`, with its trailing slash. */
   apiRoot: string;
-  /** `…/api/meliaf-taxonomy` */
+  /** `…/api/concepts` */
   api: string;
   /** `…/concepts` (resolver of persistent URIs on this environment). */
   uris: string;
@@ -28,7 +28,7 @@ export interface DocBases {
 
 export function docBases(apiRoot: string): DocBases {
   const root = apiRoot.endsWith('/') ? apiRoot : `${apiRoot}/`;
-  return { apiRoot: root, api: `${root}api/meliaf-taxonomy`, uris: `${root}concepts`, mcp: `${root}api/meliaf-taxonomy/mcp` };
+  return { apiRoot: root, api: `${root}api/concepts`, uris: `${root}concepts`, mcp: `${root}api/concepts/mcp` };
 }
 
 /** Public, anonymous routes (global-concepts-public.controller.ts), with live links. */
@@ -58,12 +58,12 @@ export function publicEndpoints(b: DocBases, scheme: string, termId: number): En
 /** Routes for a platform with an API key (global-concepts-requests.controller.ts). */
 export function platformEndpoints(): Endpoint[] {
   return [
-    { method: 'POST', path: '/platform/{scheme}/requests', what: 'Submit a request (new, edit, merge, deprecate, promote).', scope: 'meliaf-taxonomy:request' },
-    { method: 'GET', path: '/platform/requests/{id}', what: 'Follow a request the platform submitted.', scope: 'meliaf-taxonomy:request' },
-    { method: 'POST', path: '/platform/requests/{id}/resubmit', what: 'Answer "changes requested".', scope: 'meliaf-taxonomy:request' },
-    { method: 'POST', path: '/platform/requests/{id}/transition', what: 'Decide a request in a scheme the platform owns.', scope: 'meliaf-taxonomy:review' },
-    { method: 'POST', path: '/platform/{scheme}/concepts', what: 'Create a concept directly in the platform’s own scheme.', scope: 'meliaf-taxonomy:write' },
-    { method: 'PATCH', path: '/platform/{scheme}/concepts/{term_id}', what: 'Edit a concept of the platform’s own scheme.', scope: 'meliaf-taxonomy:write' }
+    { method: 'POST', path: '/platform/{scheme}/requests', what: 'Submit a request (new, edit, merge, deprecate, promote).', scope: 'concepts:request' },
+    { method: 'GET', path: '/platform/requests/{id}', what: 'Follow a request the platform submitted.', scope: 'concepts:request' },
+    { method: 'POST', path: '/platform/requests/{id}/resubmit', what: 'Answer "changes requested".', scope: 'concepts:request' },
+    { method: 'POST', path: '/platform/requests/{id}/transition', what: 'Decide a request in a scheme the platform owns.', scope: 'concepts:review' },
+    { method: 'POST', path: '/platform/{scheme}/concepts', what: 'Create a concept directly in the platform’s own scheme.', scope: 'concepts:write' },
+    { method: 'PATCH', path: '/platform/{scheme}/concepts/{term_id}', what: 'Edit a concept of the platform’s own scheme.', scope: 'concepts:write' }
   ];
 }
 

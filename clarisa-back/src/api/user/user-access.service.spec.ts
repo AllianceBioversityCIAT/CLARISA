@@ -30,7 +30,7 @@ describe('UserAccessService', () => {
         {
           id: 9,
           acronym: 'MDA',
-          description: 'MELIAF Data Admins',
+          description: 'Concepts Data Admins',
           level: null,
         },
       ],
@@ -43,7 +43,7 @@ describe('UserAccessService', () => {
         {
           id: 9,
           acronym: 'MDA',
-          description: 'MELIAF Data Admins',
+          description: 'Concepts Data Admins',
           level: 'module',
         },
       ],

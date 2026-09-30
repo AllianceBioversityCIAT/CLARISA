@@ -142,7 +142,7 @@ export class ConceptListComponent implements OnInit, OnDestroy {
             this.error = null;
           } else {
             this.all = [];
-            this.error = humanError(result.error, { notFound: 'This concept scheme does not exist. Open the MELIAF Taxonomy from the menu.' });
+            this.error = humanError(result.error, { notFound: 'This concept scheme does not exist. Open Concepts from the menu.' });
           }
           this.recompute();
         },
@@ -240,7 +240,7 @@ export class ConceptListComponent implements OnInit, OnDestroy {
       .subscribe({
         next: scheme => (this.scheme = scheme),
         error: (error: HttpErrorResponse) =>
-          (this.schemeError = humanError(error, { notFound: 'This concept scheme does not exist. Open the MELIAF Taxonomy from the menu.' }))
+          (this.schemeError = humanError(error, { notFound: 'This concept scheme does not exist. Open Concepts from the menu.' }))
       });
     this._api
       .lists(this.schemeCode)

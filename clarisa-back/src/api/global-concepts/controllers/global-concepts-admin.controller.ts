@@ -69,13 +69,14 @@ import { UsageService } from '../services/usage.service';
 import { PlatformUsageService } from '../services/platform-usage.service';
 
 /**
- * Admin surface of Global Concepts (`/api/meliaf-taxonomy/admin`). Every write
+ * Admin surface of Global Concepts (`/api/concepts/admin`). Every write
  * made here is a direct admin edit and is logged as such (`direct_edit`); the
  * people who are not admins go through concept requests instead.
  *
  * `PermissionGuard` matches the path against the user's permissions, seeded by
  * `SeedGlobalConceptsAdminPermission1790500100000` and moved to the
- * `meliaf-taxonomy` prefix by `RenameGlobalConceptsRoutesToMeliafTaxonomy1790500300000`.
+ * `concepts` prefix by `RenameGlobalConceptsRoutesToMeliafTaxonomy1790500300000`
+ * and `RenameMeliafTaxonomyRoutesToConcepts1790500400000`.
  */
 @ApiExcludeController()
 @Controller('admin')
@@ -261,7 +262,7 @@ export class GlobalConceptsAdminController {
   }
 
   /**
-   * Calls per connected system (API key → MIS) to the whole MELIAF Taxonomy
+   * Calls per connected system (API key → MIS) to the whole Concepts
    * API, next to the anonymous reads of the same period. Under `admin/`, so
    * only the full admin grant reaches it (never a concepts-only one).
    */

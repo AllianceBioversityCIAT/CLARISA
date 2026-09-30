@@ -373,13 +373,13 @@ describe('ApiKeyUsageMetricsService — endpoint and MIS aggregates', () => {
 
     const result = await service.getSystemsForEndpoints(
       { from: '2026-09-01T00:00:00', to: '2026-09-30T00:00:00' },
-      ['/api/meliaf-taxonomy/', '/concepts/'],
+      ['/api/concepts/', '/concepts/'],
     );
 
     expect(qb.andWhere).toHaveBeenCalledWith(
       '(log.endpoint_accessed LIKE :endpointPrefix0 OR log.endpoint_accessed LIKE :endpointPrefix1)',
       {
-        endpointPrefix0: '/api/meliaf-taxonomy/%',
+        endpointPrefix0: '/api/concepts/%',
         endpointPrefix1: '/concepts/%',
       },
     );
@@ -590,9 +590,7 @@ describe('ApiKeyUsageMetricsService — endpoint and MIS aggregates', () => {
       const qb = queryBuilder(systemRows);
       const logRepository: any = { createQueryBuilder: jest.fn(() => qb) };
       const service = new ApiKeyUsageMetricsService({} as any, logRepository);
-      const out = await service.getSystemsForEndpoints({}, [
-        '/api/meliaf-taxonomy/',
-      ]);
+      const out = await service.getSystemsForEndpoints({}, ['/api/concepts/']);
       expect(out.systems.map((s) => s.system_key)).toEqual([
         'mis:3',
         'key:12',
