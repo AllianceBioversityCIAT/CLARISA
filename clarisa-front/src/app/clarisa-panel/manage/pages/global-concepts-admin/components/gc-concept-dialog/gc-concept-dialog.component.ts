@@ -14,6 +14,7 @@ import { ListOption } from '../../utils/list-values';
 import { ConceptOption } from '../gc-concept-picker/gc-concept-picker.component';
 import { buildConceptBody, ConceptForm, emptyForm, formFromConcept, STATUS_LABELS, statusSeverity } from '../../utils/concept-form';
 import { FIELD_INFO } from '../../utils/field-info';
+import { StableOptions } from '../../utils/stable-options';
 
 export const AI_DRAFT_FIELDS: { field: AiDraftField; label: string }[] = [
   { field: 'short_definition', label: 'Short definition' },
@@ -148,8 +149,13 @@ export class GcConceptDialogComponent {
     if (option.id === 'history') this.loadHistory();
   }
 
+  private readonly _conceptOptions = new StableOptions<ConceptOption>();
+  private readonly _replacementOptions = new StableOptions<{ label: string; value: number }>();
+
   get conceptOptions(): ConceptOption[] {
-    return (this.concepts ?? []).map(concept => ({ term_id: concept.term_id, preferred_label: concept.preferred_label, status: concept.status }));
+    return this._conceptOptions.get([this.concepts], () =>
+      (this.concepts ?? []).map(concept => ({ term_id: concept.term_id, preferred_label: concept.preferred_label, status: concept.status }))
+    );
   }
 
   optionsFor(code: string): ListOption[] {
@@ -347,9 +353,11 @@ export class GcConceptDialogComponent {
 
   /** Concepts a deprecated one can point to: same scheme, approved (the back refuses anything else), not itself. */
   get replacementOptions(): { label: string; value: number }[] {
-    return (this.concepts ?? [])
-      .filter(concept => concept.term_id !== this.editing?.term_id && concept.status === 'approved')
-      .map(concept => ({ label: `${concept.term_id} — ${concept.preferred_label}`, value: concept.term_id }));
+    return this._replacementOptions.get([this.concepts, this.editing?.term_id], () =>
+      (this.concepts ?? [])
+        .filter(concept => concept.term_id !== this.editing?.term_id && concept.status === 'approved')
+        .map(concept => ({ label: `${concept.term_id} — ${concept.preferred_label}`, value: concept.term_id }))
+    );
   }
 
   get statusChangeError(): string | null {

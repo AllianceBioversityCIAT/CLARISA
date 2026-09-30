@@ -5,6 +5,7 @@ import { AdminListValue, GlobalConceptsApiService } from '../../../../../../shar
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
 import { groupListValues, ListGroup, reorderPatches } from '../../utils/setup-fields';
 import { FIELD_INFO } from '../../utils/field-info';
+import { StableOptions } from '../../utils/stable-options';
 
 /** The controlled lists the scheme sees, one list at a time. */
 @Component({
@@ -65,8 +66,12 @@ export class GcSetupListsComponent implements OnInit, OnChanges {
     });
   }
 
+  private readonly _listOptions = new StableOptions<{ label: string; value: string }>();
+
   get listOptions(): { label: string; value: string }[] {
-    return this.groups.map(group => ({ label: `${group.code} (${group.active})`, value: group.code }));
+    return this._listOptions.get([this.groups, ...this.groups.map(group => `${group.code}:${group.active}`)], () =>
+      this.groups.map(group => ({ label: `${group.code} (${group.active})`, value: group.code }))
+    );
   }
 
   get group(): ListGroup<AdminListValue> | null {

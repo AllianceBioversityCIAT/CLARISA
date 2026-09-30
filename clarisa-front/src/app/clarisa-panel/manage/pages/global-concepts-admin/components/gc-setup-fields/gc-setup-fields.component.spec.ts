@@ -43,4 +43,17 @@ describe('GcSetupFieldsComponent', () => {
     component.save();
     expect(api['updateField']).toHaveBeenCalledWith('meliaf', 5, { label: 'Steward' });
   });
+
+  it('keeps the "Values come from" options stable between change-detection runs (a new array lost the click)', () => {
+    component.listCodes = ['funding_source', 'region'];
+    const first = component.listOptions;
+    expect(component.listOptions).toBe(first);
+    expect(first).toEqual([
+      { label: 'funding_source', value: 'funding_source' },
+      { label: 'region', value: 'region' }
+    ]);
+    component.listCodes = ['region'];
+    expect(component.listOptions).not.toBe(first);
+    expect(component.listOptions).toEqual([{ label: 'region', value: 'region' }]);
+  });
 });

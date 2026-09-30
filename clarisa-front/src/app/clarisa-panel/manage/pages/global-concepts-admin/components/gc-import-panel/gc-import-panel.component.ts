@@ -10,6 +10,7 @@ import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message
 import { applyAiMatches, buildImportRows, ColumnMapping, confidenceLabel, exactMapping, headerKey, pickField } from '../../utils/column-mapping';
 import { IMPORT_FIELDS, REQUIRED_IMPORT_FIELD } from '../../utils/import-fields';
 import { importColumnInfo } from '../../utils/field-info';
+import { StableOptions } from '../../utils/stable-options';
 
 /** Same ceiling as the glossary upload: checked before a byte is parsed. */
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
@@ -278,16 +279,21 @@ export class GcImportPanelComponent implements OnChanges, OnInit {
 
   // ------------------------------------------------------------- step 3
 
+  private readonly _actionFilterOptions = new StableOptions<{ label: string; value: ActionFilter }>();
+
   get actionFilterOptions(): { label: string; value: ActionFilter }[] {
-    const count = (action: ImportRowResult['action']) => (this.preview?.rows ?? []).filter(row => row.action === action).length;
-    return [
-      { label: `All rows (${this.preview?.rows?.length ?? 0})`, value: 'all' },
-      { label: `To create (${count('create')})`, value: 'create' },
-      { label: `To update (${count('update')})`, value: 'update' },
-      { label: `Unchanged (${count('skip')})`, value: 'skip' },
-      { label: `Invalid (${count('invalid')})`, value: 'invalid' }
-    ];
+    return this._actionFilterOptions.get([this.preview], () => {
+      const count = (action: ImportRowResult['action']) => (this.preview?.rows ?? []).filter(row => row.action === action).length;
+      return [
+        { label: `All rows (${this.preview?.rows?.length ?? 0})`, value: 'all' },
+        { label: `To create (${count('create')})`, value: 'create' },
+        { label: `To update (${count('update')})`, value: 'update' },
+        { label: `Unchanged (${count('skip')})`, value: 'skip' },
+        { label: `Invalid (${count('invalid')})`, value: 'invalid' }
+      ];
+    });
   }
+
 
   applyActionFilter(): void {
     const rows = this.preview?.rows ?? [];
