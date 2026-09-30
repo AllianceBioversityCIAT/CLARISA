@@ -282,9 +282,9 @@ describe('LoginComponent · dónde aterriza al entrar', () => {
     expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/partner-request');
   });
 
-  it('a member whose roles open exactly one protected section lands in it (MELIAF-only → MELIAF Taxonomy)', async () => {
-    const { navigate } = await signIn(who(['/api/meliaf-taxonomy/admin']));
-    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/global-concepts-admin');
+  it('a member whose roles open exactly one protected section lands in it (Concepts-only → Concepts)', async () => {
+    const { navigate } = await signIn(who(['/api/concepts/admin']));
+    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/concepts-admin');
   });
 
   it('a single protected tab lands on that tab', async () => {

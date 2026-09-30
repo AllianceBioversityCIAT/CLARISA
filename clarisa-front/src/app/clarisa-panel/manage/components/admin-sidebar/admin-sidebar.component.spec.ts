@@ -76,7 +76,7 @@ describe('AdminSidebarComponent', () => {
   it('lists every section, grouped, when nothing is typed', () => {
     expect(component.groups.map(group => group.title)).toEqual(['Manage', 'Access', 'System']);
     expect(labels()).toContain('Glossary');
-    expect(labels()).toContain('MELIAF Taxonomy');
+    expect(labels()).toContain('Concepts');
     // 6 links directos: los 7 de la lista menos «Microservices & API keys», que
     // ahora es un toggle (botón) en vez de un link.
     expect(labels()?.length).toBe(6);
@@ -162,15 +162,15 @@ describe('AdminSidebarComponent', () => {
     expect(component.isEmpty).toBe(false);
   });
 
-  it('shows a MELIAF Data Admin only the MELIAF Taxonomy', () => {
+  it('shows a Concepts Data Admin only Concepts', () => {
     access.state$.next({
       status: 'ready',
-      access: { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/meliaf-taxonomy/admin'], isSuper: false }
+      access: { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/concepts/admin'], isSuper: false }
     });
     fixture.detectChanges();
 
     // `labels()` reads plain links; «Microservices & API keys» is a toggle with its tabs (`subLabels()`).
-    expect(labels()).toEqual(['MELIAF Taxonomy']);
+    expect(labels()).toEqual(['Concepts']);
     expect(component.groups.map(group => group.title)).toEqual(['Manage']);
     expect(subLabels()).toEqual([]);
     expect(fixture.nativeElement.querySelector('.admin-sidebar__notice')).toBeNull();

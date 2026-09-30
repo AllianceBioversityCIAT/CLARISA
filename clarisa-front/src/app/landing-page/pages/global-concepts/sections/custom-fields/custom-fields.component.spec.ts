@@ -55,6 +55,6 @@ describe('CustomFieldsComponent', () => {
     // Every field in this section is a custom field, and says so.
     expect(el.querySelectorAll('.gc-tag--custom').length).toBe(4);
     expect(el.querySelector('[data-field="doc"] .gc-tag--custom')?.textContent?.trim()).toBe('Custom');
-    expect(component.link(7)).toEqual(['/landing-page/global-concepts', 'meliaf', 7]);
+    expect(component.link(7)).toEqual(['/landing-page/concepts', 'meliaf', 7]);
   });
 });

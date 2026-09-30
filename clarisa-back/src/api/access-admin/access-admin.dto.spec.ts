@@ -30,13 +30,13 @@ describe('Access admin DTO validation', () => {
     it('accepts the roles screen payload and trims it', async () => {
       await expect(
         run(CreateRoleDto, {
-          acronym: ' MELIAF_DA ',
-          description: '  MELIAF Data Admins ',
+          acronym: ' CONCEPTS_DA ',
+          description: '  Concepts Data Admins ',
           permissionIds: [7],
         }),
       ).resolves.toMatchObject({
-        acronym: 'MELIAF_DA',
-        description: 'MELIAF Data Admins',
+        acronym: 'CONCEPTS_DA',
+        description: 'Concepts Data Admins',
         permissionIds: [7],
       });
     });
@@ -52,7 +52,7 @@ describe('Access admin DTO validation', () => {
     });
 
     it.each([
-      ['acronym with spaces', { acronym: 'MELIAF DA' }],
+      ['acronym with spaces', { acronym: 'CONCEPTS DA' }],
       ['one-letter acronym', { acronym: 'M' }],
       ['short description', { description: 'ab' }],
       ['duplicated permission ids', { permissionIds: [1, 1] }],
@@ -64,7 +64,7 @@ describe('Access admin DTO validation', () => {
       await expect(
         run(CreateRoleDto, {
           acronym: 'MDA',
-          description: 'MELIAF Data Admins',
+          description: 'Concepts Data Admins',
           permissionIds: [1],
           ...override,
         }),
@@ -120,8 +120,10 @@ describe('Access admin DTO validation', () => {
   describe('RemoveRoleMemberDto', () => {
     it('accepts a justification', async () => {
       await expect(
-        run(RemoveRoleMemberDto, { justification: '  Left the MELIAF team ' }),
-      ).resolves.toMatchObject({ justification: 'Left the MELIAF team' });
+        run(RemoveRoleMemberDto, {
+          justification: '  Left the Concepts team ',
+        }),
+      ).resolves.toMatchObject({ justification: 'Left the Concepts team' });
     });
 
     it.each([

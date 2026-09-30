@@ -16,7 +16,7 @@ import { GuideComponent } from './pages/guide/guide.component';
  */
 /**
  * A scheme URI (`/concepts/{scheme}`) and shared links such as
- * `/landing-page/global-concepts/meliaf` land on one segment; the list reads the
+ * `/landing-page/concepts/meliaf` land on one segment; the list reads the
  * scheme from `?scheme=`, so send that address to it instead of the wildcard.
  */
 @Injectable({ providedIn: 'root' })
@@ -24,7 +24,7 @@ export class SchemeSegmentRedirectGuard implements CanActivate {
   constructor(private readonly _router: Router) {}
 
   canActivate(route: ActivatedRouteSnapshot): UrlTree {
-    return this._router.createUrlTree(['/landing-page/global-concepts'], {
+    return this._router.createUrlTree(['/landing-page/concepts'], {
       queryParams: { ...route.queryParams, scheme: route.paramMap.get('scheme') }
     });
   }

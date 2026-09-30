@@ -5,11 +5,9 @@ describe('webBaseOf', () => {
     expect(
       webBaseOf({
         web_base:
-          'https://clarisatest-web.ciat.cgiar.org/landing-page/global-concepts/',
+          'https://clarisatest-web.ciat.cgiar.org/landing-page/concepts/',
       }),
-    ).toBe(
-      'https://clarisatest-web.ciat.cgiar.org/landing-page/global-concepts',
-    );
+    ).toBe('https://clarisatest-web.ciat.cgiar.org/landing-page/concepts');
   });
 
   it('falls back to the module default when the scheme has none', () => {

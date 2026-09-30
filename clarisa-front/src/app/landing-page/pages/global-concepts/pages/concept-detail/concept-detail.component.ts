@@ -88,7 +88,7 @@ export class ConceptDetailComponent implements OnInit, OnDestroy {
 
     if (!Number.isInteger(this.termId) || this.termId < 1) {
       this.loading = false;
-      this.error = 'This link does not point to a concept. Open it from the MELIAF Taxonomy list.';
+      this.error = 'This link does not point to a concept. Open it from Concepts list.';
       return;
     }
 

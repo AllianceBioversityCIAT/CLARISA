@@ -53,10 +53,10 @@ describe('AdminHomeComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/clarisa-panel/manage/partner-request'], { queryParams: undefined, replaceUrl: true });
   });
 
-  it('sends a MELIAF-only member straight to the MELIAF Taxonomy, replacing the history entry (denied note dropped)', () => {
-    const { home, router } = build(member(['/api/meliaf-taxonomy/admin']), { denied: 'Users' });
+  it('sends a Concepts-only member straight to Concepts, replacing the history entry (denied note dropped)', () => {
+    const { home, router } = build(member(['/api/concepts/admin']), { denied: 'Users' });
     expect(router.navigate).toHaveBeenCalledTimes(1);
-    expect(router.navigate).toHaveBeenCalledWith(['/clarisa-panel/manage/global-concepts-admin'], { queryParams: undefined, replaceUrl: true });
+    expect(router.navigate).toHaveBeenCalledWith(['/clarisa-panel/manage/concepts-admin'], { queryParams: undefined, replaceUrl: true });
     // The list never flashes while the navigation runs.
     expect(home.loading).toBe(true);
   });

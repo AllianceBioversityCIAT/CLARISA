@@ -5,9 +5,9 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 
 /**
- * Client of the Global Concepts module (`api/meliaf-taxonomy`), shared by the
+ * Client of the Global Concepts module (`api/concepts`), shared by the
  * admin section and the public page. Shapes mirror the back's presenters
- * (clarisa-back/src/api/meliaf-taxonomy); field names follow the MELIAF data
+ * (clarisa-back/src/api/global-concepts); field names follow the MELIAF data
  * schema template.
  */
 
@@ -245,7 +245,7 @@ const params = (query: object = {}) => {
 
 @Injectable({ providedIn: 'root' })
 export class GlobalConceptsApiService {
-  private readonly base = `${environment.apiUrl}api/meliaf-taxonomy`;
+  private readonly base = `${environment.apiUrl}api/concepts`;
 
   constructor(private _http: HttpClient) {}
 
@@ -450,7 +450,7 @@ export class GlobalConceptsApiService {
 
   /**
    * Nested under the concept (`concepts/:termId/icons/:id`) so a concepts-only
-   * member (`MELIAF_CE`) reaches it; the back answers 404 if the icon belongs
+   * member (`CONCEPTS_CE`) reaches it; the back answers 404 if the icon belongs
    * to another concept. Full admins pass too (`/admin` is a substring).
    */
   updateIcon(scheme: string, termId: number, id: number, body: Partial<IconInput>): Observable<AdminIcon> {
@@ -526,7 +526,7 @@ export class GlobalConceptsApiService {
     return this._http.get<UsageSummary>(`${this.admin}/${encodeURIComponent(scheme)}/usage`, { params: params({ days }) });
   }
 
-  /** Calls per connected system (API key → MIS) to the whole MELIAF Taxonomy API, plus the anonymous reads. */
+  /** Calls per connected system (API key → MIS) to the whole Concepts API, plus the anonymous reads. */
   usageByPlatform(scheme: string, days: number): Observable<PlatformUsage> {
     return this._http.get<PlatformUsage>(`${this.admin}/${encodeURIComponent(scheme)}/usage/platforms`, { params: params({ days }) });
   }

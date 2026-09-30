@@ -8,16 +8,16 @@ import { AccessAdminApiService, AccessRole, MeAccess, PermissionGroup } from '..
 
 const catalog: PermissionGroup[] = [
   {
-    module: 'MELIAF Taxonomy',
-    items: [{ id: 1, name: '/api/meliaf-taxonomy/admin', label: 'Manage the MELIAF Taxonomy', description: 'Create, edit, import and publish.' }]
+    module: 'Concepts',
+    items: [{ id: 1, name: '/api/concepts/admin', label: 'Manage Concepts', description: 'Create, edit, import and publish.' }]
   },
   { module: 'Glossary', items: [{ id: 2, name: '/api/glossary/admin', label: 'Manage the glossary', description: null }] }
 ];
 
 const role = (patch: Partial<AccessRole> = {}): AccessRole => ({
   id: 9,
-  acronym: 'MELIAF_DA',
-  description: 'MELIAF Data Admins',
+  acronym: 'CONCEPTS_DA',
+  description: 'Concepts Data Admins',
   level: 'module',
   isSystem: false,
   memberCount: 0,
@@ -58,14 +58,14 @@ describe('RoleDialogComponent', () => {
     const saved = jest.fn();
     dialog.saved.subscribe(saved);
 
-    dialog.acronym = ' meliaf_da ';
-    dialog.description = 'MELIAF Data Admins';
+    dialog.acronym = ' concepts_da ';
+    dialog.description = 'Concepts Data Admins';
     dialog.toggle(catalog[0].items[0], true);
     dialog.save();
     dialog.save();
 
     expect(api['createRole']).toHaveBeenCalledTimes(1);
-    expect(api['createRole']).toHaveBeenCalledWith({ acronym: 'MELIAF_DA', description: 'MELIAF Data Admins', permissionIds: [1] });
+    expect(api['createRole']).toHaveBeenCalledWith({ acronym: 'CONCEPTS_DA', description: 'Concepts Data Admins', permissionIds: [1] });
     expect(dialog.saving).toBe(true);
 
     pending.next(role());
@@ -76,11 +76,11 @@ describe('RoleDialogComponent', () => {
   });
 
   it('refuses a malformed or repeated acronym before sending', () => {
-    const dialog = open(null, superAccess, [role({ id: 3, acronym: 'MELIAF_DA' })]);
+    const dialog = open(null, superAccess, [role({ id: 3, acronym: 'CONCEPTS_DA' })]);
     dialog.description = 'Something';
     dialog.acronym = 'has space';
     expect(dialog.acronymError).toMatch(/without spaces/);
-    dialog.acronym = 'meliaf_da';
+    dialog.acronym = 'concepts_da';
     expect(dialog.acronymError).toMatch(/already uses/);
     dialog.save();
     expect(api['createRole']).not.toHaveBeenCalled();
@@ -90,11 +90,11 @@ describe('RoleDialogComponent', () => {
     const dialog = open(role());
     expect(dialog.canSave).toBe(false);
 
-    dialog.description = 'MELIAF Data Administrators';
+    dialog.description = 'Concepts Data Administrators';
     dialog.toggle(catalog[1].items[0], true);
     dialog.save();
 
-    expect(api['updateRole']).toHaveBeenCalledWith(9, { description: 'MELIAF Data Administrators' });
+    expect(api['updateRole']).toHaveBeenCalledWith(9, { description: 'Concepts Data Administrators' });
     expect(api['setRolePermissions']).toHaveBeenCalledWith(9, [1, 2]);
     expect(api['createRole']).not.toHaveBeenCalled();
   });
@@ -112,7 +112,7 @@ describe('RoleDialogComponent', () => {
   });
 
   it('lets a non-super tick only permissions they hold, and locks roles beyond them', () => {
-    const admin: MeAccess = { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/access-admin', '/api/meliaf-taxonomy/admin'], isSuper: false };
+    const admin: MeAccess = { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/access-admin', '/api/concepts/admin'], isSuper: false };
     const dialog = open(null, admin);
     expect(dialog.canGrant(catalog[0].items[0])).toBe(true);
     expect(dialog.canGrant(catalog[1].items[0])).toBe(false);

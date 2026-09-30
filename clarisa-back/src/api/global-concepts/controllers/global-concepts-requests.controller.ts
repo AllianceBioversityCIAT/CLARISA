@@ -57,7 +57,7 @@ const platformOf = (auth: ApiKeyAuthContext | undefined) => {
  * - a signed-in CLARISA user;
  * - a platform with its CLARISA API key, on behalf of its own users.
  */
-@ApiTags('MELIAF Taxonomy — requests')
+@ApiTags('Concepts — requests')
 @Controller()
 @UseGuards(GlobalConceptsEnabledGuard)
 @UsePipes(pipe)
@@ -140,7 +140,7 @@ export class GlobalConceptsRequestsController {
  * submits and follows requests; `write` and `review` act only on the scheme
  * the platform owns — never on the global MELIAF scheme (D5c).
  */
-@ApiTags('MELIAF Taxonomy — platforms')
+@ApiTags('Concepts — platforms')
 @Controller('platform')
 @UseGuards(GlobalConceptsEnabledGuard, ApiKeyGuard)
 @UsePipes(pipe)
@@ -151,7 +151,7 @@ export class GlobalConceptsPlatformController {
   ) {}
 
   @Post(':scheme/requests')
-  @RequireApiKeyScope('meliaf-taxonomy:request')
+  @RequireApiKeyScope('concepts:request')
   submit(
     @Param('scheme') scheme: string,
     @Body() dto: SubmitRequestDto,
@@ -166,7 +166,7 @@ export class GlobalConceptsPlatformController {
   }
 
   @Get('requests/:id')
-  @RequireApiKeyScope('meliaf-taxonomy:request')
+  @RequireApiKeyScope('concepts:request')
   status(
     @Param('id', ParseIntPipe) id: number,
     @GetApiKeyAuth() auth: ApiKeyAuthContext,
@@ -175,7 +175,7 @@ export class GlobalConceptsPlatformController {
   }
 
   @Post('requests/:id/resubmit')
-  @RequireApiKeyScope('meliaf-taxonomy:request')
+  @RequireApiKeyScope('concepts:request')
   resubmit(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ResubmitRequestDto,
@@ -189,7 +189,7 @@ export class GlobalConceptsPlatformController {
   }
 
   @Post('requests/:id/transition')
-  @RequireApiKeyScope('meliaf-taxonomy:review')
+  @RequireApiKeyScope('concepts:review')
   transition(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: RequestTransitionDto,
@@ -203,7 +203,7 @@ export class GlobalConceptsPlatformController {
   }
 
   @Post(':scheme/concepts')
-  @RequireApiKeyScope('meliaf-taxonomy:write')
+  @RequireApiKeyScope('concepts:write')
   async create(
     @Param('scheme') scheme: string,
     @Body() dto: CreateConceptDto,
@@ -217,7 +217,7 @@ export class GlobalConceptsPlatformController {
   }
 
   @Patch(':scheme/concepts/:termId')
-  @RequireApiKeyScope('meliaf-taxonomy:write')
+  @RequireApiKeyScope('concepts:write')
   async update(
     @Param('scheme') scheme: string,
     @Param('termId', ParseIntPipe) termId: number,

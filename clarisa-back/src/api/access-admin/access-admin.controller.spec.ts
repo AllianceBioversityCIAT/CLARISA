@@ -113,7 +113,7 @@ describe('PermissionGuard on api/access-admin', () => {
     ).resolves.toBe(true);
   });
 
-  it.each([[['/api/users']], [['/api/meliaf-taxonomy/admin']], [undefined]])(
+  it.each([[['/api/users']], [['/api/concepts/admin']], [undefined]])(
     'keeps %p out',
     async (permissions) => {
       await expect(

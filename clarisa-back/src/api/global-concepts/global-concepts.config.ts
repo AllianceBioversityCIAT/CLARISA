@@ -47,7 +47,7 @@ export const GlobalConceptsConfig = {
   get webBase(): string {
     return (
       env.GLOBAL_CONCEPTS_WEB_BASE ??
-      'https://clarisa.cgiar.org/landing-page/global-concepts'
+      'https://clarisa.cgiar.org/landing-page/concepts'
     ).replace(/\/+$/, '');
   },
 };

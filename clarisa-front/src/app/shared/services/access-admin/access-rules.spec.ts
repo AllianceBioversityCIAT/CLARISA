@@ -4,8 +4,8 @@ import { accessErrorMessage, assignableRoles, fullName, holdsPermission, permits
 
 const catalog: PermissionGroup[] = [
   {
-    module: 'MELIAF Taxonomy',
-    items: [{ id: 1, name: '/api/meliaf-taxonomy/admin', label: 'Manage the MELIAF Taxonomy', description: null }]
+    module: 'Concepts',
+    items: [{ id: 1, name: '/api/concepts/admin', label: 'Manage Concepts', description: null }]
   },
   { module: 'Glossary', items: [{ id: 2, name: '/api/glossary/admin', label: 'Manage the glossary', description: null }] },
   { module: 'Access', items: [{ id: 3, name: '/api/access-admin', label: 'Manage roles and users', description: null }] }
@@ -38,7 +38,7 @@ describe('access rules', () => {
 
   it('lets anyone else assign only roles inside their own permissions, never super', () => {
     const roles = [role(1, [1]), role(2, [1, 2]), role(3, [1], 'super'), role(4, [])];
-    const admin = me(['/api/access-admin', '/api/meliaf-taxonomy/admin']);
+    const admin = me(['/api/access-admin', '/api/concepts/admin']);
     expect(assignableRoles(roles, admin, catalog).map(r => r.id)).toEqual([1, 4]);
     expect(assignableRoles(roles, null, catalog)).toEqual([]);
   });

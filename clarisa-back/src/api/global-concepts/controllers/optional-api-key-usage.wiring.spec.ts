@@ -32,7 +32,7 @@ const intercepts = (controller: any, name: string) => {
 };
 
 /**
- * Héctor, 2026-09-30: count the platforms that read MELIAF Taxonomy, not only
+ * Héctor, 2026-09-30: count the platforms that read Concepts, not only
  * the search portal. A new public route that forgets the recorder would read
  * uncounted, silently: this spec fails instead.
  */

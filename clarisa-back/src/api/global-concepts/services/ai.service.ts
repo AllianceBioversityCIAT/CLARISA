@@ -33,7 +33,7 @@ export const costOf = (model: string, input: number, output: number) => {
 const monthKey = (d = new Date()) => d.toISOString().slice(0, 7);
 
 export const AI_BUDGET_USED_UP =
-  'The monthly AI budget of the MELIAF Taxonomy is used up; the feature is available again next month.';
+  'The monthly AI budget of Concepts is used up; the feature is available again next month.';
 
 export interface AiChatMessage {
   role: 'user' | 'assistant';

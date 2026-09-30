@@ -48,7 +48,7 @@ describe('PlatformUsageService', () => {
     return { service, metrics, usage, loader };
   };
 
-  it('narrows the key log to the MELIAF Taxonomy paths and adds the anonymous line', async () => {
+  it('narrows the key log to Concepts paths and adds the anonymous line', async () => {
     const { service, metrics, usage } = build();
     const out = await service.byPlatform('meliaf', {
       from: '2026-09-01',
@@ -56,7 +56,12 @@ describe('PlatformUsageService', () => {
     });
     expect(metrics.getSystemsForEndpoints).toHaveBeenCalledWith(
       { from: '2026-09-01T00:00:00', to: '2026-09-30T00:00:00' },
-      ['/api/meliaf-taxonomy/', '/concepts/'],
+      [
+        '/api/concepts/',
+        '/concepts/',
+        '/api/meliaf-taxonomy/',
+        '/api/global-concepts/',
+      ],
     );
     expect(usage.countedReads).toHaveBeenCalledWith('2026-09-01', '2026-09-30');
     expect(out).toMatchObject({

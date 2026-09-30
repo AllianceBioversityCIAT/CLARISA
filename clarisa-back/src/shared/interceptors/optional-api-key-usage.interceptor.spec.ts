@@ -19,7 +19,7 @@ describe('OptionalApiKeyUsageInterceptor (unit)', () => {
         getRequest: () => ({
           headers,
           method: 'GET',
-          originalUrl: `/api/meliaf-taxonomy/meliaf/concepts?q=${'x'.repeat(600)}`,
+          originalUrl: `/api/concepts/meliaf/concepts?q=${'x'.repeat(600)}`,
           ip: '10.0.0.9',
         }),
         getResponse: () => response,

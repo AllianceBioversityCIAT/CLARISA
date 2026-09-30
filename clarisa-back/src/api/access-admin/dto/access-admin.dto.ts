@@ -78,7 +78,7 @@ class PermissionIdsDto {
 
 /** `POST api/access-admin/roles` */
 export class CreateRoleDto extends PermissionIdsDto {
-  /** Short code, e.g. `MELIAF_DA`. Stored upper-case. */
+  /** Short code, e.g. `CONCEPTS_DA`. Stored upper-case. */
   @Transform(trim)
   @IsString()
   @Matches(/^[A-Za-z0-9_-]{2,50}$/, {
@@ -86,7 +86,7 @@ export class CreateRoleDto extends PermissionIdsDto {
   })
   acronym: string;
 
-  /** The name people see, e.g. "MELIAF Data Admins". */
+  /** The name people see, e.g. "Concepts Data Admins". */
   @Transform(trim)
   @IsString()
   @MinLength(3)

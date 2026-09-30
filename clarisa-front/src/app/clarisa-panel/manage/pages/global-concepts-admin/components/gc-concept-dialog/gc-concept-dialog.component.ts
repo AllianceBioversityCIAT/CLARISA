@@ -203,7 +203,7 @@ export class GcConceptDialogComponent {
   }
 
   get publicUrl(): string | null {
-    return this.editing ? `/landing-page/global-concepts/${encodeURIComponent(this.scheme)}/${this.editing.term_id}` : null;
+    return this.editing ? `/landing-page/concepts/${encodeURIComponent(this.scheme)}/${this.editing.term_id}` : null;
   }
 
   /** A sub-editor wrote: its answer is the concept as it is now. */
