@@ -7,12 +7,14 @@ import {
   Post,
   Res,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { Response } from 'express';
 import { GlobalConceptsEnabledGuard } from '../utils/feature-enabled.guard';
 import { McpService } from '../services/mcp.service';
 import { PublicRateLimitGuard } from '../utils/public-rate-limit.guard';
+import { OptionalApiKeyUsageInterceptor } from '../../../shared/interceptors/optional-api-key-usage.interceptor';
 
 /** MCP 2025-06-18 dropped batching; older clients batch a handful at most. */
 const MAX_BATCH = 10;
@@ -33,6 +35,8 @@ export class GlobalConceptsMcpController {
   @Post()
   @HttpCode(200)
   @UseGuards(PublicRateLimitGuard)
+  // Every tool is a read: a platform's assistant with its key is counted per system.
+  @UseInterceptors(OptionalApiKeyUsageInterceptor)
   async post(@Body() body: unknown, @Res() res: Response) {
     if (body === undefined || body === null || typeof body !== 'object') {
       res.status(400).json(this.mcp.error(null, -32700, 'Parse error'));

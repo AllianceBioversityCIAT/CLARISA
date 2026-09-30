@@ -130,6 +130,25 @@
           <ng-container *ngTemplateOutlet="block; context: { key: 'exportPinned', label: 'An export frozen at release 1.0' }"></ng-container>
         </section>
 
+        <!-- Get counted -->
+        <section class="gc-card gc-doc__section" id="counted">
+          <h2 class="gc-h2">Get counted: send your CLARISA API key</h2>
+          <p>
+            Reads stay open without a key. If your platform already has a CLARISA API key, send it in the
+            <span class="gc-mono">X-API-Key</span> header on every read (API endpoints, persistent URIs and MCP): the answer is exactly the same,
+            and the MELIAF team can see which connected systems use the vocabulary, not only the search portal.
+          </p>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'counted', label: 'A read counted for your platform' }"></ng-container>
+          <ul>
+            <li>Any active key counts; no scope is needed to read.</li>
+            <li>
+              A key that is unknown, revoked or expired never blocks the read. The answer then carries
+              <span class="gc-mono">X-Api-Key-Status: invalid</span>, so you can notice and ask for a new key.
+            </li>
+            <li>Send it from your server, never from a public web page: whoever sees the key can use it.</li>
+          </ul>
+        </section>
+
         <!-- Platforms -->
         <section class="gc-card gc-doc__section" id="platforms">
           <h2 class="gc-h2">Platforms and API keys</h2>
@@ -141,7 +160,8 @@
           <ul class="gc-dev-scopes">
             <li>
               <span class="gc-mono">meliaf-taxonomy:read</span> — reserved for keyed reading. Today every public read works without a key, so no
-              route asks for it yet.
+              route asks for it yet (any valid key is <a [routerLink]="[]" fragment="counted" (click)="goTo('counted')">counted</a>, with or
+              without it).
             </li>
             <li>
               <span class="gc-mono">meliaf-taxonomy:request</span> — submit requests and follow them. The stewards still decide; nothing is

@@ -9,6 +9,12 @@ export enum GcUsageKind {
   MCP = 'mcp',
   SUGGEST = 'suggest',
   API = 'api',
+  /**
+   * The same read again, tallied apart because it came with a valid platform
+   * API key; `item` is the kind it shadows. Never shown as a kind of its own:
+   * it only splits the other kinds into anonymous and keyed.
+   */
+  KEYED = 'keyed',
 }
 
 /**

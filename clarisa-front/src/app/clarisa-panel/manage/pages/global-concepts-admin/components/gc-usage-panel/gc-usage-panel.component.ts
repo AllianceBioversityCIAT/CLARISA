@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
-import { GlobalConceptsApiService, UsageSummary } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
+import { GlobalConceptsApiService, PlatformUsage, UsageSummary } from '../../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message';
-import { USAGE_COLORS, UsageChart, usageSeries, UsageSeries, usageViewModel, UsageViewModel } from '../../utils/usage-view';
+import { PlatformRow, platformRows, USAGE_COLORS, UsageChart, usageSeries, UsageSeries, usageViewModel, UsageViewModel } from '../../utils/usage-view';
 
 /** Which terms are searched for and used (checklist row 10, contract v2 § 3). */
 @Component({
@@ -31,6 +31,16 @@ export class GcUsagePanelComponent implements OnInit, OnChanges {
   /** Index of the day under the pointer, for the tooltip. */
   hover: number | null = null;
   private requestId = 0;
+
+  /**
+   * "By platform" (Héctor, 2026-09-30): connected systems that read with their
+   * API key. Loaded apart, so its failure never hides the figures above.
+   */
+  platforms: PlatformUsage | null = null;
+  platformRows: PlatformRow[] = [];
+  platformsLoading = false;
+  platformsError: string | null = null;
+  private platformsRequestId = 0;
 
   constructor(private readonly _api: GlobalConceptsApiService) {}
 
@@ -68,6 +78,32 @@ export class GcUsagePanelComponent implements OnInit, OnChanges {
         this.loadError = apiErrorMessage(error, 'The usage figures could not be loaded');
       }
     });
+    this.loadPlatforms();
+  }
+
+  loadPlatforms(): void {
+    const id = ++this.platformsRequestId;
+    this.platformsLoading = true;
+    this.platformsError = null;
+    this._api.usageByPlatform(this.scheme, this.days).subscribe({
+      next: usage => {
+        if (id !== this.platformsRequestId) return;
+        this.platformsLoading = false;
+        this.platforms = usage ?? null;
+        this.platformRows = platformRows(this.platforms);
+      },
+      error: error => {
+        if (id !== this.platformsRequestId) return;
+        this.platformsLoading = false;
+        this.platforms = null;
+        this.platformRows = [];
+        this.platformsError = apiErrorMessage(error, 'The usage by platform could not be loaded');
+      }
+    });
+  }
+
+  trackByPlatform(_: number, row: PlatformRow): string {
+    return row.key;
   }
 
   get chart(): UsageChart {

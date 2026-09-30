@@ -31,6 +31,8 @@ import { ReleasesService } from './services/releases.service';
 import { ConceptsIconsService } from './services/concepts-icons.service';
 import { ConceptsFieldsService } from './services/concepts-fields.service';
 import { UsageService } from './services/usage.service';
+import { PlatformUsageService } from './services/platform-usage.service';
+import { OptionalApiKeyUsageInterceptor } from '../../shared/interceptors/optional-api-key-usage.interceptor';
 import { GlobalConceptsEnabledGuard } from './utils/feature-enabled.guard';
 import { PublicRateLimitGuard } from './utils/public-rate-limit.guard';
 
@@ -53,6 +55,8 @@ const providers = [
   ConceptsIconsService,
   ConceptsFieldsService,
   UsageService,
+  PlatformUsageService,
+  OptionalApiKeyUsageInterceptor,
   GlobalConceptsEnabledGuard,
   PublicRateLimitGuard,
 ];
@@ -85,7 +89,9 @@ export class GlobalConceptsModule {}
  * the URI stays short and outside the versionable `api/` path.
  */
 @Module({
-  imports: [GlobalConceptsModule],
+  // ApiKeyModule: the controller's `OptionalApiKeyUsageInterceptor` is built
+  // in this module's context and needs ApiKeyService / ApiKeyUsageLogService.
+  imports: [GlobalConceptsModule, ApiKeyModule],
   controllers: [ConceptUriController],
 })
 export class GlobalConceptsUriModule {}

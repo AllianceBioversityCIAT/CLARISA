@@ -314,6 +314,106 @@
   max-width: 880px;
 }
 
+/* ---- by platform ------------------------------------------------------------ */
+
+.gc-platforms {
+  margin-bottom: 14px;
+}
+
+.gc-platforms__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gc-platforms__acronym {
+  font-weight: 700;
+  color: var(--cl-ink);
+}
+
+.gc-platforms__calls-col {
+  width: 34%;
+}
+
+.gc-platforms__calls {
+  display: grid;
+  grid-template-columns: minmax(48px, 1fr) auto 48px;
+  align-items: center;
+  gap: 10px;
+}
+
+.gc-platforms__bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--cl-surface-2);
+  overflow: hidden;
+
+  > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--cl-brand), var(--cl-brand-deeper));
+    transition: width 0.3s ease;
+  }
+}
+
+.gc-platforms__share {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--cl-ink-3);
+  text-align: right;
+}
+
+.gc-platforms__errors {
+  color: var(--cl-error);
+  font-weight: 600;
+}
+
+.gc-platforms__error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 16px;
+  font-size: 13px;
+  color: var(--cl-error);
+}
+
+.gc-platforms__anon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  margin: 0;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--cl-line);
+
+  strong {
+    font-size: 18px;
+    font-variant-numeric: tabular-nums;
+    color: var(--cl-ink);
+  }
+
+  .gc-meta {
+    margin-top: 0;
+  }
+}
+
+.gc-platforms__anon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cl-ink-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gc-platforms__bar > span {
+    transition: none;
+  }
+}
+
 /* The small tables do not need the 880px floor of the big ones. */
 :host ::ng-deep .gc-mini-table.admin-table.p-datatable .p-datatable-table {
   min-width: 0;

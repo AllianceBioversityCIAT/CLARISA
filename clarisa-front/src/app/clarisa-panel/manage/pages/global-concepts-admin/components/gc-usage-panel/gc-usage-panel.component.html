@@ -73,6 +73,89 @@
       <ng-template #chartLoading><div class="gc-chart gc-chart--loading"><span class="gc-skeleton__bar"></span></div></ng-template>
     </section>
 
+    <!-- By platform: connected systems that read with their API key -->
+    <section class="gc-card gc-usage-table gc-platforms" aria-labelledby="gc-platforms-title" [attr.aria-busy]="platformsLoading">
+      <header class="gc-usage-table__head gc-platforms__head">
+        <div>
+          <h3 class="gc-ed__title" id="gc-platforms-title">By platform</h3>
+          <p class="gc-ed__hint">
+            Calls from connected systems that send their CLARISA API key, last {{ days }} days. Covers the whole MELIAF Taxonomy API: every scheme,
+            persistent URIs and MCP.
+          </p>
+        </div>
+        <button
+          *ngIf="platformsError && !platformsLoading"
+          pButton
+          type="button"
+          label="Try again"
+          icon="pi pi-refresh"
+          class="p-button-text p-button-sm"
+          (click)="loadPlatforms()"></button>
+      </header>
+
+      <p class="gc-platforms__error" role="alert" *ngIf="platformsError && !platformsLoading">
+        <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>{{ platformsError }}
+      </p>
+
+      <ng-container *ngIf="!platformsError">
+        <p-table
+          [value]="platformRows"
+          [rowTrackBy]="trackByPlatform"
+          sortField="calls"
+          [sortOrder]="-1"
+          styleClass="p-datatable-sm admin-table gc-mini-table"
+          responsiveLayout="scroll">
+          <ng-template pTemplate="header">
+            <tr>
+              <th scope="col" pSortableColumn="acronym">System <p-sortIcon field="acronym"></p-sortIcon></th>
+              <th scope="col" pSortableColumn="calls" class="gc-platforms__calls-col">Calls <p-sortIcon field="calls"></p-sortIcon></th>
+              <th scope="col" pSortableColumn="errors" style="width: 96px">Errors <p-sortIcon field="errors"></p-sortIcon></th>
+              <th scope="col" pSortableColumn="avg_response_time_ms" style="width: 112px">Avg time <p-sortIcon field="avg_response_time_ms"></p-sortIcon></th>
+              <th scope="col" pSortableColumn="last_used_at" style="width: 150px">Last call <p-sortIcon field="last_used_at"></p-sortIcon></th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr>
+              <td data-card-title data-label="System" class="cell-primary">
+                <span class="gc-platforms__acronym">{{ row.acronym }}</span>
+                <span class="gc-meta">{{ row.name }}<ng-container *ngIf="row.environment"> · {{ row.environment }}</ng-container></span>
+              </td>
+              <td data-label="Calls">
+                <div class="gc-platforms__calls">
+                  <span class="gc-platforms__bar" aria-hidden="true"><span [style.width.%]="row.bar"></span></span>
+                  <span class="cell-num">{{ row.calls | number }}</span>
+                  <span class="gc-platforms__share">{{ row.share }}%</span>
+                </div>
+              </td>
+              <td data-label="Errors" class="cell-num" [class.gc-platforms__errors]="row.errors > 0">{{ row.errors | number }}</td>
+              <td data-label="Avg time" class="cell-num">{{ row.avg_response_time_ms === null ? '—' : (row.avg_response_time_ms | number) + ' ms' }}</td>
+              <td data-label="Last call">{{ row.last_used_at ? (row.last_used_at | date: 'MMM d, HH:mm') : '—' }}</td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="5" class="cell-empty gc-empty-cell">
+                <ng-container *ngIf="platformsLoading; else noPlatform">Loading…</ng-container>
+                <ng-template #noPlatform>
+                  No connected system has read MELIAF with its key in this period — platforms send <code>X-API-Key</code> to be
+                  counted.
+                </ng-template>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+
+        <p class="gc-platforms__anon" *ngIf="platforms">
+          <span class="gc-platforms__anon-label"><i class="pi pi-eye-slash" aria-hidden="true"></i>Anonymous (no key)</span>
+          <strong>{{ platforms.counted_reads.anonymous | number }}</strong>
+          <span class="gc-meta">
+            counted reads (searches, listings, concept views, exports, text checks, MCP tools) —
+            {{ platforms.counted_reads.keyed | number }} of {{ platforms.counted_reads.total | number }} came with a key.
+          </span>
+        </p>
+      </ng-container>
+    </section>
+
     <!-- Tables -->
     <div class="gc-usage-grid">
       <section class="gc-card gc-usage-table">

@@ -11,6 +11,8 @@ import { McpService } from './services/mcp.service';
 import { ConceptsSuggestService } from './services/concepts-suggest.service';
 import { ConceptsReadService } from './services/concepts-read.service';
 import { UsageService } from './services/usage.service';
+import { ApiKeyService } from '../api-key/api-key.service';
+import { ApiKeyUsageLogService } from '../api-key/api-key-usage-log.service';
 import { RenameGlobalConceptsRoutesToMeliafTaxonomy1790500300000 } from '../../../migrations/1790500300000-RenameGlobalConceptsRoutesToMeliafTaxonomy';
 
 /**
@@ -56,6 +58,11 @@ describe('MELIAF Taxonomy public prefix', () => {
           {
             provide: UsageService,
             useValue: { record: jest.fn(), recordList: jest.fn() },
+          },
+          { provide: ApiKeyService, useValue: { validate: jest.fn() } },
+          {
+            provide: ApiKeyUsageLogService,
+            useValue: { recordUsageAsync: jest.fn() },
           },
         ],
       })
