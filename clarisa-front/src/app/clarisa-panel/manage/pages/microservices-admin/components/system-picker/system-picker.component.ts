@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, HostListener, Input, Output } from '@angular/core';
 
 export interface PickerSystem {
-  /** MIS id; `0` = keys with no system */
-  id: number;
+  /** `system_key`: `mis:<id>` or `key:<id>` (an API key with no MIS) */
+  id: string;
+  /** `key` shows a small badge: the entry is one API key, not a MIS */
+  kind?: 'mis' | 'key';
   label: string;
   sub: string;
   color: string;
@@ -50,7 +52,7 @@ export interface PickerSystem {
               <input type="checkbox" [checked]="isOn(s.id)" (change)="flip(s.id)" />
               <i class="sp-dot" [style.background]="s.color"></i>
               <span class="sp-name"
-                ><b>{{ s.label }}</b
+                ><b>{{ s.label }}<em class="sp-badge" *ngIf="s.kind === 'key'">key</em></b
                 ><small>{{ s.sub }}</small></span
               >
               <span class="sp-calls">{{ s.calls ? fmt(s.calls) : 'no calls' }}</span>
@@ -200,6 +202,20 @@ export interface PickerSystem {
         overflow: hidden;
         text-overflow: ellipsis;
       }
+      .sp-badge {
+        margin-left: 6px;
+        padding: 0 5px;
+        border-radius: 4px;
+        background: #f4f4f5;
+        color: #52525b;
+        font-size: 10px;
+        font-weight: 600;
+        line-height: 16px;
+        font-style: normal;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        vertical-align: 1px;
+      }
       .sp-calls {
         font-size: 12px;
         color: #71717a;
@@ -216,8 +232,8 @@ export interface PickerSystem {
 })
 export class SystemPickerComponent {
   @Input() systems: PickerSystem[] = [];
-  @Input() selected: number[] = [];
-  @Output() selectedChange = new EventEmitter<number[]>();
+  @Input() selected: string[] = [];
+  @Output() selectedChange = new EventEmitter<string[]>();
 
   open = false;
   query = '';
@@ -246,35 +262,35 @@ export class SystemPickerComponent {
     this.query = '';
   }
 
-  isOn(id: number): boolean {
+  isOn(id: string): boolean {
     return this.selected.includes(id);
   }
 
   /** Nunca deja la selección vacía: un tablero sin sistemas no dice nada. */
-  flip(id: number): void {
+  flip(id: string): void {
     const next = this.isOn(id) ? this.selected.filter(x => x !== id) : [...this.selected, id];
     if (next.length) {
       this.emit(next);
     }
   }
 
-  top(n: number): number[] {
+  top(n: number): string[] {
     return [...this.systems]
       .sort((a, b) => b.calls - a.calls)
       .slice(0, n)
       .map(s => s.id);
   }
 
-  all(): number[] {
+  all(): string[] {
     return this.systems.map(s => s.id);
   }
 
-  onlyWithCalls(): number[] {
+  onlyWithCalls(): string[] {
     const ids = this.systems.filter(s => s.calls > 0).map(s => s.id);
     return ids.length ? ids : this.top(5);
   }
 
-  emit(ids: number[]): void {
+  emit(ids: string[]): void {
     if (ids.length) {
       this.selected = ids;
       this.selectedChange.emit(ids);

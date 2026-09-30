@@ -5,7 +5,7 @@ import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { ManageApiService, UsageOverview } from '../../../../services/manage-api.service';
-import { NO_SYSTEM_COLOR, SYSTEM_PALETTE } from '../../utils/chart-geometry';
+import { SYSTEM_PALETTE } from '../../utils/chart-geometry';
 import { ApiKeyUsageDashboardComponent } from './api-key-usage-dashboard.component';
 
 const today = () => {
@@ -40,10 +40,15 @@ const overview = (over: Partial<UsageOverview> = {}): UsageOverview => ({
       last_used_at: null
     },
     {
+      // A key with no MIS is its own system since 2026-09-30.
       mis_id: null,
-      acronym: 'No MIS',
-      name: 'Keys not linked to any system',
-      environment: null,
+      kind: 'key',
+      api_key_id: 12,
+      api_key_name: 'MELIAF Hub — production',
+      system_key: 'key:12',
+      acronym: 'MELIAF Hub — production',
+      name: 'MELIAF Hub — production',
+      environment: 'PROD',
       calls: 10,
       errors: 0,
       avg_response_time_ms: 100,
@@ -53,7 +58,8 @@ const overview = (over: Partial<UsageOverview> = {}): UsageOverview => ({
   ],
   series: [
     { bucket: today(), mis_id: 3, calls: 300, errors: 3, avg_response_time_ms: 200 },
-    { bucket: today(), mis_id: 5, calls: 100, errors: 5, avg_response_time_ms: 450 }
+    { bucket: today(), mis_id: 5, calls: 100, errors: 5, avg_response_time_ms: 450 },
+    { bucket: today(), mis_id: null, system_key: 'key:12', api_key_id: 12, kind: 'key', calls: 10, errors: 0, avg_response_time_ms: 100 }
   ],
   heatmap: [
     { day_of_week: 2, hour: 10, mis_id: 3, calls: 200 },
@@ -139,20 +145,41 @@ describe('ApiKeyUsageDashboardComponent', () => {
           last_used_at: null,
           expires_at: new Date(Date.now() + 5 * 86_400_000).toISOString()
         },
-        { id: 3, name: 'Old', key_prefix: 'cl_test_c', mis_id: 3, environment: 'TEST', is_active: false }
+        { id: 3, name: 'Old', key_prefix: 'cl_test_c', mis_id: 3, environment: 'TEST', is_active: false },
+        {
+          id: 12,
+          name: 'MELIAF Hub — production',
+          key_prefix: 'cl_prod_m',
+          mis_id: null,
+          environment: 'PROD',
+          description: 'MELIAF Hub',
+          is_active: true,
+          last_used_at: new Date().toISOString()
+        },
+        {
+          id: 13,
+          name: 'Sandbox script',
+          key_prefix: 'cl_test_s',
+          mis_id: null,
+          environment: 'TEST',
+          description: 'Local tests',
+          is_active: true,
+          last_used_at: new Date().toISOString()
+        },
+        { id: 14, name: 'Revoked script', key_prefix: 'cl_test_r', mis_id: null, environment: 'TEST', is_active: false }
       ])
     );
     api.getApiKeyUsageOverview.mockReturnValue(of(overview()));
     api.getApiKeyUsageByEndpoint.mockReturnValue(
       of({
         period: { from: '', to: '' },
-        total_requests: 400,
+        total_requests: 410,
         items: [
           {
             microservice_name: 'clarisa-api',
             endpoint: '/api/institutions/get/221',
             http_method: 'GET',
-            total_requests: 400,
+            total_requests: 410,
             error_count: 4,
             avg_response_time_ms: 200,
             unique_api_keys: 2,
@@ -174,6 +201,17 @@ describe('ApiKeyUsageDashboardComponent', () => {
                 mis_id: 5,
                 mis_acronym: 'AICCRA',
                 total_requests: 100,
+                last_used_at: null
+              },
+              {
+                api_key_id: 12,
+                api_key_name: 'MELIAF Hub — production',
+                key_prefix: 'cl_prod_m',
+                mis_id: null,
+                mis_acronym: null,
+                kind: 'key',
+                system_key: 'key:12',
+                total_requests: 10,
                 last_used_at: null
               }
             ]
@@ -200,57 +238,142 @@ describe('ApiKeyUsageDashboardComponent', () => {
     expect(api.getApiKeyUsageLogs).toHaveBeenCalledWith(expect.objectContaining({ limit: 8 }));
   });
 
-  it('colors systems by volume, grays the no-MIS bucket and lists silent registered systems too', async () => {
+  it('colors every system by volume — a key without MIS by its own name — and lists silent MIS and keys too', async () => {
     await build();
-    expect(component.systems.map(s => [s.label, s.color])).toEqual([
-      ['PRMS', SYSTEM_PALETTE[0]],
-      ['AICCRA', SYSTEM_PALETTE[1]],
-      ['No MIS', NO_SYSTEM_COLOR],
-      ['MEL', SYSTEM_PALETTE[2]]
+    expect(component.systems.map(s => [s.id, s.kind, s.label, s.color])).toEqual([
+      ['mis:3', 'mis', 'PRMS', SYSTEM_PALETTE[0]],
+      ['mis:5', 'mis', 'AICCRA', SYSTEM_PALETTE[1]],
+      ['key:12', 'key', 'MELIAF Hub — production', SYSTEM_PALETTE[2]],
+      ['mis:9', 'mis', 'MEL', SYSTEM_PALETTE[3]],
+      // active, no MIS, no calls; the revoked one (14) is not offered
+      ['key:13', 'key', 'Sandbox script', SYSTEM_PALETTE[4]]
     ]);
-    expect(component.selected).toEqual([3, 5, 0]);
+    expect(component.systems.some(s => /No MIS/.test(s.label))).toBe(false);
+    expect(component.selected).toEqual(['mis:3', 'mis:5', 'key:12']);
+  });
+
+  it('offers MIS and standalone keys in the Systems picker, the keys with a badge', async () => {
+    await build();
+    const picker = component.pickerSystems;
+    expect(picker.map(p => p.id)).toEqual(['mis:3', 'mis:5', 'key:12', 'mis:9', 'key:13']);
+    expect(picker.find(p => p.id === 'key:12')).toEqual({
+      id: 'key:12',
+      kind: 'key',
+      label: 'MELIAF Hub — production',
+      sub: 'API key without MIS · PROD',
+      color: SYSTEM_PALETTE[2],
+      calls: 10
+    });
+    expect(picker.find(p => p.id === 'mis:3')?.kind).toBe('mis');
+  });
+
+  it('keeps each system color across charts, flow, endpoint bars and logs by system_key', async () => {
+    await build();
+    const color = SYSTEM_PALETTE[2];
+    expect(component.chartSeries.find(s => s.key === 'key:12')?.color).toBe(color);
+    expect(component.flowLeft.find(n => n.key === 'key:12')?.color).toBe(color);
+    expect(component.topEndpoints[0].parts.find(p => p.label === 'MELIAF Hub — production')?.color).toBe(color);
+    expect(component.logColor({ system_key: 'key:12', mis_id: null, api_key_id: 12, mis_acronym: null })).toBe(color);
+    expect(component.logColor({ mis_id: 3, api_key_id: 1, mis_acronym: 'PRMS' })).toBe(SYSTEM_PALETTE[0]);
+    // an older back: no system_key nor mis_id on the log row
+    expect(component.logColor({ api_key_id: 1, mis_acronym: 'AICCRA' })).toBe(SYSTEM_PALETTE[1]);
+  });
+
+  it('sends MIS in mis_ids and standalone keys in key_ids', async () => {
+    await build();
+    component.onSelectionChange(['mis:3', 'key:12']);
+    const last = api.getApiKeyUsageLogs.mock.calls[api.getApiKeyUsageLogs.mock.calls.length - 1][0];
+    expect(last).toEqual(expect.objectContaining({ mis_ids: '3', key_ids: '12' }));
+
+    component.onSelectionChange(['key:12']);
+    const onlyKey = api.getApiKeyUsageLogs.mock.calls[api.getApiKeyUsageLogs.mock.calls.length - 1][0];
+    expect(onlyKey.key_ids).toBe('12');
+    expect(onlyKey).not.toHaveProperty('mis_ids');
+
+    // everything picked → no filter at all
+    component.onSelectionChange(component.systems.map(s => s.id));
+    const all = api.getApiKeyUsageLogs.mock.calls[api.getApiKeyUsageLogs.mock.calls.length - 1][0];
+    expect(all).not.toHaveProperty('mis_ids');
+    expect(all).not.toHaveProperty('key_ids');
+  });
+
+  it('still draws an older back that sends a single «No MIS» row without system_key', async () => {
+    api.getApiKeyUsageOverview.mockReturnValue(
+      of(
+        overview({
+          systems: [
+            {
+              mis_id: 3,
+              acronym: 'PRMS',
+              name: 'PRMS',
+              environment: 'PROD',
+              calls: 5,
+              errors: 0,
+              avg_response_time_ms: 1,
+              api_keys: 1,
+              last_used_at: null
+            },
+            {
+              mis_id: null,
+              acronym: 'No MIS',
+              name: 'x',
+              environment: null,
+              calls: 2,
+              errors: 0,
+              avg_response_time_ms: 1,
+              api_keys: 2,
+              last_used_at: null
+            }
+          ],
+          series: [{ bucket: today(), mis_id: null, calls: 2, errors: 0, avg_response_time_ms: 1 }]
+        })
+      )
+    );
+    await build();
+    expect(component.systems[1]).toEqual(expect.objectContaining({ id: 'key:none', kind: 'key', calls: 2 }));
+    expect(component.chartSeries.find(s => s.key === 'key:none')?.values[component.chartLabels.indexOf(today())]).toBe(2);
   });
 
   it('figures follow the selection, with deltas against the previous period', async () => {
-    api.getApiKeyUsageOverview
-      .mockReturnValueOnce(of(overview()))
-      .mockReturnValueOnce(
-        of(
-          overview({
-            systems: [
-              {
-                mis_id: 3,
-                acronym: 'PRMS',
-                name: 'PRMS',
-                environment: 'PROD',
-                calls: 200,
-                errors: 4,
-                avg_response_time_ms: 250,
-                api_keys: 2,
-                last_used_at: null
-              }
-            ]
-          })
-        )
-      );
+    api.getApiKeyUsageOverview.mockReturnValueOnce(of(overview())).mockReturnValueOnce(
+      of(
+        overview({
+          systems: [
+            {
+              mis_id: 3,
+              acronym: 'PRMS',
+              name: 'PRMS',
+              environment: 'PROD',
+              calls: 200,
+              errors: 4,
+              avg_response_time_ms: 250,
+              api_keys: 2,
+              last_used_at: null
+            }
+          ]
+        })
+      )
+    );
     await build();
 
     const kpi = (label: string) => component.kpis.find(k => k.label === label)!;
     expect(kpi('Calls').value).toBe('410');
     expect(kpi('Calls').delta).toEqual({ text: '▲ 105.0%', tone: 'good' });
-    expect(kpi('Systems consuming').value).toBe('2');
-    expect(kpi('Systems consuming').caption).toContain('of 3 registered MIS');
-    expect(kpi('Active keys').value).toBe('2');
+    // PRMS, AICCRA and the MELIAF Hub key, which has no MIS
+    expect(kpi('Systems consuming').value).toBe('3');
+    expect(kpi('Systems consuming').caption).toContain('of 5 systems');
+    expect(kpi('Active keys').value).toBe('3');
     expect(kpi('Active keys').caption).toBe('1 expire in the next 30 days');
     expect(kpi('Idle keys').value).toBe('1');
 
-    component.onSelectionChange([3]);
+    component.onSelectionChange(['mis:3']);
     expect(kpi('Calls').value).toBe('300');
     expect(kpi('Calls').delta).toEqual({ text: '▲ 50.0%', tone: 'good' });
     expect(kpi('Error rate').value).toBe('1.00%');
     expect(kpi('Error rate').delta).toEqual({ text: '▼ 1.00 pts', tone: 'good' });
     expect(kpi('Avg response time').delta?.tone).toBe('good');
     expect(api.getApiKeyUsageLogs).toHaveBeenLastCalledWith(expect.objectContaining({ mis_ids: '3' }));
+    expect(api.getApiKeyUsageLogs.mock.calls[api.getApiKeyUsageLogs.mock.calls.length - 1][0]).not.toHaveProperty('key_ids');
   });
 
   it('turning comparison off drops every delta', async () => {
@@ -261,7 +384,7 @@ describe('ApiKeyUsageDashboardComponent', () => {
 
   it('draws one stacked series per selected system with calls, and switches metric', async () => {
     await build();
-    expect(component.chartSeries.map(s => s.label)).toEqual(['PRMS', 'AICCRA']);
+    expect(component.chartSeries.map(s => s.label)).toEqual(['PRMS', 'AICCRA', 'MELIAF Hub — production']);
     expect(component.chartLabels.length).toBeGreaterThanOrEqual(29);
     expect(component.chartSeries[0].values[component.chartLabels.indexOf(today())]).toBe(300);
 
@@ -271,14 +394,15 @@ describe('ApiKeyUsageDashboardComponent', () => {
 
   it('builds the flow from systems to catalogue endpoints, folding path params', async () => {
     await build();
-    expect(component.flowLeft.map(n => [n.label, n.value])).toEqual([
-      ['PRMS', 300],
-      ['AICCRA', 100]
+    expect(component.flowLeft.map(n => [n.key, n.label, n.value])).toEqual([
+      ['mis:3', 'PRMS', 300],
+      ['mis:5', 'AICCRA', 100],
+      ['key:12', 'MELIAF Hub — production', 10]
     ]);
     expect(component.flowRight.map(n => n.label)).toEqual(['/api/institutions']);
-    expect(component.topEndpoints[0].parts.map(p => p.label)).toEqual(['PRMS', 'AICCRA']);
+    expect(component.topEndpoints[0].parts.map(p => p.label)).toEqual(['PRMS', 'AICCRA', 'MELIAF Hub — production']);
 
-    component.flowFocus = '5';
+    component.flowFocus = 'mis:5';
     expect(component.flowFoot).toBe('AICCRA sends 100% of its calls to /api/institutions');
   });
 
@@ -307,20 +431,20 @@ describe('ApiKeyUsageDashboardComponent', () => {
       // the silent systems look at the whole registry, selected or not
       '1 registered system made no calls in the period'
     ]);
-    component.onSelectionChange([3]);
+    component.onSelectionChange(['mis:3']);
     expect(component.attention.map(a => a.title)).toEqual(['1 registered system made no calls in the period']);
   });
 
   it('never selects nothing and keeps the choice when the period changes', async () => {
     await build();
-    component.removeSystem(3);
-    component.removeSystem(5);
-    component.removeSystem(0);
-    expect(component.selected).toEqual([0]);
+    component.removeSystem('mis:3');
+    component.removeSystem('mis:5');
+    component.removeSystem('key:12');
+    expect(component.selected).toEqual(['key:12']);
 
-    component.onSelectionChange([5]);
+    component.onSelectionChange(['mis:5']);
     component.setRange('90d');
-    expect(component.selected).toEqual([5]);
+    expect(component.selected).toEqual(['mis:5']);
     const calls = api.getApiKeyUsageOverview.mock.calls;
     expect(calls[calls.length - 2][0].granularity).toBe('week');
   });

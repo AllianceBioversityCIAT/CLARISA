@@ -17,6 +17,7 @@ import { absoluteTime, relativeTime } from '../../utils/relative-time';
 import { ChartSeries } from '../charts/usage-chart.component';
 import { FlowLink, FlowNode } from '../charts/flow-chart.component';
 import { PickerSystem } from '../system-picker/system-picker.component';
+import { keyRecordSystemKey, SystemKey, systemFilterParams, systemKeyOf } from '../../utils/system-key';
 
 export type RangePreset = '7d' | '30d' | '90d' | '12m' | 'custom';
 export type ChartMetric = 'calls' | 'errors' | 'latency';
@@ -32,8 +33,10 @@ const SLOW_MS = 400;
 const IDLE_DAYS = 60;
 
 export interface SystemRow {
-  /** MIS id, `0` for keys with no MIS */
-  id: number;
+  /** `system_key`: `mis:<id>`, or `key:<id>` for an API key with no MIS */
+  id: SystemKey;
+  kind: 'mis' | 'key';
+  /** MIS acronym, or the key's name for a standalone key */
   acronym: string;
   label: string;
   name: string;
@@ -128,7 +131,7 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
 
   /** Every system the picker offers: the ones with calls first, then the rest of the registry. */
   systems: SystemRow[] = [];
-  selected: number[] = [];
+  selected: SystemKey[] = [];
   private selectionTouched = false;
 
   // derived, rebuilt on every change of data, period or selection
@@ -290,8 +293,9 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
   get pickerSystems(): PickerSystem[] {
     return this.systems.map(s => ({
       id: s.id,
+      kind: s.kind,
       label: s.label,
-      sub: s.name + (s.environment ? ` · ${s.environment}` : ''),
+      sub: (s.kind === 'key' ? 'API key without MIS' : s.name) + (s.environment ? ` · ${s.environment}` : ''),
       color: s.color,
       calls: s.calls
     }));
@@ -301,7 +305,7 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
     return this.systems.filter(s => this.selected.includes(s.id));
   }
 
-  onSelectionChange(ids: number[]): void {
+  onSelectionChange(ids: SystemKey[]): void {
     this.selectionTouched = true;
     this.selected = ids;
     this.rebuild();
@@ -310,7 +314,7 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
     this.loadLatest();
   }
 
-  removeSystem(id: number): void {
+  removeSystem(id: SystemKey): void {
     if (this.selected.length > 1) {
       this.onSelectionChange(this.selected.filter(x => x !== id));
     }
@@ -427,8 +431,12 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
     return new Date(value).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   }
 
-  systemColor(misAcronym: string | null | undefined): string {
-    return this.systems.find(s => s.acronym === misAcronym)?.color ?? NO_SYSTEM_COLOR;
+  /** Color of the system a log row belongs to (its MIS, or its key without one). */
+  logColor(row: { system_key?: string; mis_id?: number | null; api_key_id: number; mis_acronym: string | null }): string {
+    // An older back sends neither `system_key` nor `mis_id`: fall back to the acronym.
+    const key = row.system_key ?? (row.mis_id !== undefined ? systemKeyOf(row) : null);
+    const hit = key ? this.systems.find(s => s.id === key) : this.systems.find(s => s.kind === 'mis' && s.acronym === row.mis_acronym);
+    return hit?.color ?? NO_SYSTEM_COLOR;
   }
 
   statusLabel(status: string): string {
@@ -555,21 +563,30 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
     const acronymCount = new Map<string, number>();
     const add = (a: string) => acronymCount.set(a, (acronymCount.get(a) ?? 0) + 1);
     ov.systems.forEach(s => add(s.acronym));
-    const withCalls = new Set(ov.systems.map(s => s.mis_id ?? 0));
-    const silent = this.registered.filter(m => !withCalls.has(m.id));
+    const withCalls = new Set(ov.systems.map(s => systemKeyOf(s)));
+    const silent = this.registered.filter(m => !withCalls.has(`mis:${m.id}`));
     silent.forEach(m => add(m.acronym));
+    // Active keys with no MIS and no calls in the period are systems too.
+    const now = Date.now();
+    const silentKeys = this.keys.filter(
+      k => k.mis_id == null && k.is_active && !(k.expires_at && new Date(k.expires_at).getTime() < now) && !withCalls.has(keyRecordSystemKey(k))
+    );
+    silentKeys.forEach(k => add(k.name));
     const label = (acronym: string, env: string | null) => ((acronymCount.get(acronym) ?? 0) > 1 && env ? `${acronym} · ${env}` : acronym);
 
     let colorIndex = 0;
     const rows: SystemRow[] = ov.systems.map(s => {
-      const id = s.mis_id ?? 0;
+      const id = systemKeyOf(s);
+      const kind = s.kind ?? (s.mis_id != null ? 'mis' : 'key');
+      const acronym = kind === 'key' ? s.api_key_name || s.acronym : s.acronym;
       return {
         id,
-        acronym: s.acronym,
-        label: label(s.acronym, s.environment),
+        kind,
+        acronym,
+        label: label(acronym, s.environment),
         name: s.name,
         environment: s.environment,
-        color: id === 0 ? NO_SYSTEM_COLOR : paletteColor(colorIndex++),
+        color: paletteColor(colorIndex++),
         calls: s.calls,
         errors: s.errors,
         avgMs: s.avg_response_time_ms,
@@ -581,7 +598,8 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
       .sort((a, b) => a.acronym.localeCompare(b.acronym))
       .forEach(m =>
         rows.push({
-          id: m.id,
+          id: `mis:${m.id}`,
+          kind: 'mis',
           acronym: m.acronym,
           label: label(m.acronym, m.environment),
           name: m.name,
@@ -592,6 +610,24 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
           avgMs: null,
           keys: 0,
           lastUsedAt: null
+        })
+      );
+    [...silentKeys]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach(k =>
+        rows.push({
+          id: keyRecordSystemKey(k),
+          kind: 'key',
+          acronym: k.name,
+          label: label(k.name, k.environment ?? null),
+          name: k.name,
+          environment: k.environment ?? null,
+          color: paletteColor(colorIndex++),
+          calls: 0,
+          errors: 0,
+          avgMs: null,
+          keys: 1,
+          lastUsedAt: k.last_used_at ?? null
         })
       );
     this.systems = rows;
@@ -607,11 +643,11 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
   private buildKpis(): void {
     const ov = this.overview!;
     const sel = new Set(this.selected);
-    const inSel = (id: number | null) => sel.has(id ?? 0);
+    const inSel = (row: Parameters<typeof systemKeyOf>[0]) => sel.has(systemKeyOf(row));
     const sumSys = (rows: UsageOverview['systems'] | undefined, key: 'calls' | 'errors') =>
-      (rows ?? []).filter(s => inSel(s.mis_id)).reduce((a, s) => a + s[key], 0);
+      (rows ?? []).filter(s => inSel(s)).reduce((a, s) => a + s[key], 0);
     const weighted = (rows: UsageOverview['systems'] | undefined) => {
-      const list = (rows ?? []).filter(s => inSel(s.mis_id) && s.avg_response_time_ms != null);
+      const list = (rows ?? []).filter(s => inSel(s) && s.avg_response_time_ms != null);
       const n = list.reduce((a, s) => a + s.calls, 0);
       return n ? list.reduce((a, s) => a + (s.avg_response_time_ms ?? 0) * s.calls, 0) / n : null;
     };
@@ -623,13 +659,14 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
     const prevErrRate = prevCalls ? (prevErrors / prevCalls) * 100 : 0;
     const avg = weighted(ov.systems);
     const prevAvg = weighted(this.previous?.systems);
-    const consuming = ov.systems.filter(s => inSel(s.mis_id) && s.mis_id != null && s.calls > 0).length;
-    const prevConsuming = (this.previous?.systems ?? []).filter(s => inSel(s.mis_id) && s.mis_id != null && s.calls > 0).length;
+    // A MIS and a standalone key (no MIS) both count as a system consuming.
+    const consuming = ov.systems.filter(s => inSel(s) && s.calls > 0).length;
+    const prevConsuming = (this.previous?.systems ?? []).filter(s => inSel(s) && s.calls > 0).length;
     this.totals = { calls, prevCalls, errors };
 
     const buckets = this.bucketList();
     this.sparkLabels = buckets;
-    const series = ov.series.filter(p => inSel(p.mis_id));
+    const series = ov.series.filter(p => inSel(p));
     const sumBy = (field: 'calls' | 'errors') => {
       const map = new Map<string, number>();
       series.forEach(p => map.set(p.bucket, (map.get(p.bucket) ?? 0) + p[field]));
@@ -640,10 +677,10 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
       const n = pts.reduce((a, p) => a + p.calls, 0);
       return n ? Math.round(pts.reduce((a, p) => a + (p.avg_response_time_ms ?? 0) * p.calls, 0) / n) : 0;
     });
-    const systemsPerBucket = buckets.map(b => new Set(series.filter(p => p.bucket === b && p.mis_id != null && p.calls > 0).map(p => p.mis_id)).size);
+    const systemsPerBucket = buckets.map(b => new Set(series.filter(p => p.bucket === b && p.calls > 0).map(p => systemKeyOf(p))).size);
 
     const now = Date.now();
-    const keys = this.keys.filter(k => sel.has(k.mis_id ?? 0));
+    const keys = this.keys.filter(k => sel.has(keyRecordSystemKey(k)));
     const live = keys.filter(k => k.is_active && !(k.expires_at && new Date(k.expires_at).getTime() < now));
     const expiring = live.filter(k => k.expires_at && new Date(k.expires_at).getTime() - now < 30 * 86_400_000).length;
     const idle = live.filter(k => !k.last_used_at || now - new Date(k.last_used_at).getTime() > IDLE_DAYS * 86_400_000);
@@ -652,7 +689,7 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
       list.forEach(k => m.set(k.environment || '—', (m.get(k.environment || '—') ?? 0) + 1));
       return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([chip, value]) => ({ label: chip, value }));
     };
-    const registeredCount = this.registered.length;
+    const knownSystems = this.systems.length;
     const cmp = this.compare && !!this.previous;
 
     this.kpis = [
@@ -668,7 +705,9 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
         label: 'Systems consuming',
         value: this.fmt(consuming),
         delta: cmp ? this.deltaAbs(consuming, prevConsuming) : null,
-        caption: registeredCount ? `of ${registeredCount} registered MIS called at least once` : 'Systems that called at least once',
+        caption: knownSystems
+          ? `of ${knownSystems} ${knownSystems === 1 ? 'system' : 'systems'} (MIS or keys without one) called at least once`
+          : 'Systems that called at least once',
         spark: systemsPerBucket,
         color: '#2563eb'
       },
@@ -720,7 +759,7 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
     this.chartLabels = buckets;
     this.chartSeries = this.selectedSystems
       .map(s => {
-        const pts = new Map(ov.series.filter(p => (p.mis_id ?? 0) === s.id).map(p => [p.bucket, p]));
+        const pts = new Map(ov.series.filter(p => systemKeyOf(p) === s.id).map(p => [p.bucket, p]));
         const values = buckets.map(b => {
           const p = pts.get(b);
           if (!p) {
@@ -728,7 +767,7 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
           }
           return this.metric === 'calls' ? p.calls : this.metric === 'errors' ? p.errors : (p.avg_response_time_ms ?? 0);
         });
-        return { key: String(s.id), label: s.label, color: s.color, values };
+        return { key: s.id, label: s.label, color: s.color, values };
       })
       .filter(s => s.values.some(v => v > 0));
   }
@@ -743,15 +782,15 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
   private buildFlows(): void {
     const sel = new Set(this.selected);
     const routes = this.catalogRoutes();
-    const perEndpoint = new Map<string, { route: string; method: string; bySystem: Map<number, number> }>();
+    const perEndpoint = new Map<string, { route: string; method: string; bySystem: Map<SystemKey, number> }>();
     for (const item of this.endpointUsage?.items ?? []) {
       const match = item.microservice_name === 'clarisa-api' ? matchCatalogRoute(item.endpoint, item.http_method, routes) : null;
       const route = match ? `/${match.route.replace(/^\/+/, '')}` : item.endpoint;
       const method = (item.http_method ?? '—').toUpperCase();
       const key = `${method} ${route}`;
-      const entry = perEndpoint.get(key) ?? { route, method, bySystem: new Map<number, number>() };
+      const entry = perEndpoint.get(key) ?? { route, method, bySystem: new Map<SystemKey, number>() };
       for (const c of item.consumers) {
-        const id = c.mis_id ?? 0;
+        const id = systemKeyOf(c);
         if (sel.has(id)) {
           entry.bySystem.set(id, (entry.bySystem.get(id) ?? 0) + c.total_requests);
         }
@@ -782,25 +821,25 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
 
     const shown = ranked.slice(0, TOP_ENDPOINTS);
     const rest = ranked.slice(TOP_ENDPOINTS);
-    const left = new Map<number, number>();
+    const left = new Map<SystemKey, number>();
     const links: FlowLink[] = [];
     for (const e of shown) {
       e.bySystem.forEach((v, id) => {
-        links.push({ from: String(id), to: e.key, value: v });
+        links.push({ from: id, to: e.key, value: v });
         left.set(id, (left.get(id) ?? 0) + v);
       });
     }
     if (rest.length) {
-      const other = new Map<number, number>();
+      const other = new Map<SystemKey, number>();
       rest.forEach(e => e.bySystem.forEach((v, id) => other.set(id, (other.get(id) ?? 0) + v)));
       other.forEach((v, id) => {
-        links.push({ from: String(id), to: 'other', value: v });
+        links.push({ from: id, to: 'other', value: v });
         left.set(id, (left.get(id) ?? 0) + v);
       });
     }
     this.flowLeft = [...left.entries()]
       .sort((a, b) => b[1] - a[1])
-      .map(([id, v]) => ({ key: String(id), label: byId.get(id)?.label ?? '—', color: byId.get(id)?.color ?? NO_SYSTEM_COLOR, value: v }));
+      .map(([id, v]) => ({ key: id, label: byId.get(id)?.label ?? '—', color: byId.get(id)?.color ?? NO_SYSTEM_COLOR, value: v }));
     this.flowRight = [
       ...shown.map(e => ({ key: e.key, label: e.route, sub: e.method, color: '#d4d4d8', value: e.total })),
       ...(rest.length
@@ -825,7 +864,7 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
     const sel = new Set(this.selected);
     const grid = Array.from({ length: 7 }, () => new Array(24).fill(0));
     for (const c of this.overview!.heatmap) {
-      if (sel.has(c.mis_id ?? 0)) {
+      if (sel.has(systemKeyOf(c))) {
         grid[(c.day_of_week + 5) % 7][c.hour] += c.calls; // MySQL 1 = Sunday → row 6; 2 = Monday → row 0
       }
     }
@@ -852,12 +891,12 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
     const sel = new Set(this.selected);
     const now = this.selectedSystems.filter(s => s.calls > 0).sort((a, b) => b.calls - a.calls);
     const before = (this.previous?.systems ?? [])
-      .filter(s => sel.has(s.mis_id ?? 0) && s.calls > 0)
+      .filter(s => sel.has(systemKeyOf(s)) && s.calls > 0)
       .sort((a, b) => b.calls - a.calls)
-      .map(s => s.mis_id ?? 0);
+      .map(s => systemKeyOf(s));
     const buckets = this.bucketList();
     this.ranking = now.map((s, i) => {
-      const pts = new Map(this.overview!.series.filter(p => (p.mis_id ?? 0) === s.id).map(p => [p.bucket, p.calls]));
+      const pts = new Map(this.overview!.series.filter(p => systemKeyOf(p) === s.id).map(p => [p.bucket, p.calls]));
       const was = before.indexOf(s.id);
       return { ...s, move: was < 0 ? 0 : was - i, trend: buckets.map(b => pts.get(b) ?? 0) };
     });
@@ -878,7 +917,7 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
   private buildAttention(): void {
     const now = Date.now();
     const sel = new Set(this.selected);
-    const live = this.keys.filter(k => sel.has(k.mis_id ?? 0) && k.is_active && !(k.expires_at && new Date(k.expires_at).getTime() < now));
+    const live = this.keys.filter(k => sel.has(keyRecordSystemKey(k)) && k.is_active && !(k.expires_at && new Date(k.expires_at).getTime() < now));
     const names = (list: KeyRecord[]) =>
       list
         .slice(0, 3)
@@ -923,7 +962,8 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
         section: 'api-keys'
       });
     }
-    const silent = this.systems.filter(s => s.id !== 0 && s.calls === 0);
+    // Registry MIS only: an idle standalone key is already in «no calls in 60+ days».
+    const silent = this.systems.filter(s => s.kind === 'mis' && s.calls === 0);
     if (silent.length) {
       items.push({
         tone: 'info',
@@ -944,7 +984,7 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
   private buildCalendar(): void {
     const sel = new Set(this.selected);
     const per = new Map<string, number>();
-    (this.year?.series ?? []).filter(p => sel.has(p.mis_id ?? 0)).forEach(p => per.set(p.bucket, (per.get(p.bucket) ?? 0) + p.calls));
+    (this.year?.series ?? []).filter(p => sel.has(systemKeyOf(p))).forEach(p => per.set(p.bucket, (per.get(p.bucket) ?? 0) + p.calls));
     const today = new Date();
     const days = Array.from({ length: 364 }, (_, i) => {
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (363 - i), 12);
@@ -977,7 +1017,7 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
     const sel = new Set(this.selected);
     const items = (this.endpointUsage?.items ?? [])
       .map(item => {
-        const consumers = this.systems.length ? item.consumers.filter(c => sel.has(c.mis_id ?? 0)) : item.consumers;
+        const consumers = this.systems.length ? item.consumers.filter(c => sel.has(systemKeyOf(c))) : item.consumers;
         const total = consumers.reduce((a, c) => a + c.total_requests, 0);
         return {
           ...item,
@@ -1010,7 +1050,7 @@ export class ApiKeyUsageDashboardComponent implements OnInit, OnDestroy {
 
   private systemFilter(): UsageQueryParams {
     const all = this.systems.length > 0 && this.selected.length >= this.systems.length;
-    return all || !this.selected.length ? {} : { mis_ids: this.selected.join(',') };
+    return all || !this.selected.length ? {} : systemFilterParams(this.selected);
   }
 
   private bucketList(): string[] {
