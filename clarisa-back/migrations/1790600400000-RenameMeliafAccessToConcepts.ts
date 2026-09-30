@@ -54,6 +54,12 @@ export class RenameMeliafAccessToConcepts1790600400000
     const cls = RenameMeliafAccessToConcepts1790600400000;
     await this.renameRoutes(queryRunner, 'api/meliaf-taxonomy', 'api/concepts');
     await this.renameModule(queryRunner, 'MELIAF Taxonomy', 'Concepts');
+    // On a fresh database the metadata of AddRolesUsersAdmin1790600000000
+    // looked for the old route and matched nothing: the module is still NULL.
+    await queryRunner.query(
+      `UPDATE permissions SET module = 'Concepts', updated_at = updated_at
+        WHERE name LIKE '/api/concepts/admin%' AND module IS NULL`,
+    );
     for (const [route, column, from, to] of cls.TEXTS) {
       await queryRunner.query(
         `UPDATE permissions SET \`${column}\` = ?, updated_at = updated_at
@@ -83,8 +89,10 @@ export class RenameMeliafAccessToConcepts1790600400000
       );
     }
     await this.renameModule(queryRunner, 'Concepts', 'MELIAF Taxonomy');
-    // Routes go back with `RenameMeliafTaxonomyRoutesToConcepts1790500400000`'s
-    // down(); undoing them here too would leave that one nothing to restore.
+    // The earlier migrations' down() look for the old routes, so they go back
+    // here; RenameMeliafTaxonomyRoutesToConcepts1790500400000's down() then
+    // finds nothing left to move (idempotent).
+    await this.renameRoutes(queryRunner, 'api/concepts', 'api/meliaf-taxonomy');
   }
 
   private async renameRoutes(
@@ -118,17 +126,20 @@ export class RenameMeliafAccessToConcepts1790600400000
     [fromAcronym, fromDescription]: [string, string],
     [toAcronym, toDescription]: [string, string],
   ): Promise<void> {
-    // Derived table: MySQL does not let `roles` be both target and source.
+    // Checked first, not in a subquery: MySQL refuses `roles` as both the
+    // UPDATE target and a subquery source (error 1093).
+    const taken = await queryRunner.query(
+      `SELECT 1 FROM roles WHERE acronym = ? LIMIT 1`,
+      [toAcronym],
+    );
+    if (taken?.length) return;
     await queryRunner.query(
       `UPDATE roles
           SET description = IF(description = ?, ?, description),
               acronym = ?,
               updated_at = updated_at
-        WHERE acronym = ?
-          AND NOT EXISTS (
-            SELECT 1 FROM (SELECT acronym FROM roles) t WHERE t.acronym = ?
-          )`,
-      [fromDescription, toDescription, toAcronym, fromAcronym, toAcronym],
+        WHERE acronym = ?`,
+      [fromDescription, toDescription, toAcronym, fromAcronym],
     );
   }
 }
