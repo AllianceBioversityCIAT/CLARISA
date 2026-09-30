@@ -7,11 +7,14 @@ import { CountedReads, UsageService } from './usage.service';
 
 /**
  * Every path a platform reaches Concepts through: the module itself
- * (public reads, MCP and `platform/*`) and the persistent URIs.
+ * (public reads, MCP and `platform/*`) and the persistent URIs. The two old
+ * prefixes stay so the calls logged before each rename keep counting.
  */
 export const MELIAF_TAXONOMY_ENDPOINT_PREFIXES = [
   '/api/concepts/',
   '/concepts/',
+  '/api/meliaf-taxonomy/',
+  '/api/global-concepts/',
 ];
 
 const isoDay = (ms: number) =>
