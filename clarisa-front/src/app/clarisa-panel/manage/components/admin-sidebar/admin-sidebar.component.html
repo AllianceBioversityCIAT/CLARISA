@@ -133,10 +133,10 @@
       <span class="admin-sidebar__skeleton-item" *ngFor="let _ of [1, 2, 3, 4, 5]"></span>
     </div>
     <!--
-      No error or "no roles" notice: a failed or slow me/access falls back to
-      the whole menu (as before role filtering), and the entries open to any
-      session always show.
+      No error notice: a failed or slow me/access falls back to the whole menu
+      (as before role filtering). Roles that open nothing say so.
     -->
+    <p class="admin-sidebar__notice" *ngIf="noAccess">Your roles do not open any administration section yet.</p>
   </div>
 
   <!--

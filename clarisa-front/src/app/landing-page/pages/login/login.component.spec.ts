@@ -236,9 +236,9 @@ describe('LoginComponent · la sesión que venció', () => {
 });
 
 /**
- * Where a sign-in lands. Super admins and people whose roles open Institution
- * requests keep landing there; everyone else goes straight to the panel home,
- * instead of partner-request → guard refuses → home.
+ * Where a sign-in lands. Super admins keep landing on Institution requests;
+ * one section → that section; several → Institution requests when they open
+ * it, else the panel home; none → the public home (the panel has nothing).
  */
 describe('LoginComponent · dónde aterriza al entrar', () => {
   const LOGIN_URL = `${environment.apiUrl}auth/login`;
@@ -277,8 +277,11 @@ describe('LoginComponent · dónde aterriza al entrar', () => {
     expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/partner-request');
   });
 
-  // Only permission-protected sections count (Institution requests is open to
-  // every session, so it is not what anyone's roles are for).
+  it('an institution requester (create only) lands on partner-request, the one section they open', async () => {
+    const { navigate } = await signIn(who(['/api/partner-requests/create']));
+    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/partner-request');
+  });
+
   it('a member whose roles open exactly one protected section lands in it (MELIAF-only → MELIAF Taxonomy)', async () => {
     const { navigate } = await signIn(who(['/api/meliaf-taxonomy/admin']));
     expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/global-concepts-admin');
@@ -289,14 +292,19 @@ describe('LoginComponent · dónde aterriza al entrar', () => {
     expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/microservices-admin?section=mises');
   });
 
-  it('two protected sections land on partner-request, as before', async () => {
-    const { navigate } = await signIn(who(['/api/glossary/admin', '/api/institutions/lifecycle/']));
+  it('two sections including Institution requests land on partner-request, as before', async () => {
+    const { navigate } = await signIn(who(['/api/glossary/admin', '/api/partner-requests/respond']));
     expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/partner-request');
   });
 
-  it('someone without any role lands on partner-request, as before', async () => {
+  it('two sections without Institution requests land on the panel home', async () => {
+    const { navigate } = await signIn(who(['/api/glossary/admin', '/api/institutions/lifecycle/']));
+    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage');
+  });
+
+  it('someone without any role lands on the public home: the panel has nothing for them', async () => {
     const { navigate } = await signIn(who([]));
-    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/partner-request');
+    expect(navigate).toHaveBeenCalledWith('/landing-page/home');
   });
 
   it('when the access cannot be read, nothing changes: partner-request', async () => {

@@ -142,8 +142,8 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.authService.localStorageUser = user;
         this.successLogin = true;
         // Same `me/access` the guards read (cached per token, so the guard does
-        // not fetch it again): a member whose roles open exactly one protected
-        // section lands in it; everyone else on partner-request (see
+        // not fetch it again): a member whose roles open exactly one section
+        // lands in it, one whose roles open none on the public home (see
         // `postLoginRoute`). A URL, because a tab lands with its `?section=`.
         // A `me/access` that never answers must not hold the sign-in: after the
         // cap it falls back to the landing everyone had before.

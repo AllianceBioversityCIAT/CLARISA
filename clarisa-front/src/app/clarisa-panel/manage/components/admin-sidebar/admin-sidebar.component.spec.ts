@@ -162,7 +162,7 @@ describe('AdminSidebarComponent', () => {
     expect(component.isEmpty).toBe(false);
   });
 
-  it('shows a module admin what their permissions open, plus the entries open to every session', () => {
+  it('shows a MELIAF Data Admin only the MELIAF Taxonomy', () => {
     access.state$.next({
       status: 'ready',
       access: { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/meliaf-taxonomy/admin'], isSuper: false }
@@ -170,21 +170,36 @@ describe('AdminSidebarComponent', () => {
     fixture.detectChanges();
 
     // `labels()` reads plain links; «Microservices & API keys» is a toggle with its tabs (`subLabels()`).
-    expect(labels()).toEqual(['Institution requests', 'MELIAF Taxonomy']);
-    expect(component.groups.map(group => group.title)).toEqual(['Manage', 'System']);
-    expect(subLabels()).toEqual(['Overview', 'API Keys']);
+    expect(labels()).toEqual(['MELIAF Taxonomy']);
+    expect(component.groups.map(group => group.title)).toEqual(['Manage']);
+    expect(subLabels()).toEqual([]);
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__notice')).toBeNull();
   });
 
-  it('keeps the open entries for a user without any role, instead of an empty column', () => {
+  it('shows an institution requester only Institution requests', () => {
+    access.state$.next({
+      status: 'ready',
+      access: { userId: 4, email: 'r@cgiar.org', roles: [], permissions: ['/api/partner-requests/create'], isSuper: false }
+    });
+    fixture.detectChanges();
+
+    expect(labels()).toEqual(['Institution requests']);
+    expect(subLabels()).toEqual([]);
+  });
+
+  it('says so when the roles open nothing, instead of an empty column', () => {
     access.state$.next({
       status: 'ready',
       access: { userId: 3, email: 'n@cgiar.org', roles: [], permissions: [], isSuper: false }
     });
     fixture.detectChanges();
 
-    expect(labels()).toEqual(['Institution requests']);
-    expect(subLabels()).toEqual(['Overview', 'API Keys']);
-    expect(fixture.nativeElement.querySelector('.admin-sidebar__notice')).toBeNull();
+    expect(labels()).toEqual([]);
+    expect(subLabels()).toEqual([]);
+    expect(component.noAccess).toBe(true);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.admin-sidebar__notice')?.textContent).toContain(
+      'do not open any administration section'
+    );
   });
 
   it('falls back to the whole menu when the access fails or times out, and drops the cache on logout', () => {
@@ -195,6 +210,7 @@ describe('AdminSidebarComponent', () => {
     expect(subLabels()).toEqual(['Overview', 'MIS Registry', 'API Keys']);
     expect(fixture.nativeElement.querySelector('.admin-sidebar__skeleton')).toBeNull();
     expect(fixture.nativeElement.querySelector('.admin-sidebar__notice')).toBeNull();
+    expect(component.noAccess).toBe(false);
 
     (auth as unknown as { logout: jest.Mock }).logout = jest.fn();
     component.onLogOut();

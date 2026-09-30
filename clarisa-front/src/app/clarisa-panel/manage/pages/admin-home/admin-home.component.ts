@@ -10,13 +10,13 @@ import { AdminGroup, groupsFor, onlyProtectedSection } from '../../admin-nav';
  * caller's roles open, and — when a guard sent them here — why the screen they
  * asked for did not open.
  *
- * When the roles open exactly ONE permission-protected section
- * (`onlyProtectedSection`: the entries open to any session do not count, since
- * everybody has them), the list is a detour: the home goes straight to it
+ * When the roles open exactly ONE section (`onlyProtectedSection`), the list
+ * is a detour: the home goes straight to it
  * (`replaceUrl`, so Back does not land on the list) — a MELIAF-only member
  * opens the MELIAF Taxonomy. A `?denied=` note is dropped in that case: the
  * panel has no shared toast outlet, and that section is what the roles are
- * for anyway. Zero or several protected sections, or a Super admin → the list.
+ * for anyway. Several sections, or a Super admin → the list. None → the
+ * "no administration role yet" note (`isEmpty`).
  *
  * If `me/access` fails or times out, the home lists the whole panel, as before
  * role filtering (`groupsFor(null)`), and never redirects; the back still
@@ -70,5 +70,10 @@ export class AdminHomeComponent implements OnInit, OnDestroy {
 
   get loading(): boolean {
     return this.redirecting || this.state.status === 'loading' || this.state.status === 'idle';
+  }
+
+  /** Resolved, and the caller's roles open no section of the panel. */
+  get isEmpty(): boolean {
+    return this.state.status === 'ready' && this.groups.length === 0;
   }
 }

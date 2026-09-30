@@ -78,8 +78,8 @@ export class AdminSidebarComponent implements OnDestroy {
    *
    * If it fails or times out (`error`), the column shows the whole menu, as
    * before role filtering (`groupsFor(null)`); the back still enforces each
-   * permission. Entries open to any session (`ANY_SIGNED_IN`) always show, so
-   * a signed-in user never gets an empty column.
+   * permission. A user whose roles open nothing gets a one-line note
+   * (`noAccess`) instead of an empty column.
    */
   access: PanelAccessState = { status: 'idle' };
 
@@ -164,6 +164,11 @@ export class AdminSidebarComponent implements OnDestroy {
 
   get accessLoading(): boolean {
     return this.access.status === 'loading' || this.access.status === 'idle';
+  }
+
+  /** Resolved, and the caller's roles open no section of the panel. */
+  get noAccess(): boolean {
+    return this.access.status === 'ready' && this.allowed.length === 0;
   }
 
   /** Nada coincide: se dice, en vez de dejar la columna en blanco. */

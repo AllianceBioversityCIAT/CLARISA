@@ -15,7 +15,7 @@ export const ADMIN_HOME = '/clarisa-panel/manage';
  *
  * Fails open: when the access could not be read or timed out (`resolved()`
  * gives `null`), every screen opens, as before role filtering — the back still
- * enforces each permission. Entries marked `ANY_SIGNED_IN` always open.
+ * enforces each permission.
  *
  * Runs after `LoginGuardGuard`, which handles the missing or expired session.
  */
