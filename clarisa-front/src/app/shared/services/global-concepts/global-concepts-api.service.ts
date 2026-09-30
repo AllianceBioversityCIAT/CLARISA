@@ -534,6 +534,16 @@ export class GlobalConceptsApiService {
     return this._http.post<Partial<Record<AiDraftField, string>>>(`${this.admin}/${encodeURIComponent(scheme)}/ai/draft`, body);
   }
 
+  /** Whether the concept assistant can answer for this scheme; a user without AI gets `enabled: false` (or a 403). */
+  conceptsAssistStatus(scheme: string): Observable<ConceptsAssistStatus> {
+    return this._http.get<ConceptsAssistStatus>(`${this.admin}/${encodeURIComponent(scheme)}/concepts-assist/status`);
+  }
+
+  /** One assistant turn. Advisory: it returns steps the dialog plays on the form; nothing is saved by the back. */
+  conceptsAssistChat(scheme: string, body: ConceptsAssistRequest): Observable<ConceptsAssistReply> {
+    return this._http.post<ConceptsAssistReply>(`${this.admin}/${encodeURIComponent(scheme)}/concepts-assist/chat`, body);
+  }
+
   // ------------------------------------------------- public (contract v2, developers page)
 
   /** Root of the module's routes, for documentation and live examples. */
@@ -673,6 +683,49 @@ export interface UsageSummary {
 }
 
 export type AiDraftField = 'short_definition' | 'scope_note' | 'example_of_use';
+
+// ------------------------------------------------ concept assistant (assistant-contract.md)
+
+export interface ConceptsAssistStatus {
+  enabled: boolean;
+  reason?: string;
+  remainingUsd: number;
+}
+
+export interface ConceptsAssistMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** A change the person made by hand, in order. Custom fields are `x:<code>`. */
+export interface ConceptsAssistEdit {
+  seq: number;
+  field: string;
+  tab: string;
+  before: unknown;
+  after: unknown;
+  at: string;
+}
+
+export interface ConceptsAssistRequest {
+  termId?: number;
+  draft: Record<string, unknown>;
+  messages: ConceptsAssistMessage[];
+  edits: ConceptsAssistEdit[];
+}
+
+export interface ConceptsAssistStep {
+  field: string;
+  tab: 'details' | 'fields';
+  value: unknown;
+  reason: string;
+}
+
+export interface ConceptsAssistReply {
+  reply: string;
+  steps: ConceptsAssistStep[];
+  costUsd: number;
+}
 
 // ----------------------------------------------------------- public shape v2 (contract-v2.md)
 

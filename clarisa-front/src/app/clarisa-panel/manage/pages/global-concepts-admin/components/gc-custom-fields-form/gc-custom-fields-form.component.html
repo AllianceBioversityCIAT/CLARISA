@@ -12,7 +12,8 @@
       </div>
 
       <ng-container [ngSwitch]="control(field)">
-        <textarea *ngSwitchCase="'textarea'" [id]="inputId(field)" [name]="field.code" pInputTextarea rows="3" [disabled]="disabled" [(ngModel)]="values[field.code]"></textarea>
+        <textarea *ngSwitchCase="'textarea'" [id]="inputId(field)" [name]="field.code" pInputTextarea rows="3" [disabled]="disabled" [(ngModel)]="values[field.code]"
+          (ngModelChange)="edited.emit({ code: field.code, value: $event })"></textarea>
 
         <p-chips
           *ngSwitchCase="'chips'"
@@ -23,7 +24,8 @@
           separator=","
           placeholder="Type a value and press Enter"
           [disabled]="disabled"
-          [(ngModel)]="values[field.code]"></p-chips>
+          [(ngModel)]="values[field.code]"
+          (ngModelChange)="edited.emit({ code: field.code, value: $event })"></p-chips>
 
         <p-dropdown
           *ngSwitchCase="'dropdown'"
@@ -36,7 +38,8 @@
           [filter]="optionsFor(field).length > 15"
           [options]="optionsFor(field)"
           [disabled]="disabled"
-          [(ngModel)]="values[field.code]"></p-dropdown>
+          [(ngModel)]="values[field.code]"
+          (ngModelChange)="edited.emit({ code: field.code, value: $event })"></p-dropdown>
 
         <p-multiSelect
           *ngSwitchCase="'multiselect'"
@@ -49,7 +52,8 @@
           [showHeader]="optionsFor(field).length > 15"
           [options]="optionsFor(field)"
           [disabled]="disabled"
-          [(ngModel)]="values[field.code]"></p-multiSelect>
+          [(ngModel)]="values[field.code]"
+          (ngModelChange)="edited.emit({ code: field.code, value: $event })"></p-multiSelect>
 
         <div *ngSwitchCase="'concepts'">
           <div class="gc-ed__chips" *ngIf="linked(field).length">
@@ -70,13 +74,18 @@
             (picked)="link(field, $event)"></app-gc-concept-picker>
         </div>
 
-        <input *ngSwitchCase="'url'" [id]="inputId(field)" [name]="field.code" type="url" pInputText placeholder="https://" [disabled]="disabled" [(ngModel)]="values[field.code]" />
-        <input *ngSwitchCase="'date'" [id]="inputId(field)" [name]="field.code" type="date" pInputText [disabled]="disabled" [(ngModel)]="values[field.code]" />
-        <input *ngSwitchCase="'number'" [id]="inputId(field)" [name]="field.code" type="number" pInputText [disabled]="disabled" [(ngModel)]="values[field.code]" />
-        <input *ngSwitchDefault [id]="inputId(field)" [name]="field.code" type="text" pInputText [disabled]="disabled" [(ngModel)]="values[field.code]" />
+        <input *ngSwitchCase="'url'" [id]="inputId(field)" [name]="field.code" type="url" pInputText placeholder="https://" [disabled]="disabled" [(ngModel)]="values[field.code]"
+          (ngModelChange)="edited.emit({ code: field.code, value: $event })" />
+        <input *ngSwitchCase="'date'" [id]="inputId(field)" [name]="field.code" type="date" pInputText [disabled]="disabled" [(ngModel)]="values[field.code]"
+          (ngModelChange)="edited.emit({ code: field.code, value: $event })" />
+        <input *ngSwitchCase="'number'" [id]="inputId(field)" [name]="field.code" type="number" pInputText [disabled]="disabled" [(ngModel)]="values[field.code]"
+          (ngModelChange)="edited.emit({ code: field.code, value: $event })" />
+        <input *ngSwitchDefault [id]="inputId(field)" [name]="field.code" type="text" pInputText [disabled]="disabled" [(ngModel)]="values[field.code]"
+          (ngModelChange)="edited.emit({ code: field.code, value: $event })" />
       </ng-container>
 
       <small class="field-hint" *ngIf="field.help">{{ field.help }}</small>
+      <app-gc-assist-mark [field]="'x:' + field.code"></app-gc-assist-mark>
     </div>
   </div>
 </div>

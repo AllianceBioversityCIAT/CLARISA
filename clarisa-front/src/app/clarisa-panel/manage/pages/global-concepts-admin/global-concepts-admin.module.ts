@@ -41,6 +41,9 @@ import { GcSetupListsComponent } from './components/gc-setup-lists/gc-setup-list
 import { GcSetupCollectionsComponent } from './components/gc-setup-collections/gc-setup-collections.component';
 import { GcUsagePanelComponent } from './components/gc-usage-panel/gc-usage-panel.component';
 import { GcInfoModule } from './components/gc-info/gc-info.module';
+import { GcConceptAssistantComponent } from './components/gc-concept-assistant/gc-concept-assistant.component';
+import { GcAssistMarkComponent } from './components/gc-concept-assistant/gc-assist-mark.component';
+import { GcAssistToggleComponent } from './components/gc-concept-assistant/gc-assist-toggle.component';
 import { GlossaryFileParserService } from '../glossary-admin/services/glossary-file-parser.service';
 
 @NgModule({
@@ -61,7 +64,10 @@ import { GlossaryFileParserService } from '../glossary-admin/services/glossary-f
     GcSetupFieldsComponent,
     GcSetupListsComponent,
     GcSetupCollectionsComponent,
-    GcUsagePanelComponent
+    GcUsagePanelComponent,
+    GcConceptAssistantComponent,
+    GcAssistMarkComponent,
+    GcAssistToggleComponent
   ],
   imports: [
     CommonModule,

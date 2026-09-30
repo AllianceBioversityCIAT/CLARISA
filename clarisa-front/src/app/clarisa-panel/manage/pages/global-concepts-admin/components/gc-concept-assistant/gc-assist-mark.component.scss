@@ -1,0 +1,151 @@
+/* Marks of the assistant under a field: brand tint, never the error or warn palette. */
+:host {
+  display: block;
+}
+
+.gc-am {
+  margin-top: 8px;
+}
+
+.gc-am--suggested {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gc-am__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: help;
+  outline: none;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--cl-brand-ring);
+  }
+}
+
+.gc-am__pill--quiet {
+  cursor: default;
+}
+
+.gc-am__spark {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+}
+
+.gc-am__actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.gc-am__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--cl-line);
+  border-radius: 999px;
+  background: var(--cl-surface);
+  color: var(--cl-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  .pi {
+    font-size: 11px;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--cl-brand-ring);
+    color: var(--cl-brand-deeper);
+    outline: none;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--cl-brand-ring);
+  }
+}
+
+.gc-am__btn--ok {
+  border-color: var(--cl-brand-ring);
+  color: var(--cl-brand-deeper);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--cl-brand-soft);
+  }
+}
+
+/* Proposal: the dashed "not yours yet" card the Draft-with-AI suggestion already uses. */
+.gc-am--proposal {
+  padding: 10px 12px;
+  border: 1px dashed var(--cl-brand);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-brand-soft);
+}
+
+.gc-am__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  .gc-am__pill {
+    background: var(--cl-surface);
+  }
+}
+
+.gc-am__x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cl-ink-3);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--cl-surface);
+    color: var(--cl-ink);
+    outline: none;
+  }
+}
+
+.gc-am__value {
+  margin: 8px 0 4px;
+  color: var(--cl-ink);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.gc-am__why {
+  margin: 0;
+  color: var(--cl-ink-2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.gc-am__foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}

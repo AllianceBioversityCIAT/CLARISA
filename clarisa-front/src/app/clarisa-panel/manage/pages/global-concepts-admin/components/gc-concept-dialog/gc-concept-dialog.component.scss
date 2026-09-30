@@ -256,3 +256,16 @@
     flex-wrap: wrap;
   }
 }
+
+/* Header: title and subtitle on the left, the assistant toggle on the right of both. */
+:host ::ng-deep .gc-concept-dialog .p-dialog-header p-header {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  min-width: 0;
+
+  > span {
+    grid-column: 1;
+  }
+}
