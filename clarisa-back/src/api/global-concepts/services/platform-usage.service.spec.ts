@@ -56,7 +56,12 @@ describe('PlatformUsageService', () => {
     });
     expect(metrics.getSystemsForEndpoints).toHaveBeenCalledWith(
       { from: '2026-09-01T00:00:00', to: '2026-09-30T00:00:00' },
-      ['/api/concepts/', '/concepts/'],
+      [
+        '/api/concepts/',
+        '/concepts/',
+        '/api/meliaf-taxonomy/',
+        '/api/global-concepts/',
+      ],
     );
     expect(usage.countedReads).toHaveBeenCalledWith('2026-09-01', '2026-09-30');
     expect(out).toMatchObject({
