@@ -14,6 +14,7 @@ import {
   EndpointUsageResponseDto,
   MisActivityItemDto,
   OverviewSystemDto,
+  SystemKind,
   UsageOverviewResponseDto,
   UsageLogsResponseDto,
   UsageSummaryResponseDto,
@@ -37,12 +38,64 @@ const DAY_EXPR = "DATE_FORMAT(log.created_at, '%Y-%m-%d')";
 const WEEK_EXPR =
   "DATE_FORMAT(DATE_SUB(log.created_at, INTERVAL WEEKDAY(log.created_at) DAY), '%Y-%m-%d')";
 
+/**
+ * A key with no MIS is its own system (Yeck, 2026-09-30: the MIS Registry is
+ * being deprecated and CLARISA works with API keys directly). This is the
+ * key's id for those rows and `NULL` for keys that have a MIS, so grouping by
+ * `ak.mis_id` plus this expression keeps MIS groups exactly as they were and
+ * splits the old «No MIS» bucket into one group per key.
+ */
+const KEY_GROUP_EXPR = 'CASE WHEN ak.mis_id IS NULL THEN ak.id ELSE NULL END';
+/** Name of the key behind a key group; `NULL` in MIS groups. */
+const KEY_NAME_EXPR =
+  'MAX(CASE WHEN ak.mis_id IS NULL THEN ak.name ELSE NULL END)';
+
+/** Last-resort labels, only for a key group whose key has no name. */
+const NO_NAME_ACRONYM = 'No MIS';
+const NO_NAME_LABEL = 'Keys not linked to any system';
+
+export interface SystemIdentity {
+  mis_id: number | null;
+  kind: SystemKind;
+  api_key_id: number | null;
+  system_key: string;
+}
+
+/**
+ * Who a row belongs to: its MIS when it has one, otherwise its key.
+ * `system_key` is `mis:<id>` or `key:<id>` and is what the panel keys colors,
+ * selection and filters on.
+ */
+export function systemIdentity(
+  misId: unknown,
+  apiKeyId: unknown,
+): SystemIdentity {
+  if (misId != null) {
+    const mis = Number(misId);
+    return {
+      mis_id: mis,
+      kind: 'mis',
+      api_key_id: null,
+      system_key: `mis:${mis}`,
+    };
+  }
+  const key = apiKeyId != null ? Number(apiKeyId) : null;
+  return {
+    mis_id: null,
+    kind: 'key',
+    api_key_id: key,
+    system_key: key != null ? `key:${key}` : 'key:none',
+  };
+}
+
 interface UsageFilterParams {
   from: Date;
   to: Date;
   mis_id?: number;
   /** Several systems; `0` means «no MIS». */
   mis_ids?: number[];
+  /** Keys with no MIS, each one its own system; OR-ed with `mis_ids`. */
+  key_ids?: number[];
   api_key_id?: number;
   microservice_name?: string;
   /** Only calls whose path starts with one of these (`/api/meliaf-taxonomy/`). */
@@ -171,6 +224,7 @@ export class ApiKeyUsageMetricsService {
         'ak.name AS api_key_name',
         'ak.key_prefix AS key_prefix',
         'mis.acronym AS mis_acronym',
+        'ak.mis_id AS mis_id',
         'log.microservice_name AS microservice_name',
         'log.endpoint_accessed AS endpoint_accessed',
         'log.http_method AS http_method',
@@ -197,6 +251,7 @@ export class ApiKeyUsageMetricsService {
       period: toIsoPeriod(range),
       total: Number(countRow?.total ?? 0),
       items: items.map((row) => ({
+        ...this._logIdentity(row),
         id: Number(row.id),
         api_key_id: Number(row.api_key_id),
         api_key_name: row.api_key_name,
@@ -287,12 +342,15 @@ export class ApiKeyUsageMetricsService {
     for (const row of consumerRows) {
       const key = keyOf(row);
       const list = consumersByEndpoint.get(key) ?? [];
+      const who = systemIdentity(row.mis_id, row.api_key_id);
       list.push({
         api_key_id: Number(row.api_key_id),
         api_key_name: row.api_key_name,
         key_prefix: row.key_prefix,
-        mis_id: row.mis_id != null ? Number(row.mis_id) : null,
+        mis_id: who.mis_id,
         mis_acronym: row.mis_acronym ?? null,
+        kind: who.kind,
+        system_key: who.system_key,
         total_requests: Number(row.total_requests),
         last_used_at: row.last_used_at ?? null,
       });
@@ -375,6 +433,7 @@ export class ApiKeyUsageMetricsService {
       this._baseLogQuery(filters)
         .select(bucket, 'bucket')
         .addSelect('ak.mis_id', 'mis_id')
+        .addSelect(KEY_GROUP_EXPR, 'key_group_id')
         .addSelect('COUNT(log.id)', 'calls')
         .addSelect(
           'SUM(CASE WHEN log.status_code >= 400 THEN 1 ELSE 0 END)',
@@ -383,39 +442,53 @@ export class ApiKeyUsageMetricsService {
         .addSelect('AVG(log.response_time_ms)', 'avg_ms')
         .groupBy(bucket)
         .addGroupBy('ak.mis_id')
+        .addGroupBy(KEY_GROUP_EXPR)
         .orderBy('bucket', 'ASC')
         .getRawMany(),
       this._baseLogQuery(filters)
         .select('DAYOFWEEK(log.created_at)', 'dow')
         .addSelect('HOUR(log.created_at)', 'hour')
         .addSelect('ak.mis_id', 'mis_id')
+        .addSelect(KEY_GROUP_EXPR, 'key_group_id')
         .addSelect('COUNT(log.id)', 'calls')
         .groupBy('DAYOFWEEK(log.created_at)')
         .addGroupBy('HOUR(log.created_at)')
         .addGroupBy('ak.mis_id')
+        .addGroupBy(KEY_GROUP_EXPR)
         .getRawMany(),
     ]);
 
-    const id = (v: unknown) => (v != null ? Number(v) : null);
     const ms = (v: unknown) => (v != null ? Math.round(Number(v)) : null);
 
     return {
       period: toIsoPeriod(range),
       granularity,
       systems,
-      series: seriesRows.map((row) => ({
-        bucket: String(row.bucket),
-        mis_id: id(row.mis_id),
-        calls: Number(row.calls ?? 0),
-        errors: Number(row.errors ?? 0),
-        avg_response_time_ms: ms(row.avg_ms),
-      })),
-      heatmap: heatRows.map((row) => ({
-        day_of_week: Number(row.dow),
-        hour: Number(row.hour),
-        mis_id: id(row.mis_id),
-        calls: Number(row.calls ?? 0),
-      })),
+      series: seriesRows.map((row) => {
+        const who = systemIdentity(row.mis_id, row.key_group_id);
+        return {
+          bucket: String(row.bucket),
+          mis_id: who.mis_id,
+          calls: Number(row.calls ?? 0),
+          errors: Number(row.errors ?? 0),
+          avg_response_time_ms: ms(row.avg_ms),
+          kind: who.kind,
+          api_key_id: who.api_key_id,
+          system_key: who.system_key,
+        };
+      }),
+      heatmap: heatRows.map((row) => {
+        const who = systemIdentity(row.mis_id, row.key_group_id);
+        return {
+          day_of_week: Number(row.dow),
+          hour: Number(row.hour),
+          mis_id: who.mis_id,
+          calls: Number(row.calls ?? 0),
+          kind: who.kind,
+          api_key_id: who.api_key_id,
+          system_key: who.system_key,
+        };
+      }),
     };
   }
 
@@ -446,6 +519,8 @@ export class ApiKeyUsageMetricsService {
     const rows = await this._baseLogQuery(filters)
       .leftJoin('ak.environment_object', 'env')
       .select('ak.mis_id', 'mis_id')
+      .addSelect(KEY_GROUP_EXPR, 'key_group_id')
+      .addSelect(KEY_NAME_EXPR, 'key_name')
       .addSelect('mis.acronym', 'acronym')
       .addSelect('mis.name', 'name')
       .addSelect('env.acronym', 'environment')
@@ -458,25 +533,41 @@ export class ApiKeyUsageMetricsService {
       .addSelect('COUNT(DISTINCT ak.id)', 'api_keys')
       .addSelect('MAX(log.created_at)', 'last_used_at')
       .groupBy('ak.mis_id')
+      .addGroupBy(KEY_GROUP_EXPR)
       .addGroupBy('mis.acronym')
       .addGroupBy('mis.name')
       .addGroupBy('env.acronym')
       .orderBy('calls', 'DESC')
       .getRawMany();
 
-    const id = (v: unknown) => (v != null ? Number(v) : null);
     const ms = (v: unknown) => (v != null ? Math.round(Number(v)) : null);
-    return rows.map((row) => ({
-      mis_id: id(row.mis_id),
-      acronym: row.acronym ?? 'No MIS',
-      name: row.name ?? 'Keys not linked to any system',
-      environment: row.environment ?? null,
-      calls: Number(row.calls ?? 0),
-      errors: Number(row.errors ?? 0),
-      avg_response_time_ms: ms(row.avg_ms),
-      api_keys: Number(row.api_keys ?? 0),
-      last_used_at: row.last_used_at ?? null,
-    }));
+    return rows.map((row) => {
+      const who = systemIdentity(row.mis_id, row.key_group_id);
+      const keyName =
+        who.kind === 'key' && typeof row.key_name === 'string'
+          ? row.key_name.trim() || null
+          : null;
+      return {
+        mis_id: who.mis_id,
+        acronym: row.acronym ?? keyName ?? NO_NAME_ACRONYM,
+        name: row.name ?? keyName ?? NO_NAME_LABEL,
+        environment: row.environment ?? null,
+        calls: Number(row.calls ?? 0),
+        errors: Number(row.errors ?? 0),
+        avg_response_time_ms: ms(row.avg_ms),
+        api_keys: Number(row.api_keys ?? 0),
+        last_used_at: row.last_used_at ?? null,
+        kind: who.kind,
+        api_key_id: who.api_key_id,
+        api_key_name: keyName,
+        system_key: who.system_key,
+      };
+    });
+  }
+
+  private _logIdentity(row: { mis_id?: unknown; api_key_id?: unknown }) {
+    const who = systemIdentity(row.mis_id, row.api_key_id);
+    return { mis_id: who.mis_id, system_key: who.system_key };
   }
 
   private _buildFilters(
@@ -489,6 +580,16 @@ export class ApiKeyUsageMetricsService {
       mis_id: query.mis_id,
       mis_ids: query.mis_ids
         ? [...new Set(query.mis_ids.split(',').map(Number))]
+        : undefined,
+      key_ids: query.key_ids
+        ? [
+            ...new Set(
+              query.key_ids
+                .split(',')
+                .map(Number)
+                .filter((id) => id > 0),
+            ),
+          ]
         : undefined,
       api_key_id: query.api_key_id,
       microservice_name: query.microservice_name?.trim() || undefined,
@@ -513,7 +614,20 @@ export class ApiKeyUsageMetricsService {
       qb.andWhere('ak.mis_id = :misId', { misId: filters.mis_id });
     }
 
-    if (filters.mis_ids?.length) {
+    if (filters.key_ids?.length) {
+      // Systems picked among MIS and standalone keys: any of them matches.
+      const ids = (filters.mis_ids ?? []).filter((id) => id > 0);
+      const clauses: string[] = [];
+      if (ids.length) clauses.push('ak.mis_id IN (:...misIds)');
+      if (filters.mis_ids?.includes(0)) clauses.push('ak.mis_id IS NULL');
+      clauses.push('(ak.mis_id IS NULL AND ak.id IN (:...keyIds))');
+      qb.andWhere(`(${clauses.join(' OR ')})`, {
+        ...(ids.length ? { misIds: ids } : {}),
+        keyIds: filters.key_ids,
+      });
+    } else if (filters.mis_ids?.length) {
+      // 🛑 Unchanged on purpose: without `key_ids` this is byte-identical to
+      // the filter the panel used before standalone keys became systems.
       const ids = filters.mis_ids.filter((id) => id > 0);
       const withNone = filters.mis_ids.includes(0);
       if (ids.length && withNone) {

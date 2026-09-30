@@ -89,3 +89,24 @@ describe('UsageSummaryQueryDto (controller pipe) — mis_ids', () => {
     await expect(q({ mis_ids: '3,,7' })).rejects.toThrow();
   });
 });
+
+describe('UsageSummaryQueryDto (controller pipe) — key_ids', () => {
+  const q = (query: unknown) =>
+    pipe.transform(query, { type: 'query', metatype: UsageSummaryQueryDto });
+
+  it('accepts comma-separated positive key ids, alone or with mis_ids', async () => {
+    await expect(q({ key_ids: '12,40' })).resolves.toMatchObject({
+      key_ids: '12,40',
+    });
+    await expect(q({ mis_ids: '3', key_ids: '12' })).resolves.toMatchObject({
+      mis_ids: '3',
+      key_ids: '12',
+    });
+    await expect(q({})).resolves.not.toHaveProperty('key_ids');
+  });
+
+  it('rejects anything that is not a list of positive ids', async () => {
+    for (const key_ids of ['0', '12,0', '12;DROP', '12,,40', '-1', 'a', ''])
+      await expect(q({ key_ids })).rejects.toThrow();
+  });
+});

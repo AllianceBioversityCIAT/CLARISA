@@ -175,7 +175,7 @@ export function usageSeries(
 
 /** One connected system in "By platform", with its share and bar length. */
 export interface PlatformRow extends PlatformUsageSystem {
-  /** Stable key for the table (the no-MIS bucket has `mis_id: null`). */
+  /** Stable key for the table: `system_key` (one row per MIS, or per key without one). */
   key: string;
   /** % of all keyed calls in the period, one decimal. */
   share: number;
@@ -190,7 +190,8 @@ export function platformRows(usage: PlatformUsage | null): PlatformRow[] {
   const max = systems.reduce((m, s) => Math.max(m, s.calls || 0), 0);
   return systems.map(s => ({
     ...s,
-    key: `${s.mis_id ?? 'none'}:${s.environment ?? ''}`,
+    // `system_key` + environment: a MIS can answer from PROD and TEST keys.
+    key: `${s.system_key ?? s.mis_id ?? 'none'}:${s.environment ?? ''}`,
     share: total ? Math.round((s.calls / total) * 1000) / 10 : 0,
     bar: max ? Math.max(2, Math.round((s.calls / max) * 100)) : 0
   }));
