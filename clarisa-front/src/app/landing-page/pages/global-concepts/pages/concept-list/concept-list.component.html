@@ -1,12 +1,13 @@
 <app-gc-banner
   eyebrow="Official CGIAR vocabulary"
-  [title]="scheme?.title || 'MELIAF Taxonomy'"
-  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'MELIAF Taxonomy' }]">
+  title="Concepts"
+  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'Concepts' }]">
   <div class="gc-banner-copy">
     <p class="gc-banner-copy__lede" *ngIf="scheme?.description">{{ scheme?.description }}</p>
     <p class="gc-banner-copy__lede" *ngIf="!scheme && !schemeError">The official concepts CGIAR uses to plan, monitor, evaluate and learn.</p>
     <p class="gc-banner-copy__governance" *ngIf="scheme?.governance_description">{{ scheme?.governance_description }}</p>
-    <ul class="gc-banner-copy__facts" *ngIf="scheme?.license || scheme?.publisher">
+    <ul class="gc-banner-copy__facts" *ngIf="scheme?.title || scheme?.license || scheme?.publisher">
+      <li *ngIf="scheme?.title"><span>Scheme</span>{{ scheme?.title }}</li>
       <li *ngIf="scheme?.publisher"><span>Publisher</span>{{ scheme?.publisher }}</li>
       <li *ngIf="scheme?.license"><span>License</span>{{ scheme?.license }}</li>
     </ul>

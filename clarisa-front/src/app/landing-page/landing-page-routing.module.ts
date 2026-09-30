@@ -44,12 +44,16 @@ const routes: Routes = [
           ),
       },
       {
-        path: 'global-concepts',
+        path: 'concepts',
         loadChildren: () =>
           import('./pages/global-concepts/global-concepts.module').then(
             (m) => m.GlobalConceptsModule
           ),
       },
+      // Old address of the section (links in e-mails and bookmarks) → new one.
+      { path: 'global-concepts', redirectTo: 'concepts', pathMatch: 'full' },
+      { path: 'global-concepts/:a', redirectTo: 'concepts/:a' },
+      { path: 'global-concepts/:a/:b', redirectTo: 'concepts/:a/:b' },
       {
         path: 'institutionsRequestBi',
         loadChildren: () =>

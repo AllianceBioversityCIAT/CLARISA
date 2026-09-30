@@ -17,7 +17,7 @@ const scheme = {
   id: 1,
   code: 'meliaf',
   uri_base: null,
-  title: 'MELIAF Taxonomy',
+  title: 'Concepts',
   default_language: 'en',
   license: 'CC BY 4.0',
 } as GcScheme;

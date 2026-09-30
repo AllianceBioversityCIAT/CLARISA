@@ -1,7 +1,7 @@
 <app-gc-banner
-  eyebrow="MELIAF Taxonomy"
+  eyebrow="Concepts"
   title="Confirm your request"
-  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'MELIAF Taxonomy', link: base }, { label: 'Confirm request' }]">
+  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'Concepts', link: base }, { label: 'Confirm request' }]">
 </app-gc-banner>
 
 <section class="gc-section">
@@ -17,7 +17,7 @@
         <span class="gc-state__icon"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i></span>
         <h4>We could not confirm this request</h4>
         <p>{{ error }}</p>
-        <a class="gc-btn gc-btn--small" [routerLink]="base">Go to the MELIAF Taxonomy</a>
+        <a class="gc-btn gc-btn--small" [routerLink]="base">Go to Concepts</a>
       </div>
 
       <div class="gc-state gc-state--ok" *ngIf="!loading && !error && requestId" role="status">
@@ -29,7 +29,7 @@
         </p>
         <div class="gc-state__actions">
           <a class="gc-btn gc-btn--small" [routerLink]="[base, 'requests', requestId]">Follow request #{{ requestId }}</a>
-          <a class="gc-btn gc-btn--small gc-btn--ghost" [routerLink]="base">Back to the MELIAF Taxonomy</a>
+          <a class="gc-btn gc-btn--small gc-btn--ghost" [routerLink]="base">Back to Concepts</a>
         </div>
       </div>
     </div>

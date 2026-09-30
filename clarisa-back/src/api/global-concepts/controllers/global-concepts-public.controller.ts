@@ -39,7 +39,7 @@ import { OptionalApiKeyUsageInterceptor } from '../../../shared/interceptors/opt
  * Still public, but a platform that sends its CLARISA `X-API-Key` is counted
  * per system (`OptionalApiKeyUsageInterceptor`); a bad key never blocks a read.
  */
-@ApiTags('MELIAF Taxonomy')
+@ApiTags('Concepts')
 @ApiHeader({
   name: 'X-API-Key',
   required: false,

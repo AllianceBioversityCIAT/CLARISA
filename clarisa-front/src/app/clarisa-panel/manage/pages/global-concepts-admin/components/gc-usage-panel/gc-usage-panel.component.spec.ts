@@ -31,7 +31,7 @@ const platformUsage = (systems: PlatformUsageSystem[], anonymous = 31, keyed = 9
   scope: 'all-schemes',
   from: '2026-09-01',
   to: '2026-09-30',
-  endpoint_prefixes: ['/api/meliaf-taxonomy/', '/concepts/'],
+  endpoint_prefixes: ['/api/concepts/', '/concepts/'],
   systems,
   platform_calls: systems.reduce((sum, s) => sum + s.calls, 0),
   counted_reads: { total: anonymous + keyed, keyed, anonymous }

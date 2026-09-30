@@ -1,7 +1,7 @@
 <app-gc-banner
-  eyebrow="MELIAF Taxonomy · Developers"
+  eyebrow="Concepts · Developers"
   title="Use the official concepts in your system"
-  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'MELIAF Taxonomy', link: gcBase }, { label: 'Developers' }]">
+  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'Concepts', link: gcBase }, { label: 'Developers' }]">
   <p class="gc-dev-lede">
     A free, open API, persistent URIs for linked data, full downloads and an MCP endpoint so AI assistants answer with the official definitions.
   </p>
@@ -35,7 +35,7 @@
         <section class="gc-card gc-doc__section" id="overview">
           <h2 class="gc-h2">Overview</h2>
           <p>
-            Everything published in the MELIAF Taxonomy is readable <strong>without an account or a key</strong>: approved concepts and deprecated ones,
+            Everything published in Concepts is readable <strong>without an account or a key</strong>: approved concepts and deprecated ones,
             which keep resolving and point to their replacement. Drafts and concepts under review never appear.
           </p>
           <ul>
@@ -159,16 +159,16 @@
           </p>
           <ul class="gc-dev-scopes">
             <li>
-              <span class="gc-mono">meliaf-taxonomy:read</span> — reserved for keyed reading. Today every public read works without a key, so no
+              <span class="gc-mono">concepts:read</span> — reserved for keyed reading. Today every public read works without a key, so no
               route asks for it yet (any valid key is <a [routerLink]="[]" fragment="counted" (click)="goTo('counted')">counted</a>, with or
               without it).
             </li>
             <li>
-              <span class="gc-mono">meliaf-taxonomy:request</span> — submit requests and follow them. The stewards still decide; nothing is
+              <span class="gc-mono">concepts:request</span> — submit requests and follow them. The stewards still decide; nothing is
               published by the key.
             </li>
-            <li><span class="gc-mono">meliaf-taxonomy:write</span> — create and edit concepts directly, only in the scheme the platform owns.</li>
-            <li><span class="gc-mono">meliaf-taxonomy:review</span> — decide requests, only in the scheme the platform owns.</li>
+            <li><span class="gc-mono">concepts:write</span> — create and edit concepts directly, only in the scheme the platform owns.</li>
+            <li><span class="gc-mono">concepts:review</span> — decide requests, only in the scheme the platform owns.</li>
           </ul>
           <p>The shared MELIAF scheme can never be written by a key: platforms propose, the MELIAF stewards approve.</p>
           <table class="gc-table">

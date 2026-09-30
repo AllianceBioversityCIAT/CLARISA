@@ -1,5 +1,5 @@
 /**
- * What each form field of the MELIAF Taxonomy admin is for, with an example.
+ * What each form field of Concepts admin is for, with an example.
  * Shown by the (i) next to the label (`app-gc-info`) as tooltip and as the
  * icon's accessible name. One home for the texts so they read as one voice
  * and a spec can check every template key exists.

@@ -56,6 +56,11 @@ const routes: Routes = [
       },
       {
         path: 'global-concepts-admin',
+        redirectTo: 'concepts-admin',
+        pathMatch: 'full',
+      },
+      {
+        path: 'concepts-admin',
         loadChildren: () =>
           import(
             './pages/global-concepts-admin/global-concepts-admin.module'

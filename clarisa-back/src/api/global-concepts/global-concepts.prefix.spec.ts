@@ -14,35 +14,42 @@ import { UsageService } from './services/usage.service';
 import { ApiKeyService } from '../api-key/api-key.service';
 import { ApiKeyUsageLogService } from '../api-key/api-key-usage-log.service';
 import { RenameGlobalConceptsRoutesToMeliafTaxonomy1790500300000 } from '../../../migrations/1790500300000-RenameGlobalConceptsRoutesToMeliafTaxonomy';
+import { RenameMeliafTaxonomyRoutesToConcepts1790500400000 } from '../../../migrations/1790500400000-RenameMeliafTaxonomyRoutesToConcepts';
 
 /**
- * Public prefix of the module: `api/meliaf-taxonomy` (Héctor, 2026-09-29,
- * "renombren el end-point para MELIAF Taxonomy"). The old `api/global-concepts`
- * must be gone from every place that publishes or authorises the path.
+ * Public prefix of the module: `api/concepts` (Yeck, 2026-09-30: shown as
+ * "Concepts"; before it was `api/meliaf-taxonomy`, and before that
+ * `api/global-concepts`). The old prefixes must be gone from every place that
+ * publishes or authorises the path.
  */
-describe('MELIAF Taxonomy public prefix', () => {
+describe('Concepts public prefix', () => {
   const entry = apiRoutes.find((r) => r.module === GlobalConceptsModule);
 
-  it('mounts the module at meliaf-taxonomy, and nothing at global-concepts', () => {
-    expect(entry?.path).toBe('meliaf-taxonomy');
-    expect(apiRoutes.some((r) => r.path === 'global-concepts')).toBe(false);
+  it('mounts the module at concepts, and nothing at the old prefixes', () => {
+    expect(entry?.path).toBe('concepts');
+    expect(
+      apiRoutes.some((r) =>
+        ['global-concepts', 'meliaf-taxonomy'].includes(r.path),
+      ),
+    ).toBe(false);
   });
 
   it('publishes only the new prefix in the swagger allow-list', () => {
     const module = PUBLIC_OPENAPI_PATHS.filter((p) =>
-      /global-concepts|meliaf-taxonomy/.test(p),
+      /global-concepts|meliaf-taxonomy|^\/api\/concepts\//.test(p),
     );
     expect(module.length).toBeGreaterThan(0);
-    for (const p of module)
-      expect(p.startsWith('/api/meliaf-taxonomy/')).toBe(true);
+    for (const p of module) expect(p.startsWith('/api/concepts/')).toBe(true);
   });
 
-  it('names the API key scopes meliaf-taxonomy:*', () => {
+  it('names the API key scopes concepts:*', () => {
     expect(
-      API_KEY_SCOPE_VALUES.filter((s) => s.startsWith('global-concepts:')),
+      API_KEY_SCOPE_VALUES.filter((s) =>
+        /^(global-concepts|meliaf-taxonomy):/.test(s),
+      ),
     ).toEqual([]);
     for (const s of ['read', 'request', 'write', 'review'])
-      expect(API_KEY_SCOPE_VALUES).toContain(`meliaf-taxonomy:${s}`);
+      expect(API_KEY_SCOPE_VALUES).toContain(`concepts:${s}`);
   });
 
   describe('over real HTTP, with the path taken from apiRoutes', () => {
@@ -91,20 +98,82 @@ describe('MELIAF Taxonomy public prefix', () => {
       params: {},
     };
 
-    it('resolves /api/meliaf-taxonomy/mcp', async () => {
+    it('resolves /api/concepts/mcp', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/meliaf-taxonomy/mcp')
+        .post('/api/concepts/mcp')
         .send(initialize);
       expect(res.status).toBe(200);
-      expect(res.body.result.serverInfo.name).toBe('clarisa-meliaf-taxonomy');
+      expect(res.body.result.serverInfo.name).toBe('clarisa-concepts');
     });
 
-    it('no longer answers /api/global-concepts/mcp', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/global-concepts/mcp')
-        .send(initialize);
-      expect(res.status).toBe(404);
-    });
+    it.each(['global-concepts', 'meliaf-taxonomy'])(
+      'no longer answers /api/%s/mcp',
+      async (old) => {
+        const res = await request(app.getHttpServer())
+          .post(`/api/${old}/mcp`)
+          .send(initialize);
+        expect(res.status).toBe(404);
+      },
+    );
+  });
+});
+
+describe('RenameMeliafTaxonomyRoutesToConcepts1790500400000', () => {
+  const run = async (dir: 'up' | 'down') => {
+    const query = jest.fn(async () => undefined);
+    await new RenameMeliafTaxonomyRoutesToConcepts1790500400000()[dir]({
+      query,
+    } as any);
+    return query.mock.calls as unknown as [string, string[]][];
+  };
+
+  it('up rewrites permission routes, stored scopes and the scheme web base', async () => {
+    const [[permSql, permArgs], [keySql, keyArgs], [webSql, webArgs]] =
+      await run('up');
+    expect(permSql).toMatch(/UPDATE permissions/);
+    expect(permArgs).toEqual([
+      'api/meliaf-taxonomy',
+      'api/concepts',
+      'api/meliaf-taxonomy',
+    ]);
+    expect(keySql).toMatch(/UPDATE api_keys/);
+    expect(keyArgs).toEqual([
+      '"meliaf-taxonomy:',
+      '"concepts:',
+      '"meliaf-taxonomy:',
+    ]);
+    expect(webSql).toMatch(/UPDATE gc_schemes/);
+    expect(webArgs).toEqual([
+      '/landing-page/global-concepts',
+      '/landing-page/concepts',
+      '/landing-page/global-concepts',
+    ]);
+  });
+
+  it('down restores the old strings', async () => {
+    const [[, permArgs], [, keyArgs], [, webArgs]] = await run('down');
+    expect(permArgs).toEqual([
+      'api/concepts',
+      'api/meliaf-taxonomy',
+      'api/concepts',
+    ]);
+    expect(keyArgs).toEqual(['"concepts:', '"meliaf-taxonomy:', '"concepts:']);
+    expect(webArgs).toEqual([
+      '/landing-page/concepts',
+      '/landing-page/global-concepts',
+      '/landing-page/concepts',
+    ]);
+  });
+
+  it('the rewritten permission authorises the new admin path, not the public one', () => {
+    const stored = '/api/meliaf-taxonomy/admin'.replace(
+      'api/meliaf-taxonomy',
+      'api/concepts',
+    );
+    expect('/api/concepts/admin/meliaf/concepts'.includes(stored)).toBe(true);
+    expect('/api/concepts/meliaf/concepts'.includes(stored)).toBe(false);
+    // The persistent concept URIs live outside /api and never match.
+    expect('/concepts/meliaf/12'.includes(stored)).toBe(false);
   });
 });
 

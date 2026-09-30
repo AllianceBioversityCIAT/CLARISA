@@ -15,7 +15,7 @@ const scheme = {
   id: 1,
   code: 'meliaf',
   uri_base: 'https://api.clarisa.cgiar.org/concepts',
-  title: 'MELIAF Taxonomy',
+  title: 'Concepts',
   description: 'Shared MEL vocabulary',
   default_language: 'en',
   license: 'https://creativecommons.org/licenses/by/4.0/',
@@ -277,7 +277,7 @@ describe('ConceptsExportService', () => {
       expect(body).toContain(
         '<https://api.clarisa.cgiar.org/concepts/meliaf> a skos:ConceptScheme',
       );
-      expect(body).toContain('dcterms:title "MELIAF Taxonomy"@en');
+      expect(body).toContain('dcterms:title "Concepts"@en');
       expect(body).toContain(
         'dcterms:license <https://creativecommons.org/licenses/by/4.0/>',
       );
@@ -392,7 +392,7 @@ describe('ConceptsExportService', () => {
       const [head, node] = doc['@graph'];
       expect(head['@type']).toBe('skos:ConceptScheme');
       expect(head['dcterms:title']).toEqual({
-        '@value': 'MELIAF Taxonomy',
+        '@value': 'Concepts',
         '@language': 'en',
       });
       expect(node['@id']).toBe(uri(2374));
@@ -429,7 +429,7 @@ describe('ConceptsExportService', () => {
     expect(doc.scheme).toEqual({
       code: 'meliaf',
       uri: 'https://api.clarisa.cgiar.org/concepts/meliaf',
-      title: 'MELIAF Taxonomy',
+      title: 'Concepts',
       license: 'https://creativecommons.org/licenses/by/4.0/',
       publisher: 'CGIAR',
       governance_description: 'Changes go through the PPT secretariat',

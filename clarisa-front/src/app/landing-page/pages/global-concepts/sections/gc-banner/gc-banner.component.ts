@@ -14,7 +14,7 @@ export interface Crumb {
   styleUrls: ['./gc-banner.component.scss']
 })
 export class GcBannerComponent {
-  @Input() title = 'MELIAF Taxonomy';
+  @Input() title = 'Concepts';
   @Input() eyebrow: string | null = null;
   @Input() crumbs: Crumb[] = [];
   /** The section's own navigation: browse, user guide, developers. */
@@ -38,7 +38,7 @@ export class GcBannerComponent {
   }
 }
 
-export const GC_ADMIN_LINK = '/clarisa-panel/manage/global-concepts-admin';
+export const GC_ADMIN_LINK = '/clarisa-panel/manage/concepts-admin';
 
 /** Pages of the section, shared by the banner and the section footer. */
 export const GC_NAV: { label: string; link: string; icon: string; exact: boolean }[] = [

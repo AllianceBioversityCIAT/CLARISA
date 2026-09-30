@@ -13,11 +13,11 @@ describe('admin navigation', () => {
     expect(adminSectionLabel('/clarisa-panel/manage/manage-user?page=2#top')).toBe('Users');
   });
 
-  it('lists the MELIAF Taxonomy in Manage, right after Glossary', () => {
+  it('lists Concepts in Manage, right after Glossary', () => {
     const manage = ADMIN_GROUPS.find(group => group.title === 'Manage')?.links.map(link => link.label) ?? [];
 
-    expect(manage.indexOf('MELIAF Taxonomy')).toBe(manage.indexOf('Glossary') + 1);
-    expect(adminSectionLabel('/clarisa-panel/manage/global-concepts-admin')).toBe('MELIAF Taxonomy');
+    expect(manage.indexOf('Concepts')).toBe(manage.indexOf('Glossary') + 1);
+    expect(adminSectionLabel('/clarisa-panel/manage/concepts-admin')).toBe('Concepts');
   });
 
   it('claims nothing outside the panel', () => {

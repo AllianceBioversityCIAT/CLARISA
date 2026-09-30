@@ -293,35 +293,35 @@
       ]
     },
     {
-      "group": "MELIAF Taxonomy",
+      "group": "Concepts",
       "categories": [
         {
-          "name": "MELIAF taxonomy",
-          "description": "CGIAR taxonomy for Monitoring, Evaluation, Learning, Impact Assessment and Foresight: published concepts with persistent URIs, controlled lists, releases and a change feed. Exports as JSON, CSV, SKOS Turtle and JSON-LD.",
+          "name": "Concepts",
+          "description": "Official CGIAR vocabulary: published concepts with persistent URIs, controlled lists, releases and a change feed. Exports as JSON, CSV, SKOS Turtle and JSON-LD.",
           "endpoints": [
             {
               "name": "Concept schemes",
-              "route": "api/meliaf-taxonomy/schemes",
+              "route": "api/concepts/schemes",
               "method": "get"
             },
             {
               "name": "Controlled lists",
-              "route": "api/meliaf-taxonomy/lists",
+              "route": "api/concepts/lists",
               "method": "get"
             },
             {
               "name": "MELIAF concepts",
-              "route": "api/meliaf-taxonomy/meliaf/concepts",
+              "route": "api/concepts/meliaf/concepts",
               "method": "get"
             },
             {
               "name": "MELIAF releases",
-              "route": "api/meliaf-taxonomy/meliaf/releases",
+              "route": "api/concepts/meliaf/releases",
               "method": "get"
             },
             {
               "name": "MELIAF change feed",
-              "route": "api/meliaf-taxonomy/meliaf/changes",
+              "route": "api/concepts/meliaf/changes",
               "method": "get"
             }
           ]
