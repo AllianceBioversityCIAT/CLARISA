@@ -4,10 +4,12 @@
  * are the global `.admin-page` / `.admin-tabs`, not drawn here.
  */
 @import 'components/gc-form';
+@import 'components/gc-usage-platforms';
 
 /* The module's form and dialog skin, once for every panel (see the partial). */
 :host ::ng-deep {
   @include gc-form-skin;
+  @include gc-usage-platforms-skin;
 }
 .gc-admin {
   display: block;
