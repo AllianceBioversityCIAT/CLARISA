@@ -22,17 +22,12 @@ export interface AdminSubLink {
 }
 
 /**
- * The entry (or tab) has no permission check in the back: every signed-in
- * user saw it before the panel filtered by role, and still does. Filtering it
- * would hide a screen the back serves them anyway.
+ * Who may see an entry: the back routes whose `PermissionGuard` protects it
+ * (see `AdminLink.access`). Access goes by permission only (Yeck, 30-sep-2026):
+ * no entry is open to "any signed-in user", so a limited role sees exactly what
+ * it ticks and a user without roles sees none of the panel.
  */
-export const ANY_SIGNED_IN = 'any-signed-in' as const;
-
-/**
- * Who may see an entry: `ANY_SIGNED_IN`, or the back routes whose
- * `PermissionGuard` protects it (see `AdminLink.access`).
- */
-export type AdminAccess = typeof ANY_SIGNED_IN | string[];
+export type AdminAccess = string[];
 
 export interface AdminLink {
   label: string;
@@ -42,11 +37,8 @@ export interface AdminLink {
   /** Si existen, el link no navega directo: pliega/despliega estas pestañas. */
   children?: AdminSubLink[];
   /**
-   * `ANY_SIGNED_IN` when the back guards the screen with the session only
-   * (JwtAuthGuard, or a public list with guarded actions): visible to every
-   * signed-in user, as before role filtering existed. Otherwise the back routes
-   * the screen writes to: the entry opens when the caller holds a permission the
-   * back's `PermissionGuard` would accept for ANY of them (same
+   * The back routes the screen calls: the entry opens when the caller holds a
+   * permission the back's `PermissionGuard` would accept for ANY of them (same
    * `route.includes(permission)` test); an empty list = Super admin only. A
    * link with `children` opens when any of its tabs does.
    */
@@ -71,9 +63,9 @@ export const ADMIN_GROUPS: AdminGroup[] = [
         label: 'Institution requests',
         route: '/clarisa-panel/manage/partner-request',
         icon: 'fa fa-inbox',
-        // The list (`GET /api/partner-requests/all`) is public; respond/update are
-        // checked by the back's PermissionGuard. Every signed-in user saw this.
-        access: ANY_SIGNED_IN
+        // Any institution-request permission opens it: IRC (create only) and
+        // FIR (create, respond, update) both keep the screen.
+        access: ['/api/partner-requests/create', '/api/partner-requests/respond', '/api/partner-requests/update']
       },
       {
         label: 'Institution lifecycle',
@@ -136,8 +128,8 @@ export const ADMIN_GROUPS: AdminGroup[] = [
             label: 'Overview',
             hint: 'Who uses CLARISA, and how much',
             queryParams: { section: 'overview' },
-            // The usage endpoints (`/api/api-keys/usage/*`) carry no permission check today.
-            access: ANY_SIGNED_IN
+            // `ApiKeyController` requires `/api/api-keys` (SA only).
+            access: ['/api/api-keys/usage/overview']
           },
           {
             label: 'MIS Registry',
@@ -149,8 +141,7 @@ export const ADMIN_GROUPS: AdminGroup[] = [
             label: 'API Keys',
             hint: 'Create, edit, rotate, and revoke keys',
             queryParams: { section: 'api-keys' },
-            // `ApiKeyController` is guarded by JwtAuthGuard only: no permission to map.
-            access: ANY_SIGNED_IN
+            access: ['/api/api-keys/create']
           }
         ]
       }
@@ -183,7 +174,6 @@ export interface NavAccess {
 }
 
 function opens(access: AdminAccess, who: NavAccess | null): boolean {
-  if (access === ANY_SIGNED_IN) return true;
   if (!who) return true;
   if (who.isSuper) return true;
   return access.some(route => who.permissions.some(p => !!p && route.includes(p)));
@@ -218,6 +208,8 @@ export function groupsFor(who: NavAccess | null, groups: AdminGroup[] = ADMIN_GR
 export const LOGIN_LANDING = '/clarisa-panel/manage/partner-request';
 /** Same value as `ADMIN_HOME` in `admin-access.guard.ts` (that file imports this one). */
 const PANEL_HOME = '/clarisa-panel/manage';
+/** Where a user whose roles open nothing in the panel lands: the public site. */
+export const NO_ROLE_LANDING = '/landing-page/home';
 
 /** A permission-protected section the caller opens, and the tab it opens on. */
 export interface ProtectedSection {
@@ -226,20 +218,17 @@ export interface ProtectedSection {
 }
 
 /**
- * The sections the caller opens THROUGH A PERMISSION (entries whose access is a
- * route list, not `ANY_SIGNED_IN`). A link with tabs counts once, when any of
- * its permission-protected tabs opens, and lands on the first of those.
- * The open entries are left out: everybody has them, so they say nothing about
- * what the caller's roles are for.
+ * The sections the caller's permissions open. A link with tabs counts once,
+ * when any of its tabs opens, and lands on the first of those.
  */
 export function protectedSections(who: NavAccess, groups: AdminGroup[] = ADMIN_GROUPS): ProtectedSection[] {
   return groups
     .flatMap(group => group.links)
     .reduce<ProtectedSection[]>((found, link) => {
       if (link.children?.length) {
-        const tab = link.children.find(child => child.access !== ANY_SIGNED_IN && opens(child.access, who));
+        const tab = link.children.find(child => opens(child.access, who));
         if (tab) found.push({ link, queryParams: tab.queryParams });
-      } else if (link.access !== ANY_SIGNED_IN && opens(link.access, who)) {
+      } else if (opens(link.access, who)) {
         found.push({ link });
       }
       return found;
@@ -247,9 +236,8 @@ export function protectedSections(who: NavAccess, groups: AdminGroup[] = ADMIN_G
 }
 
 /**
- * The one section a member's roles are for (exactly one permission-protected
- * section open), or `null`: no answer (fail-open), a Super admin, zero or
- * several. The panel home and the sign-in both go straight there, so a
+ * The one section a member's roles are for (exactly one section open), or
+ * `null`: no answer (fail-open), a Super admin, zero or several. The panel home and the sign-in both go straight there, so a
  * MELIAF-only member opens the MELIAF Taxonomy instead of a list of cards.
  */
 export function onlyProtectedSection(who: NavAccess | null, groups: AdminGroup[] = ADMIN_GROUPS): ProtectedSection | null {
@@ -267,13 +255,15 @@ export function sectionUrl(section: ProtectedSection): string {
 /**
  * The first screen after signing in (a URL, for `navigateByUrl`):
  * - access unknown (`null`) or Super admin → partner-request, as always;
- * - exactly one permission-protected section → that section;
- * - otherwise → partner-request when the caller opens it (today everyone
- *   does: it is `ANY_SIGNED_IN`), else the panel home instead of bouncing off
- *   the guard (login → partner-request → refused → home).
+ * - no section open → the public home: the panel has nothing for them;
+ * - exactly one section → that section;
+ * - several → partner-request when the caller opens it, else the panel home
+ *   instead of bouncing off the guard (login → partner-request → refused → home).
  */
 export function postLoginRoute(who: NavAccess | null): string {
   if (!who || who.isSuper) return LOGIN_LANDING;
+  const sections = protectedSections(who);
+  if (sections.length === 0) return NO_ROLE_LANDING;
   const only = onlyProtectedSection(who);
   if (only) return sectionUrl(only);
   const landing = adminLinkFor(LOGIN_LANDING);

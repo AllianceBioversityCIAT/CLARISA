@@ -16,6 +16,16 @@
     <span class="admin-home__skeleton" *ngFor="let _ of [1, 2, 3, 4]"></span>
   </div>
 
+  <div class="admin-home__state" *ngIf="isEmpty">
+    <i class="pi pi-user" aria-hidden="true"></i>
+    <div>
+      <p class="admin-home__state-title">No administration role yet</p>
+      <p class="admin-home__state-text">
+        Your account can use the public pages and the request forms. To manage a part of CLARISA, ask an admin to add you to a role (Users → Assign role).
+      </p>
+    </div>
+  </div>
+
   <section class="admin-home__group" *ngFor="let group of groups" [attr.aria-label]="group.title">
     <h2 class="admin-home__group-title">{{ group.title }}</h2>
     <div class="admin-home__grid">

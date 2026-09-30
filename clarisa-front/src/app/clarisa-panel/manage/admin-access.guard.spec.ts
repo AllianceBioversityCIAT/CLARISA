@@ -44,11 +44,29 @@ describe('AdminAccessGuard', () => {
     expect(router.serializeUrl(result as UrlTree)).toBe('/clarisa-panel/manage?denied=Users');
   });
 
-  it('lets a user without any role into the screens the back does not permission-guard', () => {
+  it('keeps a user without any role out of every screen, naming it', () => {
     resolved = { userId: 1, email: 'a@b', roles: [], permissions: [], isSuper: false };
-    expect(run('/clarisa-panel/manage/partner-request')).toBe(true);
-    expect(run('/clarisa-panel/manage/microservices-admin')).toBe(true);
+    expect(router.serializeUrl(run('/clarisa-panel/manage/partner-request') as UrlTree)).toBe(
+      '/clarisa-panel/manage?denied=Institution%20requests'
+    );
+    expect(router.serializeUrl(run('/clarisa-panel/manage/microservices-admin') as UrlTree)).toBe(
+      '/clarisa-panel/manage?denied=Microservices%20%26%20API%20keys'
+    );
     expect(router.serializeUrl(run('/clarisa-panel/manage/glossary-admin') as UrlTree)).toBe('/clarisa-panel/manage?denied=Glossary');
+  });
+
+  it('opens Institution requests for any institution-request permission', () => {
+    ['/api/partner-requests/create', '/api/partner-requests/respond', '/api/partner-requests/update'].forEach(permission => {
+      resolved = { userId: 1, email: 'a@b', roles: [], permissions: [permission], isSuper: false };
+      expect(run('/clarisa-panel/manage/partner-request')).toBe(true);
+    });
+  });
+
+  it('opens Microservices & API keys only with an API keys or MIS permission', () => {
+    resolved = { userId: 1, email: 'a@b', roles: [], permissions: ['/api/meliaf-taxonomy/admin'], isSuper: false };
+    expect(run('/clarisa-panel/manage/microservices-admin') instanceof UrlTree).toBe(true);
+    resolved = { userId: 1, email: 'a@b', roles: [], permissions: ['/api/api-keys'], isSuper: false };
+    expect(run('/clarisa-panel/manage/microservices-admin')).toBe(true);
   });
 
   // me/access failed or timed out (resolved() gives null): fail open, as before
