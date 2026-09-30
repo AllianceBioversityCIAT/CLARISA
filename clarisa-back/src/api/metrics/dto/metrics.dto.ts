@@ -46,6 +46,21 @@ export class MetricsDto {
   controlLists: number;
 
   /**
+   * Endpoints que publica la documentación pública del API (`/api-docs`), uno
+   * por ruta GET. Añadido 2026-09-30.
+   */
+  endpoints: number;
+
+  /** Sistemas (MIS) conectados a CLARISA, solo los activos. Añadido 2026-09-30. */
+  connectedSystems: number;
+
+  /**
+   * Llaves de API activas y sin vencer: las que hoy abren algo. Añadido
+   * 2026-09-30.
+   */
+  activeApiKeys: number;
+
+  /**
    * Cuándo se calcularon estas cifras, en ISO-8601 UTC.
    *
    * No es adorno: la respuesta se cachea, así que quien la lea puede saber si

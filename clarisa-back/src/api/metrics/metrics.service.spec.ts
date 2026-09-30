@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { DataSource } from 'typeorm';
+import { DataSource, IsNull } from 'typeorm';
+import { PUBLIC_OPENAPI_PATHS } from '../../shared/swagger/public-endpoints';
 
 import { MetricsService } from './metrics.service';
 
@@ -15,6 +16,8 @@ describe('MetricsService', () => {
     ['Country', 248],
     ['Initiative', 43],
     ['HomepageClarisaEndpoint', 41],
+    ['Mis', 31],
+    ['ApiKey', 12],
   ]);
 
   const count = jest.fn();
@@ -61,6 +64,21 @@ describe('MetricsService', () => {
     expect(metrics.countries).toBe(248);
     expect(metrics.initiatives).toBe(43);
     expect(metrics.controlLists).toBe(41);
+    expect(metrics.connectedSystems).toBe(31);
+    expect(metrics.activeApiKeys).toBe(12);
+    expect(metrics.endpoints).toBe(PUBLIC_OPENAPI_PATHS.length);
+    expect(metrics.endpoints).toBeGreaterThan(0);
+  });
+
+  it('cuenta como activa solo la llave activa que no venció', async () => {
+    await service.find();
+    const call = count.mock.calls.find(([name]) => name === 'ApiKey');
+    const where = call[1].where;
+    expect(where).toHaveLength(2);
+    for (const branch of where)
+      expect(branch.auditableFields).toEqual({ is_active: true });
+    expect(where[0].expires_at).toEqual(IsNull());
+    expect(where[1].expires_at.type).toBe('moreThan');
   });
 
   /**
@@ -78,6 +96,9 @@ describe('MetricsService', () => {
       'countries',
       'initiatives',
       'controlLists',
+      'endpoints',
+      'connectedSystems',
+      'activeApiKeys',
     ]) {
       expect(metrics).toHaveProperty(key);
       expect(typeof metrics[key]).toBe('number');
@@ -91,7 +112,7 @@ describe('MetricsService', () => {
   it('cuenta solo lo activo, porque es lo que devuelven los endpoints públicos', async () => {
     await service.find();
 
-    for (const call of count.mock.calls) {
+    for (const call of count.mock.calls.filter(([n]) => n !== 'ApiKey')) {
       expect(call[1]).toEqual({
         where: { auditableFields: { is_active: true } },
       });

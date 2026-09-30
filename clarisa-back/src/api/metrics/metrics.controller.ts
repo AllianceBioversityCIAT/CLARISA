@@ -29,7 +29,10 @@ export class MetricsController {
       '"generatedAt" is when the figures were computed (ISO-8601, UTC); the ' +
       'response is cached for one hour, so it may trail the database by that ' +
       'much. ' +
-      'The six keys are a stable contract: new ones may be added over time, ' +
+      '"endpoints" is how many paths the public API documentation lists, ' +
+      '"connectedSystems" the active systems (MIS) connected to CLARISA and ' +
+      '"activeApiKeys" the API keys that are active and not expired. ' +
+      'The keys are a stable contract: new ones may be added over time, ' +
       'but an existing key is never renamed nor removed, and none of them is ' +
       'ever null.',
   })
