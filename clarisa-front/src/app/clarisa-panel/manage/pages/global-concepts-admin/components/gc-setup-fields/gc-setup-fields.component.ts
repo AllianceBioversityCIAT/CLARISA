@@ -5,6 +5,7 @@ import { apiErrorMessage } from '../../../glossary-admin/utils/api-error-message
 import { FIELD_TYPE_LABELS, needsList } from '../../utils/custom-fields';
 import { emptyFieldForm, fieldCreateBody, FieldForm, fieldFormError, fieldFormFrom, fieldPatchBody, isLocked, suggestCode } from '../../utils/setup-fields';
 import { FIELD_INFO } from '../../utils/field-info';
+import { StableOptions } from '../../utils/stable-options';
 
 export interface FieldRow {
   field: CustomField;
@@ -80,8 +81,10 @@ export class GcSetupFieldsComponent implements OnInit, OnChanges {
     });
   }
 
+  private readonly _listOptions = new StableOptions<{ label: string; value: string }>();
+
   get listOptions(): { label: string; value: string }[] {
-    return this.listCodes.map(code => ({ label: code, value: code }));
+    return this._listOptions.get([this.listCodes], () => this.listCodes.map(code => ({ label: code, value: code })));
   }
 
   get editing(): boolean {
