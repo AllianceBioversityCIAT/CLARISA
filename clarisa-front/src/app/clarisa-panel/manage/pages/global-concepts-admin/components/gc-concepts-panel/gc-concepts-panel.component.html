@@ -312,4 +312,5 @@
   </div>
 </div>
 
+<app-gc-concept-create-dialog [scheme]="scheme" (created)="onCreated($event)"></app-gc-concept-create-dialog>
 <app-gc-concept-dialog [scheme]="scheme" [aiEnabled]="aiEnabled" [lists]="lists" [concepts]="concepts" (changed)="load()"></app-gc-concept-dialog>

@@ -91,6 +91,12 @@ export class GcConceptDialogComponent {
 
   // ---------------------------------------------------------------- open
 
+  /**
+   * Full create mode. Since 2026-09-30 no screen opens it: «New concept» and
+   * Usage go through the short `app-gc-concept-create-dialog`, which then calls
+   * `openEdit` on the new concept. Kept (and covered) because nothing it does
+   * is wrong, only no longer the entry point.
+   */
   openCreate(prefillLabel = ''): void {
     this.editing = null;
     this.form = { ...emptyForm(), preferred_label: prefillLabel.trim() };

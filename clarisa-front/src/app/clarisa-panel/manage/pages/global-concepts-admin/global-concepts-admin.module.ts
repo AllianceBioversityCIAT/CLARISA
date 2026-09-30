@@ -28,6 +28,7 @@ import { GcConceptsPanelComponent } from './components/gc-concepts-panel/gc-conc
 import { GcRequestsPanelComponent } from './components/gc-requests-panel/gc-requests-panel.component';
 import { GcImportPanelComponent } from './components/gc-import-panel/gc-import-panel.component';
 import { GcConceptDialogComponent } from './components/gc-concept-dialog/gc-concept-dialog.component';
+import { GcConceptCreateDialogComponent } from './components/gc-concept-create-dialog/gc-concept-create-dialog.component';
 import { GcConceptPickerComponent } from './components/gc-concept-picker/gc-concept-picker.component';
 import { GcLabelsEditorComponent } from './components/gc-labels-editor/gc-labels-editor.component';
 import { GcRelationsEditorComponent } from './components/gc-relations-editor/gc-relations-editor.component';
@@ -49,6 +50,7 @@ import { GlossaryFileParserService } from '../glossary-admin/services/glossary-f
     GcRequestsPanelComponent,
     GcImportPanelComponent,
     GcConceptDialogComponent,
+    GcConceptCreateDialogComponent,
     GcConceptPickerComponent,
     GcLabelsEditorComponent,
     GcRelationsEditorComponent,

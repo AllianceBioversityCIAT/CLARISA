@@ -12,6 +12,7 @@ import { STATUS_LABELS, statusSeverity } from '../../utils/concept-form';
 import { activeFields, customCellText } from '../../utils/custom-fields';
 import { groupLists, ListOption, listLabel } from '../../utils/list-values';
 import { GcConceptDialogComponent } from '../gc-concept-dialog/gc-concept-dialog.component';
+import { GcConceptCreateDialogComponent } from '../gc-concept-create-dialog/gc-concept-create-dialog.component';
 
 // The form helpers moved to utils/concept-form; re-exported so existing imports keep working.
 export { buildConceptBody, emptyForm, formFromConcept, STATUS_LABELS, statusSeverity } from '../../utils/concept-form';
@@ -68,6 +69,8 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
   /** The create request was used: the shell clears it, so a recreated panel does not open it again. */
   @Output() createHandled = new EventEmitter<number>();
   @ViewChild(GcConceptDialogComponent) dialog?: GcConceptDialogComponent;
+  /** «New concept» asks only the basics here; the full editor opens on the result. */
+  @ViewChild(GcConceptCreateDialogComponent) createDialog?: GcConceptCreateDialogComponent;
   indexing = false;
 
   loading = false;
@@ -302,8 +305,15 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
 
   // ------------------------------------------------------------- dialog
 
+  /** Short form first (label, definition, optional TERM ID); the full editor opens once the concept exists. */
   openCreate(label = ''): void {
-    this.dialog?.openCreate(label);
+    this.createDialog?.open(label);
+  }
+
+  /** The short form created the concept: the table learns about it, and the full editor opens on it with every tab unlocked. */
+  onCreated(concept: AdminConceptDetail | null | undefined): void {
+    this.load();
+    if (concept?.term_id) this.dialog?.openEdit(concept);
   }
 
   openEdit(concept: AdminConceptDetail | null): void {

@@ -130,12 +130,14 @@ describe('GcConceptsPanelComponent', () => {
     expect(api['semanticSearch']).not.toHaveBeenCalled();
   });
 
-  it('opens the create dialog from a request once and tells the shell it was used', () => {
+  it('opens the SHORT create dialog, prefilled, from a Usage request once and tells the shell it was used', () => {
     jest.useFakeTimers();
     try {
       const panel = new GcConceptsPanelComponent(api as unknown as GlobalConceptsApiService, { add: jest.fn() } as unknown as MessageService);
+      const open = jest.fn();
       const openCreate = jest.fn();
-      panel.dialog = { openCreate } as never;
+      panel.createDialog = { open } as never;
+      panel.dialog = { openCreate, openEdit: jest.fn() } as never;
       const handled = jest.fn();
       panel.createHandled.subscribe(handled);
       panel.createRequest = { label: 'theory of change', token: 4 };
@@ -143,11 +145,36 @@ describe('GcConceptsPanelComponent', () => {
       panel.ngOnInit();
       jest.runOnlyPendingTimers();
 
-      expect(openCreate).toHaveBeenCalledWith('theory of change');
+      expect(open).toHaveBeenCalledWith('theory of change');
+      // The full editor is never opened in create mode any more.
+      expect(openCreate).not.toHaveBeenCalled();
       expect(handled).toHaveBeenCalledWith(4);
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it('"New concept" opens the short form, and a created concept opens the full editor on it and reloads the table', () => {
+    const open = jest.fn();
+    const openEdit = jest.fn();
+    const openCreate = jest.fn();
+    component.createDialog = { open } as never;
+    component.dialog = { openEdit, openCreate } as never;
+
+    component.openCreate();
+    expect(open).toHaveBeenCalledWith('');
+    expect(openCreate).not.toHaveBeenCalled();
+
+    api['adminConcepts'].mockClear();
+    const created = concept(3, 'New') as never;
+    component.onCreated(created);
+    expect(openEdit).toHaveBeenCalledWith(created);
+    expect(api['adminConcepts']).toHaveBeenCalledTimes(1);
+
+    // An answer without a code cannot be edited: only the table reloads.
+    openEdit.mockClear();
+    component.onCreated({} as never);
+    expect(openEdit).not.toHaveBeenCalled();
   });
 
   describe('custom-field columns', () => {

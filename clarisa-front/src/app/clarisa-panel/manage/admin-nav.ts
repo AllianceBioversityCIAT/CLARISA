@@ -186,6 +186,24 @@ export function groupsFor(who: NavAccess | null, groups: AdminGroup[] = ADMIN_GR
     .filter(group => group.links.length > 0);
 }
 
+/** Where a sign-in lands today; kept for everyone who can open it. */
+export const LOGIN_LANDING = '/clarisa-panel/manage/partner-request';
+/** Same value as `ADMIN_HOME` in `admin-access.guard.ts` (that file imports this one). */
+const PANEL_HOME = '/clarisa-panel/manage';
+
+/**
+ * The first screen after signing in. Super admins and anyone whose roles open
+ * Institution requests land there, as always. Everyone else goes to the panel
+ * home instead of bouncing off the guard on the way (login → partner-request →
+ * refused → home). When the access could not be read (`null`), nothing
+ * changes: partner-request, and the guard explains from there.
+ */
+export function postLoginRoute(who: NavAccess | null): string {
+  if (!who) return LOGIN_LANDING;
+  const landing = adminLinkFor(LOGIN_LANDING);
+  return !landing || canOpenLink(landing, who) ? LOGIN_LANDING : PANEL_HOME;
+}
+
 /** The entry a panel URL belongs to (longest route prefix), or `null`. */
 export function adminLinkFor(url: string): AdminLink | null {
   const path = url.split('?')[0].split('#')[0];
