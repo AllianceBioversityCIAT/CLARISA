@@ -24,6 +24,10 @@ import { ConceptsReadService } from '../services/concepts-read.service';
 import { ConceptsExportService } from '../services/concepts-export.service';
 import { ConceptsSuggestService } from '../services/concepts-suggest.service';
 import { PublicRateLimitGuard } from '../utils/public-rate-limit.guard';
+import { PlatformUsageService } from '../services/platform-usage.service';
+import { ApiKeyService } from '../../api-key/api-key.service';
+import { ApiKeyUsageLogService } from '../../api-key/api-key-usage-log.service';
+import { currentApiKeyCaller } from '../../../shared/utils/api-key-caller-context';
 
 /**
  * Route order over real HTTP, with the controllers in the order the module
@@ -63,6 +67,9 @@ describe('Global Concepts routes (HTTP)', () => {
     addListValue: hit('catalog.addListValue'),
   };
   const admin = { get: hit('admin.get'), list: hit('admin.list') };
+  const platformUsage = { byPlatform: hit('platformUsage.byPlatform') };
+  const apiKeys = { validate: jest.fn() };
+  const usageLog = { recordUsageAsync: jest.fn() };
   const exporter = {
     export: jest.fn(async () => ({
       body: '{}',
@@ -100,6 +107,9 @@ describe('Global Concepts routes (HTTP)', () => {
         { provide: ConceptsReadService, useValue: read },
         { provide: ConceptsExportService, useValue: exporter },
         { provide: ConceptsSuggestService, useValue: {} },
+        { provide: PlatformUsageService, useValue: platformUsage },
+        { provide: ApiKeyService, useValue: apiKeys },
+        { provide: ApiKeyUsageLogService, useValue: usageLog },
       ],
     })
       .overrideGuard(JwtAuthGuard)
@@ -140,6 +150,11 @@ describe('Global Concepts routes (HTTP)', () => {
     ['patch', '/admin/meliaf/fields/2', 'fields.update'],
     ['get', '/admin/meliaf/import-fields', 'fields.importFields'],
     ['get', '/admin/meliaf/usage?days=7', 'usage.summary'],
+    [
+      'get',
+      '/admin/meliaf/usage/platforms?from=2026-09-01&to=2026-09-30',
+      'platformUsage.byPlatform',
+    ],
     ['get', '/meliaf/fields', 'read.fields'],
     ['get', '/admin/meliaf/concepts-meta/fields', 'fields.list'],
     ['get', '/admin/meliaf/concepts-meta/lists', 'catalog.listValues'],
@@ -291,5 +306,128 @@ describe('Global Concepts routes (HTTP)', () => {
     const res = await request(app.getHttpServer()).get('/meliaf/concepts/9');
     expect(res.status).toBe(500);
     expect(usage.record).not.toHaveBeenCalled();
+  });
+
+  it('passes the platform usage period through', async () => {
+    await request(app.getHttpServer()).get(
+      '/admin/meliaf/usage/platforms?from=2026-09-01&to=2026-09-30',
+    );
+    expect(platformUsage.byPlatform).toHaveBeenCalledWith('meliaf', {
+      from: '2026-09-01',
+      to: '2026-09-30',
+      days: undefined,
+    });
+  });
+
+  describe('optional API key on the public reads', () => {
+    const flushFinish = () => new Promise((r) => setImmediate(r));
+
+    it('without X-API-Key: answers as always and checks no key', async () => {
+      const res = await request(app.getHttpServer()).get('/meliaf/concepts/7');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ term_id: 7 });
+      expect(res.headers['x-api-key-status']).toBeUndefined();
+      expect(apiKeys.validate).not.toHaveBeenCalled();
+      expect(usageLog.recordUsageAsync).not.toHaveBeenCalled();
+    });
+
+    it('with a valid key: same answer, one usage row, and the read knows its platform', async () => {
+      apiKeys.validate.mockResolvedValue({
+        valid: true,
+        api_key_id: 5,
+        mis: { id: 3, name: 'PRMS', acronym: 'PRMS' },
+      });
+      let seen: unknown = 'not called';
+      usage.record.mockImplementationOnce(() => {
+        seen = currentApiKeyCaller();
+      });
+      const res = await request(app.getHttpServer())
+        .get('/meliaf/concepts/7')
+        .set('X-API-Key', 'cl_test_abcdefghijklmnop');
+      await flushFinish();
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ term_id: 7 });
+      expect(res.headers['x-api-key-status']).toBeUndefined();
+      expect(apiKeys.validate).toHaveBeenCalledWith(
+        expect.objectContaining({ api_key: 'cl_test_abcdefghijklmnop' }),
+        expect.objectContaining({ recordUsage: false, httpMethod: 'GET' }),
+      );
+      // Reading public data needs no scope: any valid key counts.
+      expect(apiKeys.validate.mock.calls[0][0].required_scope).toBeUndefined();
+      expect(usageLog.recordUsageAsync).toHaveBeenCalledTimes(1);
+      expect(usageLog.recordUsageAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          api_key_id: 5,
+          microservice_name: 'clarisa-api',
+          endpoint_accessed: '/meliaf/concepts/7',
+          http_method: 'GET',
+          status_code: 200,
+        }),
+      );
+      expect(seen).toEqual({ api_key_id: 5, mis_id: 3 });
+    });
+
+    it('with a bad key: still 200, nothing recorded, X-Api-Key-Status: invalid', async () => {
+      apiKeys.validate.mockResolvedValue({
+        valid: false,
+        error: 'API key is revoked',
+      });
+      const res = await request(app.getHttpServer())
+        .get('/meliaf/concepts?q=IA')
+        .set('X-API-Key', 'cl_test_revokedrevokedrev');
+      await flushFinish();
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual([{ term_id: 1 }]);
+      expect(res.headers['x-api-key-status']).toBe('invalid');
+      expect(usageLog.recordUsageAsync).not.toHaveBeenCalled();
+      expect(usage.recordList).toHaveBeenCalledWith('meliaf', 'IA', 1);
+    });
+
+    it('when the key cannot be checked (database down): still 200, no header, no row', async () => {
+      apiKeys.validate.mockRejectedValue(new Error('db down'));
+      const res = await request(app.getHttpServer())
+        .get('/meliaf/fields')
+        .set('X-API-Key', 'cl_test_abcdefghijklmnop');
+      await flushFinish();
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ handler: 'read.fields' });
+      expect(res.headers['x-api-key-status']).toBeUndefined();
+      expect(usageLog.recordUsageAsync).not.toHaveBeenCalled();
+    });
+
+    it('when the recorder throws: the read still succeeds', async () => {
+      apiKeys.validate.mockResolvedValue({ valid: true, api_key_id: 5 });
+      usageLog.recordUsageAsync.mockImplementationOnce(() => {
+        throw new Error('log table missing');
+      });
+      const res = await request(app.getHttpServer())
+        .get('/meliaf/export?format=csv')
+        .set('X-API-Key', 'cl_test_abcdefghijklmnop');
+      await flushFinish();
+      expect(res.status).toBe(200);
+      expect(usageLog.recordUsageAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it('logs the real status of a failed read made with a valid key', async () => {
+      apiKeys.validate.mockResolvedValue({ valid: true, api_key_id: 5 });
+      read.get.mockRejectedValueOnce(new Error('boom'));
+      const res = await request(app.getHttpServer())
+        .get('/meliaf/concepts/9')
+        .set('X-API-Key', 'cl_test_abcdefghijklmnop');
+      await flushFinish();
+      expect(res.status).toBe(500);
+      expect(usageLog.recordUsageAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ status_code: 500 }),
+      );
+    });
+
+    it('never touches the admin routes (they keep their own auth)', async () => {
+      apiKeys.validate.mockResolvedValue({ valid: false });
+      const res = await request(app.getHttpServer())
+        .get('/admin/meliaf/usage?days=7')
+        .set('X-API-Key', 'cl_test_abcdefghijklmnop');
+      expect(res.headers['x-api-key-status']).toBeUndefined();
+      expect(apiKeys.validate).not.toHaveBeenCalled();
+    });
   });
 });

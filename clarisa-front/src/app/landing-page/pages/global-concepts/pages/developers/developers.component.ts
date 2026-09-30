@@ -86,6 +86,7 @@ export function snippets(b: DocBases, scheme: string, termId: number): Record<st
     exportPinned: `curl -o ${scheme}-1.0.ttl "${s}/export?format=skos&version=1.0"`,
     changes: `# First sync: since=0. Keep next_cursor and send it back next time.\ncurl "${s}/changes?since=0&limit=500"\n# → { "changes": [ { "cursor": 41, "term_id": ${termId}, "action": "update", "changed_at": "…" } ], "next_cursor": 41 }\ncurl "${s}/changes?since=41&limit=500"`,
     pinned: `curl "${s}/concepts/${termId}?version=1.0"`,
+    counted: `curl -H "X-API-Key: <your CLARISA API key>" "${s}/concepts?q=outcome"`,
     suggest: `curl -X POST "${s}/suggest" \\\n  -H "Content-Type: application/json" \\\n  -d '{ "text": "The outcome evaluation used a theory of change." }'`,
     platform: `curl -X POST "${b.api}/platform/${scheme}/requests" \\\n  -H "x-api-key: <your platform key>" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "type": "new",\n    "payload": { "preferred_label": "Learning agenda", "definition": "…" },\n    "rationale": "Used in our annual reports",\n    "requester_email": "person@cgiar.org",\n    "external_request_id": "our-system:1234"\n  }'`,
     claudeCode: `claude mcp add --transport http clarisa-concepts ${b.mcp}`,
@@ -117,6 +118,7 @@ export const DEV_SECTIONS = [
   { id: 'uris', label: 'Persistent URIs' },
   { id: 'exports', label: 'Exports' },
   { id: 'sync', label: 'Change feed and versions' },
+  { id: 'counted', label: 'Get counted' },
   { id: 'platforms', label: 'Platforms and API keys' },
   { id: 'mcp', label: 'AI assistants (MCP)' }
 ];

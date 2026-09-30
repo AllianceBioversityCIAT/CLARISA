@@ -326,4 +326,71 @@ describe('ApiKeyUsageMetricsService — endpoint and MIS aggregates', () => {
     await service.getLogs({ mis_ids: '0' } as any);
     expect(qb.andWhere).toHaveBeenCalledWith('ak.mis_id IS NULL');
   });
+
+  it('getSystemsForEndpoints narrows the Overview systems to some path prefixes, in the period', async () => {
+    const qb = queryBuilder([
+      {
+        mis_id: '3',
+        acronym: 'PRMS',
+        name: 'Reporting',
+        environment: 'PROD',
+        calls: '12',
+        errors: '1',
+        avg_ms: '40.6',
+        api_keys: '1',
+        last_used_at: null,
+      },
+    ]);
+    const logRepository: any = { createQueryBuilder: jest.fn(() => qb) };
+    const service = new ApiKeyUsageMetricsService({} as any, logRepository);
+
+    const result = await service.getSystemsForEndpoints(
+      { from: '2026-09-01T00:00:00', to: '2026-09-30T00:00:00' },
+      ['/api/meliaf-taxonomy/', '/concepts/'],
+    );
+
+    expect(qb.andWhere).toHaveBeenCalledWith(
+      '(log.endpoint_accessed LIKE :endpointPrefix0 OR log.endpoint_accessed LIKE :endpointPrefix1)',
+      {
+        endpointPrefix0: '/api/meliaf-taxonomy/%',
+        endpointPrefix1: '/concepts/%',
+      },
+    );
+    const [, fromArgs] = qb.where.mock.calls[0];
+    expect(fromArgs.from.getDate()).toBe(1);
+    expect(fromArgs.from.getHours()).toBe(0);
+    expect(result.systems).toEqual([
+      {
+        mis_id: 3,
+        acronym: 'PRMS',
+        name: 'Reporting',
+        environment: 'PROD',
+        calls: 12,
+        errors: 1,
+        avg_response_time_ms: 41,
+        api_keys: 1,
+        last_used_at: null,
+      },
+    ]);
+  });
+
+  it('escapes LIKE wildcards in an endpoint prefix', async () => {
+    const qb = queryBuilder([]);
+    const logRepository: any = { createQueryBuilder: jest.fn(() => qb) };
+    const service = new ApiKeyUsageMetricsService({} as any, logRepository);
+    await service.getSystemsForEndpoints({}, ['/api/a_b%/']);
+    expect(qb.andWhere).toHaveBeenCalledWith(
+      '(log.endpoint_accessed LIKE :endpointPrefix0)',
+      { endpointPrefix0: '/api/a\\_b\\%/%' },
+    );
+  });
+
+  it('the Overview keeps no endpoint filter', async () => {
+    const qb = queryBuilder([]);
+    const logRepository: any = { createQueryBuilder: jest.fn(() => qb) };
+    const service = new ApiKeyUsageMetricsService({} as any, logRepository);
+    await service.getOverview({} as any);
+    for (const [clause] of qb.andWhere.mock.calls)
+      expect(String(clause)).not.toMatch(/endpoint_accessed LIKE/);
+  });
 });

@@ -13,6 +13,7 @@ import {
   EndpointUsageItemDto,
   EndpointUsageResponseDto,
   MisActivityItemDto,
+  OverviewSystemDto,
   UsageOverviewResponseDto,
   UsageLogsResponseDto,
   UsageSummaryResponseDto,
@@ -44,7 +45,13 @@ interface UsageFilterParams {
   mis_ids?: number[];
   api_key_id?: number;
   microservice_name?: string;
+  /** Only calls whose path starts with one of these (`/api/meliaf-taxonomy/`). */
+  endpoint_prefixes?: string[];
 }
+
+/** `LIKE` pattern that matches `prefix` literally, then anything. */
+const likePrefix = (prefix: string) =>
+  `${prefix.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
 @Injectable()
 export class ApiKeyUsageMetricsService {
@@ -363,27 +370,8 @@ export class ApiKeyUsageMetricsService {
     const granularity = query.granularity ?? 'day';
     const bucket = granularity === 'week' ? WEEK_EXPR : DAY_EXPR;
 
-    const [systemRows, seriesRows, heatRows] = await Promise.all([
-      this._baseLogQuery(filters)
-        .leftJoin('ak.environment_object', 'env')
-        .select('ak.mis_id', 'mis_id')
-        .addSelect('mis.acronym', 'acronym')
-        .addSelect('mis.name', 'name')
-        .addSelect('env.acronym', 'environment')
-        .addSelect('COUNT(log.id)', 'calls')
-        .addSelect(
-          'SUM(CASE WHEN log.status_code >= 400 THEN 1 ELSE 0 END)',
-          'errors',
-        )
-        .addSelect('AVG(log.response_time_ms)', 'avg_ms')
-        .addSelect('COUNT(DISTINCT ak.id)', 'api_keys')
-        .addSelect('MAX(log.created_at)', 'last_used_at')
-        .groupBy('ak.mis_id')
-        .addGroupBy('mis.acronym')
-        .addGroupBy('mis.name')
-        .addGroupBy('env.acronym')
-        .orderBy('calls', 'DESC')
-        .getRawMany(),
+    const [systems, seriesRows, heatRows] = await Promise.all([
+      this._aggregateSystems(filters),
       this._baseLogQuery(filters)
         .select(bucket, 'bucket')
         .addSelect('ak.mis_id', 'mis_id')
@@ -414,17 +402,7 @@ export class ApiKeyUsageMetricsService {
     return {
       period: toIsoPeriod(range),
       granularity,
-      systems: systemRows.map((row) => ({
-        mis_id: id(row.mis_id),
-        acronym: row.acronym ?? 'No MIS',
-        name: row.name ?? 'Keys not linked to any system',
-        environment: row.environment ?? null,
-        calls: Number(row.calls ?? 0),
-        errors: Number(row.errors ?? 0),
-        avg_response_time_ms: ms(row.avg_ms),
-        api_keys: Number(row.api_keys ?? 0),
-        last_used_at: row.last_used_at ?? null,
-      })),
+      systems,
       series: seriesRows.map((row) => ({
         bucket: String(row.bucket),
         mis_id: id(row.mis_id),
@@ -439,6 +417,66 @@ export class ApiKeyUsageMetricsService {
         calls: Number(row.calls ?? 0),
       })),
     };
+  }
+
+  /**
+   * Calls per connected system for the endpoints under some path prefixes —
+   * the same rows as the Overview's `systems`, narrowed to one module (for
+   * MELIAF Taxonomy: `/api/meliaf-taxonomy/` and its persistent `/concepts/`).
+   */
+  async getSystemsForEndpoints(
+    range: { from?: string; to?: string },
+    endpointPrefixes: string[],
+  ): Promise<{
+    period: { from: string; to: string };
+    systems: OverviewSystemDto[];
+  }> {
+    const resolved = resolveUsageDateRange(range.from, range.to);
+    const systems = await this._aggregateSystems({
+      from: resolved.from,
+      to: resolved.to,
+      endpoint_prefixes: endpointPrefixes,
+    });
+    return { period: toIsoPeriod(resolved), systems };
+  }
+
+  private async _aggregateSystems(
+    filters: UsageFilterParams,
+  ): Promise<OverviewSystemDto[]> {
+    const rows = await this._baseLogQuery(filters)
+      .leftJoin('ak.environment_object', 'env')
+      .select('ak.mis_id', 'mis_id')
+      .addSelect('mis.acronym', 'acronym')
+      .addSelect('mis.name', 'name')
+      .addSelect('env.acronym', 'environment')
+      .addSelect('COUNT(log.id)', 'calls')
+      .addSelect(
+        'SUM(CASE WHEN log.status_code >= 400 THEN 1 ELSE 0 END)',
+        'errors',
+      )
+      .addSelect('AVG(log.response_time_ms)', 'avg_ms')
+      .addSelect('COUNT(DISTINCT ak.id)', 'api_keys')
+      .addSelect('MAX(log.created_at)', 'last_used_at')
+      .groupBy('ak.mis_id')
+      .addGroupBy('mis.acronym')
+      .addGroupBy('mis.name')
+      .addGroupBy('env.acronym')
+      .orderBy('calls', 'DESC')
+      .getRawMany();
+
+    const id = (v: unknown) => (v != null ? Number(v) : null);
+    const ms = (v: unknown) => (v != null ? Math.round(Number(v)) : null);
+    return rows.map((row) => ({
+      mis_id: id(row.mis_id),
+      acronym: row.acronym ?? 'No MIS',
+      name: row.name ?? 'Keys not linked to any system',
+      environment: row.environment ?? null,
+      calls: Number(row.calls ?? 0),
+      errors: Number(row.errors ?? 0),
+      avg_response_time_ms: ms(row.avg_ms),
+      api_keys: Number(row.api_keys ?? 0),
+      last_used_at: row.last_used_at ?? null,
+    }));
   }
 
   private _buildFilters(
@@ -493,6 +531,15 @@ export class ApiKeyUsageMetricsService {
       qb.andWhere('log.microservice_name = :microserviceName', {
         microserviceName: filters.microservice_name,
       });
+    }
+
+    if (filters.endpoint_prefixes?.length) {
+      const params: Record<string, string> = {};
+      const clauses = filters.endpoint_prefixes.map((prefix, i) => {
+        params[`endpointPrefix${i}`] = likePrefix(prefix);
+        return `log.endpoint_accessed LIKE :endpointPrefix${i}`;
+      });
+      qb.andWhere(`(${clauses.join(' OR ')})`, params);
     }
 
     return qb;

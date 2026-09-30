@@ -9,6 +9,8 @@ import { ConceptsReadService } from '../services/concepts-read.service';
 import { ConceptsExportService } from '../services/concepts-export.service';
 import { PublicRateLimitGuard } from '../utils/public-rate-limit.guard';
 import { UsageService } from '../services/usage.service';
+import { ApiKeyService } from '../../api-key/api-key.service';
+import { ApiKeyUsageLogService } from '../../api-key/api-key-usage-log.service';
 
 /** The transport over real HTTP: status codes, raw JSON-RPC, route order. */
 describe('GlobalConceptsMcpController (HTTP)', () => {
@@ -19,6 +21,9 @@ describe('GlobalConceptsMcpController (HTTP)', () => {
     releases: jest.fn(async () => []),
     scheme: jest.fn(async () => ({ code: 'mcp' })),
   };
+
+  const apiKeys = { validate: jest.fn() };
+  const usageLog = { recordUsageAsync: jest.fn() };
 
   beforeAll(async () => {
     const mod = await Test.createTestingModule({
@@ -36,12 +41,53 @@ describe('GlobalConceptsMcpController (HTTP)', () => {
           provide: UsageService,
           useValue: { record: jest.fn(), recordList: jest.fn() },
         },
+        { provide: ApiKeyService, useValue: apiKeys },
+        { provide: ApiKeyUsageLogService, useValue: usageLog },
       ],
     }).compile();
     app = mod.createNestApplication();
     await app.init();
   });
   afterAll(() => app.close());
+
+  it('counts an MCP call made with a valid platform key, same answer as without', async () => {
+    apiKeys.validate.mockResolvedValueOnce({ valid: true, api_key_id: 8 });
+    const body = { jsonrpc: '2.0', id: 1, method: 'ping' };
+    const keyed = await request(app.getHttpServer())
+      .post('/mcp')
+      .set('X-API-Key', 'cl_test_abcdefghijklmnop')
+      .send(body);
+    await new Promise((r) => setImmediate(r));
+    const anonymous = await request(app.getHttpServer())
+      .post('/mcp')
+      .send(body);
+    expect(keyed.status).toBe(200);
+    expect(keyed.body).toEqual(anonymous.body);
+    expect(usageLog.recordUsageAsync).toHaveBeenCalledTimes(1);
+    expect(usageLog.recordUsageAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        api_key_id: 8,
+        endpoint_accessed: '/mcp',
+        http_method: 'POST',
+        status_code: 200,
+      }),
+    );
+  });
+
+  it('serves an MCP call with an expired key and flags it', async () => {
+    usageLog.recordUsageAsync.mockClear();
+    apiKeys.validate.mockResolvedValueOnce({
+      valid: false,
+      error: 'API key has expired',
+    });
+    const res = await request(app.getHttpServer())
+      .post('/mcp')
+      .set('X-API-Key', 'cl_test_expiredexpiredexp')
+      .send({ jsonrpc: '2.0', id: 1, method: 'ping' });
+    expect(res.status).toBe(200);
+    expect(res.headers['x-api-key-status']).toBe('invalid');
+    expect(usageLog.recordUsageAsync).not.toHaveBeenCalled();
+  });
 
   it('answers initialize with plain JSON-RPC, not wrapped', async () => {
     const res = await request(app.getHttpServer())

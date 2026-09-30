@@ -1,4 +1,4 @@
-import { UsageSummary } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
+import { PlatformUsage, PlatformUsageSystem, UsageSummary } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
 
 export interface UsageKpi {
   key: keyof UsageSummary['totals'];
@@ -171,4 +171,27 @@ export function usageSeries(
   const sparks: Record<string, number[]> = {};
   for (const key of Object.keys(USAGE_COLORS) as (keyof UsageSummary['totals'])[]) sparks[key] = labels.map(d => value(d, key));
   return { labels, series, sparks };
+}
+
+/** One connected system in "By platform", with its share and bar length. */
+export interface PlatformRow extends PlatformUsageSystem {
+  /** Stable key for the table (the no-MIS bucket has `mis_id: null`). */
+  key: string;
+  /** % of all keyed calls in the period, one decimal. */
+  share: number;
+  /** Bar length against the busiest system, 0–100. */
+  bar: number;
+}
+
+/** Busiest first; a missing or empty answer is an empty list, never an error. */
+export function platformRows(usage: PlatformUsage | null): PlatformRow[] {
+  const systems = [...(usage?.systems ?? [])].sort((a, b) => b.calls - a.calls || a.acronym.localeCompare(b.acronym));
+  const total = systems.reduce((sum, s) => sum + (s.calls || 0), 0);
+  const max = systems.reduce((m, s) => Math.max(m, s.calls || 0), 0);
+  return systems.map(s => ({
+    ...s,
+    key: `${s.mis_id ?? 'none'}:${s.environment ?? ''}`,
+    share: total ? Math.round((s.calls / total) * 1000) / 10 : 0,
+    bar: max ? Math.max(2, Math.round((s.calls / max) * 100)) : 0
+  }));
 }

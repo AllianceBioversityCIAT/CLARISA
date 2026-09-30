@@ -94,4 +94,14 @@ describe('DevelopersComponent', () => {
     component.tryIt();
     expect(api.mcpCall).not.toHaveBeenCalled();
   });
+
+  it('explains how a platform gets counted, with the header and a curl', () => {
+    const section: HTMLElement = fixture.nativeElement.querySelector('#counted');
+    expect(section).toBeTruthy();
+    expect(section.textContent).toContain('X-API-Key');
+    expect(section.textContent).toContain('X-Api-Key-Status: invalid');
+    expect(section.textContent).toContain('Reads stay open without a key');
+    expect(component.code['counted']).toBe(`curl -H "X-API-Key: <your CLARISA API key>" "${root}api/meliaf-taxonomy/meliaf/concepts?q=outcome"`);
+    expect(component.sections.map(s => s.id)).toContain('counted');
+  });
 });

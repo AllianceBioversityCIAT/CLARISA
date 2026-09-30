@@ -5,6 +5,7 @@ import { FakeManager, fakeDataSource } from '../utils/fake-manager.spec-helper';
 import { GcScheme } from '../entities/gc-scheme.entity';
 import { GcConcept, GcConceptStatus } from '../entities/gc-concept.entity';
 import { GcUsageDaily, GcUsageKind } from '../entities/gc-usage-daily.entity';
+import { apiKeyCallerContext } from '../../../shared/utils/api-key-caller-context';
 
 const flush = () => new Promise((r) => setImmediate(r));
 const day = (offset = 0) =>
@@ -203,6 +204,78 @@ describe('UsageService', () => {
       await expect(service.summary('nope', 30)).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('reads made with a platform API key', () => {
+    it('adds a keyed shadow row, and only while a platform key is in context', async () => {
+      apiKeyCallerContext.run({ api_key_id: 5, mis_id: 3 }, () =>
+        service.record('meliaf', GcUsageKind.VIEW, 7),
+      );
+      await flush();
+      expect(db.queries.map((q) => q.params)).toEqual([
+        [day(), 'view', '7', 'meliaf'],
+        [day(), 'keyed', 'view', 'meliaf'],
+      ]);
+
+      db.queries.length = 0;
+      service.record('meliaf', GcUsageKind.VIEW, 7);
+      await flush();
+      expect(db.queries.map((q) => q.params)).toEqual([
+        [day(), 'view', '7', 'meliaf'],
+      ]);
+    });
+
+    it('never shadows zero_search (it is the same request as its search)', async () => {
+      apiKeyCallerContext.run({ api_key_id: 5 }, () =>
+        service.recordList('meliaf', 'ia', 0),
+      );
+      await flush();
+      expect(db.queries.map((q) => q.params[1])).toEqual([
+        'search',
+        'keyed',
+        'zero_search',
+      ]);
+    });
+  });
+
+  describe('countedReads', () => {
+    const withRows = (rows: { kind: string; n: string | number }[]) => {
+      const query = jest.fn(async () => rows);
+      return {
+        query,
+        service: new UsageService({ query } as any, new ConceptGraphLoader()),
+      };
+    };
+
+    it('splits the counted reads of the period into keyed and anonymous', async () => {
+      const { query, service: s } = withRows([
+        { kind: 'search', n: '10' },
+        { kind: 'view', n: 5 },
+        { kind: 'mcp', n: '2' },
+        { kind: 'keyed', n: '4' },
+      ]);
+      await expect(s.countedReads('2026-09-01', '2026-09-30')).resolves.toEqual(
+        { total: 17, keyed: 4, anonymous: 13 },
+      );
+      const [sql, params] = query.mock.calls[0] as unknown as [string, any[]];
+      expect(sql).toMatch(/BETWEEN \? AND \?/);
+      expect(sql).not.toMatch(/zero_search/);
+      expect(params.slice(0, 2)).toEqual(['2026-09-01', '2026-09-30']);
+      expect(params).not.toContain('zero_search');
+      expect(params).toContain('keyed');
+    });
+
+    it('is all zeros on an empty period, and never goes negative', async () => {
+      await expect(
+        withRows([]).service.countedReads('2026-09-01', '2026-09-01'),
+      ).resolves.toEqual({ total: 0, keyed: 0, anonymous: 0 });
+      await expect(
+        withRows([{ kind: 'keyed', n: 3 }]).service.countedReads(
+          '2026-09-01',
+          '2026-09-01',
+        ),
+      ).resolves.toEqual({ total: 0, keyed: 0, anonymous: 0 });
     });
   });
 });

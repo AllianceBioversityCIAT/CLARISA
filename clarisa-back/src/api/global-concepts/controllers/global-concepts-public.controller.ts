@@ -11,8 +11,9 @@ import {
   Query,
   Res,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiHeader, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { GlobalConceptsEnabledGuard } from '../utils/feature-enabled.guard';
 import { ConceptsReadService } from '../services/concepts-read.service';
@@ -24,6 +25,7 @@ import {
 } from '../services/concepts-export.service';
 import { UsageService } from '../services/usage.service';
 import { GcUsageKind } from '../entities/gc-usage-daily.entity';
+import { OptionalApiKeyUsageInterceptor } from '../../../shared/interceptors/optional-api-key-usage.interceptor';
 
 /**
  * Public, anonymous read of Global Concepts. Only approved and deprecated
@@ -33,10 +35,21 @@ import { GcUsageKind } from '../entities/gc-usage-daily.entity';
  * it (`UsageService.record` is fire-and-forget), so a counter can never fail
  * or slow a read. Services stay uncounted: the MCP tools and the text
  * matcher call them too.
+ *
+ * Still public, but a platform that sends its CLARISA `X-API-Key` is counted
+ * per system (`OptionalApiKeyUsageInterceptor`); a bad key never blocks a read.
  */
 @ApiTags('MELIAF Taxonomy')
+@ApiHeader({
+  name: 'X-API-Key',
+  required: false,
+  description:
+    'Optional. Your CLARISA API key: the read stays open without it, and with it your platform is counted in the usage figures. ' +
+    'A key that is unknown, revoked or expired never blocks the read; the answer then carries `X-Api-Key-Status: invalid`.',
+})
 @Controller()
 @UseGuards(GlobalConceptsEnabledGuard)
+@UseInterceptors(OptionalApiKeyUsageInterceptor)
 export class GlobalConceptsPublicController {
   constructor(
     private readonly read: ConceptsReadService,

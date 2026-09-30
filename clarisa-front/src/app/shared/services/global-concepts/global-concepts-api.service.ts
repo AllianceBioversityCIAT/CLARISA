@@ -526,6 +526,11 @@ export class GlobalConceptsApiService {
     return this._http.get<UsageSummary>(`${this.admin}/${encodeURIComponent(scheme)}/usage`, { params: params({ days }) });
   }
 
+  /** Calls per connected system (API key → MIS) to the whole MELIAF Taxonomy API, plus the anonymous reads. */
+  usageByPlatform(scheme: string, days: number): Observable<PlatformUsage> {
+    return this._http.get<PlatformUsage>(`${this.admin}/${encodeURIComponent(scheme)}/usage/platforms`, { params: params({ days }) });
+  }
+
   /** Advisory: nothing is saved until the editor accepts the text and saves the concept. */
   aiDraft(
     scheme: string,
@@ -680,6 +685,30 @@ export interface UsageSummary {
   top_searches: { item: string; count: number }[];
   zero_result_searches: { item: string; count: number }[];
   top_viewed: { term_id: number; preferred_label: string; count: number }[];
+}
+
+/** `GET admin/{scheme}/usage/platforms` (platform-usage.service.ts). */
+export interface PlatformUsage {
+  scope: 'all-schemes';
+  from: string;
+  to: string;
+  endpoint_prefixes: string[];
+  systems: PlatformUsageSystem[];
+  platform_calls: number;
+  /** The module's own counters: `total = keyed + anonymous`. */
+  counted_reads: { total: number; keyed: number; anonymous: number };
+}
+
+export interface PlatformUsageSystem {
+  mis_id: number | null;
+  acronym: string;
+  name: string;
+  environment: string | null;
+  calls: number;
+  errors: number;
+  avg_response_time_ms: number | null;
+  api_keys: number;
+  last_used_at: string | null;
 }
 
 export type AiDraftField = 'short_definition' | 'scope_note' | 'example_of_use';
