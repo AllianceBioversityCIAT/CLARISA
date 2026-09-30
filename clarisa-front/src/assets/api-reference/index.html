@@ -575,6 +575,15 @@
     table.doc-grid th.is-sortable:hover .th-sort { opacity: 1; }
     table.doc-grid th.is-sorted .th-sort { color: var(--accent); opacity: 1; }
     table.doc-grid td { padding: 11px 14px; border-bottom: 1px solid #eef2ef; color: var(--ink-2); line-height: 1.45; vertical-align: top; }
+    /* Long prose in the Table tab (summaries, descriptions): a floor width so a
+       wide table cannot squeeze it into a one-word column, and four lines with
+       "Show more" so one record never stretches the row to a metre high. The
+       full value stays in the cell and in every export. */
+    .doc-prose { min-width: 280px; max-width: 560px; white-space: normal; overflow-wrap: anywhere; }
+    .doc-prose__text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+    .doc-prose.is-open .doc-prose__text { display: block; -webkit-line-clamp: unset; overflow: visible; }
+    .doc-prose__more { margin-top: 4px; padding: 0; border: 0; background: none; color: var(--brand-700, #1f6b4a); font: 600 12px/1.4 inherit; cursor: pointer; }
+    .doc-prose__more:hover, .doc-prose__more:focus-visible { text-decoration: underline; }
     table.doc-grid tbody tr:nth-child(even) td { background: var(--surface-2); }
     table.doc-grid tbody tr:hover td { background: var(--brand-soft); }
     table.doc-grid tbody tr:last-child td { border-bottom: 0; }
@@ -1794,6 +1803,15 @@ function renderPicker(focus) {
 // here, delegated: an inline `onclick='fn("…")'` breaks on the first value
 // with an apostrophe (Institution types has «Farmers' association…»).
 document.addEventListener('click', e => {
+  const toggle = e.target.closest('[data-prose-toggle]');
+  if (toggle) {
+    const box = toggle.closest('.doc-prose');
+    const open = !box.classList.contains('is-open');
+    box.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.textContent = open ? 'Show less' : 'Show more';
+    return;
+  }
   const pop = e.target.closest('#filterPop');
   if (!pop || !state.picker) return;
   const item = e.target.closest('.doc-pop__item');
@@ -1868,7 +1886,9 @@ function bodyCell(raw) {
   // the wrapping branch: a line break inside `whitespace-nowrap` would render
   // as nothing at all.
   if (v.length > 45 || hasRichMarkup(v)) {
-    return `<td class="leading-relaxed"><div class="max-w-[560px] whitespace-normal break-words">${renderRich(v)}</div></td>`;
+    // Past ~4 lines at the cell width the text is clamped and gets a toggle.
+    const more = v.length > 240 ? '<button type="button" class="doc-prose__more" data-prose-toggle aria-expanded="false">Show more</button>' : '';
+    return `<td class="leading-relaxed"><div class="doc-prose"><div class="doc-prose__text">${renderRich(v)}</div>${more}</div></td>`;
   }
   return `<td class="whitespace-nowrap">${esc(v)}</td>`;
 }
