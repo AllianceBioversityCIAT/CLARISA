@@ -30,7 +30,7 @@ describe('User (e2e)', () => {
         expect(data).toHaveProperty('last_name');
         expect(data).toHaveProperty('username');
         expect(data).toHaveProperty('email');
-        expect(data).toHaveProperty('password');
+        expect(data).not.toHaveProperty('password');
         expect(data).toHaveProperty('is_cgiar_user');
         expect(data).toHaveProperty('last_login');
         expect(data).toHaveProperty('agree_terms');
