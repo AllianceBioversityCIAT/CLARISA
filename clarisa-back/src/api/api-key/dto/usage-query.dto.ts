@@ -40,6 +40,20 @@ export class UsageSummaryQueryDto extends UsageDateRangeQueryDto {
   @Matches(/^\d+(,\d+)*$/, { message: 'mis_ids must be comma-separated ids' })
   mis_ids?: string;
 
+  /**
+   * API keys with no MIS, comma-separated key ids (`12,40`). Each of those
+   * keys is a system of its own in the Overview; combines with `mis_ids` as
+   * an OR (a call matches if its MIS or its key was picked). A key that has
+   * a MIS is ignored here: pick its MIS instead.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  @Matches(/^[1-9]\d*(,[1-9]\d*)*$/, {
+    message: 'key_ids must be comma-separated positive ids',
+  })
+  key_ids?: string;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()

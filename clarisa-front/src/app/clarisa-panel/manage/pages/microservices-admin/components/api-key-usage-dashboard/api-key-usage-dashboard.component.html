@@ -78,7 +78,7 @@
       <span class="ux-eyebrow">API key</span>
       <h3 class="ux-card__title">{{ keyDetail.api_key.name }}</h3>
       <p class="ux-card__desc">
-        <code class="key-prefix">{{ keyDetail.api_key.key_prefix }}…</code> · {{ keyDetail.api_key.mis_acronym || 'No MIS' }} ·
+        <code class="key-prefix">{{ keyDetail.api_key.key_prefix }}…</code> · {{ keyDetail.api_key.mis_acronym || keyDetail.api_key.name }} ·
         {{ keyDetail.api_key.environment || '—' }}
       </p>
     </div>
@@ -533,9 +533,7 @@
                 {{ time(row.created_at) }} <span class="is-muted">· {{ ago(row.created_at) }}</span>
               </td>
               <td>
-                <span class="ux-health__who"
-                  ><i class="ux-dot" [style.background]="systemColor(row.mis_acronym)"></i>{{ row.mis_acronym || 'No MIS' }}</span
-                >
+                <span class="ux-health__who"><i class="ux-dot" [style.background]="logColor(row)"></i>{{ row.mis_acronym || row.api_key_name }}</span>
               </td>
               <td>{{ row.api_key_name }}</td>
               <td>

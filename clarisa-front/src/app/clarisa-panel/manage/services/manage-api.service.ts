@@ -28,7 +28,19 @@ export interface UpdateApiKeyBody {
   expires_at?: string | null;
 }
 
-export interface UsageOverviewSystem {
+/**
+ * Identity of an Overview row (back, 2026-09-30): a MIS, or an API key with no
+ * MIS as a system of its own. Optional so an older back still types.
+ */
+export interface UsageSystemIdentity {
+  kind?: 'mis' | 'key';
+  api_key_id?: number | null;
+  /** `mis:<id>` or `key:<id>` */
+  system_key?: string;
+}
+
+export interface UsageOverviewSystem extends UsageSystemIdentity {
+  /** `null` = a key with no MIS (see `api_key_id`) */
   mis_id: number | null;
   acronym: string;
   name: string;
@@ -38,15 +50,17 @@ export interface UsageOverviewSystem {
   avg_response_time_ms: number | null;
   api_keys: number;
   last_used_at: string | null;
+  /** Name of the key behind a key group; `null` for a MIS */
+  api_key_name?: string | null;
 }
 
 export interface UsageOverview {
   period: { from: string; to: string };
   granularity: 'day' | 'week';
   systems: UsageOverviewSystem[];
-  series: { bucket: string; mis_id: number | null; calls: number; errors: number; avg_response_time_ms: number | null }[];
+  series: ({ bucket: string; mis_id: number | null; calls: number; errors: number; avg_response_time_ms: number | null } & UsageSystemIdentity)[];
   /** `day_of_week`: 1 = Sunday … 7 = Saturday */
-  heatmap: { day_of_week: number; hour: number; mis_id: number | null; calls: number }[];
+  heatmap: ({ day_of_week: number; hour: number; mis_id: number | null; calls: number } & UsageSystemIdentity)[];
 }
 
 export interface EndpointConsumer {
@@ -55,6 +69,8 @@ export interface EndpointConsumer {
   key_prefix: string;
   mis_id: number | null;
   mis_acronym: string | null;
+  kind?: 'mis' | 'key';
+  system_key?: string;
   total_requests: number;
   last_used_at: string | null;
 }
@@ -102,6 +118,8 @@ export interface UsageQueryParams {
   mis_id?: number;
   /** Several systems, comma-separated MIS ids; `0` = keys with no MIS. */
   mis_ids?: string;
+  /** Standalone keys (no MIS), comma-separated key ids; OR-ed with `mis_ids`. */
+  key_ids?: string;
   api_key_id?: number;
   microservice_name?: string;
   granularity?: 'day' | 'week';
@@ -202,6 +220,8 @@ export interface UsageLogsPage {
     api_key_name: string;
     key_prefix: string;
     mis_acronym: string | null;
+    mis_id?: number | null;
+    system_key?: string;
     microservice_name: string;
     endpoint_accessed: string;
     http_method: string | null;

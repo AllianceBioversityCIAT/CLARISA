@@ -685,6 +685,11 @@ export interface PlatformUsageSystem {
   avg_response_time_ms: number | null;
   api_keys: number;
   last_used_at: string | null;
+  /** Since 2026-09-30 a key with no MIS is its own row: `kind: 'key'`, `api_key_id` set. */
+  kind?: 'mis' | 'key';
+  api_key_id?: number | null;
+  /** `mis:<id>` or `key:<id>` */
+  system_key?: string;
 }
 
 export type AiDraftField = 'short_definition' | 'scope_note' | 'example_of_use';

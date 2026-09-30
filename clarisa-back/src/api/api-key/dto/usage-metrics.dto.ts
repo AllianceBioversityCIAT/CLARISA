@@ -1,3 +1,9 @@
+/**
+ * Who a usage row belongs to. `mis`: a registered MIS (all its keys together).
+ * `key`: an API key with no MIS, which is a system of its own.
+ */
+export type SystemKind = 'mis' | 'key';
+
 export class UsagePeriodDto {
   from: string;
   to: string;
@@ -67,6 +73,10 @@ export class UsageLogItemDto {
   api_key_name: string;
   key_prefix: string;
   mis_acronym: string | null;
+  /** `null` = the key has no MIS */
+  mis_id: number | null;
+  /** `mis:<id>` or `key:<id>` */
+  system_key: string;
   microservice_name: string;
   endpoint_accessed: string;
   http_method: string | null;
@@ -120,6 +130,9 @@ export class EndpointConsumerDto {
   key_prefix: string;
   mis_id: number | null;
   mis_acronym: string | null;
+  kind: SystemKind;
+  /** `mis:<id>` or `key:<id>` */
+  system_key: string;
   total_requests: number;
   last_used_at: Date | null;
 }
@@ -154,10 +167,24 @@ export class MisActivityItemDto {
   last_used_at: Date | null;
 }
 
-export class OverviewSystemDto {
-  /** `null` = keys with no MIS */
+/**
+ * Additive identity of every Overview row (2026-09-30). A key with no MIS is
+ * its own group: `kind: 'key'`, `mis_id: null`, `api_key_id` set. Rows of a
+ * MIS keep `mis_id` and have `api_key_id: null`.
+ */
+export class SystemIdentityFieldsDto {
+  kind: SystemKind;
+  api_key_id: number | null;
+  /** Stable id of the group: `mis:<id>` or `key:<id>` */
+  system_key: string;
+}
+
+export class OverviewSystemDto extends SystemIdentityFieldsDto {
+  /** `null` = a key with no MIS (see `api_key_id`) */
   mis_id: number | null;
+  /** MIS acronym, or the key's name for a key group */
   acronym: string;
+  /** MIS name, or the key's name for a key group */
   name: string;
   environment: string | null;
   calls: number;
@@ -165,9 +192,11 @@ export class OverviewSystemDto {
   avg_response_time_ms: number | null;
   api_keys: number;
   last_used_at: Date | null;
+  /** Name of the key behind a key group; `null` for a MIS */
+  api_key_name: string | null;
 }
 
-export class OverviewSeriesPointDto {
+export class OverviewSeriesPointDto extends SystemIdentityFieldsDto {
   /** `YYYY-MM-DD`; with `granularity=week`, the Monday of the week */
   bucket: string;
   mis_id: number | null;
@@ -176,7 +205,7 @@ export class OverviewSeriesPointDto {
   avg_response_time_ms: number | null;
 }
 
-export class OverviewHeatCellDto {
+export class OverviewHeatCellDto extends SystemIdentityFieldsDto {
   /** 1 = Sunday … 7 = Saturday (MySQL `DAYOFWEEK`) */
   day_of_week: number;
   /** 0-23, in the database clock */
