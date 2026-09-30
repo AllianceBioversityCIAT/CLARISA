@@ -1,5 +1,5 @@
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { Injectable, NgModule } from '@angular/core';
+import { ActivatedRouteSnapshot, CanActivate, Router, RouterModule, Routes, UrlTree } from '@angular/router';
 import { ConceptListComponent } from './pages/concept-list/concept-list.component';
 import { ConceptDetailComponent } from './pages/concept-detail/concept-detail.component';
 import { RequestVerifyComponent } from './pages/request-verify/request-verify.component';
@@ -14,13 +14,30 @@ import { GuideComponent } from './pages/guide/guide.component';
  * emails (`GlobalConceptsConfig.webBase` + `/requests/verify?token=` and
  * `/requests/:id?token=`).
  */
+/**
+ * A scheme URI (`/concepts/{scheme}`) and shared links such as
+ * `/landing-page/global-concepts/meliaf` land on one segment; the list reads the
+ * scheme from `?scheme=`, so send that address to it instead of the wildcard.
+ */
+@Injectable({ providedIn: 'root' })
+export class SchemeSegmentRedirectGuard implements CanActivate {
+  constructor(private readonly _router: Router) {}
+
+  canActivate(route: ActivatedRouteSnapshot): UrlTree {
+    return this._router.createUrlTree(['/landing-page/global-concepts'], {
+      queryParams: { ...route.queryParams, scheme: route.paramMap.get('scheme') }
+    });
+  }
+}
+
 const routes: Routes = [
   { path: '', component: ConceptListComponent },
   { path: 'developers', component: DevelopersComponent },
   { path: 'guide', component: GuideComponent },
   { path: 'requests/verify', component: RequestVerifyComponent },
   { path: 'requests/:id', component: RequestFollowComponent },
-  { path: ':scheme/:termId', component: ConceptDetailComponent }
+  { path: ':scheme/:termId', component: ConceptDetailComponent },
+  { path: ':scheme', component: ConceptListComponent, canActivate: [SchemeSegmentRedirectGuard] }
 ];
 
 @NgModule({

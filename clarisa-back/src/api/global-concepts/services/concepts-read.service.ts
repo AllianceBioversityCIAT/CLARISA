@@ -295,7 +295,8 @@ export class ConceptsReadService {
       .andWhere('h.id > :since', { since: Number(since) || 0 })
       .andWhere('c.status IN (:...statuses)', { statuses: GC_PUBLIC_STATUSES })
       .select([
-        'h.id AS cursor',
+        // `cursor` is a reserved word in MySQL: as a bare alias it broke the query.
+        'h.id AS change_cursor',
         'c.term_id AS term_id',
         'h.action AS action',
         'h.changed_at AS changed_at',
@@ -303,20 +304,20 @@ export class ConceptsReadService {
       .orderBy('h.id', 'ASC')
       .limit(Math.min(Math.max(Number(limit) || 500, 1), 1000))
       .getRawMany<{
-        cursor: string;
+        change_cursor: string;
         term_id: string;
         action: string;
         changed_at: Date;
       }>();
     return {
       changes: rows.map((r) => ({
-        cursor: Number(r.cursor),
+        cursor: Number(r.change_cursor),
         term_id: Number(r.term_id),
         action: r.action,
         changed_at: r.changed_at,
       })),
       next_cursor: rows.length
-        ? Number(rows[rows.length - 1].cursor)
+        ? Number(rows[rows.length - 1].change_cursor)
         : Number(since) || 0,
     };
   }
