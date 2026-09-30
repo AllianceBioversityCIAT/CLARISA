@@ -448,15 +448,29 @@ export class GlobalConceptsApiService {
     return this._http.post<AdminIcon>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/icons`, body);
   }
 
-  updateIcon(scheme: string, id: number, body: Partial<IconInput>): Observable<AdminIcon> {
-    return this._http.patch<AdminIcon>(`${this.admin}/${encodeURIComponent(scheme)}/icons/${id}`, body);
+  /**
+   * Nested under the concept (`concepts/:termId/icons/:id`) so a concepts-only
+   * member (`MELIAF_CE`) reaches it; the back answers 404 if the icon belongs
+   * to another concept. Full admins pass too (`/admin` is a substring).
+   */
+  updateIcon(scheme: string, termId: number, id: number, body: Partial<IconInput>): Observable<AdminIcon> {
+    return this._http.patch<AdminIcon>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/icons/${id}`, body);
   }
 
-  deleteIcon(scheme: string, id: number): Observable<{ deleted: number }> {
-    return this._http.delete<{ deleted: number }>(`${this.admin}/${encodeURIComponent(scheme)}/icons/${id}`);
+  deleteIcon(scheme: string, termId: number, id: number): Observable<{ deleted: number }> {
+    return this._http.delete<{ deleted: number }>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/icons/${id}`);
   }
 
-  /** Every custom field definition of the scheme, active and inactive. */
+  /**
+   * Same payload as `fields()`, read-only, under the concept path: what the
+   * concept editor reads, so a concepts-only member can load it without the
+   * Setup permission. Setup keeps `fields()`.
+   */
+  conceptFields(scheme: string): Observable<CustomField[]> {
+    return this._http.get<CustomField[]>(`${this.admin}/${encodeURIComponent(scheme)}/concepts-meta/fields`);
+  }
+
+  /** Every custom field definition of the scheme, active and inactive (Setup). */
   fields(scheme: string): Observable<CustomField[]> {
     return this._http.get<CustomField[]>(`${this.admin}/${encodeURIComponent(scheme)}/fields`);
   }

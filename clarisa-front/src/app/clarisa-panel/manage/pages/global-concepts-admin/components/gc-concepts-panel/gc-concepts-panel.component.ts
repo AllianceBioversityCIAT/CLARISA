@@ -167,7 +167,7 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
   }
 
   private loadFields(): void {
-    this._api.fields(this.scheme).subscribe({
+    this._api.conceptFields(this.scheme).subscribe({
       next: fields => {
         this.customFields = activeFields(Array.isArray(fields) ? fields : []);
         const known = new Set(this.customFields.map(field => field.code));

@@ -186,7 +186,7 @@ export class GcConceptDialogComponent {
     if (this.fieldsScheme === this.scheme && !this.fieldsError) return;
     this.fieldsLoading = true;
     this.fieldsError = null;
-    this._api.fields(this.scheme).subscribe({
+    this._api.conceptFields(this.scheme).subscribe({
       next: fields => {
         this.fieldsLoading = false;
         this.fieldsScheme = this.scheme;

@@ -126,7 +126,7 @@ export class GcIconsEditorComponent implements OnInit {
     this.saving = true;
     this.saveError = null;
     const request = this.editingId
-      ? this._api.updateIcon(this.scheme, this.editingId, body)
+      ? this._api.updateIcon(this.scheme, this.termId, this.editingId, body)
       : this._api.createIcon(this.scheme, this.termId, body as IconInput);
     request.subscribe({
       next: icon => {
@@ -146,7 +146,8 @@ export class GcIconsEditorComponent implements OnInit {
   }
 
   remove(icon: AdminIcon): void {
-    if (this.deletingId) return;
+    const termId = this.termId;
+    if (this.deletingId || !termId) return;
     this._confirmationService.confirm({
       header: 'Delete this icon?',
       message: `${icon.icon_code || 'The icon'} is detached from “${this.conceptLabel}”. The file itself stays where it is hosted.`,
@@ -156,7 +157,7 @@ export class GcIconsEditorComponent implements OnInit {
       rejectButtonStyleClass: 'p-button-outlined',
       accept: () => {
         this.deletingId = icon.id;
-        this._api.deleteIcon(this.scheme, icon.id).subscribe({
+        this._api.deleteIcon(this.scheme, termId, icon.id).subscribe({
           next: () => {
             this.deletingId = null;
             this.icons = this.icons.filter(existing => existing.id !== icon.id);

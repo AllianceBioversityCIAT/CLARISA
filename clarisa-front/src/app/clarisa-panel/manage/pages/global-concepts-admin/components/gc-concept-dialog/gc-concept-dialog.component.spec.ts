@@ -44,7 +44,7 @@ describe('GcConceptDialogComponent', () => {
 
   beforeEach(() => {
     api = {
-      fields: jest.fn(() => of(fields)),
+      conceptFields: jest.fn(() => of(fields)),
       updateConcept: jest.fn(() => of(concept(1, 'Outcomes'))),
       createConcept: jest.fn(() => of(concept(9, 'New'))),
       setStatus: jest.fn(() => of(concept(2, 'Output', { status: 'deprecated' }))),

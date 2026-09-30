@@ -67,6 +67,23 @@ describe('admin navigation', () => {
       expect(labels(groups)).toEqual(['MELIAF Taxonomy']);
     });
 
+    it('shows a MELIAF Concepts Editor only the MELIAF Taxonomy', () => {
+      const groups = groupsFor({ isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/meliaf/concepts'] });
+      expect(groups.map(group => group.title)).toEqual(['Manage']);
+      expect(labels(groups)).toEqual(['MELIAF Taxonomy']);
+    });
+
+    it('opens the MELIAF Taxonomy entry for the full and the concepts permission, and nothing else of MELIAF', () => {
+      const meliaf = adminLinkFor('/clarisa-panel/manage/global-concepts-admin')!;
+      expect(canOpenLink(meliaf, { isSuper: true, permissions: [] })).toBe(true);
+      expect(canOpenLink(meliaf, { isSuper: false, permissions: ['/api/meliaf-taxonomy/admin'] })).toBe(true);
+      expect(canOpenLink(meliaf, { isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/meliaf/concepts'] })).toBe(true);
+      expect(canOpenLink(meliaf, { isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/meliaf/lists'] })).toBe(false);
+      expect(canOpenLink(meliaf, { isSuper: false, permissions: ['/api/glossary/admin'] })).toBe(false);
+      expect(canOpenLink(meliaf, { isSuper: false, permissions: [] })).toBe(false);
+      expect(canOpenLink(meliaf, null)).toBe(false);
+    });
+
     it('shows nothing to someone without a role, or without an answer', () => {
       expect(groupsFor({ isSuper: false, permissions: [] })).toEqual([]);
       expect(groupsFor(null)).toEqual([]);

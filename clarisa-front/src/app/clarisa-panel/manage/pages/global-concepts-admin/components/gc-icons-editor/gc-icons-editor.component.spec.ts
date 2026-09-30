@@ -47,10 +47,10 @@ describe('GcIconsEditorComponent', () => {
     component.openEdit(icon);
     component.form.icon_code = 'LEAF-2';
     component.save();
-    expect(api['updateIcon']).toHaveBeenCalledWith('meliaf', 3, { icon_code: 'LEAF-2' });
+    expect(api['updateIcon']).toHaveBeenCalledWith('meliaf', 12, 3, { icon_code: 'LEAF-2' });
 
     component.remove(icon);
-    expect(api['deleteIcon']).toHaveBeenCalledWith('meliaf', 3);
+    expect(api['deleteIcon']).toHaveBeenCalledWith('meliaf', 12, 3);
     expect(component.icons.map(item => item.id)).toEqual([4]);
   });
 });
