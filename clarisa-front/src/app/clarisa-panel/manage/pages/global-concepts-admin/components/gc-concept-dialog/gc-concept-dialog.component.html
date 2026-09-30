@@ -411,14 +411,19 @@
     <div class="admin-form__actions gc-dialog-foot">
       <span class="gc-actions-note" *ngIf="editing">Saves Details and Custom fields together.</span>
       <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="saving" (click)="close()"></button>
-      <button
-        pButton
-        type="submit"
-        class="btn-brand"
-        icon="pi pi-check"
-        [label]="saving ? 'Saving…' : editing ? 'Save changes' : 'Create concept'"
-        [disabled]="saving || !!formError || (!!editing && !hasChanges)"
-        [loading]="saving"></button>
+      <!-- A disabled button fires no hover: the tooltip sits on this wrapper so the reason still shows. -->
+      <span class="gc-save-wrap" [pTooltip]="assistBusyReason || ''" [tooltipDisabled]="!assistBusyReason" tooltipPosition="top">
+        <button
+          pButton
+          type="submit"
+          class="btn-brand"
+          icon="pi pi-check"
+          [label]="saving ? 'Saving…' : editing ? 'Save changes' : 'Create concept'"
+          [disabled]="saving || !!formError || (!!editing && !hasChanges) || !!assistBusyReason"
+          [attr.aria-describedby]="assistBusyReason ? 'gc-save-busy' : null"
+          [loading]="saving"></button>
+        <span id="gc-save-busy" class="gc-sr-only" *ngIf="assistBusyReason">{{ assistBusyReason }}</span>
+      </span>
     </div>
   </form>
 

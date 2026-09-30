@@ -7,10 +7,12 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * `PermissionGuard` authorises when the request path contains a permission
  * name. `/api/meliaf-taxonomy/admin/meliaf/concepts` therefore opens every
  * route under `.../admin/meliaf/concepts…` (create, edit, labels, relations,
- * mappings, status, merge, icons, and the read-only `concepts-meta/*` copies
- * of fields and lists) and none of lists, fields, collections, import,
- * requests, releases, usage or AI. `/api/meliaf-taxonomy/admin` keeps opening
- * everything, so full admins see no change.
+ * mappings, status, merge, icons, the read-only `concepts-meta/*` copies of
+ * fields and lists, and — by design — the concepts assistant
+ * `concepts-assist/status|chat`) and none of lists, fields, collections,
+ * import, requests, releases, usage or the other AI routes (`ai/*`).
+ * `/api/meliaf-taxonomy/admin` keeps opening everything, so full admins see
+ * no change.
  *
  * Strictly additive and idempotent: no DDL (the metadata columns come from
  * `AddRolesUsersAdmin1790600000000`); every insert is behind NOT EXISTS and

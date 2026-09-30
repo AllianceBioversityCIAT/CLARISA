@@ -60,6 +60,24 @@ export class GcAssistSession {
   /** Called when a field's AI value is kept, so the dialog can record the provenance. */
   onAccepted: ((field: string) => void) | null = null;
 
+  /**
+   * The assistant turn, written by the chat panel and read by the dialog: a
+   * request in flight (`sending`), its steps being typed on the form
+   * (`playing`), and the session token that turn belongs to.
+   */
+  sending = false;
+  playing = false;
+  turnToken = -1;
+
+  /**
+   * A turn of THIS session is asked or being typed. The dialog's Save waits for
+   * it: saving mid-typing would write a half-typed text, and an answer landing
+   * after the save would leave the form dirty with values nobody saved.
+   */
+  get busy(): boolean {
+    return (this.sending || this.playing) && this.turnToken === this.token;
+  }
+
   reset(): void {
     this.token++;
     this.messages = [];

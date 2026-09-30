@@ -269,3 +269,18 @@
     grid-column: 1;
   }
 }
+
+/* Holds the Save button so its "wait for the assistant" tooltip shows while it is disabled. */
+.gc-save-wrap {
+  display: inline-flex;
+}
+
+@media (max-width: 720px) {
+  .gc-save-wrap {
+    flex: 1 1 auto;
+
+    .p-button {
+      width: 100%;
+    }
+  }
+}

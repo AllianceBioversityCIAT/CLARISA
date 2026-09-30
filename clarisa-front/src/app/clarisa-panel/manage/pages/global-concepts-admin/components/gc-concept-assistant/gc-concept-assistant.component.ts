@@ -43,18 +43,36 @@ export class GcConceptAssistantComponent {
   readonly suggestions = ASSIST_SUGGESTIONS;
   readonly maxLength = ASSIST_MESSAGE_MAX;
   input = '';
-  /** A request is in flight. */
-  sending = false;
-  /** The returned steps are being played on the form. */
-  playing = false;
   private failure: { token: number; text: string } | null = null;
-  /** Session the running turn belongs to; a turn of an earlier concept never locks this one. */
-  private turnToken = -1;
 
   constructor(
     private readonly _api: GlobalConceptsApiService,
     readonly session: GcAssistSession
   ) {}
+
+  /** A request is in flight. Lives in the session so the dialog's Save can wait for it. */
+  get sending(): boolean {
+    return this.session.sending;
+  }
+  set sending(value: boolean) {
+    this.session.sending = value;
+  }
+
+  /** The returned steps are being played on the form (same session state). */
+  get playing(): boolean {
+    return this.session.playing;
+  }
+  set playing(value: boolean) {
+    this.session.playing = value;
+  }
+
+  /** Session the running turn belongs to; a turn of an earlier concept never locks this one. */
+  private get turnToken(): number {
+    return this.session.turnToken;
+  }
+  private set turnToken(value: number) {
+    this.session.turnToken = value;
+  }
 
   /** The last failure, only while the dialog is on the concept it happened on. */
   get error(): string | null {
@@ -67,7 +85,7 @@ export class GcConceptAssistantComponent {
 
   /** One turn at a time: while it is asked or played, Send is locked (double-submit rule). */
   get busy(): boolean {
-    return (this.sending || this.playing) && this.turnToken === this.session.token;
+    return this.session.busy;
   }
 
   get canSend(): boolean {

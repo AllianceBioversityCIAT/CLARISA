@@ -3,23 +3,24 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, combineLatest } from 'rxjs';
 
 import { PanelAccessService, PanelAccessState } from '../../../../shared/services/access-admin/panel-access.service';
-import { AdminGroup, AdminLink, groupsFor } from '../../admin-nav';
-
-/** The one link the caller can open, or `null` when there are none or several. */
-export function onlySection(groups: AdminGroup[]): AdminLink | null {
-  const links = groups.flatMap(group => group.links);
-  return links.length === 1 ? links[0] : null;
-}
+import { AdminGroup, groupsFor, onlyProtectedSection } from '../../admin-nav';
 
 /**
  * Landing of the admin panel (`/clarisa-panel/manage`): the sections the
  * caller's roles open, and — when a guard sent them here — why the screen they
  * asked for did not open.
  *
- * With exactly ONE section open, the list is a detour: the home goes straight
- * to it (`replaceUrl`, so Back does not land on a one-card page). A `?denied=`
- * note is dropped in that case — the panel has no shared toast outlet, and the
- * section that opens is the only one the roles allow anyway.
+ * When the roles open exactly ONE permission-protected section
+ * (`onlyProtectedSection`: the entries open to any session do not count, since
+ * everybody has them), the list is a detour: the home goes straight to it
+ * (`replaceUrl`, so Back does not land on the list) — a MELIAF-only member
+ * opens the MELIAF Taxonomy. A `?denied=` note is dropped in that case: the
+ * panel has no shared toast outlet, and that section is what the roles are
+ * for anyway. Zero or several protected sections, or a Super admin → the list.
+ *
+ * If `me/access` fails or times out, the home lists the whole panel, as before
+ * role filtering (`groupsFor(null)`), and never redirects; the back still
+ * enforces each permission.
  */
 @Component({
   selector: 'app-admin-home',
@@ -46,8 +47,8 @@ export class AdminHomeComponent implements OnInit, OnDestroy {
     this._sub = combineLatest([this._access.state$, this._route.queryParamMap]).subscribe(([state, params]) => {
       this.state = state;
       this.denied = params.get('denied');
-      this.groups = state.status === 'ready' ? groupsFor(state.access) : [];
-      this.goToOnlySection();
+      this.groups = state.status === 'ready' ? groupsFor(state.access) : state.status === 'error' ? groupsFor(null) : [];
+      if (state.status === 'ready') this.goToOnlySection(state.access);
     });
   }
 
@@ -55,12 +56,11 @@ export class AdminHomeComponent implements OnInit, OnDestroy {
     this._sub?.unsubscribe();
   }
 
-  private goToOnlySection(): void {
-    const link = onlySection(this.groups);
-    if (!link || this.redirecting) return;
+  private goToOnlySection(access: Parameters<typeof onlyProtectedSection>[0]): void {
+    const only = onlyProtectedSection(access);
+    if (!only || this.redirecting) return;
     this.redirecting = true;
-    const queryParams = link.children?.length ? link.children[0].queryParams : undefined;
-    this._router.navigate([link.route], { queryParams, replaceUrl: true }).then(
+    this._router.navigate([only.link.route], { queryParams: only.queryParams, replaceUrl: true }).then(
       ok => {
         if (!ok) this.redirecting = false;
       },
@@ -70,17 +70,5 @@ export class AdminHomeComponent implements OnInit, OnDestroy {
 
   get loading(): boolean {
     return this.redirecting || this.state.status === 'loading' || this.state.status === 'idle';
-  }
-
-  get failed(): boolean {
-    return this.state.status === 'error';
-  }
-
-  get isEmpty(): boolean {
-    return this.state.status === 'ready' && this.groups.length === 0;
-  }
-
-  retry(): void {
-    this._access.reload();
   }
 }

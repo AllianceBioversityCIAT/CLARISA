@@ -10,9 +10,12 @@ export const ADMIN_HOME = '/clarisa-panel/manage';
 /**
  * Opens a panel screen only to whoever the sidebar would show it to: same map
  * (`admin-nav.ts`), same `me/access`. Anyone else lands on the panel home with
- * the reason in `?denied=` (the section's name) or `?denied=error` when the
- * access could not be read. The back rejects the calls anyway; this keeps a
- * person from opening a screen that can only fail.
+ * the section's name in `?denied=`. The back rejects the calls anyway; this
+ * keeps a person from opening a screen that can only fail.
+ *
+ * Fails open: when the access could not be read or timed out (`resolved()`
+ * gives `null`), every screen opens, as before role filtering — the back still
+ * enforces each permission. Entries marked `ANY_SIGNED_IN` always open.
  *
  * Runs after `LoginGuardGuard`, which handles the missing or expired session.
  */
@@ -28,9 +31,9 @@ export class AdminAccessGuard implements CanActivate {
 
     return this._access.resolved().pipe(
       map(access => {
-        if (!link) return true;
+        if (!link || !access) return true;
         if (canOpenLink(link, access)) return true;
-        return this._router.createUrlTree([ADMIN_HOME], { queryParams: { denied: access ? link.label : 'error' } });
+        return this._router.createUrlTree([ADMIN_HOME], { queryParams: { denied: link.label } });
       })
     );
   }

@@ -256,7 +256,7 @@ describe('LoginComponent · dónde aterriza al entrar', () => {
     const fixture = TestBed.createComponent(LoginComponent);
     fixture.detectChanges();
     const router = TestBed.inject(Router);
-    const navigate = jest.spyOn(router, 'navigate').mockResolvedValue(true);
+    const navigate = jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
     const http = TestBed.inject(HttpTestingController);
     fixture.componentInstance.loginForm.setValue({ login: 'y.zuniga', password: 'secret' });
     fixture.componentInstance.onSubmit();
@@ -269,22 +269,39 @@ describe('LoginComponent · dónde aterriza al entrar', () => {
 
   it('a super admin lands on partner-request, as before', async () => {
     const { navigate } = await signIn(who([], true));
-    expect(navigate).toHaveBeenCalledWith(['/clarisa-panel/manage/partner-request']);
+    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/partner-request');
   });
 
   it('someone who can answer requests lands on partner-request, as before', async () => {
     const { navigate } = await signIn(who(['/api/partner-requests/respond']));
-    expect(navigate).toHaveBeenCalledWith(['/clarisa-panel/manage/partner-request']);
+    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/partner-request');
   });
 
-  it('a member without partner-request goes to the panel home, not through the guard', async () => {
-    const { navigate } = await signIn(who(['/api/glossary/admin']));
-    expect(navigate).toHaveBeenCalledWith(['/clarisa-panel/manage']);
+  // Only permission-protected sections count (Institution requests is open to
+  // every session, so it is not what anyone's roles are for).
+  it('a member whose roles open exactly one protected section lands in it (MELIAF-only → MELIAF Taxonomy)', async () => {
+    const { navigate } = await signIn(who(['/api/meliaf-taxonomy/admin']));
+    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/global-concepts-admin');
+  });
+
+  it('a single protected tab lands on that tab', async () => {
+    const { navigate } = await signIn(who(['/api/mises/create']));
+    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/microservices-admin?section=mises');
+  });
+
+  it('two protected sections land on partner-request, as before', async () => {
+    const { navigate } = await signIn(who(['/api/glossary/admin', '/api/institutions/lifecycle/']));
+    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/partner-request');
+  });
+
+  it('someone without any role lands on partner-request, as before', async () => {
+    const { navigate } = await signIn(who([]));
+    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/partner-request');
   });
 
   it('when the access cannot be read, nothing changes: partner-request', async () => {
     const { navigate } = await signIn(null);
-    expect(navigate).toHaveBeenCalledWith(['/clarisa-panel/manage/partner-request']);
+    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/partner-request');
   });
 
   it('when the access never answers, the old landing is used after the cap', async () => {
@@ -293,7 +310,7 @@ describe('LoginComponent · dónde aterriza al entrar', () => {
       const { navigate } = await signIn(NEVER);
       expect(navigate).not.toHaveBeenCalled();
       jest.advanceTimersByTime(LoginComponent.ACCESS_WAIT_MS);
-      expect(navigate).toHaveBeenCalledWith(['/clarisa-panel/manage/partner-request']);
+      expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/partner-request');
     } finally {
       jest.useRealTimers();
     }

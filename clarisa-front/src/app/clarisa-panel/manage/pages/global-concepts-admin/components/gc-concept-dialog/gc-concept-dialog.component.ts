@@ -327,8 +327,14 @@ export class GcConceptDialogComponent {
     return Object.keys(this.buildBody()).length > 0;
   }
 
+  /** Why Save is locked by the assistant right now, or `null` (tooltip of the button). */
+  get assistBusyReason(): string | null {
+    return this.assist.busy ? 'Wait until the assistant finishes' : null;
+  }
+
   save(): void {
-    if (this.saving || this.formError) return;
+    // Double-submit / half-typed rule: never save while an assistant turn is asked or typed.
+    if (this.saving || this.formError || this.assist.busy) return;
     const body = this.buildBody();
     const editing = this.editing;
     if (editing && !Object.keys(body).length) {

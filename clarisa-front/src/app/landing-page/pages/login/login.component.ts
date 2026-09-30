@@ -142,8 +142,9 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.authService.localStorageUser = user;
         this.successLogin = true;
         // Same `me/access` the guards read (cached per token, so the guard does
-        // not fetch it again): who cannot open partner-request goes to the
-        // panel home directly instead of being bounced there by the guard.
+        // not fetch it again): a member whose roles open exactly one protected
+        // section lands in it; everyone else on partner-request (see
+        // `postLoginRoute`). A URL, because a tab lands with its `?section=`.
         // A `me/access` that never answers must not hold the sign-in: after the
         // cap it falls back to the landing everyone had before.
         this.panelAccess
@@ -152,7 +153,7 @@ export class LoginComponent implements OnInit, OnDestroy {
             timeout(LoginComponent.ACCESS_WAIT_MS),
             catchError(() => of(null))
           )
-          .subscribe(access => this.router.navigate([postLoginRoute(access)]));
+          .subscribe(access => this.router.navigateByUrl(postLoginRoute(access)));
       },
       error: (error: unknown) => {
         // El formulario vuelve de inmediato: nadie debería esperar para

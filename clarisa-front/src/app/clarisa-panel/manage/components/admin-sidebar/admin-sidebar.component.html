@@ -132,13 +132,11 @@
       <span class="admin-sidebar__skeleton-title"></span>
       <span class="admin-sidebar__skeleton-item" *ngFor="let _ of [1, 2, 3, 4, 5]"></span>
     </div>
-
-    <div class="admin-sidebar__notice" *ngIf="accessFailed" role="alert">
-      <p>Your sections could not be loaded.</p>
-      <button type="button" class="admin-sidebar__retry" (click)="retryAccess()"><i class="fa fa-refresh" aria-hidden="true"></i> Retry</button>
-    </div>
-
-    <p class="admin-sidebar__notice" *ngIf="noAccess">Your roles do not open any administration section yet.</p>
+    <!--
+      No error or "no roles" notice: a failed or slow me/access falls back to
+      the whole menu (as before role filtering), and the entries open to any
+      session always show.
+    -->
   </div>
 
   <!--

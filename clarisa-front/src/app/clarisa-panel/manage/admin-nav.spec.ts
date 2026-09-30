@@ -1,4 +1,17 @@
-import { ADMIN_GROUPS, adminLinkFor, adminSectionLabel, canOpenLink, groupsFor } from './admin-nav';
+import {
+  ADMIN_GROUPS,
+  ANY_SIGNED_IN,
+  AdminGroup,
+  LOGIN_LANDING,
+  adminLinkFor,
+  adminSectionLabel,
+  canOpenLink,
+  groupsFor,
+  onlyProtectedSection,
+  postLoginRoute,
+  protectedSections,
+  sectionUrl
+} from './admin-nav';
 
 describe('admin navigation', () => {
   it('names the section a panel URL belongs to', () => {
@@ -54,23 +67,49 @@ describe('admin navigation', () => {
 
   describe('by permission', () => {
     const labels = (groups: ReturnType<typeof groupsFor>) => groups.flatMap(group => group.links.map(link => link.label));
+    const tabs = (groups: ReturnType<typeof groupsFor>) =>
+      groups.find(group => group.title === 'System')?.links[0].children?.map(child => child.label) ?? [];
+    const noRole = { isSuper: false, permissions: [] as string[] };
+
+    // What every signed-in user saw before role filtering, because the back
+    // guards it with the session only: it must stay for everybody.
+    const OPEN = ['Institution requests', 'Microservices & API keys'];
+    const OPEN_TABS = ['Overview', 'API Keys'];
 
     it('shows a super everything, tabs included', () => {
       const groups = groupsFor({ isSuper: true, permissions: [] });
       expect(labels(groups)).toEqual(labels(ADMIN_GROUPS));
-      expect(groups.find(group => group.title === 'System')?.links[0].children?.length).toBe(3);
+      expect(tabs(groups)).toEqual(['Overview', 'MIS Registry', 'API Keys']);
     });
 
-    it('shows a MELIAF Data Admin only the MELIAF Taxonomy', () => {
+    it('keeps the entries the back does not permission-guard for a user without any role', () => {
+      const groups = groupsFor(noRole);
+      expect(labels(groups)).toEqual(OPEN);
+      expect(groups.map(group => group.title)).toEqual(['Manage', 'System']);
+      expect(tabs(groups)).toEqual(OPEN_TABS);
+    });
+
+    it('hides every permission-guarded entry from a user without any role', () => {
+      const hidden = labels(groupsFor(noRole));
+      ['Institution lifecycle', 'Glossary', 'MELIAF Taxonomy', 'Users', 'Roles'].forEach(label => expect(hidden).not.toContain(label));
+      expect(tabs(groupsFor(noRole))).not.toContain('MIS Registry');
+    });
+
+    it('declares the open entries explicitly, not as an empty list', () => {
+      expect(adminLinkFor('/clarisa-panel/manage/partner-request')?.access).toBe(ANY_SIGNED_IN);
+      const microservices = adminLinkFor('/clarisa-panel/manage/microservices-admin')!;
+      expect(microservices.children?.filter(child => child.access === ANY_SIGNED_IN).map(child => child.label)).toEqual(OPEN_TABS);
+    });
+
+    it('shows a MELIAF Data Admin the MELIAF Taxonomy plus the open entries', () => {
       const groups = groupsFor({ isSuper: false, permissions: ['/api/meliaf-taxonomy/admin'] });
-      expect(groups.map(group => group.title)).toEqual(['Manage']);
-      expect(labels(groups)).toEqual(['MELIAF Taxonomy']);
+      expect(labels(groups)).toEqual(['Institution requests', 'MELIAF Taxonomy', 'Microservices & API keys']);
+      expect(tabs(groups)).toEqual(OPEN_TABS);
     });
 
-    it('shows a MELIAF Concepts Editor only the MELIAF Taxonomy', () => {
+    it('shows a MELIAF Concepts Editor the MELIAF Taxonomy plus the open entries', () => {
       const groups = groupsFor({ isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/meliaf/concepts'] });
-      expect(groups.map(group => group.title)).toEqual(['Manage']);
-      expect(labels(groups)).toEqual(['MELIAF Taxonomy']);
+      expect(labels(groups)).toEqual(['Institution requests', 'MELIAF Taxonomy', 'Microservices & API keys']);
     });
 
     it('opens the MELIAF Taxonomy entry for the full and the concepts permission, and nothing else of MELIAF', () => {
@@ -80,25 +119,27 @@ describe('admin navigation', () => {
       expect(canOpenLink(meliaf, { isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/meliaf/concepts'] })).toBe(true);
       expect(canOpenLink(meliaf, { isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/meliaf/lists'] })).toBe(false);
       expect(canOpenLink(meliaf, { isSuper: false, permissions: ['/api/glossary/admin'] })).toBe(false);
-      expect(canOpenLink(meliaf, { isSuper: false, permissions: [] })).toBe(false);
-      expect(canOpenLink(meliaf, null)).toBe(false);
+      expect(canOpenLink(meliaf, noRole)).toBe(false);
     });
 
-    it('shows nothing to someone without a role, or without an answer', () => {
-      expect(groupsFor({ isSuper: false, permissions: [] })).toEqual([]);
-      expect(groupsFor(null)).toEqual([]);
+    // me/access failed or timed out: the panel as it was before role filtering.
+    it('shows the whole menu when the access is unknown (null), as before role filtering', () => {
+      expect(labels(groupsFor(null))).toEqual(labels(ADMIN_GROUPS));
+      expect(tabs(groupsFor(null))).toEqual(['Overview', 'MIS Registry', 'API Keys']);
+      ADMIN_GROUPS.flatMap(group => group.links).forEach(link => expect(canOpenLink(link, null)).toBe(true));
     });
 
     it('opens Users and Roles with the «Manage roles and users» permission', () => {
-      expect(labels(groupsFor({ isSuper: false, permissions: ['/api/access-admin'] }))).toEqual(['Users', 'Roles']);
+      expect(labels(groupsFor({ isSuper: false, permissions: ['/api/access-admin'] }))).toEqual([
+        'Institution requests',
+        'Users',
+        'Roles',
+        'Microservices & API keys'
+      ]);
     });
 
-    // API keys and usage carry no permission in the back today: only a super
-    // sees them; a MIS permission opens the MIS Registry tab alone.
-    it('keeps the tabs without a back permission for supers', () => {
-      const groups = groupsFor({ isSuper: false, permissions: ['/api/mises/create'] });
-      const microservices = groups.find(group => group.title === 'System')?.links[0];
-      expect(microservices?.children?.map(child => child.label)).toEqual(['MIS Registry']);
+    it('adds the MIS Registry tab to the open ones with a MIS permission', () => {
+      expect(tabs(groupsFor({ isSuper: false, permissions: ['/api/mises/create'] }))).toEqual(['Overview', 'MIS Registry', 'API Keys']);
     });
 
     it('finds the entry of a URL and says whether it opens', () => {
@@ -109,10 +150,84 @@ describe('admin navigation', () => {
       expect(adminLinkFor('/landing-page/home')).toBeNull();
     });
 
-    it('maps every entry to at least one back route, or declares it super-only', () => {
+    describe('the one section a member is for (home redirect + login landing)', () => {
+      const meliaf = { isSuper: false, permissions: ['/api/meliaf-taxonomy/admin'] };
+
+      it('counts only permission-protected sections, never the open entries', () => {
+        expect(protectedSections(noRole)).toEqual([]);
+        expect(protectedSections(meliaf).map(section => section.link.label)).toEqual(['MELIAF Taxonomy']);
+        expect(protectedSections({ isSuper: false, permissions: ['/api/mises/create'] })).toEqual([
+          { link: adminLinkFor('/clarisa-panel/manage/microservices-admin'), queryParams: { section: 'mises' } }
+        ]);
+      });
+
+      it('MELIAF-only → the MELIAF Taxonomy, on the home and after login', () => {
+        expect(onlyProtectedSection(meliaf)?.link.route).toBe('/clarisa-panel/manage/global-concepts-admin');
+        expect(postLoginRoute(meliaf)).toBe('/clarisa-panel/manage/global-concepts-admin');
+        expect(postLoginRoute({ isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/meliaf/concepts'] })).toBe(
+          '/clarisa-panel/manage/global-concepts-admin'
+        );
+      });
+
+      it('a single protected tab lands on that tab', () => {
+        expect(postLoginRoute({ isSuper: false, permissions: ['/api/mises/create'] })).toBe(
+          '/clarisa-panel/manage/microservices-admin?section=mises'
+        );
+      });
+
+      it('no protected section → partner-request, as today', () => {
+        expect(onlyProtectedSection(noRole)).toBeNull();
+        expect(postLoginRoute(noRole)).toBe(LOGIN_LANDING);
+      });
+
+      it('two or more protected sections → partner-request (open to everyone), and the home shows the list', () => {
+        const two = { isSuper: false, permissions: ['/api/glossary/admin', '/api/institutions/lifecycle/'] };
+        expect(onlyProtectedSection(two)).toBeNull();
+        expect(postLoginRoute(two)).toBe(LOGIN_LANDING);
+        // Users + Roles are two sections from one permission.
+        expect(postLoginRoute({ isSuper: false, permissions: ['/api/access-admin'] })).toBe(LOGIN_LANDING);
+      });
+
+      it('a super admin → partner-request, as always', () => {
+        expect(onlyProtectedSection({ isSuper: true, permissions: [] })).toBeNull();
+        expect(postLoginRoute({ isSuper: true, permissions: [] })).toBe(LOGIN_LANDING);
+      });
+
+      it('access unknown (me/access error or timeout) → partner-request, no redirect', () => {
+        expect(onlyProtectedSection(null)).toBeNull();
+        expect(postLoginRoute(null)).toBe(LOGIN_LANDING);
+      });
+
+      it('without partner-request open to them, several sections go to the panel home', () => {
+        const groups: AdminGroup[] = [
+          {
+            title: 'x',
+            links: [
+              { label: 'A', route: '/clarisa-panel/manage/a', icon: 'fa fa-a', access: ['/api/a'] },
+              { label: 'B', route: '/clarisa-panel/manage/b', icon: 'fa fa-b', access: ['/api/b'] }
+            ]
+          }
+        ];
+        expect(onlyProtectedSection({ isSuper: false, permissions: ['/api/a', '/api/b'] }, groups)).toBeNull();
+        expect(onlyProtectedSection({ isSuper: false, permissions: ['/api/a'] }, groups)?.link.label).toBe('A');
+      });
+
+      it('builds the URL of a section with its tab', () => {
+        const link = adminLinkFor('/clarisa-panel/manage/glossary-admin')!;
+        expect(sectionUrl({ link })).toBe('/clarisa-panel/manage/glossary-admin');
+        expect(sectionUrl({ link, queryParams: { section: 'mises' } })).toBe('/clarisa-panel/manage/glossary-admin?section=mises');
+      });
+    });
+
+    it('maps every entry to back routes, or declares it open to any session', () => {
+      const check = (access: string[] | typeof ANY_SIGNED_IN) => {
+        if (access === ANY_SIGNED_IN) return;
+        expect(Array.isArray(access)).toBe(true);
+        access.forEach(route => expect(route.startsWith('/api/')).toBe(true));
+      };
       ADMIN_GROUPS.flatMap(group => group.links).forEach(link => {
-        expect(Array.isArray(link.access)).toBe(true);
-        link.access.forEach(route => expect(route.startsWith('/api/')).toBe(true));
+        check(link.access);
+        link.children?.forEach(child => check(child.access));
       });
     });
   });

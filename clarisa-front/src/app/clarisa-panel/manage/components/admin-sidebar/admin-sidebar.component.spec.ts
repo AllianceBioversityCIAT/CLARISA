@@ -9,6 +9,7 @@ import { AdminSidebarComponent } from './admin-sidebar.component';
 import { AuthService } from '../../../../shared/services/auth.service';
 import { PanelAccessService, PanelAccessState } from '../../../../shared/services/access-admin/panel-access.service';
 import { BehaviorSubject } from 'rxjs';
+import { ADMIN_GROUPS } from '../../admin-nav';
 
 /** A super by default: every entry, as before the menu was filtered. */
 const superState = (): PanelAccessState => ({
@@ -161,36 +162,39 @@ describe('AdminSidebarComponent', () => {
     expect(component.isEmpty).toBe(false);
   });
 
-  it('shows a module admin only what their permissions open', () => {
+  it('shows a module admin what their permissions open, plus the entries open to every session', () => {
     access.state$.next({
       status: 'ready',
       access: { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/meliaf-taxonomy/admin'], isSuper: false }
     });
     fixture.detectChanges();
 
-    expect(labels()).toEqual(['MELIAF Taxonomy']);
-    expect(component.groups.map(group => group.title)).toEqual(['Manage']);
-    expect(subLabels()).toEqual([]);
+    // `labels()` reads plain links; «Microservices & API keys» is a toggle with its tabs (`subLabels()`).
+    expect(labels()).toEqual(['Institution requests', 'MELIAF Taxonomy']);
+    expect(component.groups.map(group => group.title)).toEqual(['Manage', 'System']);
+    expect(subLabels()).toEqual(['Overview', 'API Keys']);
   });
 
-  it('says so when the roles open nothing, instead of an empty column', () => {
+  it('keeps the open entries for a user without any role, instead of an empty column', () => {
     access.state$.next({
       status: 'ready',
       access: { userId: 3, email: 'n@cgiar.org', roles: [], permissions: [], isSuper: false }
     });
     fixture.detectChanges();
 
-    expect(labels()).toEqual([]);
-    expect(component.noAccess).toBe(true);
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('do not open any administration section');
+    expect(labels()).toEqual(['Institution requests']);
+    expect(subLabels()).toEqual(['Overview', 'API Keys']);
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__notice')).toBeNull();
   });
 
-  it('offers a retry when the access fails, and drops the cache on logout', () => {
+  it('falls back to the whole menu when the access fails or times out, and drops the cache on logout', () => {
     access.state$.next({ status: 'error' });
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('.admin-sidebar__retry') as HTMLButtonElement).click();
-    expect(access.reload).toHaveBeenCalled();
+    expect(labels()).toEqual(ADMIN_GROUPS.flatMap(group => group.links.filter(link => !link.children).map(link => link.label)));
+    expect(subLabels()).toEqual(['Overview', 'MIS Registry', 'API Keys']);
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__skeleton')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__notice')).toBeNull();
 
     (auth as unknown as { logout: jest.Mock }).logout = jest.fn();
     component.onLogOut();

@@ -44,8 +44,19 @@ describe('AdminAccessGuard', () => {
     expect(router.serializeUrl(result as UrlTree)).toBe('/clarisa-panel/manage?denied=Users');
   });
 
-  it('says so when the access could not be read', () => {
+  it('lets a user without any role into the screens the back does not permission-guard', () => {
+    resolved = { userId: 1, email: 'a@b', roles: [], permissions: [], isSuper: false };
+    expect(run('/clarisa-panel/manage/partner-request')).toBe(true);
+    expect(run('/clarisa-panel/manage/microservices-admin')).toBe(true);
+    expect(router.serializeUrl(run('/clarisa-panel/manage/glossary-admin') as UrlTree)).toBe('/clarisa-panel/manage?denied=Glossary');
+  });
+
+  // me/access failed or timed out (resolved() gives null): fail open, as before
+  // role filtering. The back still enforces each permission.
+  it('lets everything through when the access could not be read', () => {
     resolved = null;
-    expect(router.serializeUrl(run('/clarisa-panel/manage/partner-request') as UrlTree)).toBe('/clarisa-panel/manage?denied=error');
+    ['partner-request', 'manage-user', 'manage-role', 'glossary-admin', 'global-concepts-admin', 'institution-lifecycle'].forEach(page =>
+      expect(run(`/clarisa-panel/manage/${page}`)).toBe(true)
+    );
   });
 });

@@ -99,6 +99,52 @@ describe('GcConceptDialogComponent', () => {
     expect(api['updateConcept']).not.toHaveBeenCalled();
   });
 
+  it('refuses to save while the assistant is asking or typing, and says why', () => {
+    component.openEdit(component.concepts[0]);
+    component.form.preferred_label = 'Outcomes';
+    expect(component.assistBusyReason).toBeNull();
+
+    // A turn in flight (request sent, no answer yet).
+    component.assist.turnToken = component.assist.token;
+    component.assist.sending = true;
+    expect(component.assistBusyReason).toBe('Wait until the assistant finishes');
+    component.save();
+    expect(api['updateConcept']).not.toHaveBeenCalled();
+
+    // Its steps being typed on the form.
+    component.assist.sending = false;
+    component.assist.playing = true;
+    component.save();
+    expect(api['updateConcept']).not.toHaveBeenCalled();
+
+    // The turn ended: Save works again.
+    component.assist.playing = false;
+    expect(component.assistBusyReason).toBeNull();
+    component.save();
+    expect(api['updateConcept']).toHaveBeenCalledTimes(1);
+  });
+
+  it('is not locked by a turn of a concept opened earlier', () => {
+    component.openEdit(component.concepts[0]);
+    component.assist.turnToken = component.assist.token;
+    component.assist.playing = true;
+    component.openEdit(component.concepts[1]);
+    component.form.preferred_label = 'Outputs';
+
+    expect(component.assistBusyReason).toBeNull();
+    component.save();
+    expect(api['updateConcept']).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the Save button with the assistant reason as its tooltip', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const html: string = fs.readFileSync(path.join(__dirname, 'gc-concept-dialog.component.html'), 'utf8');
+    const foot = html.slice(html.indexOf('gc-dialog-foot'), html.indexOf('</form>'));
+    expect(foot).toContain('[pTooltip]="assistBusyReason || \'\'"');
+    expect(foot).toMatch(/type="submit"[\s\S]*\[disabled\]="[^"]*!!assistBusyReason"/);
+  });
+
   it('locks the save on the first click until the back answers', () => {
     const answer = new Subject<AdminConceptDetail>();
     api['updateConcept'].mockReturnValue(answer);

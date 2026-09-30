@@ -75,6 +75,11 @@ export class AdminSidebarComponent implements OnDestroy {
    * draws skeleton items, never the full menu: showing every entry for a
    * second and then taking most of them away reads as a glitch, and it lists
    * to a module admin the screens they cannot open.
+   *
+   * If it fails or times out (`error`), the column shows the whole menu, as
+   * before role filtering (`groupsFor(null)`); the back still enforces each
+   * permission. Entries open to any session (`ANY_SIGNED_IN`) always show, so
+   * a signed-in user never gets an empty column.
    */
   access: PanelAccessState = { status: 'idle' };
 
@@ -86,7 +91,7 @@ export class AdminSidebarComponent implements OnDestroy {
 
     this.accessSub = this.panelAccess.state$.subscribe(state => {
       this.access = state;
-      this.allowed = state.status === 'ready' ? groupsFor(state.access) : [];
+      this.allowed = state.status === 'ready' ? groupsFor(state.access) : state.status === 'error' ? groupsFor(null) : [];
     });
     this.panelAccess.ensure();
 
@@ -161,22 +166,9 @@ export class AdminSidebarComponent implements OnDestroy {
     return this.access.status === 'loading' || this.access.status === 'idle';
   }
 
-  get accessFailed(): boolean {
-    return this.access.status === 'error';
-  }
-
-  /** Resolved, and the caller's roles open nothing in the panel. */
-  get noAccess(): boolean {
-    return this.access.status === 'ready' && this.allowed.length === 0;
-  }
-
   /** Nada coincide: se dice, en vez de dejar la columna en blanco. */
   get isEmpty(): boolean {
-    return this.access.status === 'ready' && this.allowed.length > 0 && this.groups.length === 0;
-  }
-
-  retryAccess(): void {
-    this.panelAccess.reload();
+    return this.allowed.length > 0 && this.groups.length === 0;
   }
 
   /**
