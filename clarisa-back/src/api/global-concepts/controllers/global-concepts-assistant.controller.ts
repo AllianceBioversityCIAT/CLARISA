@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   HttpCode,
-  Param,
   Post,
   UseGuards,
   UsePipes,
@@ -17,12 +16,13 @@ import { UserData } from '../../../shared/interfaces/user-data';
 import { GlobalConceptsEnabledGuard } from '../utils/feature-enabled.guard';
 import { AssistantChatDto } from '../dto/assistant.dto';
 import { ConceptAssistantService } from '../services/concept-assistant.service';
+import { SchemeCode } from '../utils/scheme-code.decorator';
 
 /**
  * Concept assistant (assistant-contract.md), mounted like the admin
- * controller. The paths sit under `:scheme/concepts-assist/...` on purpose:
+ * controller. The paths sit under `admin/concepts-assist/...` on purpose:
  * PermissionGuard matches by substring, so the CONCEPTS_CE permission
- * `/api/concepts/admin/meliaf-taxonomy/concepts` opens them and nothing else.
+ * `/api/meliaf-taxonomy/admin/concepts` opens them and nothing else.
  * Unlike the other AI routes (404 while AI is off), these answer 503 with a
  * human message, so the chat can say why it is unavailable.
  */
@@ -39,15 +39,15 @@ import { ConceptAssistantService } from '../services/concept-assistant.service';
 export class GlobalConceptsAssistantController {
   constructor(private readonly assistant: ConceptAssistantService) {}
 
-  @Get(':scheme/concepts-assist/status')
+  @Get('concepts-assist/status')
   status() {
     return this.assistant.status();
   }
 
-  @Post(':scheme/concepts-assist/chat')
+  @Post('concepts-assist/chat')
   @HttpCode(200)
   chat(
-    @Param('scheme') scheme: string,
+    @SchemeCode() scheme: string,
     @Body() dto: AssistantChatDto,
     @GetUserData() user: UserData,
   ) {

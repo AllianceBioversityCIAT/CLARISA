@@ -15,7 +15,7 @@ export const GlobalConceptsConfig = {
   },
   get uriBase(): string {
     return (
-      env.GLOBAL_CONCEPTS_URI_BASE ?? 'https://api.clarisa.cgiar.org/concepts'
+      env.GLOBAL_CONCEPTS_URI_BASE ?? 'https://api.clarisa.cgiar.org'
     ).replace(/\/+$/, '');
   },
   /**
@@ -61,20 +61,23 @@ export function webBaseOf(scheme?: { web_base?: string | null } | null) {
 }
 
 /**
- * The scheme CLARISA publishes by default (Yeck, 2026-10-01: code
- * `meliaf-taxonomy`, title "MELIAF taxonomy"). Its URIs carry its code like
- * any other scheme: `/concepts/meliaf-taxonomy/2374`. `/concepts/2374` and
- * `/concepts` still resolve to it (see `ConceptUriController`).
+ * The scheme CLARISA publishes (Yeck, 2026-10-01): code `meliaf-taxonomy`,
+ * title "MELIAF taxonomy". It is the API prefix (`/api/meliaf-taxonomy/…`)
+ * and the root of its persistent URIs (`/meliaf-taxonomy/2374`).
  */
 export const DEFAULT_SCHEME_CODE = 'meliaf-taxonomy';
 
-/** URI of a scheme, honouring a per-scheme override. */
+/**
+ * URI of a scheme: `{host}/{code}`. `uri_base` (per scheme) or
+ * GLOBAL_CONCEPTS_URI_BASE give the host; a base that still ends in the old
+ * `/concepts` segment is read as its host, so a server .env written for the
+ * earlier shape keeps producing the right URIs.
+ */
 export function schemeUri(scheme: { code: string; uri_base: string | null }) {
-  const base = (scheme.uri_base ?? GlobalConceptsConfig.uriBase).replace(
-    /\/+$/,
-    '',
-  );
-  return `${base}/${scheme.code}`;
+  const host = (scheme.uri_base ?? GlobalConceptsConfig.uriBase)
+    .replace(/\/+$/, '')
+    .replace(/\/concepts$/, '');
+  return `${host}/${scheme.code}`;
 }
 
 /** Path of a concept's human page under the web base. */

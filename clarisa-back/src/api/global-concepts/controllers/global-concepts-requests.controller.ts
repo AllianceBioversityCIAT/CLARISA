@@ -34,6 +34,7 @@ import {
   VerifyPublicRequestDto,
 } from '../dto/request.dto';
 import { CreateConceptDto, UpdateConceptDto } from '../dto/concept-admin.dto';
+import { SchemeCode } from '../utils/scheme-code.decorator';
 
 const pipe = new ValidationPipe({
   whitelist: true,
@@ -64,12 +65,12 @@ const platformOf = (auth: ApiKeyAuthContext | undefined) => {
 export class GlobalConceptsRequestsController {
   constructor(private readonly requests: RequestsService) {}
 
-  @Post(':scheme/requests/start')
+  @Post('requests/start')
   @ApiOperation({
     summary:
       'Public form: submit a request and receive a confirmation link by email',
   })
-  start(@Param('scheme') scheme: string, @Body() dto: StartPublicRequestDto) {
+  start(@SchemeCode() scheme: string, @Body() dto: StartPublicRequestDto) {
     return this.requests.startPublic(scheme, dto);
   }
 
@@ -116,11 +117,11 @@ export class GlobalConceptsRequestsController {
     });
   }
 
-  @Post(':scheme/requests')
+  @Post('requests')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Signed-in CLARISA user: submit a concept request' })
   submitAsUser(
-    @Param('scheme') scheme: string,
+    @SchemeCode() scheme: string,
     @Body() dto: SubmitRequestDto,
     @GetUserData() user: UserData,
   ) {
@@ -150,10 +151,10 @@ export class GlobalConceptsPlatformController {
     private readonly admin: ConceptsAdminService,
   ) {}
 
-  @Post(':scheme/requests')
+  @Post('requests')
   @RequireApiKeyScope('concepts:request')
   submit(
-    @Param('scheme') scheme: string,
+    @SchemeCode() scheme: string,
     @Body() dto: SubmitRequestDto,
     @GetApiKeyAuth() auth: ApiKeyAuthContext,
   ) {
@@ -202,10 +203,10 @@ export class GlobalConceptsPlatformController {
     });
   }
 
-  @Post(':scheme/concepts')
+  @Post('concepts')
   @RequireApiKeyScope('concepts:write')
   async create(
-    @Param('scheme') scheme: string,
+    @SchemeCode() scheme: string,
     @Body() dto: CreateConceptDto,
     @GetApiKeyAuth() auth: ApiKeyAuthContext,
   ) {
@@ -216,10 +217,10 @@ export class GlobalConceptsPlatformController {
     });
   }
 
-  @Patch(':scheme/concepts/:termId')
+  @Patch('concepts/:termId')
   @RequireApiKeyScope('concepts:write')
   async update(
-    @Param('scheme') scheme: string,
+    @SchemeCode() scheme: string,
     @Param('termId', ParseIntPipe) termId: number,
     @Body() dto: UpdateConceptDto,
     @GetApiKeyAuth() auth: ApiKeyAuthContext,

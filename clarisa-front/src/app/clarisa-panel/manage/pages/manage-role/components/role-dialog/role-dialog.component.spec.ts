@@ -9,7 +9,7 @@ import { AccessAdminApiService, AccessRole, MeAccess, PermissionGroup } from '..
 const catalog: PermissionGroup[] = [
   {
     module: 'Concepts',
-    items: [{ id: 1, name: '/api/concepts/admin', label: 'Manage Concepts', description: 'Create, edit, import and publish.' }]
+    items: [{ id: 1, name: '/api/meliaf-taxonomy/admin', label: 'Manage Concepts', description: 'Create, edit, import and publish.' }]
   },
   { module: 'Glossary', items: [{ id: 2, name: '/api/glossary/admin', label: 'Manage the glossary', description: null }] }
 ];
@@ -112,7 +112,7 @@ describe('RoleDialogComponent', () => {
   });
 
   it('lets a non-super tick only permissions they hold, and locks roles beyond them', () => {
-    const admin: MeAccess = { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/access-admin', '/api/concepts/admin'], isSuper: false };
+    const admin: MeAccess = { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/access-admin', '/api/meliaf-taxonomy/admin'], isSuper: false };
     const dialog = open(null, admin);
     expect(dialog.canGrant(catalog[0].items[0])).toBe(true);
     expect(dialog.canGrant(catalog[1].items[0])).toBe(false);

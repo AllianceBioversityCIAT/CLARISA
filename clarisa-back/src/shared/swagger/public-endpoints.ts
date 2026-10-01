@@ -66,15 +66,14 @@ export const PUBLIC_OPENAPI_PATHS: string[] = [
   '/api/units',
   // Concepts (the Global Concepts module) — public read only; writes, requests,
   // admin and MCP stay out of the spec.
-  '/api/concepts/schemes',
-  '/api/concepts/lists',
-  '/api/concepts/{scheme}',
-  '/api/concepts/{scheme}/concepts',
-  '/api/concepts/{scheme}/concepts/{termId}',
-  '/api/concepts/{scheme}/concepts/{termId}/history',
-  '/api/concepts/{scheme}/changes',
-  '/api/concepts/{scheme}/releases',
-  '/api/concepts/{scheme}/export',
+  '/api/meliaf-taxonomy',
+  '/api/meliaf-taxonomy/lists',
+  '/api/meliaf-taxonomy/concepts',
+  '/api/meliaf-taxonomy/concepts/{termId}',
+  '/api/meliaf-taxonomy/concepts/{termId}/history',
+  '/api/meliaf-taxonomy/changes',
+  '/api/meliaf-taxonomy/releases',
+  '/api/meliaf-taxonomy/export',
 ];
 
 /**

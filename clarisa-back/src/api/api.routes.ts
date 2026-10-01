@@ -408,7 +408,7 @@ export const apiRoutes = [
     module: MetricsModule,
   },
   {
-    path: 'concepts',
+    path: 'meliaf-taxonomy',
     module: GlobalConceptsModule,
   },
   {

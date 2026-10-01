@@ -23,8 +23,8 @@ describe('exportUrl', () => {
   const api = new GlobalConceptsApiService({} as any);
 
   it('omits the version for the current state and pins a release when given', () => {
-    expect(api.exportUrl('concepts', 'csv')).toMatch(/\/concepts\/export\?format=csv$/);
-    expect(api.exportUrl('concepts', 'csv', null)).toMatch(/\/concepts\/export\?format=csv$/);
-    expect(api.exportUrl('concepts', 'jsonld', '1.0.0')).toMatch(/\/concepts\/export\?format=jsonld&version=1\.0\.0$/);
+    expect(api.exportUrl('concepts', 'csv')).toMatch(/\/api\/meliaf-taxonomy\/export\?format=csv$/);
+    expect(api.exportUrl('concepts', 'csv', null)).toMatch(/\/api\/meliaf-taxonomy\/export\?format=csv$/);
+    expect(api.exportUrl('concepts', 'jsonld', '1.0.0')).toMatch(/\/api\/meliaf-taxonomy\/export\?format=jsonld&version=1\.0\.0$/);
   });
 });

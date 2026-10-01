@@ -165,7 +165,7 @@ describe('AdminSidebarComponent', () => {
   it('shows a Concepts Data Admin only Concepts', () => {
     access.state$.next({
       status: 'ready',
-      access: { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/concepts/admin'], isSuper: false }
+      access: { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/meliaf-taxonomy/admin'], isSuper: false }
     });
     fixture.detectChanges();
 

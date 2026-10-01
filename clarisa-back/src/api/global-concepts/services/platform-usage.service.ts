@@ -9,13 +9,20 @@ import { CountedReads, UsageService } from './usage.service';
  * Every path a platform reaches Concepts through: the module itself
  * (public reads, MCP and `platform/*`) and the persistent URIs.
  */
-export const CONCEPTS_ENDPOINT_PREFIXES = ['/api/concepts/', '/concepts/'];
+export const CONCEPTS_ENDPOINT_PREFIXES = [
+  '/api/meliaf-taxonomy/',
+  '/meliaf-taxonomy/',
+];
 
 /**
  * Prefixes the module had before each rename. Only counted, never published:
  * the calls logged under them are still Concepts calls.
  */
-const RENAMED_PREFIXES = ['/api/meliaf-taxonomy/', '/api/global-concepts/'];
+const RENAMED_PREFIXES = [
+  '/api/concepts/',
+  '/concepts/',
+  '/api/global-concepts/',
+];
 
 const isoDay = (ms: number) =>
   Number.isNaN(ms) ? '' : new Date(ms).toISOString().slice(0, 10);

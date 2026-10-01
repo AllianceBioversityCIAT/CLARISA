@@ -19,38 +19,37 @@ export interface Endpoint {
 export interface DocBases {
   /** `environment.apiUrl`, with its trailing slash. */
   apiRoot: string;
-  /** `…/api/concepts` */
+  /** `…/api/meliaf-taxonomy` (the scheme is the prefix) */
   api: string;
-  /** `…/concepts` (resolver of persistent URIs on this environment). */
+  /** `…/meliaf-taxonomy` (resolver of persistent URIs on this environment). */
   uris: string;
   mcp: string;
 }
 
 export function docBases(apiRoot: string): DocBases {
   const root = apiRoot.endsWith('/') ? apiRoot : `${apiRoot}/`;
-  return { apiRoot: root, api: `${root}api/concepts`, uris: `${root}concepts`, mcp: `${root}api/concepts/mcp` };
+  return { apiRoot: root, api: `${root}api/meliaf-taxonomy`, uris: `${root}meliaf-taxonomy`, mcp: `${root}api/meliaf-taxonomy/mcp` };
 }
 
 /** Public, anonymous routes (global-concepts-public.controller.ts), with live links. */
 export function publicEndpoints(b: DocBases, scheme: string, termId: number): Endpoint[] {
-  const s = `${b.api}/${scheme}`;
+  const s = b.api;
   return [
-    { method: 'GET', path: '/schemes', what: 'Every concept scheme (Concepts and any domain or platform scheme).', live: `${b.api}/schemes` },
-    { method: 'GET', path: '/{scheme}', what: 'Scheme metadata: title, licence, publisher, governance.', live: s },
-    { method: 'GET', path: '/lists?scheme={scheme}', what: 'Controlled lists: status, function, phase, term type, derivation…', live: `${b.api}/lists?scheme=${scheme}` },
-    { method: 'GET', path: '/{scheme}/fields', what: 'The scheme’s own public metadata fields (custom fields).', live: `${s}/fields` },
+    { method: 'GET', path: '', what: 'The scheme: title, licence, publisher, governance.', live: s },
+    { method: 'GET', path: '/lists', what: 'Controlled lists: status, function, phase, term type, derivation…', live: `${s}/lists` },
+    { method: 'GET', path: '/fields', what: 'The scheme’s own public metadata fields (custom fields).', live: `${s}/fields` },
     {
       method: 'GET',
-      path: '/{scheme}/concepts',
+      path: '/concepts',
       what: 'All published concepts, or a search: q, status, functions, phase, term_type, collection, version.',
       live: `${s}/concepts?q=evaluation`
     },
-    { method: 'GET', path: '/{scheme}/concepts/{term_id}', what: 'One concept, full record. Add ?version= to pin a release.', live: `${s}/concepts/${termId}` },
-    { method: 'GET', path: '/{scheme}/concepts/{term_id}/history', what: 'What changed and when (never who).', live: `${s}/concepts/${termId}/history` },
-    { method: 'GET', path: '/{scheme}/changes?since={cursor}', what: 'Change feed for incremental sync; use next_cursor as the next since.', live: `${s}/changes?since=0&limit=50` },
-    { method: 'GET', path: '/{scheme}/releases', what: 'Published releases (versions) of the scheme.', live: `${s}/releases` },
-    { method: 'GET', path: '/{scheme}/export?format=', what: 'Download: json, csv, skos (Turtle) or jsonld. Add &version= to pin.', live: `${s}/export?format=json` },
-    { method: 'POST', path: '/{scheme}/suggest', what: 'Body { "text": "…" }: which official concepts a text mentions. The text is never stored.' },
+    { method: 'GET', path: '/concepts/{term_id}', what: 'One concept, full record. Add ?version= to pin a release.', live: `${s}/concepts/${termId}` },
+    { method: 'GET', path: '/concepts/{term_id}/history', what: 'What changed and when (never who).', live: `${s}/concepts/${termId}/history` },
+    { method: 'GET', path: '/changes?since={cursor}', what: 'Change feed for incremental sync; use next_cursor as the next since.', live: `${s}/changes?since=0&limit=50` },
+    { method: 'GET', path: '/releases', what: 'Published releases (versions) of the scheme.', live: `${s}/releases` },
+    { method: 'GET', path: '/export?format=', what: 'Download: json, csv, skos (Turtle) or jsonld. Add &version= to pin.', live: `${s}/export?format=json` },
+    { method: 'POST', path: '/suggest', what: 'Body { "text": "…" }: which official concepts a text mentions. The text is never stored.' },
     { method: 'POST', path: '/mcp', what: 'MCP endpoint for AI assistants (JSON-RPC over Streamable HTTP).' }
   ];
 }
@@ -58,12 +57,12 @@ export function publicEndpoints(b: DocBases, scheme: string, termId: number): En
 /** Routes for a platform with an API key (global-concepts-requests.controller.ts). */
 export function platformEndpoints(): Endpoint[] {
   return [
-    { method: 'POST', path: '/platform/{scheme}/requests', what: 'Submit a request (new, edit, merge, deprecate, promote).', scope: 'concepts:request' },
+    { method: 'POST', path: '/platform/requests', what: 'Submit a request (new, edit, merge, deprecate, promote).', scope: 'concepts:request' },
     { method: 'GET', path: '/platform/requests/{id}', what: 'Follow a request the platform submitted.', scope: 'concepts:request' },
     { method: 'POST', path: '/platform/requests/{id}/resubmit', what: 'Answer "changes requested".', scope: 'concepts:request' },
     { method: 'POST', path: '/platform/requests/{id}/transition', what: 'Decide a request in a scheme the platform owns.', scope: 'concepts:review' },
-    { method: 'POST', path: '/platform/{scheme}/concepts', what: 'Create a concept directly in the platform’s own scheme.', scope: 'concepts:write' },
-    { method: 'PATCH', path: '/platform/{scheme}/concepts/{term_id}', what: 'Edit a concept of the platform’s own scheme.', scope: 'concepts:write' }
+    { method: 'POST', path: '/platform/concepts', what: 'Create a concept directly in a scheme the platform owns.', scope: 'concepts:write' },
+    { method: 'PATCH', path: '/platform/concepts/{term_id}', what: 'Edit a concept of a scheme the platform owns.', scope: 'concepts:write' }
   ];
 }
 
@@ -74,8 +73,8 @@ export function mcpSearchBody(query: string, id = 1): McpRequest {
 
 /** Copy-paste snippets, all pointing at this environment. */
 export function snippets(b: DocBases, scheme: string, termId: number): Record<string, string> {
-  const uri = `${b.uris}/${scheme}/${termId}`;
-  const s = `${b.api}/${scheme}`;
+  const uri = `${b.uris}/${termId}`;
+  const s = b.api;
   return {
     search: `curl "${s}/concepts?q=outcome&functions=mel"`,
     concept: `curl "${s}/concepts/${termId}"`,
@@ -88,7 +87,7 @@ export function snippets(b: DocBases, scheme: string, termId: number): Record<st
     pinned: `curl "${s}/concepts/${termId}?version=1.0"`,
     counted: `curl -H "X-API-Key: <your CLARISA API key>" "${s}/concepts?q=outcome"`,
     suggest: `curl -X POST "${s}/suggest" \\\n  -H "Content-Type: application/json" \\\n  -d '{ "text": "The outcome evaluation used a theory of change." }'`,
-    platform: `curl -X POST "${b.api}/platform/${scheme}/requests" \\\n  -H "x-api-key: <your platform key>" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "type": "new",\n    "payload": { "preferred_label": "Learning agenda", "definition": "…" },\n    "rationale": "Used in our annual reports",\n    "requester_email": "person@cgiar.org",\n    "external_request_id": "our-system:1234"\n  }'`,
+    platform: `curl -X POST "${b.api}/platform/requests" \\\n  -H "x-api-key: <your platform key>" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "type": "new",\n    "payload": { "preferred_label": "Learning agenda", "definition": "…" },\n    "rationale": "Used in our annual reports",\n    "requester_email": "person@cgiar.org",\n    "external_request_id": "our-system:1234"\n  }'`,
     claudeCode: `claude mcp add --transport http clarisa-concepts ${b.mcp}`,
     claudeDesktop: `{\n  "mcpServers": {\n    "clarisa-concepts": {\n      "command": "npx",\n      "args": ["-y", "mcp-remote", "${b.mcp}"]\n    }\n  }\n}`,
     mcpJson: `{\n  "mcpServers": {\n    "clarisa-concepts": {\n      "type": "http",\n      "url": "${b.mcp}"\n    }\n  }\n}`,
