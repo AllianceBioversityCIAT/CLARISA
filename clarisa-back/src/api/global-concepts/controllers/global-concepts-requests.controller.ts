@@ -138,7 +138,7 @@ export class GlobalConceptsRequestsController {
 /**
  * Platforms with a CLARISA API key (Partner Requests pattern). `request`
  * submits and follows requests; `write` and `review` act only on the scheme
- * the platform owns — never on the global MELIAF scheme (D5c).
+ * the platform owns — never on the global Concepts scheme (D5c).
  */
 @ApiTags('Concepts — platforms')
 @Controller('platform')

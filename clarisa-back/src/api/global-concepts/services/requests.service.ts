@@ -53,7 +53,7 @@ export interface GcRequester {
   platform?: string | null;
 }
 
-/** Who decides: a MELIAF admin, or a platform acting on a scheme it owns. */
+/** Who decides: a Concepts admin, or a platform acting on a scheme it owns. */
 export interface GcDecider {
   email: string;
   platform?: string | null;

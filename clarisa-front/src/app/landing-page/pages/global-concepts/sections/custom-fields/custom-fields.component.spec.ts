@@ -32,7 +32,7 @@ describe('CustomFieldsComponent', () => {
     await TestBed.configureTestingModule({ declarations: [CustomFieldsComponent], schemas: [NO_ERRORS_SCHEMA] }).compileComponents();
     const fixture: ComponentFixture<CustomFieldsComponent> = TestBed.createComponent(CustomFieldsComponent);
     const component = fixture.componentInstance;
-    component.scheme = 'meliaf';
+    component.scheme = 'concepts';
     component.lists = lists;
     component.defs = defs;
     component.aiFields = ['summary'];
@@ -55,6 +55,9 @@ describe('CustomFieldsComponent', () => {
     // Every field in this section is a custom field, and says so.
     expect(el.querySelectorAll('.gc-tag--custom').length).toBe(4);
     expect(el.querySelector('[data-field="doc"] .gc-tag--custom')?.textContent?.trim()).toBe('Custom');
-    expect(component.link(7)).toEqual(['/landing-page/concepts', 'meliaf', 7]);
+    // The default scheme has no segment of its own; another scheme keeps it.
+    expect(component.link(7)).toEqual(['/landing-page/concepts', 7]);
+    component.scheme = 'prms';
+    expect(component.link(7)).toEqual(['/landing-page/concepts', 'prms', 7]);
   });
 });

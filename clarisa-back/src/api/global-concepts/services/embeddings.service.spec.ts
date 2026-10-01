@@ -32,7 +32,7 @@ describe('EmbeddingsService', () => {
 
   beforeEach(() => {
     db = new FakeManager();
-    scheme = db.seed(GcScheme, { code: 'meliaf', title: 'MELIAF' });
+    scheme = db.seed(GcScheme, { code: 'concepts', title: 'Concepts' });
     ai = {
       embed: jest.fn(async (texts: string[]) => texts.map(vectorOf)),
     };

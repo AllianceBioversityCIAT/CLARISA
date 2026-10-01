@@ -18,6 +18,7 @@ import { listLabel } from '../../utils/list-values';
 import { AssistFieldMeta, assistFields, AssistTab, CUSTOM_PREFIX } from '../../utils/concept-assist';
 import { AssistHost, GcAssistSession } from '../gc-concept-assistant/gc-assist-session.service';
 import { StableOptions } from '../../utils/stable-options';
+import { conceptLink } from '../../../../../../landing-page/pages/global-concepts/global-concepts.utils';
 
 export const AI_DRAFT_FIELDS: { field: AiDraftField; label: string }[] = [
   { field: 'short_definition', label: 'Short definition' },
@@ -38,7 +39,7 @@ export const AI_DRAFT_FIELDS: { field: AiDraftField; label: string }[] = [
   providers: [GcAssistSession]
 })
 export class GcConceptDialogComponent {
-  @Input() scheme = 'meliaf';
+  @Input() scheme = 'concepts';
   @Input() aiEnabled = false;
   @Input() lists: Record<string, ListOption[]> = {};
   @Input() concepts: AdminConceptDetail[] = [];
@@ -203,7 +204,7 @@ export class GcConceptDialogComponent {
   }
 
   get publicUrl(): string | null {
-    return this.editing ? `/landing-page/concepts/${encodeURIComponent(this.scheme)}/${this.editing.term_id}` : null;
+    return this.editing ? conceptLink(this.scheme, this.editing.term_id).join('/') : null;
   }
 
   /** A sub-editor wrote: its answer is the concept as it is now. */

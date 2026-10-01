@@ -44,10 +44,10 @@ const overview = (over: Partial<UsageOverview> = {}): UsageOverview => ({
       mis_id: null,
       kind: 'key',
       api_key_id: 12,
-      api_key_name: 'MELIAF Hub — production',
+      api_key_name: 'Concepts Hub — production',
       system_key: 'key:12',
-      acronym: 'MELIAF Hub — production',
-      name: 'MELIAF Hub — production',
+      acronym: 'Concepts Hub — production',
+      name: 'Concepts Hub — production',
       environment: 'PROD',
       calls: 10,
       errors: 0,
@@ -148,11 +148,11 @@ describe('ApiKeyUsageDashboardComponent', () => {
         { id: 3, name: 'Old', key_prefix: 'cl_test_c', mis_id: 3, environment: 'TEST', is_active: false },
         {
           id: 12,
-          name: 'MELIAF Hub — production',
+          name: 'Concepts Hub — production',
           key_prefix: 'cl_prod_m',
           mis_id: null,
           environment: 'PROD',
-          description: 'MELIAF Hub',
+          description: 'Concepts Hub',
           is_active: true,
           last_used_at: new Date().toISOString()
         },
@@ -205,7 +205,7 @@ describe('ApiKeyUsageDashboardComponent', () => {
               },
               {
                 api_key_id: 12,
-                api_key_name: 'MELIAF Hub — production',
+                api_key_name: 'Concepts Hub — production',
                 key_prefix: 'cl_prod_m',
                 mis_id: null,
                 mis_acronym: null,
@@ -243,7 +243,7 @@ describe('ApiKeyUsageDashboardComponent', () => {
     expect(component.systems.map(s => [s.id, s.kind, s.label, s.color])).toEqual([
       ['mis:3', 'mis', 'PRMS', SYSTEM_PALETTE[0]],
       ['mis:5', 'mis', 'AICCRA', SYSTEM_PALETTE[1]],
-      ['key:12', 'key', 'MELIAF Hub — production', SYSTEM_PALETTE[2]],
+      ['key:12', 'key', 'Concepts Hub — production', SYSTEM_PALETTE[2]],
       ['mis:9', 'mis', 'MEL', SYSTEM_PALETTE[3]],
       // active, no MIS, no calls; the revoked one (14) is not offered
       ['key:13', 'key', 'Sandbox script', SYSTEM_PALETTE[4]]
@@ -259,7 +259,7 @@ describe('ApiKeyUsageDashboardComponent', () => {
     expect(picker.find(p => p.id === 'key:12')).toEqual({
       id: 'key:12',
       kind: 'key',
-      label: 'MELIAF Hub — production',
+      label: 'Concepts Hub — production',
       sub: 'API key without MIS · PROD',
       color: SYSTEM_PALETTE[2],
       calls: 10
@@ -272,7 +272,7 @@ describe('ApiKeyUsageDashboardComponent', () => {
     const color = SYSTEM_PALETTE[2];
     expect(component.chartSeries.find(s => s.key === 'key:12')?.color).toBe(color);
     expect(component.flowLeft.find(n => n.key === 'key:12')?.color).toBe(color);
-    expect(component.topEndpoints[0].parts.find(p => p.label === 'MELIAF Hub — production')?.color).toBe(color);
+    expect(component.topEndpoints[0].parts.find(p => p.label === 'Concepts Hub — production')?.color).toBe(color);
     expect(component.logColor({ system_key: 'key:12', mis_id: null, api_key_id: 12, mis_acronym: null })).toBe(color);
     expect(component.logColor({ mis_id: 3, api_key_id: 1, mis_acronym: 'PRMS' })).toBe(SYSTEM_PALETTE[0]);
     // an older back: no system_key nor mis_id on the log row
@@ -359,7 +359,7 @@ describe('ApiKeyUsageDashboardComponent', () => {
     const kpi = (label: string) => component.kpis.find(k => k.label === label)!;
     expect(kpi('Calls').value).toBe('410');
     expect(kpi('Calls').delta).toEqual({ text: '▲ 105.0%', tone: 'good' });
-    // PRMS, AICCRA and the MELIAF Hub key, which has no MIS
+    // PRMS, AICCRA and the Concepts Hub key, which has no MIS
     expect(kpi('Systems consuming').value).toBe('3');
     expect(kpi('Systems consuming').caption).toContain('of 5 systems');
     expect(kpi('Active keys').value).toBe('3');
@@ -384,7 +384,7 @@ describe('ApiKeyUsageDashboardComponent', () => {
 
   it('draws one stacked series per selected system with calls, and switches metric', async () => {
     await build();
-    expect(component.chartSeries.map(s => s.label)).toEqual(['PRMS', 'AICCRA', 'MELIAF Hub — production']);
+    expect(component.chartSeries.map(s => s.label)).toEqual(['PRMS', 'AICCRA', 'Concepts Hub — production']);
     expect(component.chartLabels.length).toBeGreaterThanOrEqual(29);
     expect(component.chartSeries[0].values[component.chartLabels.indexOf(today())]).toBe(300);
 
@@ -397,10 +397,10 @@ describe('ApiKeyUsageDashboardComponent', () => {
     expect(component.flowLeft.map(n => [n.key, n.label, n.value])).toEqual([
       ['mis:3', 'PRMS', 300],
       ['mis:5', 'AICCRA', 100],
-      ['key:12', 'MELIAF Hub — production', 10]
+      ['key:12', 'Concepts Hub — production', 10]
     ]);
     expect(component.flowRight.map(n => n.label)).toEqual(['/api/institutions']);
-    expect(component.topEndpoints[0].parts.map(p => p.label)).toEqual(['PRMS', 'AICCRA', 'MELIAF Hub — production']);
+    expect(component.topEndpoints[0].parts.map(p => p.label)).toEqual(['PRMS', 'AICCRA', 'Concepts Hub — production']);
 
     component.flowFocus = 'mis:5';
     expect(component.flowFoot).toBe('AICCRA sends 100% of its calls to /api/institutions');

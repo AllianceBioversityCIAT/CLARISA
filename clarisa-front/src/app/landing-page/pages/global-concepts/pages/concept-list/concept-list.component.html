@@ -168,13 +168,13 @@
 
             <div
               class="gc-chips"
-              *ngIf="concept.meliaf_function.length || concept.meliaf_phase_primary || concept.term_type || concept.status === 'deprecated'">
+              *ngIf="concept.functions.length || concept.phase_primary || concept.term_type || concept.status === 'deprecated'">
               <span class="gc-chip gc-chip--warn" *ngIf="concept.status === 'deprecated'"
                 ><i class="pi pi-history" aria-hidden="true"></i>Deprecated</span
               >
-              <span class="gc-chip" *ngFor="let fn of concept.meliaf_function">{{ label('meliaf_function', fn) }}</span>
-              <span class="gc-chip gc-chip--plain" *ngIf="concept.meliaf_phase_primary"
-                >Phase · {{ label('meliaf_phase', concept.meliaf_phase_primary) }}</span
+              <span class="gc-chip" *ngFor="let fn of concept.functions">{{ label('functions', fn) }}</span>
+              <span class="gc-chip gc-chip--plain" *ngIf="concept.phase_primary"
+                >Phase · {{ label('phase', concept.phase_primary) }}</span
               >
               <span class="gc-chip gc-chip--plain" *ngIf="concept.term_type">{{ label('term_type', concept.term_type) }}</span>
             </div>

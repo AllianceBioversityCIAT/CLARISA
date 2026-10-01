@@ -6,7 +6,7 @@ import { AddApiKeysAdminPermission1790600300000 } from '../../../migrations/1790
 /**
  * The real PermissionGuard (path substring match) with the permission the
  * migration grants to SA: it opens every route of `ApiKeyController` and a
- * module admin (MELIAF only) is refused.
+ * module admin (Concepts only) is refused.
  */
 describe('PermissionGuard with the API keys admin permission', () => {
   const ROUTE = AddApiKeysAdminPermission1790600300000.ROUTE;

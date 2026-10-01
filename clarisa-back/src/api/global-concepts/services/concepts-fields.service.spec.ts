@@ -33,19 +33,19 @@ describe('Custom fields', () => {
   let fields: ConceptsFieldsService;
   let admin: ConceptsAdminService;
   let read: ConceptsReadService;
-  let meliaf: GcScheme;
+  let concepts: GcScheme;
 
   const concept = (term_id: number, more: Partial<GcConcept> = {}) =>
     db.seed(GcConcept, {
-      scheme_id: meliaf.id,
+      scheme_id: concepts.id,
       term_id,
       preferred_label: `Term ${term_id}`,
       language: 'en',
       status: GcConceptStatus.APPROVED,
       version: '1.0',
       replaced_by_id: null,
-      meliaf_function: [],
-      meliaf_phase_also: [],
+      functions: [],
+      phase_also: [],
       validated_by: [],
       ai_generated_fields: [],
       extra: {},
@@ -54,9 +54,9 @@ describe('Custom fields', () => {
 
   beforeEach(() => {
     db = new FakeManager();
-    meliaf = db.seed(GcScheme, {
-      code: 'meliaf',
-      title: 'MELIAF',
+    concepts = db.seed(GcScheme, {
+      code: 'concepts',
+      title: 'Concepts',
       default_language: 'en',
       next_term_id: 50,
       uri_base: null,
@@ -92,7 +92,7 @@ describe('Custom fields', () => {
 
   describe('definitions', () => {
     it('creates a field with defaults and lists active and inactive ones', async () => {
-      const f = await fields.create('meliaf', {
+      const f = await fields.create('concepts', {
         code: ' Owner_Unit ',
         label: 'Owner unit',
         type: GcFieldType.TEXT,
@@ -105,15 +105,15 @@ describe('Custom fields', () => {
         sort: 0,
         list_code: null,
       });
-      const g = await fields.create('meliaf', {
+      const g = await fields.create('concepts', {
         code: 'region',
         label: 'Region',
         type: GcFieldType.LIST,
         list_code: 'region',
       });
       expect(g.sort).toBe(1);
-      await fields.update('meliaf', f.id, { is_active: false });
-      expect((await fields.list('meliaf')).map((x) => x.code)).toEqual([
+      await fields.update('concepts', f.id, { is_active: false });
+      expect((await fields.list('concepts')).map((x) => x.code)).toEqual([
         'owner_unit',
         'region',
       ]);
@@ -123,7 +123,7 @@ describe('Custom fields', () => {
       'refuses the code %j',
       async (code) => {
         await expect(
-          fields.create('meliaf', {
+          fields.create('concepts', {
             code,
             label: 'X',
             type: GcFieldType.TEXT,
@@ -134,22 +134,22 @@ describe('Custom fields', () => {
 
     it('refuses a duplicate code in the same scheme', async () => {
       const dto = { code: 'owner', label: 'Owner', type: GcFieldType.TEXT };
-      await fields.create('meliaf', dto);
-      await expect(fields.create('meliaf', dto)).rejects.toBeInstanceOf(
+      await fields.create('concepts', dto);
+      await expect(fields.create('concepts', dto)).rejects.toBeInstanceOf(
         ConflictException,
       );
     });
 
     it('needs an existing list for list types and refuses one elsewhere', async () => {
       await expect(
-        fields.create('meliaf', {
+        fields.create('concepts', {
           code: 'r',
           label: 'R',
           type: GcFieldType.MULTI_LIST,
         }),
       ).rejects.toThrow(/needs list_code/);
       await expect(
-        fields.create('meliaf', {
+        fields.create('concepts', {
           code: 'r',
           label: 'R',
           type: GcFieldType.LIST,
@@ -157,7 +157,7 @@ describe('Custom fields', () => {
         }),
       ).rejects.toThrow(/no list "planets"/);
       await expect(
-        fields.create('meliaf', {
+        fields.create('concepts', {
           code: 'r',
           label: 'R',
           type: GcFieldType.TEXT,
@@ -173,12 +173,12 @@ describe('Custom fields', () => {
       await expect(
         pipe.transform({ type: 'number' }, body(UpdateFieldDto)),
       ).rejects.toBeInstanceOf(BadRequestException);
-      const f = await fields.create('meliaf', {
+      const f = await fields.create('concepts', {
         code: 'owner',
         label: 'Owner',
         type: GcFieldType.TEXT,
       });
-      const out = await fields.update('meliaf', f.id, {
+      const out = await fields.update('concepts', f.id, {
         label: 'Owning unit',
         required: true,
         code: 'x',
@@ -193,26 +193,26 @@ describe('Custom fields', () => {
     });
 
     it('publishes only active + public definitions, in sort order', async () => {
-      const a = await fields.create('meliaf', {
+      const a = await fields.create('concepts', {
         code: 'b_field',
         label: 'B',
         type: GcFieldType.TEXT,
         sort: 2,
       });
-      await fields.create('meliaf', {
+      await fields.create('concepts', {
         code: 'a_field',
         label: 'A',
         type: GcFieldType.URL,
         sort: 1,
         help: 'A link',
       });
-      await fields.create('meliaf', {
+      await fields.create('concepts', {
         code: 'private',
         label: 'P',
         type: GcFieldType.TEXT,
         is_public: false,
       });
-      expect(await read.fields('meliaf')).toEqual([
+      expect(await read.fields('concepts')).toEqual([
         {
           code: 'a_field',
           label: 'A',
@@ -228,25 +228,25 @@ describe('Custom fields', () => {
           help: null,
         },
       ]);
-      await fields.update('meliaf', a.id, { is_active: false });
-      expect((await read.fields('meliaf')).map((f) => f.code)).toEqual([
+      await fields.update('concepts', a.id, { is_active: false });
+      expect((await read.fields('concepts')).map((f) => f.code)).toEqual([
         'a_field',
       ]);
     });
 
     it('lists built-in import targets plus x:<code> per active field', async () => {
-      await fields.create('meliaf', {
+      await fields.create('concepts', {
         code: 'owner',
         label: 'Owner',
         type: GcFieldType.TEXT,
       });
-      const off = await fields.create('meliaf', {
+      const off = await fields.create('concepts', {
         code: 'old',
         label: 'Old',
         type: GcFieldType.TEXT,
       });
-      await fields.update('meliaf', off.id, { is_active: false });
-      const out = await fields.importFields('meliaf');
+      await fields.update('concepts', off.id, { is_active: false });
+      const out = await fields.importFields('concepts');
       expect(out).toHaveLength(IMPORT_FIELDS.length + 1);
       expect(out[out.length - 1]).toMatchObject({
         field: 'x:owner',
@@ -260,19 +260,19 @@ describe('Custom fields', () => {
 
   describe('values on concepts', () => {
     beforeEach(async () => {
-      await fields.create('meliaf', {
+      await fields.create('concepts', {
         code: 'owner',
         label: 'Owner',
         type: GcFieldType.TEXT,
         sort: 1,
       });
-      await fields.create('meliaf', {
+      await fields.create('concepts', {
         code: 'see_also',
         label: 'See also',
         type: GcFieldType.TERM_LINK,
         sort: 2,
       });
-      await fields.create('meliaf', {
+      await fields.create('concepts', {
         code: 'internal_code',
         label: 'Internal code',
         type: GcFieldType.TEXT,
@@ -291,22 +291,22 @@ describe('Custom fields', () => {
     it('validates on create and enforces required fields', async () => {
       await expect(
         admin.create(
-          'meliaf',
+          'concepts',
           { preferred_label: 'X', extra: { nope: 1 } },
           actor,
         ),
       ).rejects.toThrow(/Unknown custom field/);
-      await fields.create('meliaf', {
+      await fields.create('concepts', {
         code: 'must',
         label: 'Must',
         type: GcFieldType.TEXT,
         required: true,
       });
       await expect(
-        admin.create('meliaf', { preferred_label: 'Y' }, actor),
+        admin.create('concepts', { preferred_label: 'Y' }, actor),
       ).rejects.toThrow(/missing: must/);
       const ok = await admin.create(
-        'meliaf',
+        'concepts',
         { preferred_label: 'Z', extra: { must: 'yes', owner: 'PPT' } },
         actor,
       );
@@ -319,7 +319,7 @@ describe('Custom fields', () => {
       });
       concept(2);
       await admin.update(
-        'meliaf',
+        'concepts',
         1,
         { extra: { see_also: [2], internal_code: 'Z9' } },
         actor,
@@ -334,7 +334,7 @@ describe('Custom fields', () => {
       const log = db.rows(GcHistory).at(-1)!;
       expect(log.changes.extra.to).toMatchObject({ see_also: [2] });
       // A save that does not send extra leaves it alone.
-      await admin.update('meliaf', 1, { definition: 'Now defined' }, actor);
+      await admin.update('concepts', 1, { definition: 'Now defined' }, actor);
       expect(c.extra.owner).toBe('PPT');
     });
 
@@ -355,7 +355,7 @@ describe('Custom fields', () => {
         version: '1.0',
       });
       await expect(
-        admin.update('meliaf', 1, { extra: { see_also: [2] } }, actor),
+        admin.update('concepts', 1, { extra: { see_also: [2] } }, actor),
       ).rejects.toThrow(/no concept with term_id 2/);
     });
 
@@ -370,7 +370,7 @@ describe('Custom fields', () => {
       });
       concept(2);
       concept(3, { status: GcConceptStatus.DRAFT });
-      const pub = await read.get('meliaf', 1);
+      const pub = await read.get('concepts', 1);
       expect(pub.custom_fields).toEqual([
         { code: 'owner', label: 'Owner', type: 'text', value: 'PPT' },
         {
@@ -381,7 +381,7 @@ describe('Custom fields', () => {
             {
               term_id: 2,
               preferred_label: 'Term 2',
-              uri: 'https://api.clarisa.cgiar.org/concepts/meliaf/2',
+              uri: 'https://api.clarisa.cgiar.org/concepts/2',
             },
           ],
         },
@@ -389,12 +389,12 @@ describe('Custom fields', () => {
       expect((pub as any).extra).toBeUndefined();
       expect(JSON.stringify(pub)).not.toContain('SECRET-9');
       // A concept without values still lists the public fields, empty.
-      expect((await read.get('meliaf', 2)).custom_fields).toEqual([
+      expect((await read.get('concepts', 2)).custom_fields).toEqual([
         { code: 'owner', label: 'Owner', type: 'text', value: null },
         { code: 'see_also', label: 'See also', type: 'term_link', value: [] },
       ]);
       // The admin shape keeps the raw object.
-      expect((await admin.get('meliaf', 1)).extra.internal_code).toBe(
+      expect((await admin.get('concepts', 1)).extra.internal_code).toBe(
         'SECRET-9',
       );
     });
@@ -402,12 +402,12 @@ describe('Custom fields', () => {
     it('publishes the history of public custom fields only, as x:<code>', async () => {
       concept(1, { extra: { owner: 'PPT' } });
       await admin.update(
-        'meliaf',
+        'concepts',
         1,
         { extra: { owner: 'MEL CoP', internal_code: 'SECRET-9' } },
         actor,
       );
-      const [entry] = await read.history('meliaf', 1);
+      const [entry] = await read.history('concepts', 1);
       expect(entry.changes).toEqual({
         'x:owner': { from: 'PPT', to: 'MEL CoP' },
       });
@@ -417,7 +417,7 @@ describe('Custom fields', () => {
     it('takes the sent AI marks as the full list, and keeps them when not sent', async () => {
       const c = concept(1, { ai_generated_fields: ['scope_note'] });
       await admin.update(
-        'meliaf',
+        'concepts',
         1,
         {
           short_definition: 'Short',
@@ -426,24 +426,24 @@ describe('Custom fields', () => {
         actor,
       );
       expect(c.ai_generated_fields).toEqual(['scope_note', 'short_definition']);
-      await admin.update('meliaf', 1, { definition: 'Changed' }, actor);
+      await admin.update('concepts', 1, { definition: 'Changed' }, actor);
       expect(c.ai_generated_fields).toEqual(['scope_note', 'short_definition']);
       // The editor rewrote the scope note by hand: the front sends the list without it.
       await admin.update(
-        'meliaf',
+        'concepts',
         1,
         { scope_note: 'By hand', ai_generated_fields: ['short_definition'] },
         actor,
       );
-      expect((await read.get('meliaf', 1)).ai_generated_fields).toEqual([
+      expect((await read.get('concepts', 1)).ai_generated_fields).toEqual([
         'short_definition',
       ]);
     });
 
     it('keeps working for a concept whose extra is null', async () => {
       concept(1, { extra: null as any });
-      await admin.update('meliaf', 1, { definition: 'Fine' }, actor);
-      await admin.update('meliaf', 1, { extra: { owner: 'PPT' } }, actor);
+      await admin.update('concepts', 1, { definition: 'Fine' }, actor);
+      await admin.update('concepts', 1, { extra: { owner: 'PPT' } }, actor);
       expect(db.rows(GcConcept)[0].extra).toEqual({ owner: 'PPT' });
       expect(db.rows(GcField)).toHaveLength(3);
     });

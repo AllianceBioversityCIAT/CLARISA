@@ -32,8 +32,8 @@ describe('ConceptsReadService', () => {
       status,
       version: '1.0',
       replaced_by_id: null,
-      meliaf_function: [],
-      meliaf_phase_also: [],
+      functions: [],
+      phase_also: [],
       validated_by: [],
       ai_generated_fields: [],
       extra: {},
@@ -43,8 +43,8 @@ describe('ConceptsReadService', () => {
   beforeEach(() => {
     db = new FakeManager();
     scheme = db.seed(GcScheme, {
-      code: 'meliaf',
-      title: 'MELIAF',
+      code: 'concepts',
+      title: 'Concepts',
       default_language: 'en',
       next_term_id: 1,
       uri_base: null,
@@ -57,20 +57,18 @@ describe('ConceptsReadService', () => {
 
   it('serves an approved concept with its persistent URI', async () => {
     concept(2374, 'Accountability', GcConceptStatus.APPROVED);
-    const c = await service.get('meliaf', 2374);
-    expect(c.term_uri).toBe(
-      'https://api.clarisa.cgiar.org/concepts/meliaf/2374',
-    );
+    const c = await service.get('concepts', 2374);
+    expect(c.term_uri).toBe('https://api.clarisa.cgiar.org/concepts/2374');
   });
 
   it.each([GcConceptStatus.DRAFT, GcConceptStatus.IN_REVIEW])(
     'answers 404 for a %s concept',
     async (status) => {
       concept(1, 'Secret', status);
-      await expect(service.get('meliaf', 1)).rejects.toBeInstanceOf(
+      await expect(service.get('concepts', 1)).rejects.toBeInstanceOf(
         NotFoundException,
       );
-      await expect(service.history('meliaf', 1)).rejects.toBeInstanceOf(
+      await expect(service.history('concepts', 1)).rejects.toBeInstanceOf(
         NotFoundException,
       );
     },
@@ -79,7 +77,7 @@ describe('ConceptsReadService', () => {
   it('keeps a deprecated concept resolvable with its replacement', async () => {
     const neu = concept(2, 'New', GcConceptStatus.APPROVED);
     concept(1, 'Old', GcConceptStatus.DEPRECATED, { replaced_by_id: neu.id });
-    const old = await service.get('meliaf', 1);
+    const old = await service.get('concepts', 1);
     expect(old.status).toBe('deprecated');
     expect(old.replaced_by?.term_id).toBe(2);
   });
@@ -92,7 +90,7 @@ describe('ConceptsReadService', () => {
       related_concept_id: pub.id,
       kind: GcRelationKind.BROADER,
     });
-    const c = await service.get('meliaf', 1);
+    const c = await service.get('concepts', 1);
     expect(c.narrower_terms).toEqual([]);
   });
 
@@ -108,7 +106,7 @@ describe('ConceptsReadService', () => {
         notes: { from: null, to: 'internal' },
       },
     });
-    const [entry] = await service.history('meliaf', 1);
+    const [entry] = await service.history('concepts', 1);
     expect(entry.changes).toEqual({ definition: { from: 'a', to: 'b' } });
     expect(JSON.stringify(entry)).not.toContain('admin@cgiar.org');
   });
@@ -126,14 +124,14 @@ describe('ConceptsReadService', () => {
           definition: 'Then',
           status: 'approved',
           alternative_labels: [],
-          meliaf_function: [],
-          meliaf_phase_also: [],
+          functions: [],
+          phase_also: [],
         },
       ]),
     });
-    const pinned = await service.get('meliaf', 1, '1.0.0');
+    const pinned = await service.get('concepts', 1, '1.0.0');
     expect(pinned.definition).toBe('Then');
-    await expect(service.get('meliaf', 1, '9.9.9')).rejects.toBeInstanceOf(
+    await expect(service.get('concepts', 1, '9.9.9')).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });

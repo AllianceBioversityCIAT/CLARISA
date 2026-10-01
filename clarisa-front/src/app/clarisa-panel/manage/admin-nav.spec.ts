@@ -70,7 +70,7 @@ describe('admin navigation', () => {
     const tabs = (groups: ReturnType<typeof groupsFor>) =>
       groups.find(group => group.title === 'System')?.links[0].children?.map(child => child.label) ?? [];
     const noRole = { isSuper: false, permissions: [] as string[] };
-    const meliaf = { isSuper: false, permissions: ['/api/concepts/admin'] };
+    const concepts = { isSuper: false, permissions: ['/api/concepts/admin'] };
     const irc = { isSuper: false, permissions: ['/api/partner-requests/create'] };
     const fir = { isSuper: false, permissions: ['/api/partner-requests/create', '/api/partner-requests/respond', '/api/partner-requests/update'] };
 
@@ -88,14 +88,14 @@ describe('admin navigation', () => {
     });
 
     it('shows a Concepts Data Admin only Concepts', () => {
-      const groups = groupsFor(meliaf);
+      const groups = groupsFor(concepts);
       expect(labels(groups)).toEqual(['Concepts']);
       expect(groups.map(group => group.title)).toEqual(['Manage']);
       expect(tabs(groups)).toEqual([]);
     });
 
     it('shows a Concepts Editor only Concepts', () => {
-      expect(labels(groupsFor({ isSuper: false, permissions: ['/api/concepts/admin/meliaf/concepts'] }))).toEqual(['Concepts']);
+      expect(labels(groupsFor({ isSuper: false, permissions: ['/api/concepts/admin/concepts/concepts'] }))).toEqual(['Concepts']);
     });
 
     it('opens Institution requests for any institution-request permission (IRC create-only and FIR)', () => {
@@ -111,7 +111,7 @@ describe('admin navigation', () => {
       const keys = { isSuper: false, permissions: ['/api/api-keys'] };
       expect(labels(groupsFor(keys))).toEqual(['Microservices & API keys']);
       expect(tabs(groupsFor(keys))).toEqual(['Overview', 'API Keys']);
-      expect(tabs(groupsFor(meliaf))).toEqual([]);
+      expect(tabs(groupsFor(concepts))).toEqual([]);
       expect(tabs(groupsFor(irc))).toEqual([]);
     });
 
@@ -124,12 +124,12 @@ describe('admin navigation', () => {
       ]);
     });
 
-    it('opens Concepts entry for the full and the concepts permission, and nothing else of MELIAF', () => {
+    it('opens Concepts entry for the full and the concepts permission, and nothing else of Concepts', () => {
       const entry = adminLinkFor('/clarisa-panel/manage/concepts-admin')!;
       expect(canOpenLink(entry, { isSuper: true, permissions: [] })).toBe(true);
-      expect(canOpenLink(entry, meliaf)).toBe(true);
-      expect(canOpenLink(entry, { isSuper: false, permissions: ['/api/concepts/admin/meliaf/concepts'] })).toBe(true);
-      expect(canOpenLink(entry, { isSuper: false, permissions: ['/api/concepts/admin/meliaf/lists'] })).toBe(false);
+      expect(canOpenLink(entry, concepts)).toBe(true);
+      expect(canOpenLink(entry, { isSuper: false, permissions: ['/api/concepts/admin/concepts/concepts'] })).toBe(true);
+      expect(canOpenLink(entry, { isSuper: false, permissions: ['/api/concepts/admin/concepts/lists'] })).toBe(false);
       expect(canOpenLink(entry, { isSuper: false, permissions: ['/api/glossary/admin'] })).toBe(false);
       expect(canOpenLink(entry, noRole)).toBe(false);
     });
@@ -156,7 +156,7 @@ describe('admin navigation', () => {
     describe('the one section a member is for (home redirect + login landing)', () => {
       it('counts every section the permissions open', () => {
         expect(protectedSections(noRole)).toEqual([]);
-        expect(protectedSections(meliaf).map(section => section.link.label)).toEqual(['Concepts']);
+        expect(protectedSections(concepts).map(section => section.link.label)).toEqual(['Concepts']);
         expect(protectedSections(irc).map(section => section.link.label)).toEqual(['Institution requests']);
         expect(protectedSections({ isSuper: false, permissions: ['/api/mises/create'] })).toEqual([
           { link: adminLinkFor('/clarisa-panel/manage/microservices-admin'), queryParams: { section: 'mises' } }
@@ -167,9 +167,9 @@ describe('admin navigation', () => {
       });
 
       it('Concepts-only → Concepts, on the home and after login', () => {
-        expect(onlyProtectedSection(meliaf)?.link.route).toBe('/clarisa-panel/manage/concepts-admin');
-        expect(postLoginRoute(meliaf)).toBe('/clarisa-panel/manage/concepts-admin');
-        expect(postLoginRoute({ isSuper: false, permissions: ['/api/concepts/admin/meliaf/concepts'] })).toBe(
+        expect(onlyProtectedSection(concepts)?.link.route).toBe('/clarisa-panel/manage/concepts-admin');
+        expect(postLoginRoute(concepts)).toBe('/clarisa-panel/manage/concepts-admin');
+        expect(postLoginRoute({ isSuper: false, permissions: ['/api/concepts/admin/concepts/concepts'] })).toBe(
           '/clarisa-panel/manage/concepts-admin'
         );
       });

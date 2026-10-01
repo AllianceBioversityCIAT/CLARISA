@@ -11,7 +11,7 @@ import {
   PublicConceptV2,
   PublicFieldDef
 } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
-import { DEFAULT_SCHEME, GC_BASE, ListsByCode, dateLabel, humanError, labelOf, normalizeLists, safeHttpUrl } from '../../global-concepts.utils';
+import { DEFAULT_SCHEME, GC_BASE, conceptLink, ListsByCode, dateLabel, humanError, labelOf, normalizeLists, safeHttpUrl } from '../../global-concepts.utils';
 
 /** Public names of the history actions (`GcHistoryAction` in the back). */
 const ACTIONS: Record<string, string> = {
@@ -168,7 +168,7 @@ export class ConceptDetailComponent implements OnInit, OnDestroy {
   }
 
   link(ref: ConceptRef): (string | number)[] {
-    return [this.base, this.schemeCode, ref.term_id];
+    return conceptLink(this.schemeCode, ref.term_id);
   }
 
   safeUrl(url: string | null | undefined): string | null {
@@ -195,7 +195,7 @@ export class ConceptDetailComponent implements OnInit, OnDestroy {
   get phases(): string[] {
     const concept = this.concept;
     if (!concept) return [];
-    return [concept.meliaf_phase_primary, ...(concept.meliaf_phase_also ?? [])].filter((phase): phase is string => !!phase);
+    return [concept.phase_primary, ...(concept.phase_also ?? [])].filter((phase): phase is string => !!phase);
   }
 
   get hasRelations(): boolean {

@@ -40,7 +40,7 @@
           </p>
           <ul>
             <li>Base URL of this environment: <span class="gc-mono">{{ bases.api }}</span></li>
-            <li>Answers are JSON; field names follow the MELIAF data schema template.</li>
+            <li>Answers are JSON; field names follow the concepts data schema template.</li>
             <li>The text check (<span class="gc-mono">suggest</span>) and MCP are rate limited per address: a <span class="gc-mono">429</span> means wait a few minutes.</li>
           </ul>
           <ng-container *ngTemplateOutlet="block; context: { key: 'search', label: 'Search concepts' }"></ng-container>
@@ -108,7 +108,7 @@
           <p>The whole scheme in one file, in four formats. The same buttons are on the list page under "Download".</p>
           <ul>
             <li><strong>JSON</strong> — every public field, the same shape as the API.</li>
-            <li><strong>CSV</strong> — opens in Excel with the columns of the MELIAF template, plus one column per public custom field.</li>
+            <li><strong>CSV</strong> — opens in Excel with the columns of the concepts template, plus one column per public custom field.</li>
             <li><strong>SKOS Turtle</strong> and <strong>JSON-LD</strong> — linked data for vocabulary tools and the web.</li>
           </ul>
           <ng-container *ngTemplateOutlet="block; context: { key: 'exportCsv', label: 'CSV' }"></ng-container>
@@ -136,7 +136,7 @@
           <p>
             Reads stay open without a key. If your platform already has a CLARISA API key, send it in the
             <span class="gc-mono">X-API-Key</span> header on every read (API endpoints, persistent URIs and MCP): the answer is exactly the same,
-            and the MELIAF team can see which connected systems use the vocabulary, not only the search portal.
+            and the Concepts team can see which connected systems use the vocabulary, not only the search portal.
           </p>
           <ng-container *ngTemplateOutlet="block; context: { key: 'counted', label: 'A read counted for your platform' }"></ng-container>
           <ul>
@@ -170,7 +170,7 @@
             <li><span class="gc-mono">concepts:write</span> — create and edit concepts directly, only in the scheme the platform owns.</li>
             <li><span class="gc-mono">concepts:review</span> — decide requests, only in the scheme the platform owns.</li>
           </ul>
-          <p>The shared MELIAF scheme can never be written by a key: platforms propose, the MELIAF stewards approve.</p>
+          <p>The shared Concepts scheme can never be written by a key: platforms propose, the Concepts stewards approve.</p>
           <table class="gc-table">
             <thead>
               <tr>

@@ -47,7 +47,7 @@ export function createErrorMessage(error: unknown, form: QuickConceptForm): stri
   styleUrls: ['./gc-concept-create-dialog.component.scss']
 })
 export class GcConceptCreateDialogComponent {
-  @Input() scheme = 'meliaf';
+  @Input() scheme = 'concepts';
   /** The concept exists: the host reloads its list and opens the full editor on it. */
   @Output() created = new EventEmitter<AdminConceptDetail>();
 

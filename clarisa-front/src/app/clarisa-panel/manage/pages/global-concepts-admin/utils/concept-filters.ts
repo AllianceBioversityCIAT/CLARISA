@@ -51,9 +51,9 @@ export function matchesFilters(concept: AdminConceptDetail, filters: ConceptFilt
     return false;
   }
   if (filters.statuses.length && !filters.statuses.includes(concept.status)) return false;
-  if (filters.functions.length && !(concept.meliaf_function ?? []).some(fn => filters.functions.includes(fn))) return false;
+  if (filters.functions.length && !(concept.functions ?? []).some(fn => filters.functions.includes(fn))) return false;
   if (filters.phases.length) {
-    const phases = [concept.meliaf_phase_primary, ...(concept.meliaf_phase_also ?? [])].filter(Boolean) as string[];
+    const phases = [concept.phase_primary, ...(concept.phase_also ?? [])].filter(Boolean) as string[];
     if (!phases.some(phase => filters.phases.includes(phase))) return false;
   }
   if (filters.termTypes.length && !filters.termTypes.includes(concept.term_type ?? '')) return false;
@@ -69,9 +69,9 @@ export function filterChips(filters: ConceptFilters, lists: Record<string, ListO
   if (filters.search.trim()) chips.push({ key: 'search', label: `“${filters.search.trim()}”` });
   filters.statuses.forEach(value => chips.push({ key: 'statuses', value, label: `Status: ${STATUS_FILTER_LABELS[value] ?? value}` }));
   filters.functions.forEach(value =>
-    chips.push({ key: 'functions', value, label: `Function: ${listLabel(lists, 'meliaf_function', value)}` })
+    chips.push({ key: 'functions', value, label: `Function: ${listLabel(lists, 'functions', value)}` })
   );
-  filters.phases.forEach(value => chips.push({ key: 'phases', value, label: `Phase: ${listLabel(lists, 'meliaf_phase', value)}` }));
+  filters.phases.forEach(value => chips.push({ key: 'phases', value, label: `Phase: ${listLabel(lists, 'phase', value)}` }));
   filters.termTypes.forEach(value => chips.push({ key: 'termTypes', value, label: `Type: ${listLabel(lists, 'term_type', value)}` }));
   if (filters.icon === 'with') chips.push({ key: 'icon', label: 'Has an icon' });
   if (filters.icon === 'without') chips.push({ key: 'icon', label: 'No icon' });
