@@ -171,7 +171,9 @@ describe('GcUsagePanelComponent', () => {
           .readFileSync(path.join(__dirname, 'gc-usage-panel.component.html'), 'utf8')
           .replace(/<[^>]+>/g, '')
           .replace(/\s+/g, ' ');
-        expect(html).toContain('No connected system has read Concepts with its key in this period — platforms send X-API-Key to be counted.');
+        expect(html).toContain(
+          'No connected system has read the MELIAF taxonomy with its key in this period — platforms send X-API-Key to be counted.'
+        );
       });
 
       it('shows the anonymous reads next to the platforms', async () => {

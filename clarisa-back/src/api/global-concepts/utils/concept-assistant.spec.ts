@@ -115,11 +115,13 @@ describe('buildAssistantPrompt', () => {
     expect(prompt).toMatch(/End every reply with a short question/);
   });
 
-  it('explains Concepts and the proposal-only rule', () => {
+  it('explains the MELIAF taxonomy and the proposal-only rule', () => {
     expect(prompt).toContain(
       'monitoring, evaluation, learning, impact assessment and foresight',
     );
-    expect(prompt).not.toMatch(/MELIAF/i);
+    // The module is presented as the MELIAF taxonomy, never as "Concepts".
+    expect(prompt).toContain('The MELIAF taxonomy is the official CGIAR');
+    expect(prompt).not.toMatch(/\bConcepts is\b|editor of Concepts/);
     expect(prompt).toMatch(/NEVER change a field that appears in MANUAL EDITS/);
     expect(prompt).toMatch(/language the person writes in/);
     expect(prompt).toContain('term id 42');

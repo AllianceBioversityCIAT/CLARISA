@@ -1,7 +1,7 @@
 <app-gc-banner
-  eyebrow="Concepts · Developers"
+  eyebrow="MELIAF taxonomy · Developers"
   title="Use the official concepts in your system"
-  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'Concepts', link: gcBase }, { label: 'Developers' }]">
+  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'MELIAF taxonomy', link: gcBase }, { label: 'Developers' }]">
   <p class="gc-dev-lede">
     A free, open API, persistent URIs for linked data, full downloads and an MCP endpoint so AI assistants answer with the official definitions.
   </p>
@@ -35,7 +35,7 @@
         <section class="gc-card gc-doc__section" id="overview">
           <h2 class="gc-h2">Overview</h2>
           <p>
-            Everything published in Concepts is readable <strong>without an account or a key</strong>: approved concepts and deprecated ones,
+            Everything published in the MELIAF taxonomy is readable <strong>without an account or a key</strong>: approved concepts and deprecated ones,
             which keep resolving and point to their replacement. Drafts and concepts under review never appear.
           </p>
           <ul>
@@ -136,7 +136,7 @@
           <p>
             Reads stay open without a key. If your platform already has a CLARISA API key, send it in the
             <span class="gc-mono">X-API-Key</span> header on every read (API endpoints, persistent URIs and MCP): the answer is exactly the same,
-            and the Concepts team can see which connected systems use the vocabulary, not only the search portal.
+            and the MELIAF taxonomy team can see which connected systems use the vocabulary, not only the search portal.
           </p>
           <ng-container *ngTemplateOutlet="block; context: { key: 'counted', label: 'A read counted for your platform' }"></ng-container>
           <ul>
@@ -170,7 +170,7 @@
             <li><span class="gc-mono">concepts:write</span> — create and edit concepts directly, only in the scheme the platform owns.</li>
             <li><span class="gc-mono">concepts:review</span> — decide requests, only in the scheme the platform owns.</li>
           </ul>
-          <p>The shared Concepts scheme can never be written by a key: platforms propose, the Concepts stewards approve.</p>
+          <p>The MELIAF taxonomy can never be written by a key: platforms propose, the MELIAF taxonomy stewards approve.</p>
           <table class="gc-table">
             <thead>
               <tr>

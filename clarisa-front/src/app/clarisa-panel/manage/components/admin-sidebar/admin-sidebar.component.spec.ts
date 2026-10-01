@@ -76,7 +76,7 @@ describe('AdminSidebarComponent', () => {
   it('lists every section, grouped, when nothing is typed', () => {
     expect(component.groups.map(group => group.title)).toEqual(['Manage', 'Access', 'System']);
     expect(labels()).toContain('Glossary');
-    expect(labels()).toContain('Concepts');
+    expect(labels()).toContain('MELIAF taxonomy');
     // 6 links directos: los 7 de la lista menos «Microservices & API keys», que
     // ahora es un toggle (botón) en vez de un link.
     expect(labels()?.length).toBe(6);
@@ -170,7 +170,7 @@ describe('AdminSidebarComponent', () => {
     fixture.detectChanges();
 
     // `labels()` reads plain links; «Microservices & API keys» is a toggle with its tabs (`subLabels()`).
-    expect(labels()).toEqual(['Concepts']);
+    expect(labels()).toEqual(['MELIAF taxonomy']);
     expect(component.groups.map(group => group.title)).toEqual(['Manage']);
     expect(subLabels()).toEqual([]);
     expect(fixture.nativeElement.querySelector('.admin-sidebar__notice')).toBeNull();
