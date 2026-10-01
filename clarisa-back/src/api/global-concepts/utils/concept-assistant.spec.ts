@@ -103,6 +103,18 @@ describe('buildAssistantPrompt', () => {
     termId: 42,
   });
 
+  it('in «New concept» asks for the required fields first and points to Create', () => {
+    const fresh = buildAssistantPrompt(ctx(), { draft: {} });
+    expect(fresh).toMatch(/short «New concept» form/);
+    expect(fresh).toMatch(/Create concept/);
+    expect(fresh).toMatch(/same chat/);
+    expect(prompt).not.toMatch(/short «New concept» form/);
+  });
+
+  it('always closes by asking whether to continue', () => {
+    expect(prompt).toMatch(/End every reply with a short question/);
+  });
+
   it('explains Concepts and the proposal-only rule', () => {
     expect(prompt).toContain(
       'monitoring, evaluation, learning, impact assessment and foresight',

@@ -37,17 +37,69 @@ export interface AssistChatEntry extends ConceptsAssistMessage {
   skipped?: string[];
 }
 
+/** localStorage key of a concept's chat; `null` term = the concept being created. */
+export function assistChatKey(scheme: string, termId: number | null): string {
+  return `gc-assist-chat:${(scheme ?? '').toLowerCase()}:${termId ?? 'new'}`;
+}
+
+/** Most messages kept per chat: the back reads only the last 20 anyway. */
+const STORED_MAX = 60;
+
+function readChat(key: string): AssistChatEntry[] {
+  try {
+    const raw = localStorage.getItem(key);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list)
+      ? list.filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeChat(key: string, messages: AssistChatEntry[]): void {
+  try {
+    if (messages.length) localStorage.setItem(key, JSON.stringify(messages.slice(-STORED_MAX)));
+    else localStorage.removeItem(key);
+  } catch {
+    // Private window or full storage: the chat still works, it just is not kept.
+  }
+}
+
+/**
+ * Moves the chat of the concept being created to the concept it became, so
+ * the full editor opens on the same conversation.
+ */
+export function handOverChat(scheme: string, termId: number): void {
+  const from = assistChatKey(scheme, null);
+  const messages = readChat(from);
+  if (messages.length) writeChat(assistChatKey(scheme, termId), messages);
+  writeChat(from, []);
+}
+
 /**
  * State of one assistant session, provided by the concept dialog (one per
  * dialog, reset each time a concept opens) and read by the chat panel and by
- * every field mark. Nothing here outlives the dialog session.
+ * every field mark. The marks and the edit log end with the dialog session;
+ * the chat itself is kept in localStorage per concept (`attach`), so it
+ * survives the step from «New concept» to the full editor and a reload.
  */
 @Injectable()
 export class GcAssistSession {
   /** Bumped by `reset`: an answer or a playback of an earlier session stops. */
   token = 0;
   host: AssistHost | null = null;
-  messages: AssistChatEntry[] = [];
+  private _messages: AssistChatEntry[] = [];
+  /** Where this session's chat is kept; `null` = not kept. */
+  private storageKey: string | null = null;
+
+  get messages(): AssistChatEntry[] {
+    return this._messages;
+  }
+  set messages(value: AssistChatEntry[]) {
+    this._messages = value;
+    if (this.storageKey) writeChat(this.storageKey, value);
+  }
   marks: Record<string, AssistMark> = {};
   /** Field being navigated / typed right now. */
   live: string | null = null;
@@ -80,13 +132,30 @@ export class GcAssistSession {
 
   reset(): void {
     this.token++;
-    this.messages = [];
+    // Detach first: emptying the session never erases a stored chat.
+    this.storageKey = null;
+    this._messages = [];
     this.marks = {};
     this.live = null;
     this.log.clear();
     this.handEdited = new Set();
     this.aiOwned = new Set();
     this.known = {};
+  }
+
+  /** Binds the session to a concept's stored chat and loads it (after `reset`). */
+  attach(key: string): void {
+    this.storageKey = key;
+    this._messages = readChat(key);
+  }
+
+  /** «Clear»: forgets this concept's chat, here and in storage. */
+  clearChat(): void {
+    if (this.busy) return;
+    this.token++;
+    this.messages = [];
+    this.marks = {};
+    this.live = null;
   }
 
   isHandEdited(field: string): boolean {

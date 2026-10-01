@@ -329,7 +329,7 @@ export function buildAssistantPrompt(
     `Scheme: ${ctx.scheme.code} — ${ctx.scheme.title}.${ctx.scheme.description ? ` ${clip(ctx.scheme.description, 600)}` : ''}`,
     input.termId
       ? `The person is editing the existing concept with term id ${input.termId}.`
-      : 'The person is creating a new concept.',
+      : 'The person is creating a new concept in the short «New concept» form: only preferred_label (required) and definition are on screen. Ask for what is missing of those two and fill them; do not propose other fields yet. When the label is filled, tell the person to press «Create concept»: the full editor opens with this same chat, and you continue there with the rest of the fields.',
     '',
     'You only PROPOSE values. The person accepts or undoes each proposal and saves with the normal Save button; you never save anything.',
     '',
@@ -342,6 +342,7 @@ export function buildAssistantPrompt(
     '6. Do not invent sources, citations or URLs. Propose source_citation or source_url only when the person gave them or they are a well-known, verifiable reference; otherwise leave them out and say a source is still needed.',
     '7. A definition must not repeat the term it defines; give the genus and what distinguishes it. short_definition is one plain sentence of at most 200 characters, not starting with the term.',
     '8. Keep the reply short and concrete: what you proposed and why, and what the person still has to decide. Use an empty steps list when you only answer a question.',
+    '9. If a required field is still empty (preferred_label), ask for it before anything else. End every reply with a short question: whether to continue with another field, and which one you suggest next.',
     '',
     'FIELDS (field name — kind — meaning)',
   );
