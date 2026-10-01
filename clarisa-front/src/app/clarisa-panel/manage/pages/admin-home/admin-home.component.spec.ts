@@ -54,7 +54,7 @@ describe('AdminHomeComponent', () => {
   });
 
   it('sends a Concepts-only member straight to Concepts, replacing the history entry (denied note dropped)', () => {
-    const { home, router } = build(member(['/api/concepts/admin']), { denied: 'Users' });
+    const { home, router } = build(member(['/api/meliaf-taxonomy/admin']), { denied: 'Users' });
     expect(router.navigate).toHaveBeenCalledTimes(1);
     expect(router.navigate).toHaveBeenCalledWith(['/clarisa-panel/manage/concepts-admin'], { queryParams: undefined, replaceUrl: true });
     // The list never flashes while the navigation runs.

@@ -24,7 +24,7 @@ export const routes: Routes = [
     children: integrationRoutes,
   },
   {
-    path: 'concepts',
+    path: 'meliaf-taxonomy',
     module: GlobalConceptsUriModule,
   },
 ];

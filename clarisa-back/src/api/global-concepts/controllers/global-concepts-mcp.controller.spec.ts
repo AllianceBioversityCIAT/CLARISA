@@ -150,9 +150,12 @@ describe('GlobalConceptsMcpController (HTTP)', () => {
 
   it('suggests over POST with the text in the body', async () => {
     const res = await request(app.getHttpServer())
-      .post('/concepts/suggest')
+      .post('/suggest')
       .send({ text: 'impact assessment' });
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ scheme: 'concepts', retained: false });
+    expect(res.body).toMatchObject({
+      scheme: 'meliaf-taxonomy',
+      retained: false,
+    });
   });
 });

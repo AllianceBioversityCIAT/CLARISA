@@ -544,31 +544,11 @@
     .doc-code__pre { margin: 0; padding: 16px 18px; overflow: auto; color: #dbe7e2; font: 400 12.5px/1.65 'JetBrains Mono', monospace; }
     .doc-code__pre--tall { max-height: 62vh; }
 
-    /* ── Playground: una operación por fila, plegada hasta que se elige ──
-       La lista (collection URI) y el registro (resource URI) no comparten
-       panel ni respuesta: cada fila abre con SUS parámetros y SU consola. */
-    .pg-op { overflow: hidden; }
-    .pg-op + .pg-op { margin-top: 10px; }
-    .pg-op.is-open { border-color: var(--brand-ring); box-shadow: 0 0 0 1px var(--brand-ring), 0 2px 10px rgba(16, 36, 28, 0.06); }
-    .pg-op__head {
-      display: flex; align-items: center; gap: 12px; width: 100%;
-      padding: 14px 16px; border: 0; background: transparent; text-align: left; cursor: pointer;
-      color: var(--ink); font: inherit;
-    }
-    .pg-op__head:hover { background: var(--surface-2); }
-    .pg-op__head:focus-visible { outline: 2px solid var(--brand-ring); outline-offset: -2px; }
-    .pg-op__name { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 14px; font-weight: 700; color: var(--forest); }
-    .pg-op__text { display: grid; gap: 3px; flex: 1 1 auto; min-width: 0; }
-    .pg-op__path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-3); font: 500 12px/1.3 'JetBrains Mono', monospace; }
-    .pg-op__sum { flex: 0 1 auto; color: var(--ink-3); font-size: 12px; text-align: right; }
-    .pg-op__chev { flex: 0 0 auto; width: 16px; height: 16px; color: var(--ink-3); transition: transform .16s ease; }
-    .pg-op.is-open .pg-op__chev { transform: rotate(180deg); color: var(--brand-deep); }
-    .pg-op__body { display: grid; gap: 14px; padding: 16px; border-top: 1px solid var(--line); }
-    .pg-op__body[hidden] { display: none; }   /* `display: grid` le ganaria al atributo y dejaria una franja vacia */
+    /* The URI tab's "What it is for": the Tailwind reset drops list markers, and the compiled CSS has no pl-5. */
+    .uri-uses { display: grid; gap: 6px; padding-left: 20px; list-style: disc; }
+    .uri-uses li::marker { color: var(--brand-strong); }
     .pg-empty { padding: 12px 14px; border: 1px dashed var(--line); border-radius: 8px; color: var(--ink-3); font-size: 12.5px; }
     .pg-console__wait { margin: 0; padding: 16px 18px; color: var(--forest-muted); font: 400 12.5px/1.65 'JetBrains Mono', monospace; }
-    @media (max-width: 640px) { .pg-op__sum { display: none; } }
-    @media (prefers-reduced-motion: reduce) { .pg-op__chev { transition: none; } }
 
     /* ── Tabla de datos ───────────────────────────────────────────────── */
     /* 🛑 Sin `overflow: hidden` en la tarjeta: el selector de filas y el
@@ -929,15 +909,13 @@ const state = {
   search: '',               // free text over every visible column
   picker: null,             // open filter popover: { index, col, q, sel: Set, text }
   distinct: new Map(),      // col -> [[value, count], ...] of the current rows
-  // Query params the user typed in the Playground's List all row, and the response they got.
+  // Query params the user typed in the Try it tab, and the response they got.
   // Empty means "no filters": the endpoint answers exactly as it always has.
   query: {},
   queryResult: null,        // { url, data } of the last collection query that was run
   queryLoading: false,
   queryError: null,
-  // Playground: which operation row is open ('list' | 'record' | null = all folded).
-  playOp: null,
-  // The id typed in the Playground's "Retrieve one" field. null = not touched
+  // The id typed in the URI tab's field. null = not touched
   // yet, so the field shows the first record of the list as a working example.
   recordId: null,
   recordQuery: {},          // the lookup's own query params (Concepts: version)
@@ -1484,7 +1462,7 @@ function recordUrl(lookup, value) {
   return API_BASE + route + lookup.joint + tail;
 }
 
-/** The value in the Playground's id field: what the reader typed, else the example. */
+/** The value in the URI tab's id field: what the reader typed, else the example. */
 function recordValue(lookup) {
   return state.recordId !== null ? state.recordId : recordExampleId(lookup);
 }
@@ -1504,7 +1482,6 @@ async function selectEndpoint(gi, ci, route) {
   // Filters belong to the endpoint that was being looked at, not to the next one.
   state.filters = []; state.search = ''; state.picker = null; state.distinct = new Map();
   state.query = {}; state.queryResult = null; state.queryError = null; state.queryLoading = false;
-  state.playOp = null;
   state.recordId = null; state.recordQuery = {}; state.recordResult = null; state.recordError = null; state.recordLoading = false;
   announcePath([group.group, category.name, endpoint?.name]);
   highlightActive();
@@ -1620,7 +1597,7 @@ function renderEndpointShell(loading, error = null) {
 
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <nav class="doc-tabs" role="tablist" aria-label="Views of this endpoint">
-          ${['doc:Doc','table:Table','json:Playground','schema:Schema','code:Code'].map(t => {
+          ${endpointTabs().map(t => {
             const [id, label] = t.split(':');
             const on = state.tab === id;
             return `<button type="button" role="tab" aria-selected="${on}" onclick="setTab('${id}')" class="doc-tabs__item ${on ? 'is-active' : ''}">${label}</button>`;
@@ -1685,6 +1662,13 @@ function selectEndpointRetry() {
 function setTab(t) { state.tab = t; state.picker = null; renderEndpointShell(state.loading, state.loadError); }
 
 /* ── tabs ─────────────────────────────────────────────────────────── */
+/** The tabs of an endpoint page. URI only appears where the spec publishes a resource URI. */
+function endpointTabs() {
+  const tabs = ['doc:Doc', 'table:Table', 'json:Try it'];
+  if (recordLookupFor(state.current.endpoint.route)) tabs.push('uri:URI');
+  return [...tabs, 'schema:Schema', 'code:Code'];
+}
+
 function renderTab() {
   const zone = $('#exportZone');
   zone.innerHTML = '';
@@ -1699,6 +1683,7 @@ function renderTab() {
   if (state.tab === 'doc')    return renderDoc();
   if (state.tab === 'table')  return renderTable();
   if (state.tab === 'json')   return renderJSON();
+  if (state.tab === 'uri')    return renderUri();
   if (state.tab === 'schema') return renderSchema();
   if (state.tab === 'code')   return renderCode();
 }
@@ -2115,7 +2100,7 @@ function applySort(rerender) {
 
 /* ── query params ─────────────────────────────────────────────────────
    The filters an endpoint accepts, read from the OpenAPI spec and shared by
-   the Doc tab (which documents them) and the Playground (which runs them).
+   the Doc tab (which documents them) and the Try it tab (which runs them).
    `version` is not published as a parameter by Nest, so it is appended for the
    endpoints that do serve a v2. */
 function queryParamsFor(route) {
@@ -2189,7 +2174,8 @@ async function runQuery() {
   }
   if (state.current?.endpoint.route !== route) return;
   state.queryResult = result; state.queryError = error; state.queryLoading = false;
-  renderJSON();
+  // The reader may have moved to another tab meanwhile: keep the answer, repaint only Try it.
+  if (state.tab === 'json') renderJSON();
 }
 
 function resetQuery() {
@@ -2245,7 +2231,7 @@ async function runRecord() {
   const url = buildRecordUrl(lookup, value);
   const route = state.current.endpoint.route;
   state.recordLoading = true; state.recordError = null;
-  renderJSON();
+  renderUri();
   let result = null, error = null;
   try {
     const res = await fetch(url);
@@ -2263,27 +2249,22 @@ async function runRecord() {
   // its answer must not land under that other title.
   if (state.current?.endpoint.route !== route) return;
   state.recordResult = result; state.recordError = error; state.recordLoading = false;
-  renderJSON();
+  if (state.tab === 'uri') renderUri();
 }
 
 function resetRecord() {
   state.recordId = null; state.recordQuery = {}; state.recordResult = null; state.recordError = null;
-  renderJSON();
+  renderUri();
 }
 
-/** What the Playground shows for the open operation: the record when that one
-    is open, else the collection (filtered when a query was run). */
+/** What the response panel shows: the record in the URI tab, else the
+    collection (filtered when a query was run). */
 function currentJsonData() {
-  if (state.playOp === 'record') return state.recordResult?.data ?? null;
+  if (state.tab === 'uri') return state.recordResult?.data ?? null;
   return state.queryResult ? state.queryResult.data : state.cache.get(state.current.endpoint.route);
 }
 
-/* ── PLAYGROUND tab ───────────────────────────────────────────────────
-   One row per operation the endpoint has — List all (collection URI) and,
-   when the spec publishes it, Retrieve one (resource URI). Everything starts
-   folded: nothing runs or shows until the reader picks one, and each row
-   opens with its own parameters, URL, button and response. With a single
-   operation there is nothing to pick, so it opens on its own. */
+/* ── fields shared by the Try it and URI tabs ─────────────────────── */
 function queryEnumField(p, value, setter = 'setQueryValue') {
   const defaultNote = p.default ? ' (' + esc(p.default) + ')' : '';
   const options = p.values.map(v => {
@@ -2345,50 +2326,12 @@ function jsonPre() {
   return '<pre class="doc-code__pre doc-code__pre--tall"><code>' + esc(jsonPreviewText()) + '</code></pre>';
 }
 
-/** "no query params" · "1 query param" · "3 query params" */
-function queryParamCount(n) {
-  if (n === 0) return 'no query params';
-  return n === 1 ? '1 query param' : n + ' query params';
-}
-
-function opRow(id, open, name, kind, path, summary, body) {
-  return `
-    <section class="doc-card pg-op ${open ? 'is-open' : ''}">
-      <button type="button" class="pg-op__head" aria-expanded="${open}" aria-controls="pg-${id}" onclick="openOp('${id}')">
-        <span class="doc-method">GET</span>
-        <span class="pg-op__text">
-          <span class="pg-op__name">${name}<span class="doc-tag doc-tag--muted">${kind}</span></span>
-          <span class="pg-op__path">${esc(path)}</span>
-        </span>
-        <span class="pg-op__sum">${summary}</span>
-        <span class="pg-op__chev">${ICON.chev}</span>
-      </button>
-      <div class="pg-op__body" id="pg-${id}" ${open ? '' : 'hidden'}>${open ? body() : ''}</div>
-    </section>`;
-}
-
-function openOp(id) {
-  const lookup = recordLookupFor(state.current.endpoint.route);
-  if (!lookup) { state.playOp = 'list'; renderJSON(); return; }   // only one operation: it stays open
-  state.playOp = state.playOp === id ? null : id;
-  renderJSON();
-}
-
-function listBody() {
+function listControls() {
   const params = queryParamsFor(state.current.endpoint.route);
   const fields = params.length
-    ? `<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">${params.map(p => paramField(p, state.query[p.name] ?? '', 'query', 'setQueryValue', 'runQuery')).join('')}</div>
-       <p class="m-0 text-[12px] text-ink-3">Leave a field empty to omit it — no filters means the default response.</p>`
-    : '<div class="pg-empty">This collection takes no query parameters: it always answers the full list.</div>';
+    ? `<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">${params.map(p => paramField(p, state.query[p.name] ?? '', 'query', 'setQueryValue', 'runQuery')).join('')}</div>`
+    : '<div class="pg-empty">This endpoint takes no query parameters: it always answers the full list.</div>';
   const showReset = !!state.queryResult || activeQueryPairs().length > 0;
-
-  const raw = currentJsonData();
-  const arr = Array.isArray(raw) ? raw : [raw];
-  const preview = arr.slice(0, 50);
-  const title = state.queryResult
-    ? `Filtered response · ${esc(state.queryResult.url.split('?')[1] || 'no filters')} · first ${fmt(preview.length)} of ${fmt(arr.length)}`
-    : `Live response · first ${fmt(preview.length)} of ${fmt(arr.length)} items`;
-
   return `
     ${fields}
     ${urlPreview('queryUrl', buildQueryUrl())}
@@ -2396,11 +2339,20 @@ function listBody() {
       <button type="button" id="queryRun" onclick="runQuery()" ${state.queryLoading ? 'disabled' : ''} class="doc-btn doc-btn--primary">${ICON.play}<span>${state.queryLoading ? 'Running…' : 'Run query'}</span></button>
       ${showReset ? '<button type="button" onclick="resetQuery()" class="doc-btn doc-btn--outline">Reset</button>' : ''}
     </div>
-    ${errorNote(state.queryError)}
-    ${consolePanel(title, jsonPre(), true)}`;
+    ${errorNote(state.queryError)}`;
 }
 
-function recordBody(lookup) {
+function listConsole() {
+  const raw = currentJsonData();
+  const arr = Array.isArray(raw) ? raw : [raw];
+  const preview = arr.slice(0, 50);
+  const title = state.queryResult
+    ? `Filtered response · ${esc(state.queryResult.url.split('?')[1] || 'no filters')} · first ${fmt(preview.length)} of ${fmt(arr.length)}`
+    : `Live response · first ${fmt(preview.length)} of ${fmt(arr.length)} items`;
+  return consolePanel(title, jsonPre(), true);
+}
+
+function recordControls(lookup) {
   const { param } = lookup;
   const value = recordValue(lookup);
   const isNumber = ['number', 'integer'].includes(param.schema?.type);
@@ -2420,11 +2372,6 @@ function recordBody(lookup) {
   const showReset = !!state.recordResult || state.recordId !== null || activeQueryPairs(state.recordQuery).length > 0;
   const busy = state.recordLoading;
 
-  const result = state.recordResult;
-  const consoleHtml = result
-    ? consolePanel(`Resource · ${esc(result.url.replace(API_BASE, ''))} · one object`, jsonPre(), true)
-    : consolePanel('Resource · not requested yet', `<p class="pg-console__wait">Press <b>Retrieve record</b> to fetch this one record.</p>`, false);
-
   return `
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">${idField}${qFields}</div>
     ${noQuery}
@@ -2433,36 +2380,58 @@ function recordBody(lookup) {
       <button type="button" id="recordRun" onclick="runRecord()" ${busy || String(value).trim() === '' ? 'disabled' : ''} class="doc-btn doc-btn--primary">${ICON.play}<span>${busy ? 'Running…' : 'Retrieve record'}</span></button>
       ${showReset ? '<button type="button" onclick="resetRecord()" class="doc-btn doc-btn--outline">Reset</button>' : ''}
     </div>
-    ${errorNote(state.recordError)}
-    ${consoleHtml}`;
+    ${errorNote(state.recordError)}`;
 }
 
+function recordConsole() {
+  const result = state.recordResult;
+  return result
+    ? consolePanel(`Resource · ${esc(result.url.replace(API_BASE, ''))} · one object`, jsonPre(), true)
+    : consolePanel('Resource · not requested yet', `<p class="pg-console__wait">Press <b>Retrieve record</b> to fetch this one record.</p>`, false);
+}
+
+/* ── TRY IT tab ───────────────────────────────────────────────────────
+   The endpoint alone: its query parameters, the URL they build and the live
+   response. One record by its resource URI lives in the URI tab. */
 function renderJSON() {
-  const route = state.current.endpoint.route;
-  const lookup = recordLookupFor(route);
-  const open = lookup ? state.playOp : 'list';
-  const listParams = queryParamsFor(route).length;
-
   $('#exportZone').innerHTML = '';
-  const rows = [
-    opRow('list', open === 'list', 'List all', 'collection URI', '/' + route,
-      `Every record · array · ${queryParamCount(listParams)}`, listBody),
-  ];
-  if (lookup) {
-    rows.push(opRow('record', open === 'record', 'Retrieve one', 'resource URI', '/' + route + lookup.joint + '{' + lookup.param.name + '}',
-      `One record · object · path param <code class="docpill">${esc(lookup.param.name)}</code>`, () => recordBody(lookup)));
-  }
-
+  const params = queryParamsFor(state.current.endpoint.route);
   $('#tabBody').innerHTML = `
-    <p class="mb-4 mt-0 text-[13.5px] leading-relaxed text-ink-2">Run this endpoint against the live API. ${lookup
-      ? 'Pick what to request: the whole collection, or one record by its resource URI. Each one has its own parameters and its own response.'
-      : 'This collection has no resource URI published, so the whole list is the only request.'}</p>
-    ${rows.join('')}`;
+    <div class="doc-card mb-4 p-5">
+      <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h3 class="m-0 text-[14px] font-bold text-forest">${params.length ? 'Try it with query parameters' : 'Try it'}</h3>
+        ${params.length ? '<span class="text-[12px] text-ink-3">Leave a field empty to omit it — no filters means the default response.</span>' : ''}
+      </div>
+      <div class="grid gap-4">${listControls()}</div>
+    </div>
+    ${listConsole()}`;
+}
+
+/* ── URI tab ──────────────────────────────────────────────────────────
+   Only for lists whose resource URI the spec publishes: what the URI is and
+   what it is for, then its own playground to retrieve one record. */
+function renderUri() {
+  $('#exportZone').innerHTML = '';
+  const lookup = recordLookupFor(state.current.endpoint.route);
+  if (!lookup) {
+    $('#tabBody').innerHTML = '<div class="pg-empty">This list has no resource URI published.</div>';
+    return;
+  }
+  $('#tabBody').innerHTML = `
+    <div class="mx-auto max-w-4xl">${uriExplainer(lookup)}</div>
+    <div class="doc-card mb-4 p-5">
+      <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h3 class="m-0 text-[14px] font-bold text-forest">Try it · retrieve one record</h3>
+        <span class="text-[12px] text-ink-3">The identifier goes in the path. It starts with the first record of the list.</span>
+      </div>
+      <div class="grid gap-4">${recordControls(lookup)}</div>
+    </div>
+    ${recordConsole()}`;
 }
 
 /* A single record is shown as the object it is; a list, as its first 50 items. */
 function jsonPreviewText() {
-  if (state.playOp === 'record') return JSON.stringify(state.recordResult?.data ?? null, null, 2);
+  if (state.tab === 'uri') return JSON.stringify(state.recordResult?.data ?? null, null, 2);
   const raw = currentJsonData();
   const arr = Array.isArray(raw) ? raw : [raw];
   return JSON.stringify(arr.slice(0, 50), null, 2);
@@ -2630,7 +2599,7 @@ function renderDoc() {
       <div class="mb-4">${note(`Every filter below is <b>optional unless marked required</b>. Send none and the endpoint replies exactly as it always has —
         adding a filter never changes the shape of the response, only which records come back.`)}</div>
       ${proseTable(['Param', 'Type · accepted values', 'Default', 'Description'], rows)}
-      <p class="mb-3 mt-4 text-[13.5px] text-ink-2">Copy any of these, or build your own in the <b class="font-semibold text-ink">Playground</b> tab and run it against the live API.</p>
+      <p class="mb-3 mt-4 text-[13.5px] text-ink-2">Copy any of these, or build your own in the <b class="font-semibold text-ink">Try it</b> tab and run it against the live API.</p>
       ${docCodeBlock('Ready-made requests', recipes.join('\n\n'))}`;
   } else {
     const v2Hint = v2 ? ' You can still pass <code class="docpill">?version=2</code> to opt into v2.' : '';
@@ -2643,7 +2612,7 @@ function renderDoc() {
   const params = docSection('Query parameters', 'Optional filters you append to the request URL to narrow what comes back.', paramsBody);
 
   /* ── 2b. One record ── */
-  const recordSection = docRecordSection(route);
+  const recordSection = docUriPointer(route);
 
   /* ── 3. Responses / status codes ── */
   const responses = op?.responses || {};
@@ -2699,24 +2668,29 @@ function inlineCode(text) {
   return esc(text).replace(/`([^`]+)`/g, '<code class="docpill">$1</code>');
 }
 
-/* The Doc tab's "Resource URI" section, in the usual REST/OpenAPI terms: the
-   list is a collection with its collection URI; each record has its own
-   resource URI, the collection URI plus a path parameter. Empty for lists
-   whose lookup the spec does not publish: nothing true to document. */
-function docRecordSection(route) {
+/* In the Doc tab the resource URI only gets a pointer: the URI tab explains it and runs it. */
+function docUriPointer(route) {
   const lookup = recordLookupFor(route);
   if (!lookup) return '';
+  const field = lookup.listField || lookup.param.name;
+  return docSection('Resource URI', '', note(`Each record of this list also has its own URI, with its <code class="docpill">${esc(field)}</code> in the path:
+    <code class="docpill">GET ${esc(recordUrl(lookup, ''))}</code>. The <b>URI</b> tab explains what it is for and lets you retrieve one record.`));
+}
+
+/* What the URI tab explains, in the usual REST terms: the collection URI and the resource URI,
+   the path parameter, and what the URI is for. */
+function uriExplainer(lookup) {
+  const route = state.current.endpoint.route;
   const { param } = lookup;
   const field = lookup.listField || param.name;
   const type = tsType(param.schema || {});
-  const collectionUrl = API_BASE + route;
   const resourceTpl = recordUrl(lookup, '');
   const example = recordExampleId(lookup);
 
   const uriRows = `
     <tr>
       <td class="whitespace-nowrap font-semibold text-ink">Collection URI</td>
-      <td class="is-mono">GET ${esc(collectionUrl)}</td>
+      <td class="is-mono">GET ${esc(API_BASE + route)}</td>
       <td>Every record of the list, as an <b>array</b>.</td>
     </tr>
     <tr>
@@ -2724,7 +2698,6 @@ function docRecordSection(route) {
       <td class="is-mono">GET ${esc(resourceTpl)}</td>
       <td>Exactly one record, as an <b>object</b>, with the same fields as an item of the collection.</td>
     </tr>`;
-
   const paramRows = `
     <tr>
       <td class="is-mono font-semibold text-brand-800">${esc(param.name)}
@@ -2732,21 +2705,25 @@ function docRecordSection(route) {
       <td><span class="doc-tag doc-tag--muted doc-tag--mono">${esc(type)}</span></td>
       <td>${param.description ? inlineCode(param.description) : `The <code class="docpill">${esc(field)}</code> of the record, as the collection returns it.`}</td>
     </tr>`;
+  const uses = [
+    `<b class="font-semibold text-ink">Link a record from your own system.</b> Store its URI (or its <code class="docpill">${esc(field)}</code>), not its name: a name can be reworded, the identifier stays.`,
+    `<b class="font-semibold text-ink">Read the current version of one record</b> without downloading the whole list.`,
+    `<b class="font-semibold text-ink">Build it from any item of the list:</b> take the item's <code class="docpill">${esc(field)}</code> and put it in the path.`,
+    `<b class="font-semibold text-ink">Check that a record exists.</b> An identifier that does not exist answers <code class="docpill">200</code> with an empty body.`
+  ];
+  const lines = [`# resource URI — {${param.name}} is the ${field} of an item of the list\nGET ${resourceTpl}`];
+  if (example) lines.push(`# the first record of the list\nGET ${recordUrl(lookup, example)}`);
 
-  const lines = [`# resource URI template — {${param.name}} is the ${field} of an item of the collection\nGET ${resourceTpl}`];
-  if (example) lines.push(`# the first record of the collection\nGET ${recordUrl(lookup, example)}`);
-
-  const body = `
+  return docSection('Resource URI', `Each record of this list has its own URI: the collection URI plus the record's <code class="docpill">${esc(field)}</code> as a path parameter.`, `
     ${proseTable(['', 'URI', 'Returns'], uriRows)}
     <h3 class="mb-2 mt-5 text-[14px] font-bold text-forest">Path parameter</h3>
     <p class="mb-3 mt-0 text-[13.5px] leading-relaxed text-ink-2">A <b class="font-semibold text-ink">path parameter</b> is part of the URI and
       identifies the resource; a <b class="font-semibold text-ink">query parameter</b> goes after the <code class="docpill">?</code> and only filters
-      the collection. The identifier is the record's <code class="docpill">${esc(field)}</code>, so the URI points to that record and to no other.</p>
+      the collection.</p>
     ${proseTable(['Path param', 'Type', 'Description'], paramRows)}
-    <p class="mb-3 mt-4 text-[13.5px] text-ink-2">An identifier that does not exist answers <code class="docpill">200</code> with an empty body.
-      Try it in the <b class="font-semibold text-ink">Playground</b> tab.</p>
-    ${docCodeBlock('Retrieve one record', lines.join('\n\n'))}`;
-  return docSection('Resource URI', `Each record of this collection has its own URI: the collection URI plus the record's <code class="docpill">${esc(field)}</code> as a path parameter.`, body);
+    <h3 class="mb-2 mt-5 text-[14px] font-bold text-forest">What it is for</h3>
+    <ul class="uri-uses mb-4 mt-0 text-[13.5px] leading-relaxed text-ink-2">${uses.map(u => `<li>${u}</li>`).join('')}</ul>
+    ${docCodeBlock('Retrieve one record', lines.join('\n\n'))}`);
 }
 
 /* ── exports ──────────────────────────────────────────────────────── */
@@ -2772,9 +2749,9 @@ function exportCSV() {
   download(new Blob(['﻿' + XLSX.utils.sheet_to_csv(ws)], { type: 'text/csv;charset=utf-8' }), exportName('csv'));
 }
 function exportJSON() {
-  // From the Playground you download what the open operation shows, query included;
+  // From Try it and URI you download what the response shows, query included;
   // from the Table tab, the rows the table shows (filters included).
-  const raw = state.tab === 'json' ? currentJsonData() : exportRows();
+  const raw = state.tab === 'json' || state.tab === 'uri' ? currentJsonData() : exportRows();
   download(new Blob([JSON.stringify(raw, null, 2)], { type: 'application/json' }), exportName('json'));
 }
 function download(blob, name) {

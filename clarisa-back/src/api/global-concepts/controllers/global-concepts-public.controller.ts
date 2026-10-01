@@ -26,6 +26,7 @@ import {
 import { UsageService } from '../services/usage.service';
 import { GcUsageKind } from '../entities/gc-usage-daily.entity';
 import { OptionalApiKeyUsageInterceptor } from '../../../shared/interceptors/optional-api-key-usage.interceptor';
+import { SchemeCode } from '../utils/scheme-code.decorator';
 
 /**
  * Public, anonymous read of Global Concepts. Only approved and deprecated
@@ -58,7 +59,7 @@ export class GlobalConceptsPublicController {
     private readonly usage: UsageService,
   ) {}
 
-  @Post(':scheme/suggest')
+  @Post('suggest')
   @HttpCode(200)
   @UseGuards(PublicRateLimitGuard)
   @ApiOperation({
@@ -69,22 +70,13 @@ export class GlobalConceptsPublicController {
       'never in the URL, because request logs keep URLs.',
   })
   async suggest(
-    @Param('scheme') scheme: string,
+    @SchemeCode() scheme: string,
     @Body() body: { text?: unknown },
   ) {
     const answer = await this.suggester.suggest(scheme, body?.text as string);
     // Counted under a fixed item: the text itself is never stored (V24).
     this.usage.record(scheme, GcUsageKind.SUGGEST, 'text');
     return answer;
-  }
-
-  @Get('schemes')
-  @ApiOperation({
-    summary:
-      'List concept schemes (Concepts and any domain or platform scheme)',
-  })
-  schemes() {
-    return this.read.schemes();
   }
 
   @Get('lists')
@@ -97,26 +89,26 @@ export class GlobalConceptsPublicController {
     return this.read.lists(scheme);
   }
 
-  @Get(':scheme/fields')
+  @Get('fields')
   @ApiOperation({
     summary: 'Custom metadata fields of a scheme (active and public)',
     description:
       'Each concept carries their values in `custom_fields`, in this order. ' +
       '`term_link` values are other concepts of the same scheme.',
   })
-  fields(@Param('scheme') scheme: string) {
+  fields(@SchemeCode() scheme: string) {
     return this.read.fields(scheme);
   }
 
-  @Get(':scheme')
+  @Get()
   @ApiOperation({
     summary: 'Scheme metadata: title, license, publisher, governance',
   })
-  scheme(@Param('scheme') scheme: string) {
+  scheme(@SchemeCode() scheme: string) {
     return this.read.scheme(scheme);
   }
 
-  @Get(':scheme/concepts')
+  @Get('concepts')
   @ApiOperation({
     summary: 'List or search the published concepts of a scheme',
     description:
@@ -140,7 +132,7 @@ export class GlobalConceptsPublicController {
       '`0` = do not count this read in usage analytics (search-as-you-type sends it, then one counted request when the query settles).',
   })
   async list(
-    @Param('scheme') scheme: string,
+    @SchemeCode() scheme: string,
     @Query('q') q?: string,
     @Query('status') status?: string,
     @Query('functions') functions?: string,
@@ -163,14 +155,14 @@ export class GlobalConceptsPublicController {
     return rows;
   }
 
-  @Get(':scheme/concepts/:termId')
+  @Get('concepts/:termId')
   @ApiOperation({
     summary:
       'One published concept (JSON). Its persistent URI also answers Turtle / JSON-LD.',
   })
   @ApiQuery({ name: 'version', required: false })
   async get(
-    @Param('scheme') scheme: string,
+    @SchemeCode() scheme: string,
     @Param('termId', ParseIntPipe) termId: number,
     @Query('version') version?: string,
   ) {
@@ -179,18 +171,18 @@ export class GlobalConceptsPublicController {
     return concept;
   }
 
-  @Get(':scheme/concepts/:termId/history')
+  @Get('concepts/:termId/history')
   @ApiOperation({
     summary: 'Public change log of a concept (what and when, never who)',
   })
   history(
-    @Param('scheme') scheme: string,
+    @SchemeCode() scheme: string,
     @Param('termId', ParseIntPipe) termId: number,
   ) {
     return this.read.history(scheme, termId);
   }
 
-  @Get(':scheme/changes')
+  @Get('changes')
   @ApiOperation({
     summary:
       'Changes after a cursor, for incremental sync (use next_cursor as the next since)',
@@ -198,20 +190,20 @@ export class GlobalConceptsPublicController {
   @ApiQuery({ name: 'since', required: false })
   @ApiQuery({ name: 'limit', required: false })
   changes(
-    @Param('scheme') scheme: string,
+    @SchemeCode() scheme: string,
     @Query('since', new DefaultValuePipe(0), ParseIntPipe) since: number,
     @Query('limit', new DefaultValuePipe(500), ParseIntPipe) limit: number,
   ) {
     return this.read.changes(scheme, since, limit);
   }
 
-  @Get(':scheme/releases')
+  @Get('releases')
   @ApiOperation({ summary: 'Published releases of a scheme' })
-  releaseList(@Param('scheme') scheme: string) {
+  releaseList(@SchemeCode() scheme: string) {
     return this.read.releases(scheme);
   }
 
-  @Get(':scheme/export')
+  @Get('export')
   @ApiOperation({
     summary: 'Download the scheme as json, csv, skos (Turtle) or jsonld',
   })
@@ -222,7 +214,7 @@ export class GlobalConceptsPublicController {
   })
   @ApiQuery({ name: 'version', required: false })
   async export(
-    @Param('scheme') scheme: string,
+    @SchemeCode() scheme: string,
     @Res() res: Response,
     @Query('format') format = 'json',
     @Query('version') version?: string,

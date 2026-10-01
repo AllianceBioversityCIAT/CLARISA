@@ -19,11 +19,11 @@ const ALL_SECTIONS: { id: GlobalConceptsSection; label: string }[] = [
 ];
 
 /**
- * A back route only the full Concepts admin permission (`/api/concepts/admin`)
- * opens: the concepts-only one (`…/admin/meliaf-taxonomy/concepts`, role CONCEPTS_CE) is
+ * A back route only the full Concepts admin permission (`/api/meliaf-taxonomy/admin`)
+ * opens: the concepts-only one (`…/admin/concepts`, role CONCEPTS_CE) is
  * not a substring of it. Same `route.includes(permission)` test as the back.
  */
-export const CONCEPTS_FULL_ADMIN_ROUTE = '/api/concepts/admin/meliaf-taxonomy/requests';
+export const CONCEPTS_FULL_ADMIN_ROUTE = '/api/meliaf-taxonomy/admin/requests';
 
 /** Whether the caller may use Requests, Import, Setup and Usage, not only Concepts. */
 export function isConceptsFullAdmin(access: MeAccess | null): boolean {
