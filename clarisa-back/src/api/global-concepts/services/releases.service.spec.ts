@@ -197,8 +197,7 @@ describe('ReleasesService', () => {
         expect.objectContaining({
           scheme_id: 1,
           version: '1.0.0',
-          release_uri:
-            'https://api.clarisa.cgiar.org/concepts/concepts/releases/1.0.0',
+          release_uri: 'https://api.clarisa.cgiar.org/concepts/releases/1.0.0',
           previous_release_id: null,
           notes: 'First',
           license: 'CC BY 4.0',
@@ -208,7 +207,7 @@ describe('ReleasesService', () => {
       const snapshot = JSON.parse(release.snapshot);
       expect(snapshot.map((c: any) => c.term_id)).toEqual([101, 102]);
       expect(snapshot[0].term_uri).toBe(
-        'https://api.clarisa.cgiar.org/concepts/concepts/101',
+        'https://api.clarisa.cgiar.org/concepts/101',
       );
       expect(result).toEqual(
         expect.objectContaining({

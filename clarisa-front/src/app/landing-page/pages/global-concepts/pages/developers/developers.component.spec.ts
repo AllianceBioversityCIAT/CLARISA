@@ -38,23 +38,24 @@ describe('DevelopersComponent', () => {
 
   it('builds every URL from this environment and a real TERM id', () => {
     const b = docBases(environment.apiUrl);
-    expect(b.api).toBe(`${root}api/concepts`);
-    expect(b.mcp).toBe(`${root}api/concepts/mcp`);
+    expect(b.api).toBe(`${root}api/meliaf-taxonomy`);
+    expect(b.mcp).toBe(`${root}api/meliaf-taxonomy/mcp`);
     expect(component.termId).toBe(42);
-    expect(component.code['turtle']).toBe(`curl -H "Accept: text/turtle" "${root}concepts/meliaf-taxonomy/42"`);
+    expect(component.code['turtle']).toBe(`curl -H "Accept: text/turtle" "${root}meliaf-taxonomy/42"`);
     expect(component.code['jsonld']).toContain('Accept: application/ld+json');
-    expect(component.code['claudeCode']).toBe(`claude mcp add --transport http clarisa-concepts ${root}api/concepts/mcp`);
-    expect(JSON.parse(component.code['mcpJson']).mcpServers['clarisa-concepts']).toEqual({ type: 'http', url: `${root}api/concepts/mcp` });
-    expect(JSON.parse(component.code['claudeDesktop']).mcpServers['clarisa-concepts'].args).toContain(`${root}api/concepts/mcp`);
+    expect(component.code['claudeCode']).toBe(`claude mcp add --transport http clarisa-concepts ${root}api/meliaf-taxonomy/mcp`);
+    expect(JSON.parse(component.code['mcpJson']).mcpServers['clarisa-concepts']).toEqual({ type: 'http', url: `${root}api/meliaf-taxonomy/mcp` });
+    expect(JSON.parse(component.code['claudeDesktop']).mcpServers['clarisa-concepts'].args).toContain(`${root}api/meliaf-taxonomy/mcp`);
     for (const text of Object.values(component.code)) expect(text).not.toContain('undefined');
   });
 
   it('gives every GET a live link under the base and renders the table', () => {
     const rows = publicEndpoints(docBases('https://api.example.org'), 'concepts', 7);
-    for (const row of rows.filter(r => r.method === 'GET')) expect(row.live?.startsWith('https://api.example.org/api/concepts/')).toBe(true);
-    expect(rows.find(r => r.path === '/{scheme}/fields')?.live).toBe('https://api.example.org/api/concepts/concepts/fields');
+    for (const row of rows.filter(r => r.method === 'GET')) expect(row.live?.startsWith('https://api.example.org/api/meliaf-taxonomy')).toBe(true);
+    expect(rows.find(r => r.path === '/fields')?.live).toBe('https://api.example.org/api/meliaf-taxonomy/fields');
+    expect(rows.some(r => r.path.includes('{scheme}'))).toBe(false);
     const links = Array.from(fixture.nativeElement.querySelectorAll('#endpoints a')).map((a: any) => a.getAttribute('href'));
-    expect(links).toContain(`${root}api/concepts/meliaf-taxonomy/concepts/42`);
+    expect(links).toContain(`${root}api/meliaf-taxonomy/concepts/42`);
   });
 
   it('documents the four scopes and the four MCP tools', () => {
@@ -101,7 +102,7 @@ describe('DevelopersComponent', () => {
     expect(section.textContent).toContain('X-API-Key');
     expect(section.textContent).toContain('X-Api-Key-Status: invalid');
     expect(section.textContent).toContain('Reads stay open without a key');
-    expect(component.code['counted']).toBe(`curl -H "X-API-Key: <your CLARISA API key>" "${root}api/concepts/meliaf-taxonomy/concepts?q=outcome"`);
+    expect(component.code['counted']).toBe(`curl -H "X-API-Key: <your CLARISA API key>" "${root}api/meliaf-taxonomy/concepts?q=outcome"`);
     expect(component.sections.map(s => s.id)).toContain('counted');
   });
 });

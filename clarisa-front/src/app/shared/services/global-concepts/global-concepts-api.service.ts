@@ -5,7 +5,7 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 
 /**
- * Client of the Global Concepts module (`api/concepts`), shared by the
+ * Client of the Global Concepts module (`api/meliaf-taxonomy`), shared by the
  * admin section and the public page. Shapes mirror the back's presenters
  * (clarisa-back/src/api/global-concepts); field names follow the Concepts data
  * schema template.
@@ -264,18 +264,24 @@ const params = (query: object = {}) => {
 
 @Injectable({ providedIn: 'root' })
 export class GlobalConceptsApiService {
-  private readonly base = `${environment.apiUrl}api/concepts`;
+  /**
+   * One scheme, and it is the prefix (Yeck, 2026-10-01): `/api/meliaf-taxonomy/…`,
+   * no `{scheme}` segment. Methods keep their `scheme` argument so callers do not
+   * change; the API ignores it.
+   */
+  private readonly base = `${environment.apiUrl}api/meliaf-taxonomy`;
 
   constructor(private _http: HttpClient) {}
 
   // ------------------------------------------------------------------ public
 
+  /** The list of schemes is gone from the API (one scheme): its metadata, as a one-item list. */
   schemes(): Observable<ConceptScheme[]> {
-    return this._http.get<ConceptScheme[]>(`${this.base}/schemes`);
+    return this._http.get<ConceptScheme>(this.base).pipe(map(scheme => [scheme]));
   }
 
   scheme(code: string): Observable<ConceptScheme> {
-    return this._http.get<ConceptScheme>(`${this.base}/${encodeURIComponent(code)}`);
+    return this._http.get<ConceptScheme>(`${this.base}`);
   }
 
   /** The back answers `{ list_code: [{ value, label }] }` in sort order; flattened here for the UI. */
@@ -292,38 +298,38 @@ export class GlobalConceptsApiService {
   }
 
   concepts(scheme: string, query: ConceptQuery = {}): Observable<PublicConcept[]> {
-    return this._http.get<PublicConcept[]>(`${this.base}/${encodeURIComponent(scheme)}/concepts`, { params: params(query) });
+    return this._http.get<PublicConcept[]>(`${this.base}/concepts`, { params: params(query) });
   }
 
   concept(scheme: string, termId: number): Observable<PublicConcept> {
-    return this._http.get<PublicConcept>(`${this.base}/${encodeURIComponent(scheme)}/concepts/${termId}`);
+    return this._http.get<PublicConcept>(`${this.base}/concepts/${termId}`);
   }
 
   history(scheme: string, termId: number): Observable<ConceptHistoryEntry[]> {
-    return this._http.get<ConceptHistoryEntry[]>(`${this.base}/${encodeURIComponent(scheme)}/concepts/${termId}/history`);
+    return this._http.get<ConceptHistoryEntry[]>(`${this.base}/concepts/${termId}/history`);
   }
 
   releases(scheme: string): Observable<ConceptRelease[]> {
-    return this._http.get<ConceptRelease[]>(`${this.base}/${encodeURIComponent(scheme)}/releases`);
+    return this._http.get<ConceptRelease[]>(`${this.base}/releases`);
   }
 
   /** `version` empty or null = the current state; otherwise that published release. */
   exportUrl(scheme: string, format: ConceptExportFormat, version?: string | null): string {
     const pinned = version ? `&version=${encodeURIComponent(version)}` : '';
-    return `${this.base}/${encodeURIComponent(scheme)}/export?format=${format}${pinned}`;
+    return `${this.base}/export?format=${format}${pinned}`;
   }
 
   /** The text travels in the body, never in the URL (request logs keep URLs). */
   suggest(scheme: string, text: string): Observable<{ scheme: string; suggestions: ConceptSuggestion[]; retained: false }> {
     return this._http.post<{ scheme: string; suggestions: ConceptSuggestion[]; retained: false }>(
-      `${this.base}/${encodeURIComponent(scheme)}/suggest`,
+      `${this.base}/suggest`,
       { text }
     );
   }
 
   /** Public form, step 1: the back emails a one-time confirmation link. */
   startRequest(scheme: string, body: Record<string, unknown>): Observable<{ status: string; expires_in_hours: number }> {
-    return this._http.post<{ status: string; expires_in_hours: number }>(`${this.base}/${encodeURIComponent(scheme)}/requests/start`, body);
+    return this._http.post<{ status: string; expires_in_hours: number }>(`${this.base}/requests/start`, body);
   }
 
   verifyRequest(token: string): Observable<ConceptRequest & { access_token: string }> {
@@ -347,15 +353,15 @@ export class GlobalConceptsApiService {
 
   /** With `q`, only the matches, best first, each with its `match` (the same text search as the public list). */
   adminConcepts(scheme: string, status?: string, q?: string): Observable<AdminConcept[]> {
-    return this._http.get<AdminConcept[]>(`${this.admin}/${encodeURIComponent(scheme)}/concepts`, { params: params({ status, q }) });
+    return this._http.get<AdminConcept[]>(`${this.admin}/concepts`, { params: params({ status, q }) });
   }
 
   createConcept(scheme: string, body: Record<string, unknown>): Observable<AdminConcept> {
-    return this._http.post<AdminConcept>(`${this.admin}/${encodeURIComponent(scheme)}/concepts`, body);
+    return this._http.post<AdminConcept>(`${this.admin}/concepts`, body);
   }
 
   updateConcept(scheme: string, termId: number, body: Record<string, unknown>): Observable<AdminConcept> {
-    return this._http.patch<AdminConcept>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}`, body);
+    return this._http.patch<AdminConcept>(`${this.admin}/concepts/${termId}`, body);
   }
 
   setStatus(
@@ -363,7 +369,7 @@ export class GlobalConceptsApiService {
     termId: number,
     body: { status: ConceptStatus; replaced_by_term_id?: number; reason?: string }
   ): Observable<AdminConcept> {
-    return this._http.patch<AdminConcept>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/status`, body);
+    return this._http.patch<AdminConcept>(`${this.admin}/concepts/${termId}/status`, body);
   }
 
   setLabels(
@@ -371,19 +377,19 @@ export class GlobalConceptsApiService {
     termId: number,
     labels: { label: string; language?: string; kind: LabelKind; status?: string }[]
   ): Observable<AdminConcept> {
-    return this._http.put<AdminConcept>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/labels`, { labels });
+    return this._http.put<AdminConcept>(`${this.admin}/concepts/${termId}/labels`, { labels });
   }
 
   quality(scheme: string): Observable<unknown> {
-    return this._http.get(`${this.admin}/${encodeURIComponent(scheme)}/quality`);
+    return this._http.get(`${this.admin}/quality`);
   }
 
   publishRelease(scheme: string, body: { version: string; notes?: string }): Observable<ConceptRelease> {
-    return this._http.post<ConceptRelease>(`${this.admin}/${encodeURIComponent(scheme)}/releases`, body);
+    return this._http.post<ConceptRelease>(`${this.admin}/releases`, body);
   }
 
   requests(scheme: string, state?: RequestState): Observable<ConceptRequest[]> {
-    return this._http.get<ConceptRequest[]>(`${this.admin}/${encodeURIComponent(scheme)}/requests`, { params: params({ state }) });
+    return this._http.get<ConceptRequest[]>(`${this.admin}/requests`, { params: params({ state }) });
   }
 
   request(id: number): Observable<ConceptRequest> {
@@ -411,21 +417,21 @@ export class GlobalConceptsApiService {
 
   aiNormalize(scheme: string, list: string, values: string[]) {
     return this._http.post<{ list: string; allowed: string[]; values: { input: string; value: string | null; source: string }[] }>(
-      `${this.admin}/${encodeURIComponent(scheme)}/ai/normalize`,
+      `${this.admin}/ai/normalize`,
       { list, values }
     );
   }
 
   importPreview(scheme: string, rows: Record<string, unknown>[]): Observable<ImportResult> {
-    return this._http.post<ImportResult>(`${this.admin}/${encodeURIComponent(scheme)}/import/preview`, { rows });
+    return this._http.post<ImportResult>(`${this.admin}/import/preview`, { rows });
   }
 
   importRows(scheme: string, rows: Record<string, unknown>[], skipInvalid = false): Observable<ImportResult> {
-    return this._http.post<ImportResult>(`${this.admin}/${encodeURIComponent(scheme)}/import`, { rows, skip_invalid: skipInvalid });
+    return this._http.post<ImportResult>(`${this.admin}/import`, { rows, skip_invalid: skipInvalid });
   }
 
   refreshEmbeddings(scheme: string): Observable<{ embedded: number; unchanged: number }> {
-    return this._http.post<{ embedded: number; unchanged: number }>(`${this.admin}/${encodeURIComponent(scheme)}/ai/embeddings/refresh`, {});
+    return this._http.post<{ embedded: number; unchanged: number }>(`${this.admin}/ai/embeddings/refresh`, {});
   }
 
   semanticSearch(
@@ -434,7 +440,7 @@ export class GlobalConceptsApiService {
     limit = 10
   ): Observable<{ term_id: number; preferred_label: string; status: string; score: number }[]> {
     return this._http.post<{ term_id: number; preferred_label: string; status: string; score: number }[]>(
-      `${this.admin}/${encodeURIComponent(scheme)}/ai/semantic-search`,
+      `${this.admin}/ai/semantic-search`,
       { text, limit }
     );
   }
@@ -443,31 +449,31 @@ export class GlobalConceptsApiService {
 
   /** One concept as the admin sees it, with `mappings_all` (ids) and its history rows. */
   adminConcept(scheme: string, termId: number): Observable<AdminConceptDetail> {
-    return this._http.get<AdminConceptDetail>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}`);
+    return this._http.get<AdminConceptDetail>(`${this.admin}/concepts/${termId}`);
   }
 
   addRelation(scheme: string, termId: number, body: { kind: RelationKind; target_term_id: number }): Observable<AdminConceptDetail> {
-    return this._http.post<AdminConceptDetail>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/relations`, body);
+    return this._http.post<AdminConceptDetail>(`${this.admin}/concepts/${termId}/relations`, body);
   }
 
   removeRelation(scheme: string, termId: number, body: { kind: RelationKind; target_term_id: number }): Observable<AdminConceptDetail> {
-    return this._http.post<AdminConceptDetail>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/relations/remove`, body);
+    return this._http.post<AdminConceptDetail>(`${this.admin}/concepts/${termId}/relations/remove`, body);
   }
 
   addMapping(scheme: string, termId: number, body: MappingInput): Observable<AdminConceptDetail> {
-    return this._http.post<AdminConceptDetail>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/mappings`, body);
+    return this._http.post<AdminConceptDetail>(`${this.admin}/concepts/${termId}/mappings`, body);
   }
 
   removeMapping(scheme: string, termId: number, mappingId: number): Observable<AdminConceptDetail> {
-    return this._http.delete<AdminConceptDetail>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/mappings/${mappingId}`);
+    return this._http.delete<AdminConceptDetail>(`${this.admin}/concepts/${termId}/mappings/${mappingId}`);
   }
 
   icons(scheme: string, termId: number): Observable<AdminIcon[]> {
-    return this._http.get<AdminIcon[]>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/icons`);
+    return this._http.get<AdminIcon[]>(`${this.admin}/concepts/${termId}/icons`);
   }
 
   createIcon(scheme: string, termId: number, body: IconInput): Observable<AdminIcon> {
-    return this._http.post<AdminIcon>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/icons`, body);
+    return this._http.post<AdminIcon>(`${this.admin}/concepts/${termId}/icons`, body);
   }
 
   /**
@@ -476,11 +482,11 @@ export class GlobalConceptsApiService {
    * to another concept. Full admins pass too (`/admin` is a substring).
    */
   updateIcon(scheme: string, termId: number, id: number, body: Partial<IconInput>): Observable<AdminIcon> {
-    return this._http.patch<AdminIcon>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/icons/${id}`, body);
+    return this._http.patch<AdminIcon>(`${this.admin}/concepts/${termId}/icons/${id}`, body);
   }
 
   deleteIcon(scheme: string, termId: number, id: number): Observable<{ deleted: number }> {
-    return this._http.delete<{ deleted: number }>(`${this.admin}/${encodeURIComponent(scheme)}/concepts/${termId}/icons/${id}`);
+    return this._http.delete<{ deleted: number }>(`${this.admin}/concepts/${termId}/icons/${id}`);
   }
 
   /**
@@ -489,68 +495,68 @@ export class GlobalConceptsApiService {
    * Setup permission. Setup keeps `fields()`.
    */
   conceptFields(scheme: string): Observable<CustomField[]> {
-    return this._http.get<CustomField[]>(`${this.admin}/${encodeURIComponent(scheme)}/concepts-meta/fields`);
+    return this._http.get<CustomField[]>(`${this.admin}/concepts-meta/fields`);
   }
 
   /** Every custom field definition of the scheme, active and inactive (Setup). */
   fields(scheme: string): Observable<CustomField[]> {
-    return this._http.get<CustomField[]>(`${this.admin}/${encodeURIComponent(scheme)}/fields`);
+    return this._http.get<CustomField[]>(`${this.admin}/fields`);
   }
 
   createField(scheme: string, body: CustomFieldInput): Observable<CustomField> {
-    return this._http.post<CustomField>(`${this.admin}/${encodeURIComponent(scheme)}/fields`, body);
+    return this._http.post<CustomField>(`${this.admin}/fields`, body);
   }
 
   /** `code` and `type` are immutable once created; the back rejects them here. */
   updateField(scheme: string, id: number, body: CustomFieldPatch): Observable<CustomField> {
-    return this._http.patch<CustomField>(`${this.admin}/${encodeURIComponent(scheme)}/fields/${id}`, body);
+    return this._http.patch<CustomField>(`${this.admin}/fields/${id}`, body);
   }
 
   /** Every value the scheme sees, inactive included, with the ids the PATCH needs. */
   adminLists(scheme: string): Observable<AdminListValue[]> {
-    return this._http.get<AdminListValue[]>(`${this.admin}/${encodeURIComponent(scheme)}/lists`);
+    return this._http.get<AdminListValue[]>(`${this.admin}/lists`);
   }
 
   addListValue(
     scheme: string,
     body: { list_code: string; label: string; value?: string; sort?: number; shared?: boolean; new_list?: boolean }
   ): Observable<AdminListValue> {
-    return this._http.post<AdminListValue>(`${this.admin}/${encodeURIComponent(scheme)}/lists`, body);
+    return this._http.post<AdminListValue>(`${this.admin}/lists`, body);
   }
 
   updateListValue(scheme: string, id: number, body: { label?: string; sort?: number; is_active?: boolean }): Observable<AdminListValue> {
-    return this._http.patch<AdminListValue>(`${this.admin}/${encodeURIComponent(scheme)}/lists/${id}`, body);
+    return this._http.patch<AdminListValue>(`${this.admin}/lists/${id}`, body);
   }
 
   collections(scheme: string): Observable<ConceptCollection[]> {
-    return this._http.get<ConceptCollection[]>(`${this.admin}/${encodeURIComponent(scheme)}/collections`);
+    return this._http.get<ConceptCollection[]>(`${this.admin}/collections`);
   }
 
   createCollection(scheme: string, body: { code: string; label: string; ordered?: boolean }): Observable<ConceptCollection> {
-    return this._http.post<ConceptCollection>(`${this.admin}/${encodeURIComponent(scheme)}/collections`, body);
+    return this._http.post<ConceptCollection>(`${this.admin}/collections`, body);
   }
 
   updateCollection(scheme: string, code: string, body: { label?: string; ordered?: boolean }): Observable<ConceptCollection> {
-    return this._http.patch<ConceptCollection>(`${this.admin}/${encodeURIComponent(scheme)}/collections/${encodeURIComponent(code)}`, body);
+    return this._http.patch<ConceptCollection>(`${this.admin}/collections`, body);
   }
 
   setCollectionMembers(scheme: string, code: string, termIds: number[]): Observable<ConceptCollection> {
-    return this._http.put<ConceptCollection>(`${this.admin}/${encodeURIComponent(scheme)}/collections/${encodeURIComponent(code)}/members`, {
+    return this._http.put<ConceptCollection>(`${this.admin}/collections/members`, {
       term_ids: termIds
     });
   }
 
   deleteCollection(scheme: string, code: string): Observable<{ deleted: string }> {
-    return this._http.delete<{ deleted: string }>(`${this.admin}/${encodeURIComponent(scheme)}/collections/${encodeURIComponent(code)}`);
+    return this._http.delete<{ deleted: string }>(`${this.admin}/collections`);
   }
 
   usage(scheme: string, days: number): Observable<UsageSummary> {
-    return this._http.get<UsageSummary>(`${this.admin}/${encodeURIComponent(scheme)}/usage`, { params: params({ days }) });
+    return this._http.get<UsageSummary>(`${this.admin}/usage`, { params: params({ days }) });
   }
 
   /** Calls per connected system (API key → MIS) to the whole Concepts API, plus the anonymous reads. */
   usageByPlatform(scheme: string, days: number): Observable<PlatformUsage> {
-    return this._http.get<PlatformUsage>(`${this.admin}/${encodeURIComponent(scheme)}/usage/platforms`, { params: params({ days }) });
+    return this._http.get<PlatformUsage>(`${this.admin}/usage/platforms`, { params: params({ days }) });
   }
 
   /** Advisory: nothing is saved until the editor accepts the text and saves the concept. */
@@ -558,17 +564,17 @@ export class GlobalConceptsApiService {
     scheme: string,
     body: { preferred_label: string; definition: string; fields: AiDraftField[] }
   ): Observable<Partial<Record<AiDraftField, string>>> {
-    return this._http.post<Partial<Record<AiDraftField, string>>>(`${this.admin}/${encodeURIComponent(scheme)}/ai/draft`, body);
+    return this._http.post<Partial<Record<AiDraftField, string>>>(`${this.admin}/ai/draft`, body);
   }
 
   /** Whether the concept assistant can answer for this scheme; a user without AI gets `enabled: false` (or a 403). */
   conceptsAssistStatus(scheme: string): Observable<ConceptsAssistStatus> {
-    return this._http.get<ConceptsAssistStatus>(`${this.admin}/${encodeURIComponent(scheme)}/concepts-assist/status`);
+    return this._http.get<ConceptsAssistStatus>(`${this.admin}/concepts-assist/status`);
   }
 
   /** One assistant turn. Advisory: it returns steps the dialog plays on the form; nothing is saved by the back. */
   conceptsAssistChat(scheme: string, body: ConceptsAssistRequest): Observable<ConceptsAssistReply> {
-    return this._http.post<ConceptsAssistReply>(`${this.admin}/${encodeURIComponent(scheme)}/concepts-assist/chat`, body);
+    return this._http.post<ConceptsAssistReply>(`${this.admin}/concepts-assist/chat`, body);
   }
 
   // ------------------------------------------------- public (contract v2, developers page)
@@ -580,7 +586,7 @@ export class GlobalConceptsApiService {
 
   /** Active public custom fields of a scheme (`GET :scheme/fields`). */
   publicFields(scheme: string): Observable<PublicFieldDef[]> {
-    return this._http.get<PublicFieldDef[]>(`${this.base}/${encodeURIComponent(scheme)}/fields`);
+    return this._http.get<PublicFieldDef[]>(`${this.base}/fields`);
   }
 
   /** URL of the stateless Streamable HTTP MCP endpoint. */
@@ -595,7 +601,7 @@ export class GlobalConceptsApiService {
 
   /** Import columns: built-in schema fields plus `x:<code>` for each active custom field. */
   importFields(scheme: string): Observable<ImportFieldInfo[]> {
-    return this._http.get<ImportFieldInfo[]>(`${this.admin}/${encodeURIComponent(scheme)}/import-fields`);
+    return this._http.get<ImportFieldInfo[]>(`${this.admin}/import-fields`);
   }
 }
 

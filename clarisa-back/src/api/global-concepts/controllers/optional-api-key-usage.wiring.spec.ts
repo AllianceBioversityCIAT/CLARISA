@@ -55,17 +55,16 @@ describe('OptionalApiKeyUsageInterceptor wiring', () => {
         .sort(),
     ).toEqual(
       [
-        'GET :scheme',
-        'GET :scheme/changes',
-        'GET :scheme/concepts',
-        'GET :scheme/concepts/:termId',
-        'GET :scheme/concepts/:termId/history',
-        'GET :scheme/export',
-        'GET :scheme/fields',
-        'GET :scheme/releases',
+        'GET /',
+        'GET changes',
+        'GET concepts',
+        'GET concepts/:termId',
+        'GET concepts/:termId/history',
+        'GET export',
+        'GET fields',
         'GET lists',
-        'GET schemes',
-        'POST :scheme/suggest',
+        'GET releases',
+        'POST suggest',
       ].sort(),
     );
   });

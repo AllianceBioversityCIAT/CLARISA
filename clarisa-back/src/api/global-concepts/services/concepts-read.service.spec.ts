@@ -58,9 +58,7 @@ describe('ConceptsReadService', () => {
   it('serves an approved concept with its persistent URI', async () => {
     concept(2374, 'Accountability', GcConceptStatus.APPROVED);
     const c = await service.get('concepts', 2374);
-    expect(c.term_uri).toBe(
-      'https://api.clarisa.cgiar.org/concepts/concepts/2374',
-    );
+    expect(c.term_uri).toBe('https://api.clarisa.cgiar.org/concepts/2374');
   });
 
   it.each([GcConceptStatus.DRAFT, GcConceptStatus.IN_REVIEW])(

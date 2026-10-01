@@ -10,24 +10,29 @@ import {
  * The default scheme's URIs carry no scheme segment (Yeck, 2026-10-01:
  * `clarisatest-back.ciat.cgiar.org/concepts/2374`).
  */
-describe('persistent URIs of the default scheme (meliaf-taxonomy)', () => {
-  const base = { uri_base: 'https://api.clarisa.cgiar.org/concepts' };
+describe('persistent URIs (meliaf-taxonomy is the root)', () => {
+  const env = { uri_base: 'https://api.clarisa.cgiar.org' };
 
-  it('carry the scheme code, the default one included', () => {
+  it('are {host}/{scheme}/{termId}; a base still ending in /concepts is read as its host', () => {
     expect(DEFAULT_SCHEME_CODE).toBe('meliaf-taxonomy');
-    expect(schemeUri({ ...base, code: 'meliaf-taxonomy' })).toBe(
-      'https://api.clarisa.cgiar.org/concepts/meliaf-taxonomy',
+    expect(schemeUri({ ...env, code: 'meliaf-taxonomy' })).toBe(
+      'https://api.clarisa.cgiar.org/meliaf-taxonomy',
     );
-    expect(conceptUri({ ...base, code: 'meliaf-taxonomy' }, 2374)).toBe(
-      'https://api.clarisa.cgiar.org/concepts/meliaf-taxonomy/2374',
+    expect(conceptUri({ ...env, code: 'meliaf-taxonomy' }, 2374)).toBe(
+      'https://api.clarisa.cgiar.org/meliaf-taxonomy/2374',
     );
-    expect(conceptUri({ ...base, code: 'prms' }, 12)).toBe(
-      'https://api.clarisa.cgiar.org/concepts/prms/12',
-    );
+    expect(
+      conceptUri(
+        {
+          uri_base: 'https://api.clarisa.cgiar.org/concepts/',
+          code: 'meliaf-taxonomy',
+        },
+        2374,
+      ),
+    ).toBe('https://api.clarisa.cgiar.org/meliaf-taxonomy/2374');
     expect(conceptPagePath('meliaf-taxonomy', 2374)).toBe(
       '/meliaf-taxonomy/2374',
     );
-    expect(conceptPagePath('prms', 12)).toBe('/prms/12');
   });
 
   describe('ConceptUriController', () => {
@@ -70,9 +75,9 @@ describe('persistent URIs of the default scheme (meliaf-taxonomy)', () => {
       return { controller, read, exporter, res };
     };
 
-    it('/concepts/2374 still opens the concept of the default scheme', async () => {
+    it('/meliaf-taxonomy/2374 sends a browser to the concept page', async () => {
       const { controller, read, res } = build();
-      await controller.segment('2374', res, 'text/html');
+      await controller.concept(2374, res, 'text/html');
       expect(read.get).toHaveBeenCalledWith('meliaf-taxonomy', 2374);
       expect(res.redirect).toHaveBeenCalledWith(
         303,
@@ -80,21 +85,14 @@ describe('persistent URIs of the default scheme (meliaf-taxonomy)', () => {
       );
     });
 
-    it('/concepts/2374?format=json answers the data', async () => {
+    it('/meliaf-taxonomy/2374?format=json answers the data', async () => {
       const { controller, exporter, res } = build();
-      await controller.segment('2374', res, '', 'json');
+      await controller.concept(2374, res, '', 'json');
       expect(exporter.render).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
-    it('a non-numeric segment is still a scheme', async () => {
-      const { controller, read, res } = build();
-      await controller.segment('prms', res, 'text/html');
-      expect(read.scheme).toHaveBeenCalledWith('prms');
-      expect(read.get).not.toHaveBeenCalled();
-    });
-
-    it('/concepts alone is the default scheme', async () => {
+    it('/meliaf-taxonomy alone is the scheme', async () => {
       const { controller, read, res } = build();
       await controller.defaultScheme(res, 'text/html');
       expect(read.scheme).toHaveBeenCalledWith('meliaf-taxonomy');

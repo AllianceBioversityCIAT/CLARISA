@@ -98,7 +98,7 @@ interface UsageFilterParams {
   key_ids?: number[];
   api_key_id?: number;
   microservice_name?: string;
-  /** Only calls whose path starts with one of these (`/api/concepts/`). */
+  /** Only calls whose path starts with one of these (`/api/meliaf-taxonomy/`). */
   endpoint_prefixes?: string[];
 }
 
@@ -495,7 +495,7 @@ export class ApiKeyUsageMetricsService {
   /**
    * Calls per connected system for the endpoints under some path prefixes —
    * the same rows as the Overview's `systems`, narrowed to one module (for
-   * Concepts: `/api/concepts/` and its persistent `/concepts/`).
+   * Concepts: `/api/meliaf-taxonomy/` and its persistent `/meliaf-taxonomy/`).
    */
   async getSystemsForEndpoints(
     range: { from?: string; to?: string },

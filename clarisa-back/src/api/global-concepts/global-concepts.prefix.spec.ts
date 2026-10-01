@@ -23,29 +23,29 @@ import { RenameGlobalConceptsRoutesToMeliafTaxonomy1790500300000 } from '../../.
 import { RenameMeliafTaxonomyRoutesToConcepts1790500400000 } from '../../../migrations/1790500400000-RenameMeliafTaxonomyRoutesToConcepts';
 
 /**
- * Public prefix of the module: `api/concepts` (Yeck, 2026-09-30: shown as
- * "Concepts"; before it was `api/meliaf-taxonomy`, and before that
- * `api/global-concepts`). The old prefixes must be gone from every place that
- * publishes or authorises the path.
+ * Public prefix of the module: `api/meliaf-taxonomy` (Yeck, 2026-10-01: the
+ * scheme is the prefix, `/api/meliaf-taxonomy/concepts`). Earlier it was
+ * `api/concepts` and, before that, `api/global-concepts`. The old prefixes
+ * must be gone from every place that publishes or authorises the path.
  */
 describe('Concepts public prefix', () => {
   const entry = apiRoutes.find((r) => r.module === GlobalConceptsModule);
 
-  it('mounts the module at concepts, and nothing at the old prefixes', () => {
-    expect(entry?.path).toBe('concepts');
+  it('mounts the module at meliaf-taxonomy, and nothing at the old prefixes', () => {
+    expect(entry?.path).toBe('meliaf-taxonomy');
     expect(
-      apiRoutes.some((r) =>
-        ['global-concepts', 'meliaf-taxonomy'].includes(r.path),
-      ),
+      apiRoutes.some((r) => ['global-concepts', 'concepts'].includes(r.path)),
     ).toBe(false);
   });
 
   it('publishes only the new prefix in the swagger allow-list', () => {
     const module = PUBLIC_OPENAPI_PATHS.filter((p) =>
-      /global-concepts|meliaf-taxonomy|^\/api\/concepts\//.test(p),
+      /global-concepts|meliaf-taxonomy|^\/api\/concepts(\/|$)/.test(p),
     );
     expect(module.length).toBeGreaterThan(0);
-    for (const p of module) expect(p.startsWith('/api/concepts/')).toBe(true);
+    for (const p of module)
+      expect(/^\/api\/meliaf-taxonomy(\/|$)/.test(p)).toBe(true);
+    expect(module.some((p) => p.includes('{scheme}'))).toBe(false);
   });
 
   it('names the API key scopes concepts:*', () => {
@@ -104,15 +104,15 @@ describe('Concepts public prefix', () => {
       params: {},
     };
 
-    it('resolves /api/concepts/mcp', async () => {
+    it('resolves /api/meliaf-taxonomy/mcp', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/concepts/mcp')
+        .post('/api/meliaf-taxonomy/mcp')
         .send(initialize);
       expect(res.status).toBe(200);
       expect(res.body.result.serverInfo.name).toBe('clarisa-concepts');
     });
 
-    it.each(['global-concepts', 'meliaf-taxonomy'])(
+    it.each(['global-concepts', 'concepts'])(
       'no longer answers /api/%s/mcp',
       async (old) => {
         const res = await request(app.getHttpServer())

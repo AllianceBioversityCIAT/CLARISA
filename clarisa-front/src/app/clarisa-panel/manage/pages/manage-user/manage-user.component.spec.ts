@@ -50,7 +50,7 @@ describe('ManageUserComponent', () => {
     api = {
       users,
       roles: jest.fn(() => of([concepts, superRole])),
-      permissions: jest.fn(() => of([{ module: 'Concepts', items: [{ id: 1, name: '/api/concepts/admin', label: 'Concepts', description: null }] }])),
+      permissions: jest.fn(() => of([{ module: 'Concepts', items: [{ id: 1, name: '/api/meliaf-taxonomy/admin', label: 'Concepts', description: null }] }])),
       addMembers: jest.fn(() => of({ added: [1, 2], alreadyMembers: [] })),
       removeMember: jest.fn(() => of({ removed: true }))
     };
@@ -183,7 +183,7 @@ describe('ManageUserComponent', () => {
   });
 
   it('offers a non-super only the roles inside their own permissions', async () => {
-    access = { userId: 5, email: 'm@cgiar.org', roles: [], permissions: ['/api/access-admin', '/api/concepts/admin'], isSuper: false };
+    access = { userId: 5, email: 'm@cgiar.org', roles: [], permissions: ['/api/access-admin', '/api/meliaf-taxonomy/admin'], isSuper: false };
     await create(jest.fn(() => of(page([user(1)]))));
     expect(component.assignable.map(role => role.acronym)).toEqual(['CONCEPTS_DA']);
   });

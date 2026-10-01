@@ -63,7 +63,7 @@ describe('AdminAccessGuard', () => {
   });
 
   it('opens Microservices & API keys only with an API keys or MIS permission', () => {
-    resolved = { userId: 1, email: 'a@b', roles: [], permissions: ['/api/concepts/admin'], isSuper: false };
+    resolved = { userId: 1, email: 'a@b', roles: [], permissions: ['/api/meliaf-taxonomy/admin'], isSuper: false };
     expect(run('/clarisa-panel/manage/microservices-admin') instanceof UrlTree).toBe(true);
     resolved = { userId: 1, email: 'a@b', roles: [], permissions: ['/api/api-keys'], isSuper: false };
     expect(run('/clarisa-panel/manage/microservices-admin')).toBe(true);
