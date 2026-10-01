@@ -27,7 +27,7 @@ export interface FieldRow {
 })
 export class GcSetupFieldsComponent implements OnInit, OnChanges {
   readonly info = FIELD_INFO.setupField;
-  @Input() scheme = 'meliaf';
+  @Input() scheme = 'meliaf-taxonomy';
   /** List codes the list types can point to. */
   @Input() listCodes: string[] = [];
 

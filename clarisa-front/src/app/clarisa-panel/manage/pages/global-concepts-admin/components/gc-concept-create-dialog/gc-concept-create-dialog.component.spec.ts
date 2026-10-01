@@ -15,7 +15,11 @@ describe('GcConceptCreateDialogComponent', () => {
   const conflict = (message: string) => ({ status: 409, error: { response: { response: { message } }, message: 'Conflict Exception' } });
 
   beforeEach(() => {
-    api = { createConcept: jest.fn(() => of({ term_id: 41, preferred_label: 'Outcome' })) };
+    localStorage.clear();
+    api = {
+      createConcept: jest.fn(() => of({ term_id: 41, preferred_label: 'Outcome' })),
+      conceptsAssistStatus: jest.fn(() => of({ enabled: true, remainingUsd: 9 }))
+    };
     messages = { add: jest.fn() };
     dialog = new GcConceptCreateDialogComponent(api as unknown as GlobalConceptsApiService, messages as unknown as MessageService);
     created = jest.fn();
@@ -44,7 +48,7 @@ describe('GcConceptCreateDialogComponent', () => {
     dialog.form.definition = '  A change.  ';
     dialog.create();
 
-    expect(api['createConcept']).toHaveBeenCalledWith('meliaf', { preferred_label: 'Outcome', definition: 'A change.' });
+    expect(api['createConcept']).toHaveBeenCalledWith('meliaf-taxonomy', { preferred_label: 'Outcome', definition: 'A change.' });
     expect(dialog.visible).toBe(false);
     expect(created).toHaveBeenCalledWith({ term_id: 41, preferred_label: 'Outcome' } as unknown as AdminConceptDetail);
     expect(messages.add).toHaveBeenCalledWith(
@@ -56,7 +60,7 @@ describe('GcConceptCreateDialogComponent', () => {
     dialog.open('Outcome');
     dialog.form.term_id = 1042;
     dialog.create();
-    expect(api['createConcept']).toHaveBeenCalledWith('meliaf', { preferred_label: 'Outcome', term_id: 1042 });
+    expect(api['createConcept']).toHaveBeenCalledWith('meliaf-taxonomy', { preferred_label: 'Outcome', term_id: 1042 });
   });
 
   it('locks on the first click: a second click or Enter before the answer sends nothing', () => {
@@ -85,7 +89,7 @@ describe('GcConceptCreateDialogComponent', () => {
     dialog.open('Outcome');
     dialog.form.term_id = 12;
     dialog.create();
-    answer.error(conflict('term_id 12 is already used in "meliaf"'));
+    answer.error(conflict('term_id 12 is already used in "concepts"'));
 
     expect(dialog.error).toBe('TERM ID 12 already belongs to another concept. Leave it empty to get the next free code, or keep a different one.');
     expect(dialog.showTermId).toBe(true);
@@ -99,7 +103,7 @@ describe('GcConceptCreateDialogComponent', () => {
   });
 
   it('a 409 on the label names the label', () => {
-    expect(createErrorMessage(conflict('"Outcome" is already the preferred label (en) of another concept in "meliaf"'), {
+    expect(createErrorMessage(conflict('"Outcome" is already the preferred label (en) of another concept in "concepts"'), {
       preferred_label: ' Outcome ',
       definition: '',
       term_id: null
@@ -125,6 +129,62 @@ describe('GcConceptCreateDialogComponent', () => {
     expect(html).toContain('[text]="info.definition"');
     expect(html).toContain('[text]="info.term_id"');
     expect(html.match(/btn-brand/g)?.length).toBe(1);
-    expect(html).toContain('[disabled]="saving || !!formError"');
+    expect(html).toContain('[disabled]="saving || !!formError || !!assistBusyReason"');
+  });
+
+  describe('assistant from the first moment', () => {
+    it('opens beside the form when the AI is on, and stays out when it is off', () => {
+      dialog.open();
+      expect(api['conceptsAssistStatus']).toHaveBeenCalledWith(dialog.scheme);
+      expect(dialog.assistAvailable).toBe(true);
+      expect(dialog.assistOpen).toBe(true);
+
+      const off = new GcConceptCreateDialogComponent(
+        { conceptsAssistStatus: jest.fn(() => of({ enabled: false })) } as unknown as GlobalConceptsApiService,
+        messages as unknown as MessageService
+      );
+      off.open();
+      expect(off.assistAvailable).toBe(false);
+      expect(off.assistOpen).toBe(false);
+    });
+
+    it('lets the assistant fill only the two fields of the short form', () => {
+      dialog.open();
+      const host = dialog.assist.host!;
+      host.write('preferred_label', 'Outcome');
+      host.write('definition', 'A change.');
+      host.write('notes', 'not on this form');
+      expect(dialog.form.preferred_label).toBe('Outcome');
+      expect(dialog.form.definition).toBe('A change.');
+      expect(host.meta('notes')).toBeNull();
+      expect(host.termId()).toBeNull();
+    });
+
+    it('a field typed by hand is never typed over by the assistant', () => {
+      dialog.open();
+      dialog.form.preferred_label = 'Mine';
+      dialog.touched('preferred_label');
+      expect(dialog.assist.isHandEdited('preferred_label')).toBe(true);
+    });
+
+    it('keeps the chat of the concept being created, and hands it to the new concept on create', () => {
+      dialog.open();
+      dialog.assist.messages = [{ role: 'user', content: 'I need a concept for outcomes' }];
+      expect(JSON.parse(localStorage.getItem(`gc-assist-chat:${dialog.scheme}:new`)!)).toHaveLength(1);
+
+      dialog.form.preferred_label = 'Outcome';
+      dialog.create();
+      expect(localStorage.getItem(`gc-assist-chat:${dialog.scheme}:new`)).toBeNull();
+      expect(JSON.parse(localStorage.getItem(`gc-assist-chat:${dialog.scheme}:41`)!)[0].content).toBe('I need a concept for outcomes');
+    });
+
+    it('does not create while an assistant turn is asked or typed', () => {
+      dialog.open('Outcome');
+      dialog.assist.sending = true;
+      dialog.assist.turnToken = dialog.assist.token;
+      dialog.create();
+      expect(api['createConcept']).not.toHaveBeenCalled();
+      expect(dialog.assistBusyReason).toBe('Wait until the assistant finishes');
+    });
   });
 });

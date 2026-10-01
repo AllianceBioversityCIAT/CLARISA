@@ -7,7 +7,7 @@ import { env } from 'process';
  * - `GLOBAL_CONCEPTS_ENABLED` — `false` hides every route of the module (404).
  *   Defaults to on: the module is new and holds no data until someone loads it.
  * - `GLOBAL_CONCEPTS_URI_BASE` — base of every persistent concept URI. The
- *   domain is still to be agreed with MELIAF Group 4 (design, Audit correction 1).
+ *   domain is still to be agreed with the governance group (design, Audit correction 1).
  */
 export const GlobalConceptsConfig = {
   get enabled(): boolean {
@@ -60,9 +60,26 @@ export function webBaseOf(scheme?: { web_base?: string | null } | null) {
   return (scheme?.web_base || GlobalConceptsConfig.webBase).replace(/\/+$/, '');
 }
 
+/**
+ * The scheme CLARISA publishes by default (Yeck, 2026-10-01: code
+ * `meliaf-taxonomy`, title "MELIAF taxonomy"). Its URIs carry its code like
+ * any other scheme: `/concepts/meliaf-taxonomy/2374`. `/concepts/2374` and
+ * `/concepts` still resolve to it (see `ConceptUriController`).
+ */
+export const DEFAULT_SCHEME_CODE = 'meliaf-taxonomy';
+
 /** URI of a scheme, honouring a per-scheme override. */
 export function schemeUri(scheme: { code: string; uri_base: string | null }) {
-  return `${(scheme.uri_base ?? GlobalConceptsConfig.uriBase).replace(/\/+$/, '')}/${scheme.code}`;
+  const base = (scheme.uri_base ?? GlobalConceptsConfig.uriBase).replace(
+    /\/+$/,
+    '',
+  );
+  return `${base}/${scheme.code}`;
+}
+
+/** Path of a concept's human page under the web base. */
+export function conceptPagePath(schemeCode: string, termId: number) {
+  return `/${schemeCode}/${termId}`;
 }
 
 /** Persistent URI of a concept: derived, never stored (V32). */

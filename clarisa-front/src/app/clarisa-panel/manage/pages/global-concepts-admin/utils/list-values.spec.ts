@@ -5,14 +5,14 @@ describe('Global Concepts — controlled lists', () => {
     const lists = groupLists([
       { list_code: 'term_type', value: 'method', label: 'Method', sort: 2 },
       { list_code: 'term_type', value: 'concept', label: 'Concept', sort: 1 },
-      { list_code: 'meliaf_function', value: 'monitoring', label: 'Monitoring', sort: 1 }
+      { list_code: 'functions', value: 'monitoring', label: 'Monitoring', sort: 1 }
     ]);
 
     expect(lists['term_type']).toEqual([
       { value: 'concept', label: 'Concept' },
       { value: 'method', label: 'Method' }
     ]);
-    expect(lists['meliaf_function']).toEqual([{ value: 'monitoring', label: 'Monitoring' }]);
+    expect(lists['functions']).toEqual([{ value: 'monitoring', label: 'Monitoring' }]);
   });
 
   it('also reads the object keyed by list code that the back answers', () => {
@@ -27,10 +27,10 @@ describe('Global Concepts — controlled lists', () => {
   });
 
   it('shows the label of a stored value, or the raw value when unknown', () => {
-    const lists = groupLists({ meliaf_function: [{ value: 'ia', label: 'Impact assessment' }] });
+    const lists = groupLists({ functions: [{ value: 'ia', label: 'Impact assessment' }] });
 
-    expect(listLabel(lists, 'meliaf_function', 'ia')).toBe('Impact assessment');
-    expect(listLabel(lists, 'meliaf_function', 'other')).toBe('other');
-    expect(listLabel(lists, 'meliaf_function', null)).toBe('');
+    expect(listLabel(lists, 'functions', 'ia')).toBe('Impact assessment');
+    expect(listLabel(lists, 'functions', 'other')).toBe('other');
+    expect(listLabel(lists, 'functions', null)).toBe('');
   });
 });

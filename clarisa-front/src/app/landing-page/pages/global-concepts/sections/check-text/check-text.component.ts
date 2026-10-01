@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ConceptSuggestion, GlobalConceptsApiService } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
-import { DEFAULT_SCHEME, GC_BASE, MAX_SUGGEST_TEXT, humanError } from '../../global-concepts.utils';
+import { DEFAULT_SCHEME, GC_BASE, conceptLink, MAX_SUGGEST_TEXT, humanError } from '../../global-concepts.utils';
 
 /**
  * "Check a text": paste a paragraph, get the official concepts it mentions.
@@ -19,6 +19,10 @@ export class CheckTextComponent {
 
   readonly max = MAX_SUGGEST_TEXT;
   readonly base = GC_BASE;
+
+  link(termId: number): (string | number)[] {
+    return conceptLink(this.scheme, termId);
+  }
 
   text = '';
   checking = false;

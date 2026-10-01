@@ -9,6 +9,15 @@
       <h3 class="gc-as__title">Assistant</h3>
       <p class="gc-as__sub">Fills the form with you. It proposes; only Save writes.</p>
     </div>
+    <button
+      type="button"
+      class="gc-as__clear"
+      *ngIf="messages.length"
+      [disabled]="busy"
+      title="Start this concept's chat over"
+      (click)="clear()">
+      Clear
+    </button>
     <button type="button" class="gc-as__close" aria-label="Close the assistant" (click)="close()">
       <i class="pi pi-times" aria-hidden="true"></i>
     </button>

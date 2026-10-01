@@ -59,7 +59,7 @@ describe('GcMappingsEditorComponent', () => {
 
     component.add();
 
-    expect(api.addMapping).toHaveBeenCalledWith('meliaf', 7, expect.objectContaining({ justification: 'manual', confidence: 0.9 }));
+    expect(api.addMapping).toHaveBeenCalledWith('meliaf-taxonomy', 7, expect.objectContaining({ justification: 'manual', confidence: 0.9 }));
     expect(updated).toHaveBeenCalledWith(concept);
   });
 

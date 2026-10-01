@@ -13,7 +13,7 @@ describe('GcRequestsPanelComponent', () => {
       id,
       type: 'new',
       state,
-      payload: { preferred_label: `Concept ${id}`, meliaf_function: ['monitoring', 'learning'] },
+      payload: { preferred_label: `Concept ${id}`, functions: ['monitoring', 'learning'] },
       rationale: 'Needed',
       decision_note: null,
       no_objection_until: null,
@@ -42,7 +42,7 @@ describe('GcRequestsPanelComponent', () => {
 
   beforeEach(() => {
     api = {
-      scheme: jest.fn(() => of({ code: 'meliaf', validator_required: false })),
+      scheme: jest.fn(() => of({ code: 'concepts', validator_required: false })),
       requests: jest.fn(() => of(all)),
       request: jest.fn((id: number) => of(all.find(r => r.id === id))),
       transition: jest.fn(() => of(request(2, 'approved'))),

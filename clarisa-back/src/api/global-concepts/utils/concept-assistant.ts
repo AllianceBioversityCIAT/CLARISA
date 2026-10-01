@@ -47,7 +47,7 @@ const REPLY_MAX = 4000;
 /**
  * The built-in whitelist. Meanings are the front's tooltips
  * (`clarisa-front/.../global-concepts-admin/utils/field-info.ts`), so the
- * model reads the same explanation as the editor; meliaf_phase_also has no
+ * model reads the same explanation as the editor; phase_also has no
  * tooltip there and is written here.
  */
 export const ASSIST_FIELDS: AssistField[] = [
@@ -106,33 +106,33 @@ export const ASSIST_FIELDS: AssistField[] = [
       'The kind of term, picked from the “term type” controlled list. Readers and the API can filter concepts by it.',
   },
   {
-    field: 'meliaf_function',
-    label: 'MELIAF function',
+    field: 'functions',
+    label: 'Function',
     kind: 'multi_list',
-    list: 'meliaf_function',
+    list: 'functions',
     maxItems: 10,
     tab: 'details',
     meaning:
-      'The MELIAF function(s) the concept serves: Monitoring, Evaluation, Learning, Impact assessment or Foresight. Pick one or more; readers and the API can filter by it.',
+      'The function(s) the concept serves: Monitoring, Evaluation, Learning, Impact assessment or Foresight. Pick one or more; readers and the API can filter by it.',
   },
   {
-    field: 'meliaf_phase_primary',
-    label: 'MELIAF phase (primary)',
+    field: 'phase_primary',
+    label: 'Phase (primary)',
     kind: 'list',
-    list: 'meliaf_phase',
+    list: 'phase',
     tab: 'details',
     meaning:
-      'The main phase of the MELIAF cycle where the concept is used, from the “MELIAF phase” list. In the MELIAF Excel it is usually the PARENT TERM column.',
+      'The main phase of the cycle where the concept is used, from the “Phase” list. In the concepts Excel it is usually the PARENT TERM column.',
   },
   {
-    field: 'meliaf_phase_also',
-    label: 'MELIAF phase (also)',
+    field: 'phase_also',
+    label: 'Phase (also)',
     kind: 'multi_list',
-    list: 'meliaf_phase',
+    list: 'phase',
     maxItems: 10,
     tab: 'details',
     meaning:
-      'Other phases of the MELIAF cycle where the concept is also used, from the same “MELIAF phase” list; never repeat the primary phase.',
+      'Other phases of the cycle where the concept is also used, from the same “Phase” list; never repeat the primary phase.',
   },
   {
     field: 'derivation',
@@ -311,7 +311,7 @@ export const orderedEdits = (edits: AssistEdit[] | undefined) =>
     }));
 
 /**
- * The system prompt: what MELIAF is, every field with its meaning (and its
+ * The system prompt: what Concepts is, every field with its meaning (and its
  * list codes), the draft, the ordered manual edits and the rules.
  */
 export function buildAssistantPrompt(
@@ -325,11 +325,11 @@ export function buildAssistantPrompt(
   const lines: string[] = [];
   lines.push(
     'You are the assistant beside the concept editor of Concepts in CLARISA, the CGIAR reference-data platform.',
-    'MELIAF is the CGIAR framework for Monitoring, Evaluation, Learning, Impact Assessment and Foresight. The taxonomy is its official controlled vocabulary (SKOS concepts): each concept has a preferred label, a definition and metadata that other CGIAR systems read through the API.',
+    'Concepts is the official CGIAR controlled vocabulary (SKOS concepts) for monitoring, evaluation, learning, impact assessment and foresight: each concept has a preferred label, a definition and metadata that other CGIAR systems read through the API.',
     `Scheme: ${ctx.scheme.code} — ${ctx.scheme.title}.${ctx.scheme.description ? ` ${clip(ctx.scheme.description, 600)}` : ''}`,
     input.termId
       ? `The person is editing the existing concept with term id ${input.termId}.`
-      : 'The person is creating a new concept.',
+      : 'The person is creating a new concept in the short «New concept» form: only preferred_label (required) and definition are on screen. Ask for what is missing of those two and fill them; do not propose other fields yet. When the label is filled, tell the person to press «Create concept»: the full editor opens with this same chat, and you continue there with the rest of the fields.',
     '',
     'You only PROPOSE values. The person accepts or undoes each proposal and saves with the normal Save button; you never save anything.',
     '',
@@ -342,6 +342,7 @@ export function buildAssistantPrompt(
     '6. Do not invent sources, citations or URLs. Propose source_citation or source_url only when the person gave them or they are a well-known, verifiable reference; otherwise leave them out and say a source is still needed.',
     '7. A definition must not repeat the term it defines; give the genus and what distinguishes it. short_definition is one plain sentence of at most 200 characters, not starting with the term.',
     '8. Keep the reply short and concrete: what you proposed and why, and what the person still has to decide. Use an empty steps list when you only answer a question.',
+    '9. If a required field is still empty (preferred_label), ask for it before anything else. End every reply with a short question: whether to continue with another field, and which one you suggest next.',
     '',
     'FIELDS (field name — kind — meaning)',
   );

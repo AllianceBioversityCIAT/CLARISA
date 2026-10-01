@@ -10,7 +10,7 @@ import { PlatformRow, platformRows, USAGE_COLORS, UsageChart, usageSeries, Usage
   styleUrls: ['./gc-usage-panel.component.scss']
 })
 export class GcUsagePanelComponent implements OnInit, OnChanges {
-  @Input() scheme = 'meliaf';
+  @Input() scheme = 'meliaf-taxonomy';
   /** A search nobody found: the shell opens the concept dialog with it. */
   @Output() createConcept = new EventEmitter<string>();
 

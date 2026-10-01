@@ -54,7 +54,7 @@ describe('ConceptAssistantService', () => {
     process.env.GLOBAL_CONCEPTS_AI_MONTHLY_CAP_USD = '2';
     db = new FakeManager();
     const scheme = db.seed(GcScheme, {
-      code: 'meliaf',
+      code: 'concepts',
       title: 'Concepts',
       default_language: 'en',
       next_term_id: 1,
@@ -65,7 +65,7 @@ describe('ConceptAssistantService', () => {
     ])
       db.seed(GcListValue, {
         scope: '',
-        list_code: 'meliaf_function',
+        list_code: 'functions',
         value,
         label,
         sort: 0,
@@ -73,7 +73,7 @@ describe('ConceptAssistantService', () => {
       });
     db.seed(GcListValue, {
       scope: '',
-      list_code: 'meliaf_function',
+      list_code: 'functions',
       value: 'retired',
       label: 'Retired',
       sort: 0,
@@ -124,7 +124,7 @@ describe('ConceptAssistantService', () => {
         reason: message,
         remainingUsd: 2,
       });
-      const err = await service.chat('meliaf', dto(), 'u1').catch((e) => e);
+      const err = await service.chat('concepts', dto(), 'u1').catch((e) => e);
       expect(err).toBeInstanceOf(ServiceUnavailableException);
       expect(err.message).toBe(message);
       expect(global.fetch).not.toHaveBeenCalled();
@@ -143,7 +143,7 @@ describe('ConceptAssistantService', () => {
       reason: AI_BUDGET_USED_UP,
       remainingUsd: 0,
     });
-    const err = await service.chat('meliaf', dto(), 'u1').catch((e) => e);
+    const err = await service.chat('concepts', dto(), 'u1').catch((e) => e);
     expect(err).toBeInstanceOf(ServiceUnavailableException);
     expect(err.message).toBe(AI_BUDGET_USED_UP);
     expect(global.fetch).not.toHaveBeenCalled();
@@ -151,13 +151,13 @@ describe('ConceptAssistantService', () => {
 
   it('OpenAI error or network failure → 502 with a human message', async () => {
     global.fetch = openAiAnswer({}, false, 500);
-    let err = await service.chat('meliaf', dto(), 'u1').catch((e) => e);
+    let err = await service.chat('concepts', dto(), 'u1').catch((e) => e);
     expect(err).toBeInstanceOf(BadGatewayException);
     expect(err.message).toBe(ASSIST_AI_DOWN);
     global.fetch = jest.fn(async () => {
       throw new Error('ECONNRESET');
     }) as any;
-    err = await service.chat('meliaf', dto(), 'u1').catch((e) => e);
+    err = await service.chat('concepts', dto(), 'u1').catch((e) => e);
     expect(err).toBeInstanceOf(BadGatewayException);
     expect(err.message).toBe(ASSIST_AI_DOWN);
   });
@@ -173,7 +173,7 @@ describe('ConceptAssistantService', () => {
           overrides_manual_edit: false,
         },
         {
-          field: 'meliaf_function',
+          field: 'functions',
           value: ['evaluation', 'retired', 'invented'],
           reason: 'Used in evaluations.',
           overrides_manual_edit: false,
@@ -188,7 +188,7 @@ describe('ConceptAssistantService', () => {
       ],
     });
     const out = await service.chat(
-      'meliaf',
+      'concepts',
       dto({
         edits: [
           {
@@ -218,7 +218,7 @@ describe('ConceptAssistantService', () => {
           reason: 'Genus + purpose.',
         },
         {
-          field: 'meliaf_function',
+          field: 'functions',
           tab: 'details',
           value: ['evaluation'],
           reason: 'Used in evaluations.',
@@ -247,7 +247,7 @@ describe('ConceptAssistantService', () => {
     global.fetch = jest.fn() as any;
     await expect(
       service.chat(
-        'meliaf',
+        'concepts',
         dto({ messages: [{ role: 'assistant', content: 'x' }] }),
         'u1',
       ),
@@ -263,14 +263,14 @@ describe('ConceptAssistantService', () => {
 
   it('rate limit: the 21st turn in 10 minutes is a 429 and never reaches OpenAI', async () => {
     global.fetch = openAiAnswer({ reply: 'ok', steps: [] });
-    for (let i = 0; i < 20; i++) await service.chat('meliaf', dto(), 'u1');
-    const err = await service.chat('meliaf', dto(), 'u1').catch((e) => e);
+    for (let i = 0; i < 20; i++) await service.chat('concepts', dto(), 'u1');
+    const err = await service.chat('concepts', dto(), 'u1').catch((e) => e);
     expect(err).toBeInstanceOf(HttpException);
     expect(err.getStatus()).toBe(429);
     expect(err.message).toBe(ASSIST_RATE_LIMITED);
     expect(global.fetch).toHaveBeenCalledTimes(20);
     // Another person is not affected.
-    await expect(service.chat('meliaf', dto(), 'u2')).resolves.toMatchObject({
+    await expect(service.chat('concepts', dto(), 'u2')).resolves.toMatchObject({
       reply: 'ok',
     });
   });

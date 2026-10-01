@@ -47,6 +47,13 @@ import {
 import { presentConcepts } from '../utils/concept-presenter';
 import { ExtraContext, mergeExtra, termLinkIds } from '../utils/custom-fields';
 import { ConceptGraphLoader } from './concept-graph.loader';
+import { rankByRelevance } from './concepts-read.service';
+import { SearchMatch } from '../utils/concept-search';
+
+/** A row of the admin list; `match` only when the list was searched. */
+type AdminListRow = Awaited<
+  ReturnType<ConceptsAdminService['presentAdmin']>
+>[number] & { match?: SearchMatch };
 
 /** Who is writing: the person, and whether it is a direct admin edit or an approved request. */
 export interface GcActor {
@@ -64,9 +71,9 @@ const VERSIONED_FIELDS = [
   'scope_note',
   'example_of_use',
   'term_type',
-  'meliaf_function',
-  'meliaf_phase_primary',
-  'meliaf_phase_also',
+  'functions',
+  'phase_primary',
+  'phase_also',
   'source_citation',
   'source_url',
   'derivation',
@@ -83,9 +90,9 @@ export const WRITABLE_FIELDS = [
   'scope_note',
   'example_of_use',
   'term_type',
-  'meliaf_function',
-  'meliaf_phase_primary',
-  'meliaf_phase_also',
+  'functions',
+  'phase_primary',
+  'phase_also',
   'source_citation',
   'source_url',
   'derivation',
@@ -100,9 +107,9 @@ export const WRITABLE_FIELDS = [
 /** Which controlled list each list-driven field is checked against. */
 export const LIST_FIELDS: Record<string, string> = {
   term_type: 'term_type',
-  meliaf_function: 'meliaf_function',
-  meliaf_phase_primary: 'meliaf_phase',
-  meliaf_phase_also: 'meliaf_phase',
+  functions: 'functions',
+  phase_primary: 'phase',
+  phase_also: 'phase',
   derivation: 'derivation',
   language: 'language',
 };
@@ -125,8 +132,19 @@ export class ConceptsAdminService {
 
   // ------------------------------------------------------------------ reads
 
-  /** Admin list: every status, plus the internal fields the panel needs. */
-  async list(code: string, status?: string) {
+  /**
+   * Admin list: every status, plus the internal fields the panel needs.
+   *
+   * With `q`, only the matches, best first, each with its `match`: the same
+   * text search as the public list (`utils/concept-search`) — the exact
+   * phrase, then every word in any order, then close words by similarity.
+   * No AI is involved.
+   */
+  async list(
+    code: string,
+    status?: string,
+    q?: string,
+  ): Promise<AdminListRow[]> {
     const manager = this.dataSource.manager;
     const scheme = await this.loader.scheme(manager, code);
     const concepts = await manager.find(GcConcept, {
@@ -136,7 +154,15 @@ export class ConceptsAdminService {
       },
       order: { preferred_label: 'ASC' },
     });
-    return this.presentAdmin(manager, scheme, concepts);
+    const presented: AdminListRow[] = await this.presentAdmin(
+      manager,
+      scheme,
+      concepts,
+    );
+    const query = (q ?? '').trim();
+    if (!query) return presented;
+    // rankByRelevance keeps every field of the row it ranks; only its type is the public one.
+    return rankByRelevance(presented, query) as AdminListRow[];
   }
 
   async get(code: string, termId: number) {
@@ -865,7 +891,7 @@ export class ConceptsAdminService {
     });
   }
 
-  /** Platform code owning a scheme, or null when MELIAF admins own it. */
+  /** Platform code owning a scheme, or null when Concepts admins own it. */
   async ownerOf(code: string): Promise<string | null> {
     const scheme = await this.loader.scheme(this.dataSource.manager, code);
     return scheme.owner_platform ?? null;
@@ -1027,10 +1053,10 @@ export class ConceptsAdminService {
         out[field] = value;
       }
     }
-    if (Array.isArray(out.meliaf_function))
-      out.meliaf_function = [...new Set(out.meliaf_function as string[])];
-    if (Array.isArray(out.meliaf_phase_also))
-      out.meliaf_phase_also = [...new Set(out.meliaf_phase_also as string[])];
+    if (Array.isArray(out.functions))
+      out.functions = [...new Set(out.functions as string[])];
+    if (Array.isArray(out.phase_also))
+      out.phase_also = [...new Set(out.phase_also as string[])];
     if (out.language) out.language = String(out.language).toLowerCase();
     return out;
   }

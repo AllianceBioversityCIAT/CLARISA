@@ -29,19 +29,19 @@ describe('JustificationDialogComponent', () => {
     const emitted = jest.fn();
     dialog.confirmed.subscribe(emitted);
 
-    dialog.text = '  Left the MELIAF team  ';
+    dialog.text = '  Left the Concepts team  ';
     dialog.submit();
     dialog.submit();
 
     expect(emitted).toHaveBeenCalledTimes(1);
-    expect(emitted).toHaveBeenCalledWith('Left the MELIAF team');
+    expect(emitted).toHaveBeenCalledWith('Left the Concepts team');
   });
 
   it('opens again after the parent reports an error, and starts empty on the next open', () => {
     const dialog = open();
     const emitted = jest.fn();
     dialog.confirmed.subscribe(emitted);
-    dialog.text = 'Left the MELIAF team';
+    dialog.text = 'Left the Concepts team';
     dialog.submit();
 
     dialog.error = 'Could not remove the role';

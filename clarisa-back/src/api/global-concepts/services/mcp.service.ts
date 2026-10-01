@@ -1,3 +1,4 @@
+import { DEFAULT_SCHEME_CODE } from '../global-concepts.config';
 import { HttpException, Injectable, Optional } from '@nestjs/common';
 import { GcUsageKind } from '../entities/gc-usage-daily.entity';
 import { UsageService } from './usage.service';
@@ -30,7 +31,7 @@ export interface JsonRpcResponse {
 
 const schemeArg = {
   type: 'string',
-  description: 'Concept scheme code. Defaults to "meliaf".',
+  description: 'Concept scheme code. Defaults to "concepts".',
 };
 
 export const MCP_TOOLS = [
@@ -45,8 +46,8 @@ export const MCP_TOOLS = [
       properties: {
         query: { type: 'string', description: 'Words to search for' },
         scheme: schemeArg,
-        meliaf_function: { type: 'string' },
-        meliaf_phase: { type: 'string' },
+        functions: { type: 'string' },
+        phase: { type: 'string' },
         term_type: { type: 'string' },
         include_deprecated: { type: 'boolean' },
         limit: { type: 'integer', minimum: 1, maximum: MAX_RESULTS },
@@ -173,7 +174,7 @@ export class McpService {
       throw new InvalidParams('arguments must be an object');
     const tool = MCP_TOOLS.find((t) => t.name === name);
     if (!tool) throw new InvalidParams(`Unknown tool: ${String(name)}`);
-    const scheme = str(args.scheme) || 'meliaf';
+    const scheme = str(args.scheme) || DEFAULT_SCHEME_CODE;
     try {
       const data = await this.run(tool.name, scheme, args);
       // The tool name only: arguments (a query, a text) are never stored.
@@ -205,8 +206,8 @@ export class McpService {
         const limit = clamp(args.limit, MAX_RESULTS, 10);
         const rows = await this.read.list(scheme, {
           q: str(args.query),
-          meliaf_function: str(args.meliaf_function),
-          meliaf_phase: str(args.meliaf_phase),
+          functions: str(args.functions),
+          phase: str(args.phase),
           term_type: str(args.term_type),
           status: args.include_deprecated === true ? undefined : 'approved',
         });

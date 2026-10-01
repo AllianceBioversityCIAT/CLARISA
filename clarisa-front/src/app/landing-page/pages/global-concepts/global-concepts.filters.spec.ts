@@ -23,9 +23,9 @@ const c = (term_id: number, label: string, extra: Partial<FilterableConcept> = {
     alternative_labels: [],
     definition: null,
     short_definition: null,
-    meliaf_function: [],
-    meliaf_phase_primary: null,
-    meliaf_phase_also: [],
+    functions: [],
+    phase_primary: null,
+    phase_also: [],
     term_type: null,
     status: 'approved',
     date_modified: null,
@@ -33,17 +33,17 @@ const c = (term_id: number, label: string, extra: Partial<FilterableConcept> = {
   }) as FilterableConcept;
 
 const data: FilterableConcept[] = [
-  c(1, 'Outcome', { meliaf_function: ['mel', 'learning'], meliaf_phase_primary: 'design', term_type: 'core', date_modified: '2026-09-01' }),
-  c(2, 'Output', { meliaf_function: ['mel'], meliaf_phase_primary: 'implementation', term_type: 'core', date_modified: '2026-09-20' }),
+  c(1, 'Outcome', { functions: ['mel', 'learning'], phase_primary: 'design', term_type: 'core', date_modified: '2026-09-01' }),
+  c(2, 'Output', { functions: ['mel'], phase_primary: 'implementation', term_type: 'core', date_modified: '2026-09-20' }),
   c(3, 'Évaluation', {
-    meliaf_function: ['evaluation'],
-    meliaf_phase_primary: 'design',
-    meliaf_phase_also: ['implementation'],
+    functions: ['evaluation'],
+    phase_primary: 'design',
+    phase_also: ['implementation'],
     term_type: 'process'
   }),
-  c(4, 'Old outcome', { meliaf_function: ['mel'], status: 'deprecated', term_type: 'core', date_modified: '2026-09-25' }),
+  c(4, 'Old outcome', { functions: ['mel'], status: 'deprecated', term_type: 'core', date_modified: '2026-09-25' }),
   c(5, 'Learning agenda', {
-    meliaf_function: ['learning'],
+    functions: ['learning'],
     alternative_labels: [{ label: 'LA', language: 'en', kind: 'acronym', discouraged: false }],
     collections: [{ code: 'starter', label: 'Starter set' }]
   })
@@ -74,21 +74,21 @@ describe('global-concepts.filters', () => {
 
   describe('multi-select logic', () => {
     it('is OR inside one facet', () => {
-      expect(ids(applyFilters(data, state({ facets: { meliaf_function: ['evaluation', 'learning'] } })))).toEqual([1, 3, 5]);
+      expect(ids(applyFilters(data, state({ facets: { functions: ['evaluation', 'learning'] } })))).toEqual([1, 3, 5]);
     });
 
     it('is AND across facets', () => {
-      const s = state({ facets: { meliaf_function: ['mel', 'learning'], term_type: ['core'] } });
+      const s = state({ facets: { functions: ['mel', 'learning'], term_type: ['core'] } });
       expect(ids(applyFilters(data, s))).toEqual([1, 2]);
     });
 
     it('reads the phase from primary and "also", like the back', () => {
-      expect(ids(applyFilters(data, state({ facets: { meliaf_phase: ['implementation'] } })))).toEqual([2, 3]);
+      expect(ids(applyFilters(data, state({ facets: { phase: ['implementation'] } })))).toEqual([2, 3]);
     });
 
     it('hides deprecated concepts unless they are included', () => {
-      expect(ids(applyFilters(data, state({ facets: { meliaf_function: ['mel'] } })))).toEqual([1, 2]);
-      expect(ids(applyFilters(data, state({ deprecated: true, facets: { meliaf_function: ['mel'] } })))).toEqual([1, 2, 4]);
+      expect(ids(applyFilters(data, state({ facets: { functions: ['mel'] } })))).toEqual([1, 2]);
+      expect(ids(applyFilters(data, state({ deprecated: true, facets: { functions: ['mel'] } })))).toEqual([1, 2, 4]);
     });
 
     it('filters by collection when the concepts carry it', () => {
@@ -98,14 +98,14 @@ describe('global-concepts.filters', () => {
 
   describe('facet counts', () => {
     it('counts each value over the current result', () => {
-      const counts = facetCounts(data, state(), 'meliaf_function');
+      const counts = facetCounts(data, state(), 'functions');
       expect(Object.fromEntries(counts)).toEqual({ mel: 2, learning: 2, evaluation: 1 });
     });
 
     it('leaves the facet own selection out of its counts, and applies the others', () => {
-      const s = state({ facets: { meliaf_function: ['mel'], term_type: ['core'] } });
+      const s = state({ facets: { functions: ['mel'], term_type: ['core'] } });
       // Function counts see term_type=core only: Outcome and Output.
-      expect(Object.fromEntries(facetCounts(data, s, 'meliaf_function'))).toEqual({ mel: 2, learning: 1 });
+      expect(Object.fromEntries(facetCounts(data, s, 'functions'))).toEqual({ mel: 2, learning: 1 });
       // Term type counts see function=mel only.
       expect(Object.fromEntries(facetCounts(data, s, 'term_type'))).toEqual({ core: 2 });
     });
@@ -149,21 +149,21 @@ describe('global-concepts.filters', () => {
         q: 'learning',
         sort: 'updated',
         deprecated: true,
-        facets: { meliaf_function: ['mel', 'learning'], collection: ['starter'] }
+        facets: { functions: ['mel', 'learning'], collection: ['starter'] }
       });
       const params = filterParams(s);
       expect(params).toEqual({
         q: 'learning',
         sort: 'updated',
         deprecated: '1',
-        meliaf_function: 'mel,learning',
-        meliaf_phase: null,
+        functions: 'mel,learning',
+        phase: null,
         term_type: null,
         collection: 'starter'
       });
       const back = parseFilterParams(new URLSearchParams(Object.entries(params).filter(([, v]) => v !== null) as [string, string][]));
       expect(sameState(back, s)).toBe(true);
-      expect(back.facets.meliaf_function).toEqual(['mel', 'learning']);
+      expect(back.facets.functions).toEqual(['mel', 'learning']);
     });
 
     it('drops defaults and ignores an unknown sort', () => {
@@ -171,13 +171,13 @@ describe('global-concepts.filters', () => {
         q: null,
         sort: null,
         deprecated: null,
-        meliaf_function: null,
-        meliaf_phase: null,
+        functions: null,
+        phase: null,
         term_type: null,
         collection: null
       });
-      expect(parseFilterParams(new URLSearchParams('sort=random&meliaf_phase=,a,,a')).sort).toBe('best');
-      expect(parseFilterParams(new URLSearchParams('meliaf_phase=,a,,a')).facets.meliaf_phase).toEqual(['a']);
+      expect(parseFilterParams(new URLSearchParams('sort=random&phase=,a,,a')).sort).toBe('best');
+      expect(parseFilterParams(new URLSearchParams('phase=,a,,a')).facets.phase).toEqual(['a']);
     });
   });
 

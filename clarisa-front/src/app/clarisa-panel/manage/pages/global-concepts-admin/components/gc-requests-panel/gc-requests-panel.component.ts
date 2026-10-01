@@ -56,7 +56,7 @@ export function requestConceptLabel(request: ConceptRequest): string {
 })
 export class GcRequestsPanelComponent implements OnInit, OnChanges {
   readonly info = FIELD_INFO.request;
-  @Input() scheme = 'meliaf';
+  @Input() scheme = 'meliaf-taxonomy';
   @Input() aiEnabled = false;
 
   loading = false;

@@ -1,5 +1,5 @@
 import { AdminConceptDetail } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
-import { emptyFilters, filterChips, matchesFilters, removeChip } from './concept-filters';
+import { emptyFilters, filterChips, matchesFilters, matchesText, removeChip } from './concept-filters';
 
 describe('concept filters', () => {
   const concept = (extra: Partial<AdminConceptDetail>): AdminConceptDetail =>
@@ -8,17 +8,17 @@ describe('concept filters', () => {
       preferred_label: 'Outcome',
       definition: 'A change',
       status: 'approved',
-      meliaf_function: ['monitoring'],
-      meliaf_phase_primary: 'design',
-      meliaf_phase_also: ['learning'],
+      functions: ['monitoring'],
+      phase_primary: 'design',
+      phase_also: ['learning'],
       term_type: 'concept',
       alternative_labels: [],
       icons: [],
       ...extra
     }) as unknown as AdminConceptDetail;
   const lists = {
-    meliaf_function: [{ value: 'monitoring', label: 'Monitoring' }],
-    meliaf_phase: [{ value: 'learning', label: 'Learning' }],
+    functions: [{ value: 'monitoring', label: 'Monitoring' }],
+    phase: [{ value: 'learning', label: 'Learning' }],
     term_type: [{ value: 'concept', label: 'Concept' }]
   };
 
@@ -27,6 +27,20 @@ describe('concept filters', () => {
     expect(matchesFilters(concept({}), { ...emptyFilters(), functions: ['evaluation'] })).toBe(false);
     expect(matchesFilters(concept({}), { ...emptyFilters(), phases: ['learning'] })).toBe(true);
     expect(matchesFilters(concept({}), { ...emptyFilters(), statuses: ['draft', 'in_review'] })).toBe(false);
+  });
+
+  it('matches the text locally in the TERM ID, label, alternative label and definition', () => {
+    const c = concept({ term_id: 2374, alternative_labels: [{ label: 'Accountability framework' }] as never });
+    expect(matchesText(c, ' 2374 ')).toBe(true);
+    expect(matchesText(c, 'OUTC')).toBe(true);
+    expect(matchesText(c, 'framework')).toBe(true);
+    expect(matchesText(c, 'change')).toBe(true);
+    expect(matchesText(c, 'climate')).toBe(false);
+    expect(matchesText(c, '  ')).toBe(true);
+  });
+
+  it('leaves the text search out of the other filters', () => {
+    expect(matchesFilters(concept({}), { ...emptyFilters(), search: 'climate' })).toBe(true);
   });
 
   it('filters on icons and on a missing definition', () => {

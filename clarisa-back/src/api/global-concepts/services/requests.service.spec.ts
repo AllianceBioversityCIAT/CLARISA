@@ -25,6 +25,7 @@ import {
 import { GcMapping } from '../entities/gc-mapping.entity';
 import { GcRequestAction } from '../dto/request.dto';
 import { CreateGlobalConcepts1790500000000 } from '../../../../migrations/1790500000000-CreateGlobalConcepts';
+import { DropMeliafFromConcepts1790600500000 } from '../../../../migrations/1790600500000-DropMeliafFromConcepts';
 
 const { toValue } = CreateGlobalConcepts1790500000000;
 
@@ -34,7 +35,7 @@ const user = { origin: GcProposalOrigin.CLARISA_USER, email: 'user@cgiar.org' };
 describe('RequestsService', () => {
   let db: FakeManager;
   let service: RequestsService;
-  let meliaf: GcScheme;
+  let concepts: GcScheme;
 
   const concept = (
     term_id: number,
@@ -43,15 +44,15 @@ describe('RequestsService', () => {
     extra: Partial<GcConcept> = {},
   ) =>
     db.seed(GcConcept, {
-      scheme_id: meliaf.id,
+      scheme_id: concepts.id,
       term_id,
       preferred_label: label,
       language: 'en',
       status,
       version: '1.0',
       replaced_by_id: null,
-      meliaf_function: [],
-      meliaf_phase_also: [],
+      functions: [],
+      phase_also: [],
       validated_by: [],
       ai_generated_fields: [],
       extra: {},
@@ -67,9 +68,9 @@ describe('RequestsService', () => {
 
   beforeEach(() => {
     db = new FakeManager();
-    meliaf = db.seed(GcScheme, {
-      code: 'meliaf',
-      title: 'MELIAF',
+    concepts = db.seed(GcScheme, {
+      code: 'concepts',
+      title: 'Concepts',
       default_language: 'en',
       next_term_id: 1,
       uri_base: null,
@@ -77,7 +78,9 @@ describe('RequestsService', () => {
       owner_platform: null,
     });
     for (const [list, labels] of Object.entries(
-      CreateGlobalConcepts1790500000000.LISTS,
+      DropMeliafFromConcepts1790600500000.currentLists(
+        CreateGlobalConcepts1790500000000.LISTS,
+      ),
     )) {
       labels.forEach((label, sort) =>
         db.seed(GcListValue, {
@@ -102,7 +105,7 @@ describe('RequestsService', () => {
   describe('submission', () => {
     it('records a request, its first event and a receipt email', async () => {
       const r = await service.submit(
-        'meliaf',
+        'concepts',
         {
           type: GcProposalType.NEW,
           payload: { preferred_label: 'Resilience' },
@@ -119,7 +122,7 @@ describe('RequestsService', () => {
     it('rejects a payload field an admin could not set', async () => {
       await expect(
         service.submit(
-          'meliaf',
+          'concepts',
           {
             type: GcProposalType.NEW,
             payload: { preferred_label: 'X', created_by_email: 'x' },
@@ -134,7 +137,7 @@ describe('RequestsService', () => {
       concept(1, 'Outcome');
       await expect(
         service.submit(
-          'meliaf',
+          'concepts',
           {
             type: GcProposalType.EDIT,
             payload: { definition: 'd' },
@@ -145,7 +148,7 @@ describe('RequestsService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
       await expect(
         service.submit(
-          'meliaf',
+          'concepts',
           {
             type: GcProposalType.EDIT,
             term_id: 1,
@@ -160,7 +163,7 @@ describe('RequestsService', () => {
     it('records the concept version an edit was written against', async () => {
       concept(1, 'Outcome', GcConceptStatus.APPROVED, { version: '1.3' });
       const r = await service.submit(
-        'meliaf',
+        'concepts',
         {
           type: GcProposalType.EDIT,
           term_id: 1,
@@ -191,18 +194,22 @@ describe('RequestsService', () => {
 
     it('requires the person behind the key', async () => {
       await expect(
-        service.submit('meliaf', { ...body, requester_email: undefined }, prms),
+        service.submit(
+          'concepts',
+          { ...body, requester_email: undefined },
+          prms,
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('returns the same request on a retry and 409 when the id is reused with another payload (V15)', async () => {
-      const first = await service.submit('meliaf', body, prms);
-      const again = await service.submit('meliaf', body, prms);
+      const first = await service.submit('concepts', body, prms);
+      const again = await service.submit('concepts', body, prms);
       expect(again.id).toBe(first.id);
       expect(db.rows(GcProposal)).toHaveLength(1);
       await expect(
         service.submit(
-          'meliaf',
+          'concepts',
           { ...body, payload: { preferred_label: 'Other' } },
           prms,
         ),
@@ -210,7 +217,7 @@ describe('RequestsService', () => {
     });
 
     it('lets a platform follow only its own requests', async () => {
-      const r = await service.submit('meliaf', body, prms);
+      const r = await service.submit('concepts', body, prms);
       await expect(
         service.getForRequester(r.id, { platform: 'prms' }),
       ).resolves.toBeDefined();
@@ -220,7 +227,7 @@ describe('RequestsService', () => {
     });
 
     it('does not let a platform decide requests of a scheme it does not own', async () => {
-      const r = await service.submit('meliaf', body, prms);
+      const r = await service.submit('concepts', body, prms);
       await expect(
         transition(
           r.id,
@@ -235,7 +242,7 @@ describe('RequestsService', () => {
   describe('decisions', () => {
     it('approving a new-concept request creates it approved and links it', async () => {
       const r = await service.submit(
-        'meliaf',
+        'concepts',
         {
           type: GcProposalType.NEW,
           payload: {
@@ -273,7 +280,7 @@ describe('RequestsService', () => {
 
     it('refuses a decision on a state that changed meanwhile (V27)', async () => {
       const r = await service.submit(
-        'meliaf',
+        'concepts',
         {
           type: GcProposalType.NEW,
           payload: { preferred_label: 'X' },
@@ -297,7 +304,7 @@ describe('RequestsService', () => {
 
     it('cannot approve straight from submitted', async () => {
       const r = await service.submit(
-        'meliaf',
+        'concepts',
         {
           type: GcProposalType.NEW,
           payload: { preferred_label: 'X' },
@@ -315,7 +322,7 @@ describe('RequestsService', () => {
         definition: 'v1',
       });
       const r = await service.submit(
-        'meliaf',
+        'concepts',
         {
           type: GcProposalType.EDIT,
           term_id: 1,
@@ -344,10 +351,10 @@ describe('RequestsService', () => {
     });
 
     it('requires the validation step and waits for the no-objection window when the scheme has a validator', async () => {
-      meliaf.validator_required = true;
-      meliaf.no_objection_days = 5;
+      concepts.validator_required = true;
+      concepts.no_objection_days = 5;
       const r = await service.submit(
-        'meliaf',
+        'concepts',
         {
           type: GcProposalType.NEW,
           payload: { preferred_label: 'X' },
@@ -384,7 +391,7 @@ describe('RequestsService', () => {
       concept(1, 'Old');
       concept(2, 'New');
       const r = await service.submit(
-        'meliaf',
+        'concepts',
         {
           type: GcProposalType.DEPRECATE,
           term_id: 1,
@@ -432,7 +439,7 @@ describe('RequestsService', () => {
         {
           type: GcProposalType.PROMOTE,
           term_id: 5,
-          target_scheme: 'meliaf',
+          target_scheme: 'concepts',
           payload: {},
           rationale: 'Should be global',
         },
@@ -452,7 +459,7 @@ describe('RequestsService', () => {
         .rows(GcConcept)
         .find(
           (c) =>
-            Number(c.scheme_id) === Number(meliaf.id) &&
+            Number(c.scheme_id) === Number(concepts.id) &&
             c.preferred_label === 'Innovation package',
         )!;
       expect(global.status).toBe(GcConceptStatus.APPROVED);
@@ -465,7 +472,7 @@ describe('RequestsService', () => {
       expect(source.status).toBe(GcConceptStatus.APPROVED);
       expect(db.rows(GcMapping)[0]).toMatchObject({
         match_type: 'exact',
-        target_scheme: 'meliaf',
+        target_scheme: 'concepts',
       });
     });
   });
@@ -479,7 +486,7 @@ describe('RequestsService', () => {
     };
 
     it('stores a draft, emails a link, and creates the request only when the link is used once', async () => {
-      await service.startPublic('meliaf', body);
+      await service.startPublic('concepts', body);
       expect(db.rows(GcProposal)).toHaveLength(0);
       const mail = (db.rows(GcOutbox)[0].payload as any).html as string;
       const token = decodeURIComponent(/token=([^"&<]+)/.exec(mail)![1]);
@@ -504,7 +511,7 @@ describe('RequestsService', () => {
     });
 
     it('lets the requester resubmit after changes are requested', async () => {
-      await service.startPublic('meliaf', body);
+      await service.startPublic('concepts', body);
       const token = decodeURIComponent(
         /token=([^"&<]+)/.exec((db.rows(GcOutbox)[0].payload as any).html)![1],
       );
@@ -540,13 +547,13 @@ describe('RequestsService', () => {
           created_at: new Date(),
         });
       }
-      await expect(service.startPublic('meliaf', body)).rejects.toBeInstanceOf(
-        HttpException,
-      );
+      await expect(
+        service.startPublic('concepts', body),
+      ).rejects.toBeInstanceOf(HttpException);
     });
 
     it('refuses an expired link', async () => {
-      await service.startPublic('meliaf', body);
+      await service.startPublic('concepts', body);
       const token = decodeURIComponent(
         /token=([^"&<]+)/.exec((db.rows(GcOutbox)[0].payload as any).html)![1],
       );
@@ -556,7 +563,7 @@ describe('RequestsService', () => {
       );
     });
     it('files the request under the verified email, never one in the body', async () => {
-      await service.startPublic('meliaf', {
+      await service.startPublic('concepts', {
         ...body,
         requester_email: 'victim@cgiar.org',
         external_request_id: 'x-1',
@@ -573,7 +580,7 @@ describe('RequestsService', () => {
     });
 
     it('creates one request when the same link is confirmed twice at once', async () => {
-      await service.startPublic('meliaf', body);
+      await service.startPublic('concepts', body);
       const token = decodeURIComponent(
         /token=([^"&<]+)/.exec((db.rows(GcOutbox)[0].payload as any).html)![1],
       );
@@ -589,7 +596,7 @@ describe('RequestsService', () => {
   describe('hardening', () => {
     it('ignores a requester email asserted by a signed-in user', async () => {
       await service.submit(
-        'meliaf',
+        'concepts',
         {
           type: GcProposalType.NEW,
           payload: { preferred_label: 'Baseline' },
@@ -605,7 +612,7 @@ describe('RequestsService', () => {
       concept(1, 'Output');
       await expect(
         service.submit(
-          'meliaf',
+          'concepts',
           {
             type: GcProposalType.DEPRECATE,
             term_id: 1,

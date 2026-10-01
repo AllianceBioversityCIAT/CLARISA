@@ -7,10 +7,9 @@ import {
   ConceptScheme,
   GlobalConceptsApiService,
   PublicConcept,
-  SearchMatch
-} from '../../../../../shared/services/global-concepts/global-concepts-api.service';
+  SearchMatch, CONCEPT_EXPORT_FORMATS, ConceptExportFormat, releaseOptions } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { ResultView, resultView } from '../../search-highlight';
-import { DEFAULT_SCHEME, GC_BASE, ListsByCode, humanError, labelOf, normalizeLists } from '../../global-concepts.utils';
+import { DEFAULT_SCHEME, GC_BASE, conceptLink, ListsByCode, humanError, labelOf, normalizeLists } from '../../global-concepts.utils';
 import {
   FacetCode,
   FacetView,
@@ -30,7 +29,7 @@ import {
   urlQuery
 } from '../../global-concepts.filters';
 
-export type ExportFormat = 'json' | 'csv' | 'skos' | 'jsonld';
+export type ExportFormat = ConceptExportFormat;
 
 /** One answer of the list stream: the concepts, or the error that replaced them. */
 interface ListResult {
@@ -72,12 +71,11 @@ export const SEARCH_SETTLE = 1500;
 })
 export class ConceptListComponent implements OnInit, OnDestroy {
   readonly base = GC_BASE;
-  readonly exports: { format: ExportFormat; label: string; hint: string }[] = [
-    { format: 'json', label: 'JSON', hint: 'Every field, for scripts and APIs' },
-    { format: 'csv', label: 'CSV', hint: 'Opens in Excel, same columns as the MELIAF template' },
-    { format: 'skos', label: 'SKOS Turtle', hint: 'RDF for vocabulary tools' },
-    { format: 'jsonld', label: 'JSON-LD', hint: 'Linked data for the web' }
-  ];
+  readonly exports = CONCEPT_EXPORT_FORMATS;
+
+  /** "Current" plus every published release; a download pins the one picked. */
+  versions = releaseOptions([]);
+  exportVersion: string | null = null;
 
   schemeCode = DEFAULT_SCHEME;
   scheme: ConceptScheme | null = null;
@@ -242,6 +240,13 @@ export class ConceptListComponent implements OnInit, OnDestroy {
         error: (error: HttpErrorResponse) =>
           (this.schemeError = humanError(error, { notFound: 'This concept scheme does not exist. Open Concepts from the menu.' }))
       });
+    // Without releases (or if they fail to load) the menu still offers the current version.
+    this.versions = releaseOptions([]);
+    this.exportVersion = null;
+    this._api
+      .releases(this.schemeCode)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: releases => (this.versions = releaseOptions(releases)), error: () => undefined });
     this._api
       .lists(this.schemeCode)
       .pipe(takeUntil(this.destroy$))
@@ -390,11 +395,11 @@ export class ConceptListComponent implements OnInit, OnDestroy {
   }
 
   exportUrl(format: ExportFormat): string {
-    return this._api.exportUrl(this.schemeCode, format);
+    return this._api.exportUrl(this.schemeCode, format, this.exportVersion);
   }
 
   conceptLink(concept: { term_id: number }): (string | number)[] {
-    return [this.base, this.schemeCode, concept.term_id];
+    return conceptLink(this.schemeCode, concept.term_id);
   }
 
   summary(concept: PublicConcept): string {

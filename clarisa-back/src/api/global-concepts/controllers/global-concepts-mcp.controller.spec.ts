@@ -126,23 +126,33 @@ describe('GlobalConceptsMcpController (HTTP)', () => {
   });
 
   it('rate-limits one client on the anonymous routes', async () => {
-    let status = 200;
-    for (let i = 0; i < 125 && status !== 429; i++) {
-      status = (
-        await request(app.getHttpServer())
-          .post('/mcp')
-          .set('X-Forwarded-For', '203.0.113.9')
-          .send({ jsonrpc: '2.0', id: i, method: 'ping' })
-      ).status;
+    // The guard counts in fixed one-minute windows of the wall clock; a slow CI
+    // run could cross a minute boundary mid-loop and reset the count. Freeze the
+    // clock in the middle of a window so the test measures the limit, not timing.
+    const now = jest
+      .spyOn(Date, 'now')
+      .mockReturnValue(Date.UTC(2026, 0, 1, 12, 0, 30));
+    try {
+      let status = 200;
+      for (let i = 0; i < 125 && status !== 429; i++) {
+        status = (
+          await request(app.getHttpServer())
+            .post('/mcp')
+            .set('X-Forwarded-For', '203.0.113.9')
+            .send({ jsonrpc: '2.0', id: i, method: 'ping' })
+        ).status;
+      }
+      expect(status).toBe(429);
+    } finally {
+      now.mockRestore();
     }
-    expect(status).toBe(429);
   });
 
   it('suggests over POST with the text in the body', async () => {
     const res = await request(app.getHttpServer())
-      .post('/meliaf/suggest')
+      .post('/concepts/suggest')
       .send({ text: 'impact assessment' });
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ scheme: 'meliaf', retained: false });
+    expect(res.body).toMatchObject({ scheme: 'concepts', retained: false });
   });
 });
