@@ -214,7 +214,7 @@
           ]
         },
         {
-          "name": "Concepts",
+          "name": "MELIAF taxonomy",
           "description": "Official CGIAR vocabulary: published concepts with persistent URIs, controlled lists, releases and a change feed. Exports as JSON, CSV, SKOS Turtle and JSON-LD.",
           "endpoints": [
             {
@@ -228,17 +228,17 @@
               "method": "get"
             },
             {
-              "name": "MELIAF taxonomy concepts",
+              "name": "Concepts",
               "route": "api/concepts/meliaf-taxonomy/concepts",
               "method": "get"
             },
             {
-              "name": "MELIAF taxonomy releases",
+              "name": "Releases",
               "route": "api/concepts/meliaf-taxonomy/releases",
               "method": "get"
             },
             {
-              "name": "MELIAF taxonomy change feed",
+              "name": "Change feed",
               "route": "api/concepts/meliaf-taxonomy/changes",
               "method": "get"
             }
