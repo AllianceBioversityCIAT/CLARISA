@@ -119,6 +119,25 @@ export interface ConceptHistoryEntry {
   release?: string | null;
 }
 
+/** The four download formats of a scheme, in menu order. */
+export type ConceptExportFormat = 'json' | 'csv' | 'skos' | 'jsonld';
+
+export const CONCEPT_EXPORT_FORMATS: ReadonlyArray<{ format: ConceptExportFormat; label: string; hint: string }> = [
+  { format: 'json', label: 'JSON', hint: 'Every field, for scripts and APIs' },
+  { format: 'csv', label: 'CSV', hint: 'Opens in Excel, same columns as the MELIAF template' },
+  { format: 'skos', label: 'SKOS Turtle', hint: 'RDF for vocabulary tools' },
+  { format: 'jsonld', label: 'JSON-LD', hint: 'Linked data for the web' }
+];
+
+/** "Current" plus every published release, newest first, as select options. */
+export function releaseOptions(releases: ConceptRelease[] | null | undefined): { label: string; value: string | null }[] {
+  const published = [...(releases ?? [])]
+    .filter(r => !!r?.version)
+    .sort((a, b) => String(b.released_at ?? '').localeCompare(String(a.released_at ?? '')))
+    .map(r => ({ label: r.released_at ? `${r.version} · ${String(r.released_at).slice(0, 10)}` : r.version, value: r.version }));
+  return [{ label: 'Current (latest)', value: null }, ...published];
+}
+
 export interface ConceptRelease {
   version: string;
   release_uri: string | null;
@@ -288,8 +307,10 @@ export class GlobalConceptsApiService {
     return this._http.get<ConceptRelease[]>(`${this.base}/${encodeURIComponent(scheme)}/releases`);
   }
 
-  exportUrl(scheme: string, format: 'json' | 'csv' | 'skos' | 'jsonld'): string {
-    return `${this.base}/${encodeURIComponent(scheme)}/export?format=${format}`;
+  /** `version` empty or null = the current state; otherwise that published release. */
+  exportUrl(scheme: string, format: ConceptExportFormat, version?: string | null): string {
+    const pinned = version ? `&version=${encodeURIComponent(version)}` : '';
+    return `${this.base}/${encodeURIComponent(scheme)}/export?format=${format}${pinned}`;
   }
 
   /** The text travels in the body, never in the URL (request logs keep URLs). */

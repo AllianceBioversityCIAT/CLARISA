@@ -52,6 +52,12 @@
         <details class="gc-download">
           <summary class="gc-btn gc-btn--ghost"><i class="pi pi-download" aria-hidden="true"></i>Download</summary>
           <div class="gc-download__menu">
+            <label class="gc-download__version">
+              <span>Version</span>
+              <select class="gc-select" aria-label="Version to download" [(ngModel)]="exportVersion">
+                <option *ngFor="let v of versions" [ngValue]="v.value">{{ v.label }}</option>
+              </select>
+            </label>
             <a *ngFor="let item of exports" class="gc-download__item" [href]="exportUrl(item.format)" rel="noopener" download>
               <strong>{{ item.label }}</strong>
               <span>{{ item.hint }}</span>

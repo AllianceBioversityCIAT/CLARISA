@@ -87,7 +87,13 @@ describe('ConceptListComponent', () => {
       concepts: jest.fn((scheme: string, query: any) =>
         of(query?.q ? concepts.filter(c => c.preferred_label.toLowerCase().includes(String(query.q).toLowerCase())) : concepts)
       ),
-      exportUrl: jest.fn((scheme: string, format: string) => `https://api/${scheme}/export?format=${format}`),
+      releases: jest.fn().mockReturnValue(
+        of([{ version: '1.0.0', released_at: '2026-09-29T13:50:08.000Z', release_uri: null, previous_version: null, notes: null, license: null }])
+      ),
+      exportUrl: jest.fn(
+        (scheme: string, format: string, version?: string | null) =>
+          `https://api/${scheme}/export?format=${format}${version ? `&version=${version}` : ''}`
+      ),
       suggest: jest.fn()
     };
     // A router that behaves like the real one for this page: merge the params, emit them.
@@ -379,5 +385,13 @@ describe('ConceptListComponent', () => {
     component.switchScheme('prms');
     expect(url).toEqual({ scheme: 'prms' });
     expect(api.concepts).toHaveBeenLastCalledWith('prms', {});
+  });
+
+  it('Download offers Current plus each release and pins the one picked', () => {
+    fixture.detectChanges();
+    expect(component.versions.map(v => v.value)).toEqual([null, '1.0.0']);
+    expect(component.exportUrl('csv')).toBe('https://api/meliaf/export?format=csv');
+    component.exportVersion = '1.0.0';
+    expect(component.exportUrl('skos')).toBe('https://api/meliaf/export?format=skos&version=1.0.0');
   });
 });
