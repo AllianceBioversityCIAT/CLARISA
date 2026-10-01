@@ -81,7 +81,7 @@ export class GlobalConceptsPublicController {
   @Get('schemes')
   @ApiOperation({
     summary:
-      'List concept schemes (Concepts and any domain or platform scheme)',
+      'List concept schemes (MELIAF taxonomy and any domain or platform scheme)',
   })
   schemes() {
     return this.read.schemes();
