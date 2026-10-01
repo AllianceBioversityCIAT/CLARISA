@@ -76,3 +76,61 @@ export const PUBLIC_OPENAPI_PATHS: string[] = [
   '/api/concepts/{scheme}/releases',
   '/api/concepts/{scheme}/export',
 ];
+
+/**
+ * Consulta de UN registro (`GET <lista>/get/{id}`) que se publica junto a su
+ * lista. La documentacion la descubre sola en el spec y le arma su seccion y
+ * su "Run"; aqui solo se decide cuales entran.
+ *
+ * Clave = path de la lista (tiene que estar en PUBLIC_OPENAPI_PATHS).
+ * Valor = el campo de cada item de la lista cuyo valor va en `{id}`. Viaja en
+ * el spec como `x-clarisa-list-field` para que la doc arme un ejemplo real con
+ * el primer registro.
+ *
+ * Solo entran las listas cuyo `get/{id}` devuelve EL MISMO registro con LA
+ * MISMA forma que un item de la lista (medido contra clarisatest el
+ * 2026-10-01). Quedan fuera a proposito, porque documentarlas ensenaria algo
+ * falso:
+ * - buscan por un id interno que la lista no publica: countries (la lista da
+ *   el M49 en `code`, `get/20` devuelve otro pais), science-groups, units,
+ *   glossary, impact-area-indicators, action-area-outcome-indicators,
+ *   workpackages;
+ * - devuelven la entidad cruda (snake_case) en vez del DTO de la lista:
+ *   institution-types, sdg-indicators, initiatives, action-area-outcomes;
+ * - no tienen `get/{id}` o no acepta el `code` de la lista: cgiar-entities,
+ *   cgiar-entity-types, administrative-scales, regions, projects,
+ *   cgiar-entities/groups, end-of-initiative-outcomes.
+ */
+export const PUBLIC_RECORD_LOOKUPS: Record<string, 'id' | 'code'> = {
+  // General Control List
+  '/api/acronyms': 'code',
+  // Institutions (`get/{id}` suma `is_active` a los campos de la lista)
+  '/api/institutions': 'code',
+  '/api/institution-dictionary': 'code',
+  // Research Strategy 2030
+  '/api/action-areas': 'id',
+  '/api/impact-areas': 'id',
+  '/api/sdgs': 'id',
+  '/api/sdg-targets': 'id',
+  '/api/study-types': 'id',
+  // Innovation Catalog
+  '/api/business-categories': 'id',
+  '/api/technical-fields': 'id',
+  '/api/innovation-types': 'code',
+  '/api/governance-types': 'id',
+  '/api/environmental-benefits': 'id',
+  '/api/technology-development-stages': 'id',
+  '/api/innovation-readiness-levels': 'id',
+  '/api/oc-users': 'id',
+  '/api/beneficiaries': 'id',
+  '/api/investment-types': 'id',
+  '/api/innovation-use-levels': 'id',
+  '/api/innovation-characteristics': 'id',
+  // One CGIAR Operation
+  '/api/accounts': 'code',
+  '/api/account-types': 'id',
+};
+
+/** Path del spec de la consulta de un registro de esa lista. */
+export const recordLookupPath = (listPath: string): string =>
+  `${listPath}/get/{id}`;
