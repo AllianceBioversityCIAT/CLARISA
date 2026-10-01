@@ -29,8 +29,8 @@ describe('admin navigation', () => {
   it('lists Concepts in Manage, right after Glossary', () => {
     const manage = ADMIN_GROUPS.find(group => group.title === 'Manage')?.links.map(link => link.label) ?? [];
 
-    expect(manage.indexOf('Concepts')).toBe(manage.indexOf('Glossary') + 1);
-    expect(adminSectionLabel('/clarisa-panel/manage/concepts-admin')).toBe('Concepts');
+    expect(manage.indexOf('MELIAF taxonomy')).toBe(manage.indexOf('Glossary') + 1);
+    expect(adminSectionLabel('/clarisa-panel/manage/concepts-admin')).toBe('MELIAF taxonomy');
   });
 
   it('claims nothing outside the panel', () => {
@@ -89,13 +89,13 @@ describe('admin navigation', () => {
 
     it('shows a Concepts Data Admin only Concepts', () => {
       const groups = groupsFor(concepts);
-      expect(labels(groups)).toEqual(['Concepts']);
+      expect(labels(groups)).toEqual(['MELIAF taxonomy']);
       expect(groups.map(group => group.title)).toEqual(['Manage']);
       expect(tabs(groups)).toEqual([]);
     });
 
     it('shows a Concepts Editor only Concepts', () => {
-      expect(labels(groupsFor({ isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/concepts'] }))).toEqual(['Concepts']);
+      expect(labels(groupsFor({ isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/concepts'] }))).toEqual(['MELIAF taxonomy']);
     });
 
     it('opens Institution requests for any institution-request permission (IRC create-only and FIR)', () => {
@@ -156,7 +156,7 @@ describe('admin navigation', () => {
     describe('the one section a member is for (home redirect + login landing)', () => {
       it('counts every section the permissions open', () => {
         expect(protectedSections(noRole)).toEqual([]);
-        expect(protectedSections(concepts).map(section => section.link.label)).toEqual(['Concepts']);
+        expect(protectedSections(concepts).map(section => section.link.label)).toEqual(['MELIAF taxonomy']);
         expect(protectedSections(irc).map(section => section.link.label)).toEqual(['Institution requests']);
         expect(protectedSections({ isSuper: false, permissions: ['/api/mises/create'] })).toEqual([
           { link: adminLinkFor('/clarisa-panel/manage/microservices-admin'), queryParams: { section: 'mises' } }
