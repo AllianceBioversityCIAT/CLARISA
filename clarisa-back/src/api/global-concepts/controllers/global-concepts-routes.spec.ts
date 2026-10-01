@@ -1,3 +1,9 @@
+// LDAPAuth reads src/shared/config/config.ts, which is git-ignored and absent in CI;
+// these suites never authenticate against the directory (same mock as auth.service.spec).
+jest.mock('../../../auth/utils/LDAPAuth', () => ({
+  LDAPAuth: jest.fn(),
+}));
+
 import { INestApplication } from '@nestjs/common';
 import { MODULE_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { Test } from '@nestjs/testing';
