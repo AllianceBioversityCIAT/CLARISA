@@ -8,7 +8,7 @@ import { CreateRequest } from './components/gc-concepts-panel/gc-concepts-panel.
 export type GlobalConceptsSection = 'concepts' | 'requests' | 'import' | 'setup' | 'usage';
 
 /** The only scheme today. The picker appears on its own once the back lists a second one. */
-export const DEFAULT_SCHEME = 'meliaf';
+export const DEFAULT_SCHEME = 'concepts';
 
 const ALL_SECTIONS: { id: GlobalConceptsSection; label: string }[] = [
   { id: 'concepts', label: 'Concepts' },
@@ -19,15 +19,15 @@ const ALL_SECTIONS: { id: GlobalConceptsSection; label: string }[] = [
 ];
 
 /**
- * A back route only the full MELIAF admin permission (`/api/concepts/admin`)
- * opens: the concepts-only one (`…/admin/meliaf/concepts`, role CONCEPTS_CE) is
+ * A back route only the full Concepts admin permission (`/api/concepts/admin`)
+ * opens: the concepts-only one (`…/admin/concepts/concepts`, role CONCEPTS_CE) is
  * not a substring of it. Same `route.includes(permission)` test as the back.
  */
-export const MELIAF_FULL_ADMIN_ROUTE = '/api/concepts/admin/meliaf/requests';
+export const CONCEPTS_FULL_ADMIN_ROUTE = '/api/concepts/admin/concepts/requests';
 
 /** Whether the caller may use Requests, Import, Setup and Usage, not only Concepts. */
-export function isMeliafFullAdmin(access: MeAccess | null): boolean {
-  return !!access && (access.isSuper || permits(MELIAF_FULL_ADMIN_ROUTE, access.permissions));
+export function isConceptsFullAdmin(access: MeAccess | null): boolean {
+  return !!access && (access.isSuper || permits(CONCEPTS_FULL_ADMIN_ROUTE, access.permissions));
 }
 
 @Component({
@@ -72,7 +72,7 @@ export class GlobalConceptsAdminComponent implements OnInit {
 
   ngOnInit(): void {
     this._access.resolved().subscribe(access => {
-      this.fullAdmin = isMeliafFullAdmin(access);
+      this.fullAdmin = isConceptsFullAdmin(access);
       if (!this.fullAdmin) this.activeSection = 'concepts';
     });
 

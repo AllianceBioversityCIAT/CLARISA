@@ -7,7 +7,7 @@ import { env } from 'process';
  * - `GLOBAL_CONCEPTS_ENABLED` — `false` hides every route of the module (404).
  *   Defaults to on: the module is new and holds no data until someone loads it.
  * - `GLOBAL_CONCEPTS_URI_BASE` — base of every persistent concept URI. The
- *   domain is still to be agreed with MELIAF Group 4 (design, Audit correction 1).
+ *   domain is still to be agreed with the governance group (design, Audit correction 1).
  */
 export const GlobalConceptsConfig = {
   get enabled(): boolean {
@@ -60,9 +60,30 @@ export function webBaseOf(scheme?: { web_base?: string | null } | null) {
   return (scheme?.web_base || GlobalConceptsConfig.webBase).replace(/\/+$/, '');
 }
 
+/**
+ * The scheme CLARISA itself publishes. Its URIs and pages carry no scheme
+ * segment (`/concepts/2374`); any other scheme keeps its own
+ * (`/concepts/{scheme}/2374`).
+ */
+export const DEFAULT_SCHEME_CODE = 'concepts';
+
+const isDefaultScheme = (code: string | null | undefined) =>
+  (code ?? '').toLowerCase() === DEFAULT_SCHEME_CODE;
+
 /** URI of a scheme, honouring a per-scheme override. */
 export function schemeUri(scheme: { code: string; uri_base: string | null }) {
-  return `${(scheme.uri_base ?? GlobalConceptsConfig.uriBase).replace(/\/+$/, '')}/${scheme.code}`;
+  const base = (scheme.uri_base ?? GlobalConceptsConfig.uriBase).replace(
+    /\/+$/,
+    '',
+  );
+  return isDefaultScheme(scheme.code) ? base : `${base}/${scheme.code}`;
+}
+
+/** Path of a concept's human page under the web base. */
+export function conceptPagePath(schemeCode: string, termId: number) {
+  return isDefaultScheme(schemeCode)
+    ? `/${termId}`
+    : `/${schemeCode}/${termId}`;
 }
 
 /** Persistent URI of a concept: derived, never stored (V32). */

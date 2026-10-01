@@ -84,9 +84,9 @@ export const ADMIN_GROUPS: AdminGroup[] = [
         route: '/clarisa-panel/manage/concepts-admin',
         icon: 'fa fa-sitemap',
         // Both `/api/concepts/admin` (full admin) and
-        // `/api/concepts/admin/meliaf/concepts` (CONCEPTS_CE, concepts
+        // `/api/concepts/admin/concepts/concepts` (CONCEPTS_CE, concepts
         // only) are substrings of this route, so either one opens the screen.
-        access: ['/api/concepts/admin/meliaf/concepts']
+        access: ['/api/concepts/admin/concepts/concepts']
       }
     ]
   },

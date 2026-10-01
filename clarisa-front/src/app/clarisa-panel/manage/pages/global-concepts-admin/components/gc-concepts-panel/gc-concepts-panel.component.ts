@@ -61,7 +61,7 @@ export interface CreateRequest {
   styleUrls: ['./gc-concepts-panel.component.scss']
 })
 export class GcConceptsPanelComponent implements OnInit, OnChanges {
-  @Input() scheme = 'meliaf';
+  @Input() scheme = 'concepts';
   /** Bumped by the shell after an import. */
   @Input() reloadToken = 0;
   @Input() aiEnabled = false;
@@ -236,7 +236,7 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges {
   }
 
   private toRow(concept: AdminConceptDetail): ConceptRow {
-    const functions = (concept.meliaf_function ?? []).map(value => listLabel(this.lists, 'meliaf_function', value));
+    const functions = (concept.functions ?? []).map(value => listLabel(this.lists, 'functions', value));
     return {
       concept,
       term_id: concept.term_id,

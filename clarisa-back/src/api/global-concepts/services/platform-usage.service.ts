@@ -7,15 +7,15 @@ import { CountedReads, UsageService } from './usage.service';
 
 /**
  * Every path a platform reaches Concepts through: the module itself
- * (public reads, MCP and `platform/*`) and the persistent URIs. The two old
- * prefixes stay so the calls logged before each rename keep counting.
+ * (public reads, MCP and `platform/*`) and the persistent URIs.
  */
-export const MELIAF_TAXONOMY_ENDPOINT_PREFIXES = [
-  '/api/concepts/',
-  '/concepts/',
-  '/api/meliaf-taxonomy/',
-  '/api/global-concepts/',
-];
+export const CONCEPTS_ENDPOINT_PREFIXES = ['/api/concepts/', '/concepts/'];
+
+/**
+ * Prefixes the module had before each rename. Only counted, never published:
+ * the calls logged under them are still Concepts calls.
+ */
+const RENAMED_PREFIXES = ['/api/meliaf-taxonomy/', '/api/global-concepts/'];
 
 const isoDay = (ms: number) =>
   Number.isNaN(ms) ? '' : new Date(ms).toISOString().slice(0, 10);
@@ -44,7 +44,7 @@ export interface PlatformUsage {
 }
 
 /**
- * "By platform" in the MELIAF admin Usage tab (Héctor, 2026-09-30: review the
+ * "By platform" in the Concepts admin Usage tab (Héctor, 2026-09-30: review the
  * use of the platforms connected to the endpoint, not only the search portal).
  * Reuses the Microservices Overview aggregate, narrowed by endpoint prefix.
  */
@@ -67,7 +67,7 @@ export class PlatformUsageService {
       // Parsed as local days, the way `resolveUsageDateRange` bounds them.
       this.metrics.getSystemsForEndpoints(
         { from: `${from}T00:00:00`, to: `${to}T00:00:00` },
-        MELIAF_TAXONOMY_ENDPOINT_PREFIXES,
+        [...CONCEPTS_ENDPOINT_PREFIXES, ...RENAMED_PREFIXES],
       ),
       this.usage.countedReads(from, to),
     ]);
@@ -76,7 +76,7 @@ export class PlatformUsageService {
       scope: 'all-schemes',
       from,
       to,
-      endpoint_prefixes: [...MELIAF_TAXONOMY_ENDPOINT_PREFIXES],
+      endpoint_prefixes: [...CONCEPTS_ENDPOINT_PREFIXES],
       systems,
       platform_calls: systems.reduce((sum, s) => sum + s.calls, 0),
       counted_reads,

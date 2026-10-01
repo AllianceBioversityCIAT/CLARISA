@@ -19,14 +19,19 @@ import {
 } from '../services/concepts-export.service';
 import { ConceptGraphLoader } from '../services/concept-graph.loader';
 import { DataSource } from 'typeorm';
-import { webBaseOf } from '../global-concepts.config';
+import {
+  DEFAULT_SCHEME_CODE,
+  conceptPagePath,
+  webBaseOf,
+} from '../global-concepts.config';
 import { UsageService } from '../services/usage.service';
 import { GcUsageKind } from '../entities/gc-usage-daily.entity';
 import { OptionalApiKeyUsageInterceptor } from '../../../shared/interceptors/optional-api-key-usage.interceptor';
 
 /**
- * Resolves persistent URIs: `/concepts/{scheme}/{term_id}` and
- * `/concepts/{scheme}` (Audit correction 1). The front (S3 + CloudFront)
+ * Resolves persistent URIs: `/concepts/{term_id}` and `/concepts` for the
+ * default scheme, `/concepts/{scheme}/{term_id}` and `/concepts/{scheme}` for
+ * any other (Audit correction 1). The front (S3 + CloudFront)
  * cannot negotiate content, so the API host does:
  *
  * - `Accept: text/turtle` or `application/ld+json` (or `?format=skos|jsonld|json`)
@@ -69,7 +74,7 @@ export class ConceptUriController {
       // read is the view (counting both made every human visit count twice).
       return res.redirect(
         303,
-        `${webBaseOf(schemeRow)}/${concept.scheme}/${concept.term_id}`,
+        `${webBaseOf(schemeRow)}${conceptPagePath(concept.scheme, concept.term_id)}`,
       );
     }
     const concept = await this.read.get(scheme, termId);
@@ -80,7 +85,38 @@ export class ConceptUriController {
     return res.status(200).send(file.body);
   }
 
-  @Get(':scheme')
+  /** `/concepts`: the default scheme. */
+  @Get()
+  async defaultScheme(
+    @Res() res: Response,
+    @Headers('accept') accept = '',
+    @Query('format') format?: string,
+  ) {
+    return this.scheme(DEFAULT_SCHEME_CODE, res, accept, format);
+  }
+
+  /**
+   * One segment: a number is a concept of the default scheme
+   * (`/concepts/2374`); anything else is a scheme code (`/concepts/{scheme}`).
+   */
+  @Get(':segment')
+  async segment(
+    @Param('segment') segment: string,
+    @Res() res: Response,
+    @Headers('accept') accept = '',
+    @Query('format') format?: string,
+  ) {
+    if (/^\d+$/.test(segment))
+      return this.concept(
+        DEFAULT_SCHEME_CODE,
+        Number(segment),
+        res,
+        accept,
+        format,
+      );
+    return this.scheme(segment, res, accept, format);
+  }
+
   async scheme(
     @Param('scheme') scheme: string,
     @Res() res: Response,

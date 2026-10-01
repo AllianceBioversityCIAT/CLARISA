@@ -28,8 +28,8 @@ describe('AiAssistService', () => {
   beforeEach(() => {
     db = new FakeManager();
     scheme = db.seed(GcScheme, {
-      code: 'meliaf',
-      title: 'MELIAF',
+      code: 'concepts',
+      title: 'Concepts',
       default_language: 'en',
       next_term_id: 1,
       uri_base: null,
@@ -41,7 +41,7 @@ describe('AiAssistService', () => {
     ])
       db.seed(GcListValue, {
         scope: '',
-        list_code: 'meliaf_function',
+        list_code: 'functions',
         value,
         label,
         sort: 0,
@@ -125,7 +125,7 @@ describe('AiAssistService', () => {
         { input: 'Learning stuff', value: 'learning' },
       ],
     });
-    const r = await service.normalizeValues('meliaf', 'meliaf_function', [
+    const r = await service.normalizeValues('concepts', 'functions', [
       'Evaluation',
       'monitorng',
       'Learning stuff',
@@ -154,7 +154,7 @@ describe('AiAssistService', () => {
       payload: {
         preferred_label: 'Outcomes',
         definition: 'Outcomes are outcomes',
-        meliaf_function: ['Foresighting'],
+        functions: ['Foresighting'],
       },
       rationale: 'needed',
       requester_email: 'person@cgiar.org',
@@ -249,8 +249,8 @@ describe('AiAssistService.draft', () => {
   beforeEach(() => {
     const db = new FakeManager();
     db.seed(GcScheme, {
-      code: 'meliaf',
-      title: 'MELIAF',
+      code: 'concepts',
+      title: 'Concepts',
       default_language: 'en',
       next_term_id: 1,
     });
@@ -269,7 +269,7 @@ describe('AiAssistService.draft', () => {
       scope_note: 'Unrequested text',
       example_of_use: null,
     });
-    const out = await service.draft('meliaf', {
+    const out = await service.draft('concepts', {
       preferred_label: 'Outcome',
       definition: 'A change in state, behaviour or capacity.',
       fields: ['short_definition', 'example_of_use'],
@@ -296,7 +296,7 @@ describe('AiAssistService.draft', () => {
       scope_note: null,
       example_of_use: null,
     });
-    await service.draft('meliaf', {
+    await service.draft('concepts', {
       preferred_label: 'Outcome',
       definition: 'A change.',
       fields: ['short_definition'],
@@ -310,14 +310,14 @@ describe('AiAssistService.draft', () => {
 
   it('refuses a draft without definition, fields, or for an unknown scheme, without calling the model', async () => {
     await expect(
-      service.draft('meliaf', {
+      service.draft('concepts', {
         preferred_label: 'Outcome',
         definition: '  ',
         fields: ['scope_note'],
       }),
     ).rejects.toThrow(/label and the definition/);
     await expect(
-      service.draft('meliaf', {
+      service.draft('concepts', {
         preferred_label: 'Outcome',
         definition: 'x',
         fields: ['notes' as any],

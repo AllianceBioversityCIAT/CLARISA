@@ -39,7 +39,7 @@ const PRIME = [
 
 /**
  * What the Users and Roles screens share: the justification confirm, the
- * people search, the (i) of the MELIAF admin, and the PrimeNG pieces both use.
+ * people search, the (i) of the Concepts admin, and the PrimeNG pieces both use.
  * The form skin comes from `app-access-skin`; the page pieces from
  * `_access-page.scss`, included by each page.
  */

@@ -158,7 +158,7 @@
       <section class="gc-section" aria-labelledby="gc-sec-classification">
         <header class="gc-section__head">
           <h3 class="gc-section__title" id="gc-sec-classification">Classification</h3>
-          <p class="gc-section__hint">Where the concept sits in MELIAF. Readers and the API filter by these values.</p>
+          <p class="gc-section__hint">Where the concept sits in Concepts. Readers and the API filter by these values.</p>
         </header>
         <div class="admin-form__grid">
           <div class="field">
@@ -182,40 +182,40 @@
 
           <div class="field">
             <div class="gc-field-head">
-              <label for="gc-function">MELIAF function</label>
-              <app-gc-info [text]="info.meliaf_function"></app-gc-info>
+              <label for="gc-function">Function</label>
+              <app-gc-info [text]="info.functions"></app-gc-info>
             </div>
             <p-multiSelect
               inputId="gc-function"
-              name="meliaf_function"
+              name="functions"
               appendTo="body"
               display="chip"
               placeholder="Not set"
               [showHeader]="false"
-              [options]="optionsFor('meliaf_function')"
-              [(ngModel)]="form.meliaf_function"
-              (ngModelChange)="onHandEdit('meliaf_function', $event)">
+              [options]="optionsFor('functions')"
+              [(ngModel)]="form.functions"
+              (ngModelChange)="onHandEdit('functions', $event)">
             </p-multiSelect>
-            <app-gc-assist-mark field="meliaf_function"></app-gc-assist-mark>
+            <app-gc-assist-mark field="functions"></app-gc-assist-mark>
           </div>
 
           <div class="field">
             <div class="gc-field-head">
-              <label for="gc-phase">Primary MELIAF phase</label>
-              <app-gc-info [text]="info.meliaf_phase_primary"></app-gc-info>
+              <label for="gc-phase">Primary phase</label>
+              <app-gc-info [text]="info.phase_primary"></app-gc-info>
             </div>
             <p-dropdown
               inputId="gc-phase"
-              name="meliaf_phase_primary"
+              name="phase_primary"
               appendTo="body"
               panelStyleClass="admin-dropdown-panel"
               placeholder="Not set"
               [showClear]="true"
-              [options]="optionsFor('meliaf_phase')"
-              [(ngModel)]="form.meliaf_phase_primary"
-              (ngModelChange)="onHandEdit('meliaf_phase_primary', $event)">
+              [options]="optionsFor('phase')"
+              [(ngModel)]="form.phase_primary"
+              (ngModelChange)="onHandEdit('phase_primary', $event)">
             </p-dropdown>
-            <app-gc-assist-mark field="meliaf_phase_primary"></app-gc-assist-mark>
+            <app-gc-assist-mark field="phase_primary"></app-gc-assist-mark>
           </div>
 
           <div class="field">

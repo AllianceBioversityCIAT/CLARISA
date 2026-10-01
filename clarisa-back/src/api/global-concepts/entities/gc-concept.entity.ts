@@ -29,7 +29,7 @@ export enum GcConceptOrigin {
 }
 
 /**
- * One concept of a scheme — the term register of the MELIAF data schema
+ * One concept of a scheme — the term register of the concepts data schema
  * template, field names included. The URI is derived from the scheme and
  * `term_id` at read time and never stored (V32).
  */
@@ -72,17 +72,17 @@ export class GcConcept {
     nullable: true,
     transformer: jsonColumn<string[]>([]),
   })
-  meliaf_function: string[];
+  functions: string[];
 
   @Column({ type: 'varchar', length: 50, nullable: true })
-  meliaf_phase_primary: string | null;
+  phase_primary: string | null;
 
   @Column({
     type: 'text',
     nullable: true,
     transformer: jsonColumn<string[]>([]),
   })
-  meliaf_phase_also: string[];
+  phase_also: string[];
 
   @Column({ type: 'text', nullable: true })
   source_citation: string | null;

@@ -62,7 +62,7 @@ const providers = [
 ];
 
 /**
- * Global Concepts — the decoupled module that hosts the MELIAF taxonomy
+ * Global Concepts — the decoupled module that hosts the Concepts vocabulary
  * (openspec/changes/add-global-concepts). Mounted at `api/concepts`.
  * The admin controller is declared first so `admin/...` matches before the
  * public `:scheme/...` routes.

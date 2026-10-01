@@ -147,28 +147,28 @@ describe('Global Concepts routes (HTTP)', () => {
   });
 
   it.each([
-    ['get', '/admin/meliaf/concepts/7/icons', 'icons.list'],
-    ['post', '/admin/meliaf/concepts/7/icons', 'icons.create'],
-    ['patch', '/admin/meliaf/icons/3', 'icons.update'],
-    ['delete', '/admin/meliaf/icons/3', 'icons.remove'],
-    ['get', '/admin/meliaf/fields', 'fields.list'],
-    ['post', '/admin/meliaf/fields', 'fields.create'],
-    ['patch', '/admin/meliaf/fields/2', 'fields.update'],
-    ['get', '/admin/meliaf/import-fields', 'fields.importFields'],
-    ['get', '/admin/meliaf/usage?days=7', 'usage.summary'],
+    ['get', '/admin/concepts/concepts/7/icons', 'icons.list'],
+    ['post', '/admin/concepts/concepts/7/icons', 'icons.create'],
+    ['patch', '/admin/concepts/icons/3', 'icons.update'],
+    ['delete', '/admin/concepts/icons/3', 'icons.remove'],
+    ['get', '/admin/concepts/fields', 'fields.list'],
+    ['post', '/admin/concepts/fields', 'fields.create'],
+    ['patch', '/admin/concepts/fields/2', 'fields.update'],
+    ['get', '/admin/concepts/import-fields', 'fields.importFields'],
+    ['get', '/admin/concepts/usage?days=7', 'usage.summary'],
     [
       'get',
-      '/admin/meliaf/usage/platforms?from=2026-09-01&to=2026-09-30',
+      '/admin/concepts/usage/platforms?from=2026-09-01&to=2026-09-30',
       'platformUsage.byPlatform',
     ],
-    ['get', '/meliaf/fields', 'read.fields'],
-    ['get', '/admin/meliaf/concepts-meta/fields', 'fields.list'],
-    ['get', '/admin/meliaf/concepts-meta/lists', 'catalog.listValues'],
-    ['get', '/admin/meliaf/lists', 'catalog.listValues'],
-    ['get', '/admin/meliaf/concepts', 'admin.list'],
-    ['get', '/admin/meliaf/concepts/7', 'admin.get'],
-    ['patch', '/admin/meliaf/concepts/7/icons/3', 'icons.update'],
-    ['delete', '/admin/meliaf/concepts/7/icons/3', 'icons.remove'],
+    ['get', '/concepts/fields', 'read.fields'],
+    ['get', '/admin/concepts/concepts-meta/fields', 'fields.list'],
+    ['get', '/admin/concepts/concepts-meta/lists', 'catalog.listValues'],
+    ['get', '/admin/concepts/lists', 'catalog.listValues'],
+    ['get', '/admin/concepts/concepts', 'admin.list'],
+    ['get', '/admin/concepts/concepts/7', 'admin.get'],
+    ['patch', '/admin/concepts/concepts/7/icons/3', 'icons.update'],
+    ['delete', '/admin/concepts/concepts/7/icons/3', 'icons.remove'],
   ])('%s %s reaches %s', async (method, path, handler) => {
     const body =
       handler === 'icons.create'
@@ -189,10 +189,10 @@ describe('Global Concepts routes (HTTP)', () => {
     'the concepts-meta copies are GET only (%s is 404)',
     async (method) => {
       for (const path of [
-        '/admin/meliaf/concepts-meta/fields',
-        '/admin/meliaf/concepts-meta/lists',
-        '/admin/meliaf/concepts-meta/fields/2',
-        '/admin/meliaf/concepts-meta/lists/4',
+        '/admin/concepts/concepts-meta/fields',
+        '/admin/concepts/concepts-meta/lists',
+        '/admin/concepts/concepts-meta/fields/2',
+        '/admin/concepts/concepts-meta/lists/4',
       ]) {
         const res = await (request(app.getHttpServer()) as any)
           [method](path)
@@ -207,53 +207,55 @@ describe('Global Concepts routes (HTTP)', () => {
 
   it('the concepts-meta copies call the same services as the setup routes', async () => {
     await request(app.getHttpServer()).get(
-      '/admin/meliaf/concepts-meta/fields',
+      '/admin/concepts/concepts-meta/fields',
     );
-    expect(fields.list).toHaveBeenCalledWith('meliaf');
-    await request(app.getHttpServer()).get('/admin/meliaf/concepts-meta/lists');
-    expect(catalog.listValues).toHaveBeenCalledWith('meliaf');
+    expect(fields.list).toHaveBeenCalledWith('concepts');
+    await request(app.getHttpServer()).get(
+      '/admin/concepts/concepts-meta/lists',
+    );
+    expect(catalog.listValues).toHaveBeenCalledWith('concepts');
     expect(admin.get).not.toHaveBeenCalled();
   });
 
   it('the nested icon aliases pass the concept term id to the service', async () => {
     await request(app.getHttpServer())
-      .patch('/admin/meliaf/concepts/7/icons/3')
+      .patch('/admin/concepts/concepts/7/icons/3')
       .send({ icon_code: 'IC7' });
     expect(icons.update).toHaveBeenCalledWith(
-      'meliaf',
+      'concepts',
       3,
       { icon_code: 'IC7' },
       expect.objectContaining({ email: 'admin@cgiar.org' }),
       7,
     );
     await request(app.getHttpServer()).delete(
-      '/admin/meliaf/concepts/7/icons/3',
+      '/admin/concepts/concepts/7/icons/3',
     );
     expect(icons.remove).toHaveBeenCalledWith(
-      'meliaf',
+      'concepts',
       3,
       expect.objectContaining({ email: 'admin@cgiar.org' }),
       7,
     );
     // The old full-admin routes keep working without a concept check.
-    await request(app.getHttpServer()).delete('/admin/meliaf/icons/3');
+    await request(app.getHttpServer()).delete('/admin/concepts/icons/3');
     expect(icons.remove).toHaveBeenLastCalledWith(
-      'meliaf',
+      'concepts',
       3,
       expect.objectContaining({ email: 'admin@cgiar.org' }),
     );
   });
 
   it('passes the usage window as a number', async () => {
-    await request(app.getHttpServer()).get('/admin/meliaf/usage?days=7');
-    expect(usage.summary).toHaveBeenCalledWith('meliaf', 7);
-    await request(app.getHttpServer()).get('/admin/meliaf/usage');
-    expect(usage.summary).toHaveBeenLastCalledWith('meliaf', 30);
+    await request(app.getHttpServer()).get('/admin/concepts/usage?days=7');
+    expect(usage.summary).toHaveBeenCalledWith('concepts', 7);
+    await request(app.getHttpServer()).get('/admin/concepts/usage');
+    expect(usage.summary).toHaveBeenLastCalledWith('concepts', 30);
   });
 
   it('refuses code or type in a field PATCH (immutable)', async () => {
     const res = await request(app.getHttpServer())
-      .patch('/admin/meliaf/fields/2')
+      .patch('/admin/concepts/fields/2')
       .send({ code: 'renamed', type: 'number' });
     expect(res.status).toBe(400);
     expect(fields.update).not.toHaveBeenCalled();
@@ -262,7 +264,7 @@ describe('Global Concepts routes (HTTP)', () => {
   it('keeps the AI draft behind the AI guard (404 while AI is off)', async () => {
     delete process.env.GLOBAL_CONCEPTS_AI_ENABLED;
     const res = await request(app.getHttpServer())
-      .post('/admin/meliaf/ai/draft')
+      .post('/admin/concepts/ai/draft')
       .send({
         preferred_label: 'Outcome',
         definition: 'A change',
@@ -277,7 +279,7 @@ describe('Global Concepts routes (HTTP)', () => {
     process.env.OPEN_AI_CLARISA_ASSISTANT_TOKEN = 'sk-test';
     try {
       const bad = await request(app.getHttpServer())
-        .post('/admin/meliaf/ai/draft')
+        .post('/admin/concepts/ai/draft')
         .send({
           preferred_label: 'Outcome',
           definition: 'x',
@@ -285,7 +287,7 @@ describe('Global Concepts routes (HTTP)', () => {
         });
       expect(bad.status).toBe(400);
       const ok = await request(app.getHttpServer())
-        .post('/admin/meliaf/ai/draft')
+        .post('/admin/concepts/ai/draft')
         .send({
           preferred_label: 'Outcome',
           definition: 'A change',
@@ -299,26 +301,26 @@ describe('Global Concepts routes (HTTP)', () => {
   });
 
   it('counts public reads after answering them', async () => {
-    await request(app.getHttpServer()).get('/meliaf/concepts?q=IA');
-    expect(usage.recordList).toHaveBeenCalledWith('meliaf', 'IA', 1);
-    await request(app.getHttpServer()).get('/meliaf/concepts/7');
-    expect(usage.record).toHaveBeenCalledWith('meliaf', 'view', 7);
-    await request(app.getHttpServer()).get('/meliaf/export?format=csv');
-    expect(usage.record).toHaveBeenCalledWith('meliaf', 'export', 'csv');
+    await request(app.getHttpServer()).get('/concepts/concepts?q=IA');
+    expect(usage.recordList).toHaveBeenCalledWith('concepts', 'IA', 1);
+    await request(app.getHttpServer()).get('/concepts/concepts/7');
+    expect(usage.record).toHaveBeenCalledWith('concepts', 'view', 7);
+    await request(app.getHttpServer()).get('/concepts/export?format=csv');
+    expect(usage.record).toHaveBeenCalledWith('concepts', 'export', 'csv');
   });
 
   it('records nothing when the read itself fails', async () => {
     read.get.mockRejectedValueOnce(new Error('boom'));
-    const res = await request(app.getHttpServer()).get('/meliaf/concepts/9');
+    const res = await request(app.getHttpServer()).get('/concepts/concepts/9');
     expect(res.status).toBe(500);
     expect(usage.record).not.toHaveBeenCalled();
   });
 
   it('passes the platform usage period through', async () => {
     await request(app.getHttpServer()).get(
-      '/admin/meliaf/usage/platforms?from=2026-09-01&to=2026-09-30',
+      '/admin/concepts/usage/platforms?from=2026-09-01&to=2026-09-30',
     );
-    expect(platformUsage.byPlatform).toHaveBeenCalledWith('meliaf', {
+    expect(platformUsage.byPlatform).toHaveBeenCalledWith('concepts', {
       from: '2026-09-01',
       to: '2026-09-30',
       days: undefined,
@@ -329,7 +331,9 @@ describe('Global Concepts routes (HTTP)', () => {
     const flushFinish = () => new Promise((r) => setImmediate(r));
 
     it('without X-API-Key: answers as always and checks no key', async () => {
-      const res = await request(app.getHttpServer()).get('/meliaf/concepts/7');
+      const res = await request(app.getHttpServer()).get(
+        '/concepts/concepts/7',
+      );
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ term_id: 7 });
       expect(res.headers['x-api-key-status']).toBeUndefined();
@@ -348,7 +352,7 @@ describe('Global Concepts routes (HTTP)', () => {
         seen = currentApiKeyCaller();
       });
       const res = await request(app.getHttpServer())
-        .get('/meliaf/concepts/7')
+        .get('/concepts/concepts/7')
         .set('X-API-Key', 'cl_test_abcdefghijklmnop');
       await flushFinish();
       expect(res.status).toBe(200);
@@ -365,7 +369,7 @@ describe('Global Concepts routes (HTTP)', () => {
         expect.objectContaining({
           api_key_id: 5,
           microservice_name: 'clarisa-api',
-          endpoint_accessed: '/meliaf/concepts/7',
+          endpoint_accessed: '/concepts/concepts/7',
           http_method: 'GET',
           status_code: 200,
         }),
@@ -379,20 +383,20 @@ describe('Global Concepts routes (HTTP)', () => {
         error: 'API key is revoked',
       });
       const res = await request(app.getHttpServer())
-        .get('/meliaf/concepts?q=IA')
+        .get('/concepts/concepts?q=IA')
         .set('X-API-Key', 'cl_test_revokedrevokedrev');
       await flushFinish();
       expect(res.status).toBe(200);
       expect(res.body).toEqual([{ term_id: 1 }]);
       expect(res.headers['x-api-key-status']).toBe('invalid');
       expect(usageLog.recordUsageAsync).not.toHaveBeenCalled();
-      expect(usage.recordList).toHaveBeenCalledWith('meliaf', 'IA', 1);
+      expect(usage.recordList).toHaveBeenCalledWith('concepts', 'IA', 1);
     });
 
     it('when the key cannot be checked (database down): still 200, no header, no row', async () => {
       apiKeys.validate.mockRejectedValue(new Error('db down'));
       const res = await request(app.getHttpServer())
-        .get('/meliaf/fields')
+        .get('/concepts/fields')
         .set('X-API-Key', 'cl_test_abcdefghijklmnop');
       await flushFinish();
       expect(res.status).toBe(200);
@@ -407,7 +411,7 @@ describe('Global Concepts routes (HTTP)', () => {
         throw new Error('log table missing');
       });
       const res = await request(app.getHttpServer())
-        .get('/meliaf/export?format=csv')
+        .get('/concepts/export?format=csv')
         .set('X-API-Key', 'cl_test_abcdefghijklmnop');
       await flushFinish();
       expect(res.status).toBe(200);
@@ -418,7 +422,7 @@ describe('Global Concepts routes (HTTP)', () => {
       apiKeys.validate.mockResolvedValue({ valid: true, api_key_id: 5 });
       read.get.mockRejectedValueOnce(new Error('boom'));
       const res = await request(app.getHttpServer())
-        .get('/meliaf/concepts/9')
+        .get('/concepts/concepts/9')
         .set('X-API-Key', 'cl_test_abcdefghijklmnop');
       await flushFinish();
       expect(res.status).toBe(500);
@@ -430,7 +434,7 @@ describe('Global Concepts routes (HTTP)', () => {
     it('never touches the admin routes (they keep their own auth)', async () => {
       apiKeys.validate.mockResolvedValue({ valid: false });
       const res = await request(app.getHttpServer())
-        .get('/admin/meliaf/usage?days=7')
+        .get('/admin/concepts/usage?days=7')
         .set('X-API-Key', 'cl_test_abcdefghijklmnop');
       expect(res.headers['x-api-key-status']).toBeUndefined();
       expect(apiKeys.validate).not.toHaveBeenCalled();

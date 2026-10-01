@@ -446,7 +446,7 @@ describe('ApiKeyUsageMetricsService — endpoint and MIS aggregates', () => {
       {
         mis_id: null,
         key_group_id: '12',
-        key_name: 'MELIAF Hub — production',
+        key_name: 'Concepts Hub — production',
         acronym: null,
         name: null,
         environment: 'PROD',
@@ -505,12 +505,12 @@ describe('ApiKeyUsageMetricsService — endpoint and MIS aggregates', () => {
         ]),
       ).toEqual([
         ['mis:3', 'mis', 3, null, 'PRMS', 'PROD', 2],
-        ['key:12', 'key', null, 12, 'MELIAF Hub — production', 'PROD', 1],
+        ['key:12', 'key', null, 12, 'Concepts Hub — production', 'PROD', 1],
         ['key:40', 'key', null, 40, 'STAR sandbox', 'TEST', 1],
       ]);
       expect(result.systems[1]).toMatchObject({
-        name: 'MELIAF Hub — production',
-        api_key_name: 'MELIAF Hub — production',
+        name: 'Concepts Hub — production',
+        api_key_name: 'Concepts Hub — production',
       });
       for (const s of result.systems) {
         expect(s.acronym).not.toBe('No MIS');
@@ -596,7 +596,7 @@ describe('ApiKeyUsageMetricsService — endpoint and MIS aggregates', () => {
         'key:12',
         'key:40',
       ]);
-      expect(out.systems[1].acronym).toBe('MELIAF Hub — production');
+      expect(out.systems[1].acronym).toBe('Concepts Hub — production');
     });
 
     it('key_ids alone narrows to those keys, only among keys with no MIS', async () => {
@@ -651,7 +651,7 @@ describe('ApiKeyUsageMetricsService — endpoint and MIS aggregates', () => {
         {
           id: '1',
           api_key_id: '12',
-          api_key_name: 'MELIAF Hub — production',
+          api_key_name: 'Concepts Hub — production',
           key_prefix: 'cl_prod_x',
           mis_acronym: null,
           mis_id: null,

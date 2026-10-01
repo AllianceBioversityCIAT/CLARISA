@@ -64,7 +64,7 @@ describe('concept assistant utils', () => {
   });
 
   it('coerces a step value to what its control binds', () => {
-    const [functionMeta] = CORE_ASSIST_FIELDS.filter(meta => meta.field === 'meliaf_function');
+    const [functionMeta] = CORE_ASSIST_FIELDS.filter(meta => meta.field === 'functions');
     const [typeMeta] = CORE_ASSIST_FIELDS.filter(meta => meta.field === 'term_type');
     expect(coerceValue(functionMeta, 'monitoring')).toEqual(['monitoring']);
     expect(coerceValue(typeMeta, '')).toBeNull();

@@ -7,7 +7,7 @@ import { environment } from '../../../../environments/environment';
 /**
  * Client of the Global Concepts module (`api/concepts`), shared by the
  * admin section and the public page. Shapes mirror the back's presenters
- * (clarisa-back/src/api/global-concepts); field names follow the MELIAF data
+ * (clarisa-back/src/api/global-concepts); field names follow the Concepts data
  * schema template.
  */
 
@@ -49,9 +49,9 @@ export interface PublicConcept {
   scope_note: string | null;
   example_of_use: string | null;
   term_type: string | null;
-  meliaf_function: string[];
-  meliaf_phase_primary: string | null;
-  meliaf_phase_also: string[];
+  functions: string[];
+  phase_primary: string | null;
+  phase_also: string[];
   broader_terms: ConceptRef[];
   narrower_terms: ConceptRef[];
   related_terms: ConceptRef[];
@@ -227,8 +227,8 @@ export interface ConceptSuggestion {
 export interface ConceptQuery {
   q?: string;
   status?: string;
-  meliaf_function?: string;
-  meliaf_phase?: string;
+  functions?: string;
+  phase?: string;
   term_type?: string;
   version?: string;
   /** `0` = not counted in the usage analytics (search-as-you-type). */

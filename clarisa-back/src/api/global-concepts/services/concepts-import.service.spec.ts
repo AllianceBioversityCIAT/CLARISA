@@ -14,6 +14,7 @@ import {
 import { GcRelation, GcRelationKind } from '../entities/gc-relation.entity';
 import { GcField, GcFieldType } from '../entities/gc-field.entity';
 import { CreateGlobalConcepts1790500000000 } from '../../../../migrations/1790500000000-CreateGlobalConcepts';
+import { DropMeliafFromConcepts1790600500000 } from '../../../../migrations/1790600500000-DropMeliafFromConcepts';
 
 const { toValue } = CreateGlobalConcepts1790500000000;
 
@@ -22,7 +23,7 @@ const admin = { email: 'admin@cgiar.org' };
 describe('ConceptsImportService', () => {
   let db: FakeManager;
   let service: ConceptsImportService;
-  let meliaf: GcScheme;
+  let concepts: GcScheme;
 
   const concept = (
     term_id: number,
@@ -30,7 +31,7 @@ describe('ConceptsImportService', () => {
     extra: Partial<GcConcept> = {},
   ) =>
     db.seed(GcConcept, {
-      scheme_id: meliaf.id,
+      scheme_id: concepts.id,
       term_id,
       preferred_label: label,
       language: 'en',
@@ -38,8 +39,8 @@ describe('ConceptsImportService', () => {
       version: '1.0',
       replaced_by_id: null,
       definition: null,
-      meliaf_function: [],
-      meliaf_phase_also: [],
+      functions: [],
+      phase_also: [],
       validated_by: [],
       ai_generated_fields: [],
       extra: {},
@@ -48,15 +49,17 @@ describe('ConceptsImportService', () => {
 
   beforeEach(() => {
     db = new FakeManager();
-    meliaf = db.seed(GcScheme, {
-      code: 'meliaf',
-      title: 'MELIAF',
+    concepts = db.seed(GcScheme, {
+      code: 'concepts',
+      title: 'Concepts',
       default_language: 'en',
       next_term_id: 100,
       uri_base: null,
     });
     for (const [list, labels] of Object.entries(
-      CreateGlobalConcepts1790500000000.LISTS,
+      DropMeliafFromConcepts1790600500000.currentLists(
+        CreateGlobalConcepts1790500000000.LISTS,
+      ),
     ))
       labels.forEach((label, sort) =>
         db.seed(GcListValue, {
@@ -78,7 +81,7 @@ describe('ConceptsImportService', () => {
   it('plans creates, updates, unchanged and invalid rows without writing', async () => {
     concept(5, 'Outcome', { definition: 'A change' });
     concept(6, 'Output', { definition: 'A product' });
-    const r = await service.preview('meliaf', [
+    const r = await service.preview('concepts', [
       {
         term_id: 5,
         preferred_label: 'Outcome',
@@ -88,10 +91,10 @@ describe('ConceptsImportService', () => {
       {
         preferred_label: 'Baseline',
         definition: 'Starting point',
-        meliaf_function: 'MEL; IA',
+        functions: 'MEL; IA',
       },
       { preferred_label: '', definition: 'orphan' },
-      { preferred_label: 'Indicator', meliaf_function: 'Astrology' },
+      { preferred_label: 'Indicator', functions: 'Astrology' },
     ]);
     expect(r.rows.map((x) => x.action)).toEqual([
       ImportAction.UPDATE,
@@ -112,7 +115,7 @@ describe('ConceptsImportService', () => {
   });
 
   it('flags a repeated TERM ID and a repeated label in the file', async () => {
-    const r = await service.preview('meliaf', [
+    const r = await service.preview('concepts', [
       { term_id: 7, preferred_label: 'Impact' },
       { term_id: 7, preferred_label: 'Effect' },
       { preferred_label: 'impact' },
@@ -126,7 +129,7 @@ describe('ConceptsImportService', () => {
 
   it('splits SOURCE into derivation, citation and URL (1.10d)', async () => {
     await service.import(
-      'meliaf',
+      'concepts',
       [
         {
           preferred_label: 'Theory of change',
@@ -152,7 +155,7 @@ describe('ConceptsImportService', () => {
       status: GcLabelStatus.ACTIVE,
     });
     await service.import(
-      'meliaf',
+      'concepts',
       [
         {
           term_id: 5,
@@ -178,7 +181,7 @@ describe('ConceptsImportService', () => {
 
   it('links broader terms by label, including rows created by the same import', async () => {
     const r = await service.import(
-      'meliaf',
+      'concepts',
       [
         { preferred_label: 'Evaluation' },
         {
@@ -196,11 +199,11 @@ describe('ConceptsImportService', () => {
 
   it('refuses an import with invalid rows unless told to skip them', async () => {
     const rows = [{ preferred_label: 'Good' }, { preferred_label: '' }];
-    await expect(service.import('meliaf', rows, admin)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.import('concepts', rows, admin),
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(db.rows(GcConcept)).toHaveLength(0);
-    const r = await service.import('meliaf', rows, admin, true);
+    const r = await service.import('concepts', rows, admin, true);
     expect(r.summary).toMatchObject({ to_create: 1, invalid: 1 });
     expect(db.rows(GcConcept)).toHaveLength(1);
   });
@@ -214,14 +217,14 @@ describe('ConceptsImportService', () => {
         alternative_labels: 'ToC',
       },
     ];
-    await service.import('meliaf', rows, admin);
-    const again = await service.preview('meliaf', rows);
+    await service.import('concepts', rows, admin);
+    const again = await service.preview('concepts', rows);
     expect(again.summary).toMatchObject({ unchanged: 1, to_update: 0 });
   });
 
   it('reads a SOURCE that only names a derivation as the derivation', async () => {
     await service.import(
-      'meliaf',
+      'concepts',
       [{ preferred_label: 'Foresight', source_citation: 'Newly written' }],
       admin,
     );
@@ -236,7 +239,7 @@ describe('ConceptsImportService', () => {
       more: Partial<GcField> = {},
     ) =>
       db.seed(GcField, {
-        scheme_id: meliaf.id,
+        scheme_id: concepts.id,
         code,
         label: code,
         type,
@@ -250,14 +253,14 @@ describe('ConceptsImportService', () => {
 
     beforeEach(() => {
       def('owner', GcFieldType.TEXT);
-      def('phases', GcFieldType.MULTI_LIST, { list_code: 'meliaf_phase' });
+      def('phases', GcFieldType.MULTI_LIST, { list_code: 'phase' });
       def('see_also', GcFieldType.TERM_LINK);
     });
 
     it('maps x:<code> to custom fields, splitting multi types on ; or |', async () => {
       concept(5, 'Outcome');
       const r = await service.import(
-        'meliaf',
+        'concepts',
         [
           {
             preferred_label: 'Baseline',
@@ -284,7 +287,7 @@ describe('ConceptsImportService', () => {
 
     it('updates only what the file brings: empty cells keep stored values', async () => {
       concept(5, 'Outcome', { extra: { owner: 'PPT', see_also: [5] } });
-      const plan = await service.preview('meliaf', [
+      const plan = await service.preview('concepts', [
         {
           term_id: 5,
           preferred_label: 'Outcome',
@@ -295,7 +298,7 @@ describe('ConceptsImportService', () => {
       expect(plan.rows[0].action).toBe(ImportAction.UPDATE);
       expect(plan.rows[0].changes).toEqual(['extra']);
       await service.import(
-        'meliaf',
+        'concepts',
         [{ term_id: 5, preferred_label: 'Outcome', 'x:owner': 'MEL CoP' }],
         admin,
       );
@@ -303,7 +306,7 @@ describe('ConceptsImportService', () => {
         owner: 'MEL CoP',
         see_also: [5],
       });
-      const again = await service.preview('meliaf', [
+      const again = await service.preview('concepts', [
         { term_id: 5, preferred_label: 'Outcome', 'x:owner': 'MEL CoP' },
       ]);
       expect(again.rows[0].action).toBe(ImportAction.SKIP);
@@ -311,7 +314,7 @@ describe('ConceptsImportService', () => {
 
     it('marks invalid values in the preview and ignores inactive or unknown columns', async () => {
       def('retired', GcFieldType.TEXT, { is_active: false });
-      const plan = await service.preview('meliaf', [
+      const plan = await service.preview('concepts', [
         { preferred_label: 'A', 'x:phases': 'Astrology' },
         { preferred_label: 'B', 'x:see_also': '999' },
         { preferred_label: 'C', 'x:retired': 'x', 'x:nope': 'y' },
@@ -329,7 +332,7 @@ describe('ConceptsImportService', () => {
 
     it('refuses a new row that lacks a required custom field', async () => {
       def('must', GcFieldType.TEXT, { required: true });
-      const plan = await service.preview('meliaf', [
+      const plan = await service.preview('concepts', [
         { preferred_label: 'A' },
         { preferred_label: 'B', 'x:must': 'yes' },
       ]);
@@ -338,7 +341,7 @@ describe('ConceptsImportService', () => {
         ImportAction.CREATE,
       ]);
       await expect(
-        service.import('meliaf', [{ preferred_label: 'A' }], admin),
+        service.import('concepts', [{ preferred_label: 'A' }], admin),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });

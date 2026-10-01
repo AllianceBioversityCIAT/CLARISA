@@ -30,11 +30,11 @@ describe('GcRelationsEditorComponent', () => {
 
   it('adds and removes with the kind and the target, and passes the updated concept up', () => {
     component.add('related', { term_id: 3, preferred_label: 'Output' });
-    expect(api['addRelation']).toHaveBeenCalledWith('meliaf', 1, { kind: 'related', target_term_id: 3 });
+    expect(api['addRelation']).toHaveBeenCalledWith('concepts', 1, { kind: 'related', target_term_id: 3 });
     expect(updated).toHaveBeenCalledWith(expect.objectContaining({ related_terms: [expect.objectContaining({ term_id: 3 })] }));
 
     component.remove('broader', concept.broader_terms[0]);
-    expect(api['removeRelation']).toHaveBeenCalledWith('meliaf', 1, { kind: 'broader', target_term_id: 5 });
+    expect(api['removeRelation']).toHaveBeenCalledWith('concepts', 1, { kind: 'broader', target_term_id: 5 });
   });
 
   it('shows the back refusal under the list it belongs to (cycles, S27)', () => {

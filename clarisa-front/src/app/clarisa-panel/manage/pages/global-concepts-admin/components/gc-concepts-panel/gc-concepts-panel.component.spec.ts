@@ -13,8 +13,8 @@ describe('GcConceptsPanelComponent', () => {
       scope_note: null,
       example_of_use: null,
       term_type: null,
-      meliaf_function: ['monitoring'],
-      meliaf_phase_primary: null,
+      functions: ['monitoring'],
+      phase_primary: null,
       derivation: null,
       source_citation: null,
       source_url: null,
@@ -33,7 +33,7 @@ describe('GcConceptsPanelComponent', () => {
   beforeEach(() => {
     api = {
       adminConcepts: jest.fn(() => of([concept(1, 'Outcome'), concept(2, 'Output', 'draft')])),
-      lists: jest.fn(() => of({ meliaf_function: [{ value: 'monitoring', label: 'Monitoring' }] })),
+      lists: jest.fn(() => of({ functions: [{ value: 'monitoring', label: 'Monitoring' }] })),
       updateConcept: jest.fn(() => of(concept(1, 'Outcomes'))),
       createConcept: jest.fn(() => of(concept(3, 'New'))),
       setStatus: jest.fn(() => of(concept(2, 'Output', 'deprecated'))),
@@ -66,9 +66,9 @@ describe('GcConceptsPanelComponent', () => {
 
   it('sends only the fields that changed on update, and an emptied field as ""', () => {
     const original = formFromConcept(concept(1, 'Outcome'));
-    const edited = { ...original, preferred_label: 'Outcomes', definition: '', meliaf_function: [] };
+    const edited = { ...original, preferred_label: 'Outcomes', definition: '', functions: [] };
 
-    expect(buildConceptBody(edited, original)).toEqual({ preferred_label: 'Outcomes', definition: '', meliaf_function: [] });
+    expect(buildConceptBody(edited, original)).toEqual({ preferred_label: 'Outcomes', definition: '', functions: [] });
     expect(buildConceptBody(original, original)).toEqual({});
   });
 
@@ -81,7 +81,7 @@ describe('GcConceptsPanelComponent', () => {
   it('updates the AI index and reports what was embedded', () => {
     api['refreshEmbeddings'] = jest.fn(() => of({ embedded: 3, unchanged: 40 }));
     component.refreshIndex();
-    expect(api['refreshEmbeddings']).toHaveBeenCalledWith('meliaf');
+    expect(api['refreshEmbeddings']).toHaveBeenCalledWith('concepts');
     expect(component.indexing).toBe(false);
   });
 
@@ -112,7 +112,7 @@ describe('GcConceptsPanelComponent', () => {
     component.semanticText = 'what changes';
     component.runSemantic();
 
-    expect(api['semanticSearch']).toHaveBeenCalledWith('meliaf', 'what changes', 15);
+    expect(api['semanticSearch']).toHaveBeenCalledWith('concepts', 'what changes', 15);
     expect(component.semanticHits?.map(hit => [hit.term_id, hit.percent])).toEqual([
       [1, 82],
       [2, 41]
@@ -211,14 +211,14 @@ describe('GcConceptsPanelComponent', () => {
 
     it('remembers the columns switched on, and drops a code whose field is gone', () => {
       withExtra();
-      localStorage.setItem('gc-concepts-columns:meliaf', JSON.stringify(['related', 'deleted_field']));
+      localStorage.setItem('gc-concepts-columns:concepts', JSON.stringify(['related', 'deleted_field']));
       const panel = new GcConceptsPanelComponent(api as unknown as GlobalConceptsApiService, { add: jest.fn() } as unknown as MessageService);
       panel.ngOnInit();
       expect(panel.shownColumns.map(field => field.code)).toEqual(['related']);
 
       panel.shownFields = [];
       panel.onColumnsChange();
-      expect(localStorage.getItem('gc-concepts-columns:meliaf')).toBe('[]');
+      expect(localStorage.getItem('gc-concepts-columns:concepts')).toBe('[]');
     });
 
     it('keeps the table working when the fields fail to load', () => {

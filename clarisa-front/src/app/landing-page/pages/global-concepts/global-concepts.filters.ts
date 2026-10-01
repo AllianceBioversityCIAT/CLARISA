@@ -16,7 +16,7 @@ import { ListsByCode, labelOf } from './global-concepts.utils';
  * so ticking a second value never shows a misleading 0).
  */
 
-export type FacetCode = 'meliaf_function' | 'meliaf_phase' | 'term_type' | 'collection';
+export type FacetCode = 'functions' | 'phase' | 'term_type' | 'collection';
 /** `best` = relevance while searching (the back's order), A to Z otherwise. */
 export type SortCode = 'best' | 'az' | 'za' | 'updated';
 
@@ -28,8 +28,8 @@ export interface FacetDef {
 }
 
 export const FACET_DEFS: FacetDef[] = [
-  { code: 'meliaf_function', label: 'MELIAF function', list: 'meliaf_function' },
-  { code: 'meliaf_phase', label: 'Phase', list: 'meliaf_phase' },
+  { code: 'functions', label: 'Function', list: 'functions' },
+  { code: 'phase', label: 'Phase', list: 'phase' },
   { code: 'term_type', label: 'Term type', list: 'term_type' },
   { code: 'collection', label: 'Collection', list: null }
 ];
@@ -77,7 +77,7 @@ export type FilterableConcept = PublicConcept & {
   collections?: ({ code: string; label?: string | null } | string)[];
 };
 
-export const emptyFacets = (): Record<FacetCode, string[]> => ({ meliaf_function: [], meliaf_phase: [], term_type: [], collection: [] });
+export const emptyFacets = (): Record<FacetCode, string[]> => ({ functions: [], phase: [], term_type: [], collection: [] });
 
 export const emptyState = (): FilterState => ({ q: '', facets: emptyFacets(), sort: 'best', deprecated: false });
 
@@ -86,10 +86,10 @@ export const emptyState = (): FilterState => ({ q: '', facets: emptyFacets(), so
 /** The facet values a concept carries. The phase facet reads primary and "also", like the back's filter. */
 export function valuesOf(concept: FilterableConcept, code: FacetCode): string[] {
   switch (code) {
-    case 'meliaf_function':
-      return concept.meliaf_function ?? [];
-    case 'meliaf_phase':
-      return [concept.meliaf_phase_primary, ...(concept.meliaf_phase_also ?? [])].filter((v): v is string => !!v);
+    case 'functions':
+      return concept.functions ?? [];
+    case 'phase':
+      return [concept.phase_primary, ...(concept.phase_also ?? [])].filter((v): v is string => !!v);
     case 'term_type':
       return concept.term_type ? [concept.term_type] : [];
     case 'collection':
@@ -283,7 +283,7 @@ export function urlQuery(q: string | null | undefined): string {
 }
 
 /**
- * URL -> state. Multi values travel comma-joined (`meliaf_function=mel,monitoring`),
+ * URL -> state. Multi values travel comma-joined (`functions=mel,monitoring`),
  * the same parameter names the API uses, so a shared link reads on its own.
  */
 export function parseFilterParams(params: ParamReader): FilterState {

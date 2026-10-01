@@ -55,7 +55,7 @@ export interface PublicIcon {
 }
 
 /**
- * The public shape of a concept. Field names follow the MELIAF data schema
+ * The public shape of a concept. Field names follow the concepts data schema
  * template so an export round-trips into the same Excel. Internal ids,
  * editor emails and the internal `notes` never appear here.
  */
@@ -72,9 +72,9 @@ export interface PublicConcept {
   scope_note: string | null;
   example_of_use: string | null;
   term_type: string | null;
-  meliaf_function: string[];
-  meliaf_phase_primary: string | null;
-  meliaf_phase_also: string[];
+  functions: string[];
+  phase_primary: string | null;
+  phase_also: string[];
   broader_terms: PublicConceptRef[];
   narrower_terms: PublicConceptRef[];
   related_terms: PublicConceptRef[];
@@ -273,9 +273,9 @@ export function presentConcepts(
       scope_note: c.scope_note,
       example_of_use: c.example_of_use,
       term_type: c.term_type,
-      meliaf_function: c.meliaf_function ?? [],
-      meliaf_phase_primary: c.meliaf_phase_primary,
-      meliaf_phase_also: c.meliaf_phase_also ?? [],
+      functions: c.functions ?? [],
+      phase_primary: c.phase_primary,
+      phase_also: c.phase_also ?? [],
       broader_terms: refs(broader.get(id)),
       narrower_terms: refs(narrower.get(id)),
       related_terms: refs(related.get(id)),
