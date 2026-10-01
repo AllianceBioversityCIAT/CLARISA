@@ -1,0 +1,348 @@
+@import '../gc-panel';
+@import '../gc-editor';
+
+.gc-empty-cell {
+  padding: 24px 16px;
+  text-align: center;
+}
+
+/* ---- period ------------------------------------------------------------------ */
+
+.gc-period {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--cl-line);
+  border-radius: 999px;
+  background: var(--cl-surface);
+}
+
+.gc-period__item {
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cl-ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(.is-active) {
+    background: var(--cl-surface-2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cl-brand);
+    outline-offset: 1px;
+  }
+
+  &.is-active {
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+  }
+}
+
+/* ---- KPI tiles ------------------------------------------------------------------ */
+
+.gc-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+
+  &.is-loading .gc-kpi__value {
+    opacity: 0.45;
+  }
+}
+
+.gc-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 16px 16px 14px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-card);
+  background: var(--cl-surface);
+}
+
+.gc-kpi--alert {
+  border-color: var(--cl-brand-ring);
+  background: var(--cl-brand-soft);
+}
+
+.gc-kpi__label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cl-ink-3);
+}
+
+.gc-kpi--alert .gc-kpi__label {
+  color: var(--cl-brand-deeper);
+}
+
+.gc-kpi__value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  color: var(--cl-ink);
+}
+
+.gc-kpi__skeleton {
+  display: block;
+  width: 60%;
+  height: 28px;
+  margin: 2px 0;
+}
+
+.gc-kpi__hint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--cl-ink-3);
+}
+
+/* ---- chart -------------------------------------------------------------------- */
+
+.gc-chart-card {
+  margin-bottom: 14px;
+  padding: 16px 18px 12px;
+}
+
+.gc-chart-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+}
+
+.gc-legend {
+  display: flex;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cl-ink-2);
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.gc-legend__swatch {
+  display: inline-block;
+  width: 12px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.gc-legend__swatch--search {
+  background: var(--cl-brand-strong);
+}
+
+.gc-legend__swatch--view {
+  background: var(--cl-ink-3);
+}
+
+.gc-chart {
+  position: relative;
+  height: 220px;
+}
+
+.gc-chart--loading {
+  display: flex;
+  align-items: stretch;
+
+  .gc-skeleton__bar {
+    flex: 1 1 auto;
+    height: auto;
+    border-radius: var(--cl-radius-control);
+  }
+}
+
+.gc-chart__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.gc-chart__grid line {
+  stroke: var(--cl-line);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.gc-chart__ytick,
+.gc-chart__xtick {
+  position: absolute;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--cl-ink-3);
+  pointer-events: none;
+}
+
+.gc-chart__ytick {
+  left: 0;
+  width: 32px;
+  text-align: right;
+  transform: translateY(-50%);
+}
+
+.gc-chart__xtick {
+  bottom: 2px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.gc-chart__area {
+  fill: var(--cl-brand-soft);
+  opacity: 0.8;
+}
+
+.gc-chart__line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.gc-chart__line--search {
+  stroke: var(--cl-brand-strong);
+}
+
+.gc-chart__line--view {
+  stroke: var(--cl-ink-3);
+  stroke-dasharray: 5 4;
+}
+
+.gc-chart__cursor {
+  stroke: var(--cl-ink-3);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.gc-chart__dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--cl-surface);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.gc-chart__dot--search {
+  background: var(--cl-brand-strong);
+}
+
+.gc-chart__dot--view {
+  background: var(--cl-ink-3);
+}
+
+.gc-chart__hit {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.gc-chart__tip {
+  position: absolute;
+  top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  transform: translateX(12px);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-admin-nav);
+  color: var(--cl-admin-nav-ink);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+
+  &.is-flipped {
+    transform: translateX(calc(-100% - 12px));
+  }
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--cl-admin-nav-muted);
+  }
+}
+
+.gc-chart__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  font-size: 13px;
+  color: var(--cl-ink-3);
+  pointer-events: none;
+}
+
+/* ---- tables -------------------------------------------------------------------- */
+
+.gc-usage-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.gc-usage-table--wide {
+  grid-column: 1 / -1;
+}
+
+.gc-usage-table__head {
+  padding: 14px 16px 10px;
+}
+
+.gc-privacy {
+  max-width: 880px;
+}
+
+:host ::ng-deep .gc-mini-table.admin-table.p-datatable .p-datatable-table {
+  min-width: 0;
+}
+
+@media (max-width: 1280px) {
+  .gc-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .gc-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gc-usage-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gc-kpi__value {
+    font-size: 22px;
+  }
+
+  .gc-chart {
+    height: 180px;
+  }
+}
+
+.gc-kpi__spark {
+  display: block;
+  margin: 6px 0 2px;
+}

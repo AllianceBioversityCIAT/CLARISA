@@ -1,0 +1,273 @@
+<app-gc-banner
+  eyebrow="Concepts · Developers"
+  title="Use the official concepts in your system"
+  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'Concepts', link: gcBase }, { label: 'Developers' }]">
+  <p class="gc-dev-lede">
+    A free, open API, persistent URIs for linked data, full downloads and an MCP endpoint so AI assistants answer with the official definitions.
+  </p>
+</app-gc-banner>
+
+<!-- A code block with its copy button -->
+<ng-template #block let-key="key" let-label="label">
+  <div class="gc-code">
+    <span class="gc-code__label" *ngIf="label">{{ label }}</span>
+    <pre><code>{{ code[key] }}</code></pre>
+    <button type="button" class="gc-copy" [class.is-done]="copied === key" (click)="copy(key, code[key])" [attr.aria-label]="'Copy: ' + (label || key)">
+      <i class="pi" [class.pi-copy]="copied !== key" [class.pi-check]="copied === key" aria-hidden="true"></i>{{ copied === key ? 'Copied' : 'Copy' }}
+    </button>
+  </div>
+</ng-template>
+
+<section class="gc-section">
+  <div class="container">
+    <div class="gc-doc">
+      <nav class="gc-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li *ngFor="let s of sections">
+            <a [routerLink]="[]" [fragment]="s.id" [class.is-active]="active === s.id" [attr.aria-current]="active === s.id ? 'location' : null" (click)="goTo(s.id)">{{ s.label }}</a>
+          </li>
+        </ol>
+      </nav>
+
+      <div class="gc-doc__body">
+        <!-- Overview -->
+        <section class="gc-card gc-doc__section" id="overview">
+          <h2 class="gc-h2">Overview</h2>
+          <p>
+            Everything published in Concepts is readable <strong>without an account or a key</strong>: approved concepts and deprecated ones,
+            which keep resolving and point to their replacement. Drafts and concepts under review never appear.
+          </p>
+          <ul>
+            <li>Base URL of this environment: <span class="gc-mono">{{ bases.api }}</span></li>
+            <li>Answers are JSON; field names follow the MELIAF data schema template.</li>
+            <li>The text check (<span class="gc-mono">suggest</span>) and MCP are rate limited per address: a <span class="gc-mono">429</span> means wait a few minutes.</li>
+          </ul>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'search', label: 'Search concepts' }"></ng-container>
+        </section>
+
+        <!-- Endpoints -->
+        <section class="gc-card gc-doc__section" id="endpoints">
+          <h2 class="gc-h2">API endpoints</h2>
+          <p>Paths are relative to <span class="gc-mono">{{ bases.api }}</span>. Every GET opens as is in this environment.</p>
+          <table class="gc-table">
+            <thead>
+              <tr>
+                <th scope="col">Method</th>
+                <th scope="col">Path</th>
+                <th scope="col">What it returns</th>
+                <th scope="col"><span class="gc-sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let e of endpoints; trackBy: trackByPath">
+                <td><span class="gc-method">{{ e.method }}</span></td>
+                <td class="gc-mono">{{ e.path }}</td>
+                <td>{{ e.what }}</td>
+                <td class="gc-dev-actions">
+                  <ng-container *ngIf="e.live">
+                    <a class="gc-link" [href]="e.live" target="_blank" rel="noopener noreferrer"
+                      >Try <i class="pi pi-external-link" aria-hidden="true"></i><span class="gc-sr-only"> {{ e.path }} (opens in a new tab)</span></a
+                    >
+                    <button type="button" class="gc-link gc-dev-copy" (click)="copy(e.path, e.live)" [attr.aria-label]="'Copy the URL of ' + e.path">
+                      {{ copied === e.path ? 'Copied' : 'Copy URL' }}
+                    </button>
+                  </ng-container>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'suggest', label: 'Find the concepts a text mentions' }"></ng-container>
+        </section>
+
+        <!-- URIs -->
+        <section class="gc-card gc-doc__section" id="uris">
+          <h2 class="gc-h2">Persistent URIs and content negotiation</h2>
+          <p>
+            Every concept has a permanent address, its <span class="gc-mono">term_uri</span>. Cite it instead of a page link: it never changes, even
+            when the concept is deprecated. A browser opening it is sent to the human page; a program asking for data gets data.
+          </p>
+          <ul>
+            <li><span class="gc-mono">Accept: text/turtle</span> → SKOS in Turtle</li>
+            <li><span class="gc-mono">Accept: application/ld+json</span> → JSON-LD</li>
+            <li><span class="gc-mono">Accept: application/json</span> → the JSON record</li>
+            <li>Or force it with <span class="gc-mono">?format=skos|jsonld|json</span> when you cannot set headers.</li>
+          </ul>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'turtle', label: 'Turtle' }"></ng-container>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'jsonld', label: 'JSON-LD' }"></ng-container>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'uriFormat', label: 'Without headers' }"></ng-container>
+          <p class="gc-meta">
+            The whole scheme answers the same way at <span class="gc-mono">{{ bases.uris }}/{{ scheme }}</span>. Always read the URI from
+            <span class="gc-mono">term_uri</span>: its domain is set per environment.
+          </p>
+        </section>
+
+        <!-- Exports -->
+        <section class="gc-card gc-doc__section" id="exports">
+          <h2 class="gc-h2">Exports</h2>
+          <p>The whole scheme in one file, in four formats. The same buttons are on the list page under "Download".</p>
+          <ul>
+            <li><strong>JSON</strong> — every public field, the same shape as the API.</li>
+            <li><strong>CSV</strong> — opens in Excel with the columns of the MELIAF template, plus one column per public custom field.</li>
+            <li><strong>SKOS Turtle</strong> and <strong>JSON-LD</strong> — linked data for vocabulary tools and the web.</li>
+          </ul>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'exportCsv', label: 'CSV' }"></ng-container>
+        </section>
+
+        <!-- Sync -->
+        <section class="gc-card gc-doc__section" id="sync">
+          <h2 class="gc-h2">Change feed and version pinning</h2>
+          <p>
+            To keep a local copy up to date, do not download everything every night: read the <strong>change feed</strong>. Each change has a
+            growing cursor; ask for what happened after the last one you saw, then fetch only the concepts it names.
+          </p>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'changes', label: 'Incremental sync' }"></ng-container>
+          <p>
+            To make a report reproducible, <strong>pin a release</strong>: add <span class="gc-mono">?version=</span> to a concept, a search or an
+            export and the answer is the vocabulary as it was published in that release. The list of releases is at
+            <span class="gc-mono">/{{ scheme }}/releases</span>.
+          </p>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'exportPinned', label: 'An export frozen at release 1.0' }"></ng-container>
+        </section>
+
+        <!-- Get counted -->
+        <section class="gc-card gc-doc__section" id="counted">
+          <h2 class="gc-h2">Get counted: send your CLARISA API key</h2>
+          <p>
+            Reads stay open without a key. If your platform already has a CLARISA API key, send it in the
+            <span class="gc-mono">X-API-Key</span> header on every read (API endpoints, persistent URIs and MCP): the answer is exactly the same,
+            and the MELIAF team can see which connected systems use the vocabulary, not only the search portal.
+          </p>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'counted', label: 'A read counted for your platform' }"></ng-container>
+          <ul>
+            <li>Any active key counts; no scope is needed to read.</li>
+            <li>
+              A key that is unknown, revoked or expired never blocks the read. The answer then carries
+              <span class="gc-mono">X-Api-Key-Status: invalid</span>, so you can notice and ask for a new key.
+            </li>
+            <li>Send it from your server, never from a public web page: whoever sees the key can use it.</li>
+          </ul>
+        </section>
+
+        <!-- Platforms -->
+        <section class="gc-card gc-doc__section" id="platforms">
+          <h2 class="gc-h2">Platforms and API keys</h2>
+          <p>
+            Reading needs nothing. A <strong>platform</strong> (PRMS, a MIS, a reporting tool) that wants to <strong>propose</strong> concepts on
+            behalf of its users, or manage a scheme of its own, uses an <strong>API key</strong> issued by the CLARISA team. The key goes in the
+            <span class="gc-mono">x-api-key</span> header and carries one or more <strong>scopes</strong>:
+          </p>
+          <ul class="gc-dev-scopes">
+            <li>
+              <span class="gc-mono">concepts:read</span> — reserved for keyed reading. Today every public read works without a key, so no
+              route asks for it yet (any valid key is <a [routerLink]="[]" fragment="counted" (click)="goTo('counted')">counted</a>, with or
+              without it).
+            </li>
+            <li>
+              <span class="gc-mono">concepts:request</span> — submit requests and follow them. The stewards still decide; nothing is
+              published by the key.
+            </li>
+            <li><span class="gc-mono">concepts:write</span> — create and edit concepts directly, only in the scheme the platform owns.</li>
+            <li><span class="gc-mono">concepts:review</span> — decide requests, only in the scheme the platform owns.</li>
+          </ul>
+          <p>The shared MELIAF scheme can never be written by a key: platforms propose, the MELIAF stewards approve.</p>
+          <table class="gc-table">
+            <thead>
+              <tr>
+                <th scope="col">Method</th>
+                <th scope="col">Path</th>
+                <th scope="col">What it does</th>
+                <th scope="col">Scope</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let e of platform; trackBy: trackByPath">
+                <td><span class="gc-method">{{ e.method }}</span></td>
+                <td class="gc-mono">{{ e.path }}</td>
+                <td>{{ e.what }}</td>
+                <td class="gc-mono">{{ e.scope }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'platform', label: 'Submit a request from a platform' }"></ng-container>
+          <p class="gc-meta">
+            <span class="gc-mono">requester_email</span> names the person behind the request; <span class="gc-mono">external_request_id</span> makes
+            a retry safe: sending the same id twice returns the first request instead of creating a second one.
+          </p>
+        </section>
+
+        <!-- MCP -->
+        <section class="gc-card gc-doc__section" id="mcp">
+          <h2 class="gc-h2">AI assistants (MCP)</h2>
+          <p>
+            <strong>MCP (Model Context Protocol)</strong> is a common way to plug a source of information into an AI assistant such as Claude or
+            ChatGPT. Once you add the address below, the assistant can look up the official CGIAR concepts by itself while it answers you, and quote
+            the definitions and their links instead of making them up. It only reads what is already public here; it cannot change anything.
+          </p>
+          <div class="gc-dev-endpoint">
+            <span class="gc-code__label">MCP endpoint (Streamable HTTP, no key)</span>
+            <div class="gc-dev-endpoint__row">
+              <span class="gc-mono">{{ bases.mcp }}</span>
+              <button type="button" class="gc-btn gc-btn--ghost gc-btn--small" (click)="copy('mcpUrl', bases.mcp)">
+                <i class="pi" [class.pi-copy]="copied !== 'mcpUrl'" [class.pi-check]="copied === 'mcpUrl'" aria-hidden="true"></i
+                >{{ copied === 'mcpUrl' ? 'Copied' : 'Copy' }}
+              </button>
+            </div>
+          </div>
+
+          <h3 class="gc-h4">The four tools</h3>
+          <ul class="gc-dev-tools">
+            <li *ngFor="let t of tools">
+              <span class="gc-mono">{{ t.name }}</span>
+              <span>{{ t.what }}</span>
+              <span class="gc-dev-tools__ask">Ask: "{{ t.ask }}"</span>
+            </li>
+          </ul>
+
+          <h3 class="gc-h4">Claude Code</h3>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'claudeCode', label: 'Terminal' }"></ng-container>
+
+          <h3 class="gc-h4">Claude Desktop</h3>
+          <p>Settings → Connectors → Add custom connector, and paste the endpoint above. On versions without connectors, use this configuration:</p>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'claudeDesktop', label: 'claude_desktop_config.json' }"></ng-container>
+
+          <h3 class="gc-h4">ChatGPT and other clients</h3>
+          <p>
+            In ChatGPT, turn on developer mode in the settings and create a connector (app) with the endpoint above; no authentication is needed. Menu
+            names change often. Any client that speaks Streamable HTTP takes the endpoint the same way; many read this file:
+          </p>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'mcpJson', label: '.mcp.json' }"></ng-container>
+          <ng-container *ngTemplateOutlet="block; context: { key: 'mcpCurl', label: 'Raw call' }"></ng-container>
+
+          <div class="gc-dev-try" id="mcp-try">
+            <h3 class="gc-h3">Try it</h3>
+            <p class="gc-meta">
+              Calls <span class="gc-mono">search_concepts</span> from your browser, exactly as an assistant would. Only the tool name is counted; the
+              words you type are not stored.
+            </p>
+            <form class="gc-dev-try__form" (ngSubmit)="tryIt()">
+              <div class="gc-field">
+                <label for="gc-try-q">Words to search</label>
+                <input id="gc-try-q" name="q" class="gc-input" maxlength="200" autocomplete="off" [(ngModel)]="tryQuery" [disabled]="trying" />
+              </div>
+              <button type="submit" class="gc-btn" [disabled]="trying || !tryQuery.trim()">
+                <span class="gc-spin" *ngIf="trying" aria-hidden="true"></span>
+                <i class="pi pi-play" *ngIf="!trying" aria-hidden="true"></i>{{ trying ? 'Calling…' : 'Call the tool' }}
+              </button>
+            </form>
+            <div class="gc-note gc-note--error" *ngIf="tryError" role="alert">
+              <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+              <p>{{ tryError }}</p>
+            </div>
+            <div class="gc-code" *ngIf="tryResult" aria-live="polite">
+              <span class="gc-code__label">Answer</span>
+              <pre class="gc-dev-try__out"><code>{{ tryResult }}</code></pre>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</section>
+
+<app-gc-footer></app-gc-footer>

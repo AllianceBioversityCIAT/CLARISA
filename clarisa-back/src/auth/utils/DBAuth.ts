@@ -27,9 +27,12 @@ export class DBAuth implements BaseAuthenticator {
     password: string,
   ): Promise<boolean | BaseMessageDTO> {
     return this.usersService
-      .findOneByEmail(username, false)
+      .findOneByEmailWithPassword(username)
       .then((user: User) => {
-        const userPass: string = user.password;
+        const userPass: string = user?.password;
+        if (!userPass) {
+          return this.errorDto;
+        }
 
         this.passwordEncoder = this.moduleRef.get(
           this.isLegacyPassword(user.password)

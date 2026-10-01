@@ -1,0 +1,77 @@
+:host {
+  display: inline-flex;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.gc-at {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--cl-brand-ring);
+  border-radius: 999px;
+  background: var(--cl-surface);
+  color: var(--cl-brand-deeper);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+
+  svg {
+    width: 15px;
+    height: 15px;
+    fill: currentColor;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: var(--cl-brand-soft);
+    outline: none;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px var(--cl-brand-ring);
+  }
+
+  &.is-on {
+    border-color: var(--cl-admin-nav);
+    background: var(--cl-admin-nav);
+    color: var(--cl-admin-nav-ink);
+
+    svg {
+      fill: var(--cl-admin-nav-accent);
+    }
+  }
+}
+
+.gc-at__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--cl-brand);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gc-at {
+    transition: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .gc-at__label {
+    display: none;
+  }
+}

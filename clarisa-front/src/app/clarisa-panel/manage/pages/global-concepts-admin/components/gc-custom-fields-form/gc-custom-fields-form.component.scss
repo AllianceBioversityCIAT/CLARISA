@@ -1,0 +1,47 @@
+@import '../gc-editor';
+
+.gc-xf__private {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cl-ink-3);
+
+  .pi {
+    font-size: 10px;
+  }
+}
+
+:host ::ng-deep .gc-xf {
+  input.p-inputtext,
+  textarea.p-inputtextarea {
+    display: block;
+    width: 100%;
+    font-size: 16px;
+  }
+
+  p-dropdown,
+  p-multiselect,
+  p-chips,
+  .p-dropdown,
+  .p-multiselect,
+  .p-chips,
+  .p-chips-multiple-container {
+    width: 100%;
+  }
+
+  .p-chips-multiple-container {
+    min-height: 40px;
+    padding: 4px 8px;
+    border: 1px solid var(--cl-line);
+    border-radius: var(--cl-radius-control);
+  }
+
+  .p-chips-input-token input {
+    font-size: 16px;
+  }
+
+  .p-chips-token {
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+  }
+}

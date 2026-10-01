@@ -1,13 +1,41 @@
 <!--
-  Sin sidebar propio: las tres pestañas se eligen desde el menú negro del
-  panel («Manage > System > Microservices & API keys»), que ahora las lleva
-  desplegadas. Esto ocupa el ancho entero.
+  Un solo encabezado para el módulo, el mismo `.admin-page` del glosario y de
+  las solicitudes: el grupo del menú arriba, el nombre, una línea que dice para
+  qué sirve, y el riel de pestañas a la derecha. Cada pestaña dentro ya no trae
+  su propio título grande: trae su barra de trabajo (buscador, filtros, acción).
 -->
-<main class="ms-admin-main">
-  <app-api-keys-panel *ngIf="activeSection === 'api-keys'"></app-api-keys-panel>
-  <app-api-key-usage-dashboard *ngIf="activeSection === 'usage'"></app-api-key-usage-dashboard>
-  <app-mises-panel *ngIf="activeSection === 'mises'"></app-mises-panel>
-</main>
+<div class="ms-admin">
+  <header class="admin-page">
+    <div class="admin-page__head">
+      <span class="admin-page__eyebrow">System</span>
+      <h1 class="admin-page__title">Microservices &amp; API keys</h1>
+      <p class="admin-page__hint">
+        Who consumes CLARISA, through which keys, and how much. Every call made with an <code>X-API-Key</code> is counted here.
+      </p>
+    </div>
+
+    <nav class="admin-tabs admin-page__aside" role="tablist" aria-label="Microservices sections">
+      <button
+        *ngFor="let tab of tabs"
+        type="button"
+        role="tab"
+        class="admin-tabs__item"
+        [id]="'ms-tab-' + tab.id"
+        [class.is-active]="activeSection === tab.id"
+        [attr.aria-selected]="activeSection === tab.id"
+        [attr.title]="tab.hint"
+        (click)="setSection(tab.id)">
+        <span>{{ tab.label }}</span>
+      </button>
+    </nav>
+  </header>
+
+  <main class="ms-admin__main">
+    <app-api-key-usage-dashboard *ngIf="activeSection === 'overview'"></app-api-key-usage-dashboard>
+    <app-mises-panel *ngIf="activeSection === 'mises'"></app-mises-panel>
+    <app-api-keys-panel *ngIf="activeSection === 'api-keys'"></app-api-keys-panel>
+  </main>
+</div>
 
 <p-toast position="top-right"></p-toast>
 <p-confirmDialog></p-confirmDialog>

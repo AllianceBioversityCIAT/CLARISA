@@ -3,7 +3,8 @@ import { NavigationEnd, Router } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 
 import { AuthService } from '../../../../shared/services/auth.service';
-import { ADMIN_GROUPS, AdminGroup, AdminLink, adminSectionLabel } from '../../admin-nav';
+import { PanelAccessService, PanelAccessState } from '../../../../shared/services/access-admin/panel-access.service';
+import { AdminGroup, AdminLink, adminSectionLabel, groupsFor } from '../../admin-nav';
 
 /**
  * Lo que de verdad guarda `localStorage.user`, que no es lo que declara
@@ -67,9 +68,32 @@ export class AdminSidebarComponent implements OnDestroy {
   private readonly collapsedLinks = new Set<string>();
 
   private readonly navigation: Subscription;
+  private readonly accessSub: Subscription;
 
-  constructor(private authService: AuthService, private router: Router) {
+  /**
+   * What the caller's roles open (`me/access`). Until it resolves the column
+   * draws skeleton items, never the full menu: showing every entry for a
+   * second and then taking most of them away reads as a glitch, and it lists
+   * to a module admin the screens they cannot open.
+   *
+   * If it fails or times out (`error`), the column shows the whole menu, as
+   * before role filtering (`groupsFor(null)`); the back still enforces each
+   * permission. A user whose roles open nothing gets a one-line note
+   * (`noAccess`) instead of an empty column.
+   */
+  access: PanelAccessState = { status: 'idle' };
+
+  /** The navigation the caller may see, recomputed when the access resolves. */
+  private allowed: AdminGroup[] = [];
+
+  constructor(private authService: AuthService, private router: Router, private panelAccess: PanelAccessService) {
     this.sectionLabel = adminSectionLabel(this.router.url);
+
+    this.accessSub = this.panelAccess.state$.subscribe(state => {
+      this.access = state;
+      this.allowed = state.status === 'ready' ? groupsFor(state.access) : state.status === 'error' ? groupsFor(null) : [];
+    });
+    this.panelAccess.ensure();
 
     // Navegar cierra el cajón: quien toca una entrada quiere la pantalla, no
     // seguir mirando el menú que la tapa.
@@ -83,6 +107,7 @@ export class AdminSidebarComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.navigation.unsubscribe();
+    this.accessSub.unsubscribe();
     // El panel se abandona con el cajón abierto (logout, «back to the site»):
     // el candado del scroll vive en <body>, así que sobrevive al componente si
     // no se suelta aquí.
@@ -124,10 +149,10 @@ export class AdminSidebarComponent implements OnDestroy {
     const needle = this.query.trim().toLowerCase();
 
     if (!needle) {
-      return ADMIN_GROUPS;
+      return this.allowed;
     }
 
-    return ADMIN_GROUPS.map(group => ({
+    return this.allowed.map(group => ({
       ...group,
       links: group.links.filter(
         link =>
@@ -137,9 +162,18 @@ export class AdminSidebarComponent implements OnDestroy {
     })).filter(group => group.links.length > 0);
   }
 
+  get accessLoading(): boolean {
+    return this.access.status === 'loading' || this.access.status === 'idle';
+  }
+
+  /** Resolved, and the caller's roles open no section of the panel. */
+  get noAccess(): boolean {
+    return this.access.status === 'ready' && this.allowed.length === 0;
+  }
+
   /** Nada coincide: se dice, en vez de dejar la columna en blanco. */
   get isEmpty(): boolean {
-    return this.groups.length === 0;
+    return this.allowed.length > 0 && this.groups.length === 0;
   }
 
   /**
@@ -180,6 +214,8 @@ export class AdminSidebarComponent implements OnDestroy {
   }
 
   onLogOut(): void {
+    // The next session reads its own access, not this one's.
+    this.panelAccess.clear();
     this.authService.logout();
   }
 

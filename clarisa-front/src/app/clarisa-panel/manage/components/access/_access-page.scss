@@ -1,0 +1,633 @@
+/**
+ * Users and Roles screens (Access group of the admin panel): the pieces of the
+ * page itself — toolbar, bulk bar, states, skeleton rows, drawer, permission
+ * groups, members. Each page includes `access-common` plus its own mixin under
+ * `:host ::ng-deep .access-admin`, so the lazy chunk carries it, the public
+ * bundle does not, and each page stays inside the component style budget.
+ *
+ * Desktop table minimums sit in `min-width: 721px`: under 720px the global
+ * table skin turns rows into cards and resets the minimum, and must win.
+ *
+ * The form/dialog skin (Concepts's `gc-form-skin`) comes from
+ * `app-access-skin`. Tokens only, px only.
+ */
+@mixin access-common {
+
+  &.acc-page {
+    display: block;
+    min-height: 100vh;
+    padding: 24px 28px 32px;
+    background: var(--cl-surface-2);
+    box-sizing: border-box;
+  }
+
+  /* ---- card, states, skeleton ------------------------------------------ */
+  .acc-card {
+    border: 1px solid var(--cl-line);
+    border-radius: var(--cl-radius-card);
+    background: var(--cl-surface);
+  }
+
+  .acc-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 40px 24px;
+    text-align: center;
+  }
+
+  .acc-state__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+    font-size: 18px;
+  }
+
+  .acc-state--error .acc-state__icon {
+    background: var(--cl-surface-2);
+    color: var(--cl-error);
+  }
+
+  .acc-state__title {
+    margin: 4px 0 0;
+    color: var(--cl-ink);
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .acc-state__text {
+    margin: 0;
+    max-width: 460px;
+    color: var(--cl-ink-3);
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: normal;
+  }
+
+  .acc-bone {
+    display: block;
+    width: 80%;
+    height: 12px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--cl-surface-2) 0%, var(--cl-line) 50%, var(--cl-surface-2) 100%);
+    background-size: 200% 100%;
+    animation: acc-shimmer 1.3s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
+
+  .acc-bone--short {
+    width: 48px;
+  }
+
+  .acc-bone--box {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+  }
+
+  /* ---- rows and cells ---------------------------------------------------- */
+  .acc-row {
+    cursor: pointer;
+  }
+
+  .acc-yes {
+    color: var(--cl-ok);
+    font-weight: 600;
+  }
+
+  .acc-status {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+    font-size: 11px;
+    font-weight: 700;
+
+    &.is-off {
+      margin-left: 6px;
+      background: var(--cl-surface-2);
+      color: var(--cl-ink-3);
+    }
+  }
+
+  .acc-level {
+    display: inline-block;
+    padding: 2px 9px;
+    border: 1px solid var(--cl-line);
+    border-radius: 999px;
+    background: var(--cl-surface-2);
+    color: var(--cl-ink-2);
+    font-size: 11.5px;
+    font-weight: 700;
+
+    &[data-level='super'] {
+      border-color: var(--cl-ink);
+      background: var(--cl-ink);
+      color: var(--cl-surface);
+    }
+
+    &[data-level='user_admin'] {
+      border-color: var(--cl-brand-ring);
+      background: var(--cl-brand-soft);
+      color: var(--cl-brand-deeper);
+    }
+  }
+
+  .acc-system {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--cl-ink-2);
+    font-size: 12px;
+    font-weight: 600;
+
+    .pi {
+      font-size: 11px;
+    }
+  }
+
+  .acc-option strong,
+  .acc-chip__text strong {
+    margin-right: 6px;
+    color: var(--cl-ink);
+  }
+
+  .acc-names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: var(--cl-surface-2);
+      color: var(--cl-ink-2);
+      font-size: 12px;
+    }
+  }
+
+  @media (max-width: 991px) {
+    &.acc-page {
+      padding: 20px 16px 28px;
+    }
+  }
+}
+
+/* Users: toolbar, bulk bar and the per-person drawer. */
+@mixin access-users {
+  /* ---- toolbar and bulk bar -------------------------------------------- */
+  .acc-toolbar {
+    margin-bottom: 12px;
+  }
+
+  .acc-toolbar__search {
+    flex: 1 1 260px;
+  }
+
+  .acc-toolbar__role {
+    min-width: 220px;
+  }
+
+  .acc-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--cl-ink-2);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .acc-bulk {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    padding: 8px 10px 8px 14px;
+    border: 1px solid var(--cl-brand-ring);
+    border-radius: 10px;
+    background: var(--cl-brand-soft);
+
+    .btn-brand {
+      margin-left: auto;
+    }
+  }
+
+  .acc-bulk__count {
+    color: var(--cl-brand-deeper);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  /* ---- drawer ------------------------------------------------------------ */
+  .acc-drawer.p-sidebar {
+    width: 440px;
+    max-width: 100vw;
+    background: var(--cl-surface);
+
+    .p-sidebar-content {
+      padding: 0 24px 24px;
+    }
+  }
+
+  .acc-drawer__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 16px;
+  }
+
+  .acc-drawer__disc {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+    font-size: 18px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .acc-drawer__who {
+    min-width: 0;
+  }
+
+  .acc-drawer__name {
+    margin: 0;
+    color: var(--cl-ink);
+    font-size: 18px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .acc-drawer__mail {
+    margin: 2px 0 0;
+    color: var(--cl-ink-3);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  .acc-drawer__facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 0 8px;
+
+    div {
+      padding: 8px 10px;
+      border: 1px solid var(--cl-line);
+      border-radius: 8px;
+    }
+
+    dt {
+      color: var(--cl-ink-3);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    dd {
+      margin: 2px 0 0;
+      color: var(--cl-ink);
+      font-size: 13px;
+      font-weight: 600;
+    }
+  }
+
+  .acc-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .acc-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 4px 4px 4px 12px;
+    border: 1px solid var(--cl-brand-ring);
+    border-radius: 8px;
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+    font-size: 13px;
+  }
+
+  .acc-chip__text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .acc-chip__x,
+  .acc-chip__lock {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--cl-brand-deeper);
+  }
+
+  .acc-chip__x {
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--cl-surface);
+      color: var(--cl-error);
+      outline: none;
+    }
+  }
+
+  .acc-chip__lock {
+    color: var(--cl-ink-3);
+    font-size: 12px;
+  }
+
+  .acc-none {
+    margin: 0;
+    font-size: 13px;
+  }
+
+  .acc-add {
+    margin-top: 18px;
+  }
+
+  .acc-add__row {
+    display: flex;
+    gap: 8px;
+
+    .p-dropdown {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+  }
+
+  @media (min-width: 721px) {
+    .acc-users-table .p-datatable-table {
+      min-width: 960px;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .acc-toolbar__role {
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+
+    .acc-bulk .btn-brand,
+    .acc-add__row .p-button {
+      min-height: 44px;
+    }
+
+    .acc-add__row {
+      flex-direction: column;
+    }
+
+    .acc-drawer.p-sidebar {
+      width: 100vw;
+    }
+
+    .acc-drawer__facts {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+/* Roles: the role dialog (permission groups) and its Members tab. */
+@mixin access-roles {
+  /* ---- role dialog -------------------------------------------------------- */
+  .acc-tabs {
+    display: flex;
+    max-width: 100%;
+    margin-bottom: 16px;
+    overflow-x: auto;
+  }
+
+  .acc-tabs__count {
+    margin-left: 6px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--cl-surface-2);
+    color: var(--cl-ink-3);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .acc-locked {
+    margin-bottom: 8px;
+  }
+
+  .acc-label {
+    color: var(--cl-ink);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .acc-perm-group {
+    margin: 0 0 12px;
+    padding: 0;
+    border: 1px solid var(--cl-line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .acc-perm-group__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    float: left;
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--cl-surface-2);
+    border-bottom: 1px solid var(--cl-line);
+    box-sizing: border-box;
+
+    .acc-link {
+      margin-left: auto;
+    }
+  }
+
+  .acc-perm-group__title {
+    color: var(--cl-ink);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .acc-perm-group__count {
+    color: var(--cl-ink-3);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .acc-perm {
+    display: flex;
+    clear: both;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--cl-line);
+
+    &:first-of-type {
+      border-top: 0;
+    }
+
+    &.is-locked .acc-perm__text {
+      cursor: default;
+      opacity: 0.6;
+    }
+  }
+
+  .acc-perm__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    cursor: pointer;
+  }
+
+  .admin-form .field label.acc-perm__label,
+  .acc-perm__label {
+    margin: 0;
+    color: var(--cl-ink);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: inherit;
+  }
+
+  .acc-perm__desc {
+    color: var(--cl-ink-2);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  .acc-perm__route {
+    align-self: flex-start;
+    padding: 0 5px;
+    border-radius: 4px;
+    background: var(--cl-surface-2);
+    color: var(--cl-ink-3);
+    font-size: 11px;
+  }
+
+  .acc-perm__lock {
+    margin-top: 3px;
+    color: var(--cl-ink-3);
+    font-size: 12px;
+  }
+
+  /* ---- members ------------------------------------------------------------ */
+  .acc-members__bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+
+    .admin-table-toolbar__count {
+      margin-left: auto;
+    }
+  }
+
+  .acc-members__search {
+    flex: 1 1 220px;
+
+    > i {
+      top: 50%;
+      left: 12px;
+      margin-top: 0;
+      transform: translateY(-50%);
+      color: var(--cl-ink-3);
+      font-size: 13px;
+    }
+
+    > .p-inputtext {
+      width: 100%;
+      height: 38px;
+      padding-left: 34px;
+      border: 1px solid var(--cl-line);
+      border-radius: 8px;
+    }
+  }
+
+  .acc-members__add {
+    margin-bottom: 14px;
+    padding: 14px;
+    border: 1px solid var(--cl-line);
+    border-radius: 10px;
+    background: var(--cl-surface-2);
+
+    .admin-form__actions {
+      margin-top: 12px;
+    }
+  }
+
+  .acc-picker,
+  .acc-picker .p-autocomplete-multiple-container {
+    width: 100%;
+  }
+
+  .acc-picker .p-autocomplete-multiple-container {
+    min-height: 38px;
+    border: 1px solid var(--cl-line);
+    border-radius: 8px;
+  }
+
+
+  .acc-remove.p-button {
+    width: 32px;
+    height: 32px;
+    color: var(--cl-ink-3);
+
+    &:enabled:hover {
+      color: var(--cl-error);
+    }
+  }
+
+  @media (min-width: 721px) {
+    .acc-members-table .p-datatable-table {
+      min-width: 560px;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .acc-remove.p-button {
+      width: 44px;
+      height: 44px;
+    }
+  }
+}
+
+@mixin access-page-motion {
+  @keyframes acc-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+}

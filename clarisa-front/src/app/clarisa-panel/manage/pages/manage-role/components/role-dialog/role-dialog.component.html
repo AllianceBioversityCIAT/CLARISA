@@ -1,0 +1,146 @@
+<p-dialog
+  [visible]="visible"
+  (visibleChange)="$event ? null : close()"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [dismissableMask]="!saving"
+  [style]="{ width: '760px' }"
+  [breakpoints]="{ '800px': '94vw' }"
+  styleClass="admin-dialog gc-dialog acc-role-dialog">
+  <p-header>
+    <span class="gc-dialog__title">{{ title }}</span>
+    <span class="gc-dialog__subtitle">{{
+      isNew ? 'Name the role and tick what it opens. Members are added once it exists.' : 'Changes apply to every member the next time they call CLARISA.'
+    }}</span>
+  </p-header>
+
+  <nav class="admin-tabs acc-tabs" role="tablist" aria-label="Role sections" *ngIf="!isNew">
+    <button type="button" role="tab" class="admin-tabs__item" [class.is-active]="tab === 'role'" [attr.aria-selected]="tab === 'role'" (click)="selectTab('role')">
+      <span>Role</span>
+    </button>
+    <button type="button" role="tab" class="admin-tabs__item" [class.is-active]="tab === 'members'" [attr.aria-selected]="tab === 'members'" (click)="selectTab('members')">
+      <span>Members</span>
+      <span class="acc-tabs__count">{{ role?.memberCount ?? 0 }}</span>
+    </button>
+  </nav>
+
+  <form *ngIf="tab === 'role'" class="admin-form" (ngSubmit)="save()" autocomplete="off">
+    <p class="admin-note acc-locked" *ngIf="lockedReason">
+      <i class="pi pi-lock" aria-hidden="true"></i><span>{{ lockedReason }}</span>
+    </p>
+
+    <section class="gc-section" aria-labelledby="acc-sec-identity">
+      <header class="gc-section__head">
+        <h3 class="gc-section__title" id="acc-sec-identity">Identity</h3>
+        <p class="gc-section__hint">How the role is called in lists and on people's chips.</p>
+      </header>
+      <div class="admin-form__grid">
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="acc-acronym">Acronym <span class="tag-req">Required</span></label>
+            <app-gc-info [text]="info.role.acronym"></app-gc-info>
+          </div>
+          <input
+            id="acc-acronym"
+            name="acronym"
+            type="text"
+            pInputText
+            maxlength="50"
+            autocapitalize="characters"
+            [disabled]="readOnly || saving"
+            [(ngModel)]="acronym"
+            placeholder="e.g. CONCEPTS_DA" />
+          <small class="field-error" *ngIf="acronymError">{{ acronymError }}</small>
+        </div>
+
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="acc-description">Name <span class="tag-req">Required</span></label>
+            <app-gc-info [text]="info.role.description"></app-gc-info>
+          </div>
+          <input
+            id="acc-description"
+            name="description"
+            type="text"
+            pInputText
+            [maxlength]="limits.descriptionMax"
+            [disabled]="readOnly || saving"
+            [(ngModel)]="description"
+            placeholder="e.g. Concepts Data Admins" />
+          <small class="field-error" *ngIf="descriptionError">{{ descriptionError }}</small>
+        </div>
+
+        <div class="field" *ngIf="role">
+          <div class="gc-field-head">
+            <span class="acc-label">Level</span>
+            <app-gc-info [text]="info.role.level"></app-gc-info>
+          </div>
+          <span class="acc-level" [attr.data-level]="role.level">{{ levelLabel(role.level) }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="gc-section" aria-labelledby="acc-sec-perms">
+      <header class="gc-section__head acc-perms-head">
+        <div>
+          <div class="gc-field-head">
+            <h3 class="gc-section__title" id="acc-sec-perms">Permissions</h3>
+            <app-gc-info [text]="info.role.permissions"></app-gc-info>
+          </div>
+          <p class="gc-section__hint">{{ selected.size }} selected. Grouped by the part of CLARISA they open.</p>
+        </div>
+      </header>
+
+      <p class="cell-empty" *ngIf="!catalog.length">The list of permissions did not load. Close and open the role again.</p>
+
+      <fieldset class="acc-perm-group" *ngFor="let group of catalog">
+        <legend class="acc-perm-group__head">
+          <span class="acc-perm-group__title">{{ group.module || 'Other' }}</span>
+          <span class="acc-perm-group__count">{{ countIn(group) }} of {{ group.items.length }}</span>
+          <button type="button" class="acc-link" *ngIf="hasGrantable(group)" [disabled]="saving" (click)="toggleGroup(group)">
+            {{ groupAllOn(group) ? 'Clear' : 'Select all' }}
+          </button>
+        </legend>
+        <div class="acc-perm" *ngFor="let permission of group.items" [class.is-locked]="!canGrant(permission)">
+          <p-checkbox
+            [inputId]="'acc-perm-' + permission.id"
+            [binary]="true"
+            [ngModel]="isChecked(permission)"
+            [ngModelOptions]="{ standalone: true }"
+            [disabled]="!canGrant(permission) || saving"
+            (onChange)="toggle(permission, $event.checked)"></p-checkbox>
+          <!-- The text toggles too: a 20px box is a small target on a phone. -->
+          <span class="acc-perm__text" (click)="toggle(permission, !isChecked(permission))">
+            <label class="acc-perm__label" [for]="'acc-perm-' + permission.id" (click)="$event.preventDefault()">{{ permission.label || permission.name }}</label>
+            <span class="acc-perm__desc" *ngIf="permission.description">{{ permission.description }}</span>
+            <code class="acc-perm__route">{{ permission.name }}</code>
+          </span>
+          <i
+            class="pi pi-lock acc-perm__lock"
+            *ngIf="!readOnly && !canGrant(permission)"
+            pTooltip="You do not hold this permission, so you cannot give it."
+            tooltipPosition="left"
+            aria-label="You do not hold this permission"></i>
+        </div>
+      </fieldset>
+    </section>
+
+    <p class="field-error acc-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <div class="admin-form__actions gc-dialog-foot">
+      <button pButton type="button" [label]="readOnly ? 'Close' : 'Cancel'" class="p-button-outlined" [disabled]="saving" (click)="close()"></button>
+      <button
+        *ngIf="!readOnly"
+        pButton
+        type="submit"
+        class="btn-brand"
+        [label]="saving ? 'Saving…' : isNew ? 'Create role' : 'Save changes'"
+        [loading]="saving"
+        [disabled]="!canSave"></button>
+    </div>
+  </form>
+
+  <app-role-members *ngIf="tab === 'members' && role" [role]="role" [readOnly]="readOnly" (changed)="onMembersChanged()"></app-role-members>
+</p-dialog>

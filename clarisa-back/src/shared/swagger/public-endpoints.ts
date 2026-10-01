@@ -64,4 +64,15 @@ export const PUBLIC_OPENAPI_PATHS: string[] = [
   '/api/account-types',
   '/api/science-groups',
   '/api/units',
+  // Concepts (the Global Concepts module) — public read only; writes, requests,
+  // admin and MCP stay out of the spec.
+  '/api/concepts/schemes',
+  '/api/concepts/lists',
+  '/api/concepts/{scheme}',
+  '/api/concepts/{scheme}/concepts',
+  '/api/concepts/{scheme}/concepts/{termId}',
+  '/api/concepts/{scheme}/concepts/{termId}/history',
+  '/api/concepts/{scheme}/changes',
+  '/api/concepts/{scheme}/releases',
+  '/api/concepts/{scheme}/export',
 ];

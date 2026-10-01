@@ -1,0 +1,105 @@
+<div class="acc-members">
+  <div class="acc-members__bar">
+    <span class="p-input-icon-left acc-members__search">
+      <i class="pi pi-search" aria-hidden="true"></i>
+      <input type="search" pInputText placeholder="Search members" aria-label="Search members by name or e-mail" maxlength="100" [(ngModel)]="search" (ngModelChange)="onSearch()" />
+    </span>
+    <app-gc-info [text]="info.search"></app-gc-info>
+    <span class="admin-table-toolbar__count" *ngIf="!loading && !loadError">{{ total }} {{ total === 1 ? 'member' : 'members' }}</span>
+    <button *ngIf="!readOnly && !addOpen" pButton type="button" class="btn-brand" icon="pi pi-user-plus" label="Add members" (click)="addOpen = true"></button>
+  </div>
+
+  <form class="admin-form acc-members__add" *ngIf="addOpen && !readOnly" (ngSubmit)="add()" autocomplete="off">
+    <div class="field">
+      <div class="gc-field-head">
+        <label for="acc-members-picker">People to add</label>
+        <app-gc-info [text]="info.add"></app-gc-info>
+      </div>
+      <app-access-user-picker inputId="acc-members-picker" [disabled]="adding" [(selected)]="picked"></app-access-user-picker>
+    </div>
+    <p class="field-error acc-error" role="alert" *ngIf="addError"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ addError }}</p>
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="adding" (click)="addOpen = false; picked = []"></button>
+      <button
+        pButton
+        type="submit"
+        class="btn-brand"
+        [label]="adding ? 'Adding…' : picked.length ? 'Add ' + picked.length : 'Add'"
+        [loading]="adding"
+        [disabled]="adding || !picked.length"></button>
+    </div>
+  </form>
+
+  <div class="acc-state acc-state--error" *ngIf="loadError">
+    <span class="acc-state__icon"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i></span>
+    <p class="acc-state__title">The members did not load</p>
+    <p class="acc-state__text">{{ loadError }}</p>
+    <button pButton type="button" label="Retry" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
+  </div>
+
+  <p-table
+    *ngIf="!loadError"
+    [value]="rows"
+    dataKey="id"
+    [lazy]="true"
+    [paginator]="total > pageSize"
+    [rows]="pageSize"
+    [first]="first"
+    [totalRecords]="total"
+    (onPage)="onPage($event)"
+    styleClass="p-datatable-sm admin-table acc-members-table"
+    responsiveLayout="scroll">
+    <ng-template pTemplate="header">
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col" style="width: 240px">Email</th>
+        <th scope="col" style="width: 110px">Last login</th>
+        <th scope="col" style="width: 64px" *ngIf="!readOnly"><span class="cl-sr-only">Remove</span></th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-row>
+      <tr *ngIf="isSkeleton(row); else memberRow" aria-hidden="true">
+        <td data-card-title><span class="acc-bone"></span></td>
+        <td><span class="acc-bone"></span></td>
+        <td><span class="acc-bone acc-bone--short"></span></td>
+        <td *ngIf="!readOnly"></td>
+      </tr>
+      <ng-template #memberRow>
+        <tr>
+          <td data-card-title data-label="Name" class="cell-primary">{{ fullName(row) }}</td>
+          <td data-label="Email"><span class="cell-ellipsis" [title]="row.email">{{ row.email }}</span></td>
+          <td data-label="Last login" class="cell-num">{{ row.lastLogin ? (row.lastLogin | date: 'yyyy-MM-dd') : '—' }}</td>
+          <td *ngIf="!readOnly" data-label="Remove">
+            <button
+              pButton
+              type="button"
+              icon="pi pi-times"
+              class="p-button-text p-button-rounded acc-remove"
+              [attr.aria-label]="'Remove ' + fullName(row) + ' from the role'"
+              pTooltip="Remove from the role"
+              (click)="askRemove(row)"></button>
+          </td>
+        </tr>
+      </ng-template>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr class="admin-table__empty-row">
+        <td [attr.colspan]="readOnly ? 3 : 4">
+          <div class="acc-state">
+            <span class="acc-state__icon"><i class="pi pi-users" aria-hidden="true"></i></span>
+            <p class="acc-state__title">{{ search.trim() ? 'No member matches' : 'Nobody holds this role yet' }}</p>
+            <p class="acc-state__text" *ngIf="!search.trim() && !readOnly">Use <strong>Add members</strong> to give it to one or more people.</p>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  <app-access-justification
+    [visible]="!!removeTarget"
+    (visibleChange)="$event ? null : closeRemove()"
+    [message]="removeMessage"
+    [busy]="removing"
+    [error]="removeError"
+    (confirmed)="remove($event)"></app-access-justification>
+</div>

@@ -1,1 +1,280 @@
-<p>manage-user works!</p>
+<div class="access-admin acc-page">
+  <header class="admin-page">
+    <div class="admin-page__head">
+      <span class="admin-page__eyebrow">Access</span>
+      <h1 class="admin-page__title">Users</h1>
+      <p class="admin-page__hint">Everyone with a CLARISA account and the roles they hold. Open a person to add or remove roles.</p>
+    </div>
+  </header>
+
+  <div class="admin-table-toolbar acc-toolbar">
+    <span class="p-input-icon-left acc-toolbar__search">
+      <i class="pi pi-search" aria-hidden="true"></i>
+      <input
+        type="search"
+        pInputText
+        placeholder="Search by name or e-mail"
+        aria-label="Search users by name or e-mail"
+        maxlength="100"
+        [(ngModel)]="search"
+        (ngModelChange)="onSearch()" />
+    </span>
+    <app-gc-info [text]="info.users.search"></app-gc-info>
+
+    <span class="cl-sr-only" id="acc-role-filter-l">Filter by role</span>
+    <p-dropdown
+      inputId="acc-role-filter"
+      ariaLabelledBy="acc-role-filter-l"
+      appendTo="body"
+      panelStyleClass="admin-dropdown-panel"
+      styleClass="acc-toolbar__role"
+      placeholder="Any role"
+      [showClear]="true"
+      [filter]="roles.length > 8"
+      [options]="roleOptions"
+      [disabled]="withoutRole"
+      [(ngModel)]="roleId"
+      (onChange)="reload()"></p-dropdown>
+    <app-gc-info [text]="info.users.role"></app-gc-info>
+
+    <label class="acc-toggle">
+      <p-inputSwitch inputId="acc-without-role" [(ngModel)]="withoutRole" (onChange)="onWithoutRole()"></p-inputSwitch>
+      <span>Without role</span>
+    </label>
+    <app-gc-info [text]="info.users.withoutRole"></app-gc-info>
+
+    <span class="admin-table-toolbar__count" *ngIf="!loading && !loadError" aria-live="polite">{{ total }} {{ total === 1 ? 'user' : 'users' }}</span>
+  </div>
+
+  <p class="field-error acc-error" role="alert" *ngIf="rolesError">
+    <i class="pi pi-exclamation-triangle" aria-hidden="true"></i> {{ rolesError }}
+    <button type="button" class="acc-link" (click)="loadRoles()">Retry</button>
+  </p>
+
+  <!-- Bulk bar: appears with the first ticked row. -->
+  <div class="acc-bulk" *ngIf="selection.length" role="region" aria-label="Selected users">
+    <span class="acc-bulk__count">{{ selection.length }} {{ selection.length === 1 ? 'user' : 'users' }} selected</span>
+    <button pButton type="button" class="p-button-text p-button-sm" label="Clear" (click)="selection = []"></button>
+    <button pButton type="button" class="btn-brand" icon="pi pi-user-plus" label="Assign role" [disabled]="!assignable.length" (click)="openAssign()"></button>
+  </div>
+
+  <div class="acc-card" *ngIf="loadError">
+    <div class="acc-state acc-state--error">
+      <span class="acc-state__icon"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i></span>
+      <p class="acc-state__title">The users did not load</p>
+      <p class="acc-state__text">{{ loadError }}</p>
+      <button pButton type="button" label="Retry" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
+    </div>
+  </div>
+
+  <p-table
+    *ngIf="!loadError"
+    [value]="rows"
+    dataKey="id"
+    [lazy]="true"
+    [paginator]="total > pageSize || pageSize !== 20"
+    [rows]="pageSize"
+    [first]="first"
+    [totalRecords]="total"
+    [rowsPerPageOptions]="pageSizes"
+    (onPage)="onPage($event)"
+    [(selection)]="selection"
+    styleClass="p-datatable-sm admin-table acc-users-table"
+    responsiveLayout="scroll">
+    <ng-template pTemplate="header">
+      <tr>
+        <th scope="col" style="width: 48px"><p-tableHeaderCheckbox [disabled]="loading || !users.length" ariaLabel="Select all users on this page"></p-tableHeaderCheckbox></th>
+        <th scope="col" style="width: 200px">Name</th>
+        <th scope="col" style="width: 240px">Email</th>
+        <th scope="col" style="width: 80px">CGIAR</th>
+        <th scope="col">Roles</th>
+        <th scope="col" style="width: 120px">Last login</th>
+        <th scope="col" style="width: 96px">Status</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-row>
+      <tr *ngIf="isSkeleton(row); else userRow" class="acc-skeleton-row" aria-hidden="true">
+        <td><span class="acc-bone acc-bone--box"></span></td>
+        <td data-card-title><span class="acc-bone"></span></td>
+        <td><span class="acc-bone"></span></td>
+        <td><span class="acc-bone acc-bone--short"></span></td>
+        <td><span class="acc-bone"></span></td>
+        <td><span class="acc-bone acc-bone--short"></span></td>
+        <td><span class="acc-bone acc-bone--short"></span></td>
+      </tr>
+      <ng-template #userRow>
+        <tr class="acc-row" tabindex="0" [attr.aria-label]="'Open ' + fullName(row)" (click)="openUser(row)" (keydown.enter)="openUser(row)">
+          <td (click)="$event.stopPropagation()" data-label="Select">
+            <p-tableCheckbox [value]="row" [ariaLabel]="'Select ' + fullName(row)"></p-tableCheckbox>
+          </td>
+          <td data-card-title data-label="Name" class="cell-primary">{{ fullName(row) }}</td>
+          <td data-label="Email"><span class="cell-ellipsis" [title]="row.email">{{ row.email }}</span></td>
+          <td data-label="CGIAR">
+            <span class="acc-yes" *ngIf="row.isCgiarUser; else notCgiar">Yes</span>
+            <ng-template #notCgiar><span class="cell-empty">No</span></ng-template>
+          </td>
+          <td data-label="Roles">
+            <ng-container *ngIf="row.roles?.length; else noRoles">
+              <span class="cell-chip" *ngFor="let role of row.roles" [title]="role.description">{{ role.acronym }}</span>
+            </ng-container>
+            <ng-template #noRoles><span class="cell-empty">No role</span></ng-template>
+          </td>
+          <td data-label="Last login" class="cell-num">{{ row.lastLogin ? (row.lastLogin | date: 'yyyy-MM-dd') : '—' }}</td>
+          <td data-label="Status">
+            <span class="acc-status" [class.is-off]="!row.isActive">{{ row.isActive ? 'Active' : 'Inactive' }}</span>
+          </td>
+        </tr>
+      </ng-template>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr class="admin-table__empty-row">
+        <td colspan="7">
+          <div class="acc-state">
+            <span class="acc-state__icon"><i class="pi pi-users" aria-hidden="true"></i></span>
+            <p class="acc-state__title">{{ hasFilters ? 'Nobody matches these filters' : 'No users yet' }}</p>
+            <p class="acc-state__text" *ngIf="hasFilters">Change the search or the role, or clear the filters to see everyone.</p>
+            <button *ngIf="hasFilters" pButton type="button" label="Clear filters" class="p-button-outlined" (click)="clearFilters()"></button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  <!-- ============================================================ bulk assign -->
+  <p-dialog
+    [(visible)]="assignOpen"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closable]="!assigning"
+    [dismissableMask]="!assigning"
+    [style]="{ width: '520px' }"
+    [breakpoints]="{ '720px': '94vw' }"
+    styleClass="admin-dialog gc-dialog">
+    <p-header>
+      <span class="gc-dialog__title">Assign a role</span>
+      <span class="gc-dialog__subtitle">To {{ selection.length }} {{ selection.length === 1 ? 'person' : 'people' }}. Who already holds it is left as is.</span>
+    </p-header>
+    <form class="admin-form" (ngSubmit)="assign()" autocomplete="off">
+      <section class="gc-section">
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="acc-assign-role">Role <span class="tag-req">Required</span></label>
+            <app-gc-info [text]="info.assign.role"></app-gc-info>
+          </div>
+          <p-dropdown
+            inputId="acc-assign-role"
+            name="assignRole"
+            appendTo="body"
+            panelStyleClass="admin-dropdown-panel"
+            placeholder="Pick a role"
+            [filter]="assignable.length > 8"
+            [options]="assignable"
+            optionLabel="description"
+            optionValue="id"
+            [disabled]="assigning"
+            [(ngModel)]="assignRoleId">
+            <ng-template let-role pTemplate="item">
+              <span class="acc-option"><strong>{{ role.acronym }}</strong> {{ role.description }}</span>
+            </ng-template>
+          </p-dropdown>
+          <small class="field-hint" *ngIf="assignRole">{{ assignRole.memberCount }} {{ assignRole.memberCount === 1 ? 'person holds' : 'people hold' }} it today.</small>
+        </div>
+        <ul class="acc-names" aria-label="Selected people">
+          <li *ngFor="let user of selection | slice: 0 : 6">{{ fullName(user) }}</li>
+          <li *ngIf="selection.length > 6" class="cell-empty">and {{ selection.length - 6 }} more</li>
+        </ul>
+      </section>
+      <p class="field-error acc-error" role="alert" *ngIf="assignError"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ assignError }}</p>
+      <div class="admin-form__actions gc-dialog-foot">
+        <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="assigning" (click)="assignOpen = false"></button>
+        <button
+          pButton
+          type="submit"
+          class="btn-brand"
+          [label]="assigning ? 'Assigning…' : 'Assign to ' + selection.length"
+          [loading]="assigning"
+          [disabled]="assigning || !assignRoleId"></button>
+      </div>
+    </form>
+  </p-dialog>
+
+  <!-- ================================================================ drawer -->
+  <p-sidebar [(visible)]="drawerOpen" position="right" styleClass="acc-drawer" [blockScroll]="true" ariaCloseLabel="Close">
+    <ng-container *ngIf="drawerUser as user">
+      <header class="acc-drawer__head">
+        <span class="acc-drawer__disc" aria-hidden="true">{{ fullName(user).charAt(0) }}</span>
+        <div class="acc-drawer__who">
+          <h2 class="acc-drawer__name">{{ fullName(user) }}</h2>
+          <p class="acc-drawer__mail">{{ user.email }}</p>
+        </div>
+      </header>
+
+      <dl class="acc-drawer__facts">
+        <div><dt>CGIAR account</dt><dd>{{ user.isCgiarUser ? 'Yes' : 'No' }}</dd></div>
+        <div><dt>Last login</dt><dd>{{ user.lastLogin ? (user.lastLogin | date: 'yyyy-MM-dd HH:mm') : 'Never' }}</dd></div>
+        <div><dt>Status</dt><dd>{{ user.isActive ? 'Active' : 'Inactive' }}</dd></div>
+      </dl>
+
+      <section class="gc-section admin-form">
+        <header class="gc-section__head">
+          <h3 class="gc-section__title">Roles</h3>
+          <p class="gc-section__hint">What this person can open in the panel. Removing a role asks why.</p>
+        </header>
+
+        <div class="acc-chips" *ngIf="user.roles?.length; else noDrawerRoles">
+          <span class="acc-chip" *ngFor="let role of user.roles">
+            <span class="acc-chip__text"><strong>{{ role.acronym }}</strong> {{ role.description }}</span>
+            <button
+              *ngIf="canRemove(role); else lockedRole"
+              type="button"
+              class="acc-chip__x"
+              [attr.aria-label]="'Remove ' + role.acronym"
+              (click)="askRemove(user, role)">
+              <i class="pi pi-times" aria-hidden="true"></i>
+            </button>
+            <ng-template #lockedRole>
+              <span class="acc-chip__lock" pTooltip="Only someone who holds every permission of this role can remove it." tooltipPosition="left"
+                ><i class="pi pi-lock" aria-hidden="true"></i
+              ></span>
+            </ng-template>
+          </span>
+        </div>
+        <ng-template #noDrawerRoles><p class="cell-empty acc-none">No role: this person only sees the public pages and request forms.</p></ng-template>
+
+        <div class="field acc-add">
+          <div class="gc-field-head">
+            <label for="acc-add-role">Add role</label>
+            <app-gc-info [text]="info.assign.addRole"></app-gc-info>
+          </div>
+          <div class="acc-add__row">
+            <p-dropdown
+              inputId="acc-add-role"
+              appendTo="body"
+              panelStyleClass="admin-dropdown-panel"
+              placeholder="Pick a role"
+              [options]="addableRoles"
+              [disabled]="adding || !addableRoles.length"
+              [(ngModel)]="addRoleId"></p-dropdown>
+            <button pButton type="button" class="btn-brand" icon="pi pi-plus" [label]="adding ? 'Adding…' : 'Add role'" [loading]="adding" [disabled]="adding || !addRoleId" (click)="addRole()"></button>
+          </div>
+          <small class="field-hint" *ngIf="!addableRoles.length">No other role you can give.</small>
+        </div>
+        <p class="field-error acc-error" role="alert" *ngIf="drawerError"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ drawerError }}</p>
+      </section>
+    </ng-container>
+  </p-sidebar>
+
+  <app-access-justification
+    [visible]="!!removeTarget"
+    (visibleChange)="$event ? null : closeRemove()"
+    [message]="removeMessage"
+    [busy]="removing"
+    [error]="removeError"
+    (confirmed)="removeRole($event)"></app-access-justification>
+
+  <p-toast position="top-right"></p-toast>
+  <app-access-skin></app-access-skin>
+</div>

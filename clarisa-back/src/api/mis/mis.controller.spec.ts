@@ -12,6 +12,7 @@ describe('MisController', () => {
     findAll: jest.fn(),
     findOne: jest.fn(),
     findMetadataById: jest.fn(),
+    setActive: jest.fn(),
   };
 
   const mockGuard: any = { canActivate: jest.fn().mockReturnValue(true) };
@@ -64,5 +65,16 @@ describe('MisController', () => {
 
     await controller.findMetadataById(1);
     expect(mockMisService.findMetadataById).toHaveBeenCalledWith(1);
+  });
+
+  it('deactivates and reactivates through setActive', async () => {
+    mockMisService.setActive.mockResolvedValue({ response: { id: 5 } });
+    const userData = { userId: 1, email: 'test@test.com' } as any;
+
+    await controller.deactivate(userData, 5);
+    expect(mockMisService.setActive).toHaveBeenCalledWith(5, false, userData);
+
+    await controller.activate(userData, 5);
+    expect(mockMisService.setActive).toHaveBeenCalledWith(5, true, userData);
   });
 });
