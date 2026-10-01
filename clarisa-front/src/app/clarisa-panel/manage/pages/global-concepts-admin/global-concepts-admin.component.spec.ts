@@ -5,8 +5,8 @@ import { MeAccess } from '../../../../shared/services/access-admin/access-admin-
 import { GlobalConceptsAdminComponent, isConceptsFullAdmin } from './global-concepts-admin.component';
 
 const who = (permissions: string[], isSuper = false): MeAccess => ({ userId: 1, email: 'x@clarisa.test', roles: [], permissions, isSuper });
-const FULL = who(['/api/concepts/admin']);
-const CONCEPTS_ONLY = who(['/api/concepts/admin/meliaf-taxonomy/concepts']);
+const FULL = who(['/api/meliaf-taxonomy/admin']);
+const CONCEPTS_ONLY = who(['/api/meliaf-taxonomy/admin/concepts']);
 
 describe('GlobalConceptsAdminComponent', () => {
   const build = (api: Partial<Record<'schemes' | 'aiStatus', jest.Mock>>, access: MeAccess | null | Observable<MeAccess | null> = FULL) => {
@@ -48,7 +48,7 @@ describe('GlobalConceptsAdminComponent', () => {
       expect(isConceptsFullAdmin(FULL)).toBe(true);
       expect(isConceptsFullAdmin(who([], true))).toBe(true);
       expect(isConceptsFullAdmin(CONCEPTS_ONLY)).toBe(false);
-      expect(isConceptsFullAdmin(who(['/api/concepts/admin/meliaf-taxonomy/lists']))).toBe(false);
+      expect(isConceptsFullAdmin(who(['/api/meliaf-taxonomy/admin/lists']))).toBe(false);
       expect(isConceptsFullAdmin(null)).toBe(false);
     });
   });

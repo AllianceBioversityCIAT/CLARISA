@@ -283,7 +283,7 @@ describe('LoginComponent · dónde aterriza al entrar', () => {
   });
 
   it('a member whose roles open exactly one protected section lands in it (Concepts-only → Concepts)', async () => {
-    const { navigate } = await signIn(who(['/api/concepts/admin']));
+    const { navigate } = await signIn(who(['/api/meliaf-taxonomy/admin']));
     expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/concepts-admin');
   });
 

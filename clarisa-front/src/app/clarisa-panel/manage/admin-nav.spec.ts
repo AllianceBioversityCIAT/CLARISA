@@ -70,7 +70,7 @@ describe('admin navigation', () => {
     const tabs = (groups: ReturnType<typeof groupsFor>) =>
       groups.find(group => group.title === 'System')?.links[0].children?.map(child => child.label) ?? [];
     const noRole = { isSuper: false, permissions: [] as string[] };
-    const concepts = { isSuper: false, permissions: ['/api/concepts/admin'] };
+    const concepts = { isSuper: false, permissions: ['/api/meliaf-taxonomy/admin'] };
     const irc = { isSuper: false, permissions: ['/api/partner-requests/create'] };
     const fir = { isSuper: false, permissions: ['/api/partner-requests/create', '/api/partner-requests/respond', '/api/partner-requests/update'] };
 
@@ -95,7 +95,7 @@ describe('admin navigation', () => {
     });
 
     it('shows a Concepts Editor only Concepts', () => {
-      expect(labels(groupsFor({ isSuper: false, permissions: ['/api/concepts/admin/meliaf-taxonomy/concepts'] }))).toEqual(['Concepts']);
+      expect(labels(groupsFor({ isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/concepts'] }))).toEqual(['Concepts']);
     });
 
     it('opens Institution requests for any institution-request permission (IRC create-only and FIR)', () => {
@@ -128,8 +128,8 @@ describe('admin navigation', () => {
       const entry = adminLinkFor('/clarisa-panel/manage/concepts-admin')!;
       expect(canOpenLink(entry, { isSuper: true, permissions: [] })).toBe(true);
       expect(canOpenLink(entry, concepts)).toBe(true);
-      expect(canOpenLink(entry, { isSuper: false, permissions: ['/api/concepts/admin/meliaf-taxonomy/concepts'] })).toBe(true);
-      expect(canOpenLink(entry, { isSuper: false, permissions: ['/api/concepts/admin/meliaf-taxonomy/lists'] })).toBe(false);
+      expect(canOpenLink(entry, { isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/concepts'] })).toBe(true);
+      expect(canOpenLink(entry, { isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/lists'] })).toBe(false);
       expect(canOpenLink(entry, { isSuper: false, permissions: ['/api/glossary/admin'] })).toBe(false);
       expect(canOpenLink(entry, noRole)).toBe(false);
     });
@@ -169,7 +169,7 @@ describe('admin navigation', () => {
       it('Concepts-only → Concepts, on the home and after login', () => {
         expect(onlyProtectedSection(concepts)?.link.route).toBe('/clarisa-panel/manage/concepts-admin');
         expect(postLoginRoute(concepts)).toBe('/clarisa-panel/manage/concepts-admin');
-        expect(postLoginRoute({ isSuper: false, permissions: ['/api/concepts/admin/meliaf-taxonomy/concepts'] })).toBe(
+        expect(postLoginRoute({ isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/concepts'] })).toBe(
           '/clarisa-panel/manage/concepts-admin'
         );
       });

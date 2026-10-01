@@ -29,10 +29,9 @@ import { GcUsageKind } from '../entities/gc-usage-daily.entity';
 import { OptionalApiKeyUsageInterceptor } from '../../../shared/interceptors/optional-api-key-usage.interceptor';
 
 /**
- * Resolves persistent URIs: `/concepts/{term_id}` and `/concepts` for the
- * default scheme, `/concepts/{scheme}/{term_id}` and `/concepts/{scheme}` for
- * any other (Audit correction 1). The front (S3 + CloudFront)
- * cannot negotiate content, so the API host does:
+ * Resolves persistent URIs: `/meliaf-taxonomy/{term_id}` and `/meliaf-taxonomy`
+ * (Audit correction 1; one scheme, its code is the root). The front (S3 +
+ * CloudFront) cannot negotiate content, so the API host does:
  *
  * - `Accept: text/turtle` or `application/ld+json` (or `?format=skos|jsonld|json`)
  *   → the resource as data, with `Vary: Accept`;
@@ -54,14 +53,15 @@ export class ConceptUriController {
     private readonly usage: UsageService,
   ) {}
 
-  @Get(':scheme/:termId')
+  /** `/meliaf-taxonomy/{termId}`. */
+  @Get(':termId')
   async concept(
-    @Param('scheme') scheme: string,
     @Param('termId', ParseIntPipe) termId: number,
     @Res() res: Response,
     @Headers('accept') accept = '',
     @Query('format') format?: string,
   ) {
+    const scheme = DEFAULT_SCHEME_CODE;
     const wanted = this.negotiate(accept, format);
     res.setHeader('Vary', 'Accept');
     if (!wanted) {
@@ -85,7 +85,7 @@ export class ConceptUriController {
     return res.status(200).send(file.body);
   }
 
-  /** `/concepts`: the default scheme. */
+  /** `/meliaf-taxonomy`: the scheme. */
   @Get()
   async defaultScheme(
     @Res() res: Response,
@@ -95,33 +95,11 @@ export class ConceptUriController {
     return this.scheme(DEFAULT_SCHEME_CODE, res, accept, format);
   }
 
-  /**
-   * One segment: a number is a concept of the default scheme
-   * (`/concepts/2374`); anything else is a scheme code (`/concepts/{scheme}`).
-   */
-  @Get(':segment')
-  async segment(
-    @Param('segment') segment: string,
-    @Res() res: Response,
-    @Headers('accept') accept = '',
-    @Query('format') format?: string,
-  ) {
-    if (/^\d+$/.test(segment))
-      return this.concept(
-        DEFAULT_SCHEME_CODE,
-        Number(segment),
-        res,
-        accept,
-        format,
-      );
-    return this.scheme(segment, res, accept, format);
-  }
-
-  async scheme(
-    @Param('scheme') scheme: string,
-    @Res() res: Response,
-    @Headers('accept') accept = '',
-    @Query('format') format?: string,
+  private async scheme(
+    scheme: string,
+    res: Response,
+    accept = '',
+    format?: string,
   ) {
     const wanted = this.negotiate(accept, format);
     res.setHeader('Vary', 'Accept');

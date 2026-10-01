@@ -60,7 +60,7 @@ describe('GlobalConceptsAssistantController (HTTP)', () => {
   });
   const post = (body: unknown) =>
     request(app.getHttpServer())
-      .post('/admin/concepts/concepts-assist/chat')
+      .post('/admin/concepts-assist/chat')
       .send(body as object);
 
   it('is mounted under admin, with the same guards, before the public controller', () => {
@@ -86,7 +86,7 @@ describe('GlobalConceptsAssistantController (HTTP)', () => {
 
   it('GET status reaches the service', async () => {
     const res = await request(app.getHttpServer()).get(
-      '/admin/concepts/concepts-assist/status',
+      '/admin/concepts-assist/status',
     );
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ enabled: true, remainingUsd: 2 });
@@ -97,7 +97,7 @@ describe('GlobalConceptsAssistantController (HTTP)', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ reply: 'ok', steps: [], costUsd: 0.001 });
     const [scheme, dto, user] = assistant.chat.mock.calls[0] as any[];
-    expect(scheme).toBe('concepts');
+    expect(scheme).toBe('meliaf-taxonomy');
     expect(user).toBe('9');
     expect(dto.termId).toBe(42);
     expect(dto.edits[0].after).toEqual(['a', 'b']);

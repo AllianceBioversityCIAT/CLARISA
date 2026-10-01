@@ -381,7 +381,7 @@ describe('Custom fields', () => {
             {
               term_id: 2,
               preferred_label: 'Term 2',
-              uri: 'https://api.clarisa.cgiar.org/concepts/concepts/2',
+              uri: 'https://api.clarisa.cgiar.org/concepts/2',
             },
           ],
         },

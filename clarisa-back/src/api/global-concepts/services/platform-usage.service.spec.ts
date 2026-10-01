@@ -57,9 +57,10 @@ describe('PlatformUsageService', () => {
     expect(metrics.getSystemsForEndpoints).toHaveBeenCalledWith(
       { from: '2026-09-01T00:00:00', to: '2026-09-30T00:00:00' },
       [
+        '/api/meliaf-taxonomy/',
+        '/meliaf-taxonomy/',
         '/api/concepts/',
         '/concepts/',
-        '/api/meliaf-taxonomy/',
         '/api/global-concepts/',
       ],
     );
