@@ -2340,6 +2340,17 @@ function consolePanel(title, bodyHtml, copyable) {
     </div>`;
 }
 
+/** The open operation's response, as the code panel body. */
+function jsonPre() {
+  return '<pre class="doc-code__pre doc-code__pre--tall"><code>' + esc(jsonPreviewText()) + '</code></pre>';
+}
+
+/** "no query params" · "1 query param" · "3 query params" */
+function queryParamCount(n) {
+  if (n === 0) return 'no query params';
+  return n === 1 ? '1 query param' : n + ' query params';
+}
+
 function opRow(id, open, name, kind, path, summary, body) {
   return `
     <section class="doc-card pg-op ${open ? 'is-open' : ''}">
@@ -2386,7 +2397,7 @@ function listBody() {
       ${showReset ? '<button type="button" onclick="resetQuery()" class="doc-btn doc-btn--outline">Reset</button>' : ''}
     </div>
     ${errorNote(state.queryError)}
-    ${consolePanel(title, `<pre class="doc-code__pre doc-code__pre--tall"><code>${esc(jsonPreviewText())}</code></pre>`, true)}`;
+    ${consolePanel(title, jsonPre(), true)}`;
 }
 
 function recordBody(lookup) {
@@ -2411,7 +2422,7 @@ function recordBody(lookup) {
 
   const result = state.recordResult;
   const consoleHtml = result
-    ? consolePanel(`Resource · ${esc(result.url.replace(API_BASE, ''))} · one object`, `<pre class="doc-code__pre doc-code__pre--tall"><code>${esc(jsonPreviewText())}</code></pre>`, true)
+    ? consolePanel(`Resource · ${esc(result.url.replace(API_BASE, ''))} · one object`, jsonPre(), true)
     : consolePanel('Resource · not requested yet', `<p class="pg-console__wait">Press <b>Retrieve record</b> to fetch this one record.</p>`, false);
 
   return `
@@ -2431,12 +2442,11 @@ function renderJSON() {
   const lookup = recordLookupFor(route);
   const open = lookup ? state.playOp : 'list';
   const listParams = queryParamsFor(route).length;
-  const qCount = n => n === 0 ? 'no query params' : n === 1 ? '1 query param' : `${n} query params`;
 
   $('#exportZone').innerHTML = '';
   const rows = [
     opRow('list', open === 'list', 'List all', 'collection URI', '/' + route,
-      `Every record · array · ${qCount(listParams)}`, listBody),
+      `Every record · array · ${queryParamCount(listParams)}`, listBody),
   ];
   if (lookup) {
     rows.push(opRow('record', open === 'record', 'Retrieve one', 'resource URI', '/' + route + lookup.joint + '{' + lookup.param.name + '}',
