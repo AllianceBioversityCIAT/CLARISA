@@ -7,11 +7,26 @@ import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 import { AdminSidebarComponent } from './admin-sidebar.component';
 import { AuthService } from '../../../../shared/services/auth.service';
+import { PanelAccessService, PanelAccessState } from '../../../../shared/services/access-admin/panel-access.service';
+import { BehaviorSubject } from 'rxjs';
+import { ADMIN_GROUPS } from '../../admin-nav';
+
+/** A super by default: every entry, as before the menu was filtered. */
+const superState = (): PanelAccessState => ({
+  status: 'ready',
+  access: { userId: 1, email: 'y.zuniga@cgiar.org', roles: [], permissions: [], isSuper: true }
+});
+
+const accessStub = (initial: PanelAccessState = superState()) => {
+  const state$ = new BehaviorSubject<PanelAccessState>(initial);
+  return { state$, ensure: jest.fn(), reload: jest.fn(), clear: jest.fn() };
+};
 
 describe('AdminSidebarComponent', () => {
   let component: AdminSidebarComponent;
   let fixture: ComponentFixture<AdminSidebarComponent>;
   let auth: { localStorageToken: string | null; localStorageUser: unknown; isSessionExpired: jest.Mock };
+  let access: ReturnType<typeof accessStub>;
 
   beforeEach(async () => {
     auth = {
@@ -19,6 +34,7 @@ describe('AdminSidebarComponent', () => {
       localStorageUser: { name: 'Yecksin Zuñiga', email: 'y.zuniga@cgiar.org' },
       isSessionExpired: jest.fn().mockReturnValue(false)
     };
+    access = accessStub();
 
     await TestBed.configureTestingModule({
       imports: [
@@ -31,7 +47,10 @@ describe('AdminSidebarComponent', () => {
         FormsModule
       ],
       declarations: [AdminSidebarComponent],
-      providers: [{ provide: AuthService, useValue: auth }],
+      providers: [
+        { provide: AuthService, useValue: auth },
+        { provide: PanelAccessService, useValue: access }
+      ],
       schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
 
@@ -57,15 +76,16 @@ describe('AdminSidebarComponent', () => {
   it('lists every section, grouped, when nothing is typed', () => {
     expect(component.groups.map(group => group.title)).toEqual(['Manage', 'Access', 'System']);
     expect(labels()).toContain('Glossary');
-    // 5 links directos: los 6 de siempre menos «Microservices & API keys», que
+    expect(labels()).toContain('Concepts');
+    // 6 links directos: los 7 de la lista menos «Microservices & API keys», que
     // ahora es un toggle (botón) en vez de un link.
-    expect(labels()?.length).toBe(5);
+    expect(labels()?.length).toBe(6);
   });
 
   // La columna blanca que esto reemplazó mostraba sus tres pestañas siempre a
   // la vista, así que el desplegable nace abierto, no colapsado.
   it('shows the Microservices sub-menu open by default, with its three tabs', () => {
-    expect(subLabels()).toEqual(['API Keys', 'Usage & Analytics', 'MIS Registry']);
+    expect(subLabels()).toEqual(['Overview', 'MIS Registry', 'API Keys']);
 
     const toggle = fixture.nativeElement.querySelector('.admin-sidebar__list-toggle') as HTMLElement;
     expect(toggle.textContent).toContain('Microservices & API keys');
@@ -85,7 +105,7 @@ describe('AdminSidebarComponent', () => {
     component.toggleLink(microservices!);
     fixture.detectChanges();
     expect(component.isLinkCollapsed(microservices!)).toBe(false);
-    expect(subLabels()).toEqual(['API Keys', 'Usage & Analytics', 'MIS Registry']);
+    expect(subLabels()).toEqual(['Overview', 'MIS Registry', 'API Keys']);
   });
 
   // El buscador es del menú: filtra en memoria y no llama a nadie.
@@ -127,6 +147,74 @@ describe('AdminSidebarComponent', () => {
     fixture.detectChanges();
 
     expect(labels()).toEqual(['Glossary']);
+  });
+
+  // -------------------------------------------------------------------------
+  // Menu by permission (me/access)
+  // -------------------------------------------------------------------------
+  it('draws skeleton items while the access loads, never the full menu', () => {
+    access.state$.next({ status: 'loading' });
+    fixture.detectChanges();
+
+    expect(labels()).toEqual([]);
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__skeleton')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__toggle, .admin-sidebar__list-toggle')).toBeNull();
+    expect(component.isEmpty).toBe(false);
+  });
+
+  it('shows a Concepts Data Admin only Concepts', () => {
+    access.state$.next({
+      status: 'ready',
+      access: { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/concepts/admin'], isSuper: false }
+    });
+    fixture.detectChanges();
+
+    // `labels()` reads plain links; «Microservices & API keys» is a toggle with its tabs (`subLabels()`).
+    expect(labels()).toEqual(['Concepts']);
+    expect(component.groups.map(group => group.title)).toEqual(['Manage']);
+    expect(subLabels()).toEqual([]);
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__notice')).toBeNull();
+  });
+
+  it('shows an institution requester only Institution requests', () => {
+    access.state$.next({
+      status: 'ready',
+      access: { userId: 4, email: 'r@cgiar.org', roles: [], permissions: ['/api/partner-requests/create'], isSuper: false }
+    });
+    fixture.detectChanges();
+
+    expect(labels()).toEqual(['Institution requests']);
+    expect(subLabels()).toEqual([]);
+  });
+
+  it('says so when the roles open nothing, instead of an empty column', () => {
+    access.state$.next({
+      status: 'ready',
+      access: { userId: 3, email: 'n@cgiar.org', roles: [], permissions: [], isSuper: false }
+    });
+    fixture.detectChanges();
+
+    expect(labels()).toEqual([]);
+    expect(subLabels()).toEqual([]);
+    expect(component.noAccess).toBe(true);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.admin-sidebar__notice')?.textContent).toContain(
+      'do not open any administration section'
+    );
+  });
+
+  it('falls back to the whole menu when the access fails or times out, and drops the cache on logout', () => {
+    access.state$.next({ status: 'error' });
+    fixture.detectChanges();
+
+    expect(labels()).toEqual(ADMIN_GROUPS.flatMap(group => group.links.filter(link => !link.children).map(link => link.label)));
+    expect(subLabels()).toEqual(['Overview', 'MIS Registry', 'API Keys']);
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__skeleton')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__notice')).toBeNull();
+    expect(component.noAccess).toBe(false);
+
+    (auth as unknown as { logout: jest.Mock }).logout = jest.fn();
+    component.onLogOut();
+    expect(access.clear).toHaveBeenCalled();
   });
 
   it('names the account at the foot', () => {
@@ -176,7 +264,8 @@ describe('AdminSidebarComponent · atajo de teclado', () => {
         {
           provide: AuthService,
           useValue: { localStorageToken: null, localStorageUser: null, isSessionExpired: () => true }
-        }
+        },
+        { provide: PanelAccessService, useValue: accessStub() }
       ],
       schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();

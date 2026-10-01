@@ -6,10 +6,103 @@ import { Observable } from 'rxjs';
 export interface CreateApiKeyBody {
   name: string;
   environment: string;
+  /** Who holds the key and what it is used for (Héctor, 2026-09-24). */
+  description?: string;
   mis_id?: number;
   scopes?: string[];
   allowed_ips?: string[];
   expires_at?: string;
+}
+
+/**
+ * Edit of an existing key. Absent = unchanged; `null` (or `''` for the two
+ * scalars) clears the value. The environment is not editable: it is baked into
+ * the prefix, so changing it means rotating the key.
+ */
+export interface UpdateApiKeyBody {
+  name?: string;
+  description?: string;
+  mis_id?: number | null;
+  scopes?: string[] | null;
+  allowed_ips?: string[] | null;
+  expires_at?: string | null;
+}
+
+/**
+ * Identity of an Overview row (back, 2026-09-30): a MIS, or an API key with no
+ * MIS as a system of its own. Optional so an older back still types.
+ */
+export interface UsageSystemIdentity {
+  kind?: 'mis' | 'key';
+  api_key_id?: number | null;
+  /** `mis:<id>` or `key:<id>` */
+  system_key?: string;
+}
+
+export interface UsageOverviewSystem extends UsageSystemIdentity {
+  /** `null` = a key with no MIS (see `api_key_id`) */
+  mis_id: number | null;
+  acronym: string;
+  name: string;
+  environment: string | null;
+  calls: number;
+  errors: number;
+  avg_response_time_ms: number | null;
+  api_keys: number;
+  last_used_at: string | null;
+  /** Name of the key behind a key group; `null` for a MIS */
+  api_key_name?: string | null;
+}
+
+export interface UsageOverview {
+  period: { from: string; to: string };
+  granularity: 'day' | 'week';
+  systems: UsageOverviewSystem[];
+  series: ({ bucket: string; mis_id: number | null; calls: number; errors: number; avg_response_time_ms: number | null } & UsageSystemIdentity)[];
+  /** `day_of_week`: 1 = Sunday … 7 = Saturday */
+  heatmap: ({ day_of_week: number; hour: number; mis_id: number | null; calls: number } & UsageSystemIdentity)[];
+}
+
+export interface EndpointConsumer {
+  api_key_id: number;
+  api_key_name: string;
+  key_prefix: string;
+  mis_id: number | null;
+  mis_acronym: string | null;
+  kind?: 'mis' | 'key';
+  system_key?: string;
+  total_requests: number;
+  last_used_at: string | null;
+}
+
+export interface EndpointUsageItem {
+  /** `clarisa-api` for direct calls to this API; otherwise the caller's own name. */
+  microservice_name: string;
+  /** Request path without its query string. */
+  endpoint: string;
+  http_method: string | null;
+  total_requests: number;
+  error_count: number;
+  avg_response_time_ms: number | null;
+  unique_api_keys: number;
+  last_used_at: string | null;
+  consumers: EndpointConsumer[];
+}
+
+export interface EndpointUsagePage {
+  period: { from: string; to: string };
+  total_requests: number;
+  items: EndpointUsageItem[];
+}
+
+export interface MisActivityItem {
+  mis_id: number | null;
+  mis_acronym: string;
+  mis_name: string;
+  total_keys: number;
+  active_keys: number;
+  usage_count: number;
+  last_used_at: string | null;
 }
 
 export interface CreateMisBody {
@@ -23,6 +116,10 @@ export interface UsageQueryParams {
   from?: string;
   to?: string;
   mis_id?: number;
+  /** Several systems, comma-separated MIS ids; `0` = keys with no MIS. */
+  mis_ids?: string;
+  /** Standalone keys (no MIS), comma-separated key ids; OR-ed with `mis_ids`. */
+  key_ids?: string;
   api_key_id?: number;
   microservice_name?: string;
   granularity?: 'day' | 'week';
@@ -123,6 +220,8 @@ export interface UsageLogsPage {
     api_key_name: string;
     key_prefix: string;
     mis_acronym: string | null;
+    mis_id?: number | null;
+    system_key?: string;
     microservice_name: string;
     endpoint_accessed: string;
     http_method: string | null;
@@ -326,12 +425,48 @@ export class ManageApiService {
     return this.http.patch(`${this.urlApi}api/api-keys/${id}/rotate`, {});
   }
 
+  updateApiKey(id: number, body: UpdateApiKeyBody) {
+    return this.http.patch(`${this.urlApi}api/api-keys/${id}`, body);
+  }
+
   deleteApiKey(id: number) {
     return this.http.delete(`${this.urlApi}api/api-keys/${id}`);
   }
 
   createMis(body: CreateMisBody) {
     return this.http.post(`${this.urlApi}api/mises/create`, body);
+  }
+
+  /** Logical delete: the row stays, `is_active` flips. */
+  deactivateMis(id: number) {
+    return this.http.patch(`${this.urlApi}api/mises/deactivate/${id}`, {});
+  }
+
+  activateMis(id: number) {
+    return this.http.patch(`${this.urlApi}api/mises/activate/${id}`, {});
+  }
+
+  getApiKeyUsageByEndpoint(params: UsageQueryParams = {}) {
+    return this.http.get<EndpointUsagePage>(`${this.urlApi}api/api-keys/usage/endpoints`, {
+      params: this.cleanParams(params)
+    });
+  }
+
+  /** Everything the Overview draws, broken down by system. */
+  getApiKeyUsageOverview(params: UsageQueryParams = {}) {
+    return this.http.get<UsageOverview>(`${this.urlApi}api/api-keys/usage/overview`, {
+      params: this.cleanParams(params)
+    });
+  }
+
+  /** The public documentation map; the Overview hangs usage from its tree. */
+  getApiReferenceCatalog() {
+    return this.http.get<{ groups: any[] }>('assets/api-reference/catalog.json');
+  }
+
+  /** Keys held and last use per MIS, for the registry table. */
+  getMisActivity() {
+    return this.http.get<MisActivityItem[]>(`${this.urlApi}api/api-keys/usage/mis-activity`);
   }
 
   getApiKeyUsageSummary(params: UsageQueryParams = {}) {

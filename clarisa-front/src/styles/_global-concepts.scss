@@ -1,0 +1,7 @@
+// Global Concepts public pages — the shared kit, emitted once (DESIGN.md § 3:
+// a piece repeated across screens is declared once in src/styles/).
+@use '../app/landing-page/pages/global-concepts/gc' as gc;
+
+.gc-kit {
+  @include gc.kit;
+}

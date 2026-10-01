@@ -1,0 +1,14 @@
+@import '../gc-panel';
+
+.gc-setup__rail {
+  display: flex;
+  max-width: 100%;
+  margin-bottom: 18px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  .pi {
+    margin-right: 6px;
+    font-size: 13px;
+  }
+}

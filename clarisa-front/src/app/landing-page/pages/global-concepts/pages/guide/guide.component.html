@@ -1,0 +1,195 @@
+<app-gc-banner
+  eyebrow="Concepts · User guide"
+  title="How to use Concepts"
+  [crumbs]="[{ label: 'Home', link: '/landing-page/home' }, { label: 'Concepts', link: base }, { label: 'User guide' }]">
+  <p class="gc-guide-lede">
+    Concepts is the official list of words CGIAR uses to plan, monitor, evaluate and learn, each with one agreed definition. This guide
+    shows how to find a concept, check a text, and ask for a new concept or a change.
+  </p>
+</app-gc-banner>
+
+<section class="gc-section">
+  <div class="container">
+    <div class="gc-doc">
+      <nav class="gc-toc" aria-label="Contents">
+        <p>Contents</p>
+        <ol>
+          <li *ngFor="let s of sections">
+            <a [routerLink]="[]" [fragment]="s.id" [class.is-active]="active === s.id" [attr.aria-current]="active === s.id ? 'location' : null" (click)="goTo(s.id)">{{ s.label }}</a>
+          </li>
+        </ol>
+      </nav>
+
+      <div class="gc-doc__body">
+        <section class="gc-card gc-doc__section" id="find">
+          <h2 class="gc-h2">Find a concept</h2>
+          <svg class="gc-illustration" viewBox="0 0 420 150" role="img" aria-labelledby="gc-ill-find">
+            <title id="gc-ill-find">A search box, three filter buttons and a list of results</title>
+            <rect class="gi-card" x="1" y="1" width="418" height="148" rx="14" />
+            <rect class="gi-field" x="20" y="18" width="380" height="30" rx="8" />
+            <circle class="gi-stroke" cx="37" cy="33" r="6" />
+            <path class="gi-stroke" d="M41 37l5 5" />
+            <rect class="gi-line" x="54" y="30" width="120" height="6" rx="3" />
+            <rect class="gi-pill gi-pill--on" x="20" y="60" width="96" height="22" rx="11" />
+            <rect class="gi-pill" x="124" y="60" width="70" height="22" rx="11" />
+            <rect class="gi-pill" x="202" y="60" width="84" height="22" rx="11" />
+            <rect class="gi-row" x="20" y="94" width="380" height="20" rx="6" />
+            <rect class="gi-row" x="20" y="120" width="300" height="20" rx="6" />
+            <rect class="gi-accent" x="28" y="100" width="90" height="8" rx="4" />
+            <rect class="gi-line" x="28" y="126" width="120" height="8" rx="4" />
+          </svg>
+          <ol>
+            <li>Open <a class="gc-link" [routerLink]="base">Browse concepts</a> and type a word, an acronym or part of a definition. Results update as you type.</li>
+            <li>
+              Narrow the list with the filters: <strong>MELIAF function</strong>, <strong>Phase</strong>, <strong>Term type</strong>. Ticking two values in
+              the same filter shows concepts with either one; using two filters shows concepts that match both. The number next to each value tells
+              you how many results you will get.
+            </li>
+            <li>Sort A to Z, Z to A, or by the most recently updated.</li>
+            <li>Turn on <strong>Include deprecated</strong> to also see old concepts that were replaced.</li>
+            <li>The address in your browser keeps your search and filters: copy it to share exactly what you see.</li>
+          </ol>
+          <p class="gc-meta">
+            On a phone, the filters are behind the <strong>Filters</strong> button. What you type in the search box is counted, in aggregate and per day,
+            so the stewards learn which concepts people look for and which ones are missing.
+          </p>
+        </section>
+
+        <section class="gc-card gc-doc__section" id="read">
+          <h2 class="gc-h2">Read a concept page</h2>
+          <p>Every concept has its own page. From top to bottom you will find:</p>
+          <ul>
+            <li><strong>Persistent URI</strong> — the permanent address of the concept. Use it when you cite the concept in a document or a system.</li>
+            <li><strong>Definition</strong>, and when available a short definition, a scope note and an example of use.</li>
+            <li><strong>Alternative labels and acronyms</strong> — other ways people write it. Labels marked "avoid" should not be used.</li>
+            <li><strong>Icon</strong> — the official pictogram, with its alt text, format, designer and rights.</li>
+            <li><strong>Additional information</strong> — fields the scheme defines for itself.</li>
+            <li><strong>Related concepts</strong>, <strong>mappings</strong> to other vocabularies, and the <strong>history</strong> of changes.</li>
+            <li><strong>About this concept</strong> — TERM ID, version, source, who validated it and when it last changed.</li>
+          </ul>
+          <p>
+            A field tagged <span class="gc-tag"><i class="pi pi-bolt" aria-hidden="true"></i>AI-assisted</span> was drafted with AI and accepted by an
+            editor. Every concept keeps its original source.
+          </p>
+        </section>
+
+        <section class="gc-card gc-doc__section" id="check">
+          <h2 class="gc-h2">Check a text</h2>
+          <p>
+            Paste a paragraph, a report section or a proposal into <strong>Check a text</strong>, next to the list. It shows which official concepts the
+            text mentions, including synonyms and acronyms, so you can align your wording with the official vocabulary.
+          </p>
+          <p><strong>Your text is never stored.</strong> It is read once to find the concepts and then discarded.</p>
+        </section>
+
+        <section class="gc-card gc-doc__section" id="propose">
+          <h2 class="gc-h2">Propose a concept or a change</h2>
+          <p>Anyone can ask. You do not need a CLARISA account, only an email address.</p>
+          <ol>
+            <li>
+              For a <strong>new concept</strong>, use <strong>Propose a concept</strong> on the list page. If your search found nothing, the button
+              already carries the word you searched.
+            </li>
+            <li>For a <strong>change</strong>, open the concept and use <strong>Propose a change</strong>: the form already knows which concept it is.</li>
+            <li>Explain <strong>why</strong> it is needed and, when you can, the source of the definition.</li>
+            <li>
+              We email you a <strong>confirmation link</strong>, valid for 24 hours. The request only reaches the stewards after you open it: this
+              keeps out mistyped addresses and spam.
+            </li>
+          </ol>
+        </section>
+
+        <section class="gc-card gc-doc__section" id="follow">
+          <h2 class="gc-h2">Follow and answer a request</h2>
+          <svg class="gc-illustration gc-illustration--wide" viewBox="0 0 520 110" role="img" aria-labelledby="gc-ill-flow">
+            <title id="gc-ill-flow">A request goes from submitted to review, then validation, then a decision; review can ask you for changes</title>
+            <g class="gi-step">
+              <rect x="4" y="30" width="104" height="40" rx="20" />
+              <text x="56" y="55">Submitted</text>
+            </g>
+            <path class="gi-arrow" d="M112 50h20" />
+            <g class="gi-step">
+              <rect x="136" y="30" width="104" height="40" rx="20" />
+              <text x="188" y="55">In review</text>
+            </g>
+            <path class="gi-arrow" d="M244 50h20" />
+            <g class="gi-step">
+              <rect x="268" y="30" width="112" height="40" rx="20" />
+              <text x="324" y="55">In validation</text>
+            </g>
+            <path class="gi-arrow" d="M384 50h20" />
+            <g class="gi-step gi-step--end">
+              <rect x="408" y="30" width="108" height="40" rx="20" />
+              <text x="462" y="55">Decision</text>
+            </g>
+            <path class="gi-loop" d="M170 74c0 22 36 22 36 0" />
+            <text class="gi-note" x="188" y="104">changes requested</text>
+          </svg>
+          <p>
+            The confirmation email gives you a <strong>follow link</strong>. Open it at any time to see where your request is, what the stewards wrote,
+            and, when they ask for changes, to update your request and send it back from the same page. We also email you at every step.
+          </p>
+          <p class="gc-meta">Keep that email: the follow link is personal and is the only way in without an account.</p>
+        </section>
+
+        <section class="gc-card gc-doc__section" id="statuses">
+          <h2 class="gc-h2">What each status means</h2>
+          <h3 class="gc-h4">A concept</h3>
+          <dl class="gc-guide-dl">
+            <div>
+              <dt><span class="gc-chip">Approved</span></dt>
+              <dd>Published and official. This is the definition to use.</dd>
+            </div>
+            <div>
+              <dt><span class="gc-chip gc-chip--warn">Deprecated</span></dt>
+              <dd>No longer to be used. It stays published so old references keep working, and points to its replacement when there is one.</dd>
+            </div>
+          </dl>
+          <h3 class="gc-h4">A request</h3>
+          <dl class="gc-guide-dl">
+            <div *ngFor="let s of states">
+              <dt>
+                <span class="gc-chip" [class.gc-chip--plain]="s.tone === 'info'" [class.gc-chip--warn]="s.tone === 'warn' || s.tone === 'error'">{{
+                  s.label
+                }}</span>
+              </dt>
+              <dd>{{ s.help }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="gc-card gc-doc__section" id="governance">
+          <h2 class="gc-h2">Who approves</h2>
+          <p>
+            Each scheme has <strong>stewards</strong>: the people responsible for its concepts. For the shared MELIAF scheme they are the MELIAF
+            stewards; a platform scheme is looked after by the team that owns the platform.
+          </p>
+          <ul>
+            <li>A steward reviews every request and can approve it, reject it with a note, or ask you for changes.</li>
+            <li>
+              When the scheme has a <strong>validation step</strong>, an accepted change first opens a <strong>no-objection window</strong> (5 days
+              unless the scheme sets another length). If nobody objects in that time, it can be published.
+            </li>
+            <li>Every published change is recorded in the concept's public history, next to its version number.</li>
+            <li>Platforms connected to CLARISA can propose on behalf of their users, but cannot change the shared MELIAF scheme themselves.</li>
+          </ul>
+        </section>
+
+        <section class="gc-card gc-doc__section" id="downloads">
+          <h2 class="gc-h2">Downloads</h2>
+          <p>Use <strong>Download</strong> on the list page to take the whole scheme with you:</p>
+          <ul>
+            <li><strong>CSV</strong> opens in Excel, with the same columns as the MELIAF template.</li>
+            <li><strong>JSON</strong> keeps every field, for scripts.</li>
+            <li><strong>SKOS Turtle</strong> and <strong>JSON-LD</strong> are for vocabulary and linked-data tools.</li>
+          </ul>
+          <p>
+            Building an integration or connecting an AI assistant? See <a class="gc-link" [routerLink]="base + '/developers'">Developers</a>.
+          </p>
+        </section>
+      </div>
+    </div>
+  </div>
+</section>
+
+<app-gc-footer></app-gc-footer>

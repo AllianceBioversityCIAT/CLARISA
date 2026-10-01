@@ -1,0 +1,316 @@
+<div class="gc-panel">
+  <div class="gc-bar">
+    <div>
+      <p class="gc-bar__hint">
+        Every concept of the scheme, whatever its status. Open a row to edit it; saving here is a direct admin edit and goes into the concept history
+        under your name.
+      </p>
+    </div>
+    <div class="gc-bar__actions">
+      <button
+        pButton
+        type="button"
+        icon="pi pi-refresh"
+        class="p-button-text p-button-icon-only"
+        aria-label="Reload"
+        pTooltip="Reload"
+        (click)="load()"></button>
+      <button
+        *ngIf="aiEnabled"
+        pButton
+        type="button"
+        [label]="indexing ? 'Updating AI index…' : 'Update AI index'"
+        icon="pi pi-bolt"
+        class="p-button-outlined"
+        [disabled]="indexing"
+        pTooltip="Embeds new or edited concepts so the request recommendation also finds duplicates by meaning. Costs cents."
+        (click)="refreshIndex()"></button>
+      <button pButton type="button" label="New concept" icon="pi pi-plus" class="btn-brand" (click)="openCreate()"></button>
+    </div>
+  </div>
+
+  <section class="gc-semantic" *ngIf="aiEnabled" aria-label="Semantic search">
+    <form class="gc-semantic__form" (ngSubmit)="runSemantic()" autocomplete="off">
+      <span class="gc-semantic__badge"><i class="pi pi-bolt"></i> By meaning</span>
+      <label class="gc-sr-only" for="gc-semantic-text">Describe the idea you are looking for</label>
+      <input
+        id="gc-semantic-text"
+        name="semantic"
+        type="text"
+        pInputText
+        maxlength="1000"
+        placeholder="Describe an idea — e.g. “people who take part in an evaluation”"
+        [disabled]="semanticBusy"
+        [(ngModel)]="semanticText" />
+      <button
+        pButton
+        type="submit"
+        class="p-button-outlined"
+        icon="pi pi-search"
+        [label]="semanticBusy ? 'Searching…' : 'Semantic search'"
+        [disabled]="semanticBusy || !semanticText.trim()"
+        [loading]="semanticBusy"></button>
+    </form>
+    <p class="gc-ed__error" role="alert" *ngIf="semanticError">
+      <i class="pi pi-times-circle"></i><span>{{ semanticError }}</span>
+    </p>
+  </section>
+
+  <div class="gc-card gc-semantic-results" *ngIf="semanticHits">
+    <div class="gc-semantic-results__head">
+      <div>
+        <p class="gc-ed__title">Closest in meaning to “{{ semanticQuery }}”</p>
+        <p class="gc-ed__hint">Ranked by the AI index, not by words. Concepts edited since the last index update may be missing.</p>
+      </div>
+      <button
+        pButton
+        type="button"
+        label="Back to the table"
+        icon="pi pi-arrow-left"
+        class="p-button-text p-button-sm"
+        (click)="clearSemantic()"></button>
+    </div>
+    <div class="gc-ed__empty gc-semantic-results__empty" *ngIf="!semanticHits.length">
+      <i class="pi pi-search"></i><span>Nothing close enough. Try other words, or update the AI index.</span>
+    </div>
+    <ol class="gc-hits" *ngIf="semanticHits.length">
+      <li *ngFor="let hit of semanticHits; let i = index">
+        <button type="button" class="gc-hit" [disabled]="!hit.concept" (click)="openEdit(hit.concept)">
+          <span class="gc-hit__rank">{{ i + 1 }}</span>
+          <span class="gc-hit__text">
+            <span class="gc-ed__main">{{ hit.preferred_label }}</span>
+            <span class="gc-ed__sub">TERM {{ hit.term_id }} · {{ statusLabel(hit.status) }}</span>
+          </span>
+          <span class="gc-hit__score" [attr.aria-label]="'Score ' + (hit.score | number: '1.2-2')">
+            <span class="gc-hit__bar"><span [style.width.%]="hit.percent"></span></span>
+            <span class="gc-hit__num">{{ hit.score | number: '1.2-2' }}</span>
+          </span>
+        </button>
+      </li>
+    </ol>
+  </div>
+
+  <div class="gc-filters" *ngIf="!semanticHits">
+    <div class="admin-table-toolbar gc-toolbar gc-filter">
+      <span class="p-input-icon-left gc-filter__search">
+        <i class="pi pi-search"></i>
+        <input
+          type="text"
+          pInputText
+          placeholder="Search TERM ID, label or definition"
+          aria-label="Search TERM ID, label or definition"
+          [(ngModel)]="filters.search"
+          (ngModelChange)="applyFilters()" />
+      </span>
+      <span class="gc-sr-only" id="gc-f-status-l">Filter by status</span>
+      <p-multiSelect
+        inputId="gc-f-status"
+        ariaLabelledBy="gc-f-status-l"
+        appendTo="body"
+        panelStyleClass="admin-dropdown-panel"
+        placeholder="Any status"
+        selectedItemsLabel="{0} statuses"
+        [maxSelectedLabels]="1"
+        [showHeader]="false"
+        [options]="statusChoices"
+        [(ngModel)]="filters.statuses"
+        (onChange)="applyFilters()"></p-multiSelect>
+      <span class="gc-sr-only" id="gc-f-function-l">Filter by MELIAF function</span>
+      <p-multiSelect
+        inputId="gc-f-function"
+        ariaLabelledBy="gc-f-function-l"
+        appendTo="body"
+        panelStyleClass="admin-dropdown-panel"
+        placeholder="Any function"
+        selectedItemsLabel="{0} functions"
+        [maxSelectedLabels]="1"
+        [showHeader]="false"
+        [options]="optionsFor('meliaf_function')"
+        [(ngModel)]="filters.functions"
+        (onChange)="applyFilters()"></p-multiSelect>
+      <button
+        pButton
+        type="button"
+        class="p-button-text p-button-sm gc-more"
+        icon="pi pi-sliders-h"
+        [label]="moreFiltersCount ? 'More filters (' + moreFiltersCount + ')' : 'More filters'"
+        [attr.aria-expanded]="showMoreFilters"
+        aria-controls="gc-more-filters"
+        (click)="showMoreFilters = !showMoreFilters"></button>
+      <ng-container *ngIf="customFields.length">
+        <span class="gc-sr-only" id="gc-f-columns-l">Show custom fields as columns</span>
+        <p-multiSelect
+          inputId="gc-f-columns"
+          ariaLabelledBy="gc-f-columns-l"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          styleClass="gc-columns"
+          dropdownIcon="pi pi-table"
+          placeholder="Columns"
+          selectedItemsLabel="Columns · {0}"
+          [maxSelectedLabels]="0"
+          [showHeader]="false"
+          [options]="fieldColumnOptions"
+          [(ngModel)]="shownFields"
+          (onChange)="onColumnsChange()"></p-multiSelect>
+      </ng-container>
+      <span class="admin-table-toolbar__count" *ngIf="!loading && !loadError" aria-live="polite"
+        >{{ rows.length }} of {{ concepts.length }} concepts</span
+      >
+    </div>
+
+    <div class="gc-more-filters" id="gc-more-filters" *ngIf="showMoreFilters">
+      <div class="gc-more-filters__item">
+        <label for="gc-f-phase">Phase</label>
+        <p-multiSelect
+          inputId="gc-f-phase"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          placeholder="Any phase"
+          selectedItemsLabel="{0} phases"
+          [maxSelectedLabels]="1"
+          [showHeader]="false"
+          [options]="optionsFor('meliaf_phase')"
+          [(ngModel)]="filters.phases"
+          (onChange)="applyFilters()"></p-multiSelect>
+      </div>
+      <div class="gc-more-filters__item">
+        <label for="gc-f-type">Term type</label>
+        <p-multiSelect
+          inputId="gc-f-type"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          placeholder="Any type"
+          selectedItemsLabel="{0} types"
+          [maxSelectedLabels]="1"
+          [showHeader]="false"
+          [options]="optionsFor('term_type')"
+          [(ngModel)]="filters.termTypes"
+          (onChange)="applyFilters()"></p-multiSelect>
+      </div>
+      <div class="gc-more-filters__item">
+        <span class="gc-more-filters__label" id="gc-f-icon">Icon</span>
+        <p-selectButton
+          styleClass="gc-seg"
+          ariaLabelledBy="gc-f-icon"
+          [options]="iconChoices"
+          [(ngModel)]="filters.icon"
+          (onChange)="applyFilters()"></p-selectButton>
+      </div>
+      <label class="gc-more-filters__check">
+        <p-checkbox [binary]="true" inputId="gc-f-nodef" [(ngModel)]="filters.missingDefinition" (onChange)="applyFilters()"></p-checkbox>
+        <span>Missing definition</span>
+      </label>
+    </div>
+
+    <div class="gc-chips" *ngIf="hasFilters" aria-label="Active filters">
+      <span class="gc-chip" *ngFor="let chip of chips">
+        <span>{{ chip.label }}</span>
+        <button type="button" class="gc-chip__x" [attr.aria-label]="'Remove filter ' + chip.label" (click)="removeFilter(chip)">
+          <i class="pi pi-times"></i>
+        </button>
+      </span>
+      <button type="button" class="gc-chips__clear" (click)="clearFilters()">Clear all</button>
+    </div>
+  </div>
+
+  <div class="gc-card" *ngIf="!semanticHits">
+    <div class="gc-skeleton" *ngIf="loading && !concepts.length" aria-busy="true" aria-label="Loading concepts">
+      <div class="gc-skeleton__row" *ngFor="let _ of [1, 2, 3, 4, 5, 6]">
+        <span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span
+        ><span class="gc-skeleton__bar"></span>
+      </div>
+    </div>
+
+    <div class="gc-state gc-state--error" *ngIf="!loading && loadError">
+      <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
+      <p class="gc-state__title">The concepts did not load</p>
+      <p class="gc-state__text">{{ loadError }}</p>
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
+    </div>
+
+    <div class="gc-state" *ngIf="!loading && !loadError && !concepts.length">
+      <span class="gc-state__icon"><i class="pi pi-sitemap"></i></span>
+      <p class="gc-state__title">No concepts yet</p>
+      <p class="gc-state__text">
+        Create the first one with <strong>New concept</strong>, or load a whole spreadsheet from the <strong>Import</strong> tab.
+      </p>
+    </div>
+
+    <p-table
+      *ngIf="!loadError && concepts.length"
+      [value]="rows"
+      [loading]="loading"
+      sortField="preferred_label"
+      [sortOrder]="1"
+      [rows]="15"
+      [paginator]="rows.length > 15"
+      [rowsPerPageOptions]="[15, 30, 50, 100]"
+      styleClass="p-datatable-sm admin-table gc-concepts-table"
+      responsiveLayout="scroll">
+      <ng-template pTemplate="header">
+        <tr>
+          <th scope="col" pSortableColumn="term_id" style="width: 104px">TERM ID <p-sortIcon field="term_id"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="preferred_label" style="width: 220px">
+            Preferred label <p-sortIcon field="preferred_label"></p-sortIcon>
+          </th>
+          <th scope="col" pSortableColumn="definition">Definition <p-sortIcon field="definition"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="status" style="width: 124px">Status <p-sortIcon field="status"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="functionsText" style="width: 190px">Function <p-sortIcon field="functionsText"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="icon" style="width: 76px">Icon <p-sortIcon field="icon"></p-sortIcon></th>
+          <th scope="col" *ngFor="let field of shownColumns" [pSortableColumn]="'x.' + field.code" class="gc-col-custom" style="width: 180px">
+            {{ field.label }} <span class="tag-custom" title="Custom field defined in Setup">Custom</span> <p-sortIcon [field]="'x.' + field.code"></p-sortIcon>
+          </th>
+          <th scope="col" pSortableColumn="version" style="width: 96px">Version <p-sortIcon field="version"></p-sortIcon></th>
+          <th scope="col" pSortableColumn="date_modified" style="width: 128px">Last modified <p-sortIcon field="date_modified"></p-sortIcon></th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-row>
+        <tr
+          class="gc-row"
+          tabindex="0"
+          [attr.aria-label]="'Edit ' + row.preferred_label"
+          (click)="openEdit(row.concept)"
+          (keydown.enter)="openEdit(row.concept)">
+          <td data-label="TERM ID">
+            <span class="gc-id">{{ row.term_id }}</span>
+          </td>
+          <td data-card-title data-label="Preferred label" class="cell-primary">{{ row.preferred_label }}</td>
+          <td data-label="Definition">
+            <span class="cell-clamp" *ngIf="row.definition; else noDefinition" [title]="row.definition">{{ row.definition }}</span>
+            <ng-template #noDefinition><span class="cell-empty">No definition yet</span></ng-template>
+          </td>
+          <td data-label="Status"><p-tag [value]="statusLabel(row.status)" [severity]="statusSeverity(row.status)"></p-tag></td>
+          <td data-label="Function">
+            <ng-container *ngIf="row.functions.length; else noFunction">
+              <span class="cell-chip" *ngFor="let fn of row.functions">{{ fn }}</span>
+            </ng-container>
+            <ng-template #noFunction><span class="cell-empty">—</span></ng-template>
+          </td>
+          <td data-label="Icon">
+            <i *ngIf="row.icon; else noIcon" class="pi pi-image gc-has-icon" aria-label="Has an icon"></i>
+            <ng-template #noIcon><span class="cell-empty">—</span></ng-template>
+          </td>
+          <td *ngFor="let field of shownColumns" [attr.data-label]="field.label" class="gc-col-custom">
+            <span class="cell-clamp" *ngIf="row.x[field.code]; else noCustom" [title]="row.x[field.code]">{{ row.x[field.code] }}</span>
+            <ng-template #noCustom><span class="cell-empty">—</span></ng-template>
+          </td>
+          <td data-label="Version" class="cell-num">{{ row.version || '—' }}</td>
+          <td data-label="Last modified" class="cell-num">{{ row.date_modified ? (row.date_modified | date: 'yyyy-MM-dd') : '—' }}</td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td [attr.colspan]="8 + shownColumns.length" class="cell-empty gc-empty-cell">
+            No concept matches these filters. Clear them to see the whole scheme.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>
+
+<app-gc-concept-create-dialog [scheme]="scheme" (created)="onCreated($event)"></app-gc-concept-create-dialog>
+<app-gc-concept-dialog [scheme]="scheme" [aiEnabled]="aiEnabled" [lists]="lists" [concepts]="concepts" (changed)="load()"></app-gc-concept-dialog>

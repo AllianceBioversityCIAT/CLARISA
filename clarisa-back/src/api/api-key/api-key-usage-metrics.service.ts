@@ -3,23 +3,108 @@ import { ApiKeyRepository } from './repositories/api-key.repository';
 import { ApiKeyUsageLogRepository } from './repositories/api-key-usage-log.repository';
 import {
   ApiKeyUsageQueryDto,
+  UsageEndpointsQueryDto,
   UsageLogsQueryDto,
   UsageSummaryQueryDto,
 } from './dto/usage-query.dto';
 import {
   ApiKeyUsageStatsResponseDto,
+  EndpointConsumerDto,
+  EndpointUsageItemDto,
+  EndpointUsageResponseDto,
+  MisActivityItemDto,
+  OverviewSystemDto,
+  SystemKind,
+  UsageOverviewResponseDto,
   UsageLogsResponseDto,
   UsageSummaryResponseDto,
 } from './dto/usage-metrics.dto';
 import { resolveUsageDateRange, toIsoPeriod } from './utils/usage-date-range';
 
+/** Upper bound of (endpoint × key) rows fetched for the consumers merge. */
+const CONSUMER_ROWS_CAP = 5000;
+
+/**
+ * Path without its query string: `/api/institutions?status=all` → `/api/institutions`.
+ * 🛑 `CHAR(63)` and never a literal `'?'`: the MySQL driver formats every `?`
+ * of the SQL text as a placeholder, quoted or not, so `'?'` swallowed the
+ * `from` date and the query died with a 1064 on clarisatest (2026-09-25).
+ */
+const ENDPOINT_EXPR = 'SUBSTRING_INDEX(log.endpoint_accessed, CHAR(63), 1)';
+
+/** Day bucket as a plain `YYYY-MM-DD` string, so no driver timezone shifts it. */
+const DAY_EXPR = "DATE_FORMAT(log.created_at, '%Y-%m-%d')";
+/** The Monday of the call's week, same format. */
+const WEEK_EXPR =
+  "DATE_FORMAT(DATE_SUB(log.created_at, INTERVAL WEEKDAY(log.created_at) DAY), '%Y-%m-%d')";
+
+/**
+ * A key with no MIS is its own system (Yeck, 2026-09-30: the MIS Registry is
+ * being deprecated and CLARISA works with API keys directly). This is the
+ * key's id for those rows and `NULL` for keys that have a MIS, so grouping by
+ * `ak.mis_id` plus this expression keeps MIS groups exactly as they were and
+ * splits the old «No MIS» bucket into one group per key.
+ */
+const KEY_GROUP_EXPR = 'CASE WHEN ak.mis_id IS NULL THEN ak.id ELSE NULL END';
+/** Name of the key behind a key group; `NULL` in MIS groups. */
+const KEY_NAME_EXPR =
+  'MAX(CASE WHEN ak.mis_id IS NULL THEN ak.name ELSE NULL END)';
+
+/** Last-resort labels, only for a key group whose key has no name. */
+const NO_NAME_ACRONYM = 'No MIS';
+const NO_NAME_LABEL = 'Keys not linked to any system';
+
+export interface SystemIdentity {
+  mis_id: number | null;
+  kind: SystemKind;
+  api_key_id: number | null;
+  system_key: string;
+}
+
+/**
+ * Who a row belongs to: its MIS when it has one, otherwise its key.
+ * `system_key` is `mis:<id>` or `key:<id>` and is what the panel keys colors,
+ * selection and filters on.
+ */
+export function systemIdentity(
+  misId: unknown,
+  apiKeyId: unknown,
+): SystemIdentity {
+  if (misId != null) {
+    const mis = Number(misId);
+    return {
+      mis_id: mis,
+      kind: 'mis',
+      api_key_id: null,
+      system_key: `mis:${mis}`,
+    };
+  }
+  const key = apiKeyId != null ? Number(apiKeyId) : null;
+  return {
+    mis_id: null,
+    kind: 'key',
+    api_key_id: key,
+    system_key: key != null ? `key:${key}` : 'key:none',
+  };
+}
+
 interface UsageFilterParams {
   from: Date;
   to: Date;
   mis_id?: number;
+  /** Several systems; `0` means «no MIS». */
+  mis_ids?: number[];
+  /** Keys with no MIS, each one its own system; OR-ed with `mis_ids`. */
+  key_ids?: number[];
   api_key_id?: number;
   microservice_name?: string;
+  /** Only calls whose path starts with one of these (`/api/concepts/`). */
+  endpoint_prefixes?: string[];
 }
+
+/** `LIKE` pattern that matches `prefix` literally, then anything. */
+const likePrefix = (prefix: string) =>
+  `${prefix.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
 @Injectable()
 export class ApiKeyUsageMetricsService {
@@ -139,6 +224,7 @@ export class ApiKeyUsageMetricsService {
         'ak.name AS api_key_name',
         'ak.key_prefix AS key_prefix',
         'mis.acronym AS mis_acronym',
+        'ak.mis_id AS mis_id',
         'log.microservice_name AS microservice_name',
         'log.endpoint_accessed AS endpoint_accessed',
         'log.http_method AS http_method',
@@ -165,6 +251,7 @@ export class ApiKeyUsageMetricsService {
       period: toIsoPeriod(range),
       total: Number(countRow?.total ?? 0),
       items: items.map((row) => ({
+        ...this._logIdentity(row),
         id: Number(row.id),
         api_key_id: Number(row.api_key_id),
         api_key_name: row.api_key_name,
@@ -182,6 +269,307 @@ export class ApiKeyUsageMetricsService {
     };
   }
 
+  /**
+   * Requests per endpoint in the period, busiest first, each with the keys
+   * that consumed it. The query string is stripped so `/api/institutions`
+   * and `/api/institutions?status=all` count as one endpoint; path params
+   * (`/get/221`) are left as logged and folded by the panel against the
+   * public catalogue.
+   */
+  async getEndpointUsage(
+    query: UsageEndpointsQueryDto,
+  ): Promise<EndpointUsageResponseDto> {
+    const range = resolveUsageDateRange(query.from, query.to);
+    const filters = this._buildFilters(range, query);
+    const limit = query.limit ?? 200;
+
+    const endpointRows = await this._baseLogQuery(filters)
+      .select('log.microservice_name', 'microservice_name')
+      .addSelect(ENDPOINT_EXPR, 'endpoint')
+      .addSelect('log.http_method', 'http_method')
+      .addSelect('COUNT(log.id)', 'total_requests')
+      .addSelect(
+        'SUM(CASE WHEN log.status_code >= 400 THEN 1 ELSE 0 END)',
+        'error_count',
+      )
+      .addSelect('AVG(log.response_time_ms)', 'avg_response_time_ms')
+      .addSelect('COUNT(DISTINCT log.api_key_id)', 'unique_api_keys')
+      .addSelect('MAX(log.created_at)', 'last_used_at')
+      .groupBy('log.microservice_name')
+      .addGroupBy(ENDPOINT_EXPR)
+      .addGroupBy('log.http_method')
+      .orderBy('total_requests', 'DESC')
+      .limit(limit)
+      .getRawMany();
+
+    if (!endpointRows.length) {
+      return { period: toIsoPeriod(range), total_requests: 0, items: [] };
+    }
+
+    const consumerRows = await this._baseLogQuery(filters)
+      .select('log.microservice_name', 'microservice_name')
+      .addSelect(ENDPOINT_EXPR, 'endpoint')
+      .addSelect('log.http_method', 'http_method')
+      .addSelect('ak.id', 'api_key_id')
+      .addSelect('ak.name', 'api_key_name')
+      .addSelect('ak.key_prefix', 'key_prefix')
+      .addSelect('ak.mis_id', 'mis_id')
+      .addSelect('mis.acronym', 'mis_acronym')
+      .addSelect('COUNT(log.id)', 'total_requests')
+      .addSelect('MAX(log.created_at)', 'last_used_at')
+      .groupBy('log.microservice_name')
+      .addGroupBy(ENDPOINT_EXPR)
+      .addGroupBy('log.http_method')
+      .addGroupBy('ak.id')
+      .addGroupBy('ak.name')
+      .addGroupBy('ak.key_prefix')
+      .addGroupBy('ak.mis_id')
+      .addGroupBy('mis.acronym')
+      .orderBy('total_requests', 'DESC')
+      // Bounded on purpose: `endpointRows` is capped by `limit`, and this
+      // query must not scan the whole history unbounded over «All time».
+      .limit(CONSUMER_ROWS_CAP)
+      .getRawMany();
+
+    const keyOf = (row: {
+      microservice_name: string;
+      endpoint: string;
+      http_method: string | null;
+    }) =>
+      `${row.microservice_name}\u0000${row.endpoint}\u0000${row.http_method ?? ''}`;
+
+    const consumersByEndpoint = new Map<string, EndpointConsumerDto[]>();
+    for (const row of consumerRows) {
+      const key = keyOf(row);
+      const list = consumersByEndpoint.get(key) ?? [];
+      const who = systemIdentity(row.mis_id, row.api_key_id);
+      list.push({
+        api_key_id: Number(row.api_key_id),
+        api_key_name: row.api_key_name,
+        key_prefix: row.key_prefix,
+        mis_id: who.mis_id,
+        mis_acronym: row.mis_acronym ?? null,
+        kind: who.kind,
+        system_key: who.system_key,
+        total_requests: Number(row.total_requests),
+        last_used_at: row.last_used_at ?? null,
+      });
+      consumersByEndpoint.set(key, list);
+    }
+
+    const items: EndpointUsageItemDto[] = endpointRows.map((row) => ({
+      microservice_name: row.microservice_name,
+      endpoint: row.endpoint,
+      http_method: row.http_method ?? null,
+      total_requests: Number(row.total_requests),
+      error_count: Number(row.error_count ?? 0),
+      avg_response_time_ms:
+        row.avg_response_time_ms != null
+          ? Math.round(Number(row.avg_response_time_ms))
+          : null,
+      unique_api_keys: Number(row.unique_api_keys),
+      last_used_at: row.last_used_at ?? null,
+      consumers: consumersByEndpoint.get(keyOf(row)) ?? [],
+    }));
+
+    return {
+      period: toIsoPeriod(range),
+      total_requests: items.reduce((sum, item) => sum + item.total_requests, 0),
+      items,
+    };
+  }
+
+  /**
+   * One row per MIS (plus one for keys with no MIS): how many keys it holds,
+   * how many are active, and the most recent `last_used_at` among them. Read
+   * from `api_keys`, not from the log, so it is cheap and covers all time.
+   */
+  async getMisActivity(): Promise<MisActivityItemDto[]> {
+    const rows = await this._apiKeyRepository
+      .createQueryBuilder('ak')
+      .leftJoin('ak.mis_object', 'mis')
+      .select('ak.mis_id', 'mis_id')
+      .addSelect('mis.acronym', 'mis_acronym')
+      .addSelect('mis.name', 'mis_name')
+      .addSelect('COUNT(ak.id)', 'total_keys')
+      .addSelect(
+        'SUM(CASE WHEN ak.is_active = 1 THEN 1 ELSE 0 END)',
+        'active_keys',
+      )
+      .addSelect('SUM(ak.usage_count)', 'usage_count')
+      .addSelect('MAX(ak.last_used_at)', 'last_used_at')
+      .groupBy('ak.mis_id')
+      .addGroupBy('mis.acronym')
+      .addGroupBy('mis.name')
+      .orderBy('last_used_at', 'DESC')
+      .getRawMany();
+
+    return rows.map((row) => ({
+      mis_id: row.mis_id != null ? Number(row.mis_id) : null,
+      mis_acronym: row.mis_acronym ?? '—',
+      mis_name: row.mis_name ?? 'Unassigned',
+      total_keys: Number(row.total_keys ?? 0),
+      active_keys: Number(row.active_keys ?? 0),
+      usage_count: Number(row.usage_count ?? 0),
+      last_used_at: row.last_used_at ?? null,
+    }));
+  }
+
+  /**
+   * Everything the Overview draws, broken down by system so the panel can
+   * switch systems on and off without asking again: one row per system, the
+   * time series per bucket and system, and calls per weekday × hour.
+   */
+  async getOverview(
+    query: UsageSummaryQueryDto,
+  ): Promise<UsageOverviewResponseDto> {
+    const range = resolveUsageDateRange(query.from, query.to);
+    const filters = this._buildFilters(range, query);
+    const granularity = query.granularity ?? 'day';
+    const bucket = granularity === 'week' ? WEEK_EXPR : DAY_EXPR;
+
+    const [systems, seriesRows, heatRows] = await Promise.all([
+      this._aggregateSystems(filters),
+      this._baseLogQuery(filters)
+        .select(bucket, 'bucket')
+        .addSelect('ak.mis_id', 'mis_id')
+        .addSelect(KEY_GROUP_EXPR, 'key_group_id')
+        .addSelect('COUNT(log.id)', 'calls')
+        .addSelect(
+          'SUM(CASE WHEN log.status_code >= 400 THEN 1 ELSE 0 END)',
+          'errors',
+        )
+        .addSelect('AVG(log.response_time_ms)', 'avg_ms')
+        .groupBy(bucket)
+        .addGroupBy('ak.mis_id')
+        .addGroupBy(KEY_GROUP_EXPR)
+        .orderBy('bucket', 'ASC')
+        .getRawMany(),
+      this._baseLogQuery(filters)
+        .select('DAYOFWEEK(log.created_at)', 'dow')
+        .addSelect('HOUR(log.created_at)', 'hour')
+        .addSelect('ak.mis_id', 'mis_id')
+        .addSelect(KEY_GROUP_EXPR, 'key_group_id')
+        .addSelect('COUNT(log.id)', 'calls')
+        .groupBy('DAYOFWEEK(log.created_at)')
+        .addGroupBy('HOUR(log.created_at)')
+        .addGroupBy('ak.mis_id')
+        .addGroupBy(KEY_GROUP_EXPR)
+        .getRawMany(),
+    ]);
+
+    const ms = (v: unknown) => (v != null ? Math.round(Number(v)) : null);
+
+    return {
+      period: toIsoPeriod(range),
+      granularity,
+      systems,
+      series: seriesRows.map((row) => {
+        const who = systemIdentity(row.mis_id, row.key_group_id);
+        return {
+          bucket: String(row.bucket),
+          mis_id: who.mis_id,
+          calls: Number(row.calls ?? 0),
+          errors: Number(row.errors ?? 0),
+          avg_response_time_ms: ms(row.avg_ms),
+          kind: who.kind,
+          api_key_id: who.api_key_id,
+          system_key: who.system_key,
+        };
+      }),
+      heatmap: heatRows.map((row) => {
+        const who = systemIdentity(row.mis_id, row.key_group_id);
+        return {
+          day_of_week: Number(row.dow),
+          hour: Number(row.hour),
+          mis_id: who.mis_id,
+          calls: Number(row.calls ?? 0),
+          kind: who.kind,
+          api_key_id: who.api_key_id,
+          system_key: who.system_key,
+        };
+      }),
+    };
+  }
+
+  /**
+   * Calls per connected system for the endpoints under some path prefixes —
+   * the same rows as the Overview's `systems`, narrowed to one module (for
+   * Concepts: `/api/concepts/` and its persistent `/concepts/`).
+   */
+  async getSystemsForEndpoints(
+    range: { from?: string; to?: string },
+    endpointPrefixes: string[],
+  ): Promise<{
+    period: { from: string; to: string };
+    systems: OverviewSystemDto[];
+  }> {
+    const resolved = resolveUsageDateRange(range.from, range.to);
+    const systems = await this._aggregateSystems({
+      from: resolved.from,
+      to: resolved.to,
+      endpoint_prefixes: endpointPrefixes,
+    });
+    return { period: toIsoPeriod(resolved), systems };
+  }
+
+  private async _aggregateSystems(
+    filters: UsageFilterParams,
+  ): Promise<OverviewSystemDto[]> {
+    const rows = await this._baseLogQuery(filters)
+      .leftJoin('ak.environment_object', 'env')
+      .select('ak.mis_id', 'mis_id')
+      .addSelect(KEY_GROUP_EXPR, 'key_group_id')
+      .addSelect(KEY_NAME_EXPR, 'key_name')
+      .addSelect('mis.acronym', 'acronym')
+      .addSelect('mis.name', 'name')
+      .addSelect('env.acronym', 'environment')
+      .addSelect('COUNT(log.id)', 'calls')
+      .addSelect(
+        'SUM(CASE WHEN log.status_code >= 400 THEN 1 ELSE 0 END)',
+        'errors',
+      )
+      .addSelect('AVG(log.response_time_ms)', 'avg_ms')
+      .addSelect('COUNT(DISTINCT ak.id)', 'api_keys')
+      .addSelect('MAX(log.created_at)', 'last_used_at')
+      .groupBy('ak.mis_id')
+      .addGroupBy(KEY_GROUP_EXPR)
+      .addGroupBy('mis.acronym')
+      .addGroupBy('mis.name')
+      .addGroupBy('env.acronym')
+      .orderBy('calls', 'DESC')
+      .getRawMany();
+
+    const ms = (v: unknown) => (v != null ? Math.round(Number(v)) : null);
+    return rows.map((row) => {
+      const who = systemIdentity(row.mis_id, row.key_group_id);
+      const keyName =
+        who.kind === 'key' && typeof row.key_name === 'string'
+          ? row.key_name.trim() || null
+          : null;
+      return {
+        mis_id: who.mis_id,
+        acronym: row.acronym ?? keyName ?? NO_NAME_ACRONYM,
+        name: row.name ?? keyName ?? NO_NAME_LABEL,
+        environment: row.environment ?? null,
+        calls: Number(row.calls ?? 0),
+        errors: Number(row.errors ?? 0),
+        avg_response_time_ms: ms(row.avg_ms),
+        api_keys: Number(row.api_keys ?? 0),
+        last_used_at: row.last_used_at ?? null,
+        kind: who.kind,
+        api_key_id: who.api_key_id,
+        api_key_name: keyName,
+        system_key: who.system_key,
+      };
+    });
+  }
+
+  private _logIdentity(row: { mis_id?: unknown; api_key_id?: unknown }) {
+    const who = systemIdentity(row.mis_id, row.api_key_id);
+    return { mis_id: who.mis_id, system_key: who.system_key };
+  }
+
   private _buildFilters(
     range: { from: Date; to: Date },
     query: UsageSummaryQueryDto,
@@ -190,6 +578,19 @@ export class ApiKeyUsageMetricsService {
       from: range.from,
       to: range.to,
       mis_id: query.mis_id,
+      mis_ids: query.mis_ids
+        ? [...new Set(query.mis_ids.split(',').map(Number))]
+        : undefined,
+      key_ids: query.key_ids
+        ? [
+            ...new Set(
+              query.key_ids
+                .split(',')
+                .map(Number)
+                .filter((id) => id > 0),
+            ),
+          ]
+        : undefined,
       api_key_id: query.api_key_id,
       microservice_name: query.microservice_name?.trim() || undefined,
     };
@@ -213,10 +614,46 @@ export class ApiKeyUsageMetricsService {
       qb.andWhere('ak.mis_id = :misId', { misId: filters.mis_id });
     }
 
+    if (filters.key_ids?.length) {
+      // Systems picked among MIS and standalone keys: any of them matches.
+      const ids = (filters.mis_ids ?? []).filter((id) => id > 0);
+      const clauses: string[] = [];
+      if (ids.length) clauses.push('ak.mis_id IN (:...misIds)');
+      if (filters.mis_ids?.includes(0)) clauses.push('ak.mis_id IS NULL');
+      clauses.push('(ak.mis_id IS NULL AND ak.id IN (:...keyIds))');
+      qb.andWhere(`(${clauses.join(' OR ')})`, {
+        ...(ids.length ? { misIds: ids } : {}),
+        keyIds: filters.key_ids,
+      });
+    } else if (filters.mis_ids?.length) {
+      // 🛑 Unchanged on purpose: without `key_ids` this is byte-identical to
+      // the filter the panel used before standalone keys became systems.
+      const ids = filters.mis_ids.filter((id) => id > 0);
+      const withNone = filters.mis_ids.includes(0);
+      if (ids.length && withNone) {
+        qb.andWhere('(ak.mis_id IN (:...misIds) OR ak.mis_id IS NULL)', {
+          misIds: ids,
+        });
+      } else if (ids.length) {
+        qb.andWhere('ak.mis_id IN (:...misIds)', { misIds: ids });
+      } else {
+        qb.andWhere('ak.mis_id IS NULL');
+      }
+    }
+
     if (filters.microservice_name) {
       qb.andWhere('log.microservice_name = :microserviceName', {
         microserviceName: filters.microservice_name,
       });
+    }
+
+    if (filters.endpoint_prefixes?.length) {
+      const params: Record<string, string> = {};
+      const clauses = filters.endpoint_prefixes.map((prefix, i) => {
+        params[`endpointPrefix${i}`] = likePrefix(prefix);
+        return `log.endpoint_accessed LIKE :endpointPrefix${i}`;
+      });
+      qb.andWhere(`(${clauses.join(' OR ')})`, params);
     }
 
     return qb;

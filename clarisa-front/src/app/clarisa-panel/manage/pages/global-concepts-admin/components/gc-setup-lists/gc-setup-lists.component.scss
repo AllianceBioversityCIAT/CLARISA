@@ -1,0 +1,137 @@
+@import '../gc-panel';
+@import '../gc-editor';
+@import '../gc-setup';
+
+.gc-new-list {
+  margin-bottom: 14px;
+}
+
+.gc-lists-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--cl-line);
+
+  label {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cl-ink-2);
+  }
+}
+
+.gc-values {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gc-value {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px 8px 8px;
+  min-width: 0;
+
+  &:nth-child(even) {
+    background: var(--cl-surface-2);
+  }
+
+  &.is-inactive .gc-ed__main {
+    color: var(--cl-ink-3);
+    text-decoration: line-through;
+  }
+}
+
+.gc-value + .gc-value {
+  border-top: 1px solid var(--cl-line);
+}
+
+.gc-value__order {
+  display: inline-flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+}
+
+.gc-value__move {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 22px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cl-ink-3);
+  font-size: 11px;
+  cursor: pointer;
+
+  &:hover:enabled,
+  &:focus-visible {
+    background: var(--cl-brand-soft);
+    color: var(--cl-brand-deeper);
+    outline: none;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
+.gc-value__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gc-value__edit {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+
+  input.p-inputtext {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 40px;
+    font-size: 16px;
+  }
+}
+
+.gc-value__actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 2px;
+}
+
+.gc-inline-form .field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cl-ink-2);
+}
+
+:host ::ng-deep .gc-lists-bar .p-dropdown {
+  min-width: 240px;
+}
+
+@media (max-width: 600px) {
+  .gc-value {
+    flex-wrap: wrap;
+  }
+
+  .gc-value__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  :host ::ng-deep .gc-lists-bar p-dropdown,
+  :host ::ng-deep .gc-lists-bar .p-dropdown {
+    width: 100%;
+    min-width: 0;
+  }
+}

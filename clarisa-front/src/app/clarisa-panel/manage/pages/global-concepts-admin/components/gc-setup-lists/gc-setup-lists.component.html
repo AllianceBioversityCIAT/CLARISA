@@ -1,0 +1,142 @@
+<section class="gc-ed">
+  <div class="gc-ed__head">
+    <div>
+      <h3 class="gc-ed__title">Controlled lists</h3>
+      <p class="gc-ed__hint">
+        The values the list fields offer. <strong>A stored value never changes</strong> — concepts already point to it. Relabel it, reorder it, or deactivate it
+        and add a new one.
+      </p>
+    </div>
+    <button *ngIf="!creatingList" pButton type="button" label="New list" icon="pi pi-plus" class="p-button-outlined" [disabled]="!!busy" (click)="creatingList = true"></button>
+  </div>
+
+  <form class="admin-card admin-form gc-new-list" *ngIf="creatingList" (ngSubmit)="createList()" autocomplete="off">
+    <div class="admin-form__grid">
+      <div class="field">
+        <div class="gc-field-head">
+          <label for="gc-list-code">List code <span class="tag-req">Required</span></label>
+          <app-gc-info [text]="info.list_code"></app-gc-info>
+        </div>
+        <input id="gc-list-code" name="list_code" type="text" pInputText maxlength="50" placeholder="funding_source" [(ngModel)]="newListCode" />
+      </div>
+      <div class="field">
+        <div class="gc-field-head">
+          <label for="gc-list-first">First value <span class="tag-req">Required</span></label>
+          <app-gc-info [text]="info.first_value"></app-gc-info>
+        </div>
+        <input id="gc-list-first" name="label" type="text" pInputText maxlength="255" [(ngModel)]="newListLabel" />
+        <small class="field-hint">A list exists from its first value.</small>
+      </div>
+    </div>
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="isBusy('list')" (click)="creatingList = false"></button>
+      <button
+        pButton
+        type="submit"
+        class="btn-brand"
+        icon="pi pi-check"
+        [label]="isBusy('list') ? 'Creating…' : 'Create list'"
+        [disabled]="!!busy || !newListCode.trim() || !newListLabel.trim()"
+        [loading]="isBusy('list')"></button>
+    </div>
+  </form>
+
+  <div class="gc-card">
+    <div class="gc-skeleton" *ngIf="loading && !groups.length" aria-busy="true" aria-label="Loading lists">
+      <div class="gc-skeleton__row" *ngFor="let _ of [1, 2, 3, 4]"><span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span></div>
+    </div>
+
+    <div class="gc-state gc-state--error" *ngIf="!loading && loadError">
+      <span class="gc-state__icon"><i class="pi pi-exclamation-triangle"></i></span>
+      <p class="gc-state__title">The lists did not load</p>
+      <p class="gc-state__text">{{ loadError }}</p>
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="p-button-outlined" (click)="load()"></button>
+    </div>
+
+    <div class="gc-state" *ngIf="!loading && !loadError && !groups.length">
+      <span class="gc-state__icon"><i class="pi pi-list"></i></span>
+      <p class="gc-state__title">No lists yet</p>
+      <p class="gc-state__text">Start one with <strong>New list</strong>.</p>
+    </div>
+
+    <ng-container *ngIf="!loadError && groups.length">
+      <div class="gc-lists-bar">
+        <label for="gc-list-pick">List</label>
+        <app-gc-info [text]="info.pick"></app-gc-info>
+        <p-dropdown
+          inputId="gc-list-pick"
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          [filter]="listOptions.length > 15"
+          [options]="listOptions"
+          [disabled]="!!busy"
+          [(ngModel)]="selected"></p-dropdown>
+        <span class="admin-table-toolbar__count" *ngIf="group">{{ group.active }} active of {{ group.values.length }}</span>
+      </div>
+
+      <ol class="gc-values" *ngIf="group">
+        <li class="gc-value" *ngFor="let value of group.values; let i = index; let last = last" [class.is-inactive]="!value.is_active">
+          <span class="gc-value__order">
+            <button type="button" class="gc-value__move" [disabled]="!!busy || i === 0" [attr.aria-label]="'Move ' + value.label + ' up'" (click)="move(i, -1)">
+              <i class="pi pi-chevron-up"></i>
+            </button>
+            <button type="button" class="gc-value__move" [disabled]="!!busy || last" [attr.aria-label]="'Move ' + value.label + ' down'" (click)="move(i, 1)">
+              <i class="pi pi-chevron-down"></i>
+            </button>
+          </span>
+
+          <div class="gc-value__text" *ngIf="editingId !== value.id">
+            <span class="gc-ed__main">{{ value.label }}</span>
+            <span class="gc-ed__sub">
+              <code class="gc-code">{{ value.value }}</code>
+              <ng-container *ngIf="value.shared"> · shared by every scheme</ng-container>
+              <ng-container *ngIf="!value.is_active"> · inactive</ng-container>
+            </span>
+          </div>
+          <form class="gc-value__edit" *ngIf="editingId === value.id" (ngSubmit)="saveRelabel(value)">
+            <label class="gc-sr-only" [for]="'gc-relabel-' + value.id">New label for {{ value.value }}</label>
+            <input [id]="'gc-relabel-' + value.id" name="label" type="text" pInputText maxlength="255" [(ngModel)]="editLabel" [disabled]="!!busy" />
+            <button pButton type="button" label="Cancel" class="p-button-text p-button-sm" [disabled]="!!busy" (click)="editingId = null"></button>
+            <button pButton type="submit" label="Save" class="p-button-outlined" [disabled]="!!busy || !editLabel.trim()" [loading]="isBusy('label:' + value.id)"></button>
+          </form>
+
+          <span class="gc-value__actions" *ngIf="editingId !== value.id">
+            <button pButton type="button" label="Relabel" icon="pi pi-pencil" class="p-button-text p-button-sm" [disabled]="!!busy" (click)="startRelabel(value)"></button>
+            <button
+              pButton
+              type="button"
+              class="p-button-text p-button-sm"
+              [label]="value.is_active ? 'Deactivate' : 'Reactivate'"
+              [icon]="isBusy('active:' + value.id) ? 'pi pi-spin pi-spinner' : value.is_active ? 'pi pi-eye-slash' : 'pi pi-eye'"
+              [disabled]="!!busy"
+              (click)="toggleActive(value)"></button>
+          </span>
+        </li>
+      </ol>
+
+      <form class="gc-inline-form" *ngIf="group" (ngSubmit)="addValue()" autocomplete="off">
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-new-value-label">New value — label</label>
+            <app-gc-info [text]="info.new_label"></app-gc-info>
+          </div>
+          <input id="gc-new-value-label" name="label" type="text" pInputText maxlength="255" [(ngModel)]="newLabel" [disabled]="!!busy" />
+        </div>
+        <div class="field">
+          <div class="gc-field-head">
+            <label for="gc-new-value-code">Stored value <span class="tag-opt">Optional</span></label>
+            <app-gc-info [text]="info.new_value"></app-gc-info>
+          </div>
+          <input id="gc-new-value-code" name="value" type="text" pInputText maxlength="100" placeholder="From the label" [(ngModel)]="newValue" [disabled]="!!busy" />
+        </div>
+        <span class="gc-flag-row">
+          <label class="gc-flag"><p-checkbox name="shared" [binary]="true" [(ngModel)]="newShared" [disabled]="!!busy"></p-checkbox><span>Every scheme</span></label>
+          <app-gc-info [text]="info.shared"></app-gc-info>
+        </span>
+        <button pButton type="submit" class="p-button-outlined" icon="pi pi-plus" label="Add value" [disabled]="!!busy || !newLabel.trim()" [loading]="isBusy('add')"></button>
+      </form>
+    </ng-container>
+  </div>
+
+  <p class="gc-ed__error" role="alert" *ngIf="error"><i class="pi pi-times-circle"></i><span>{{ error }}</span></p>
+</section>

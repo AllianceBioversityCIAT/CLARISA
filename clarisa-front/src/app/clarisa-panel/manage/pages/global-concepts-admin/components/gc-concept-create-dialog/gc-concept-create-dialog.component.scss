@@ -1,0 +1,37 @@
+.gc-form-error {
+  margin: 12px 0 0;
+}
+
+/* «Keep an existing code»: a quiet text toggle, not a second button next to the primary. */
+.gc-disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin: 2px 0 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cl-ink-3);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  .pi {
+    font-size: 11px;
+  }
+
+  &:hover {
+    color: var(--cl-ink);
+  }
+
+  &:focus-visible {
+    border-radius: 6px;
+    outline: none;
+    box-shadow: 0 0 0 3px var(--cl-brand-ring);
+  }
+}
+
+.gc-create-dialog__term {
+  margin-top: 8px;
+}

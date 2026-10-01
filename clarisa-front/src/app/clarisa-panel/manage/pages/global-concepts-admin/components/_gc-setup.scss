@@ -1,0 +1,81 @@
+/** Shared by the three Setup sections. Tokens only, px only, no `!important`. */
+
+.gc-code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--cl-surface-2);
+  color: var(--cl-ink-2);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.gc-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cl-ink-3);
+
+  .pi {
+    font-size: 10px;
+  }
+}
+
+.gc-field-flags {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.gc-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cl-ink-2);
+  cursor: pointer;
+}
+
+.gc-inline-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px;
+  border-top: 1px solid var(--cl-line);
+  background: var(--cl-surface-2);
+
+  .field {
+    flex: 1 1 200px;
+    min-width: 0;
+    margin-bottom: 0;
+  }
+}
+
+:host ::ng-deep {
+  .admin-form input.p-inputtext,
+  .gc-inline-form input.p-inputtext {
+    width: 100%;
+    font-size: 16px;
+  }
+
+  .admin-form input.p-inputtext.is-readonly {
+    background: var(--cl-surface-2);
+    color: var(--cl-ink-3);
+    cursor: not-allowed;
+  }
+
+  .admin-form p-dropdown,
+  .admin-form .p-dropdown {
+    width: 100%;
+  }
+
+  .gc-setup-table.admin-table.p-datatable .p-datatable-tbody > tr.is-inactive > td {
+    color: var(--cl-ink-3);
+  }
+}

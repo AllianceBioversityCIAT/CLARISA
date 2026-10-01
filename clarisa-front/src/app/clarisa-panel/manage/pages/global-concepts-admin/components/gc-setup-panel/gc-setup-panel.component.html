@@ -1,0 +1,22 @@
+<div class="gc-panel gc-setup">
+  <div class="gc-bar">
+    <p class="gc-bar__hint">How this scheme is shaped: the extra fields its concepts carry, the values its lists offer and the collections it publishes.</p>
+  </div>
+
+  <nav class="admin-tabs gc-setup__rail" role="tablist" aria-label="Setup sections">
+    <button
+      *ngFor="let item of sections"
+      type="button"
+      role="tab"
+      class="admin-tabs__item"
+      [class.is-active]="section === item.id"
+      [attr.aria-selected]="section === item.id"
+      (click)="section = item.id">
+      <i class="pi" [ngClass]="item.icon" aria-hidden="true"></i><span>{{ item.label }}</span>
+    </button>
+  </nav>
+
+  <app-gc-setup-fields *ngIf="section === 'fields'" [scheme]="scheme" [listCodes]="listCodes"></app-gc-setup-fields>
+  <app-gc-setup-lists *ngIf="section === 'lists'" [scheme]="scheme" (listCodes)="onListCodes($event)"></app-gc-setup-lists>
+  <app-gc-setup-collections *ngIf="section === 'collections'" [scheme]="scheme" [conceptOptions]="conceptOptions"></app-gc-setup-collections>
+</div>

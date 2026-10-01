@@ -1,0 +1,21 @@
+<div class="inner-banner gc-banner">
+  <div class="container">
+    <div class="gc-banner__body">
+      <ul class="inner-breadcrumb" *ngIf="crumbs.length">
+        <li *ngFor="let crumb of crumbs; let last = last">
+          <a *ngIf="crumb.link && !last; else plainCrumb" [routerLink]="crumb.link">{{ crumb.label }}</a>
+          <ng-template #plainCrumb>{{ crumb.label }}</ng-template>
+        </li>
+      </ul>
+      <p class="gc-banner__eyebrow" *ngIf="eyebrow">{{ eyebrow }}</p>
+      <h2>{{ title }}</h2>
+      <ng-content></ng-content>
+      <nav class="gc-banner__nav" *ngIf="nav" aria-label="Concepts">
+        <a *ngFor="let item of links" [routerLink]="item.link" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: item.exact }"
+          ><i class="pi" [ngClass]="item.icon" aria-hidden="true"></i>{{ item.label }}</a
+        >
+        <a *ngIf="signedIn" class="gc-banner__manage" [routerLink]="adminLink"><i class="pi pi-cog" aria-hidden="true"></i>Manage concepts</a>
+      </nav>
+    </div>
+  </div>
+</div>

@@ -2,6 +2,13 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { ManageComponent } from './manage.component';
 import { LoginGuardGuard } from '../../shared/services/login-guard.guard';
+import { AdminAccessGuard } from './admin-access.guard';
+
+/**
+ * Every screen passes two guards: a usable session (`LoginGuardGuard`), then
+ * the caller's roles (`AdminAccessGuard`, same map as the sidebar).
+ */
+const guarded = [LoginGuardGuard, AdminAccessGuard];
 
 const routes: Routes = [
   {
@@ -9,11 +16,18 @@ const routes: Routes = [
     component: ManageComponent,
     children: [
       {
+        path: '',
+        pathMatch: 'full',
+        loadChildren: () => import('./pages/admin-home/admin-home.module').then(m => m.AdminHomeModule),
+        canActivate: [LoginGuardGuard],
+      },
+      {
         path: 'manage-user',
         loadChildren: () =>
           import('./pages/manage-user/manage-user.module').then(
             (m) => m.ManageUserModule
           ),
+        canActivate: guarded,
       },
       {
         path: 'manage-role',
@@ -21,6 +35,7 @@ const routes: Routes = [
           import('./pages/manage-role/manage-role.module').then(
             (m) => m.ManageRoleModule
           ),
+        canActivate: guarded,
       },
       {
         path: 'partner-request',
@@ -28,7 +43,7 @@ const routes: Routes = [
           import('./pages/partner-request/partner-request.module').then(
             (m) => m.PartnerRequestModule
           ),
-        canActivate: [LoginGuardGuard],
+        canActivate: guarded,
       },
       {
         path: 'microservices-admin',
@@ -36,7 +51,7 @@ const routes: Routes = [
           import('./pages/microservices-admin/microservices-admin.module').then(
             (m) => m.MicroservicesAdminModule
           ),
-        canActivate: [LoginGuardGuard],
+        canActivate: guarded,
       },
       {
         path: 'institution-lifecycle',
@@ -44,7 +59,7 @@ const routes: Routes = [
           import(
             './pages/institution-lifecycle/institution-lifecycle.module'
           ).then((m) => m.InstitutionLifecycleModule),
-        canActivate: [LoginGuardGuard],
+        canActivate: guarded,
       },
       {
         path: 'glossary-admin',
@@ -52,7 +67,20 @@ const routes: Routes = [
           import('./pages/glossary-admin/glossary-admin.module').then(
             (m) => m.GlossaryAdminModule
           ),
-        canActivate: [LoginGuardGuard],
+        canActivate: guarded,
+      },
+      {
+        path: 'global-concepts-admin',
+        redirectTo: 'concepts-admin',
+        pathMatch: 'full',
+      },
+      {
+        path: 'concepts-admin',
+        loadChildren: () =>
+          import(
+            './pages/global-concepts-admin/global-concepts-admin.module'
+          ).then((m) => m.GlobalConceptsAdminModule),
+        canActivate: guarded,
       },
     ],
   },

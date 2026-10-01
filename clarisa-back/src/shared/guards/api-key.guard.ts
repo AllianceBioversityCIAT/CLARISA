@@ -11,6 +11,7 @@ import { API_KEY_AUTH_CONTEXT_KEY } from '../../api/api-key/constants/api-key-au
 import { readApiKeyHeader } from '../utils/read-api-key-header';
 import { ApiKeyAuthContext } from '../../api/api-key/interfaces/api-key-auth-context';
 import { REQUIRE_API_KEY_SCOPE } from '../decorators/require-api-key-scope.decorator';
+import { resolveClientIp } from '../utils/resolve-client-ip';
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -41,10 +42,10 @@ export class ApiKeyGuard implements CanActivate {
         required_scope: requiredScope,
         microservice_name: 'clarisa-api',
         endpoint_accessed: request.originalUrl ?? request.url,
-        ip_address: this._resolveClientIp(request),
+        ip_address: resolveClientIp(request),
       },
       {
-        clientIp: this._resolveClientIp(request),
+        clientIp: resolveClientIp(request),
         httpMethod: request.method,
         userAgent: request.headers['user-agent'] as string | undefined,
         recordUsage: true,
@@ -69,13 +70,5 @@ export class ApiKeyGuard implements CanActivate {
     ] = authContext;
 
     return true;
-  }
-
-  private _resolveClientIp(request: Request): string {
-    const forwarded = request.headers['x-forwarded-for'];
-    if (typeof forwarded === 'string' && forwarded.length) {
-      return forwarded.split(',')[0].trim();
-    }
-    return request.ip ?? request.socket?.remoteAddress ?? undefined;
   }
 }

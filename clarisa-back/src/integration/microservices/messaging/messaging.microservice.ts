@@ -142,6 +142,43 @@ export class MessagingMicroservice extends BaseMicroservice {
   }
 
   /**
+   * Sends a ready-made HTML email that needs no stored template, through the
+   * same transport and sender as the partner-request emails. Added for the
+   * Global Concepts module, whose request emails are built in code so the
+   * module adds no rows to the shared template table.
+   *
+   * @param to - Recipient address.
+   * @param subject - Subject line (prefixed with TEST outside production).
+   * @param html - The email body.
+   */
+  public async sendPlainEmail(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<void> {
+    const metadata = new MessageDto();
+    metadata.auth = {
+      username: this._appConfig.msMessagingUser,
+      password: this._appConfig.msMessagingPass,
+    };
+    const currentEnv = Profile.getfromName(this._appConfig.appProfile);
+    metadata.data = new ConfigMessageDto();
+    metadata.data.from = {
+      email: await this.cache.get(this._appConfig.supportEmailParam),
+      name: 'CLARISA Support',
+    };
+    metadata.data.emailBody = {
+      subject: `${currentEnv.isDev ? 'TEST ' : ''}${subject}`,
+      to,
+      cc: '',
+      bcc: '',
+      message: { socketFile: Buffer.from(html) },
+    };
+    await lastValueFrom(this._sendMail(metadata));
+    this.logger.verbose(`mail sent to "${to}" with subject "${subject}"`);
+  }
+
+  /**
    * Sends an email based on the provided email template and partner request.
    *
    * @param emailCase - The template of the email to be sent.

@@ -1,0 +1,91 @@
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [dismissableMask]="!saving"
+  [style]="{ width: '560px' }"
+  [breakpoints]="{ '640px': '94vw' }"
+  styleClass="admin-dialog gc-dialog gc-create-dialog"
+  header="New concept">
+  <p-header>
+    <span class="gc-dialog__title">New concept</span>
+    <span class="gc-dialog__subtitle">Name it and say what it means. The full editor opens right after, for everything else.</span>
+  </p-header>
+
+  <form class="admin-form gc-concept-form" (ngSubmit)="create()" autocomplete="off">
+    <div class="field">
+      <div class="gc-field-head">
+        <label for="gc-new-label">Preferred label <span class="tag-req">Required</span></label>
+        <app-gc-info [text]="info.preferred_label"></app-gc-info>
+      </div>
+      <input
+        id="gc-new-label"
+        name="preferred_label"
+        type="text"
+        maxlength="500"
+        pInputText
+        [disabled]="saving"
+        [(ngModel)]="form.preferred_label"
+        (ngModelChange)="touched()" />
+    </div>
+
+    <div class="field">
+      <div class="gc-field-head">
+        <label for="gc-new-definition">Definition <span class="tag-opt">Optional</span></label>
+        <app-gc-info [text]="info.definition"></app-gc-info>
+      </div>
+      <textarea
+        id="gc-new-definition"
+        name="definition"
+        pInputTextarea
+        rows="5"
+        [disabled]="saving"
+        [(ngModel)]="form.definition"
+        (ngModelChange)="touched()"></textarea>
+      <small class="field-hint">What readers need most. You can also write it later.</small>
+    </div>
+
+    <button
+      type="button"
+      class="gc-disclosure"
+      aria-controls="gc-new-term-id-field"
+      [attr.aria-expanded]="showTermId"
+      (click)="toggleTermId()">
+      <i class="pi" [class.pi-chevron-right]="!showTermId" [class.pi-chevron-down]="showTermId" aria-hidden="true"></i>
+      <span>Keep an existing code</span>
+    </button>
+
+    <div class="field gc-create-dialog__term" id="gc-new-term-id-field" *ngIf="showTermId">
+      <div class="gc-field-head">
+        <label for="gc-new-term-id">TERM ID <span class="tag-opt">Optional</span></label>
+        <app-gc-info [text]="info.term_id"></app-gc-info>
+      </div>
+      <input
+        id="gc-new-term-id"
+        name="term_id"
+        type="number"
+        min="1"
+        pInputText
+        [disabled]="saving"
+        [(ngModel)]="form.term_id"
+        (ngModelChange)="touched()" />
+      <small class="field-hint">Only to keep the code of an existing register. Left empty, the next free one is assigned.</small>
+    </div>
+
+    <p class="field-error gc-form-error" role="alert" *ngIf="error">{{ error }}</p>
+
+    <div class="admin-form__actions gc-dialog-foot">
+      <button pButton type="button" label="Cancel" class="p-button-outlined" [disabled]="saving" (click)="close()"></button>
+      <button
+        pButton
+        type="submit"
+        class="btn-brand"
+        icon="pi pi-check"
+        [label]="saving ? 'Creating…' : 'Create concept'"
+        [disabled]="saving || !!formError"
+        [loading]="saving"></button>
+    </div>
+  </form>
+</p-dialog>

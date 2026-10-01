@@ -33,7 +33,14 @@ export class User {
   @Column({ type: 'varchar', length: 255, nullable: false })
   email: string;
 
-  @Column({ type: 'text', nullable: true })
+  /**
+   * Password hash. Never loaded by default (`select: false`) and never
+   * serialised (`@Exclude`): until 2026-09-30 the public GET /api/users routes
+   * returned it. Only DB login reads it, via
+   * `UserService.findOneByEmailWithPassword`.
+   */
+  @Exclude()
+  @Column({ type: 'text', nullable: true, select: false })
   password: string;
 
   @Column({ type: 'tinyint', nullable: false, default: () => '0' })

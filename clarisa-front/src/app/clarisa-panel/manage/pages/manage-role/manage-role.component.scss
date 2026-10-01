@@ -1,0 +1,14 @@
+@import '../../components/access/access-page';
+
+@include access-page-motion;
+@include access-page-root;
+
+:host {
+  display: block;
+}
+
+/* The page's own pieces reach the dialogs and the drawer, which render inside this host. */
+:host ::ng-deep .access-admin {
+  @include access-common;
+  @include access-roles;
+}
