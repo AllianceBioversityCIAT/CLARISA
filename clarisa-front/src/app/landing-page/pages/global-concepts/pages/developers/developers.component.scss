@@ -1,0 +1,136 @@
+// Developers page. Code blocks, tables, TOC and headings come from the kit
+// (`.gc-code`, `.gc-table`, `.gc-toc`, `.gc-doc`); this sheet only holds
+// what is unique to the page.
+
+:host {
+  display: block;
+}
+
+.gc-dev-lede {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--cl-surface);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.gc-dev-actions {
+  white-space: nowrap;
+
+  a,
+  button {
+    font-size: 13px;
+  }
+
+  a + button {
+    margin-left: 12px;
+  }
+}
+
+.gc-dev-copy {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.gc-dev-scopes li {
+  margin-bottom: 6px;
+}
+
+.gc-dev-endpoint {
+  margin: 4px 0 8px;
+  padding: 4px 0 12px;
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-admin-nav);
+}
+
+.gc-dev-endpoint__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 12px 0 16px;
+
+  .gc-mono {
+    min-width: 0;
+    color: var(--cl-admin-nav-accent);
+    font-size: 14px;
+  }
+}
+
+.gc-dev-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border: 1px solid var(--cl-line);
+    border-radius: var(--cl-radius-control);
+    color: var(--cl-ink-2);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .gc-mono {
+    color: var(--cl-ink);
+    font-weight: 600;
+  }
+}
+
+.gc-dev-tools__ask {
+  color: var(--cl-brand-deeper);
+  font-style: italic;
+}
+
+.gc-dev-try {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(--cl-brand-ring);
+  border-radius: var(--cl-radius-card);
+  background: var(--cl-brand-soft);
+  scroll-margin-top: 96px;
+
+  > p {
+    margin: 0 0 12px;
+  }
+}
+
+.gc-dev-try__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  .gc-field {
+    flex: 1 1 260px;
+  }
+}
+
+.gc-dev-try__out {
+  max-height: 360px;
+}
+
+@media (max-width: 767px) {
+  .gc-dev-tools {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gc-dev-actions {
+    padding-top: 6px;
+  }
+
+  .gc-dev-try__form .gc-btn {
+    width: 100%;
+  }
+}

@@ -19,6 +19,24 @@ export class Role {
   @Column({ type: 'int', nullable: false })
   order: number;
 
+  // Roles the screen may not edit or delete (SA, MS, CRON_EXEC, RQAT, OU).
+  // `select: false` + `@Exclude()` keep `GET api/roles` byte-identical; the
+  // access-admin module selects them explicitly.
+  @Exclude()
+  @Column({ type: 'tinyint', nullable: false, default: 0, select: false })
+  is_system: boolean;
+
+  /** `super` (SA) | `user_admin` (UM) | `module` (the rest). */
+  @Exclude()
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: false,
+    default: 'module',
+    select: false,
+  })
+  level: string;
+
   //object relations
 
   @OneToMany(() => UserRole, (ur) => ur.role)

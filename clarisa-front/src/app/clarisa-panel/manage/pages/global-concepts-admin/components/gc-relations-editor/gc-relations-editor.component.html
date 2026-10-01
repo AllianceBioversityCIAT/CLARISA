@@ -1,0 +1,63 @@
+<section class="gc-ed" *ngFor="let section of sections">
+  <div class="gc-ed__head">
+    <div>
+      <div class="gc-ed__title-row">
+        <h3 class="gc-ed__title">{{ section.title }}</h3>
+        <app-gc-info [text]="info[section.kind]"></app-gc-info>
+      </div>
+      <p class="gc-ed__hint">{{ section.hint }}</p>
+    </div>
+  </div>
+
+  <div class="gc-ed__chips" *ngIf="refs(section.kind).length; else emptyKind">
+    <span class="gc-ed__chip" *ngFor="let ref of refs(section.kind)">
+      <span class="gc-ed__chip-id">{{ ref.term_id }}</span>
+      <span class="gc-ed__chip-text">{{ ref.preferred_label }}</span>
+      <button
+        type="button"
+        class="gc-ed__chip-x"
+        [attr.aria-label]="'Remove ' + ref.preferred_label"
+        [disabled]="!!busy"
+        (click)="remove(section.kind, ref)">
+        <i class="pi" [ngClass]="isBusy(section.kind, ref.term_id) ? 'pi-spin pi-spinner' : 'pi-times'"></i>
+      </button>
+    </span>
+  </div>
+  <ng-template #emptyKind>
+    <p class="gc-ed__sub gc-rel-empty">{{ section.empty }}</p>
+  </ng-template>
+
+  <div class="gc-rel-add">
+    <app-gc-concept-picker
+      [inputId]="'gc-rel-' + section.kind"
+      [options]="options"
+      [exclude]="excluded(section.kind)"
+      [disabled]="!!busy"
+      [placeholder]="section.kind === 'broader' ? 'Add a broader concept…' : 'Add a related concept…'"
+      (picked)="add(section.kind, $event)"></app-gc-concept-picker>
+    <span class="gc-rel-add__busy" *ngIf="busy?.startsWith(section.kind + ':')" aria-live="polite"><i class="pi pi-spin pi-spinner"></i> Saving…</span>
+  </div>
+
+  <p class="gc-ed__error" role="alert" *ngIf="error?.kind === section.kind">
+    <i class="pi pi-exclamation-triangle"></i><span>{{ error?.message }}</span>
+  </p>
+</section>
+
+<section class="gc-ed">
+  <div class="gc-ed__head">
+    <div>
+      <div class="gc-ed__title-row">
+        <h3 class="gc-ed__title">Narrower concepts</h3>
+        <app-gc-info [text]="info.narrower"></app-gc-info>
+      </div>
+      <p class="gc-ed__hint">Concepts that name this one as broader. Change them from the narrower concept.</p>
+    </div>
+  </div>
+  <div class="gc-ed__chips" *ngIf="narrower.length; else noNarrower">
+    <span class="gc-ed__chip gc-ed__chip--static" *ngFor="let ref of narrower">
+      <span class="gc-ed__chip-id">{{ ref.term_id }}</span>
+      <span class="gc-ed__chip-text">{{ ref.preferred_label }}</span>
+    </span>
+  </div>
+  <ng-template #noNarrower><p class="gc-ed__sub gc-rel-empty">Nothing below it.</p></ng-template>
+</section>

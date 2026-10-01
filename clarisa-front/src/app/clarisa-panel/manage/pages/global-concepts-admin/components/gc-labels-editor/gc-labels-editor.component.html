@@ -1,0 +1,75 @@
+<section class="gc-ed">
+  <div class="gc-ed__head">
+    <div>
+      <h3 class="gc-ed__title">Labels</h3>
+      <p class="gc-ed__hint">
+        Other names the concept goes by. <strong>Hidden</strong> labels only help search (common misspellings);
+        <strong>discouraged</strong> ones are published as "do not use".
+      </p>
+    </div>
+    <button pButton type="button" label="Add label" icon="pi pi-plus" class="p-button-outlined" [disabled]="saving" (click)="add()"></button>
+  </div>
+
+  <div class="gc-ed__empty" *ngIf="!rows.length">
+    <i class="pi pi-tag"></i>
+    <span>Only the preferred label so far. Add an acronym, a synonym or the term in another language.</span>
+  </div>
+
+  <div class="gc-ed__list admin-form" *ngIf="rows.length">
+    <div class="gc-ed__row gc-label-legend">
+      <span class="gc-label-row__text gc-label-legend__cell">Label <app-gc-info [text]="info.label"></app-gc-info></span>
+      <span class="gc-label-row__kind gc-label-legend__cell">Kind <app-gc-info [text]="info.kind"></app-gc-info></span>
+      <span class="gc-label-row__lang gc-label-legend__cell">Language <app-gc-info [text]="info.language"></app-gc-info></span>
+      <span class="gc-label-legend__cell gc-label-legend__flag">Discouraged <app-gc-info [text]="info.discouraged"></app-gc-info></span>
+    </div>
+    <div class="gc-ed__row gc-label-row" *ngFor="let row of rows; let i = index; trackBy: trackRow">
+      <div class="gc-label-row__text">
+        <label class="gc-sr-only" [for]="'gc-lbl-' + i">Label</label>
+        <input [id]="'gc-lbl-' + i" type="text" pInputText maxlength="500" placeholder="Label" [(ngModel)]="row.label" [disabled]="saving" />
+      </div>
+      <div class="gc-label-row__kind">
+        <p-dropdown
+          appendTo="body"
+          panelStyleClass="admin-dropdown-panel"
+          [ariaLabel]="'Kind of label ' + (i + 1)"
+          [options]="kindOptions"
+          [disabled]="saving"
+          [(ngModel)]="row.kind"></p-dropdown>
+      </div>
+      <div class="gc-label-row__lang">
+        <label class="gc-sr-only" [for]="'gc-lang-' + i">Language</label>
+        <input [id]="'gc-lang-' + i" type="text" pInputText maxlength="12" placeholder="en" [(ngModel)]="row.language" [disabled]="saving" />
+      </div>
+      <label class="gc-label-row__flag" [class.is-on]="row.discouraged">
+        <p-inputSwitch [(ngModel)]="row.discouraged" [disabled]="saving" [ariaLabelledBy]="'gc-disc-' + i"></p-inputSwitch>
+        <span [id]="'gc-disc-' + i">Discouraged</span>
+      </label>
+      <button
+        pButton
+        type="button"
+        icon="pi pi-trash"
+        class="p-button-text gc-icon-btn"
+        [attr.aria-label]="'Remove ' + (row.label || 'this label')"
+        pTooltip="Remove"
+        [disabled]="saving"
+        (click)="remove(i)"></button>
+    </div>
+  </div>
+
+  <p class="gc-ed__error" *ngIf="error && dirty"><i class="pi pi-exclamation-circle"></i><span>{{ error }}</span></p>
+  <p class="gc-ed__error" *ngIf="saveError" role="alert"><i class="pi pi-times-circle"></i><span>{{ saveError }}</span></p>
+
+  <div class="gc-ed__foot">
+    <span class="gc-ed__foot-note">The whole set is replaced when you save. Empty rows are ignored.</span>
+    <button pButton type="button" label="Undo changes" class="p-button-outlined" *ngIf="dirty" [disabled]="saving" (click)="reset()"></button>
+    <button
+      pButton
+      type="button"
+      class="btn-brand"
+      icon="pi pi-check"
+      [label]="saving ? 'Saving labels…' : 'Save labels'"
+      [disabled]="saving || !dirty || !!error"
+      [loading]="saving"
+      (click)="save()"></button>
+  </div>
+</section>

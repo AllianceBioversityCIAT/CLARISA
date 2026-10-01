@@ -1,0 +1,162 @@
+:host {
+  display: block;
+}
+
+.gc-propose {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.gc-propose__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  strong {
+    color: var(--cl-ink);
+  }
+}
+
+.gc-propose__form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.gc-propose__type {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    grid-column: 1 / -1;
+    margin: 0 0 8px;
+    padding: 0;
+    border: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cl-ink);
+  }
+}
+
+.gc-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface);
+  cursor: pointer;
+  transition: border-color 0.16s ease;
+
+  input {
+    margin: 4px 0 0;
+    accent-color: var(--cl-brand-strong);
+  }
+
+  span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  strong {
+    color: var(--cl-ink);
+    font-size: 15px;
+  }
+
+  small {
+    color: var(--cl-ink-2);
+    font-size: 13px;
+  }
+
+  &.is-active {
+    border-color: var(--cl-brand-ring);
+    background: var(--cl-brand-soft);
+
+    strong {
+      color: var(--cl-brand-deeper);
+    }
+  }
+
+  &:focus-within {
+    box-shadow: 0 0 0 3px var(--cl-brand-ring);
+  }
+}
+
+.gc-propose__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.gc-field--wide {
+  grid-column: 1 / -1;
+}
+
+.gc-req {
+  margin-left: 6px;
+  color: var(--cl-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gc-propose__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  p {
+    margin: 0;
+  }
+}
+
+.gc-propose__sent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+
+  h4 {
+    margin: 0;
+    color: var(--cl-ink);
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  p {
+    max-width: 62ch;
+    margin: 0;
+    color: var(--cl-ink-2);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  strong {
+    color: var(--cl-ink);
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 576px) {
+  .gc-propose__type,
+  .gc-propose__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gc-propose__actions .gc-btn {
+    width: 100%;
+  }
+}

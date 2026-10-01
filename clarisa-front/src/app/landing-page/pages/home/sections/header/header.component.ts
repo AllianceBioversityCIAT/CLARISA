@@ -86,7 +86,15 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
    * de conteo no hay forma de tenerlas vivas, y eso es trabajo de back.
    */
   /** Los endpoints que se listan bajo tierra. */
-  readonly endpoints = ['/institutions', '/projects', '/countries', '/workpackages', '/initiatives', '/glossary'];
+  readonly endpoints = [
+    '/institutions',
+    '/countries',
+    '/impact-areas',
+    '/action-areas',
+    '/innovation-types',
+    '/innovation-readiness-levels',
+    '/glossary'
+  ];
 
   /**
    * Los seis catálogos, con su cifra VIVA.
@@ -113,11 +121,11 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
     share: number;
   }[] = [
     { key: 'institutions', label: 'Institutions', note: 'every organisation the CGIAR reports with', value: null, display: null, share: 0 },
-    { key: 'projects', label: 'Projects', note: 'bilateral and portfolio', value: null, display: null, share: 0 },
-    { key: 'workPackages', label: 'Work packages', value: null, display: null, share: 0 },
     { key: 'countries', label: 'Countries', value: null, display: null, share: 0 },
-    { key: 'initiatives', label: 'Initiatives', value: null, display: null, share: 0 },
-    { key: 'controlLists', label: 'Control lists', value: null, display: null, share: 0 }
+    { key: 'endpoints', label: 'API endpoints', note: 'published in the public documentation', value: null, display: null, share: 0 },
+    { key: 'controlLists', label: 'Control lists', value: null, display: null, share: 0 },
+    { key: 'connectedSystems', label: 'Connected systems', note: 'platforms that consume CLARISA', value: null, display: null, share: 0 },
+    { key: 'activeApiKeys', label: 'Active API keys', value: null, display: null, share: 0 }
   ];
 
   /**
@@ -227,12 +235,15 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** Reparte la respuesta del API entre los seis indicadores. */
   private applyMetrics(m: ClarisaMetrics): void {
-    const mayor = Math.max(...this.indicators.map(i => m[i.key] ?? 0), 1);
+    // A key the API does not send yet (a back older than the page) stays
+    // blank: never a zero, never NaN.
+    const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+    const mayor = Math.max(...this.indicators.map(i => num(m[i.key]) ?? 0), 1);
 
     this.indicators = this.indicators.map(i => ({
       ...i,
-      value: m[i.key],
-      share: (m[i.key] ?? 0) / mayor
+      value: num(m[i.key]),
+      share: (num(m[i.key]) ?? 0) / mayor
     }));
 
     this.metricsState = 'ready';
@@ -294,7 +305,7 @@ export class HeaderComponent implements OnInit, AfterViewInit, OnDestroy {
   private escribir(valores: number[]): void {
     this.indicators = this.indicators.map((i, n) => ({
       ...i,
-      display: valores[n].toLocaleString('en-US')
+      display: i.value === null ? null : valores[n].toLocaleString('en-US')
     }));
   }
 

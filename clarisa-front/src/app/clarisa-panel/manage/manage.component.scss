@@ -51,3 +51,73 @@
     overflow-x: hidden;
   }
 }
+
+@keyframes admin-sidebar-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Access placeholders of the sidebar (skeleton while `me/access` answers,
+   notice, retry). Here and not in the sidebar's stylesheet, which sits at its
+   10 kB budget. */
+:host ::ng-deep {
+  .admin-sidebar__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 20px;
+  }
+
+  .admin-sidebar__skeleton-title,
+  .admin-sidebar__skeleton-item {
+    display: block;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--cl-admin-nav-2);
+    animation: admin-sidebar-pulse 1.4s ease-in-out infinite;
+  }
+
+  .admin-sidebar__skeleton-title {
+    width: 40%;
+    height: 10px;
+    margin-bottom: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .admin-sidebar__skeleton-title,
+    .admin-sidebar__skeleton-item {
+      animation: none;
+    }
+  }
+
+  .admin-sidebar__notice {
+    margin: 8px 20px;
+    color: var(--cl-admin-nav-muted);
+    font-size: 12.5px;
+    line-height: 1.5;
+
+    p {
+      margin: 0 0 8px;
+    }
+  }
+
+  .admin-sidebar__retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--cl-admin-nav-line);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--cl-admin-nav-ink);
+    font: inherit;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--cl-admin-nav-accent);
+    }
+  }
+}

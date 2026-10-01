@@ -1,0 +1,51 @@
+<!-- Placeholder illustration: a hand-drawn tile in the brand tokens (no AI image). -->
+<ng-template #placeholder let-caption="caption">
+  <figure class="gc-icon__art gc-icon__art--empty">
+    <svg viewBox="0 0 120 120" role="img" [attr.aria-label]="caption" focusable="false">
+      <rect x="10" y="10" width="100" height="100" rx="22" class="gc-ph__tile" />
+      <circle cx="60" cy="52" r="20" class="gc-ph__ring" />
+      <path d="M60 40v24M48 52h24" class="gc-ph__plus" />
+      <path d="M34 90h52" class="gc-ph__line" />
+    </svg>
+  </figure>
+</ng-template>
+
+<section class="gc-card gc-icons">
+  <h3 class="gc-h3">Icon</h3>
+
+  <ng-container *ngIf="views.length; else none">
+    <ul class="gc-icons__list">
+      <li class="gc-icon" *ngFor="let view of views; let i = index">
+        <figure class="gc-icon__art" *ngIf="showImage(view, i); else noImage">
+          <img [src]="view.url" [alt]="view.alt" loading="lazy" decoding="async" (error)="markBroken(i)" />
+        </figure>
+        <ng-template #noImage>
+          <ng-container *ngTemplateOutlet="placeholder; context: { caption: view.alt }"></ng-container>
+        </ng-template>
+
+        <div class="gc-icon__meta">
+          <div class="gc-chips">
+            <span class="gc-chip gc-chip--plain" *ngIf="view.status">{{ view.status }}</span>
+            <span class="gc-chip gc-chip--plain" *ngIf="view.icon.format">{{ view.icon.format | uppercase }}</span>
+            <span class="gc-chip gc-chip--plain gc-mono" *ngIf="view.icon.icon_code">{{ view.icon.icon_code }}</span>
+          </div>
+          <p class="gc-meta" *ngIf="view.icon.alt_text"><span class="gc-icon__key">Alt text</span>{{ view.icon.alt_text }}</p>
+          <p class="gc-meta" *ngIf="view.icon.designer"><span class="gc-icon__key">Designer</span>{{ view.icon.designer }}</p>
+          <p class="gc-meta" *ngIf="view.icon.rights_and_licence">
+            <span class="gc-icon__key">Rights</span>{{ view.icon.rights_and_licence }}
+          </p>
+          <a class="gc-link gc-meta" *ngIf="showImage(view, i)" [href]="view.url" target="_blank" rel="noopener noreferrer"
+            >Open file <i class="pi pi-external-link" aria-hidden="true"></i><span class="gc-sr-only"> (opens in a new tab)</span></a
+          >
+        </div>
+      </li>
+    </ul>
+  </ng-container>
+
+  <ng-template #none>
+    <div class="gc-icon gc-icon--none">
+      <ng-container *ngTemplateOutlet="placeholder; context: { caption: 'No icon yet' }"></ng-container>
+      <p class="gc-meta">No icon has been designed for this concept yet.</p>
+    </div>
+  </ng-template>
+</section>

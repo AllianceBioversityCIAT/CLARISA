@@ -1,0 +1,26 @@
+<p-autoComplete
+  [inputId]="inputId"
+  [ngModel]="selected"
+  (ngModelChange)="onChange($event)"
+  [suggestions]="suggestions"
+  (completeMethod)="search($event.query)"
+  [multiple]="true"
+  [disabled]="disabled"
+  [minLength]="2"
+  [delay]="300"
+  field="display"
+  dataKey="id"
+  appendTo="body"
+  panelStyleClass="admin-dropdown-panel"
+  styleClass="acc-picker"
+  placeholder="Type a name or e-mail"
+  [showEmptyMessage]="true"
+  emptyMessage="Nobody matches">
+  <ng-template let-user pTemplate="item">
+    <span class="acc-picker__item">
+      <strong>{{ user.display }}</strong>
+      <small>{{ user.email }}</small>
+    </span>
+  </ng-template>
+</p-autoComplete>
+<small class="field-error" role="alert" *ngIf="error">{{ error }}</small>

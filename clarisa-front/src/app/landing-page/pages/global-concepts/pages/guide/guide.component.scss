@@ -1,0 +1,132 @@
+// User guide. Layout, TOC and headings come from the kit (`.gc-doc`, `.gc-toc`);
+// here only the hand-drawn illustrations and the status list. SVG colours are
+// tokens, so the drawings follow the palette.
+
+:host {
+  display: block;
+}
+
+.gc-guide-lede {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--cl-surface);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.gc-illustration--wide {
+  max-width: 520px;
+}
+
+.gi-card {
+  fill: var(--cl-surface-2);
+  stroke: var(--cl-line);
+}
+
+.gi-field {
+  fill: var(--cl-surface);
+  stroke: var(--cl-brand);
+  stroke-width: 1.5;
+}
+
+.gi-stroke {
+  fill: none;
+  stroke: var(--cl-ink-2);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.gi-line {
+  fill: var(--cl-line);
+}
+
+.gi-pill {
+  fill: var(--cl-surface);
+  stroke: var(--cl-line);
+}
+
+.gi-pill--on {
+  fill: var(--cl-brand-soft);
+  stroke: var(--cl-brand-ring);
+}
+
+.gi-row {
+  fill: var(--cl-surface);
+}
+
+.gi-accent {
+  fill: var(--cl-brand-deep);
+}
+
+.gi-step {
+  rect {
+    fill: var(--cl-surface);
+    stroke: var(--cl-brand-ring);
+    stroke-width: 1.5;
+  }
+
+  text {
+    fill: var(--cl-ink);
+    font-family: 'Poppins', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+}
+
+.gi-step--end rect {
+  fill: var(--cl-brand-deep);
+  stroke: var(--cl-brand-deep);
+}
+
+.gi-step--end text {
+  fill: var(--cl-surface);
+}
+
+.gi-arrow,
+.gi-loop {
+  fill: none;
+  stroke: var(--cl-ink-3);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.gi-loop {
+  stroke: var(--cl-warn);
+  stroke-dasharray: 4 4;
+}
+
+.gi-note {
+  fill: var(--cl-warn);
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+.gc-guide-dl {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 8px;
+
+  > div {
+    display: grid;
+    grid-template-columns: 170px minmax(0, 1fr);
+    gap: 6px 16px;
+    align-items: baseline;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--cl-ink-2);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+}
+
+@media (max-width: 576px) {
+  .gc-guide-dl > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

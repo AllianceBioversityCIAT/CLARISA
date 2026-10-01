@@ -2,9 +2,12 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Validators, FormControl, FormGroup } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, of } from 'rxjs';
+import { catchError, timeout } from 'rxjs/operators';
 import { AuthService, SESSION_EXPIRED } from 'src/app/shared/services/auth.service';
 import { UserAuth } from '../../../shared/interfaces/user-auth';
+import { PanelAccessService } from '../../../shared/services/access-admin/panel-access.service';
+import { postLoginRoute } from '../../../clarisa-panel/manage/admin-nav';
 
 @Component({
   selector: 'app-login',
@@ -12,6 +15,9 @@ import { UserAuth } from '../../../shared/interfaces/user-auth';
   styleUrls: ['./login.component.scss']
 })
 export class LoginComponent implements OnInit, OnDestroy {
+  /** How long the post-login landing waits for `me/access` before using the old one. */
+  static readonly ACCESS_WAIT_MS = 8000;
+
   /**
    * Si la contraseña se ve o no. Empieza oculta: mostrarla es una decisión de
    * quien escribe, no el estado por defecto — puede haber alguien mirando.
@@ -62,7 +68,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   constructor(
     private authService: AuthService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private panelAccess: PanelAccessService
   ) {
     this.authService.inLogin = true;
     if (!!this.authService.localStorageUser) {
@@ -134,7 +141,19 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.authService.localStorageToken = access_token;
         this.authService.localStorageUser = user;
         this.successLogin = true;
-        this.router.navigate(['/clarisa-panel/manage/partner-request']);
+        // Same `me/access` the guards read (cached per token, so the guard does
+        // not fetch it again): a member whose roles open exactly one section
+        // lands in it, one whose roles open none on the public home (see
+        // `postLoginRoute`). A URL, because a tab lands with its `?section=`.
+        // A `me/access` that never answers must not hold the sign-in: after the
+        // cap it falls back to the landing everyone had before.
+        this.panelAccess
+          .resolved()
+          .pipe(
+            timeout(LoginComponent.ACCESS_WAIT_MS),
+            catchError(() => of(null))
+          )
+          .subscribe(access => this.router.navigateByUrl(postLoginRoute(access)));
       },
       error: (error: unknown) => {
         // El formulario vuelve de inmediato: nadie debería esperar para

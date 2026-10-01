@@ -1,0 +1,245 @@
+/**
+ * Pieces of the concept editor tabs and the Setup / Usage panels: section
+ * heads, editable row lists, removable concept chips, inline errors and the
+ * AI suggestion card. Tokens only, px only, no `!important`.
+ */
+
+.gc-ed {
+  display: block;
+  min-width: 0;
+}
+
+.gc-ed + .gc-ed {
+  margin-top: 22px;
+}
+
+.gc-ed__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+
+.gc-ed__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cl-ink-3);
+}
+
+.gc-ed__hint {
+  margin: 4px 0 0;
+  max-width: 640px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cl-ink-3);
+}
+
+/* ---- editable rows ------------------------------------------------------ */
+
+.gc-ed__list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface);
+  overflow: hidden;
+}
+
+.gc-ed__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.gc-ed__row + .gc-ed__row {
+  border-top: 1px solid var(--cl-line);
+}
+
+.gc-ed__row:nth-child(even) {
+  background: var(--cl-surface-2);
+}
+
+.gc-ed__grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gc-ed__main {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cl-ink);
+  overflow-wrap: anywhere;
+}
+
+.gc-ed__sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--cl-ink-3);
+  overflow-wrap: anywhere;
+}
+
+.gc-ed__sub a {
+  color: var(--cl-brand-deeper);
+}
+
+.gc-ed__empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border: 1px dashed var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface-2);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cl-ink-3);
+
+  .pi {
+    color: var(--cl-brand-deeper);
+  }
+}
+
+/* ---- concept chips ------------------------------------------------------ */
+
+.gc-ed__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.gc-ed__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 4px 4px 12px;
+  border-radius: 999px;
+  background: var(--cl-brand-soft);
+  color: var(--cl-brand-deeper);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gc-ed__chip--static {
+  padding-right: 12px;
+  background: var(--cl-surface-2);
+  color: var(--cl-ink-2);
+}
+
+.gc-ed__chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gc-ed__chip-id {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.gc-ed__chip-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover:enabled,
+  &:focus-visible {
+    background: var(--cl-surface);
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: progress;
+    opacity: 0.5;
+  }
+}
+
+/* ---- inline messages ---------------------------------------------------- */
+
+.gc-ed__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--cl-error);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface);
+  color: var(--cl-error);
+  font-size: 13px;
+  line-height: 1.5;
+
+  .pi {
+    margin-top: 2px;
+  }
+}
+
+.gc-ed__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cl-line);
+}
+
+.gc-ed__foot-note {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--cl-ink-3);
+}
+
+.gc-icon-btn.p-button {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  color: var(--cl-ink-3);
+
+  &:enabled:hover {
+    color: var(--cl-error);
+  }
+}
+
+@media (max-width: 600px) {
+  .gc-ed__row {
+    flex-wrap: wrap;
+  }
+
+  .gc-ed__foot {
+    justify-content: stretch;
+  }
+
+  .gc-ed__foot-note {
+    flex-basis: 100%;
+  }
+}
+
+/* Visible to screen readers only: rows whose column meaning is obvious to the eye. */
+.gc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

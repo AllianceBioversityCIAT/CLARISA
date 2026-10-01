@@ -1,0 +1,54 @@
+@import '../gc-panel';
+@import '../gc-editor';
+@import '../gc-setup';
+
+.gc-new-collection {
+  margin-bottom: 14px;
+}
+
+.gc-collections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gc-collection__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.gc-collection__title {
+  min-width: 0;
+}
+
+.gc-collection__actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.gc-collection__rename {
+  display: flex;
+  align-items: center;
+  flex: 1 1 320px;
+  gap: 8px;
+
+  input.p-inputtext {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 40px;
+  }
+}
+
+.gc-collection__members {
+  margin-bottom: 0;
+}
+
+.gc-collection__editor {
+  padding-top: 4px;
+}

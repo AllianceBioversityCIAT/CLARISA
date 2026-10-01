@@ -19,6 +19,12 @@ export interface ClarisaMetrics {
   countries: number;
   initiatives: number;
   controlLists: number;
+  /** Paths listed by the public API documentation (added 2026-09-30). */
+  endpoints: number;
+  /** Active systems (MIS) connected to CLARISA (added 2026-09-30). */
+  connectedSystems: number;
+  /** Active, unexpired API keys (added 2026-09-30). */
+  activeApiKeys: number;
   /** ISO-8601 UTC. La respuesta se cachea una hora en el servidor. */
   generatedAt: string;
 }
