@@ -83,7 +83,7 @@ describe('ProposeFormComponent', () => {
     fill({ email: 'a@cgiar.org', definition: 'New wording', rationale: 'Clearer' });
     component.submit();
     expect(api.startRequest).toHaveBeenCalledWith(
-      'concepts',
+      'meliaf-taxonomy',
       expect.objectContaining({ type: 'edit', term_id: 12, payload: { definition: 'New wording' } })
     );
   });

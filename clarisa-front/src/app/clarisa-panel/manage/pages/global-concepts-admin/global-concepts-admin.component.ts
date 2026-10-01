@@ -8,7 +8,7 @@ import { CreateRequest } from './components/gc-concepts-panel/gc-concepts-panel.
 export type GlobalConceptsSection = 'concepts' | 'requests' | 'import' | 'setup' | 'usage';
 
 /** The only scheme today. The picker appears on its own once the back lists a second one. */
-export const DEFAULT_SCHEME = 'concepts';
+export const DEFAULT_SCHEME = 'meliaf-taxonomy';
 
 const ALL_SECTIONS: { id: GlobalConceptsSection; label: string }[] = [
   { id: 'concepts', label: 'Concepts' },
@@ -20,10 +20,10 @@ const ALL_SECTIONS: { id: GlobalConceptsSection; label: string }[] = [
 
 /**
  * A back route only the full Concepts admin permission (`/api/concepts/admin`)
- * opens: the concepts-only one (`…/admin/concepts/concepts`, role CONCEPTS_CE) is
+ * opens: the concepts-only one (`…/admin/meliaf-taxonomy/concepts`, role CONCEPTS_CE) is
  * not a substring of it. Same `route.includes(permission)` test as the back.
  */
-export const CONCEPTS_FULL_ADMIN_ROUTE = '/api/concepts/admin/concepts/requests';
+export const CONCEPTS_FULL_ADMIN_ROUTE = '/api/concepts/admin/meliaf-taxonomy/requests';
 
 /** Whether the caller may use Requests, Import, Setup and Usage, not only Concepts. */
 export function isConceptsFullAdmin(access: MeAccess | null): boolean {

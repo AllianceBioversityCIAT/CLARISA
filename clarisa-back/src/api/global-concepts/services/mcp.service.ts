@@ -1,3 +1,4 @@
+import { DEFAULT_SCHEME_CODE } from '../global-concepts.config';
 import { HttpException, Injectable, Optional } from '@nestjs/common';
 import { GcUsageKind } from '../entities/gc-usage-daily.entity';
 import { UsageService } from './usage.service';
@@ -173,7 +174,7 @@ export class McpService {
       throw new InvalidParams('arguments must be an object');
     const tool = MCP_TOOLS.find((t) => t.name === name);
     if (!tool) throw new InvalidParams(`Unknown tool: ${String(name)}`);
-    const scheme = str(args.scheme) || 'concepts';
+    const scheme = str(args.scheme) || DEFAULT_SCHEME_CODE;
     try {
       const data = await this.run(tool.name, scheme, args);
       // The tool name only: arguments (a query, a text) are never stored.

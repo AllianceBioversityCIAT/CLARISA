@@ -17,7 +17,7 @@ import {
   styleUrls: ['./gc-export-dialog.component.scss']
 })
 export class GcExportDialogComponent implements OnChanges {
-  @Input() scheme = 'concepts';
+  @Input() scheme = 'meliaf-taxonomy';
   @Input() visible = false;
   @Output() visibleChange = new EventEmitter<boolean>();
 

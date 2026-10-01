@@ -60,7 +60,7 @@ describe('GcUsagePanelComponent', () => {
 
     second.next(summary(20));
     first.next(summary(99));
-    expect(api.usage).toHaveBeenLastCalledWith('concepts', 7);
+    expect(api.usage).toHaveBeenLastCalledWith('meliaf-taxonomy', 7);
     expect(component.view.kpis[0].value).toBe(20);
     expect(component.loading).toBe(false);
   });
@@ -95,9 +95,9 @@ describe('GcUsagePanelComponent', () => {
 
     it('asks for the same scheme and period as the figures, and again on a new period', () => {
       const { api, component } = build(of(platformUsage([])));
-      expect(api.usageByPlatform).toHaveBeenCalledWith('concepts', 30);
+      expect(api.usageByPlatform).toHaveBeenCalledWith('meliaf-taxonomy', 30);
       component.setPeriod(7);
-      expect(api.usageByPlatform).toHaveBeenLastCalledWith('concepts', 7);
+      expect(api.usageByPlatform).toHaveBeenLastCalledWith('meliaf-taxonomy', 7);
     });
 
     it('empty: no rows, the anonymous line still there', () => {

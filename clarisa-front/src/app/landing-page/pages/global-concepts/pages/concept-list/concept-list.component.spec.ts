@@ -130,7 +130,7 @@ describe('ConceptListComponent', () => {
   it('downloads the whole published set once and hides deprecated by default', () => {
     fixture.detectChanges();
     expect(api.concepts).toHaveBeenCalledTimes(1);
-    expect(api.concepts).toHaveBeenCalledWith('concepts', {});
+    expect(api.concepts).toHaveBeenCalledWith('meliaf-taxonomy', {});
     expect(labels()).toEqual(['Baseline', 'Outcome']);
     expect(component.total).toBe(2);
     expect(fixture.nativeElement.querySelector('.gc-results__head').textContent).toContain('2 of 2 concepts');
@@ -215,7 +215,7 @@ describe('ConceptListComponent', () => {
     tick(1);
     expect(url['q']).toBe('outc');
     expect(api.concepts).toHaveBeenCalledTimes(1);
-    expect(api.concepts).toHaveBeenCalledWith('concepts', { q: 'outc', track: 0 });
+    expect(api.concepts).toHaveBeenCalledWith('meliaf-taxonomy', { q: 'outc', track: 0 });
     // A URL write replaces the entry: typing does not flood the history.
     expect(router.navigate.mock.calls[router.navigate.mock.calls.length - 1][1].replaceUrl).toBe(true);
     tick(SEARCH_SETTLE);
@@ -270,7 +270,7 @@ describe('ConceptListComponent', () => {
       tick(SEARCH_SETTLE - SEARCH_DEBOUNCE - 1);
       expect(counted()).toEqual([]);
       tick(1);
-      expect(counted()).toEqual([['concepts', { q: 'outcome' }]]);
+      expect(counted()).toEqual([['meliaf-taxonomy', { q: 'outcome' }]]);
     }));
 
     it('counts on Enter or blur at once, and not again for the same query', fakeAsync(() => {
@@ -278,7 +278,7 @@ describe('ConceptListComponent', () => {
       api.concepts.mockClear();
       component.onQueryInput('baseline ');
       component.commitSearch();
-      expect(counted()).toEqual([['concepts', { q: 'baseline' }]]);
+      expect(counted()).toEqual([['meliaf-taxonomy', { q: 'baseline' }]]);
 
       component.commitSearch();
       tick(SEARCH_SETTLE);
@@ -376,7 +376,7 @@ describe('ConceptListComponent', () => {
   it('builds the four export links from the service', () => {
     fixture.detectChanges();
     const links = Array.from(fixture.nativeElement.querySelectorAll('.gc-download__item')).map((a: any) => a.getAttribute('href'));
-    expect(links).toEqual(['json', 'csv', 'skos', 'jsonld'].map(f => `https://api/concepts/export?format=${f}`));
+    expect(links).toEqual(['json', 'csv', 'skos', 'jsonld'].map(f => `https://api/meliaf-taxonomy/export?format=${f}`));
   });
 
   it('drops the facet values when the scheme changes', () => {
@@ -390,8 +390,8 @@ describe('ConceptListComponent', () => {
   it('Download offers Current plus each release and pins the one picked', () => {
     fixture.detectChanges();
     expect(component.versions.map(v => v.value)).toEqual([null, '1.0.0']);
-    expect(component.exportUrl('csv')).toBe('https://api/concepts/export?format=csv');
+    expect(component.exportUrl('csv')).toBe('https://api/meliaf-taxonomy/export?format=csv');
     component.exportVersion = '1.0.0';
-    expect(component.exportUrl('skos')).toBe('https://api/concepts/export?format=skos&version=1.0.0');
+    expect(component.exportUrl('skos')).toBe('https://api/meliaf-taxonomy/export?format=skos&version=1.0.0');
   });
 });

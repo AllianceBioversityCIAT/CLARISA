@@ -12,7 +12,7 @@ import { FIELD_INFO } from '../../utils/field-info';
   styleUrls: ['./gc-labels-editor.component.scss']
 })
 export class GcLabelsEditorComponent implements OnChanges {
-  @Input() scheme = 'concepts';
+  @Input() scheme = 'meliaf-taxonomy';
   @Input() concept: AdminConceptDetail | null = null;
   @Output() updated = new EventEmitter<AdminConceptDetail>();
 

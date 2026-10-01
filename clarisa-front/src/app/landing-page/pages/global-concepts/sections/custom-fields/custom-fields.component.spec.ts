@@ -55,8 +55,8 @@ describe('CustomFieldsComponent', () => {
     // Every field in this section is a custom field, and says so.
     expect(el.querySelectorAll('.gc-tag--custom').length).toBe(4);
     expect(el.querySelector('[data-field="doc"] .gc-tag--custom')?.textContent?.trim()).toBe('Custom');
-    // The default scheme has no segment of its own; another scheme keeps it.
-    expect(component.link(7)).toEqual(['/landing-page/concepts', 7]);
+    // Every link carries its scheme code.
+    expect(component.link(7)).toEqual(['/landing-page/concepts', 'concepts', 7]);
     component.scheme = 'prms';
     expect(component.link(7)).toEqual(['/landing-page/concepts', 'prms', 7]);
   });

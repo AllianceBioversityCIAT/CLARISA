@@ -441,7 +441,7 @@ export class GlobalConceptsAdminController {
 
   /**
    * Same as `PATCH :scheme/icons/:id`, under the concept path so the
-   * concepts-only permission (`.../admin/concepts/concepts`) reaches it. The
+   * concepts-only permission (`.../admin/meliaf-taxonomy/concepts`) reaches it. The
    * icon must belong to `termId` (404 otherwise).
    */
   @Patch(':scheme/concepts/:termId/icons/:id')

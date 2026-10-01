@@ -61,14 +61,12 @@ export function webBaseOf(scheme?: { web_base?: string | null } | null) {
 }
 
 /**
- * The scheme CLARISA itself publishes. Its URIs and pages carry no scheme
- * segment (`/concepts/2374`); any other scheme keeps its own
- * (`/concepts/{scheme}/2374`).
+ * The scheme CLARISA publishes by default (Yeck, 2026-10-01: code
+ * `meliaf-taxonomy`, title "MELIAF taxonomy"). Its URIs carry its code like
+ * any other scheme: `/concepts/meliaf-taxonomy/2374`. `/concepts/2374` and
+ * `/concepts` still resolve to it (see `ConceptUriController`).
  */
-export const DEFAULT_SCHEME_CODE = 'concepts';
-
-const isDefaultScheme = (code: string | null | undefined) =>
-  (code ?? '').toLowerCase() === DEFAULT_SCHEME_CODE;
+export const DEFAULT_SCHEME_CODE = 'meliaf-taxonomy';
 
 /** URI of a scheme, honouring a per-scheme override. */
 export function schemeUri(scheme: { code: string; uri_base: string | null }) {
@@ -76,14 +74,12 @@ export function schemeUri(scheme: { code: string; uri_base: string | null }) {
     /\/+$/,
     '',
   );
-  return isDefaultScheme(scheme.code) ? base : `${base}/${scheme.code}`;
+  return `${base}/${scheme.code}`;
 }
 
 /** Path of a concept's human page under the web base. */
 export function conceptPagePath(schemeCode: string, termId: number) {
-  return isDefaultScheme(schemeCode)
-    ? `/${termId}`
-    : `/${schemeCode}/${termId}`;
+  return `/${schemeCode}/${termId}`;
 }
 
 /** Persistent URI of a concept: derived, never stored (V32). */

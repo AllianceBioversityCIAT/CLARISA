@@ -41,7 +41,7 @@ describe('GcSetupFieldsComponent', () => {
     component.form.label = 'Steward';
     component.form.code = 'steward';
     component.save();
-    expect(api['updateField']).toHaveBeenCalledWith('concepts', 5, { label: 'Steward' });
+    expect(api['updateField']).toHaveBeenCalledWith('meliaf-taxonomy', 5, { label: 'Steward' });
   });
 
   it('keeps the "Values come from" options stable between change-detection runs (a new array lost the click)', () => {

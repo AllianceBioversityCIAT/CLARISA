@@ -44,7 +44,7 @@ describe('GcConceptCreateDialogComponent', () => {
     dialog.form.definition = '  A change.  ';
     dialog.create();
 
-    expect(api['createConcept']).toHaveBeenCalledWith('concepts', { preferred_label: 'Outcome', definition: 'A change.' });
+    expect(api['createConcept']).toHaveBeenCalledWith('meliaf-taxonomy', { preferred_label: 'Outcome', definition: 'A change.' });
     expect(dialog.visible).toBe(false);
     expect(created).toHaveBeenCalledWith({ term_id: 41, preferred_label: 'Outcome' } as unknown as AdminConceptDetail);
     expect(messages.add).toHaveBeenCalledWith(
@@ -56,7 +56,7 @@ describe('GcConceptCreateDialogComponent', () => {
     dialog.open('Outcome');
     dialog.form.term_id = 1042;
     dialog.create();
-    expect(api['createConcept']).toHaveBeenCalledWith('concepts', { preferred_label: 'Outcome', term_id: 1042 });
+    expect(api['createConcept']).toHaveBeenCalledWith('meliaf-taxonomy', { preferred_label: 'Outcome', term_id: 1042 });
   });
 
   it('locks on the first click: a second click or Enter before the answer sends nothing', () => {

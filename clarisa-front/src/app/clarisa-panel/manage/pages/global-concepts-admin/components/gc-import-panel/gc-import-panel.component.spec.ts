@@ -86,14 +86,14 @@ describe('GcImportPanelComponent', () => {
       { term_id: '1', preferred_label: 'Outcome', definition: 'A change', __row: 2 },
       { preferred_label: 'Output', __row: 3 }
     ];
-    expect(api['importPreview']).toHaveBeenCalledWith('concepts', rows);
+    expect(api['importPreview']).toHaveBeenCalledWith('meliaf-taxonomy', rows);
     expect(component.step).toBe('review');
     expect(component.canImport).toBe(false);
 
     component.skipInvalid = true;
     component.confirmImport();
 
-    expect(api['importRows']).toHaveBeenCalledWith('concepts', rows, true);
+    expect(api['importRows']).toHaveBeenCalledWith('meliaf-taxonomy', rows, true);
     expect(component.step).toBe('done');
     expect(emitted).toHaveBeenCalled();
   });
