@@ -15,7 +15,7 @@ export const ACCESS_INFO = {
   },
   role: {
     acronym: 'Short code of the role, 2 to 50 letters, digits, “_” or “-”, no spaces, e.g. CONCEPTS_DA. Stored in capitals.',
-    description: 'The name people see in lists and chips, e.g. “Concepts Data Admins”. 3 to 255 characters.',
+    description: 'The name people see in lists and chips, e.g. “MELIAF taxonomy Data Admins”. 3 to 255 characters.',
     permissions: 'What members of the role can open and change. Each permission opens one part of the panel; you can only give the ones you hold yourself.',
     level: 'Super admin: everything. User admin: manages roles and users. Module: opens one part of the panel.'
   },
@@ -24,5 +24,5 @@ export const ACCESS_INFO = {
     add: 'Type a name or e-mail and pick one or more people. People who already hold the role are left as they are.'
   },
   justification:
-    'Why the role is removed, e.g. “Left the Concepts team on 2026-09-30.” Stored with the change so the next admin knows. 5 to 500 characters.'
+    'Why the role is removed, e.g. “Left the MELIAF taxonomy team on 2026-09-30.” Stored with the change so the next admin knows. 5 to 500 characters.'
 } as const;

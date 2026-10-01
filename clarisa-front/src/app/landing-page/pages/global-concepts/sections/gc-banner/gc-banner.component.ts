@@ -14,7 +14,7 @@ export interface Crumb {
   styleUrls: ['./gc-banner.component.scss']
 })
 export class GcBannerComponent {
-  @Input() title = 'Concepts';
+  @Input() title = 'MELIAF taxonomy';
   @Input() eyebrow: string | null = null;
   @Input() crumbs: Crumb[] = [];
   /** The section's own navigation: browse, user guide, developers. */
