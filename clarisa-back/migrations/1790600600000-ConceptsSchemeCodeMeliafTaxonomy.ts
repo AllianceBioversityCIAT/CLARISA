@@ -1,4 +1,5 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
+import { DropMeliafFromConcepts1790600500000 } from './1790600500000-DropMeliafFromConcepts';
 
 /**
  * The default scheme's code is `meliaf-taxonomy` and its title
@@ -41,18 +42,22 @@ export class ConceptsSchemeCodeMeliafTaxonomy1790600600000
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     const cls = ConceptsSchemeCodeMeliafTaxonomy1790600600000;
-    await this.renameScheme(queryRunner, 'concepts', cls.CODE);
+    await DropMeliafFromConcepts1790600500000.renameScheme(
+      queryRunner,
+      'concepts',
+      cls.CODE,
+    );
     await queryRunner.query(
       `UPDATE gc_schemes SET title = ?, updated_at = updated_at
         WHERE code = ? AND title = 'Concepts'`,
       [cls.TITLE, cls.CODE],
     );
-    await this.renameRoutes(
+    await DropMeliafFromConcepts1790600500000.renameRoutes(
       queryRunner,
       '/admin/concepts/',
       `/admin/${cls.CODE}/`,
     );
-    await this.renameRoutes(
+    await DropMeliafFromConcepts1790600500000.renameRoutes(
       queryRunner,
       '/admin/concepts',
       `/admin/${cls.CODE}`,
@@ -87,7 +92,7 @@ export class ConceptsSchemeCodeMeliafTaxonomy1790600600000
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     const cls = ConceptsSchemeCodeMeliafTaxonomy1790600600000;
-    await this.renameRoutes(
+    await DropMeliafFromConcepts1790600500000.renameRoutes(
       queryRunner,
       `/admin/${cls.CODE}`,
       '/admin/concepts',
@@ -97,7 +102,11 @@ export class ConceptsSchemeCodeMeliafTaxonomy1790600600000
         WHERE code = ? AND title = ?`,
       [cls.CODE, cls.TITLE],
     );
-    await this.renameScheme(queryRunner, cls.CODE, 'concepts');
+    await DropMeliafFromConcepts1790600500000.renameScheme(
+      queryRunner,
+      cls.CODE,
+      'concepts',
+    );
     const back = `/concepts/${cls.CODE}/`;
     await queryRunner.query(
       `UPDATE gc_releases SET release_uri = REPLACE(release_uri, ?, '/concepts/')
@@ -112,38 +121,5 @@ export class ConceptsSchemeCodeMeliafTaxonomy1790600600000
              OR \`${column}\` LIKE CONCAT('%', ?, '%')`,
         [back, `"scheme":"${cls.CODE}"`, back, `"scheme":"${cls.CODE}"`],
       );
-  }
-
-  private async renameScheme(
-    queryRunner: QueryRunner,
-    from: string,
-    to: string,
-  ): Promise<void> {
-    const taken = await queryRunner.query(
-      `SELECT 1 FROM gc_schemes WHERE code = ? LIMIT 1`,
-      [to],
-    );
-    if (taken?.length) return;
-    await queryRunner.query(
-      `UPDATE gc_schemes SET code = ?, updated_at = updated_at WHERE code = ?`,
-      [to, from],
-    );
-    await queryRunner.query(`UPDATE gc_lists SET scope = ? WHERE scope = ?`, [
-      to,
-      from,
-    ]);
-  }
-
-  private async renameRoutes(
-    queryRunner: QueryRunner,
-    from: string,
-    to: string,
-  ): Promise<void> {
-    await queryRunner.query(
-      `UPDATE permissions
-          SET name = REPLACE(name, ?, ?), updated_at = updated_at
-        WHERE name LIKE CONCAT('%/api/concepts%', ?, '%')`,
-      [from, to, from],
-    );
   }
 }

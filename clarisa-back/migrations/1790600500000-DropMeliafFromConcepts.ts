@@ -111,14 +111,14 @@ export class DropMeliafFromConcepts1790600500000 implements MigrationInterface {
     for (const [from, to] of cls.LISTS)
       await this.renameList(queryRunner, from, to);
 
-    await this.renameScheme(queryRunner, 'meliaf', 'concepts');
+    await cls.renameScheme(queryRunner, 'meliaf', 'concepts');
     await queryRunner.query(
       `UPDATE gc_schemes SET title = 'Concepts', updated_at = updated_at
         WHERE code = 'concepts' AND title = 'MELIAF taxonomy'`,
     );
 
-    await this.renameRoutes(queryRunner, '/admin/meliaf/', '/admin/concepts/');
-    await this.renameRoutes(queryRunner, '/admin/meliaf', '/admin/concepts');
+    await cls.renameRoutes(queryRunner, '/admin/meliaf/', '/admin/concepts/');
+    await cls.renameRoutes(queryRunner, '/admin/meliaf', '/admin/concepts');
 
     await queryRunner.query(
       `UPDATE gc_releases
@@ -152,16 +152,22 @@ export class DropMeliafFromConcepts1790600500000 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     const cls = DropMeliafFromConcepts1790600500000;
-    await this.renameRoutes(queryRunner, '/admin/concepts', '/admin/meliaf');
+    await cls.renameRoutes(queryRunner, '/admin/concepts', '/admin/meliaf');
     await queryRunner.query(
       `UPDATE gc_schemes SET title = 'MELIAF taxonomy'
         WHERE code = 'concepts' AND title = 'Concepts'`,
     );
-    await this.renameScheme(queryRunner, 'concepts', 'meliaf');
-    for (const [from, to] of cls.LISTS)
-      await this.renameList(queryRunner, to, from);
-    for (const [from, to, ddl] of cls.COLUMNS)
-      await this.renameColumn(queryRunner, 'gc_concepts', to, from, ddl);
+    await cls.renameScheme(queryRunner, 'concepts', 'meliaf');
+    for (const [oldCode, newCode] of cls.LISTS)
+      await this.renameList(queryRunner, newCode, oldCode);
+    for (const [oldName, newName, ddl] of cls.COLUMNS)
+      await this.renameColumn(
+        queryRunner,
+        'gc_concepts',
+        newName,
+        oldName,
+        ddl,
+      );
   }
 
   private async hasColumn(
@@ -212,7 +218,8 @@ export class DropMeliafFromConcepts1790600500000 implements MigrationInterface {
     );
   }
 
-  private async renameScheme(
+  /** Shared with ConceptsSchemeCodeMeliafTaxonomy1790600600000. */
+  static async renameScheme(
     queryRunner: QueryRunner,
     from: string,
     to: string,
@@ -232,7 +239,8 @@ export class DropMeliafFromConcepts1790600500000 implements MigrationInterface {
     ]);
   }
 
-  private async renameRoutes(
+  /** Shared with ConceptsSchemeCodeMeliafTaxonomy1790600600000. */
+  static async renameRoutes(
     queryRunner: QueryRunner,
     from: string,
     to: string,

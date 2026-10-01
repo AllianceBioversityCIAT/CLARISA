@@ -1,6 +1,8 @@
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { ModuleRef, Reflector } from '@nestjs/core';
-import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { ForbiddenException } from '@nestjs/common';
+import {
+  permissionGuardFor,
+  requestTo,
+} from '../../shared/guards/permission-guard.spec-helper';
 import { ConceptsSchemeCodeMeliafTaxonomy1790600600000 } from '../../../migrations/1790600600000-ConceptsSchemeCodeMeliafTaxonomy';
 
 /**
@@ -13,28 +15,9 @@ describe('PermissionGuard with the concepts-editor permission', () => {
   const FULL = ConceptsSchemeCodeMeliafTaxonomy1790600600000.FULL_ROUTE;
   const BASE = '/api/concepts/admin';
 
-  const guardFor = (permissions: string[]) => {
-    const users = {
-      findOneByEmail: jest.fn(async () => ({
-        id: 9,
-        email: 'concepts.editor@clarisa.test',
-        permissions,
-      })),
-    };
-    const moduleRef = { get: () => users } as unknown as ModuleRef;
-    const reflector = { get: () => undefined } as unknown as Reflector;
-    return new PermissionGuard(reflector, moduleRef);
-  };
-  const ctx = (url: string) =>
-    ({
-      getClass: () => class {},
-      switchToHttp: () => ({
-        getRequest: () => ({
-          user: { email: 'concepts.editor@clarisa.test' },
-          originalUrl: url,
-        }),
-      }),
-    }) as unknown as ExecutionContext;
+  const guardFor = (permissions: string[]) =>
+    permissionGuardFor(permissions, 'concepts.editor@clarisa.test');
+  const ctx = (url: string) => requestTo(url, 'concepts.editor@clarisa.test');
 
   const allowed = [
     `${BASE}/meliaf-taxonomy/concepts`,
