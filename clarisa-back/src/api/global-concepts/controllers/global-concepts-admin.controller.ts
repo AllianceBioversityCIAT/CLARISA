@@ -320,9 +320,14 @@ export class GlobalConceptsAdminController {
     return this.catalog.listValues(scheme);
   }
 
+  /** Every concept of the scheme; `q` ranks them with the same text search as the public list. */
   @Get(':scheme/concepts')
-  list(@Param('scheme') scheme: string, @Query('status') status?: string) {
-    return this.admin.list(scheme, status);
+  list(
+    @Param('scheme') scheme: string,
+    @Query('status') status?: string,
+    @Query('q') q?: string,
+  ) {
+    return this.admin.list(scheme, status, q);
   }
 
   @Get(':scheme/concepts/:termId')

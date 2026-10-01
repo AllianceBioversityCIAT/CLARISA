@@ -86,6 +86,57 @@ describe('ConceptsAdminService', () => {
     );
   });
 
+  describe('list search (q)', () => {
+    beforeEach(() => {
+      concept(1, 'Impact assessment');
+      concept(2, 'Assessment', GcConceptStatus.DRAFT, {
+        definition: 'A study of the impact of a programme.',
+      });
+      concept(3, 'Evaluation', GcConceptStatus.IN_REVIEW);
+      concept(4, 'Outcome', GcConceptStatus.APPROVED, {
+        definition: 'A change that results from an output.',
+      });
+    });
+
+    const terms = (rows: { term_id: number }[]) => rows.map((r) => r.term_id);
+
+    it('without q lists every concept of every status, alphabetically', async () => {
+      expect(terms(await service.list('concepts'))).toEqual([2, 3, 1, 4]);
+    });
+
+    it('ranks the exact phrase first, then every word in any order, drafts included', async () => {
+      const rows = await service.list(
+        'concepts',
+        undefined,
+        'impact assessment',
+      );
+      expect(terms(rows)).toEqual([1, 2]);
+      expect(rows.map((r) => r.match?.tier)).toEqual(['exact', 'words']);
+    });
+
+    it('finds a misspelt word by similarity, with its score', async () => {
+      const rows = await service.list('concepts', undefined, 'evaluatoin');
+      expect(terms(rows)).toEqual([3]);
+      expect(rows[0].match?.tier).toBe('similar');
+      expect(rows[0].match?.score).toBeGreaterThanOrEqual(0.7);
+    });
+
+    it('keeps the status filter and returns nothing when nothing matches', async () => {
+      expect(
+        terms(
+          await service.list('concepts', GcConceptStatus.DRAFT, 'assessment'),
+        ),
+      ).toEqual([2]);
+      expect(await service.list('concepts', undefined, 'climate')).toEqual([]);
+    });
+
+    it('treats a blank q as no search', async () => {
+      expect(terms(await service.list('concepts', undefined, '   '))).toEqual([
+        2, 3, 1, 4,
+      ]);
+    });
+  });
+
   describe('create', () => {
     it('assigns the next term id and logs the creation', async () => {
       const created = await service.create(

@@ -37,19 +37,24 @@ export function hasIcon(concept: AdminConceptDetail): boolean {
   return Array.isArray(concept.icons) && concept.icons.length > 0;
 }
 
+/**
+ * Plain local match of the search box: the text appears in the TERM ID, the label, an alternative label or the
+ * definition. It shows at once while typing and stands in when the back cannot rank; the ranked search itself
+ * (exact phrase, every word, similar spelling) is the back's, the same as the public list.
+ */
+export function matchesText(concept: AdminConceptDetail, q: string): boolean {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  return (
+    String(concept.term_id).includes(needle) ||
+    (concept.preferred_label ?? '').toLowerCase().includes(needle) ||
+    (concept.definition ?? '').toLowerCase().includes(needle) ||
+    (concept.alternative_labels ?? []).some(label => (label.label ?? '').toLowerCase().includes(needle))
+  );
+}
+
+/** Every filter but the text search, which the panel ranks on its own (see `matchesText`). */
 export function matchesFilters(concept: AdminConceptDetail, filters: ConceptFilters): boolean {
-  const needle = filters.search.trim().toLowerCase();
-  if (
-    needle &&
-    !(
-      String(concept.term_id).includes(needle) ||
-      (concept.preferred_label ?? '').toLowerCase().includes(needle) ||
-      (concept.definition ?? '').toLowerCase().includes(needle) ||
-      (concept.alternative_labels ?? []).some(label => (label.label ?? '').toLowerCase().includes(needle))
-    )
-  ) {
-    return false;
-  }
   if (filters.statuses.length && !filters.statuses.includes(concept.status)) return false;
   if (filters.functions.length && !(concept.functions ?? []).some(fn => filters.functions.includes(fn))) return false;
   if (filters.phases.length) {

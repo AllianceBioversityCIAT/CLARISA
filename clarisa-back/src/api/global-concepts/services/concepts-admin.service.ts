@@ -47,6 +47,13 @@ import {
 import { presentConcepts } from '../utils/concept-presenter';
 import { ExtraContext, mergeExtra, termLinkIds } from '../utils/custom-fields';
 import { ConceptGraphLoader } from './concept-graph.loader';
+import { rankByRelevance } from './concepts-read.service';
+import { SearchMatch } from '../utils/concept-search';
+
+/** A row of the admin list; `match` only when the list was searched. */
+type AdminListRow = Awaited<
+  ReturnType<ConceptsAdminService['presentAdmin']>
+>[number] & { match?: SearchMatch };
 
 /** Who is writing: the person, and whether it is a direct admin edit or an approved request. */
 export interface GcActor {
@@ -125,8 +132,19 @@ export class ConceptsAdminService {
 
   // ------------------------------------------------------------------ reads
 
-  /** Admin list: every status, plus the internal fields the panel needs. */
-  async list(code: string, status?: string) {
+  /**
+   * Admin list: every status, plus the internal fields the panel needs.
+   *
+   * With `q`, only the matches, best first, each with its `match`: the same
+   * text search as the public list (`utils/concept-search`) — the exact
+   * phrase, then every word in any order, then close words by similarity.
+   * No AI is involved.
+   */
+  async list(
+    code: string,
+    status?: string,
+    q?: string,
+  ): Promise<AdminListRow[]> {
     const manager = this.dataSource.manager;
     const scheme = await this.loader.scheme(manager, code);
     const concepts = await manager.find(GcConcept, {
@@ -136,7 +154,15 @@ export class ConceptsAdminService {
       },
       order: { preferred_label: 'ASC' },
     });
-    return this.presentAdmin(manager, scheme, concepts);
+    const presented: AdminListRow[] = await this.presentAdmin(
+      manager,
+      scheme,
+      concepts,
+    );
+    const query = (q ?? '').trim();
+    if (!query) return presented;
+    // rankByRelevance keeps every field of the row it ranks; only its type is the public one.
+    return rankByRelevance(presented, query) as AdminListRow[];
   }
 
   async get(code: string, termId: number) {
