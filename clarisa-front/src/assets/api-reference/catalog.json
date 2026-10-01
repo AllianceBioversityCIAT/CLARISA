@@ -212,6 +212,37 @@
               "method": "get"
             }
           ]
+        },
+        {
+          "name": "Concepts",
+          "description": "Official CGIAR vocabulary: published concepts with persistent URIs, controlled lists, releases and a change feed. Exports as JSON, CSV, SKOS Turtle and JSON-LD.",
+          "endpoints": [
+            {
+              "name": "Concept schemes",
+              "route": "api/concepts/schemes",
+              "method": "get"
+            },
+            {
+              "name": "Controlled lists",
+              "route": "api/concepts/lists",
+              "method": "get"
+            },
+            {
+              "name": "Concepts list",
+              "route": "api/concepts/concepts/concepts",
+              "method": "get"
+            },
+            {
+              "name": "Releases",
+              "route": "api/concepts/concepts/releases",
+              "method": "get"
+            },
+            {
+              "name": "Change feed",
+              "route": "api/concepts/concepts/changes",
+              "method": "get"
+            }
+          ]
         }
       ],
       "description": "Official control lists identified by the Management Information Systems during the Annual Reporting process, reusable to standardize and provide interoperability across CGIAR platforms."
@@ -286,42 +317,6 @@
             {
               "name": "Sustainable Development Goals",
               "route": "api/sdgs",
-              "method": "get"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "group": "Concepts",
-      "categories": [
-        {
-          "name": "Concepts",
-          "description": "Official CGIAR vocabulary: published concepts with persistent URIs, controlled lists, releases and a change feed. Exports as JSON, CSV, SKOS Turtle and JSON-LD.",
-          "endpoints": [
-            {
-              "name": "Concept schemes",
-              "route": "api/concepts/schemes",
-              "method": "get"
-            },
-            {
-              "name": "Controlled lists",
-              "route": "api/concepts/lists",
-              "method": "get"
-            },
-            {
-              "name": "Concepts list",
-              "route": "api/concepts/concepts/concepts",
-              "method": "get"
-            },
-            {
-              "name": "Releases",
-              "route": "api/concepts/concepts/releases",
-              "method": "get"
-            },
-            {
-              "name": "Change feed",
-              "route": "api/concepts/concepts/changes",
               "method": "get"
             }
           ]
