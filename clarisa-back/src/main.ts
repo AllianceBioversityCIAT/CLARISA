@@ -7,7 +7,7 @@ import { INestApplication, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { versionExtractor } from './shared/interfaces/version-extractor';
 import { AppConfig } from './shared/utils/app-config';
-import { PUBLIC_OPENAPI_PATHS } from './shared/swagger/public-endpoints';
+import { filterPublicPaths } from './shared/swagger/public-openapi';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -94,16 +94,7 @@ function configurePublicOpenApi(app: INestApplication): void {
   // Exponer SOLO los endpoints publicos (control lists, GET de lectura).
   // El resto del API (escritura, auth, admin) NO se documenta, aunque siga
   // existiendo y protegido por sus guards. Ver shared/swagger/public-endpoints.
-  const allowed = new Set(PUBLIC_OPENAPI_PATHS);
-  const publicPaths: typeof swaggerDocument.paths = {};
-  for (const path of Object.keys(swaggerDocument.paths)) {
-    if (!allowed.has(path)) continue;
-    const ops = swaggerDocument.paths[path];
-    if (ops.get) {
-      // conservar unicamente el metodo GET de cada path publico
-      publicPaths[path] = { get: ops.get };
-    }
-  }
+  const publicPaths = filterPublicPaths(swaggerDocument.paths);
   swaggerDocument.paths = publicPaths;
 
   // Podar components.schemas a SOLO los DTOs referenciados (transitivamente)
