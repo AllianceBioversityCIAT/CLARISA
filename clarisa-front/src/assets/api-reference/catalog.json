@@ -310,18 +310,18 @@
               "method": "get"
             },
             {
-              "name": "MELIAF concepts",
-              "route": "api/concepts/meliaf/concepts",
+              "name": "Concepts list",
+              "route": "api/concepts/concepts/concepts",
               "method": "get"
             },
             {
-              "name": "MELIAF releases",
-              "route": "api/concepts/meliaf/releases",
+              "name": "Releases",
+              "route": "api/concepts/concepts/releases",
               "method": "get"
             },
             {
-              "name": "MELIAF change feed",
-              "route": "api/concepts/meliaf/changes",
+              "name": "Change feed",
+              "route": "api/concepts/concepts/changes",
               "method": "get"
             }
           ]

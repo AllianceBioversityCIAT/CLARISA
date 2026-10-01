@@ -1,7 +1,7 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { ModuleRef, Reflector } from '@nestjs/core';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
-import { RenameMeliafAccessToConcepts1790600400000 } from '../../../migrations/1790600400000-RenameMeliafAccessToConcepts';
+import { DropMeliafFromConcepts1790600500000 } from '../../../migrations/1790600500000-DropMeliafFromConcepts';
 
 /**
  * The real PermissionGuard (path substring match) with the permission the
@@ -9,8 +9,8 @@ import { RenameMeliafAccessToConcepts1790600400000 } from '../../../migrations/1
  * the Concepts admin, while the full-admin permission keeps opening everything.
  */
 describe('PermissionGuard with the concepts-editor permission', () => {
-  const CONCEPTS = RenameMeliafAccessToConcepts1790600400000.CONCEPTS_ROUTE;
-  const FULL = RenameMeliafAccessToConcepts1790600400000.FULL_ROUTE;
+  const CONCEPTS = DropMeliafFromConcepts1790600500000.CONCEPTS_ROUTE;
+  const FULL = DropMeliafFromConcepts1790600500000.FULL_ROUTE;
   const BASE = '/api/concepts/admin';
 
   const guardFor = (permissions: string[]) => {
@@ -37,42 +37,42 @@ describe('PermissionGuard with the concepts-editor permission', () => {
     }) as unknown as ExecutionContext;
 
   const allowed = [
-    `${BASE}/meliaf/concepts`,
-    `${BASE}/meliaf/concepts?status=draft`,
-    `${BASE}/meliaf/concepts/2374`,
-    `${BASE}/meliaf/concepts/2374/labels`,
-    `${BASE}/meliaf/concepts/2374/status`,
-    `${BASE}/meliaf/concepts/2374/relations/remove`,
-    `${BASE}/meliaf/concepts/2374/mappings/4`,
-    `${BASE}/meliaf/concepts/2374/merge`,
-    `${BASE}/meliaf/concepts/2374/icons`,
-    `${BASE}/meliaf/concepts/2374/icons/3`,
-    `${BASE}/meliaf/concepts-meta/fields`,
-    `${BASE}/meliaf/concepts-meta/lists`,
-    `${BASE}/meliaf/concepts-assist/status`,
-    `${BASE}/meliaf/concepts-assist/chat`,
+    `${BASE}/concepts/concepts`,
+    `${BASE}/concepts/concepts?status=draft`,
+    `${BASE}/concepts/concepts/2374`,
+    `${BASE}/concepts/concepts/2374/labels`,
+    `${BASE}/concepts/concepts/2374/status`,
+    `${BASE}/concepts/concepts/2374/relations/remove`,
+    `${BASE}/concepts/concepts/2374/mappings/4`,
+    `${BASE}/concepts/concepts/2374/merge`,
+    `${BASE}/concepts/concepts/2374/icons`,
+    `${BASE}/concepts/concepts/2374/icons/3`,
+    `${BASE}/concepts/concepts-meta/fields`,
+    `${BASE}/concepts/concepts-meta/lists`,
+    `${BASE}/concepts/concepts-assist/status`,
+    `${BASE}/concepts/concepts-assist/chat`,
   ];
   const denied = [
-    `${BASE}/meliaf/lists`,
-    `${BASE}/meliaf/lists/4`,
-    `${BASE}/meliaf/fields`,
-    `${BASE}/meliaf/fields/2`,
-    `${BASE}/meliaf/collections`,
-    `${BASE}/meliaf/import`,
-    `${BASE}/meliaf/import/preview`,
-    `${BASE}/meliaf/import-fields`,
-    `${BASE}/meliaf/releases`,
-    `${BASE}/meliaf/quality`,
-    `${BASE}/meliaf/usage`,
-    `${BASE}/meliaf/requests`,
+    `${BASE}/concepts/lists`,
+    `${BASE}/concepts/lists/4`,
+    `${BASE}/concepts/fields`,
+    `${BASE}/concepts/fields/2`,
+    `${BASE}/concepts/collections`,
+    `${BASE}/concepts/import`,
+    `${BASE}/concepts/import/preview`,
+    `${BASE}/concepts/import-fields`,
+    `${BASE}/concepts/releases`,
+    `${BASE}/concepts/quality`,
+    `${BASE}/concepts/usage`,
+    `${BASE}/concepts/requests`,
     `${BASE}/requests/5`,
     `${BASE}/requests/5/transition`,
-    `${BASE}/meliaf/icons/3`,
+    `${BASE}/concepts/icons/3`,
     `${BASE}/ai/status`,
-    `${BASE}/meliaf/ai/normalize`,
-    `${BASE}/meliaf/ai/embeddings/refresh`,
+    `${BASE}/concepts/ai/normalize`,
+    `${BASE}/concepts/ai/embeddings/refresh`,
     // A query string can never smuggle the permission in.
-    `${BASE}/meliaf/lists?x=${CONCEPTS}`,
+    `${BASE}/concepts/lists?x=${CONCEPTS}`,
     '/api/access-admin/roles',
   ];
 

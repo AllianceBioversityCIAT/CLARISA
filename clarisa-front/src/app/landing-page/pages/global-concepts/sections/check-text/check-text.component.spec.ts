@@ -18,7 +18,7 @@ describe('CheckTextComponent', () => {
     api = {
       suggest: jest.fn().mockReturnValue(
         of({
-          scheme: 'meliaf',
+          scheme: 'concepts',
           retained: false,
           suggestions: [
             {
@@ -59,10 +59,10 @@ describe('CheckTextComponent', () => {
   });
 
   it('sends the text in the body and lists the matched labels with counts', () => {
-    component.scheme = 'meliaf';
+    component.scheme = 'concepts';
     component.text = 'Our ToC and the theory of change';
     component.check();
-    expect(api.suggest).toHaveBeenCalledWith('meliaf', 'Our ToC and the theory of change');
+    expect(api.suggest).toHaveBeenCalledWith('concepts', 'Our ToC and the theory of change');
     expect(component.checking).toBe(false);
     expect(component.totalMatches(component.suggestions![0])).toBe(3);
 
@@ -74,7 +74,7 @@ describe('CheckTextComponent', () => {
 
   it('tells apart "nothing found" from "not checked yet"', () => {
     expect(component.suggestions).toBeNull();
-    api.suggest.mockReturnValue(of({ scheme: 'meliaf', retained: false, suggestions: [] }));
+    api.suggest.mockReturnValue(of({ scheme: 'concepts', retained: false, suggestions: [] }));
     component.text = 'Nothing official here';
     component.check();
     fixture.detectChanges();

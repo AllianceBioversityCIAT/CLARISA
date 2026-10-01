@@ -34,7 +34,7 @@ export const BLINK_CLASS = 'gc-assist-blink';
   encapsulation: ViewEncapsulation.None
 })
 export class GcConceptAssistantComponent {
-  @Input() scheme = 'meliaf';
+  @Input() scheme = 'concepts';
   @Input() remainingUsd: number | null = null;
   @Output() closed = new EventEmitter<void>();
   @ViewChild('list') private list?: ElementRef<HTMLElement>;

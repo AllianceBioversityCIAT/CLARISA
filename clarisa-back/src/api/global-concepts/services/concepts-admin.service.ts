@@ -64,9 +64,9 @@ const VERSIONED_FIELDS = [
   'scope_note',
   'example_of_use',
   'term_type',
-  'meliaf_function',
-  'meliaf_phase_primary',
-  'meliaf_phase_also',
+  'functions',
+  'phase_primary',
+  'phase_also',
   'source_citation',
   'source_url',
   'derivation',
@@ -83,9 +83,9 @@ export const WRITABLE_FIELDS = [
   'scope_note',
   'example_of_use',
   'term_type',
-  'meliaf_function',
-  'meliaf_phase_primary',
-  'meliaf_phase_also',
+  'functions',
+  'phase_primary',
+  'phase_also',
   'source_citation',
   'source_url',
   'derivation',
@@ -100,9 +100,9 @@ export const WRITABLE_FIELDS = [
 /** Which controlled list each list-driven field is checked against. */
 export const LIST_FIELDS: Record<string, string> = {
   term_type: 'term_type',
-  meliaf_function: 'meliaf_function',
-  meliaf_phase_primary: 'meliaf_phase',
-  meliaf_phase_also: 'meliaf_phase',
+  functions: 'functions',
+  phase_primary: 'phase',
+  phase_also: 'phase',
   derivation: 'derivation',
   language: 'language',
 };
@@ -865,7 +865,7 @@ export class ConceptsAdminService {
     });
   }
 
-  /** Platform code owning a scheme, or null when MELIAF admins own it. */
+  /** Platform code owning a scheme, or null when Concepts admins own it. */
   async ownerOf(code: string): Promise<string | null> {
     const scheme = await this.loader.scheme(this.dataSource.manager, code);
     return scheme.owner_platform ?? null;
@@ -1027,10 +1027,10 @@ export class ConceptsAdminService {
         out[field] = value;
       }
     }
-    if (Array.isArray(out.meliaf_function))
-      out.meliaf_function = [...new Set(out.meliaf_function as string[])];
-    if (Array.isArray(out.meliaf_phase_also))
-      out.meliaf_phase_also = [...new Set(out.meliaf_phase_also as string[])];
+    if (Array.isArray(out.functions))
+      out.functions = [...new Set(out.functions as string[])];
+    if (Array.isArray(out.phase_also))
+      out.phase_also = [...new Set(out.phase_also as string[])];
     if (out.language) out.language = String(out.language).toLowerCase();
     return out;
   }

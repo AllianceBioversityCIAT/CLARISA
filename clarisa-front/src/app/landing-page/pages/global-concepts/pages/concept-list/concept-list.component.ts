@@ -10,7 +10,7 @@ import {
   SearchMatch
 } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
 import { ResultView, resultView } from '../../search-highlight';
-import { DEFAULT_SCHEME, GC_BASE, ListsByCode, humanError, labelOf, normalizeLists } from '../../global-concepts.utils';
+import { DEFAULT_SCHEME, GC_BASE, conceptLink, ListsByCode, humanError, labelOf, normalizeLists } from '../../global-concepts.utils';
 import {
   FacetCode,
   FacetView,
@@ -74,7 +74,7 @@ export class ConceptListComponent implements OnInit, OnDestroy {
   readonly base = GC_BASE;
   readonly exports: { format: ExportFormat; label: string; hint: string }[] = [
     { format: 'json', label: 'JSON', hint: 'Every field, for scripts and APIs' },
-    { format: 'csv', label: 'CSV', hint: 'Opens in Excel, same columns as the MELIAF template' },
+    { format: 'csv', label: 'CSV', hint: 'Opens in Excel, same columns as the concepts template' },
     { format: 'skos', label: 'SKOS Turtle', hint: 'RDF for vocabulary tools' },
     { format: 'jsonld', label: 'JSON-LD', hint: 'Linked data for the web' }
   ];
@@ -394,7 +394,7 @@ export class ConceptListComponent implements OnInit, OnDestroy {
   }
 
   conceptLink(concept: { term_id: number }): (string | number)[] {
-    return [this.base, this.schemeCode, concept.term_id];
+    return conceptLink(this.schemeCode, concept.term_id);
   }
 
   summary(concept: PublicConcept): string {

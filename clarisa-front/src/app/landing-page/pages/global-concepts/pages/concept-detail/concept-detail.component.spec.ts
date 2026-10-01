@@ -8,9 +8,9 @@ import { ConceptDetailComponent } from './concept-detail.component';
 import { GlobalConceptsApiService } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
 
 const concept = (overrides: object = {}) => ({
-  scheme: 'meliaf',
+  scheme: 'concepts',
   term_id: 12,
-  term_uri: 'https://clarisa.cgiar.org/concepts/meliaf/12',
+  term_uri: 'https://clarisa.cgiar.org/concepts/12',
   preferred_label: 'Old outcome',
   language: 'en',
   preferred_labels: [],
@@ -20,9 +20,9 @@ const concept = (overrides: object = {}) => ({
   scope_note: null,
   example_of_use: null,
   term_type: null,
-  meliaf_function: [],
-  meliaf_phase_primary: null,
-  meliaf_phase_also: [],
+  functions: [],
+  phase_primary: null,
+  phase_also: [],
   broader_terms: [],
   narrower_terms: [],
   related_terms: [{ term_id: 30, uri: 'https://x/30', preferred_label: 'Impact' }],
@@ -60,7 +60,7 @@ describe('ConceptDetailComponent', () => {
   let params: BehaviorSubject<any>;
 
   beforeEach(async () => {
-    params = new BehaviorSubject(convertToParamMap({ scheme: 'meliaf', termId: '12' }));
+    params = new BehaviorSubject(convertToParamMap({ scheme: 'concepts', termId: '12' }));
     api = {
       concept: jest.fn().mockReturnValue(of(concept())),
       history: jest.fn().mockReturnValue(
@@ -132,8 +132,8 @@ describe('ConceptDetailComponent', () => {
 
   it('reloads when a related concept link changes the params', () => {
     fixture.detectChanges();
-    params.next(convertToParamMap({ scheme: 'meliaf', termId: '30' }));
-    expect(api.concept).toHaveBeenLastCalledWith('meliaf', 30);
+    params.next(convertToParamMap({ scheme: 'concepts', termId: '30' }));
+    expect(api.concept).toHaveBeenLastCalledWith('concepts', 30);
   });
 
   it('explains a 404 without an eternal spinner', () => {

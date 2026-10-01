@@ -28,8 +28,8 @@ import {
 export interface ConceptQuery {
   q?: string;
   status?: string;
-  meliaf_function?: string;
-  meliaf_phase?: string;
+  functions?: string;
+  phase?: string;
   term_type?: string;
   collection?: string;
   version?: string;
@@ -145,18 +145,18 @@ export class ConceptsReadService {
     if (query.term_type) {
       qb.andWhere('c.term_type = :type', { type: query.term_type });
     }
-    if (query.meliaf_phase) {
+    if (query.phase) {
       qb.andWhere(
-        '(c.meliaf_phase_primary = :phase OR c.meliaf_phase_also LIKE :phaseLike)',
+        '(c.phase_primary = :phase OR c.phase_also LIKE :phaseLike)',
         {
-          phase: query.meliaf_phase,
-          phaseLike: likePattern(`"${query.meliaf_phase}"`),
+          phase: query.phase,
+          phaseLike: likePattern(`"${query.phase}"`),
         },
       );
     }
-    if (query.meliaf_function) {
-      qb.andWhere('c.meliaf_function LIKE :fn', {
-        fn: likePattern(`"${query.meliaf_function}"`),
+    if (query.functions) {
+      qb.andWhere('c.functions LIKE :fn', {
+        fn: likePattern(`"${query.functions}"`),
       });
     }
     if (query.collection) {
@@ -390,15 +390,12 @@ export class ConceptsReadService {
     return concepts.filter((c) => {
       if (query.status && c.status !== query.status) return false;
       if (query.term_type && c.term_type !== query.term_type) return false;
-      if (
-        query.meliaf_function &&
-        !c.meliaf_function.includes(query.meliaf_function)
-      )
+      if (query.functions && !c.functions.includes(query.functions))
         return false;
       if (
-        query.meliaf_phase &&
-        c.meliaf_phase_primary !== query.meliaf_phase &&
-        !c.meliaf_phase_also.includes(query.meliaf_phase)
+        query.phase &&
+        c.phase_primary !== query.phase &&
+        !c.phase_also.includes(query.phase)
       ) {
         return false;
       }

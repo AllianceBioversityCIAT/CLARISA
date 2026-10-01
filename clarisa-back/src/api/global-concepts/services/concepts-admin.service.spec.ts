@@ -18,6 +18,7 @@ import {
   GcMatchType,
 } from '../entities/gc-mapping.entity';
 import { CreateGlobalConcepts1790500000000 } from '../../../../migrations/1790500000000-CreateGlobalConcepts';
+import { DropMeliafFromConcepts1790600500000 } from '../../../../migrations/1790600500000-DropMeliafFromConcepts';
 
 const { toValue } = CreateGlobalConcepts1790500000000;
 
@@ -26,11 +27,13 @@ const actor = { email: 'admin@cgiar.org', action: GcHistoryAction.DIRECT_EDIT };
 describe('ConceptsAdminService', () => {
   let db: FakeManager;
   let service: ConceptsAdminService;
-  let meliaf: GcScheme;
+  let concepts: GcScheme;
 
   const seedLists = () => {
     for (const [list, labels] of Object.entries(
-      CreateGlobalConcepts1790500000000.LISTS,
+      DropMeliafFromConcepts1790600500000.currentLists(
+        CreateGlobalConcepts1790500000000.LISTS,
+      ),
     )) {
       labels.forEach((label, sort) =>
         db.seed(GcListValue, {
@@ -52,15 +55,15 @@ describe('ConceptsAdminService', () => {
     extra: Partial<GcConcept> = {},
   ) =>
     db.seed(GcConcept, {
-      scheme_id: meliaf.id,
+      scheme_id: concepts.id,
       term_id,
       preferred_label: label,
       language: 'en',
       status,
       version: '1.0',
       replaced_by_id: null,
-      meliaf_function: [],
-      meliaf_phase_also: [],
+      functions: [],
+      phase_also: [],
       validated_by: [],
       ai_generated_fields: [],
       extra: {},
@@ -69,9 +72,9 @@ describe('ConceptsAdminService', () => {
 
   beforeEach(() => {
     db = new FakeManager();
-    meliaf = db.seed(GcScheme, {
-      code: 'meliaf',
-      title: 'MELIAF',
+    concepts = db.seed(GcScheme, {
+      code: 'concepts',
+      title: 'Concepts',
       default_language: 'en',
       next_term_id: 1,
       uri_base: null,
@@ -86,7 +89,7 @@ describe('ConceptsAdminService', () => {
   describe('create', () => {
     it('assigns the next term id and logs the creation', async () => {
       const created = await service.create(
-        'meliaf',
+        'concepts',
         { preferred_label: '  Outcome ' },
         { ...actor, action: GcHistoryAction.CREATE },
       );
@@ -100,7 +103,7 @@ describe('ConceptsAdminService', () => {
 
     it('keeps an existing register code and moves the counter past it', async () => {
       const created = await service.create(
-        'meliaf',
+        'concepts',
         { preferred_label: 'Accountability', term_id: 2374 },
         actor,
       );
@@ -112,7 +115,7 @@ describe('ConceptsAdminService', () => {
       concept(7, 'Output');
       await expect(
         service.create(
-          'meliaf',
+          'concepts',
           { preferred_label: 'Other', term_id: 7 },
           actor,
         ),
@@ -121,20 +124,20 @@ describe('ConceptsAdminService', () => {
 
     it('stores list values from their label and rejects unknown ones', async () => {
       const ok = await service.create(
-        'meliaf',
+        'concepts',
         {
           preferred_label: 'Impact',
-          meliaf_function: ['MEL', 'IA (ex ante)'],
+          functions: ['MEL', 'IA (ex ante)'],
           term_type: 'Study type',
         },
         actor,
       );
-      expect(ok.meliaf_function).toEqual(['mel', 'ia_ex_ante']);
+      expect(ok.functions).toEqual(['mel', 'ia_ex_ante']);
       expect(ok.term_type).toBe('study_type');
       await expect(
         service.create(
-          'meliaf',
-          { preferred_label: 'X', meliaf_function: ['MEL+IA'] },
+          'concepts',
+          { preferred_label: 'X', functions: ['MEL+IA'] },
           actor,
         ),
       ).rejects.toBeInstanceOf(BadRequestException);
@@ -143,14 +146,14 @@ describe('ConceptsAdminService', () => {
     it('refuses a second live concept with the same preferred label (S14)', async () => {
       concept(1, 'Outcome');
       await expect(
-        service.create('meliaf', { preferred_label: 'outcome' }, actor),
+        service.create('concepts', { preferred_label: 'outcome' }, actor),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
     it('allows the label of a deprecated concept to be reused', async () => {
       concept(1, 'Outcome', GcConceptStatus.DEPRECATED);
       await expect(
-        service.create('meliaf', { preferred_label: 'Outcome' }, actor),
+        service.create('concepts', { preferred_label: 'Outcome' }, actor),
       ).resolves.toBeDefined();
     });
   });
@@ -160,13 +163,13 @@ describe('ConceptsAdminService', () => {
       concept(1, 'Outcome', GcConceptStatus.APPROVED);
       concept(2, 'Draft thing', GcConceptStatus.DRAFT);
       const published = await service.update(
-        'meliaf',
+        'concepts',
         1,
         { definition: 'A change.' },
         actor,
       );
       const draft = await service.update(
-        'meliaf',
+        'concepts',
         2,
         { definition: 'Text.' },
         actor,
@@ -177,13 +180,13 @@ describe('ConceptsAdminService', () => {
 
     it('writes no history when nothing changed', async () => {
       concept(1, 'Outcome', GcConceptStatus.APPROVED, { definition: 'Same.' });
-      await service.update('meliaf', 1, { definition: 'Same.' }, actor);
+      await service.update('concepts', 1, { definition: 'Same.' }, actor);
       expect(db.rows(GcHistory)).toHaveLength(0);
     });
 
     it('records before and after of each changed field', async () => {
       concept(1, 'Outcome', GcConceptStatus.APPROVED, { definition: 'Old.' });
-      await service.update('meliaf', 1, { definition: 'New.' }, actor);
+      await service.update('concepts', 1, { definition: 'New.' }, actor);
       expect(db.rows(GcHistory)[0].changes.definition).toEqual({
         from: 'Old.',
         to: 'New.',
@@ -196,14 +199,14 @@ describe('ConceptsAdminService', () => {
       concept(1, 'Old');
       await expect(
         service.setStatus(
-          'meliaf',
+          'concepts',
           1,
           { status: GcConceptStatus.DEPRECATED },
           actor,
         ),
       ).rejects.toBeInstanceOf(BadRequestException);
       const done = await service.setStatus(
-        'meliaf',
+        'concepts',
         1,
         {
           status: GcConceptStatus.DEPRECATED,
@@ -218,7 +221,7 @@ describe('ConceptsAdminService', () => {
       concept(1, 'Old');
       concept(2, 'New');
       const done = await service.setStatus(
-        'meliaf',
+        'concepts',
         1,
         { status: GcConceptStatus.DEPRECATED, replaced_by_term_id: 2 },
         actor,
@@ -234,7 +237,7 @@ describe('ConceptsAdminService', () => {
       concept(2, 'Not usable', status);
       await expect(
         service.setStatus(
-          'meliaf',
+          'concepts',
           1,
           { status: GcConceptStatus.DEPRECATED, replaced_by_term_id: 2 },
           actor,
@@ -247,7 +250,7 @@ describe('ConceptsAdminService', () => {
       concept(2, 'B', GcConceptStatus.APPROVED, { replaced_by_id: a.id });
       await expect(
         service.setStatus(
-          'meliaf',
+          'concepts',
           1,
           { status: GcConceptStatus.DEPRECATED, replaced_by_term_id: 2 },
           actor,
@@ -260,7 +263,7 @@ describe('ConceptsAdminService', () => {
       concept(1, 'A', GcConceptStatus.DEPRECATED, { replaced_by_id: b.id });
       await expect(
         service.setStatus(
-          'meliaf',
+          'concepts',
           2,
           { status: GcConceptStatus.DEPRECATED, reason: 'gone' },
           actor,
@@ -272,7 +275,7 @@ describe('ConceptsAdminService', () => {
       const b = concept(2, 'B');
       concept(1, 'A', GcConceptStatus.DEPRECATED, { replaced_by_id: b.id });
       const back = await service.setStatus(
-        'meliaf',
+        'concepts',
         1,
         { status: GcConceptStatus.APPROVED },
         actor,
@@ -285,7 +288,7 @@ describe('ConceptsAdminService', () => {
     it('stores alternative, hidden and discouraged labels and publishes them', async () => {
       concept(1, 'Impact assessment');
       const out = await service.setLabels(
-        'meliaf',
+        'concepts',
         1,
         {
           labels: [
@@ -321,7 +324,7 @@ describe('ConceptsAdminService', () => {
       concept(1, 'Outcome');
       await expect(
         service.setLabels(
-          'meliaf',
+          'concepts',
           1,
           { labels: [{ label: 'Result', kind: GcLabelKind.PREF }] },
           actor,
@@ -329,7 +332,7 @@ describe('ConceptsAdminService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
       await expect(
         service.setLabels(
-          'meliaf',
+          'concepts',
           1,
           { labels: [{ label: 'outcome', kind: GcLabelKind.ALT }] },
           actor,
@@ -341,7 +344,7 @@ describe('ConceptsAdminService', () => {
       concept(1, 'Outcome');
       await expect(
         service.setLabels(
-          'meliaf',
+          'concepts',
           1,
           {
             labels: [
@@ -360,21 +363,21 @@ describe('ConceptsAdminService', () => {
       concept(2, 'Impact evaluation');
       await expect(
         service.addRelation(
-          'meliaf',
+          'concepts',
           1,
           { kind: GcRelationKind.BROADER, target_term_id: 1 },
           actor,
         ),
       ).rejects.toBeInstanceOf(BadRequestException);
       await service.addRelation(
-        'meliaf',
+        'concepts',
         2,
         { kind: GcRelationKind.BROADER, target_term_id: 1 },
         actor,
       );
       await expect(
         service.addRelation(
-          'meliaf',
+          'concepts',
           1,
           { kind: GcRelationKind.BROADER, target_term_id: 2 },
           actor,
@@ -411,20 +414,20 @@ describe('ConceptsAdminService', () => {
       concept(2, 'Impact evaluation');
       concept(3, 'Ex-ante impact evaluation');
       await service.addRelation(
-        'meliaf',
+        'concepts',
         2,
         { kind: GcRelationKind.BROADER, target_term_id: 1 },
         actor,
       );
       await service.addRelation(
-        'meliaf',
+        'concepts',
         3,
         { kind: GcRelationKind.BROADER, target_term_id: 2 },
         actor,
       );
       await expect(
         service.addRelation(
-          'meliaf',
+          'concepts',
           3,
           { kind: GcRelationKind.RELATED, target_term_id: 1 },
           actor,
@@ -432,7 +435,7 @@ describe('ConceptsAdminService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
       await expect(
         service.addRelation(
-          'meliaf',
+          'concepts',
           1,
           { kind: GcRelationKind.RELATED, target_term_id: 3 },
           actor,
@@ -444,13 +447,13 @@ describe('ConceptsAdminService', () => {
       concept(1, 'Outcome');
       concept(2, 'Output');
       await service.addRelation(
-        'meliaf',
+        'concepts',
         2,
         { kind: GcRelationKind.RELATED, target_term_id: 1 },
         actor,
       );
       await service.addRelation(
-        'meliaf',
+        'concepts',
         1,
         { kind: GcRelationKind.RELATED, target_term_id: 2 },
         actor,
@@ -459,7 +462,7 @@ describe('ConceptsAdminService', () => {
       expect(Number(db.rows(GcRelation)[0].concept_id)).toBeLessThan(
         Number(db.rows(GcRelation)[0].related_concept_id),
       );
-      const one = await service.get('meliaf', 1);
+      const one = await service.get('concepts', 1);
       expect(one.related_terms.map((r) => r.term_id)).toEqual([2]);
     });
 
@@ -467,12 +470,12 @@ describe('ConceptsAdminService', () => {
       concept(1, 'Evaluation');
       concept(2, 'Impact evaluation');
       await service.addRelation(
-        'meliaf',
+        'concepts',
         2,
         { kind: GcRelationKind.BROADER, target_term_id: 1 },
         actor,
       );
-      const parent = await service.get('meliaf', 1);
+      const parent = await service.get('concepts', 1);
       expect(parent.narrower_terms.map((r) => r.term_id)).toEqual([2]);
     });
   });
@@ -518,7 +521,7 @@ describe('ConceptsAdminService', () => {
       });
 
       const survivor = await service.merge(
-        'meliaf',
+        'concepts',
         1,
         { into_term_id: 2 },
         actor,
@@ -551,7 +554,7 @@ describe('ConceptsAdminService', () => {
       concept(1, 'A');
       concept(2, 'B', GcConceptStatus.DRAFT);
       await expect(
-        service.merge('meliaf', 1, { into_term_id: 2 }, actor),
+        service.merge('concepts', 1, { into_term_id: 2 }, actor),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
@@ -564,7 +567,7 @@ describe('ConceptsAdminService', () => {
     const { presentConcepts } = await import('../utils/concept-presenter');
     const graph = await new ConceptGraphLoader().load(
       db as any,
-      meliaf,
+      concepts,
       db.rows(GcConcept),
     );
     const [pub] = presentConcepts(graph, () => true);

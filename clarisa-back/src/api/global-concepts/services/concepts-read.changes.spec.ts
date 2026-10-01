@@ -24,7 +24,7 @@ describe('ConceptsReadService.changes', () => {
 
   it('uses no MySQL reserved word as a bare alias (the 500 on ?since=0)', async () => {
     const { service, selects } = build([]);
-    await service.changes('meliaf', 0);
+    await service.changes('concepts', 0);
     const aliases = selects.map((s) => s.split(/\s+AS\s+/i)[1]?.trim());
     expect(aliases.length).toBeGreaterThan(0);
     for (const alias of aliases) {
@@ -41,7 +41,7 @@ describe('ConceptsReadService.changes', () => {
         changed_at: new Date('2026-09-29T15:00:00Z'),
       },
     ]);
-    const out = await service.changes('meliaf', 0);
+    const out = await service.changes('concepts', 0);
     expect(out.changes).toEqual([
       {
         cursor: 7,
@@ -55,6 +55,6 @@ describe('ConceptsReadService.changes', () => {
 
   it('keeps the incoming cursor when nothing changed', async () => {
     const { service } = build([]);
-    expect((await service.changes('meliaf', 12)).next_cursor).toBe(12);
+    expect((await service.changes('concepts', 12)).next_cursor).toBe(12);
   });
 });

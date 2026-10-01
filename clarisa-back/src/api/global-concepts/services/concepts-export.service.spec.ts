@@ -13,7 +13,7 @@ import {
 
 const scheme = {
   id: 1,
-  code: 'meliaf',
+  code: 'concepts',
   uri_base: 'https://api.clarisa.cgiar.org/concepts',
   title: 'Concepts',
   description: 'Shared MEL vocabulary',
@@ -23,13 +23,13 @@ const scheme = {
   governance_description: 'Changes go through the PPT secretariat',
 } as GcScheme;
 
-const uri = (t: number) => `https://api.clarisa.cgiar.org/concepts/meliaf/${t}`;
+const uri = (t: number) => `https://api.clarisa.cgiar.org/concepts/${t}`;
 
 const publicConcept = (
   overrides: Partial<PublicConcept> = {},
 ): PublicConcept => ({
   collections: [],
-  scheme: 'meliaf',
+  scheme: 'concepts',
   term_id: 2374,
   term_uri: uri(2374),
   preferred_label: 'Outcome',
@@ -69,9 +69,9 @@ const publicConcept = (
   scope_note: 'Use for\nchanges',
   example_of_use: null,
   term_type: 'concept',
-  meliaf_function: ['learning', 'accountability'],
-  meliaf_phase_primary: 'design',
-  meliaf_phase_also: [],
+  functions: ['learning', 'accountability'],
+  phase_primary: 'design',
+  phase_also: [],
   broader_terms: [{ term_id: 10, uri: uri(10), preferred_label: 'Result' }],
   narrower_terms: [],
   related_terms: [{ term_id: 11, uri: uri(11), preferred_label: 'Impact' }],
@@ -86,7 +86,7 @@ const publicConcept = (
   date_modified: '2026-09-01',
   validated_by: ['PPT'],
   date_validated: null,
-  steward: 'MELIAF',
+  steward: 'Concepts',
   replaced_by: null,
   rights_note: null,
   mappings: [
@@ -189,7 +189,7 @@ describe('ConceptsExportService', () => {
       );
       expect(lines[lines.length - 1]).toBe('');
       expect(contentType).toBe('text/csv; charset=utf-8');
-      expect(fileName).toMatch(/^meliaf-\d{4}-\d{2}-\d{2}\.csv$/);
+      expect(fileName).toMatch(/^concepts-\d{4}-\d{2}-\d{2}\.csv$/);
     });
 
     it('writes one row per concept with the joined lists and plain text', () => {
@@ -207,7 +207,7 @@ describe('ConceptsExportService', () => {
       expect(get('definition')).toBe('A change\nin "state"');
       expect(get('broader_term')).toBe('10');
       expect(get('related_terms')).toBe('11');
-      expect(get('meliaf_function')).toBe('learning; accountability');
+      expect(get('functions')).toBe('learning; accountability');
       expect(get('maps_to_external')).toBe(
         'http://aims.fao.org/aos/agrovoc/c_1; not a url',
       );
@@ -264,10 +264,9 @@ describe('ConceptsExportService', () => {
         'skos',
         {
           version: '1.1.0',
-          releaseUri:
-            'https://api.clarisa.cgiar.org/concepts/meliaf/releases/1.1.0',
+          releaseUri: 'https://api.clarisa.cgiar.org/concepts/releases/1.1.0',
           previousReleaseUri:
-            'https://api.clarisa.cgiar.org/concepts/meliaf/releases/1.0.0',
+            'https://api.clarisa.cgiar.org/concepts/releases/1.0.0',
           releasedAt: '2026-09-25T10:00:00.000Z',
         },
       );
@@ -275,7 +274,7 @@ describe('ConceptsExportService', () => {
         expect(body).toContain(`@prefix ${p}: <`);
       }
       expect(body).toContain(
-        '<https://api.clarisa.cgiar.org/concepts/meliaf> a skos:ConceptScheme',
+        '<https://api.clarisa.cgiar.org/concepts> a skos:ConceptScheme',
       );
       expect(body).toContain('dcterms:title "Concepts"@en');
       expect(body).toContain(
@@ -286,10 +285,10 @@ describe('ConceptsExportService', () => {
       );
       expect(body).toContain('owl:versionInfo "1.1.0"');
       expect(body).toContain(
-        'owl:priorVersion <https://api.clarisa.cgiar.org/concepts/meliaf/releases/1.0.0>',
+        'owl:priorVersion <https://api.clarisa.cgiar.org/concepts/releases/1.0.0>',
       );
       expect(contentType).toBe('text/turtle; charset=utf-8');
-      expect(fileName).toBe('meliaf-1.1.0-2026-09-25.ttl');
+      expect(fileName).toBe('concepts-1.1.0-2026-09-25.ttl');
     });
 
     it('writes the concept with language-tagged labels, relations and valid mappings only', () => {
@@ -406,7 +405,7 @@ describe('ConceptsExportService', () => {
         { '@value': 'Effect', '@language': 'en' },
       ]);
       expect(node['skos:inScheme']).toEqual({
-        '@id': 'https://api.clarisa.cgiar.org/concepts/meliaf',
+        '@id': 'https://api.clarisa.cgiar.org/concepts',
       });
       expect(node['owl:deprecated']).toBe(true);
       expect(node['dcterms:isReplacedBy']).toEqual({ '@id': uri(99) });
@@ -427,8 +426,8 @@ describe('ConceptsExportService', () => {
     });
     const doc = JSON.parse(body);
     expect(doc.scheme).toEqual({
-      code: 'meliaf',
-      uri: 'https://api.clarisa.cgiar.org/concepts/meliaf',
+      code: 'concepts',
+      uri: 'https://api.clarisa.cgiar.org/concepts',
       title: 'Concepts',
       license: 'https://creativecommons.org/licenses/by/4.0/',
       publisher: 'CGIAR',
@@ -442,7 +441,7 @@ describe('ConceptsExportService', () => {
 
   describe('export', () => {
     it('reads only public concepts of the scheme, ordered by label', async () => {
-      await service.export('meliaf', 'json');
+      await service.export('concepts', 'json');
       const [entity, options] = manager.find.mock.calls[0];
       expect(entity).toBe(GcConcept);
       expect(options.where.scheme_id).toBe(1);
@@ -460,7 +459,7 @@ describe('ConceptsExportService', () => {
           language: 'en',
         },
       ]);
-      const { body } = await service.export('meliaf', 'json');
+      const { body } = await service.export('concepts', 'json');
       expect(JSON.parse(body).concepts).toEqual([]);
     });
 
@@ -471,7 +470,7 @@ describe('ConceptsExportService', () => {
             id: 5,
             version: '1.1.0',
             release_uri:
-              'https://api.clarisa.cgiar.org/concepts/meliaf/releases/1.1.0',
+              'https://api.clarisa.cgiar.org/concepts/releases/1.1.0',
             previous_release_id: 4,
             released_at: new Date('2026-09-20T12:00:00Z'),
             snapshot: JSON.stringify([publicConcept()]),
@@ -481,15 +480,15 @@ describe('ConceptsExportService', () => {
           return Promise.resolve({
             id: 4,
             release_uri:
-              'https://api.clarisa.cgiar.org/concepts/meliaf/releases/1.0.0',
+              'https://api.clarisa.cgiar.org/concepts/releases/1.0.0',
           });
         }
         return Promise.resolve(null);
       });
-      const file = await service.export('meliaf', 'skos', '1.1.0');
-      expect(file.fileName).toBe('meliaf-1.1.0-2026-09-20.ttl');
+      const file = await service.export('concepts', 'skos', '1.1.0');
+      expect(file.fileName).toBe('concepts-1.1.0-2026-09-20.ttl');
       expect(file.body).toContain(
-        'owl:priorVersion <https://api.clarisa.cgiar.org/concepts/meliaf/releases/1.0.0>',
+        'owl:priorVersion <https://api.clarisa.cgiar.org/concepts/releases/1.0.0>',
       );
       expect(file.body).toContain(`<${uri(2374)}> a skos:Concept`);
       expect(manager.find).not.toHaveBeenCalled();
@@ -497,13 +496,13 @@ describe('ConceptsExportService', () => {
 
     it('answers 404 for an unknown release', async () => {
       await expect(
-        service.export('meliaf', 'csv', '9.9.9'),
+        service.export('concepts', 'csv', '9.9.9'),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('rejects an unknown format', async () => {
       await expect(
-        service.export('meliaf', 'xml' as any),
+        service.export('concepts', 'xml' as any),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });

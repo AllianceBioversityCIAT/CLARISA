@@ -28,7 +28,7 @@ describe('GcLabelsEditorComponent', () => {
     component.save();
 
     expect(api.setLabels).toHaveBeenCalledTimes(1);
-    expect(api.setLabels).toHaveBeenCalledWith('meliaf', 4, [
+    expect(api.setLabels).toHaveBeenCalledWith('concepts', 4, [
       { label: 'OC', language: 'en', kind: 'acronym', status: 'discouraged' },
       { label: 'Résultat', language: 'fr', kind: 'pref', status: 'active' }
     ]);

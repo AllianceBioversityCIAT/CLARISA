@@ -115,7 +115,7 @@
         [options]="statusChoices"
         [(ngModel)]="filters.statuses"
         (onChange)="applyFilters()"></p-multiSelect>
-      <span class="gc-sr-only" id="gc-f-function-l">Filter by MELIAF function</span>
+      <span class="gc-sr-only" id="gc-f-function-l">Filter by Function</span>
       <p-multiSelect
         inputId="gc-f-function"
         ariaLabelledBy="gc-f-function-l"
@@ -125,7 +125,7 @@
         selectedItemsLabel="{0} functions"
         [maxSelectedLabels]="1"
         [showHeader]="false"
-        [options]="optionsFor('meliaf_function')"
+        [options]="optionsFor('functions')"
         [(ngModel)]="filters.functions"
         (onChange)="applyFilters()"></p-multiSelect>
       <button
@@ -170,7 +170,7 @@
           selectedItemsLabel="{0} phases"
           [maxSelectedLabels]="1"
           [showHeader]="false"
-          [options]="optionsFor('meliaf_phase')"
+          [options]="optionsFor('phase')"
           [(ngModel)]="filters.phases"
           (onChange)="applyFilters()"></p-multiSelect>
       </div>

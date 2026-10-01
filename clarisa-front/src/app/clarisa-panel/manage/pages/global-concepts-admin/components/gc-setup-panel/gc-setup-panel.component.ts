@@ -11,7 +11,7 @@ export type SetupSection = 'fields' | 'lists' | 'collections';
   styleUrls: ['./gc-setup-panel.component.scss']
 })
 export class GcSetupPanelComponent implements OnInit, OnChanges {
-  @Input() scheme = 'meliaf';
+  @Input() scheme = 'concepts';
 
   section: SetupSection = 'fields';
   readonly sections: { id: SetupSection; label: string; icon: string }[] = [

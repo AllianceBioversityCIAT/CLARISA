@@ -16,8 +16,8 @@ describe('GcConceptDialogComponent', () => {
       scope_note: null,
       example_of_use: null,
       term_type: null,
-      meliaf_function: [],
-      meliaf_phase_primary: null,
+      functions: [],
+      phase_primary: null,
       derivation: null,
       source_citation: null,
       source_url: null,
@@ -86,7 +86,7 @@ describe('GcConceptDialogComponent', () => {
     component.values['owner'] = 'Luis';
     component.save();
 
-    expect(api['updateConcept']).toHaveBeenCalledWith('meliaf', 1, { preferred_label: 'Outcomes', extra: { owner: 'Luis' } });
+    expect(api['updateConcept']).toHaveBeenCalledWith('concepts', 1, { preferred_label: 'Outcomes', extra: { owner: 'Luis' } });
     expect(component.visible).toBe(false);
   });
 
@@ -166,7 +166,7 @@ describe('GcConceptDialogComponent', () => {
     component.openEdit(component.concepts[0]);
     component.draft('short_definition');
 
-    expect(api['aiDraft']).toHaveBeenCalledWith('meliaf', { preferred_label: 'Outcome', definition: 'Definition of Outcome', fields: ['short_definition'] });
+    expect(api['aiDraft']).toHaveBeenCalledWith('concepts', { preferred_label: 'Outcome', definition: 'Definition of Outcome', fields: ['short_definition'] });
     expect(component.drafts.short_definition).toBe('A change caused by the work.');
     expect(component.form.short_definition).toBe('');
 
@@ -175,7 +175,7 @@ describe('GcConceptDialogComponent', () => {
     expect(component.drafts.short_definition).toBeUndefined();
 
     component.save();
-    expect(api['updateConcept']).toHaveBeenCalledWith('meliaf', 1, {
+    expect(api['updateConcept']).toHaveBeenCalledWith('concepts', 1, {
       short_definition: 'A change caused by the work.',
       ai_generated_fields: ['scope_note', 'short_definition']
     });
@@ -186,7 +186,7 @@ describe('GcConceptDialogComponent', () => {
     component.form.scope_note = 'Written by a person';
 
     component.save();
-    expect(api['updateConcept']).toHaveBeenCalledWith('meliaf', 1, {
+    expect(api['updateConcept']).toHaveBeenCalledWith('concepts', 1, {
       scope_note: 'Written by a person',
       ai_generated_fields: []
     });
@@ -207,7 +207,7 @@ describe('GcConceptDialogComponent', () => {
     component.values['owner'] = 'Ana';
     component.save();
 
-    expect(api['createConcept']).toHaveBeenCalledWith('meliaf', { preferred_label: 'New', extra: { owner: 'Ana' } });
+    expect(api['createConcept']).toHaveBeenCalledWith('concepts', { preferred_label: 'New', extra: { owner: 'Ana' } });
     expect(component.visible).toBe(true);
     expect(component.editing?.term_id).toBe(9);
     expect(component.tabs.every(tab => !tab.lockedReason)).toBe(true);
@@ -233,7 +233,7 @@ describe('GcConceptDialogComponent', () => {
     expect(component.statusChangeError).toBeNull();
     component.changeStatus();
 
-    expect(api['setStatus']).toHaveBeenCalledWith('meliaf', 2, { status: 'deprecated', replaced_by_term_id: 1 });
+    expect(api['setStatus']).toHaveBeenCalledWith('concepts', 2, { status: 'deprecated', replaced_by_term_id: 1 });
   });
 
   it('loads the history newest first, once, and says why when it fails', () => {
@@ -265,7 +265,7 @@ describe('GcConceptDialogComponent', () => {
       expect(component.history).toEqual([]);
 
       component.selectTab(tabOption('history'));
-      expect(api['adminConcept']).toHaveBeenLastCalledWith('meliaf', 2);
+      expect(api['adminConcept']).toHaveBeenLastCalledWith('concepts', 2);
       expect(component.history).toHaveLength(1);
     });
 
@@ -313,7 +313,7 @@ describe('GcConceptDialogComponent', () => {
       api['conceptsAssistStatus'].mockReturnValue(of({ enabled: true, remainingUsd: 4.2 }));
       component.openEdit(component.concepts[0]);
 
-      expect(api['conceptsAssistStatus']).toHaveBeenCalledWith('meliaf');
+      expect(api['conceptsAssistStatus']).toHaveBeenCalledWith('concepts');
       expect(component.assistShown).toBe(true);
       expect(component.assistRemaining).toBe(4.2);
       expect(component.dialogStyle['width']).toBe('920px');

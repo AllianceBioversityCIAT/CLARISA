@@ -44,7 +44,7 @@ describe('GcConceptCreateDialogComponent', () => {
     dialog.form.definition = '  A change.  ';
     dialog.create();
 
-    expect(api['createConcept']).toHaveBeenCalledWith('meliaf', { preferred_label: 'Outcome', definition: 'A change.' });
+    expect(api['createConcept']).toHaveBeenCalledWith('concepts', { preferred_label: 'Outcome', definition: 'A change.' });
     expect(dialog.visible).toBe(false);
     expect(created).toHaveBeenCalledWith({ term_id: 41, preferred_label: 'Outcome' } as unknown as AdminConceptDetail);
     expect(messages.add).toHaveBeenCalledWith(
@@ -56,7 +56,7 @@ describe('GcConceptCreateDialogComponent', () => {
     dialog.open('Outcome');
     dialog.form.term_id = 1042;
     dialog.create();
-    expect(api['createConcept']).toHaveBeenCalledWith('meliaf', { preferred_label: 'Outcome', term_id: 1042 });
+    expect(api['createConcept']).toHaveBeenCalledWith('concepts', { preferred_label: 'Outcome', term_id: 1042 });
   });
 
   it('locks on the first click: a second click or Enter before the answer sends nothing', () => {
@@ -85,7 +85,7 @@ describe('GcConceptCreateDialogComponent', () => {
     dialog.open('Outcome');
     dialog.form.term_id = 12;
     dialog.create();
-    answer.error(conflict('term_id 12 is already used in "meliaf"'));
+    answer.error(conflict('term_id 12 is already used in "concepts"'));
 
     expect(dialog.error).toBe('TERM ID 12 already belongs to another concept. Leave it empty to get the next free code, or keep a different one.');
     expect(dialog.showTermId).toBe(true);
@@ -99,7 +99,7 @@ describe('GcConceptCreateDialogComponent', () => {
   });
 
   it('a 409 on the label names the label', () => {
-    expect(createErrorMessage(conflict('"Outcome" is already the preferred label (en) of another concept in "meliaf"'), {
+    expect(createErrorMessage(conflict('"Outcome" is already the preferred label (en) of another concept in "concepts"'), {
       preferred_label: ' Outcome ',
       definition: '',
       term_id: null

@@ -1383,7 +1383,7 @@ function specOpFor(route) {
   const paths = state.spec?.paths || {};
   if (paths[p]?.get) return paths[p].get;
   // Templated spec paths ("/api/concepts/{scheme}/concepts") match a
-  // concrete catalog route ("api/concepts/meliaf/concepts").
+  // concrete catalog route ("api/concepts/concepts/concepts").
   for (const [tpl, ops] of Object.entries(paths)) {
     if (!ops?.get || !tpl.includes('{')) continue;
     const re = new RegExp('^' + tpl.split(/\{[^}]+\}/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[^/]+') + '$');

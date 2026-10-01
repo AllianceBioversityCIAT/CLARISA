@@ -43,7 +43,7 @@ export interface ConceptExportMeta {
 }
 
 /**
- * The CSV columns, in the order and with the names of the MELIAF data schema
+ * The CSV columns, in the order and with the names of the concepts data schema
  * template ("Term register" sheet), so a download opens as the same workbook
  * Group 4 designed and can be re-imported.
  */
@@ -61,9 +61,9 @@ export const CONCEPT_CSV_COLUMNS = [
   'broader_term',
   'narrower_terms',
   'related_terms',
-  'meliaf_function',
-  'meliaf_phase_primary',
-  'meliaf_phase_also',
+  'functions',
+  'phase_primary',
+  'phase_also',
   'source_citation',
   'source_url',
   'derivation',
@@ -352,9 +352,9 @@ export class ConceptsExportService {
           list(c.broader_terms.map((r) => r.term_id)),
           list(c.narrower_terms.map((r) => r.term_id)),
           list(c.related_terms.map((r) => r.term_id)),
-          list(c.meliaf_function ?? []),
-          c.meliaf_phase_primary,
-          list(c.meliaf_phase_also ?? []),
+          list(c.functions ?? []),
+          c.phase_primary,
+          list(c.phase_also ?? []),
           c.source_citation,
           c.source_url,
           c.derivation,

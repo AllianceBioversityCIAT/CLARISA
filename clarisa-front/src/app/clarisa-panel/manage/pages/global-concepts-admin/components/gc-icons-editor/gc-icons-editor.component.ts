@@ -13,7 +13,7 @@ import { FIELD_INFO } from '../../utils/field-info';
   styleUrls: ['./gc-icons-editor.component.scss']
 })
 export class GcIconsEditorComponent implements OnInit {
-  @Input() scheme = 'meliaf';
+  @Input() scheme = 'concepts';
   @Input() termId: number | null = null;
   @Input() conceptLabel = '';
   @Input() lists: Record<string, ListOption[]> = {};

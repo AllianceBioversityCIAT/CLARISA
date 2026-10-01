@@ -32,8 +32,8 @@ import { GcRelationKind } from '../entities/gc-relation.entity';
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * Fields shared by create and update, named as in the MELIAF data schema
- * template. List-driven fields (term_type, meliaf_function, meliaf_phase_*,
+ * Fields shared by create and update, named as in the concepts data schema
+ * template. List-driven fields (term_type, functions, phase_*,
  * derivation, language) are checked against the module's controlled lists by
  * the service, not here: the lists are data and can grow without a deploy.
  */
@@ -69,18 +69,18 @@ export class ConceptFieldsDto {
   @IsArray()
   @ArrayMaxSize(10)
   @IsString({ each: true })
-  meliaf_function?: string[];
+  functions?: string[];
 
   @IsOptional()
   @IsString()
   @MaxLength(50)
-  meliaf_phase_primary?: string;
+  phase_primary?: string;
 
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(10)
   @IsString({ each: true })
-  meliaf_phase_also?: string[];
+  phase_also?: string[];
 
   @IsOptional()
   @IsString()

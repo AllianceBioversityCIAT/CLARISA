@@ -22,16 +22,16 @@ const field = (data: Partial<GcField>): GcField =>
   });
 
 const ctx = (): AssistContext => ({
-  scheme: { code: 'meliaf', title: 'Concepts', description: null },
+  scheme: { code: 'concepts', title: 'Concepts', description: null },
   lists: new Map([
     [
-      'meliaf_function',
+      'functions',
       [
         { value: 'monitoring', label: 'Monitoring' },
         { value: 'evaluation', label: 'Evaluation' },
       ],
     ],
-    ['meliaf_phase', [{ value: 'design', label: 'Design' }]],
+    ['phase', [{ value: 'design', label: 'Design' }]],
     ['term_type', [{ value: 'concept', label: 'Concept' }]],
     ['derivation', []],
     ['funding', [{ value: 'bilateral', label: 'Bilateral funding' }]],
@@ -103,10 +103,11 @@ describe('buildAssistantPrompt', () => {
     termId: 42,
   });
 
-  it('explains MELIAF and the proposal-only rule', () => {
+  it('explains Concepts and the proposal-only rule', () => {
     expect(prompt).toContain(
-      'Monitoring, Evaluation, Learning, Impact Assessment and Foresight',
+      'monitoring, evaluation, learning, impact assessment and foresight',
     );
+    expect(prompt).not.toMatch(/MELIAF/i);
     expect(prompt).toMatch(/NEVER change a field that appears in MANUAL EDITS/);
     expect(prompt).toMatch(/language the person writes in/);
     expect(prompt).toContain('term id 42');
@@ -205,19 +206,19 @@ describe('sanitizeAnswer', () => {
   it('keeps only valid list codes (label → code), never invents one', () => {
     const out = run([
       {
-        field: 'meliaf_function',
+        field: 'functions',
         value: ['Evaluation', 'monitoring', 'forecasting'],
         reason: '',
       },
       { field: 'term_type', value: 'method', reason: '' },
-      { field: 'meliaf_phase_primary', value: 'DESIGN', reason: '' },
+      { field: 'phase_primary', value: 'DESIGN', reason: '' },
       { field: 'derivation', value: 'adopted', reason: '' },
       { field: 'x:funding', value: 'Bilateral funding', reason: '' },
-      { field: 'meliaf_phase_also', value: ['nothing'], reason: '' },
+      { field: 'phase_also', value: ['nothing'], reason: '' },
     ]);
     expect(out.steps.map((s) => [s.field, s.value])).toEqual([
-      ['meliaf_function', ['evaluation', 'monitoring']],
-      ['meliaf_phase_primary', 'design'],
+      ['functions', ['evaluation', 'monitoring']],
+      ['phase_primary', 'design'],
       ['x:funding', 'bilateral'],
     ]);
   });
@@ -291,9 +292,9 @@ describe('sanitizeAnswer', () => {
     many.push(
       { field: 'x:owner', value: 'a', reason: '' },
       { field: 'source_url', value: 'https://example.org', reason: '' },
-      { field: 'meliaf_function', value: ['evaluation'], reason: '' },
+      { field: 'functions', value: ['evaluation'], reason: '' },
       { field: 'x:funding', value: 'bilateral', reason: '' },
-      { field: 'meliaf_phase_primary', value: 'design', reason: '' },
+      { field: 'phase_primary', value: 'design', reason: '' },
     );
     const out = run(many);
     expect(out.steps).toHaveLength(12);

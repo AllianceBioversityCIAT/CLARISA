@@ -9,8 +9,8 @@ describe('FacetBarComponent', () => {
 
   const facets: FacetView[] = [
     {
-      code: 'meliaf_function',
-      label: 'MELIAF function',
+      code: 'functions',
+      label: 'Function',
       selected: 1,
       options: [
         { value: 'mel', label: 'MEL', count: 12, checked: true },
@@ -27,7 +27,7 @@ describe('FacetBarComponent', () => {
     component.facets = facets;
     component.selected = 1;
     component.resultCount = 12;
-    component.chips = [{ code: 'meliaf_function', value: 'mel', label: 'MELIAF function: MEL' }];
+    component.chips = [{ code: 'functions', value: 'mel', label: 'Function: MEL' }];
     fixture.detectChanges();
   });
 
@@ -105,7 +105,7 @@ describe('FacetBarComponent', () => {
   });
 
   it('closes an open dropdown on a click outside', () => {
-    component.toggleDropdown('meliaf_function');
+    component.toggleDropdown('functions');
     fixture.detectChanges();
     document.body.click();
     expect(component.openFacet).toBeNull();
@@ -133,7 +133,7 @@ describe('FacetBarComponent', () => {
       const inside = el().querySelector('.gc-dd__panel input') as HTMLInputElement;
 
       box.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: inside }));
-      expect(component.openFacet).toBe('meliaf_function');
+      expect(component.openFacet).toBe('functions');
 
       box.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: el().querySelector('#gc-sort') }));
       expect(component.openFacet).toBeNull();
