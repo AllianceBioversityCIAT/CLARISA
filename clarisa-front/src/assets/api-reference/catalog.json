@@ -218,28 +218,28 @@
           "description": "Official CGIAR vocabulary: published concepts with persistent URIs, controlled lists, releases and a change feed. Exports as JSON, CSV, SKOS Turtle and JSON-LD.",
           "endpoints": [
             {
-              "name": "Concept schemes",
-              "route": "api/concepts/schemes",
+              "name": "Scheme",
+              "route": "api/meliaf-taxonomy",
               "method": "get"
             },
             {
               "name": "Controlled lists",
-              "route": "api/concepts/lists",
+              "route": "api/meliaf-taxonomy/lists",
               "method": "get"
             },
             {
               "name": "Concepts",
-              "route": "api/concepts/meliaf-taxonomy/concepts",
+              "route": "api/meliaf-taxonomy/concepts",
               "method": "get"
             },
             {
               "name": "Releases",
-              "route": "api/concepts/meliaf-taxonomy/releases",
+              "route": "api/meliaf-taxonomy/releases",
               "method": "get"
             },
             {
               "name": "Change feed",
-              "route": "api/concepts/meliaf-taxonomy/changes",
+              "route": "api/meliaf-taxonomy/changes",
               "method": "get"
             }
           ]
