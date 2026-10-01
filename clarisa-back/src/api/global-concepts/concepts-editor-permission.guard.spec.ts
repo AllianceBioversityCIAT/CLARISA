@@ -1,7 +1,7 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { ModuleRef, Reflector } from '@nestjs/core';
 import { PermissionGuard } from '../../shared/guards/permission.guard';
-import { DropMeliafFromConcepts1790600500000 } from '../../../migrations/1790600500000-DropMeliafFromConcepts';
+import { ConceptsSchemeCodeMeliafTaxonomy1790600600000 } from '../../../migrations/1790600600000-ConceptsSchemeCodeMeliafTaxonomy';
 
 /**
  * The real PermissionGuard (path substring match) with the permission the
@@ -9,8 +9,8 @@ import { DropMeliafFromConcepts1790600500000 } from '../../../migrations/1790600
  * the Concepts admin, while the full-admin permission keeps opening everything.
  */
 describe('PermissionGuard with the concepts-editor permission', () => {
-  const CONCEPTS = DropMeliafFromConcepts1790600500000.CONCEPTS_ROUTE;
-  const FULL = DropMeliafFromConcepts1790600500000.FULL_ROUTE;
+  const CONCEPTS = ConceptsSchemeCodeMeliafTaxonomy1790600600000.CONCEPTS_ROUTE;
+  const FULL = ConceptsSchemeCodeMeliafTaxonomy1790600600000.FULL_ROUTE;
   const BASE = '/api/concepts/admin';
 
   const guardFor = (permissions: string[]) => {
@@ -37,42 +37,42 @@ describe('PermissionGuard with the concepts-editor permission', () => {
     }) as unknown as ExecutionContext;
 
   const allowed = [
-    `${BASE}/concepts/concepts`,
-    `${BASE}/concepts/concepts?status=draft`,
-    `${BASE}/concepts/concepts/2374`,
-    `${BASE}/concepts/concepts/2374/labels`,
-    `${BASE}/concepts/concepts/2374/status`,
-    `${BASE}/concepts/concepts/2374/relations/remove`,
-    `${BASE}/concepts/concepts/2374/mappings/4`,
-    `${BASE}/concepts/concepts/2374/merge`,
-    `${BASE}/concepts/concepts/2374/icons`,
-    `${BASE}/concepts/concepts/2374/icons/3`,
-    `${BASE}/concepts/concepts-meta/fields`,
-    `${BASE}/concepts/concepts-meta/lists`,
-    `${BASE}/concepts/concepts-assist/status`,
-    `${BASE}/concepts/concepts-assist/chat`,
+    `${BASE}/meliaf-taxonomy/concepts`,
+    `${BASE}/meliaf-taxonomy/concepts?status=draft`,
+    `${BASE}/meliaf-taxonomy/concepts/2374`,
+    `${BASE}/meliaf-taxonomy/concepts/2374/labels`,
+    `${BASE}/meliaf-taxonomy/concepts/2374/status`,
+    `${BASE}/meliaf-taxonomy/concepts/2374/relations/remove`,
+    `${BASE}/meliaf-taxonomy/concepts/2374/mappings/4`,
+    `${BASE}/meliaf-taxonomy/concepts/2374/merge`,
+    `${BASE}/meliaf-taxonomy/concepts/2374/icons`,
+    `${BASE}/meliaf-taxonomy/concepts/2374/icons/3`,
+    `${BASE}/meliaf-taxonomy/concepts-meta/fields`,
+    `${BASE}/meliaf-taxonomy/concepts-meta/lists`,
+    `${BASE}/meliaf-taxonomy/concepts-assist/status`,
+    `${BASE}/meliaf-taxonomy/concepts-assist/chat`,
   ];
   const denied = [
-    `${BASE}/concepts/lists`,
-    `${BASE}/concepts/lists/4`,
-    `${BASE}/concepts/fields`,
-    `${BASE}/concepts/fields/2`,
-    `${BASE}/concepts/collections`,
-    `${BASE}/concepts/import`,
-    `${BASE}/concepts/import/preview`,
-    `${BASE}/concepts/import-fields`,
-    `${BASE}/concepts/releases`,
-    `${BASE}/concepts/quality`,
-    `${BASE}/concepts/usage`,
-    `${BASE}/concepts/requests`,
+    `${BASE}/meliaf-taxonomy/lists`,
+    `${BASE}/meliaf-taxonomy/lists/4`,
+    `${BASE}/meliaf-taxonomy/fields`,
+    `${BASE}/meliaf-taxonomy/fields/2`,
+    `${BASE}/meliaf-taxonomy/collections`,
+    `${BASE}/meliaf-taxonomy/import`,
+    `${BASE}/meliaf-taxonomy/import/preview`,
+    `${BASE}/meliaf-taxonomy/import-fields`,
+    `${BASE}/meliaf-taxonomy/releases`,
+    `${BASE}/meliaf-taxonomy/quality`,
+    `${BASE}/meliaf-taxonomy/usage`,
+    `${BASE}/meliaf-taxonomy/requests`,
     `${BASE}/requests/5`,
     `${BASE}/requests/5/transition`,
-    `${BASE}/concepts/icons/3`,
+    `${BASE}/meliaf-taxonomy/icons/3`,
     `${BASE}/ai/status`,
-    `${BASE}/concepts/ai/normalize`,
-    `${BASE}/concepts/ai/embeddings/refresh`,
+    `${BASE}/meliaf-taxonomy/ai/normalize`,
+    `${BASE}/meliaf-taxonomy/ai/embeddings/refresh`,
     // A query string can never smuggle the permission in.
-    `${BASE}/concepts/lists?x=${CONCEPTS}`,
+    `${BASE}/meliaf-taxonomy/lists?x=${CONCEPTS}`,
     '/api/access-admin/roles',
   ];
 

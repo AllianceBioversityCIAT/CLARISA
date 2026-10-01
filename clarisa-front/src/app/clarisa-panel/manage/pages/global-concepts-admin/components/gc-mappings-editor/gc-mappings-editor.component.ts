@@ -74,7 +74,7 @@ export function mappingBody(form: MappingForm): MappingInput {
   styleUrls: ['./gc-mappings-editor.component.scss']
 })
 export class GcMappingsEditorComponent {
-  @Input() scheme = 'concepts';
+  @Input() scheme = 'meliaf-taxonomy';
   @Input() concept: AdminConceptDetail | null = null;
   @Output() updated = new EventEmitter<AdminConceptDetail>();
 

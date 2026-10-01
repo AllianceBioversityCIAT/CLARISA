@@ -34,7 +34,7 @@ export interface ReviewRow extends ImportRowResult {
   styleUrls: ['./gc-import-panel.component.scss']
 })
 export class GcImportPanelComponent implements OnChanges, OnInit {
-  @Input() scheme = 'concepts';
+  @Input() scheme = 'meliaf-taxonomy';
   @Input() aiEnabled = false;
   /** Emitted once rows were written, so the concepts table reloads. */
   @Output() imported = new EventEmitter<void>();

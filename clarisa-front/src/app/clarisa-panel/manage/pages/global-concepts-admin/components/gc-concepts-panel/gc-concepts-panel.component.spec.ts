@@ -81,7 +81,7 @@ describe('GcConceptsPanelComponent', () => {
   it('updates the AI index and reports what was embedded', () => {
     api['refreshEmbeddings'] = jest.fn(() => of({ embedded: 3, unchanged: 40 }));
     component.refreshIndex();
-    expect(api['refreshEmbeddings']).toHaveBeenCalledWith('concepts');
+    expect(api['refreshEmbeddings']).toHaveBeenCalledWith('meliaf-taxonomy');
     expect(component.indexing).toBe(false);
   });
 
@@ -112,7 +112,7 @@ describe('GcConceptsPanelComponent', () => {
     component.semanticText = 'what changes';
     component.runSemantic();
 
-    expect(api['semanticSearch']).toHaveBeenCalledWith('concepts', 'what changes', 15);
+    expect(api['semanticSearch']).toHaveBeenCalledWith('meliaf-taxonomy', 'what changes', 15);
     expect(component.semanticHits?.map(hit => [hit.term_id, hit.percent])).toEqual([
       [1, 82],
       [2, 41]
@@ -211,14 +211,14 @@ describe('GcConceptsPanelComponent', () => {
 
     it('remembers the columns switched on, and drops a code whose field is gone', () => {
       withExtra();
-      localStorage.setItem('gc-concepts-columns:concepts', JSON.stringify(['related', 'deleted_field']));
+      localStorage.setItem('gc-concepts-columns:meliaf-taxonomy', JSON.stringify(['related', 'deleted_field']));
       const panel = new GcConceptsPanelComponent(api as unknown as GlobalConceptsApiService, { add: jest.fn() } as unknown as MessageService);
       panel.ngOnInit();
       expect(panel.shownColumns.map(field => field.code)).toEqual(['related']);
 
       panel.shownFields = [];
       panel.onColumnsChange();
-      expect(localStorage.getItem('gc-concepts-columns:concepts')).toBe('[]');
+      expect(localStorage.getItem('gc-concepts-columns:meliaf-taxonomy')).toBe('[]');
     });
 
     it('keeps the table working when the fields fail to load', () => {

@@ -61,7 +61,7 @@ export interface CreateRequest {
   styleUrls: ['./gc-concepts-panel.component.scss']
 })
 export class GcConceptsPanelComponent implements OnInit, OnChanges {
-  @Input() scheme = 'concepts';
+  @Input() scheme = 'meliaf-taxonomy';
 
   /** The Export dialog: format + version, the same files as the public Download. */
   exportOpen = false;

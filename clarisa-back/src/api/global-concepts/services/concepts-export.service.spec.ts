@@ -23,7 +23,8 @@ const scheme = {
   governance_description: 'Changes go through the PPT secretariat',
 } as GcScheme;
 
-const uri = (t: number) => `https://api.clarisa.cgiar.org/concepts/${t}`;
+const uri = (t: number) =>
+  `https://api.clarisa.cgiar.org/concepts/concepts/${t}`;
 
 const publicConcept = (
   overrides: Partial<PublicConcept> = {},
@@ -264,9 +265,10 @@ describe('ConceptsExportService', () => {
         'skos',
         {
           version: '1.1.0',
-          releaseUri: 'https://api.clarisa.cgiar.org/concepts/releases/1.1.0',
+          releaseUri:
+            'https://api.clarisa.cgiar.org/concepts/concepts/releases/1.1.0',
           previousReleaseUri:
-            'https://api.clarisa.cgiar.org/concepts/releases/1.0.0',
+            'https://api.clarisa.cgiar.org/concepts/concepts/releases/1.0.0',
           releasedAt: '2026-09-25T10:00:00.000Z',
         },
       );
@@ -274,7 +276,7 @@ describe('ConceptsExportService', () => {
         expect(body).toContain(`@prefix ${p}: <`);
       }
       expect(body).toContain(
-        '<https://api.clarisa.cgiar.org/concepts> a skos:ConceptScheme',
+        '<https://api.clarisa.cgiar.org/concepts/concepts> a skos:ConceptScheme',
       );
       expect(body).toContain('dcterms:title "Concepts"@en');
       expect(body).toContain(
@@ -285,7 +287,7 @@ describe('ConceptsExportService', () => {
       );
       expect(body).toContain('owl:versionInfo "1.1.0"');
       expect(body).toContain(
-        'owl:priorVersion <https://api.clarisa.cgiar.org/concepts/releases/1.0.0>',
+        'owl:priorVersion <https://api.clarisa.cgiar.org/concepts/concepts/releases/1.0.0>',
       );
       expect(contentType).toBe('text/turtle; charset=utf-8');
       expect(fileName).toBe('concepts-1.1.0-2026-09-25.ttl');
@@ -405,7 +407,7 @@ describe('ConceptsExportService', () => {
         { '@value': 'Effect', '@language': 'en' },
       ]);
       expect(node['skos:inScheme']).toEqual({
-        '@id': 'https://api.clarisa.cgiar.org/concepts',
+        '@id': 'https://api.clarisa.cgiar.org/concepts/concepts',
       });
       expect(node['owl:deprecated']).toBe(true);
       expect(node['dcterms:isReplacedBy']).toEqual({ '@id': uri(99) });
@@ -427,7 +429,7 @@ describe('ConceptsExportService', () => {
     const doc = JSON.parse(body);
     expect(doc.scheme).toEqual({
       code: 'concepts',
-      uri: 'https://api.clarisa.cgiar.org/concepts',
+      uri: 'https://api.clarisa.cgiar.org/concepts/concepts',
       title: 'Concepts',
       license: 'https://creativecommons.org/licenses/by/4.0/',
       publisher: 'CGIAR',
@@ -470,7 +472,7 @@ describe('ConceptsExportService', () => {
             id: 5,
             version: '1.1.0',
             release_uri:
-              'https://api.clarisa.cgiar.org/concepts/releases/1.1.0',
+              'https://api.clarisa.cgiar.org/concepts/concepts/releases/1.1.0',
             previous_release_id: 4,
             released_at: new Date('2026-09-20T12:00:00Z'),
             snapshot: JSON.stringify([publicConcept()]),
@@ -480,7 +482,7 @@ describe('ConceptsExportService', () => {
           return Promise.resolve({
             id: 4,
             release_uri:
-              'https://api.clarisa.cgiar.org/concepts/releases/1.0.0',
+              'https://api.clarisa.cgiar.org/concepts/concepts/releases/1.0.0',
           });
         }
         return Promise.resolve(null);
@@ -488,7 +490,7 @@ describe('ConceptsExportService', () => {
       const file = await service.export('concepts', 'skos', '1.1.0');
       expect(file.fileName).toBe('concepts-1.1.0-2026-09-20.ttl');
       expect(file.body).toContain(
-        'owl:priorVersion <https://api.clarisa.cgiar.org/concepts/releases/1.0.0>',
+        'owl:priorVersion <https://api.clarisa.cgiar.org/concepts/concepts/releases/1.0.0>',
       );
       expect(file.body).toContain(`<${uri(2374)}> a skos:Concept`);
       expect(manager.find).not.toHaveBeenCalled();

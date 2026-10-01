@@ -19,7 +19,7 @@ interface MemberDraft {
 })
 export class GcSetupCollectionsComponent implements OnInit, OnChanges {
   readonly info = FIELD_INFO.collection;
-  @Input() scheme = 'concepts';
+  @Input() scheme = 'meliaf-taxonomy';
   @Input() conceptOptions: ConceptOption[] = [];
 
   loading = false;

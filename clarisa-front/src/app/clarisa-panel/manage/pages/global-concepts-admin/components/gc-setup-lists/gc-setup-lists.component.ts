@@ -15,7 +15,7 @@ import { StableOptions } from '../../utils/stable-options';
 })
 export class GcSetupListsComponent implements OnInit, OnChanges {
   readonly info = FIELD_INFO.setupList;
-  @Input() scheme = 'concepts';
+  @Input() scheme = 'meliaf-taxonomy';
   /** The list codes, for the field form of the sibling section. */
   @Output() listCodes = new EventEmitter<string[]>();
 

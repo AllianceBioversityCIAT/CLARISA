@@ -38,7 +38,7 @@ describe('GcIconsEditorComponent', () => {
 
     component.form.alt_text = 'A green leaf';
     component.save();
-    expect(api['createIcon']).toHaveBeenCalledWith('concepts', 12, expect.objectContaining({ icon_status: 'final', alt_text: 'A green leaf' }));
+    expect(api['createIcon']).toHaveBeenCalledWith('meliaf-taxonomy', 12, expect.objectContaining({ icon_status: 'final', alt_text: 'A green leaf' }));
     expect(component.icons.map(item => item.id)).toEqual([3, 4, 9]);
     expect(component.editingId).toBeNull();
   });
@@ -47,10 +47,10 @@ describe('GcIconsEditorComponent', () => {
     component.openEdit(icon);
     component.form.icon_code = 'LEAF-2';
     component.save();
-    expect(api['updateIcon']).toHaveBeenCalledWith('concepts', 12, 3, { icon_code: 'LEAF-2' });
+    expect(api['updateIcon']).toHaveBeenCalledWith('meliaf-taxonomy', 12, 3, { icon_code: 'LEAF-2' });
 
     component.remove(icon);
-    expect(api['deleteIcon']).toHaveBeenCalledWith('concepts', 12, 3);
+    expect(api['deleteIcon']).toHaveBeenCalledWith('meliaf-taxonomy', 12, 3);
     expect(component.icons.map(item => item.id)).toEqual([4]);
   });
 });

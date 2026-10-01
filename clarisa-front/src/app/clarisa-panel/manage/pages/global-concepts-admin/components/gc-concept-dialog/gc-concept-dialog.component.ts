@@ -39,7 +39,7 @@ export const AI_DRAFT_FIELDS: { field: AiDraftField; label: string }[] = [
   providers: [GcAssistSession]
 })
 export class GcConceptDialogComponent {
-  @Input() scheme = 'concepts';
+  @Input() scheme = 'meliaf-taxonomy';
   @Input() aiEnabled = false;
   @Input() lists: Record<string, ListOption[]> = {};
   @Input() concepts: AdminConceptDetail[] = [];

@@ -127,7 +127,7 @@ describe('GcConceptAssistantComponent', () => {
 
     component.send('Review the whole concept');
     const [scheme, body] = api.conceptsAssistChat.mock.calls[0];
-    expect(scheme).toBe('concepts');
+    expect(scheme).toBe('meliaf-taxonomy');
     expect(body.termId).toBe(7);
     expect(body.draft['definition']).toBe('Mine');
     expect(body.messages).toEqual([{ role: 'user', content: 'Review the whole concept' }]);

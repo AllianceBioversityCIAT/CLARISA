@@ -182,8 +182,9 @@ describe('McpService', () => {
 
   it('searches only approved concepts by default and caps the page', async () => {
     const r = await call('search_concepts', { query: 'impact', limit: 1 });
+    // No scheme in the call: the default one.
     expect(read.list).toHaveBeenLastCalledWith(
-      'concepts',
+      'meliaf-taxonomy',
       expect.objectContaining({ q: 'impact', status: 'approved' }),
     );
     expect(r.result.structuredContent.concepts).toHaveLength(1);
