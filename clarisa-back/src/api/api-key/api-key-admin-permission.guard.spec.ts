@@ -1,6 +1,8 @@
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { ModuleRef, Reflector } from '@nestjs/core';
-import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { ForbiddenException } from '@nestjs/common';
+import {
+  permissionGuardFor,
+  requestTo,
+} from '../../shared/guards/permission-guard.spec-helper';
 import { AddApiKeysAdminPermission1790600300000 } from '../../../migrations/1790600300000-AddApiKeysAdminPermission';
 
 /**
@@ -11,28 +13,8 @@ import { AddApiKeysAdminPermission1790600300000 } from '../../../migrations/1790
 describe('PermissionGuard with the API keys admin permission', () => {
   const ROUTE = AddApiKeysAdminPermission1790600300000.ROUTE;
 
-  const guardFor = (permissions: string[]) => {
-    const users = {
-      findOneByEmail: jest.fn(async () => ({
-        id: 9,
-        email: 'someone@clarisa.test',
-        permissions,
-      })),
-    };
-    const moduleRef = { get: () => users } as unknown as ModuleRef;
-    const reflector = { get: () => undefined } as unknown as Reflector;
-    return new PermissionGuard(reflector, moduleRef);
-  };
-  const ctx = (url: string) =>
-    ({
-      getClass: () => class {},
-      switchToHttp: () => ({
-        getRequest: () => ({
-          user: { email: 'someone@clarisa.test' },
-          originalUrl: url,
-        }),
-      }),
-    }) as unknown as ExecutionContext;
+  const guardFor = (permissions: string[]) => permissionGuardFor(permissions);
+  const ctx = (url: string) => requestTo(url);
 
   const routes = [
     '/api/api-keys',

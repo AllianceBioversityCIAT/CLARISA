@@ -1,6 +1,6 @@
 import { Component, Input, OnChanges } from '@angular/core';
 import { PublicCustomField, PublicFieldDef } from '../../../../../shared/services/global-concepts/global-concepts-api.service';
-import { GC_BASE, conceptLink, ListsByCode, dateLabel, labelOf, safeHttpUrl } from '../../global-concepts.utils';
+import { conceptLink, ListsByCode, dateLabel, labelOf, safeHttpUrl } from '../../global-concepts.utils';
 
 export type FieldKind = 'text' | 'long' | 'chips' | 'links' | 'url' | 'date';
 

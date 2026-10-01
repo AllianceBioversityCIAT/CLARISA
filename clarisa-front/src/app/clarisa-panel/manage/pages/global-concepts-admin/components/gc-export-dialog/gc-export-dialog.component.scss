@@ -8,3 +8,10 @@
     color: var(--cl-warn);
   }
 }
+
+.gc-export__download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}

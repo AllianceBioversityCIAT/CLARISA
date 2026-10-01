@@ -159,7 +159,7 @@ export class GcConceptCreateDialogComponent implements OnDestroy {
         if (meta(field)) form()[field] = cloneValue(value);
       },
       baseline: () => '',
-      display: (_field, value) => String(value ?? ''),
+      display: (_field, value) => (typeof value === 'string' ? value : ''),
       draft: () => ({ preferred_label: this.form.preferred_label, definition: this.form.definition }),
       termId: () => null
     };

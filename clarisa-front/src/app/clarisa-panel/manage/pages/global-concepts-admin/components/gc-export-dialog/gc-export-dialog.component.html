@@ -47,6 +47,8 @@
 
   <ng-template pTemplate="footer">
     <button pButton type="button" label="Close" class="p-button-text" (click)="close()"></button>
-    <a pButton class="btn-brand" icon="pi pi-download" label="Download" [href]="href" rel="noopener" download data-export-link></a>
+    <a class="p-button btn-brand gc-export__download" [href]="href" rel="noopener" download data-export-link
+      ><i class="pi pi-download" aria-hidden="true"></i><span>Download</span></a
+    >
   </ng-template>
 </p-dialog>
