@@ -108,7 +108,7 @@ export const MCP_TOOLS_DOC = [
     what: 'Which official concepts a text mentions. The text is not stored.',
     ask: 'Check this paragraph of my report against the official vocabulary.'
   },
-  { name: 'list_releases', what: 'The published versions of a scheme.', ask: 'Which version of the Concepts vocabulary is the latest?' }
+  { name: 'list_releases', what: 'The published versions of a scheme.', ask: 'Which version of the MELIAF taxonomy is the latest?' }
 ];
 
 export const DEV_SECTIONS = [

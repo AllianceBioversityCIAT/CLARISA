@@ -68,7 +68,7 @@
         [series]="mix.series"
         mode="stack"
         [height]="300"
-        ariaLabel="Concepts usage per day, by kind"
+        ariaLabel="MELIAF taxonomy usage per day, by kind"
         emptyText="No traffic recorded in this period yet."></app-usage-chart>
       <ng-template #chartLoading><div class="gc-chart gc-chart--loading"><span class="gc-skeleton__bar"></span></div></ng-template>
     </section>
@@ -79,7 +79,7 @@
         <div>
           <h3 class="gc-ed__title" id="gc-platforms-title">By platform</h3>
           <p class="gc-ed__hint">
-            Calls from connected systems that send their CLARISA API key, last {{ days }} days. Covers the whole Concepts API: every scheme,
+            Calls from connected systems that send their CLARISA API key, last {{ days }} days. Covers the whole MELIAF taxonomy API: every scheme,
             persistent URIs and MCP.
           </p>
         </div>
@@ -137,7 +137,7 @@
               <td colspan="5" class="cell-empty gc-empty-cell">
                 <ng-container *ngIf="platformsLoading; else noPlatform">Loading…</ng-container>
                 <ng-template #noPlatform>
-                  No connected system has read Concepts with its key in this period — platforms send <code>X-API-Key</code> to be
+                  No connected system has read the MELIAF taxonomy with its key in this period — platforms send <code>X-API-Key</code> to be
                   counted.
                 </ng-template>
               </td>

@@ -324,8 +324,8 @@ export function buildAssistantPrompt(
 ): string {
   const lines: string[] = [];
   lines.push(
-    'You are the assistant beside the concept editor of Concepts in CLARISA, the CGIAR reference-data platform.',
-    'Concepts is the official CGIAR controlled vocabulary (SKOS concepts) for monitoring, evaluation, learning, impact assessment and foresight: each concept has a preferred label, a definition and metadata that other CGIAR systems read through the API.',
+    'You are the assistant beside the concept editor of the MELIAF taxonomy in CLARISA, the CGIAR reference-data platform.',
+    'The MELIAF taxonomy is the official CGIAR controlled vocabulary (SKOS concepts) for monitoring, evaluation, learning, impact assessment and foresight: each concept has a preferred label, a definition and metadata that other CGIAR systems read through the API.',
     `Scheme: ${ctx.scheme.code} — ${ctx.scheme.title}.${ctx.scheme.description ? ` ${clip(ctx.scheme.description, 600)}` : ''}`,
     input.termId
       ? `The person is editing the existing concept with term id ${input.termId}.`

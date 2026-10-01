@@ -80,7 +80,7 @@ export const ADMIN_GROUPS: AdminGroup[] = [
         access: ['/api/glossary/admin/terms']
       },
       {
-        label: 'Concepts',
+        label: 'MELIAF taxonomy',
         route: '/clarisa-panel/manage/concepts-admin',
         icon: 'fa fa-sitemap',
         // Both `/api/meliaf-taxonomy/admin` (full admin) and
