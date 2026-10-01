@@ -41,11 +41,11 @@ the grouping has to live here.
 - **group** → top section in the sidebar, and the unit the `?group=` param scopes to.
   Two groups today, mirroring the public menu:
   - `One CGIAR Control List` — `General Control List` (9), `Institutions` (3),
-    `Research Strategy 2030` (12), `Innovation Catalog` (13), `Concepts` (5) — 42 endpoints.
-    `Concepts` (the MELIAF taxonomy, scheme `meliaf-taxonomy`) is a category of this group, not a group of its own (Yeck,
-    2026-10-01): as a separate group the docs scoped themselves to it and the
-    reader could not move to the other control lists. Links to it use
-    `documentation/One_CGIAR_Control_List/Concepts`.
+    `Research Strategy 2030` (12), `Innovation Catalog` (13), `MELIAF taxonomy` (5) — 42 endpoints.
+    `MELIAF taxonomy` (Global Concepts, scheme `meliaf-taxonomy`) is a category of
+    this group, not a group of its own (Yeck, 2026-10-01): as a separate group the
+    docs scoped themselves to it and the reader could not move to the other control
+    lists. Links to it use `documentation/One_CGIAR_Control_List/MELIAF_taxonomy`.
   - `One CGIAR Operation` — `CGIAR Entities` (2), `CGIAR Accounts` (2),
     `CGIAR Science Groups` (1), `CGIAR Units` (1), `CGIAR Impact Areas` (2) — 8 endpoints.
 - **category** → the specific grouping the public sees.
