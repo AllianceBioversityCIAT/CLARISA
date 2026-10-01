@@ -56,6 +56,71 @@ describe('GcConceptsPanelComponent', () => {
     expect(component.rows.map(row => row.term_id)).toEqual([1, 2]);
   });
 
+  describe('text search', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    const type = (text: string) => {
+      component.filters = { ...component.filters, search: text };
+      component.onSearchChange();
+    };
+
+    it('shows the local match at once, then the back ranking, best first', () => {
+      api['adminConcepts'].mockReturnValueOnce(of([concept(2, 'Output'), concept(1, 'Outcome')]));
+      type('out');
+      expect(component.rows.map(row => row.term_id)).toEqual([1, 2]);
+      expect(component.ranked).toBe(false);
+
+      jest.advanceTimersByTime(250);
+      expect(api['adminConcepts']).toHaveBeenLastCalledWith('meliaf-taxonomy', undefined, 'out');
+      expect(component.ranked).toBe(true);
+      expect(component.rows.map(row => row.term_id)).toEqual([2, 1]);
+    });
+
+    it('asks the back once per pause, not once per keystroke', () => {
+      const calls = api['adminConcepts'].mock.calls.length;
+      type('o');
+      type('ou');
+      type('out');
+      jest.advanceTimersByTime(250);
+      expect(api['adminConcepts'].mock.calls.length).toBe(calls + 1);
+    });
+
+    it('keeps the other filters on top of the ranking', () => {
+      api['adminConcepts'].mockReturnValueOnce(of([concept(2, 'Output'), concept(1, 'Outcome')]));
+      component.filters = { ...component.filters, statuses: ['approved'] };
+      type('out');
+      jest.advanceTimersByTime(250);
+      expect(component.rows.map(row => row.term_id)).toEqual([1]);
+    });
+
+    it('falls back to the plain local match when the back cannot rank, and says so', () => {
+      api['adminConcepts'].mockReturnValueOnce(throwError(() => ({ status: 500 })));
+      type('outc');
+      jest.advanceTimersByTime(250);
+      expect(component.searchFailed).toBe(true);
+      expect(component.ranked).toBe(false);
+      expect(component.rows.map(row => row.term_id)).toEqual([1]);
+    });
+
+    it('drops a ranking for a query the reader already changed', () => {
+      api['adminConcepts'].mockReturnValueOnce(of([concept(2, 'Output')]));
+      type('outp');
+      jest.advanceTimersByTime(250);
+      component.filters = { ...component.filters, search: 'outc' };
+      expect(component.ranked).toBe(false);
+    });
+
+    it('clearing the box goes back to every concept, alphabetically', () => {
+      api['adminConcepts'].mockReturnValueOnce(of([concept(2, 'Output')]));
+      type('outp');
+      jest.advanceTimersByTime(250);
+      component.clearFilters();
+      expect(component.ranked).toBe(false);
+      expect(component.rows.length).toBe(2);
+    });
+  });
+
   it('stops loading and keeps the message when the list fails', () => {
     api['adminConcepts'].mockReturnValueOnce(throwError(() => ({ error: { message: 'Global Concepts is disabled' } })));
     component.load();
@@ -78,13 +143,6 @@ describe('GcConceptsPanelComponent', () => {
     expect(buildConceptBody(form, null)).toEqual({ preferred_label: 'New', term_type: 'concept', term_id: 2374 });
   });
 
-  it('updates the AI index and reports what was embedded', () => {
-    api['refreshEmbeddings'] = jest.fn(() => of({ embedded: 3, unchanged: 40 }));
-    component.refreshIndex();
-    expect(api['refreshEmbeddings']).toHaveBeenCalledWith('meliaf-taxonomy');
-    expect(component.indexing).toBe(false);
-  });
-
   it('shows a chip per active filter, removes one with its ×, and clears all', () => {
     component.filters = { ...component.filters, statuses: ['draft', 'approved'], functions: ['monitoring'], missingDefinition: true };
     component.applyFilters();
@@ -99,35 +157,6 @@ describe('GcConceptsPanelComponent', () => {
     component.clearFilters();
     expect(component.hasFilters).toBe(false);
     expect(component.rows.length).toBe(2);
-  });
-
-  it('ranks the semantic search by score and links each hit to its concept', () => {
-    component.aiEnabled = true;
-    api['semanticSearch'] = jest.fn(() =>
-      of([
-        { term_id: 2, preferred_label: 'Output', status: 'draft', score: 0.41 },
-        { term_id: 1, preferred_label: 'Outcome', status: 'approved', score: 0.82 }
-      ])
-    );
-    component.semanticText = 'what changes';
-    component.runSemantic();
-
-    expect(api['semanticSearch']).toHaveBeenCalledWith('meliaf-taxonomy', 'what changes', 15);
-    expect(component.semanticHits?.map(hit => [hit.term_id, hit.percent])).toEqual([
-      [1, 82],
-      [2, 41]
-    ]);
-    expect(component.semanticHits?.[0].concept?.preferred_label).toBe('Outcome');
-
-    component.clearSemantic();
-    expect(component.semanticHits).toBeNull();
-  });
-
-  it('does not run the semantic search without AI', () => {
-    api['semanticSearch'] = jest.fn();
-    component.semanticText = 'x';
-    component.runSemantic();
-    expect(api['semanticSearch']).not.toHaveBeenCalled();
   });
 
   it('opens the SHORT create dialog, prefilled, from a Usage request once and tells the shell it was used', () => {

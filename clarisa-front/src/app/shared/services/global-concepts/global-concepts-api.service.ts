@@ -345,8 +345,9 @@ export class GlobalConceptsApiService {
     return `${this.base}/admin`;
   }
 
-  adminConcepts(scheme: string, status?: string): Observable<AdminConcept[]> {
-    return this._http.get<AdminConcept[]>(`${this.admin}/${encodeURIComponent(scheme)}/concepts`, { params: params({ status }) });
+  /** With `q`, only the matches, best first, each with its `match` (the same text search as the public list). */
+  adminConcepts(scheme: string, status?: string, q?: string): Observable<AdminConcept[]> {
+    return this._http.get<AdminConcept[]>(`${this.admin}/${encodeURIComponent(scheme)}/concepts`, { params: params({ status, q }) });
   }
 
   createConcept(scheme: string, body: Record<string, unknown>): Observable<AdminConcept> {
