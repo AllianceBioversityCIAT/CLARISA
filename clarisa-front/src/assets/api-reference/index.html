@@ -906,9 +906,13 @@ const state = {
   // Query params the user typed in the JSON tab, and the response they got.
   // Empty means "no filters": the endpoint answers exactly as it always has.
   query: {},
-  queryResult: null,        // { url, data } of the last query that was run
+  queryResult: null,        // { url, data, record? } of the last query or lookup that was run
   queryLoading: false,
   queryError: null,
+  querySource: null,        // 'query' | 'record': which panel ran last (its error shows there)
+  // The id typed in the JSON tab's "Retrieve one record" field. null = not touched
+  // yet, so the field shows the first record of the list as a working example.
+  recordId: null,
 };
 
 const $  = (s, el=document) => el.querySelector(s);
@@ -1386,10 +1390,72 @@ function specOpFor(route) {
   // concrete catalog route ("api/concepts/meliaf/concepts").
   for (const [tpl, ops] of Object.entries(paths)) {
     if (!ops?.get || !tpl.includes('{')) continue;
-    const re = new RegExp('^' + tpl.split(/\{[^}]+\}/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[^/]+') + '$');
-    if (re.test(p)) return ops.get;
+    if (templateMatches(tpl, p)) return ops.get;
   }
   return null;
+}
+
+/** Whether a spec path ("/api/concepts/{scheme}/concepts") fits a concrete path. */
+function templateMatches(tpl, path) {
+  const re = new RegExp('^' + tpl.split(/\{[^}]+\}/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[^/]+') + '$');
+  return re.test(path);
+}
+
+/* ── single record ────────────────────────────────────────────────────
+   The "get one" lookup of a list, discovered in the spec — nothing is listed
+   here. It is the GET whose path is the list's own path plus one trailing path
+   param, with or without a /get in between:
+     /api/institutions           → /api/institutions/get/{id}
+     /api/concepts/x/concepts    → /api/concepts/{scheme}/concepts/{termId}
+   Which lists publish one is decided in the back (PUBLIC_RECORD_LOOKUPS),
+   because only there it is measured that the lookup returns the same record
+   the list shows. The back also says, in `x-clarisa-list-field`, which field
+   of a list item goes in the URL. */
+function recordLookupFor(route) {
+  const p = '/' + route.replace(/^\/+/, '');
+  const paths = state.spec?.paths || {};
+  for (const [tpl, ops] of Object.entries(paths)) {
+    const m = ops?.get && tpl.match(/^(.*?)(\/get)?\/\{([^}]+)\}$/);
+    if (!m || !templateMatches(m[1], p)) continue;
+    const name = m[3];
+    const param = (ops.get.parameters || []).find(x => x.in === 'path' && x.name === name) || { name };
+    return {
+      op: ops.get,
+      param,
+      // what goes between the list URL and the value: "/get/" or "/"
+      joint: (m[2] || '') + '/',
+      listField: param['x-clarisa-list-field'] || null,
+    };
+  }
+  return null;
+}
+
+/** The id of the first record of the list, read from the field the lookup
+    expects — so the example always opens a record that exists. Empty when the
+    rows are not loaded yet or no field matches: guessing would teach a URL
+    that answers with another record. */
+function recordExampleId(lookup) {
+  const first = state.rows?.[0];
+  if (!first) return '';
+  const name = lookup.param.name;
+  const snake = name.replace(/[A-Z]/g, c => '_' + c.toLowerCase());   // termId → term_id
+  for (const k of [lookup.listField, name, snake]) {
+    if (k && first[k] !== undefined && first[k] !== null && first[k] !== '') return String(first[k]);
+  }
+  return '';
+}
+
+function recordUrl(lookup, value) {
+  const route = state.current.endpoint.route;
+  const tail = value === '' || value === null || value === undefined
+    ? '{' + lookup.param.name + '}'
+    : encodeURIComponent(value);
+  return API_BASE + route + lookup.joint + tail;
+}
+
+/** The value in the JSON tab's field: what the reader typed, else the example. */
+function recordValue(lookup) {
+  return state.recordId !== null ? state.recordId : recordExampleId(lookup);
 }
 
 async function selectEndpoint(gi, ci, route) {
@@ -1407,6 +1473,7 @@ async function selectEndpoint(gi, ci, route) {
   // Filters belong to the endpoint that was being looked at, not to the next one.
   state.filters = []; state.search = ''; state.picker = null; state.distinct = new Map();
   state.query = {}; state.queryResult = null; state.queryError = null; state.queryLoading = false;
+  state.recordId = null;
   announcePath([group.group, category.name, endpoint?.name]);
   highlightActive();
   renderEndpointShell(true);
@@ -2074,7 +2141,7 @@ function setQueryValue(name, value) {
 
 async function runQuery() {
   const url = buildQueryUrl();
-  state.queryLoading = true; state.queryError = null;
+  state.queryLoading = true; state.queryError = null; state.querySource = 'query';
   renderJSON();
   try {
     const data = await fetch(url).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
@@ -2089,6 +2156,47 @@ async function runQuery() {
 
 function resetQuery() {
   state.query = {}; state.queryResult = null; state.queryError = null;
+  state.recordId = null;
+  renderJSON();
+}
+
+/* Same rule as setQueryValue: only the URL preview repaints while typing. */
+function setRecordValue(value) {
+  const lookup = recordLookupFor(state.current.endpoint.route);
+  if (!lookup) return;
+  state.recordId = value;
+  const preview = $('#recordUrl');
+  if (preview) preview.textContent = recordUrl(lookup, value.trim());
+  const runBtn = $('#recordRun');
+  if (runBtn) runBtn.disabled = value.trim() === '';
+}
+
+async function runRecord() {
+  const lookup = recordLookupFor(state.current.endpoint.route);
+  const value = lookup ? String(recordValue(lookup)).trim() : '';
+  if (!value || state.queryLoading) return;
+  const url = recordUrl(lookup, value);
+  const route = state.current.endpoint.route;
+  state.queryLoading = true; state.queryError = null; state.querySource = 'record';
+  renderJSON();
+  let result = null, error = null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    // An id that does not exist answers 200 with an EMPTY body (measured
+    // 2026-10-01), so res.json() would throw a parse error that explains nothing.
+    const text = (await res.text()).trim();
+    const data = text ? JSON.parse(text) : null;
+    if (data === null) throw new Error(`No record with ${lookup.param.name} = ${value} (the API answered 200 with an empty body).`);
+    result = { url, data, record: true };
+  } catch (e) {
+    error = String(e.message || e);
+  }
+  // The reader may have opened another endpoint while this was in flight:
+  // its answer must not land under that other title.
+  if (state.current?.endpoint.route !== route) return;
+  state.queryResult = result; state.queryError = error;
+  state.queryLoading = false;
   renderJSON();
 }
 
@@ -2138,15 +2246,16 @@ function renderJSON() {
       </div>`;
   }).join('');
 
+  const errorBox = from => state.queryError && (state.querySource || 'query') === from
+    ? '<div class="mt-3 rounded-lg border border-[#f4c7c3] bg-[#fdeceb] px-3 py-2 font-mono text-xs text-[#8f1d15]">' + esc(state.queryError) + '</div>'
+    : '';
+  const showReset = filtered || activeQueryPairs().length > 0 || state.recordId !== null;
+  const resetBtn = showReset ? '<button type="button" onclick="resetQuery()" class="doc-btn doc-btn--outline">Reset</button>' : '';
+
   let panel = '';
   if (params.length) {
     const runAttrs = state.queryLoading ? 'disabled' : '';
-    const runLabel = state.queryLoading ? 'Running…' : 'Run query';
-    const showReset = filtered || activeQueryPairs().length > 0;
-    const resetBtn = showReset ? '<button type="button" onclick="resetQuery()" class="doc-btn doc-btn--outline">Reset</button>' : '';
-    const errorBox = state.queryError
-      ? '<div class="mt-3 rounded-lg border border-[#f4c7c3] bg-[#fdeceb] px-3 py-2 font-mono text-xs text-[#8f1d15]">' + esc(state.queryError) + '</div>'
-      : '';
+    const runLabel = state.queryLoading && state.querySource === 'query' ? 'Running…' : 'Run query';
     panel = `
     <div class="doc-card mb-4 p-5">
       <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -2163,13 +2272,18 @@ function renderJSON() {
         <button type="button" id="queryRun" onclick="runQuery()" ${runAttrs} class="doc-btn doc-btn--primary">${ICON.play}<span>${runLabel}</span></button>
         ${resetBtn}
       </div>
-      ${errorBox}
+      ${errorBox('query')}
     </div>`;
   }
 
-  const label = filtered
-    ? `Filtered response · ${esc(state.queryResult.url.split('?')[1] || 'no filters')} · first ${fmt(preview.length)} of ${fmt(arr.length)}`
-    : `Live response · first ${fmt(preview.length)} of ${fmt(arr.length)} items`;
+  panel += recordPanel(params.length ? '' : resetBtn, errorBox('record'));
+
+  const record = !!state.queryResult?.record;
+  const label = record
+    ? `Resource · ${esc(state.queryResult.url.replace(API_BASE, ''))}`
+    : filtered
+      ? `Filtered response · ${esc(state.queryResult.url.split('?')[1] || 'no filters')} · first ${fmt(preview.length)} of ${fmt(arr.length)}`
+      : `Live response · first ${fmt(preview.length)} of ${fmt(arr.length)} items`;
 
   $('#tabBody').innerHTML = `
     ${panel}
@@ -2178,10 +2292,53 @@ function renderJSON() {
         <span class="doc-code__title">${label}</span>
         <button type="button" onclick="copyText(jsonPreviewText(), this)" class="doc-btn doc-btn--sm doc-btn--dark">${ICON.copy}<span>Copy</span></button>
       </div>
-      <pre class="doc-code__pre doc-code__pre--tall"><code>${esc(JSON.stringify(preview, null, 2))}</code></pre>
+      <pre class="doc-code__pre doc-code__pre--tall"><code>${esc(jsonPreviewText())}</code></pre>
     </div>`;
 }
+
+/* The "Retrieve one record" card of the JSON tab, only for lists whose lookup the
+   spec publishes. The field opens with the first record's id, so Run works
+   on the first click. */
+function recordPanel(resetBtn, errorBox) {
+  const lookup = recordLookupFor(state.current.endpoint.route);
+  if (!lookup) return '';
+  const { param } = lookup;
+  const value = recordValue(lookup);
+  const busy = state.queryLoading;
+  const runLabel = busy && state.querySource === 'record' ? 'Running…' : 'Retrieve record';
+  const isNumber = ['number', 'integer'].includes(param.schema?.type);
+  return `
+    <div class="doc-card mb-4 p-5">
+      <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h3 class="m-0 text-[14px] font-bold text-forest">Retrieve one record · resource URI</h3>
+        <span class="text-[12px] text-ink-3">The identifier is a path parameter, part of the URI. It starts with the first record of the collection.</span>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <label for="recordId" class="mb-1.5 flex items-center gap-2 font-mono text-[12px] font-semibold text-brand-800">${esc(param.name)}<span class="doc-tag doc-tag--error">required</span></label>
+          <div class="doc-field doc-field--mono"><input id="recordId" type="${isNumber ? 'number' : 'text'}" value="${esc(value)}"
+               oninput="setRecordValue(this.value)"
+               onkeydown="if (event.key === 'Enter') runRecord()"
+               placeholder="${esc(param.name)}"></div>
+          ${param.description ? `<p class="mb-0 mt-1.5 text-[11.5px] leading-snug text-ink-3">${inlineCode(param.description)}</p>` : ''}
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2">
+        <span class="doc-method">GET</span>
+        <code id="recordUrl" class="min-w-0 flex-1 break-all font-mono text-[12.5px] text-ink">${esc(recordUrl(lookup, String(value).trim()))}</code>
+        <button type="button" onclick="copyText($('#recordUrl').textContent, this)" class="doc-btn doc-btn--outline doc-btn--sm doc-btn--icon" aria-label="Copy the URL">${ICON.copy}</button>
+      </div>
+      <div class="mt-3 flex items-center gap-2">
+        <button type="button" id="recordRun" onclick="runRecord()" ${busy || String(value).trim() === '' ? 'disabled' : ''} class="doc-btn doc-btn--primary">${ICON.play}<span>${runLabel}</span></button>
+        ${resetBtn}
+      </div>
+      ${errorBox}
+    </div>`;
+}
+
+/* A single record is shown as the object it is; a list, as its first 50 items. */
 function jsonPreviewText() {
+  if (state.queryResult?.record) return JSON.stringify(state.queryResult.data, null, 2);
   const raw = currentJsonData();
   const arr = Array.isArray(raw) ? raw : [raw];
   return JSON.stringify(arr.slice(0, 50), null, 2);
@@ -2230,6 +2387,11 @@ function renderCode() {
     ['JavaScript (fetch)', `const res = await fetch("${url}");\nconst data = await res.json();\nconsole.log(data);`],
     ['Python (requests)', `import requests\n\nres = requests.get("${url}")\ndata = res.json()\nprint(len(data), "records")`],
   ];
+  const lookup = recordLookupFor(state.current.endpoint.route);
+  if (lookup) {
+    const one = recordUrl(lookup, recordExampleId(lookup));
+    blocks.push(['cURL — one record (resource URI)', `curl -X GET "${one}" \\\n  -H "Accept: application/json"`]);
+  }
   $('#tabBody').innerHTML = `<div class="mx-auto max-w-4xl">${blocks.map(([title, code]) => docCodeBlock(title, code)).join('')}</div>`;
 }
 
@@ -2356,6 +2518,9 @@ function renderDoc() {
   }
   const params = docSection('Query parameters', 'Optional filters you append to the request URL to narrow what comes back.', paramsBody);
 
+  /* ── 2b. One record ── */
+  const recordSection = docRecordSection(route);
+
   /* ── 3. Responses / status codes ── */
   const responses = op?.responses || {};
   const respKeys = Object.keys(responses);
@@ -2402,7 +2567,62 @@ function renderDoc() {
   }
   const dtoSection = docSection('Response model', 'The DTO returned in the response body.', dtoBody);
 
-  $('#tabBody').innerHTML = `<div class="mx-auto max-w-4xl">${versioning}${params}${respSection}${dtoSection}</div>`;
+  $('#tabBody').innerHTML = `<div class="mx-auto max-w-4xl">${versioning}${params}${recordSection}${respSection}${dtoSection}</div>`;
+}
+
+/** Escapes a spec description and turns its `backticks` into code pills. */
+function inlineCode(text) {
+  return esc(text).replace(/`([^`]+)`/g, '<code class="docpill">$1</code>');
+}
+
+/* The Doc tab's "Resource URI" section, in the usual REST/OpenAPI terms: the
+   list is a collection with its collection URI; each record has its own
+   resource URI, the collection URI plus a path parameter. Empty for lists
+   whose lookup the spec does not publish: nothing true to document. */
+function docRecordSection(route) {
+  const lookup = recordLookupFor(route);
+  if (!lookup) return '';
+  const { param } = lookup;
+  const field = lookup.listField || param.name;
+  const type = tsType(param.schema || {});
+  const collectionUrl = API_BASE + route;
+  const resourceTpl = recordUrl(lookup, '');
+  const example = recordExampleId(lookup);
+
+  const uriRows = `
+    <tr>
+      <td class="whitespace-nowrap font-semibold text-ink">Collection URI</td>
+      <td class="is-mono">GET ${esc(collectionUrl)}</td>
+      <td>Every record of the list, as an <b>array</b>.</td>
+    </tr>
+    <tr>
+      <td class="whitespace-nowrap font-semibold text-ink">Resource URI</td>
+      <td class="is-mono">GET ${esc(resourceTpl)}</td>
+      <td>Exactly one record, as an <b>object</b>, with the same fields as an item of the collection.</td>
+    </tr>`;
+
+  const paramRows = `
+    <tr>
+      <td class="is-mono font-semibold text-brand-800">${esc(param.name)}
+        <div class="mt-1.5"><span class="doc-tag doc-tag--error">required</span></div></td>
+      <td><span class="doc-tag doc-tag--muted doc-tag--mono">${esc(type)}</span></td>
+      <td>${param.description ? inlineCode(param.description) : `The <code class="docpill">${esc(field)}</code> of the record, as the collection returns it.`}</td>
+    </tr>`;
+
+  const lines = [`# resource URI template — {${param.name}} is the ${field} of an item of the collection\nGET ${resourceTpl}`];
+  if (example) lines.push(`# the first record of the collection\nGET ${recordUrl(lookup, example)}`);
+
+  const body = `
+    ${proseTable(['', 'URI', 'Returns'], uriRows)}
+    <h3 class="mb-2 mt-5 text-[14px] font-bold text-forest">Path parameter</h3>
+    <p class="mb-3 mt-0 text-[13.5px] leading-relaxed text-ink-2">A <b class="font-semibold text-ink">path parameter</b> is part of the URI and
+      identifies the resource; a <b class="font-semibold text-ink">query parameter</b> goes after the <code class="docpill">?</code> and only filters
+      the collection. The identifier is the record's <code class="docpill">${esc(field)}</code>, so the URI points to that record and to no other.</p>
+    ${proseTable(['Path param', 'Type', 'Description'], paramRows)}
+    <p class="mb-3 mt-4 text-[13.5px] text-ink-2">An identifier that does not exist answers <code class="docpill">200</code> with an empty body.
+      Try it in the <b class="font-semibold text-ink">JSON</b> tab.</p>
+    ${docCodeBlock('Retrieve one record', lines.join('\n\n'))}`;
+  return docSection('Resource URI', `Each record of this collection has its own URI: the collection URI plus the record's <code class="docpill">${esc(field)}</code> as a path parameter.`, body);
 }
 
 /* ── exports ──────────────────────────────────────────────────────── */
