@@ -16,7 +16,7 @@ import { buildConceptBody, ConceptForm, emptyForm, formFromConcept, STATUS_LABEL
 import { FIELD_INFO } from '../../utils/field-info';
 import { listLabel } from '../../utils/list-values';
 import { AssistFieldMeta, assistFields, AssistTab, CUSTOM_PREFIX } from '../../utils/concept-assist';
-import { AssistHost, GcAssistSession } from '../gc-concept-assistant/gc-assist-session.service';
+import { AssistHost, assistChatKey, GcAssistSession } from '../gc-concept-assistant/gc-assist-session.service';
 import { StableOptions } from '../../utils/stable-options';
 import { conceptLink } from '../../../../../../landing-page/pages/global-concepts/global-concepts.utils';
 
@@ -155,6 +155,9 @@ export class GcConceptDialogComponent {
     this.tab = resolveTab(tab, !this.editing);
     this.visited = new Set([this.tab]);
     this.assist.reset();
+    // The concept's chat comes back: the one started in «New concept», or an earlier session's.
+    if (this.editing?.term_id) this.assist.attach(assistChatKey(this.scheme, this.editing.term_id));
+    this.openAssistIfChatting();
     this.syncValues();
     this.loadFields();
   }
@@ -466,6 +469,7 @@ export class GcConceptDialogComponent {
         this.assistAvailable = !!status?.enabled;
         this.assistRemaining = typeof status?.remainingUsd === 'number' ? status.remainingUsd : null;
         if (!this.assistAvailable) this.assistOpen = false;
+        else this.openAssistIfChatting();
       },
       // No AI for this user (403) or an older back (404): the assistant simply is not there, and is not asked
       // again for this scheme. A network or server hiccup is asked again on the next concept.
@@ -475,6 +479,14 @@ export class GcConceptDialogComponent {
         if (!error?.status || error.status >= 500) this.assistStatusFor = null;
       }
     });
+  }
+
+  /** A conversation is going on for this concept (e.g. it started in «New concept»): the panel opens with it. */
+  private openAssistIfChatting(): void {
+    if (this.assistShown && this.assist.messages.length) {
+      this.assistOpen = true;
+      this.assistMounted = true;
+    }
   }
 
   /** Full editor only: the assistant needs an existing concept and an enabled status. */

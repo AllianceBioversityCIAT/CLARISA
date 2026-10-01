@@ -104,17 +104,6 @@
                   </label>
                   <app-gc-info [text]="info[item.field]"></app-gc-info>
                 </div>
-                <button
-                  *ngIf="aiEnabled"
-                  type="button"
-                  class="gc-ai-btn"
-                  [disabled]="!canDraft() || drafting[item.field]"
-                  [attr.aria-label]="'Draft ' + item.label + ' with AI'"
-                  [title]="canDraft() ? 'Suggests a text from the label and the definition. Nothing is saved until you accept and save.' : 'Write the preferred label first'"
-                  (click)="draft(item.field)">
-                  <i class="pi" [ngClass]="drafting[item.field] ? 'pi-spin pi-spinner' : 'pi-bolt'"></i>
-                  {{ drafting[item.field] ? 'Drafting…' : 'Draft with AI' }}
-                </button>
               </div>
 
               <input
@@ -140,16 +129,6 @@
               (ngModelChange)="onHandEdit('example_of_use', $event)"></textarea>
               <small class="field-hint" *ngIf="item.field === 'short_definition'">One line, used in tooltips. {{ form.short_definition.length }}/500</small>
               <app-gc-assist-mark [field]="item.field"></app-gc-assist-mark>
-
-              <div class="gc-ai-draft" *ngIf="drafts[item.field] as suggestion" role="status">
-                <span class="gc-ai-draft__tag"><i class="pi pi-bolt"></i> AI suggestion · advisory</span>
-                <p class="gc-ai-draft__text">{{ suggestion }}</p>
-                <div class="gc-ai-draft__actions">
-                  <button pButton type="button" label="Discard" class="p-button-text p-button-sm" (click)="discardDraft(item.field)"></button>
-                  <button pButton type="button" label="Accept" icon="pi pi-check" class="p-button-outlined gc-ai-draft__accept" (click)="acceptDraft(item.field)"></button>
-                </div>
-              </div>
-              <small class="field-error" *ngIf="draftErrors[item.field]">{{ draftErrors[item.field] }}</small>
             </div>
           </ng-container>
         </div>

@@ -5,15 +5,19 @@
   [resizable]="false"
   [closable]="!saving"
   [dismissableMask]="!saving"
-  [style]="{ width: '560px' }"
-  [breakpoints]="{ '640px': '94vw' }"
+  [style]="dialogStyle"
+  [breakpoints]="{ '960px': '94vw' }"
   styleClass="admin-dialog gc-dialog gc-create-dialog"
-  header="New concept">
+  header="New concept"
+  (onHide)="onHide()">
   <p-header>
     <span class="gc-dialog__title">New concept</span>
     <span class="gc-dialog__subtitle">Name it and say what it means. The full editor opens right after, for everything else.</span>
+    <app-gc-assist-toggle *ngIf="assistAvailable" [on]="assistOpen" [count]="assist.pendingCount" (toggled)="toggleAssist()"></app-gc-assist-toggle>
   </p-header>
 
+  <div class="gc-assist-layout" [class.is-open]="assistAvailable && assistOpen">
+  <div class="gc-assist-layout__main">
   <form class="admin-form gc-concept-form" (ngSubmit)="create()" autocomplete="off">
     <div class="field">
       <div class="gc-field-head">
@@ -28,7 +32,8 @@
         pInputText
         [disabled]="saving"
         [(ngModel)]="form.preferred_label"
-        (ngModelChange)="touched()" />
+        (ngModelChange)="touched('preferred_label')" />
+      <app-gc-assist-mark field="preferred_label"></app-gc-assist-mark>
     </div>
 
     <div class="field">
@@ -43,7 +48,8 @@
         rows="5"
         [disabled]="saving"
         [(ngModel)]="form.definition"
-        (ngModelChange)="touched()"></textarea>
+        (ngModelChange)="touched('definition')"></textarea>
+      <app-gc-assist-mark field="definition"></app-gc-assist-mark>
       <small class="field-hint">What readers need most. You can also write it later.</small>
     </div>
 
@@ -84,8 +90,15 @@
         class="btn-brand"
         icon="pi pi-check"
         [label]="saving ? 'Creating…' : 'Create concept'"
-        [disabled]="saving || !!formError"
+        [disabled]="saving || !!formError || !!assistBusyReason"
+        [pTooltip]="assistBusyReason || ''"
         [loading]="saving"></button>
     </div>
   </form>
+  </div>
+
+  <div class="gc-assist-layout__side" id="gc-assist-panel" *ngIf="assistAvailable" [hidden]="!assistOpen">
+    <app-gc-concept-assistant [scheme]="scheme" [remainingUsd]="assistRemaining" (closed)="toggleAssist()"></app-gc-concept-assistant>
+  </div>
+  </div>
 </p-dialog>
