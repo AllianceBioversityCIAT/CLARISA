@@ -120,6 +120,19 @@
   box-shadow: var(--cl-shadow-card);
 }
 
+/* Which version the links below download: current, or a published release. */
+.gc-download__version {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--cl-line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cl-ink);
+}
+
 .gc-download__item {
   display: flex;
   flex-direction: column;

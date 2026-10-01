@@ -62,6 +62,9 @@ export interface CreateRequest {
 })
 export class GcConceptsPanelComponent implements OnInit, OnChanges {
   @Input() scheme = 'concepts';
+
+  /** The Export dialog: format + version, the same files as the public Download. */
+  exportOpen = false;
   /** Bumped by the shell after an import. */
   @Input() reloadToken = 0;
   @Input() aiEnabled = false;

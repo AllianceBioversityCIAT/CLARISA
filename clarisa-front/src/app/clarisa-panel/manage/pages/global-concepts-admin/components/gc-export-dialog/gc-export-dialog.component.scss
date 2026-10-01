@@ -1,0 +1,10 @@
+.gc-export__hint {
+  display: block;
+  margin-top: 6px;
+  color: var(--cl-ink-3);
+  font-size: 12px;
+
+  &--warn {
+    color: var(--cl-warn);
+  }
+}

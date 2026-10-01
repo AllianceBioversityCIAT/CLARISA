@@ -25,6 +25,7 @@
         [disabled]="indexing"
         pTooltip="Embeds new or edited concepts so the request recommendation also finds duplicates by meaning. Costs cents."
         (click)="refreshIndex()"></button>
+      <button pButton type="button" label="Export" icon="pi pi-download" class="p-button-outlined" (click)="exportOpen = true"></button>
       <button pButton type="button" label="New concept" icon="pi pi-plus" class="btn-brand" (click)="openCreate()"></button>
     </div>
   </div>
@@ -314,3 +315,5 @@
 
 <app-gc-concept-create-dialog [scheme]="scheme" (created)="onCreated($event)"></app-gc-concept-create-dialog>
 <app-gc-concept-dialog [scheme]="scheme" [aiEnabled]="aiEnabled" [lists]="lists" [concepts]="concepts" (changed)="load()"></app-gc-concept-dialog>
+
+<app-gc-export-dialog [scheme]="scheme" [(visible)]="exportOpen"></app-gc-export-dialog>
