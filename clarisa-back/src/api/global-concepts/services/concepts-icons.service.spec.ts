@@ -10,6 +10,7 @@ import { GcListValue } from '../entities/gc-list-value.entity';
 import { GcIcon } from '../entities/gc-icon.entity';
 import { GcHistory, GcHistoryAction } from '../entities/gc-history.entity';
 import { CreateGlobalConcepts1790500000000 } from '../../../../migrations/1790500000000-CreateGlobalConcepts';
+import { DropMeliafFromConcepts1790600500000 } from '../../../../migrations/1790600500000-DropMeliafFromConcepts';
 
 const { toValue } = CreateGlobalConcepts1790500000000;
 
@@ -19,19 +20,19 @@ describe('ConceptsIconsService', () => {
   let db: FakeManager;
   let service: ConceptsIconsService;
   let read: ConceptsReadService;
-  let meliaf: GcScheme;
+  let concepts: GcScheme;
 
   const concept = (term_id: number, status = GcConceptStatus.APPROVED) =>
     db.seed(GcConcept, {
-      scheme_id: meliaf.id,
+      scheme_id: concepts.id,
       term_id,
       preferred_label: `Term ${term_id}`,
       language: 'en',
       status,
       version: '1.0',
       replaced_by_id: null,
-      meliaf_function: [],
-      meliaf_phase_also: [],
+      functions: [],
+      phase_also: [],
       validated_by: [],
       ai_generated_fields: [],
       extra: {},
@@ -39,15 +40,17 @@ describe('ConceptsIconsService', () => {
 
   beforeEach(() => {
     db = new FakeManager();
-    meliaf = db.seed(GcScheme, {
-      code: 'meliaf',
-      title: 'MELIAF',
+    concepts = db.seed(GcScheme, {
+      code: 'concepts',
+      title: 'Concepts',
       default_language: 'en',
       next_term_id: 1,
       uri_base: null,
     });
     for (const [list, labels] of Object.entries(
-      CreateGlobalConcepts1790500000000.LISTS,
+      DropMeliafFromConcepts1790600500000.currentLists(
+        CreateGlobalConcepts1790500000000.LISTS,
+      ),
     ))
       labels.forEach((label, sort) =>
         db.seed(GcListValue, {
@@ -71,7 +74,7 @@ describe('ConceptsIconsService', () => {
   it('attaches an icon, stores list values, logs it and bumps a published concept', async () => {
     const c = concept(7);
     const icon = await service.create(
-      'meliaf',
+      'concepts',
       7,
       {
         icon_code: 'IC7',
@@ -94,12 +97,12 @@ describe('ConceptsIconsService', () => {
     expect(log.action).toBe(GcHistoryAction.ICONS);
     expect(log.changes.icon.from).toBeNull();
     expect(log.changes.icon.to).toMatchObject({ icon_code: 'IC7' });
-    expect(await service.list('meliaf', 7)).toHaveLength(1);
+    expect(await service.list('concepts', 7)).toHaveLength(1);
   });
 
   it('does not bump the version of a draft concept', async () => {
     const c = concept(8, GcConceptStatus.DRAFT);
-    await service.create('meliaf', 8, { icon_status: 'draft' }, actor);
+    await service.create('concepts', 8, { icon_status: 'draft' }, actor);
     expect(c.version).toBe('1.0');
     expect(db.rows(GcHistory)).toHaveLength(1);
   });
@@ -107,19 +110,19 @@ describe('ConceptsIconsService', () => {
   it('refuses a final icon without alt text, on create and on a status-only PATCH', async () => {
     concept(7);
     await expect(
-      service.create('meliaf', 7, { icon_status: 'final' }, actor),
+      service.create('concepts', 7, { icon_status: 'final' }, actor),
     ).rejects.toBeInstanceOf(BadRequestException);
     const draft = await service.create(
-      'meliaf',
+      'concepts',
       7,
       { icon_status: 'draft' },
       actor,
     );
     await expect(
-      service.update('meliaf', draft.id, { icon_status: 'Final' }, actor),
+      service.update('concepts', draft.id, { icon_status: 'Final' }, actor),
     ).rejects.toThrow(/alt text/);
     const ok = await service.update(
-      'meliaf',
+      'concepts',
       draft.id,
       { icon_status: 'Final', alt_text: 'A handshake' },
       actor,
@@ -127,18 +130,18 @@ describe('ConceptsIconsService', () => {
     expect(ok.icon_status).toBe('final');
     // Emptying the alt text of a final icon is the same violation.
     await expect(
-      service.update('meliaf', draft.id, { alt_text: '' }, actor),
+      service.update('concepts', draft.id, { alt_text: '' }, actor),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('rejects a status or format outside the lists', async () => {
     concept(7);
     await expect(
-      service.create('meliaf', 7, { icon_status: 'shiny' }, actor),
+      service.create('concepts', 7, { icon_status: 'shiny' }, actor),
     ).rejects.toThrow(/icon_status list/);
     await expect(
       service.create(
-        'meliaf',
+        'concepts',
         7,
         { icon_status: 'draft', file_format: 'GIF' },
         actor,
@@ -149,16 +152,16 @@ describe('ConceptsIconsService', () => {
   it('logs an update only when something changed, and a delete with what was removed', async () => {
     const c = concept(7);
     const icon = await service.create(
-      'meliaf',
+      'concepts',
       7,
       { icon_status: 'draft', icon_code: 'IC7' },
       actor,
     );
-    await service.update('meliaf', icon.id, { icon_code: 'IC7' }, actor);
+    await service.update('concepts', icon.id, { icon_code: 'IC7' }, actor);
     expect(db.rows(GcHistory)).toHaveLength(1);
-    await service.update('meliaf', icon.id, { icon_code: 'IC8' }, actor);
+    await service.update('concepts', icon.id, { icon_code: 'IC8' }, actor);
     expect(db.rows(GcHistory)).toHaveLength(2);
-    expect(await service.remove('meliaf', icon.id, actor)).toEqual({
+    expect(await service.remove('concepts', icon.id, actor)).toEqual({
       deleted: icon.id,
     });
     expect(db.rows(GcIcon)).toHaveLength(0);
@@ -190,10 +193,10 @@ describe('ConceptsIconsService', () => {
       icon_status: 'draft',
     });
     await expect(
-      service.update('meliaf', icon.id, { icon_code: 'X' }, actor),
+      service.update('concepts', icon.id, { icon_code: 'X' }, actor),
     ).rejects.toBeInstanceOf(NotFoundException);
     await expect(
-      service.remove('meliaf', icon.id, actor),
+      service.remove('concepts', icon.id, actor),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -201,29 +204,29 @@ describe('ConceptsIconsService', () => {
     concept(7);
     concept(8);
     const icon = await service.create(
-      'meliaf',
+      'concepts',
       7,
       { icon_status: 'draft', icon_code: 'IC7' },
       actor,
     );
     await expect(
-      service.update('meliaf', icon.id, { icon_code: 'X' }, actor, 8),
+      service.update('concepts', icon.id, { icon_code: 'X' }, actor, 8),
     ).rejects.toBeInstanceOf(NotFoundException);
     await expect(
-      service.remove('meliaf', icon.id, actor, 8),
+      service.remove('concepts', icon.id, actor, 8),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(db.rows(GcIcon)).toHaveLength(1);
     expect(db.rows(GcIcon)[0].icon_code).toBe('IC7');
 
     const updated = await service.update(
-      'meliaf',
+      'concepts',
       icon.id,
       { icon_code: 'IC7b' },
       actor,
       7,
     );
     expect(updated.icon_code).toBe('IC7b');
-    expect(await service.remove('meliaf', icon.id, actor, 7)).toEqual({
+    expect(await service.remove('concepts', icon.id, actor, 7)).toEqual({
       deleted: icon.id,
     });
     expect(db.rows(GcIcon)).toHaveLength(0);
@@ -232,7 +235,7 @@ describe('ConceptsIconsService', () => {
   it('publishes icons with an http(s) url only, and no internal column', async () => {
     concept(7);
     await service.create(
-      'meliaf',
+      'concepts',
       7,
       {
         icon_status: 'final',
@@ -248,7 +251,7 @@ describe('ConceptsIconsService', () => {
       icon_status: 'draft',
       file_link_primary: '\\\\share\\icons\\b.svg',
     });
-    const pub = await read.get('meliaf', 7);
+    const pub = await read.get('concepts', 7);
     expect(pub.icons).toEqual([
       {
         icon_code: null,
@@ -272,17 +275,17 @@ describe('ConceptsIconsService', () => {
       icon_status: 'Draft',
       file_link_primary: 'https://cdn.example.org/ic8.svg',
     };
-    const a = await service.create('meliaf', 8, body, actor);
-    const b = await service.create('meliaf', 8, body, actor);
+    const a = await service.create('concepts', 8, body, actor);
+    const b = await service.create('concepts', 8, body, actor);
     expect(b.id).toBe(a.id);
-    expect(await service.list('meliaf', 8)).toHaveLength(1);
+    expect(await service.list('concepts', 8)).toHaveLength(1);
   });
 
   it('refuses an impossible date_added with a 400, not a database error', async () => {
     concept(9);
     await expect(
       service.create(
-        'meliaf',
+        'concepts',
         9,
         { icon_status: 'Draft', date_added: '2026-02-31' },
         actor,

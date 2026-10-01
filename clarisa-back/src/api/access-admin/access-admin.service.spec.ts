@@ -61,11 +61,11 @@ interface Tables {
 const SA = 1;
 const UM = 2;
 const MS = 3;
-const MELIAF = 10;
+const CONCEPTS = 10;
 const GLOSS = 11;
 
 const P_ACCESS = 1;
-const P_MELIAF = 2;
+const P_CONCEPTS = 2;
 const P_GLOSS = 3;
 const P_BULK = 4;
 const P_OLD = 5;
@@ -108,7 +108,7 @@ const seed = (): Tables => ({
       level: 'module',
     },
     {
-      id: MELIAF,
+      id: CONCEPTS,
       acronym: 'CONCEPTS_DA',
       description: 'Concepts Data Admins',
       is_active: true,
@@ -133,7 +133,7 @@ const seed = (): Tables => ({
       label: 'Manage roles and users',
     },
     {
-      id: P_MELIAF,
+      id: P_CONCEPTS,
       name: '/api/concepts/admin',
       is_active: true,
       module: 'Concepts',
@@ -157,12 +157,12 @@ const seed = (): Tables => ({
   ],
   role_permission: [
     { id: 1, role_id: SA, permission_id: P_ACCESS, is_active: true },
-    { id: 2, role_id: SA, permission_id: P_MELIAF, is_active: true },
+    { id: 2, role_id: SA, permission_id: P_CONCEPTS, is_active: true },
     { id: 3, role_id: SA, permission_id: P_GLOSS, is_active: true },
     { id: 4, role_id: SA, permission_id: P_BULK, is_active: true },
     { id: 5, role_id: UM, permission_id: P_ACCESS, is_active: true },
     { id: 6, role_id: UM, permission_id: P_GLOSS, is_active: true },
-    { id: 7, role_id: MELIAF, permission_id: P_MELIAF, is_active: true },
+    { id: 7, role_id: CONCEPTS, permission_id: P_CONCEPTS, is_active: true },
     { id: 8, role_id: GLOSS, permission_id: P_GLOSS, is_active: true },
   ],
   user_roles: [
@@ -490,11 +490,11 @@ describe('AccessAdminService', () => {
 
   describe('rule 2 — non-super callers only give what they hold', () => {
     it('refuses assigning a role whose permissions the caller lacks', async () => {
-      // UM holds access-admin + glossary, not MELIAF.
+      // UM holds access-admin + glossary, not Concepts.
       await expect(
-        service.addMembers(MELIAF, { userIds: [300] }, userManager),
+        service.addMembers(CONCEPTS, { userIds: [300] }, userManager),
       ).rejects.toThrow(new ForbiddenException(ACCESS_ADMIN_ERRORS.notSubset));
-      expect(activeMembers(MELIAF)).toEqual([]);
+      expect(activeMembers(CONCEPTS)).toEqual([]);
     });
 
     it('allows assigning a role that is a subset of the caller', async () => {
@@ -506,7 +506,7 @@ describe('AccessAdminService', () => {
     it('refuses creating a role with a permission the caller lacks', async () => {
       await expect(
         service.createRole(
-          { acronym: 'X', description: 'Sneaky', permissionIds: [P_MELIAF] },
+          { acronym: 'X', description: 'Sneaky', permissionIds: [P_CONCEPTS] },
           userManager,
         ),
       ).rejects.toThrow(new ForbiddenException(ACCESS_ADMIN_ERRORS.notSubset));
@@ -525,7 +525,7 @@ describe('AccessAdminService', () => {
 
     it('refuses editing a role that opens something the caller lacks', async () => {
       await expect(
-        service.updateRole(MELIAF, { description: 'Renamed' }, userManager),
+        service.updateRole(CONCEPTS, { description: 'Renamed' }, userManager),
       ).rejects.toThrow(new ForbiddenException(ACCESS_ADMIN_ERRORS.notSubset));
     });
 
@@ -534,7 +534,7 @@ describe('AccessAdminService', () => {
         {
           acronym: 'concepts_x',
           description: 'Concepts X',
-          permissionIds: [P_MELIAF, P_BULK],
+          permissionIds: [P_CONCEPTS, P_BULK],
         },
         superAdmin,
       );
@@ -542,7 +542,7 @@ describe('AccessAdminService', () => {
         acronym: 'CONCEPTS_X',
         level: 'module',
         isSystem: false,
-        permissionIds: [P_MELIAF, P_BULK],
+        permissionIds: [P_CONCEPTS, P_BULK],
       });
     });
   });
@@ -633,10 +633,10 @@ describe('AccessAdminService', () => {
     it('lets a super edit the user_admin role', async () => {
       const role = await service.setRolePermissions(
         UM,
-        { permissionIds: [P_ACCESS, P_GLOSS, P_MELIAF] },
+        { permissionIds: [P_ACCESS, P_GLOSS, P_CONCEPTS] },
         superAdmin,
       );
-      expect(role.permissionIds).toEqual([P_ACCESS, P_MELIAF, P_GLOSS]);
+      expect(role.permissionIds).toEqual([P_ACCESS, P_CONCEPTS, P_GLOSS]);
     });
   });
 
@@ -790,7 +790,7 @@ describe('AccessAdminService', () => {
         {
           acronym: 'MDA',
           description: 'Concepts Data Admins',
-          permissionIds: [P_MELIAF],
+          permissionIds: [P_CONCEPTS],
         },
         superAdmin,
       );
@@ -801,7 +801,7 @@ describe('AccessAdminService', () => {
       const dto = {
         acronym: 'MDA',
         description: 'Concepts Data Admins',
-        permissionIds: [P_MELIAF],
+        permissionIds: [P_CONCEPTS],
       };
       const first = await service.createRole(dto, superAdmin);
       const rows = t.roles.length;
@@ -830,7 +830,7 @@ describe('AccessAdminService', () => {
       });
       await service.setRolePermissions(
         GLOSS,
-        { permissionIds: [P_BULK, P_MELIAF] },
+        { permissionIds: [P_BULK, P_CONCEPTS] },
         superAdmin,
       );
       const rows = t.role_permission.filter((g) => g.role_id === GLOSS);
@@ -838,7 +838,9 @@ describe('AccessAdminService', () => {
         is_active: false,
       });
       expect(rows.find((g) => g.id === 90)).toMatchObject({ is_active: true });
-      expect(rows.filter((g) => g.permission_id === P_MELIAF)).toHaveLength(1);
+      expect(rows.filter((g) => g.permission_id === P_CONCEPTS)).toHaveLength(
+        1,
+      );
       expect(rows).toHaveLength(3);
     });
   });

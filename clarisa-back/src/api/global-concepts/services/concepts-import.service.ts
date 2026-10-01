@@ -52,8 +52,8 @@ interface PlannedRow extends ImportRowResult {
 
 const MULTI = new Set([
   'alternative_labels',
-  'meliaf_function',
-  'meliaf_phase_also',
+  'functions',
+  'phase_also',
   'broader_terms',
   'related_terms',
   'validated_by',

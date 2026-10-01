@@ -60,7 +60,7 @@ describe('GcUsagePanelComponent', () => {
 
     second.next(summary(20));
     first.next(summary(99));
-    expect(api.usage).toHaveBeenLastCalledWith('meliaf', 7);
+    expect(api.usage).toHaveBeenLastCalledWith('concepts', 7);
     expect(component.view.kpis[0].value).toBe(20);
     expect(component.loading).toBe(false);
   });
@@ -95,9 +95,9 @@ describe('GcUsagePanelComponent', () => {
 
     it('asks for the same scheme and period as the figures, and again on a new period', () => {
       const { api, component } = build(of(platformUsage([])));
-      expect(api.usageByPlatform).toHaveBeenCalledWith('meliaf', 30);
+      expect(api.usageByPlatform).toHaveBeenCalledWith('concepts', 30);
       component.setPeriod(7);
-      expect(api.usageByPlatform).toHaveBeenLastCalledWith('meliaf', 7);
+      expect(api.usageByPlatform).toHaveBeenLastCalledWith('concepts', 7);
     });
 
     it('empty: no rows, the anonymous line still there', () => {
@@ -171,7 +171,7 @@ describe('GcUsagePanelComponent', () => {
           .readFileSync(path.join(__dirname, 'gc-usage-panel.component.html'), 'utf8')
           .replace(/<[^>]+>/g, '')
           .replace(/\s+/g, ' ');
-        expect(html).toContain('No connected system has read MELIAF with its key in this period — platforms send X-API-Key to be counted.');
+        expect(html).toContain('No connected system has read Concepts with its key in this period — platforms send X-API-Key to be counted.');
       });
 
       it('shows the anonymous reads next to the platforms', async () => {

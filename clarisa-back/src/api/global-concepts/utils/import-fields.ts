@@ -1,5 +1,5 @@
 /**
- * Target fields of the import wizard, named as in the MELIAF data schema
+ * Target fields of the import wizard, named as in the concepts data schema
  * template so an export round-trips into the same Excel (D8b). The hint is
  * what the column usually looks like; the AI column matcher reads it too.
  */
@@ -17,14 +17,14 @@ export const IMPORT_FIELDS: { field: string; hint: string }[] = [
   { field: 'example_of_use', hint: 'Example sentence using the term' },
   { field: 'term_type', hint: 'Kind of term (list: term type)' },
   {
-    field: 'meliaf_function',
-    hint: 'MELIAF function(s): Monitoring, Evaluation, Learning, Impact assessment, Foresight',
+    field: 'functions',
+    hint: 'Function(s): Monitoring, Evaluation, Learning, Impact assessment, Foresight',
   },
   {
-    field: 'meliaf_phase_primary',
-    hint: 'Main MELIAF phase (often the PARENT TERM column)',
+    field: 'phase_primary',
+    hint: 'Main phase (often the PARENT TERM column)',
   },
-  { field: 'meliaf_phase_also', hint: 'Other MELIAF phases' },
+  { field: 'phase_also', hint: 'Other phases' },
   { field: 'broader_terms', hint: 'Parent / broader term(s)' },
   { field: 'related_terms', hint: 'Related term(s)' },
   { field: 'source_citation', hint: 'Source or reference (SOURCE)' },

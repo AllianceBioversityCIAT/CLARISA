@@ -21,7 +21,7 @@ import { FIELD_INFO } from '../../utils/field-info';
   styleUrls: ['./gc-relations-editor.component.scss']
 })
 export class GcRelationsEditorComponent {
-  @Input() scheme = 'meliaf';
+  @Input() scheme = 'concepts';
   @Input() concept: AdminConceptDetail | null = null;
   @Input() options: ConceptOption[] = [];
   @Output() updated = new EventEmitter<AdminConceptDetail>();

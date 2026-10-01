@@ -28,7 +28,7 @@ export interface AssistFieldMeta {
 
 /**
  * Core fields of the contract whitelist that the full editor draws. The
- * contract also names `meliaf_phase_also`, which this form has no control for:
+ * contract also names `phase_also`, which this form has no control for:
  * a step on it is reported as not placed, never written somewhere else.
  */
 export const CORE_ASSIST_FIELDS: AssistFieldMeta[] = [
@@ -38,8 +38,8 @@ export const CORE_ASSIST_FIELDS: AssistFieldMeta[] = [
   { field: 'scope_note', label: 'Scope note', tab: 'details', elementId: 'gc-scope_note', kind: 'text' },
   { field: 'example_of_use', label: 'Example of use', tab: 'details', elementId: 'gc-example_of_use', kind: 'text' },
   { field: 'term_type', label: 'Term type', tab: 'details', elementId: 'gc-term-type', kind: 'single', listCode: 'term_type' },
-  { field: 'meliaf_function', label: 'MELIAF function', tab: 'details', elementId: 'gc-function', kind: 'multi', listCode: 'meliaf_function' },
-  { field: 'meliaf_phase_primary', label: 'Primary MELIAF phase', tab: 'details', elementId: 'gc-phase', kind: 'single', listCode: 'meliaf_phase' },
+  { field: 'functions', label: 'Function', tab: 'details', elementId: 'gc-function', kind: 'multi', listCode: 'functions' },
+  { field: 'phase_primary', label: 'Primary phase', tab: 'details', elementId: 'gc-phase', kind: 'single', listCode: 'phase' },
   { field: 'derivation', label: 'Derivation', tab: 'details', elementId: 'gc-derivation', kind: 'single', listCode: 'derivation' },
   { field: 'source_citation', label: 'Source citation', tab: 'details', elementId: 'gc-citation', kind: 'text' },
   { field: 'source_url', label: 'Source URL', tab: 'details', elementId: 'gc-url', kind: 'text' },
@@ -166,7 +166,7 @@ export function historyForTurn(messages: ConceptsAssistMessage[]): ConceptsAssis
   return messages.slice(-ASSIST_HISTORY_MAX).map(message => ({ role: message.role, content: message.content.slice(0, ASSIST_MESSAGE_MAX) }));
 }
 
-export const ASSIST_SUGGESTIONS = ['Help me write the definition', 'Suggest term type and MELIAF function', 'Review the whole concept'];
+export const ASSIST_SUGGESTIONS = ['Help me write the definition', 'Suggest term type and Function', 'Review the whole concept'];
 
 /** What the person reads when a turn fails. The 503 carries the back's own sentence (disabled, monthly cap). */
 export function assistErrorMessage(error: any): string {

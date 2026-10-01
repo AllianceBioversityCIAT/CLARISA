@@ -8,17 +8,17 @@ describe('concept filters', () => {
       preferred_label: 'Outcome',
       definition: 'A change',
       status: 'approved',
-      meliaf_function: ['monitoring'],
-      meliaf_phase_primary: 'design',
-      meliaf_phase_also: ['learning'],
+      functions: ['monitoring'],
+      phase_primary: 'design',
+      phase_also: ['learning'],
       term_type: 'concept',
       alternative_labels: [],
       icons: [],
       ...extra
     }) as unknown as AdminConceptDetail;
   const lists = {
-    meliaf_function: [{ value: 'monitoring', label: 'Monitoring' }],
-    meliaf_phase: [{ value: 'learning', label: 'Learning' }],
+    functions: [{ value: 'monitoring', label: 'Monitoring' }],
+    phase: [{ value: 'learning', label: 'Learning' }],
     term_type: [{ value: 'concept', label: 'Concept' }]
   };
 

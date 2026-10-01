@@ -14,9 +14,9 @@ const concept = (
   extra: Partial<PublicConcept> = {},
 ): PublicConcept =>
   ({
-    scheme: 'meliaf',
+    scheme: 'concepts',
     term_id,
-    term_uri: `https://api.clarisa.cgiar.org/concepts/meliaf/${term_id}`,
+    term_uri: `https://api.clarisa.cgiar.org/concepts/${term_id}`,
     preferred_label,
     language: 'en',
     preferred_labels: [{ label: preferred_label, language: 'en' }],
@@ -93,7 +93,7 @@ describe('McpService', () => {
     list: jest.fn(async () => REGISTER),
     get: jest.fn(async (_s: string, id: number) => {
       const c = REGISTER.find((x) => x.term_id === id);
-      if (!c) throw new NotFoundException('Concept meliaf/99 was not found');
+      if (!c) throw new NotFoundException('Concept concepts/99 was not found');
       return c;
     }),
     releases: jest.fn(async () => [{ version: '1.0.0' }]),
@@ -183,7 +183,7 @@ describe('McpService', () => {
   it('searches only approved concepts by default and caps the page', async () => {
     const r = await call('search_concepts', { query: 'impact', limit: 1 });
     expect(read.list).toHaveBeenLastCalledWith(
-      'meliaf',
+      'concepts',
       expect.objectContaining({ q: 'impact', status: 'approved' }),
     );
     expect(r.result.structuredContent.concepts).toHaveLength(1);

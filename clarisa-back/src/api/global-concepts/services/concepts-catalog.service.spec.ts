@@ -18,7 +18,7 @@ import { GcCollectionMember } from '../entities/gc-collection.entity';
 describe('ConceptsCatalogService', () => {
   let db: FakeManager;
   let service: ConceptsCatalogService;
-  let meliaf: GcScheme;
+  let concepts: GcScheme;
 
   const concept = (scheme: GcScheme, term_id: number, label: string) =>
     db.seed(GcConcept, {
@@ -31,7 +31,7 @@ describe('ConceptsCatalogService', () => {
 
   beforeEach(() => {
     db = new FakeManager();
-    meliaf = db.seed(GcScheme, { code: 'meliaf', title: 'MELIAF' });
+    concepts = db.seed(GcScheme, { code: 'concepts', title: 'Concepts' });
     db.seed(GcListValue, {
       scope: '',
       list_code: 'term_type',
@@ -53,48 +53,48 @@ describe('ConceptsCatalogService', () => {
 
   it('creates a collection and keeps members inside its scheme (V33)', async () => {
     const other = db.seed(GcScheme, { code: 'prms', title: 'PRMS' });
-    concept(meliaf, 1, 'Outcome');
-    concept(meliaf, 2, 'Output');
+    concept(concepts, 1, 'Outcome');
+    concept(concepts, 2, 'Output');
     concept(other, 3, 'Foreign');
-    await service.createCollection('meliaf', {
+    await service.createCollection('concepts', {
       code: 'Core',
       label: 'Core terms',
       ordered: true,
     });
     await expect(
-      service.createCollection('meliaf', { code: 'core', label: 'x' }),
+      service.createCollection('concepts', { code: 'core', label: 'x' }),
     ).rejects.toBeInstanceOf(ConflictException);
     await expect(
-      service.setMembers('meliaf', 'core', { term_ids: [1, 3] }),
+      service.setMembers('concepts', 'core', { term_ids: [1, 3] }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    const c = await service.setMembers('meliaf', 'core', {
+    const c = await service.setMembers('concepts', 'core', {
       term_ids: [2, 1, 2],
     });
     expect(c.members.map((m) => m.term_id)).toEqual([2, 1]);
     expect(db.rows(GcCollectionMember).map((m) => m.position)).toEqual([1, 2]);
-    await service.deleteCollection('meliaf', 'core');
+    await service.deleteCollection('concepts', 'core');
     expect(db.rows(GcCollectionMember)).toHaveLength(0);
     await expect(
-      service.updateCollection('meliaf', 'core', { label: 'y' }),
+      service.updateCollection('concepts', 'core', { label: 'y' }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('adds list values with an immutable slug and refuses duplicates', async () => {
-    const v = await service.addListValue('meliaf', {
+    const v = await service.addListValue('concepts', {
       list_code: 'term_type',
       label: 'Data source',
     });
     expect(v).toMatchObject({ value: 'data_source', sort: 1, shared: false });
     await expect(
-      service.addListValue('meliaf', {
+      service.addListValue('concepts', {
         list_code: 'term_type',
         label: 'Concept',
       }),
     ).rejects.toBeInstanceOf(ConflictException);
     await expect(
-      service.addListValue('meliaf', { list_code: 'colour', label: 'Red' }),
+      service.addListValue('concepts', { list_code: 'colour', label: 'Red' }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    const off = await service.updateListValue('meliaf', v.id, {
+    const off = await service.updateListValue('concepts', v.id, {
       is_active: false,
       label: 'Data sources',
     });
@@ -115,7 +115,7 @@ describe('ConceptsCatalogService', () => {
       is_active: true,
     });
     await expect(
-      service.updateListValue('meliaf', row.id, { label: 'x' }),
+      service.updateListValue('concepts', row.id, { label: 'x' }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

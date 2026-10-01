@@ -39,7 +39,7 @@ export class SubmitRequestDto {
   @Type(() => Number)
   target_term_id?: number;
 
-  /** Promote: scheme that receives the concept (usually `meliaf`). */
+  /** Promote: scheme that receives the concept (usually `concepts`). */
   @IsOptional()
   @IsString()
   @MaxLength(50)

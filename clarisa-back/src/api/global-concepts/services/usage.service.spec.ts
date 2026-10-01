@@ -14,13 +14,13 @@ const day = (offset = 0) =>
 describe('UsageService', () => {
   let db: FakeManager;
   let service: UsageService;
-  let meliaf: GcScheme;
+  let concepts: GcScheme;
 
   beforeEach(() => {
     db = new FakeManager();
-    meliaf = db.seed(GcScheme, {
-      code: 'meliaf',
-      title: 'MELIAF',
+    concepts = db.seed(GcScheme, {
+      code: 'concepts',
+      title: 'Concepts',
       default_language: 'en',
       next_term_id: 1,
     });
@@ -29,7 +29,7 @@ describe('UsageService', () => {
 
   describe('record', () => {
     it('bumps a counter with one atomic upsert that resolves the scheme inside', async () => {
-      service.record('MELIAF', GcUsageKind.VIEW, 2374);
+      service.record('Concepts', GcUsageKind.VIEW, 2374);
       await flush();
       expect(db.queries).toHaveLength(1);
       const { sql, params } = db.queries[0];
@@ -38,7 +38,7 @@ describe('UsageService', () => {
       expect(sql).toMatch(
         /ON DUPLICATE KEY UPDATE `count` = gc_usage_daily\.`count` \+ 1/,
       );
-      expect(params).toEqual([day(), 'view', '2374', 'meliaf']);
+      expect(params).toEqual([day(), 'view', '2374', 'concepts']);
     });
 
     it('is fire-and-forget: a failing database never throws nor rejects', async () => {
@@ -52,7 +52,7 @@ describe('UsageService', () => {
         .spyOn((failing as any).logger, 'warn')
         .mockImplementation(() => undefined);
       expect(
-        failing.record('meliaf', GcUsageKind.SEARCH, 'ia'),
+        failing.record('concepts', GcUsageKind.SEARCH, 'ia'),
       ).toBeUndefined();
       await flush();
       expect(warn).toHaveBeenCalledWith(expect.stringMatching(/table missing/));
@@ -69,7 +69,7 @@ describe('UsageService', () => {
         .spyOn((throwing as any).logger, 'warn')
         .mockImplementation(() => undefined);
       expect(() =>
-        throwing.record('meliaf', GcUsageKind.SEARCH, 'ia'),
+        throwing.record('concepts', GcUsageKind.SEARCH, 'ia'),
       ).not.toThrow();
     });
 
@@ -80,7 +80,7 @@ describe('UsageService', () => {
         new ConceptGraphLoader(),
       );
       // Returns synchronously while the INSERT is still pending.
-      expect(slow.record('meliaf', GcUsageKind.VIEW, 1)).toBeUndefined();
+      expect(slow.record('concepts', GcUsageKind.VIEW, 1)).toBeUndefined();
       resolve();
     });
 
@@ -94,10 +94,10 @@ describe('UsageService', () => {
     });
 
     it('records a search, a zero-result search, or a plain listing', async () => {
-      service.recordList('meliaf', '  IA ', 3);
-      service.recordList('meliaf', 'Unobtainium', 0);
-      service.recordList('meliaf', '   ', 12);
-      service.recordList('meliaf', undefined, 12);
+      service.recordList('concepts', '  IA ', 3);
+      service.recordList('concepts', 'Unobtainium', 0);
+      service.recordList('concepts', '   ', 12);
+      service.recordList('concepts', undefined, 12);
       await flush();
       expect(db.queries.map((q) => [q.params[1], q.params[2]])).toEqual([
         ['search', 'ia'],
@@ -115,7 +115,7 @@ describe('UsageService', () => {
       item: string,
       n: number,
       offset = 0,
-      scheme = meliaf,
+      scheme = concepts,
     ) =>
       db.seed(GcUsageDaily, {
         day: day(offset),
@@ -127,7 +127,7 @@ describe('UsageService', () => {
 
     it('adds up totals, days, tops and labels the viewed terms', async () => {
       db.seed(GcConcept, {
-        scheme_id: meliaf.id,
+        scheme_id: concepts.id,
         term_id: 7,
         preferred_label: 'Outcome',
         language: 'en',
@@ -154,7 +154,7 @@ describe('UsageService', () => {
       });
       count(GcUsageKind.SEARCH, 'elsewhere', 99, 0, other);
 
-      const s = await service.summary('meliaf', 30);
+      const s = await service.summary('concepts', 30);
       expect(s.days).toBe(30);
       expect(s.totals).toEqual({
         search: 10,
@@ -198,9 +198,9 @@ describe('UsageService', () => {
     });
 
     it('clamps the window and answers 404 for an unknown scheme', async () => {
-      expect((await service.summary('meliaf', 0)).days).toBe(30);
-      expect((await service.summary('meliaf', 5000)).days).toBe(365);
-      expect((await service.summary('meliaf', NaN)).days).toBe(30);
+      expect((await service.summary('concepts', 0)).days).toBe(30);
+      expect((await service.summary('concepts', 5000)).days).toBe(365);
+      expect((await service.summary('concepts', NaN)).days).toBe(30);
       await expect(service.summary('nope', 30)).rejects.toBeInstanceOf(
         NotFoundException,
       );
@@ -210,25 +210,25 @@ describe('UsageService', () => {
   describe('reads made with a platform API key', () => {
     it('adds a keyed shadow row, and only while a platform key is in context', async () => {
       apiKeyCallerContext.run({ api_key_id: 5, mis_id: 3 }, () =>
-        service.record('meliaf', GcUsageKind.VIEW, 7),
+        service.record('concepts', GcUsageKind.VIEW, 7),
       );
       await flush();
       expect(db.queries.map((q) => q.params)).toEqual([
-        [day(), 'view', '7', 'meliaf'],
-        [day(), 'keyed', 'view', 'meliaf'],
+        [day(), 'view', '7', 'concepts'],
+        [day(), 'keyed', 'view', 'concepts'],
       ]);
 
       db.queries.length = 0;
-      service.record('meliaf', GcUsageKind.VIEW, 7);
+      service.record('concepts', GcUsageKind.VIEW, 7);
       await flush();
       expect(db.queries.map((q) => q.params)).toEqual([
-        [day(), 'view', '7', 'meliaf'],
+        [day(), 'view', '7', 'concepts'],
       ]);
     });
 
     it('never shadows zero_search (it is the same request as its search)', async () => {
       apiKeyCallerContext.run({ api_key_id: 5 }, () =>
-        service.recordList('meliaf', 'ia', 0),
+        service.recordList('concepts', 'ia', 0),
       );
       await flush();
       expect(db.queries.map((q) => q.params[1])).toEqual([

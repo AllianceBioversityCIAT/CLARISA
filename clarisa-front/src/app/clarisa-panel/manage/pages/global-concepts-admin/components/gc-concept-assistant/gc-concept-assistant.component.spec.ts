@@ -127,7 +127,7 @@ describe('GcConceptAssistantComponent', () => {
 
     component.send('Review the whole concept');
     const [scheme, body] = api.conceptsAssistChat.mock.calls[0];
-    expect(scheme).toBe('meliaf');
+    expect(scheme).toBe('concepts');
     expect(body.termId).toBe(7);
     expect(body.draft['definition']).toBe('Mine');
     expect(body.messages).toEqual([{ role: 'user', content: 'Review the whole concept' }]);
@@ -245,11 +245,11 @@ describe('GcConceptAssistantComponent', () => {
   });
 
   it('reports a step on a field this editor does not draw, without writing anything', async () => {
-    api.conceptsAssistChat.mockReturnValue(of(reply([{ field: 'meliaf_phase_also', tab: 'details', value: ['plan'], reason: '' }])));
+    api.conceptsAssistChat.mockReturnValue(of(reply([{ field: 'phase_also', tab: 'details', value: ['plan'], reason: '' }])));
     component.send('Go');
     await settle();
     expect(writes).toEqual([]);
-    expect(session.messages[1].skipped).toEqual(['meliaf_phase_also']);
+    expect(session.messages[1].skipped).toEqual(['phase_also']);
   });
 
   it.each([

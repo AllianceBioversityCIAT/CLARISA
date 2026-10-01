@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
-  MELIAF_TAXONOMY_ENDPOINT_PREFIXES,
+  CONCEPTS_ENDPOINT_PREFIXES,
   PlatformUsageService,
 } from './platform-usage.service';
 
@@ -35,7 +35,7 @@ describe('PlatformUsageService', () => {
     };
     const loader = {
       scheme: jest.fn(async (_m: unknown, code: string) => {
-        if (code !== 'meliaf') throw new NotFoundException();
+        if (code !== 'concepts') throw new NotFoundException();
         return { id: 1, code };
       }),
     };
@@ -50,7 +50,7 @@ describe('PlatformUsageService', () => {
 
   it('narrows the key log to Concepts paths and adds the anonymous line', async () => {
     const { service, metrics, usage } = build();
-    const out = await service.byPlatform('meliaf', {
+    const out = await service.byPlatform('concepts', {
       from: '2026-09-01',
       to: '2026-09-30',
     });
@@ -72,22 +72,22 @@ describe('PlatformUsageService', () => {
       counted_reads: { total: 40, keyed: 9, anonymous: 31 },
     });
     expect(out.systems).toHaveLength(2);
-    expect(out.endpoint_prefixes).toEqual(MELIAF_TAXONOMY_ENDPOINT_PREFIXES);
+    expect(out.endpoint_prefixes).toEqual(CONCEPTS_ENDPOINT_PREFIXES);
   });
 
   it('defaults to the last 30 days, today included, and honours days', async () => {
     const { service, usage } = build();
-    await service.byPlatform('meliaf');
+    await service.byPlatform('concepts');
     expect(usage.countedReads).toHaveBeenLastCalledWith(day(29), day(0));
-    await service.byPlatform('meliaf', { days: '7' });
+    await service.byPlatform('concepts', { days: '7' });
     expect(usage.countedReads).toHaveBeenLastCalledWith(day(6), day(0));
-    await service.byPlatform('meliaf', { days: '9999' });
+    await service.byPlatform('concepts', { days: '9999' });
     expect(usage.countedReads).toHaveBeenLastCalledWith(day(364), day(0));
   });
 
   it('answers an empty period with no systems and zero calls', async () => {
     const { service } = build([]);
-    const out = await service.byPlatform('meliaf', { days: 7 });
+    const out = await service.byPlatform('concepts', { days: 7 });
     expect(out.systems).toEqual([]);
     expect(out.platform_calls).toBe(0);
   });
@@ -98,7 +98,7 @@ describe('PlatformUsageService', () => {
     [{ from: '2026-09-30', to: '2026-09-01' }],
   ])('refuses a bad period %j with 400', async (q) => {
     const { service, metrics } = build();
-    await expect(service.byPlatform('meliaf', q)).rejects.toBeInstanceOf(
+    await expect(service.byPlatform('concepts', q)).rejects.toBeInstanceOf(
       BadRequestException,
     );
     expect(metrics.getSystemsForEndpoints).not.toHaveBeenCalled();

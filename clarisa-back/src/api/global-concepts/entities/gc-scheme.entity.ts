@@ -7,7 +7,7 @@ import {
 } from 'typeorm';
 
 /**
- * A vocabulary: the global MELIAF taxonomy, a domain taxonomy (climate change
+ * A vocabulary: the global Concepts scheme, a domain taxonomy (climate change
  * adaptation) or the concept group a platform owns (`owner_platform`).
  * `code` is part of every concept URI, so it never changes once created.
  */
@@ -46,7 +46,7 @@ export class GcScheme {
   @Column({ type: 'text', nullable: true })
   governance_description: string | null;
 
-  /** Platform code (MIS acronym, lower-case) owning this scheme; null = MELIAF admins. */
+  /** Platform code (MIS acronym, lower-case) owning this scheme; null = Concepts admins. */
   @Column({ type: 'varchar', length: 50, nullable: true })
   owner_platform: string | null;
 

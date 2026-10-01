@@ -176,10 +176,10 @@ describe('RenameMeliafTaxonomyRoutesToConcepts1790500400000', () => {
       'api/meliaf-taxonomy',
       'api/concepts',
     );
-    expect('/api/concepts/admin/meliaf/concepts'.includes(stored)).toBe(true);
-    expect('/api/concepts/meliaf/concepts'.includes(stored)).toBe(false);
+    expect('/api/concepts/admin/concepts/concepts'.includes(stored)).toBe(true);
+    expect('/api/concepts/concepts/concepts'.includes(stored)).toBe(false);
     // The persistent concept URIs live outside /api and never match.
-    expect('/concepts/meliaf/12'.includes(stored)).toBe(false);
+    expect('/concepts/12'.includes(stored)).toBe(false);
   });
 });
 
@@ -227,9 +227,11 @@ describe('RenameGlobalConceptsRoutesToMeliafTaxonomy1790500300000', () => {
       'api/global-concepts',
       'api/meliaf-taxonomy',
     );
-    expect('/api/meliaf-taxonomy/admin/meliaf/concepts'.includes(stored)).toBe(
-      true,
+    expect(
+      '/api/meliaf-taxonomy/admin/concepts/concepts'.includes(stored),
+    ).toBe(true);
+    expect('/api/meliaf-taxonomy/concepts/concepts'.includes(stored)).toBe(
+      false,
     );
-    expect('/api/meliaf-taxonomy/meliaf/concepts'.includes(stored)).toBe(false);
   });
 });

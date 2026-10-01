@@ -26,7 +26,7 @@ const user = (id: number, roles: AccessUser['roles'] = []): AccessUser => ({
 
 const page = (items: AccessUser[], total = items.length): Page<AccessUser> => ({ items, total, page: 1, pageSize: 20 });
 
-const meliaf: AccessRole = {
+const concepts: AccessRole = {
   id: 9,
   acronym: 'CONCEPTS_DA',
   description: 'Concepts Data Admins',
@@ -35,7 +35,7 @@ const meliaf: AccessRole = {
   memberCount: 2,
   permissionIds: [1]
 };
-const superRole: AccessRole = { ...meliaf, id: 1, acronym: 'SA', description: 'Super admin', level: 'super', isSystem: true, permissionIds: [] };
+const superRole: AccessRole = { ...concepts, id: 1, acronym: 'SA', description: 'Super admin', level: 'super', isSystem: true, permissionIds: [] };
 const superAccess: MeAccess = { userId: 1, email: 'y@cgiar.org', roles: [], permissions: [], isSuper: true };
 
 describe('ManageUserComponent', () => {
@@ -49,8 +49,8 @@ describe('ManageUserComponent', () => {
   async function create(users: jest.Mock) {
     api = {
       users,
-      roles: jest.fn(() => of([meliaf, superRole])),
-      permissions: jest.fn(() => of([{ module: 'Concepts', items: [{ id: 1, name: '/api/concepts/admin', label: 'MELIAF', description: null }] }])),
+      roles: jest.fn(() => of([concepts, superRole])),
+      permissions: jest.fn(() => of([{ module: 'Concepts', items: [{ id: 1, name: '/api/concepts/admin', label: 'Concepts', description: null }] }])),
       addMembers: jest.fn(() => of({ added: [1, 2], alreadyMembers: [] })),
       removeMember: jest.fn(() => of({ removed: true }))
     };

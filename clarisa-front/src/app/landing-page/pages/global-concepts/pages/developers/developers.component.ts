@@ -35,14 +35,14 @@ export function docBases(apiRoot: string): DocBases {
 export function publicEndpoints(b: DocBases, scheme: string, termId: number): Endpoint[] {
   const s = `${b.api}/${scheme}`;
   return [
-    { method: 'GET', path: '/schemes', what: 'Every concept scheme (MELIAF and any domain or platform scheme).', live: `${b.api}/schemes` },
+    { method: 'GET', path: '/schemes', what: 'Every concept scheme (Concepts and any domain or platform scheme).', live: `${b.api}/schemes` },
     { method: 'GET', path: '/{scheme}', what: 'Scheme metadata: title, licence, publisher, governance.', live: s },
     { method: 'GET', path: '/lists?scheme={scheme}', what: 'Controlled lists: status, function, phase, term type, derivation…', live: `${b.api}/lists?scheme=${scheme}` },
     { method: 'GET', path: '/{scheme}/fields', what: 'The scheme’s own public metadata fields (custom fields).', live: `${s}/fields` },
     {
       method: 'GET',
       path: '/{scheme}/concepts',
-      what: 'All published concepts, or a search: q, status, meliaf_function, meliaf_phase, term_type, collection, version.',
+      what: 'All published concepts, or a search: q, status, functions, phase, term_type, collection, version.',
       live: `${s}/concepts?q=evaluation`
     },
     { method: 'GET', path: '/{scheme}/concepts/{term_id}', what: 'One concept, full record. Add ?version= to pin a release.', live: `${s}/concepts/${termId}` },
@@ -77,7 +77,7 @@ export function snippets(b: DocBases, scheme: string, termId: number): Record<st
   const uri = `${b.uris}/${scheme}/${termId}`;
   const s = `${b.api}/${scheme}`;
   return {
-    search: `curl "${s}/concepts?q=outcome&meliaf_function=mel"`,
+    search: `curl "${s}/concepts?q=outcome&functions=mel"`,
     concept: `curl "${s}/concepts/${termId}"`,
     turtle: `curl -H "Accept: text/turtle" "${uri}"`,
     jsonld: `curl -H "Accept: application/ld+json" "${uri}"`,
@@ -98,7 +98,7 @@ export function snippets(b: DocBases, scheme: string, termId: number): Record<st
 
 /** The four MCP tools (mcp.service.ts `MCP_TOOLS`) with a question that makes an assistant use each one. */
 export const MCP_TOOLS_DOC = [
-  { name: 'search_concepts', what: 'Search the official concepts by words, with the same filters as the list.', ask: 'Which MELIAF concepts talk about learning?' },
+  { name: 'search_concepts', what: 'Search the official concepts by words, with the same filters as the list.', ask: 'Which concepts talk about learning?' },
   {
     name: 'get_concept',
     what: 'The full official record of one concept, by TERM id or exact label.',
@@ -109,7 +109,7 @@ export const MCP_TOOLS_DOC = [
     what: 'Which official concepts a text mentions. The text is not stored.',
     ask: 'Check this paragraph of my report against the official vocabulary.'
   },
-  { name: 'list_releases', what: 'The published versions of a scheme.', ask: 'Which version of the MELIAF vocabulary is the latest?' }
+  { name: 'list_releases', what: 'The published versions of a scheme.', ask: 'Which version of the Concepts vocabulary is the latest?' }
 ];
 
 export const DEV_SECTIONS = [

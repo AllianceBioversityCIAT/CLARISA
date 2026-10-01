@@ -44,7 +44,7 @@
     <ul class="gc-textcheck__list" *ngIf="suggestions.length">
       <li *ngFor="let item of suggestions; trackBy: trackById" class="gc-textcheck__item">
         <div class="gc-textcheck__item-head">
-          <a class="gc-link" [routerLink]="[base, scheme, item.term_id]">{{ item.preferred_label }}</a>
+          <a class="gc-link" [routerLink]="link(item.term_id)">{{ item.preferred_label }}</a>
           <span class="gc-meta">{{ totalMatches(item) }}×</span>
         </div>
         <div class="gc-chips">
@@ -53,7 +53,7 @@
         </div>
         <p class="gc-textcheck__replaced" *ngIf="item.replaced_by">
           Use instead:
-          <a class="gc-link" [routerLink]="[base, scheme, item.replaced_by.term_id]">{{ item.replaced_by.preferred_label }}</a>
+          <a class="gc-link" [routerLink]="link(item.replaced_by.term_id)">{{ item.replaced_by.preferred_label }}</a>
         </p>
       </li>
     </ul>

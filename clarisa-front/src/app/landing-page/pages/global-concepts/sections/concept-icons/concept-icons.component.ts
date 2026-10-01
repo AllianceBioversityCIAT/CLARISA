@@ -18,7 +18,7 @@ interface IconView {
 }
 
 /**
- * The icons of a concept (MELIAF checklist rows 1 and 13). An icon with a
+ * The icons of a concept (concepts checklist rows 1 and 13). An icon with a
  * safe link shows the image with its alt text; one without a link, or whose
  * image fails to load, shows the brand placeholder illustration instead of a
  * broken image.
