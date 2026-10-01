@@ -144,11 +144,11 @@
     </div>
   </div>
 
-  <p class="gc-search-note" *ngIf="filters.search.trim()" role="status" aria-live="polite">
+  <output class="gc-search-note" *ngIf="filters.search.trim()" aria-live="polite">
     <ng-container *ngIf="ranked">Best matches first: the exact phrase, then every word in any order, then similar spelling.</ng-container>
     <ng-container *ngIf="!ranked && !searchFailed">Ranking the matches…</ng-container>
     <ng-container *ngIf="searchFailed">The ranked search is not available right now: showing the plain matches.</ng-container>
-  </p>
+  </output>
 
   <div class="gc-card">
     <div class="gc-skeleton" *ngIf="loading && !concepts.length" aria-busy="true" aria-label="Loading concepts">

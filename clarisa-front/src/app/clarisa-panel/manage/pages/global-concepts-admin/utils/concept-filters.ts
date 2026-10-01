@@ -58,7 +58,7 @@ export function matchesFilters(concept: AdminConceptDetail, filters: ConceptFilt
   if (filters.statuses.length && !filters.statuses.includes(concept.status)) return false;
   if (filters.functions.length && !(concept.functions ?? []).some(fn => filters.functions.includes(fn))) return false;
   if (filters.phases.length) {
-    const phases = [concept.phase_primary, ...(concept.phase_also ?? [])].filter(Boolean) as string[];
+    const phases = [concept.phase_primary, ...(concept.phase_also ?? [])].filter((phase): phase is string => !!phase);
     if (!phases.some(phase => filters.phases.includes(phase))) return false;
   }
   if (filters.termTypes.length && !filters.termTypes.includes(concept.term_type ?? '')) return false;

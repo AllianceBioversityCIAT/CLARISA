@@ -244,7 +244,7 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges, OnDestroy {
     const rank = q && this.searchFor === q ? this.searchRank : null;
     let concepts = this.concepts.filter(concept => matchesFilters(concept, this.filters));
     if (rank) {
-      concepts = concepts.filter(concept => rank.has(concept.term_id)).sort((a, b) => rank.get(a.term_id)! - rank.get(b.term_id)!);
+      concepts = concepts.filter(concept => rank.has(concept.term_id)).sort((a, b) => (rank.get(a.term_id) ?? 0) - (rank.get(b.term_id) ?? 0));
     } else if (q) {
       // Until the ranking arrives (or when the back fails): the plain local match, so typing never shows an empty table.
       concepts = concepts.filter(concept => matchesText(concept, q));
