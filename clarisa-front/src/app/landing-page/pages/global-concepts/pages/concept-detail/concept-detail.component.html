@@ -78,11 +78,11 @@
               <span class="gc-sr-only" aria-live="polite">{{ copied ? 'URI copied to the clipboard' : '' }}</span>
             </div>
 
-            <div class="gc-chips" *ngIf="c.meliaf_function.length || phases.length || c.term_type">
+            <div class="gc-chips" *ngIf="c.functions.length || phases.length || c.term_type">
               <span class="gc-chip gc-chip--warn" *ngIf="isDeprecated">Deprecated</span>
-              <span class="gc-chip" *ngFor="let fn of c.meliaf_function">{{ label('meliaf_function', fn) }}</span>
+              <span class="gc-chip" *ngFor="let fn of c.functions">{{ label('functions', fn) }}</span>
               <span class="gc-chip gc-chip--plain" *ngFor="let phase of phases; let first = first"
-                >{{ first ? 'Phase' : 'Also' }} · {{ label('meliaf_phase', phase) }}</span
+                >{{ first ? 'Phase' : 'Also' }} · {{ label('phase', phase) }}</span
               >
               <span class="gc-chip gc-chip--plain" *ngIf="c.term_type">{{ label('term_type', c.term_type) }}</span>
             </div>

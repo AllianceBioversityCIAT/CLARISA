@@ -34,7 +34,7 @@ export const BLINK_CLASS = 'gc-assist-blink';
   encapsulation: ViewEncapsulation.None
 })
 export class GcConceptAssistantComponent {
-  @Input() scheme = 'meliaf';
+  @Input() scheme = 'meliaf-taxonomy';
   @Input() remainingUsd: number | null = null;
   @Output() closed = new EventEmitter<void>();
   @ViewChild('list') private list?: ElementRef<HTMLElement>;
@@ -157,6 +157,14 @@ export class GcConceptAssistantComponent {
     this.closed.emit();
   }
 
+  /** «Clear»: starts this concept's chat over. Never while a turn is asked or typed. */
+  clear(): void {
+    if (this.busy || !this.messages.length) return;
+    this.failure = null;
+    this.input = '';
+    this.session.clearChat();
+  }
+
   // --------------------------------------------------------- choreography
 
   async play(steps: ConceptsAssistStep[], entry: AssistChatEntry, token: number): Promise<void> {
@@ -168,7 +176,11 @@ export class GcConceptAssistantComponent {
         await this.playStep(step, entry, token);
       }
     } finally {
-      if (token === this.session.token) this.session.live = null;
+      if (token === this.session.token) {
+        this.session.live = null;
+        // The step summary (filled / proposed) was added after the answer was stored: store it too.
+        this.session.messages = [...this.session.messages];
+      }
       if (this.turnToken === token) this.playing = false;
     }
   }

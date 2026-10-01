@@ -7,7 +7,7 @@ import { environment } from '../../../../environments/environment';
 /**
  * Client of the Global Concepts module (`api/concepts`), shared by the
  * admin section and the public page. Shapes mirror the back's presenters
- * (clarisa-back/src/api/global-concepts); field names follow the MELIAF data
+ * (clarisa-back/src/api/global-concepts); field names follow the Concepts data
  * schema template.
  */
 
@@ -49,9 +49,9 @@ export interface PublicConcept {
   scope_note: string | null;
   example_of_use: string | null;
   term_type: string | null;
-  meliaf_function: string[];
-  meliaf_phase_primary: string | null;
-  meliaf_phase_also: string[];
+  functions: string[];
+  phase_primary: string | null;
+  phase_also: string[];
   broader_terms: ConceptRef[];
   narrower_terms: ConceptRef[];
   related_terms: ConceptRef[];
@@ -117,6 +117,25 @@ export interface ConceptHistoryEntry {
   changes: Record<string, { from: unknown; to: unknown }> | null;
   changed_at: string;
   release?: string | null;
+}
+
+/** The four download formats of a scheme, in menu order. */
+export type ConceptExportFormat = 'json' | 'csv' | 'skos' | 'jsonld';
+
+export const CONCEPT_EXPORT_FORMATS: ReadonlyArray<{ format: ConceptExportFormat; label: string; hint: string }> = [
+  { format: 'json', label: 'JSON', hint: 'Every field, for scripts and APIs' },
+  { format: 'csv', label: 'CSV', hint: 'Opens in Excel, same columns as the concepts template' },
+  { format: 'skos', label: 'SKOS Turtle', hint: 'RDF for vocabulary tools' },
+  { format: 'jsonld', label: 'JSON-LD', hint: 'Linked data for the web' }
+];
+
+/** "Current" plus every published release, newest first, as select options. */
+export function releaseOptions(releases: ConceptRelease[] | null | undefined): { label: string; value: string | null }[] {
+  const published = [...(releases ?? [])]
+    .filter(r => !!r?.version)
+    .sort((a, b) => String(b.released_at ?? '').localeCompare(String(a.released_at ?? '')))
+    .map(r => ({ label: r.released_at ? `${r.version} · ${String(r.released_at).slice(0, 10)}` : r.version, value: r.version }));
+  return [{ label: 'Current (latest)', value: null }, ...published];
 }
 
 export interface ConceptRelease {
@@ -227,8 +246,8 @@ export interface ConceptSuggestion {
 export interface ConceptQuery {
   q?: string;
   status?: string;
-  meliaf_function?: string;
-  meliaf_phase?: string;
+  functions?: string;
+  phase?: string;
   term_type?: string;
   version?: string;
   /** `0` = not counted in the usage analytics (search-as-you-type). */
@@ -288,8 +307,10 @@ export class GlobalConceptsApiService {
     return this._http.get<ConceptRelease[]>(`${this.base}/${encodeURIComponent(scheme)}/releases`);
   }
 
-  exportUrl(scheme: string, format: 'json' | 'csv' | 'skos' | 'jsonld'): string {
-    return `${this.base}/${encodeURIComponent(scheme)}/export?format=${format}`;
+  /** `version` empty or null = the current state; otherwise that published release. */
+  exportUrl(scheme: string, format: ConceptExportFormat, version?: string | null): string {
+    const pinned = version ? `&version=${encodeURIComponent(version)}` : '';
+    return `${this.base}/${encodeURIComponent(scheme)}/export?format=${format}${pinned}`;
   }
 
   /** The text travels in the body, never in the URL (request logs keep URLs). */
@@ -324,8 +345,9 @@ export class GlobalConceptsApiService {
     return `${this.base}/admin`;
   }
 
-  adminConcepts(scheme: string, status?: string): Observable<AdminConcept[]> {
-    return this._http.get<AdminConcept[]>(`${this.admin}/${encodeURIComponent(scheme)}/concepts`, { params: params({ status }) });
+  /** With `q`, only the matches, best first, each with its `match` (the same text search as the public list). */
+  adminConcepts(scheme: string, status?: string, q?: string): Observable<AdminConcept[]> {
+    return this._http.get<AdminConcept[]>(`${this.admin}/${encodeURIComponent(scheme)}/concepts`, { params: params({ status, q }) });
   }
 
   createConcept(scheme: string, body: Record<string, unknown>): Observable<AdminConcept> {

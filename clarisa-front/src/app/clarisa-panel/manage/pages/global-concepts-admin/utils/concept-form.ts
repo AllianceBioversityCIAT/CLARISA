@@ -9,8 +9,8 @@ export interface ConceptForm {
   scope_note: string;
   example_of_use: string;
   term_type: string | null;
-  meliaf_function: string[];
-  meliaf_phase_primary: string | null;
+  functions: string[];
+  phase_primary: string | null;
   derivation: string | null;
   source_citation: string;
   source_url: string;
@@ -29,7 +29,7 @@ const TEXT_FIELDS = [
   'steward',
   'notes'
 ] as const;
-const LIST_FIELDS = ['term_type', 'meliaf_phase_primary', 'derivation'] as const;
+const LIST_FIELDS = ['term_type', 'phase_primary', 'derivation'] as const;
 
 export const STATUS_LABELS: Record<ConceptStatus, string> = {
   draft: 'Draft',
@@ -60,8 +60,8 @@ export function emptyForm(): ConceptForm {
     scope_note: '',
     example_of_use: '',
     term_type: null,
-    meliaf_function: [],
-    meliaf_phase_primary: null,
+    functions: [],
+    phase_primary: null,
     derivation: null,
     source_citation: '',
     source_url: '',
@@ -79,8 +79,8 @@ export function formFromConcept(concept: AdminConcept): ConceptForm {
     scope_note: concept.scope_note ?? '',
     example_of_use: concept.example_of_use ?? '',
     term_type: concept.term_type ?? null,
-    meliaf_function: [...(concept.meliaf_function ?? [])],
-    meliaf_phase_primary: concept.meliaf_phase_primary ?? null,
+    functions: [...(concept.functions ?? [])],
+    phase_primary: concept.phase_primary ?? null,
     derivation: concept.derivation ?? null,
     source_citation: concept.source_citation ?? '',
     source_url: concept.source_url ?? '',
@@ -107,9 +107,9 @@ export function buildConceptBody(form: ConceptForm, original: ConceptForm | null
     if (original ? value !== (original[field] ?? null) : value) body[field] = value ?? '';
   }
 
-  const functions = [...(form.meliaf_function ?? [])];
-  const before = [...(original?.meliaf_function ?? [])];
-  if (original ? functions.join('|') !== before.join('|') : functions.length) body['meliaf_function'] = functions;
+  const functions = [...(form.functions ?? [])];
+  const before = [...(original?.functions ?? [])];
+  if (original ? functions.join('|') !== before.join('|') : functions.length) body['functions'] = functions;
 
   if (!original && form.term_id) body['term_id'] = Number(form.term_id);
 

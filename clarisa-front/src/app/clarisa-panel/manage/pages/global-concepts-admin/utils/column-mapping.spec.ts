@@ -64,7 +64,7 @@ describe('Global Concepts import — column mapping', () => {
       const { mappings, filled } = applyAiMatches(exactMapping(['TERM ID', 'TERM', 'Parent term']), [
         { column: 0, header: 'TERM ID', field: 'term_id', confidence: 1, source: 'exact' },
         { column: 1, header: 'TERM', field: 'preferred_label', confidence: 0.87, source: 'ai' },
-        { column: 2, header: 'Parent term', field: 'meliaf_phase_primary', confidence: 0.6, source: 'ai' }
+        { column: 2, header: 'Parent term', field: 'phase_primary', confidence: 0.6, source: 'ai' }
       ]);
 
       expect(filled).toBe(2);

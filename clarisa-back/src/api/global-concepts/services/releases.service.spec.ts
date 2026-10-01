@@ -15,7 +15,7 @@ import { ReleasesService, compareSemver } from './releases.service';
 
 const scheme = {
   id: 1,
-  code: 'meliaf',
+  code: 'concepts',
   uri_base: null,
   title: 'Concepts',
   default_language: 'en',
@@ -36,8 +36,8 @@ const concept = (
     definition: `Definition of ${label}`,
     status: GcConceptStatus.APPROVED,
     replaced_by_id: null,
-    meliaf_function: [],
-    meliaf_phase_also: [],
+    functions: [],
+    phase_also: [],
     validated_by: [],
     ai_generated_fields: [],
     extra: {},
@@ -159,7 +159,7 @@ describe('ReleasesService', () => {
 
   describe('preview', () => {
     it('reports publishable when there are no errors', async () => {
-      const result = await service.preview('meliaf');
+      const result = await service.preview('concepts');
       expect(result).toEqual(
         expect.objectContaining({
           publishable: true,
@@ -172,7 +172,7 @@ describe('ReleasesService', () => {
 
     it('lists quality issues', async () => {
       storedConcepts = [concept(1, 'Outcome', { definition: null })];
-      const result = await service.preview('meliaf');
+      const result = await service.preview('concepts');
       expect(result.publishable).toBe(false);
       expect(result.issues[0].code).toBe(QualityCode.MISSING_DEFINITION);
     });
@@ -181,7 +181,7 @@ describe('ReleasesService', () => {
   describe('publish', () => {
     it('publishes inside one REPEATABLE READ transaction with the scheme row locked', async () => {
       const result = await service.publish(
-        'meliaf',
+        'concepts',
         { version: '1.0.0', notes: ' First ' },
         'a@cgiar.org',
       );
@@ -198,7 +198,7 @@ describe('ReleasesService', () => {
           scheme_id: 1,
           version: '1.0.0',
           release_uri:
-            'https://api.clarisa.cgiar.org/concepts/meliaf/releases/1.0.0',
+            'https://api.clarisa.cgiar.org/concepts/concepts/releases/1.0.0',
           previous_release_id: null,
           notes: 'First',
           license: 'CC BY 4.0',
@@ -208,7 +208,7 @@ describe('ReleasesService', () => {
       const snapshot = JSON.parse(release.snapshot);
       expect(snapshot.map((c: any) => c.term_id)).toEqual([101, 102]);
       expect(snapshot[0].term_uri).toBe(
-        'https://api.clarisa.cgiar.org/concepts/meliaf/101',
+        'https://api.clarisa.cgiar.org/concepts/concepts/101',
       );
       expect(result).toEqual(
         expect.objectContaining({
@@ -226,7 +226,7 @@ describe('ReleasesService', () => {
         { id: 4, scheme_id: 1, version: '1.1.0' },
       ];
       const result = await service.publish(
-        'meliaf',
+        'concepts',
         { version: '1.2.0' },
         'a@cgiar.org',
       );
@@ -242,14 +242,14 @@ describe('ReleasesService', () => {
           definition: null,
         }),
       ];
-      await service.publish('meliaf', { version: '1.0.0' }, 'a@cgiar.org');
+      await service.publish('concepts', { version: '1.0.0' }, 'a@cgiar.org');
       const snapshot = JSON.parse(saved[0].snapshot);
       expect(snapshot.map((c: any) => c.term_id)).toEqual([101]);
       expect(historyUpdate.params).toContainEqual({ ids: [1] });
     });
 
     it('stamps release_id on unreleased history rows of the published concepts', async () => {
-      await service.publish('meliaf', { version: '1.0.0' }, 'a@cgiar.org');
+      await service.publish('concepts', { version: '1.0.0' }, 'a@cgiar.org');
       expect(historyUpdate.entity).toBe(GcHistory);
       expect(historyUpdate.set).toEqual({ release_id: 77 });
       expect(historyUpdate.where).toEqual([
@@ -261,7 +261,7 @@ describe('ReleasesService', () => {
 
     it('rejects a version that is not MAJOR.MINOR.PATCH before opening a transaction', async () => {
       await expect(
-        service.publish('meliaf', { version: 'v1.0' }, 'a@cgiar.org'),
+        service.publish('concepts', { version: 'v1.0' }, 'a@cgiar.org'),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(dataSource.transaction).not.toHaveBeenCalled();
     });
@@ -276,7 +276,7 @@ describe('ReleasesService', () => {
     it('refuses a version that already exists with 409', async () => {
       storedReleases = [{ id: 3, scheme_id: 1, version: '1.0.0' }];
       await expect(
-        service.publish('meliaf', { version: '1.0.0' }, 'a@cgiar.org'),
+        service.publish('concepts', { version: '1.0.0' }, 'a@cgiar.org'),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(saved).toHaveLength(0);
     });
@@ -284,7 +284,7 @@ describe('ReleasesService', () => {
     it('refuses a version lower than the latest release with 409', async () => {
       storedReleases = [{ id: 3, scheme_id: 1, version: '1.2.0' }];
       await expect(
-        service.publish('meliaf', { version: '1.1.9' }, 'a@cgiar.org'),
+        service.publish('concepts', { version: '1.1.9' }, 'a@cgiar.org'),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(saved).toHaveLength(0);
     });
@@ -292,7 +292,7 @@ describe('ReleasesService', () => {
     it('refuses with 422 and lists the errors when the quality gate fails', async () => {
       storedConcepts = [concept(1, 'Outcome'), concept(2, 'outcome')];
       const error = await service
-        .publish('meliaf', { version: '1.0.0' }, 'a@cgiar.org')
+        .publish('concepts', { version: '1.0.0' }, 'a@cgiar.org')
         .catch((e) => e);
       expect(error).toBeInstanceOf(UnprocessableEntityException);
       const body = error.getResponse();
@@ -310,7 +310,7 @@ describe('ReleasesService', () => {
         concept(2, 'Old', { status: GcConceptStatus.DEPRECATED }),
       ];
       const result = await service.publish(
-        'meliaf',
+        'concepts',
         { version: '1.0.0' },
         'a@cgiar.org',
       );

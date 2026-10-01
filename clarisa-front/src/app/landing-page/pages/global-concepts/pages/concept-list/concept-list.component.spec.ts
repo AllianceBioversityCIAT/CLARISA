@@ -24,9 +24,9 @@ describe('ConceptListComponent', () => {
       alternative_labels: [],
       short_definition: 'A change in behaviour',
       definition: 'Long definition',
-      meliaf_function: ['monitoring'],
-      meliaf_phase_primary: 'implementation',
-      meliaf_phase_also: [],
+      functions: ['monitoring'],
+      phase_primary: 'implementation',
+      phase_also: [],
       term_type: 'core',
       status: 'approved',
       version: '1.0',
@@ -40,9 +40,9 @@ describe('ConceptListComponent', () => {
       alternative_labels: [],
       short_definition: null,
       definition: 'Starting point',
-      meliaf_function: ['evaluation'],
-      meliaf_phase_primary: 'design',
-      meliaf_phase_also: [],
+      functions: ['evaluation'],
+      phase_primary: 'design',
+      phase_also: [],
       term_type: 'core',
       status: 'approved',
       version: '1.0',
@@ -56,9 +56,9 @@ describe('ConceptListComponent', () => {
       alternative_labels: [],
       short_definition: null,
       definition: 'Superseded',
-      meliaf_function: ['monitoring'],
-      meliaf_phase_primary: null,
-      meliaf_phase_also: [],
+      functions: ['monitoring'],
+      phase_primary: null,
+      phase_also: [],
       term_type: null,
       status: 'deprecated',
       version: '1.1',
@@ -71,15 +71,15 @@ describe('ConceptListComponent', () => {
     url = {};
     params = new BehaviorSubject(convertToParamMap({}));
     api = {
-      schemes: jest.fn().mockReturnValue(of([{ code: 'meliaf', title: 'MELIAF' }])),
-      scheme: jest.fn().mockReturnValue(of({ code: 'meliaf', title: 'MELIAF concepts', description: 'Official', license: 'CC BY 4.0' })),
+      schemes: jest.fn().mockReturnValue(of([{ code: 'concepts', title: 'Concepts' }])),
+      scheme: jest.fn().mockReturnValue(of({ code: 'concepts', title: 'Concepts', description: 'Official', license: 'CC BY 4.0' })),
       lists: jest.fn().mockReturnValue(
         of({
-          meliaf_function: [
+          functions: [
             { value: 'monitoring', label: 'Monitoring' },
             { value: 'evaluation', label: 'Evaluation' }
           ],
-          meliaf_phase: [{ value: 'implementation', label: 'Implementation' }],
+          phase: [{ value: 'implementation', label: 'Implementation' }],
           term_type: [{ value: 'core', label: 'Core term' }]
         })
       ),
@@ -87,7 +87,13 @@ describe('ConceptListComponent', () => {
       concepts: jest.fn((scheme: string, query: any) =>
         of(query?.q ? concepts.filter(c => c.preferred_label.toLowerCase().includes(String(query.q).toLowerCase())) : concepts)
       ),
-      exportUrl: jest.fn((scheme: string, format: string) => `https://api/${scheme}/export?format=${format}`),
+      releases: jest.fn().mockReturnValue(
+        of([{ version: '1.0.0', released_at: '2026-09-29T13:50:08.000Z', release_uri: null, previous_version: null, notes: null, license: null }])
+      ),
+      exportUrl: jest.fn(
+        (scheme: string, format: string, version?: string | null) =>
+          `https://api/${scheme}/export?format=${format}${version ? `&version=${version}` : ''}`
+      ),
       suggest: jest.fn()
     };
     // A router that behaves like the real one for this page: merge the params, emit them.
@@ -124,7 +130,7 @@ describe('ConceptListComponent', () => {
   it('downloads the whole published set once and hides deprecated by default', () => {
     fixture.detectChanges();
     expect(api.concepts).toHaveBeenCalledTimes(1);
-    expect(api.concepts).toHaveBeenCalledWith('meliaf', {});
+    expect(api.concepts).toHaveBeenCalledWith('meliaf-taxonomy', {});
     expect(labels()).toEqual(['Baseline', 'Outcome']);
     expect(component.total).toBe(2);
     expect(fixture.nativeElement.querySelector('.gc-results__head').textContent).toContain('2 of 2 concepts');
@@ -132,36 +138,36 @@ describe('ConceptListComponent', () => {
 
   it('computes facet counts from the result and ORs values of one facet', () => {
     fixture.detectChanges();
-    expect(facet('meliaf_function')?.options.map(o => [o.value, o.count])).toEqual([
+    expect(facet('functions')?.options.map(o => [o.value, o.count])).toEqual([
       ['monitoring', 1],
       ['evaluation', 1]
     ]);
-    component.toggleValue('meliaf_function', 'monitoring');
+    component.toggleValue('functions', 'monitoring');
     expect(labels()).toEqual(['Outcome']);
     // Counts of the same facet ignore its own selection: evaluation still offers 1 more.
-    expect(facet('meliaf_function')?.options.find(o => o.value === 'evaluation')?.count).toBe(1);
-    component.toggleValue('meliaf_function', 'evaluation');
+    expect(facet('functions')?.options.find(o => o.value === 'evaluation')?.count).toBe(1);
+    component.toggleValue('functions', 'evaluation');
     expect(labels()).toEqual(['Baseline', 'Outcome']);
   });
 
   it('ANDs different facets', () => {
     fixture.detectChanges();
     component.toggleValue('term_type', 'core');
-    component.toggleValue('meliaf_phase', 'implementation');
+    component.toggleValue('phase', 'implementation');
     expect(labels()).toEqual(['Outcome']);
     expect(component.selected).toBe(2);
   });
 
   it('writes the state to the URL and reads it back (shareable, back button)', () => {
     fixture.detectChanges();
-    component.toggleValue('meliaf_function', 'monitoring');
-    component.toggleValue('meliaf_function', 'evaluation');
+    component.toggleValue('functions', 'monitoring');
+    component.toggleValue('functions', 'evaluation');
     component.setSort('updated');
-    expect(url).toEqual({ meliaf_function: 'monitoring,evaluation', sort: 'updated' });
+    expect(url).toEqual({ functions: 'monitoring,evaluation', sort: 'updated' });
 
     // The back button: the router emits the previous URL and the page follows it.
-    params.next(convertToParamMap({ meliaf_function: 'monitoring' }));
-    expect(component.state.facets.meliaf_function).toEqual(['monitoring']);
+    params.next(convertToParamMap({ functions: 'monitoring' }));
+    expect(component.state.facets.functions).toEqual(['monitoring']);
     expect(component.state.sort).toBe('best');
     expect(labels()).toEqual(['Outcome']);
   });
@@ -209,7 +215,7 @@ describe('ConceptListComponent', () => {
     tick(1);
     expect(url['q']).toBe('outc');
     expect(api.concepts).toHaveBeenCalledTimes(1);
-    expect(api.concepts).toHaveBeenCalledWith('meliaf', { q: 'outc', track: 0 });
+    expect(api.concepts).toHaveBeenCalledWith('meliaf-taxonomy', { q: 'outc', track: 0 });
     // A URL write replaces the entry: typing does not flood the history.
     expect(router.navigate.mock.calls[router.navigate.mock.calls.length - 1][1].replaceUrl).toBe(true);
     tick(SEARCH_SETTLE);
@@ -264,7 +270,7 @@ describe('ConceptListComponent', () => {
       tick(SEARCH_SETTLE - SEARCH_DEBOUNCE - 1);
       expect(counted()).toEqual([]);
       tick(1);
-      expect(counted()).toEqual([['meliaf', { q: 'outcome' }]]);
+      expect(counted()).toEqual([['meliaf-taxonomy', { q: 'outcome' }]]);
     }));
 
     it('counts on Enter or blur at once, and not again for the same query', fakeAsync(() => {
@@ -272,7 +278,7 @@ describe('ConceptListComponent', () => {
       api.concepts.mockClear();
       component.onQueryInput('baseline ');
       component.commitSearch();
-      expect(counted()).toEqual([['meliaf', { q: 'baseline' }]]);
+      expect(counted()).toEqual([['meliaf-taxonomy', { q: 'baseline' }]]);
 
       component.commitSearch();
       tick(SEARCH_SETTLE);
@@ -370,7 +376,7 @@ describe('ConceptListComponent', () => {
   it('builds the four export links from the service', () => {
     fixture.detectChanges();
     const links = Array.from(fixture.nativeElement.querySelectorAll('.gc-download__item')).map((a: any) => a.getAttribute('href'));
-    expect(links).toEqual(['json', 'csv', 'skos', 'jsonld'].map(f => `https://api/meliaf/export?format=${f}`));
+    expect(links).toEqual(['json', 'csv', 'skos', 'jsonld'].map(f => `https://api/meliaf-taxonomy/export?format=${f}`));
   });
 
   it('drops the facet values when the scheme changes', () => {
@@ -379,5 +385,13 @@ describe('ConceptListComponent', () => {
     component.switchScheme('prms');
     expect(url).toEqual({ scheme: 'prms' });
     expect(api.concepts).toHaveBeenLastCalledWith('prms', {});
+  });
+
+  it('Download offers Current plus each release and pins the one picked', () => {
+    fixture.detectChanges();
+    expect(component.versions.map(v => v.value)).toEqual([null, '1.0.0']);
+    expect(component.exportUrl('csv')).toBe('https://api/meliaf-taxonomy/export?format=csv');
+    component.exportVersion = '1.0.0';
+    expect(component.exportUrl('skos')).toBe('https://api/meliaf-taxonomy/export?format=skos&version=1.0.0');
   });
 });

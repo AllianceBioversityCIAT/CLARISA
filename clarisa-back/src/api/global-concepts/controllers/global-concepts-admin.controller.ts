@@ -75,8 +75,8 @@ import { PlatformUsageService } from '../services/platform-usage.service';
  *
  * `PermissionGuard` matches the path against the user's permissions, seeded by
  * `SeedGlobalConceptsAdminPermission1790500100000` and moved to the
- * `concepts` prefix by `RenameGlobalConceptsRoutesToMeliafTaxonomy1790500300000`
- * and `RenameMeliafTaxonomyRoutesToConcepts1790500400000`.
+ * `concepts` prefix by the route-rename migrations 1790500300000 and
+ * 1790500400000.
  */
 @ApiExcludeController()
 @Controller('admin')
@@ -320,9 +320,14 @@ export class GlobalConceptsAdminController {
     return this.catalog.listValues(scheme);
   }
 
+  /** Every concept of the scheme; `q` ranks them with the same text search as the public list. */
   @Get(':scheme/concepts')
-  list(@Param('scheme') scheme: string, @Query('status') status?: string) {
-    return this.admin.list(scheme, status);
+  list(
+    @Param('scheme') scheme: string,
+    @Query('status') status?: string,
+    @Query('q') q?: string,
+  ) {
+    return this.admin.list(scheme, status, q);
   }
 
   @Get(':scheme/concepts/:termId')
@@ -441,7 +446,7 @@ export class GlobalConceptsAdminController {
 
   /**
    * Same as `PATCH :scheme/icons/:id`, under the concept path so the
-   * concepts-only permission (`.../admin/meliaf/concepts`) reaches it. The
+   * concepts-only permission (`.../admin/meliaf-taxonomy/concepts`) reaches it. The
    * icon must belong to `termId` (404 otherwise).
    */
   @Patch(':scheme/concepts/:termId/icons/:id')

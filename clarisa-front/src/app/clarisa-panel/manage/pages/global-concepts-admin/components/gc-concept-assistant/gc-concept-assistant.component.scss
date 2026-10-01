@@ -72,6 +72,31 @@ app-gc-concept-assistant {
   line-height: 1.45;
 }
 
+/* «Clear»: quiet text button, starts the concept's chat over. */
+.gc-as__clear {
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cl-ink-3);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: var(--cl-surface-2);
+    color: var(--cl-ink);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
 .gc-as__close {
   display: inline-flex;
   align-items: center;

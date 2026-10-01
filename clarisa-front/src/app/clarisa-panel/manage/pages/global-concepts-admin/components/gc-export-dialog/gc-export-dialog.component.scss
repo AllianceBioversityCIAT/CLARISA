@@ -1,0 +1,17 @@
+.gc-export__hint {
+  display: block;
+  margin-top: 6px;
+  color: var(--cl-ink-3);
+  font-size: 12px;
+
+  &--warn {
+    color: var(--cl-warn);
+  }
+}
+
+.gc-export__download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}

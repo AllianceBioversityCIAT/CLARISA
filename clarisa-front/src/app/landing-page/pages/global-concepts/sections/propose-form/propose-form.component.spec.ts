@@ -64,10 +64,10 @@ describe('ProposeFormComponent', () => {
   });
 
   it('sends only the filled fields and shows the inbox message', () => {
-    component.scheme = 'meliaf';
+    component.scheme = 'concepts';
     fill({ email: ' a@cgiar.org ', preferred_label: 'Learning agenda', definition: '', source_citation: 'CGIAR 2030', rationale: 'Missing' });
     component.submit();
-    expect(api.startRequest).toHaveBeenCalledWith('meliaf', {
+    expect(api.startRequest).toHaveBeenCalledWith('concepts', {
       type: 'new',
       email: 'a@cgiar.org',
       rationale: 'Missing',
@@ -83,7 +83,7 @@ describe('ProposeFormComponent', () => {
     fill({ email: 'a@cgiar.org', definition: 'New wording', rationale: 'Clearer' });
     component.submit();
     expect(api.startRequest).toHaveBeenCalledWith(
-      'meliaf',
+      'meliaf-taxonomy',
       expect.objectContaining({ type: 'edit', term_id: 12, payload: { definition: 'New wording' } })
     );
   });

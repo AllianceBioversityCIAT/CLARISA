@@ -13,7 +13,7 @@ export interface RoleRow extends AccessRole {
 
 /**
  * Roles of CLARISA: what each one opens and who holds it (Héctor, 2026-09-29:
- * «un sistema de roles que yo pueda crear un rol que se llama MELIAF Data
+ * «un sistema de roles que yo pueda crear un rol que se llama Concepts Data
  * Admins»). The list is short (a few dozen at most), so it is loaded whole and
  * sorted in the browser.
  */

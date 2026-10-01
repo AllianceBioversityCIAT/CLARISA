@@ -1,0 +1,54 @@
+<p-dialog
+  [(visible)]="visible"
+  (visibleChange)="visibleChange.emit($event)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [dismissableMask]="true"
+  [style]="{ width: '520px' }"
+  [breakpoints]="{ '640px': '94vw' }"
+  styleClass="admin-dialog gc-dialog gc-export-dialog"
+  header="Export concepts">
+  <p-header>
+    <span class="gc-dialog__title">Export concepts</span>
+    <span class="gc-dialog__subtitle">The whole scheme, as it is now or as it was in a published release.</span>
+  </p-header>
+
+  <div class="admin-form">
+    <div class="field">
+      <label for="gc-export-format">Format</label>
+      <p-dropdown
+        inputId="gc-export-format"
+        [options]="formats"
+        [(ngModel)]="format"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+        styleClass="w-full"></p-dropdown>
+      <small class="gc-export__hint">{{ hint }}</small>
+    </div>
+
+    <div class="field">
+      <label for="gc-export-version">Version</label>
+      <p-dropdown
+        inputId="gc-export-version"
+        [options]="versions"
+        [(ngModel)]="version"
+        optionLabel="label"
+        optionValue="value"
+        [disabled]="loadingReleases"
+        [placeholder]="loadingReleases ? 'Loading releases…' : 'Current (latest)'"
+        appendTo="body"
+        styleClass="w-full"></p-dropdown>
+      <small class="gc-export__hint" *ngIf="!releasesError && versions.length === 1 && !loadingReleases">No release published yet: the current version is the only one.</small>
+      <small class="gc-export__hint gc-export__hint--warn" *ngIf="releasesError">Releases could not be loaded. The current version still downloads.</small>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Close" class="p-button-text" (click)="close()"></button>
+    <a class="p-button btn-brand gc-export__download" [href]="href" rel="noopener" download data-export-link
+      ><i class="pi pi-download" aria-hidden="true"></i><span>Download</span></a
+    >
+  </ng-template>
+</p-dialog>

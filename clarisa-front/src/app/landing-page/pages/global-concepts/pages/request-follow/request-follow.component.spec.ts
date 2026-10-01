@@ -17,7 +17,7 @@ describe('RequestFollowComponent', () => {
     type: 'new',
     state: 'changes_requested',
     payload: { preferred_label: 'Learning agenda' },
-    rationale: 'Missing in MELIAF',
+    rationale: 'Missing in Concepts',
     decision_note: 'Add a source, please',
     no_objection_until: null,
     created_at: '2026-09-20T10:00:00Z',
@@ -88,7 +88,7 @@ describe('RequestFollowComponent', () => {
     c.sendAnswer();
     expect(api.resubmitRequest).toHaveBeenCalledWith(41, 'follow-secret', {
       payload: { preferred_label: 'Learning agenda', source_citation: 'OECD 2019' },
-      rationale: 'Missing in MELIAF'
+      rationale: 'Missing in Concepts'
     });
     expect(c.request?.state).toBe('in_review');
     expect(c.canAnswer).toBe(false);

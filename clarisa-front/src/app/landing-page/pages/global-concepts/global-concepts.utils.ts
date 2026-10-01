@@ -1,13 +1,18 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
 /** The scheme the page opens on; any other one is reached with `?scheme=`. */
-export const DEFAULT_SCHEME = 'meliaf';
+export const DEFAULT_SCHEME = 'meliaf-taxonomy';
 
 /** Same cap as the back (`MAX_SUGGEST_TEXT`, concepts-suggest.service.ts). */
 export const MAX_SUGGEST_TEXT = 20000;
 
 /** Base path of every link of this section. */
 export const GC_BASE = '/landing-page/concepts';
+
+/** Link to a concept's page: `/landing-page/concepts/{scheme}/{termId}`. */
+export function conceptLink(scheme: string | null | undefined, termId: number): (string | number)[] {
+  return [GC_BASE, (scheme || DEFAULT_SCHEME).toLowerCase(), termId];
+}
 
 export interface ListOption {
   value: string;

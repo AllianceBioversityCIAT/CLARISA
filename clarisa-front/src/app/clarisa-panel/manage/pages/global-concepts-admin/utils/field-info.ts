@@ -18,10 +18,10 @@ export const FIELD_INFO = {
     scope_note: 'When and how to use the term, and what it does not cover, e.g. “Use for programme-level logic; for one project use Results framework.”',
     example_of_use: 'A sentence that uses the term in context, e.g. “The team revised its theory of change after the mid-term review.”',
     term_type: 'The kind of term, picked from the “term type” controlled list (Setup → Controlled lists). Readers and the API can filter concepts by it.',
-    meliaf_function:
-      'The MELIAF function(s) the concept serves: Monitoring, Evaluation, Learning, Impact assessment or Foresight. Pick one or more; readers and the API can filter by it.',
-    meliaf_phase_primary:
-      'The main phase of the MELIAF cycle where the concept is used, from the “MELIAF phase” list. In the MELIAF Excel it is usually the PARENT TERM column.',
+    functions:
+      'The function(s) the concept serves: Monitoring, Evaluation, Learning, Impact assessment or Foresight. Pick one or more; readers and the API can filter by it.',
+    phase_primary:
+      'The main phase of the cycle where the concept is used, from the “Phase” list. In the concepts Excel it is usually the PARENT TERM column.',
     derivation: 'How the term was obtained, from the “derivation” list, e.g. adopted as-is from a source or adapted from one.',
     source_citation: 'Where the definition comes from, written as a reference, e.g. “OECD DAC (2023). Glossary of Key Terms in Evaluation.”',
     source_url: 'Web link to that source, starting with https://, e.g. https://www.oecd.org/dac/evaluation/. Up to 1,000 characters.',

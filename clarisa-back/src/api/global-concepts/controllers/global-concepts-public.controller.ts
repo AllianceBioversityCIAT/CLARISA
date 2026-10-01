@@ -80,7 +80,8 @@ export class GlobalConceptsPublicController {
 
   @Get('schemes')
   @ApiOperation({
-    summary: 'List concept schemes (MELIAF and any domain or platform scheme)',
+    summary:
+      'List concept schemes (Concepts and any domain or platform scheme)',
   })
   schemes() {
     return this.read.schemes();
@@ -122,13 +123,13 @@ export class GlobalConceptsPublicController {
       '`q` searches the TERM ID, preferred, alternative and hidden labels, short definition and definition, in three tiers: ' +
       'the exact phrase (last word may be partial), then every word in any order, then similar spelling (typos). ' +
       'Each hit carries `match` {tier, score, highlights} with the character ranges to mark. ' +
-      'Filters: status (approved|deprecated), meliaf_function, meliaf_phase, term_type, collection. ' +
+      'Filters: status (approved|deprecated), functions, phase, term_type, collection. ' +
       '`version` pins the answer to a published release.',
   })
   @ApiQuery({ name: 'q', required: false })
   @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'meliaf_function', required: false })
-  @ApiQuery({ name: 'meliaf_phase', required: false })
+  @ApiQuery({ name: 'functions', required: false })
+  @ApiQuery({ name: 'phase', required: false })
   @ApiQuery({ name: 'term_type', required: false })
   @ApiQuery({ name: 'collection', required: false })
   @ApiQuery({ name: 'version', required: false })
@@ -142,8 +143,8 @@ export class GlobalConceptsPublicController {
     @Param('scheme') scheme: string,
     @Query('q') q?: string,
     @Query('status') status?: string,
-    @Query('meliaf_function') meliaf_function?: string,
-    @Query('meliaf_phase') meliaf_phase?: string,
+    @Query('functions') functions?: string,
+    @Query('phase') phase?: string,
     @Query('term_type') term_type?: string,
     @Query('collection') collection?: string,
     @Query('version') version?: string,
@@ -152,8 +153,8 @@ export class GlobalConceptsPublicController {
     const rows = await this.read.list(scheme, {
       q,
       status,
-      meliaf_function,
-      meliaf_phase,
+      functions,
+      phase,
       term_type,
       collection,
       version,

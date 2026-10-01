@@ -15,82 +15,12 @@
         aria-label="Reload"
         pTooltip="Reload"
         (click)="load()"></button>
-      <button
-        *ngIf="aiEnabled"
-        pButton
-        type="button"
-        [label]="indexing ? 'Updating AI index…' : 'Update AI index'"
-        icon="pi pi-bolt"
-        class="p-button-outlined"
-        [disabled]="indexing"
-        pTooltip="Embeds new or edited concepts so the request recommendation also finds duplicates by meaning. Costs cents."
-        (click)="refreshIndex()"></button>
+      <button pButton type="button" label="Export" icon="pi pi-download" class="p-button-outlined" (click)="exportOpen = true"></button>
       <button pButton type="button" label="New concept" icon="pi pi-plus" class="btn-brand" (click)="openCreate()"></button>
     </div>
   </div>
 
-  <section class="gc-semantic" *ngIf="aiEnabled" aria-label="Semantic search">
-    <form class="gc-semantic__form" (ngSubmit)="runSemantic()" autocomplete="off">
-      <span class="gc-semantic__badge"><i class="pi pi-bolt"></i> By meaning</span>
-      <label class="gc-sr-only" for="gc-semantic-text">Describe the idea you are looking for</label>
-      <input
-        id="gc-semantic-text"
-        name="semantic"
-        type="text"
-        pInputText
-        maxlength="1000"
-        placeholder="Describe an idea — e.g. “people who take part in an evaluation”"
-        [disabled]="semanticBusy"
-        [(ngModel)]="semanticText" />
-      <button
-        pButton
-        type="submit"
-        class="p-button-outlined"
-        icon="pi pi-search"
-        [label]="semanticBusy ? 'Searching…' : 'Semantic search'"
-        [disabled]="semanticBusy || !semanticText.trim()"
-        [loading]="semanticBusy"></button>
-    </form>
-    <p class="gc-ed__error" role="alert" *ngIf="semanticError">
-      <i class="pi pi-times-circle"></i><span>{{ semanticError }}</span>
-    </p>
-  </section>
-
-  <div class="gc-card gc-semantic-results" *ngIf="semanticHits">
-    <div class="gc-semantic-results__head">
-      <div>
-        <p class="gc-ed__title">Closest in meaning to “{{ semanticQuery }}”</p>
-        <p class="gc-ed__hint">Ranked by the AI index, not by words. Concepts edited since the last index update may be missing.</p>
-      </div>
-      <button
-        pButton
-        type="button"
-        label="Back to the table"
-        icon="pi pi-arrow-left"
-        class="p-button-text p-button-sm"
-        (click)="clearSemantic()"></button>
-    </div>
-    <div class="gc-ed__empty gc-semantic-results__empty" *ngIf="!semanticHits.length">
-      <i class="pi pi-search"></i><span>Nothing close enough. Try other words, or update the AI index.</span>
-    </div>
-    <ol class="gc-hits" *ngIf="semanticHits.length">
-      <li *ngFor="let hit of semanticHits; let i = index">
-        <button type="button" class="gc-hit" [disabled]="!hit.concept" (click)="openEdit(hit.concept)">
-          <span class="gc-hit__rank">{{ i + 1 }}</span>
-          <span class="gc-hit__text">
-            <span class="gc-ed__main">{{ hit.preferred_label }}</span>
-            <span class="gc-ed__sub">TERM {{ hit.term_id }} · {{ statusLabel(hit.status) }}</span>
-          </span>
-          <span class="gc-hit__score" [attr.aria-label]="'Score ' + (hit.score | number: '1.2-2')">
-            <span class="gc-hit__bar"><span [style.width.%]="hit.percent"></span></span>
-            <span class="gc-hit__num">{{ hit.score | number: '1.2-2' }}</span>
-          </span>
-        </button>
-      </li>
-    </ol>
-  </div>
-
-  <div class="gc-filters" *ngIf="!semanticHits">
+  <div class="gc-filters">
     <div class="admin-table-toolbar gc-toolbar gc-filter">
       <span class="p-input-icon-left gc-filter__search">
         <i class="pi pi-search"></i>
@@ -100,7 +30,7 @@
           placeholder="Search TERM ID, label or definition"
           aria-label="Search TERM ID, label or definition"
           [(ngModel)]="filters.search"
-          (ngModelChange)="applyFilters()" />
+          (ngModelChange)="onSearchChange()" />
       </span>
       <span class="gc-sr-only" id="gc-f-status-l">Filter by status</span>
       <p-multiSelect
@@ -115,7 +45,7 @@
         [options]="statusChoices"
         [(ngModel)]="filters.statuses"
         (onChange)="applyFilters()"></p-multiSelect>
-      <span class="gc-sr-only" id="gc-f-function-l">Filter by MELIAF function</span>
+      <span class="gc-sr-only" id="gc-f-function-l">Filter by Function</span>
       <p-multiSelect
         inputId="gc-f-function"
         ariaLabelledBy="gc-f-function-l"
@@ -125,7 +55,7 @@
         selectedItemsLabel="{0} functions"
         [maxSelectedLabels]="1"
         [showHeader]="false"
-        [options]="optionsFor('meliaf_function')"
+        [options]="optionsFor('functions')"
         [(ngModel)]="filters.functions"
         (onChange)="applyFilters()"></p-multiSelect>
       <button
@@ -170,7 +100,7 @@
           selectedItemsLabel="{0} phases"
           [maxSelectedLabels]="1"
           [showHeader]="false"
-          [options]="optionsFor('meliaf_phase')"
+          [options]="optionsFor('phase')"
           [(ngModel)]="filters.phases"
           (onChange)="applyFilters()"></p-multiSelect>
       </div>
@@ -214,7 +144,13 @@
     </div>
   </div>
 
-  <div class="gc-card" *ngIf="!semanticHits">
+  <output class="gc-search-note" *ngIf="filters.search.trim()" aria-live="polite">
+    <ng-container *ngIf="ranked">Best matches first: the exact phrase, then every word in any order, then similar spelling.</ng-container>
+    <ng-container *ngIf="!ranked && !searchFailed">Ranking the matches…</ng-container>
+    <ng-container *ngIf="searchFailed">The ranked search is not available right now: showing the plain matches.</ng-container>
+  </output>
+
+  <div class="gc-card">
     <div class="gc-skeleton" *ngIf="loading && !concepts.length" aria-busy="true" aria-label="Loading concepts">
       <div class="gc-skeleton__row" *ngFor="let _ of [1, 2, 3, 4, 5, 6]">
         <span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span><span class="gc-skeleton__bar"></span
@@ -241,7 +177,7 @@
       *ngIf="!loadError && concepts.length"
       [value]="rows"
       [loading]="loading"
-      sortField="preferred_label"
+      [sortField]="ranked ? undefined : 'preferred_label'"
       [sortOrder]="1"
       [rows]="15"
       [paginator]="rows.length > 15"
@@ -314,3 +250,5 @@
 
 <app-gc-concept-create-dialog [scheme]="scheme" (created)="onCreated($event)"></app-gc-concept-create-dialog>
 <app-gc-concept-dialog [scheme]="scheme" [aiEnabled]="aiEnabled" [lists]="lists" [concepts]="concepts" (changed)="load()"></app-gc-concept-dialog>
+
+<app-gc-export-dialog [scheme]="scheme" [(visible)]="exportOpen"></app-gc-export-dialog>

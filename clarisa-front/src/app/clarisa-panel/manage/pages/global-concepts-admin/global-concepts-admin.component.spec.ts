@@ -2,11 +2,11 @@ import { Observable, of, throwError } from 'rxjs';
 import { GlobalConceptsApiService } from '../../../../shared/services/global-concepts/global-concepts-api.service';
 import { PanelAccessService } from '../../../../shared/services/access-admin/panel-access.service';
 import { MeAccess } from '../../../../shared/services/access-admin/access-admin-api.service';
-import { GlobalConceptsAdminComponent, isMeliafFullAdmin } from './global-concepts-admin.component';
+import { GlobalConceptsAdminComponent, isConceptsFullAdmin } from './global-concepts-admin.component';
 
 const who = (permissions: string[], isSuper = false): MeAccess => ({ userId: 1, email: 'x@clarisa.test', roles: [], permissions, isSuper });
 const FULL = who(['/api/concepts/admin']);
-const CONCEPTS_ONLY = who(['/api/concepts/admin/meliaf/concepts']);
+const CONCEPTS_ONLY = who(['/api/concepts/admin/meliaf-taxonomy/concepts']);
 
 describe('GlobalConceptsAdminComponent', () => {
   const build = (api: Partial<Record<'schemes' | 'aiStatus', jest.Mock>>, access: MeAccess | null | Observable<MeAccess | null> = FULL) => {
@@ -20,7 +20,7 @@ describe('GlobalConceptsAdminComponent', () => {
   describe('tabs by permission', () => {
     const ids = (component: GlobalConceptsAdminComponent) => component.sections.map(section => section.id);
 
-    it('a super and a full MELIAF admin see the five tabs', () => {
+    it('a super and a full Concepts admin see the five tabs', () => {
       expect(ids(build(quiet(), who([], true)))).toEqual(['concepts', 'requests', 'import', 'setup', 'usage']);
       expect(ids(build(quiet(), FULL))).toEqual(['concepts', 'requests', 'import', 'setup', 'usage']);
     });
@@ -45,23 +45,23 @@ describe('GlobalConceptsAdminComponent', () => {
     });
 
     it('decides full admin with the same substring test as the back', () => {
-      expect(isMeliafFullAdmin(FULL)).toBe(true);
-      expect(isMeliafFullAdmin(who([], true))).toBe(true);
-      expect(isMeliafFullAdmin(CONCEPTS_ONLY)).toBe(false);
-      expect(isMeliafFullAdmin(who(['/api/concepts/admin/meliaf/lists']))).toBe(false);
-      expect(isMeliafFullAdmin(null)).toBe(false);
+      expect(isConceptsFullAdmin(FULL)).toBe(true);
+      expect(isConceptsFullAdmin(who([], true))).toBe(true);
+      expect(isConceptsFullAdmin(CONCEPTS_ONLY)).toBe(false);
+      expect(isConceptsFullAdmin(who(['/api/concepts/admin/meliaf-taxonomy/lists']))).toBe(false);
+      expect(isConceptsFullAdmin(null)).toBe(false);
     });
   });
 
   it('keeps AI off and the scheme picker hidden with one scheme', () => {
     const component = build({
-      schemes: jest.fn(() => of([{ code: 'meliaf', title: 'MELIAF' }])),
+      schemes: jest.fn(() => of([{ code: 'concepts', title: 'Concepts' }])),
       aiStatus: jest.fn(() => of({ enabled: false }))
     });
 
     expect(component.aiEnabled).toBe(false);
     expect(component.showSchemePicker).toBe(false);
-    expect(component.scheme).toBe('meliaf');
+    expect(component.scheme).toBe('concepts');
   });
 
   it('turns AI on only when the status says so, and off when the status fails', () => {
@@ -73,7 +73,7 @@ describe('GlobalConceptsAdminComponent', () => {
     const component = build({
       schemes: jest.fn(() =>
         of([
-          { code: 'meliaf', title: 'MELIAF' },
+          { code: 'concepts', title: 'Concepts' },
           { code: 'other', title: 'Other' }
         ])
       ),
