@@ -228,18 +228,18 @@
               "method": "get"
             },
             {
-              "name": "Concepts list",
-              "route": "api/concepts/concepts/concepts",
+              "name": "MELIAF taxonomy concepts",
+              "route": "api/concepts/meliaf-taxonomy/concepts",
               "method": "get"
             },
             {
-              "name": "Releases",
-              "route": "api/concepts/concepts/releases",
+              "name": "MELIAF taxonomy releases",
+              "route": "api/concepts/meliaf-taxonomy/releases",
               "method": "get"
             },
             {
-              "name": "Change feed",
-              "route": "api/concepts/concepts/changes",
+              "name": "MELIAF taxonomy change feed",
+              "route": "api/concepts/meliaf-taxonomy/changes",
               "method": "get"
             }
           ]

@@ -42,7 +42,7 @@ the grouping has to live here.
   Two groups today, mirroring the public menu:
   - `One CGIAR Control List` — `General Control List` (9), `Institutions` (3),
     `Research Strategy 2030` (12), `Innovation Catalog` (13), `Concepts` (5) — 42 endpoints.
-    `Concepts` is a category of this group, not a group of its own (Yeck,
+    `Concepts` (the MELIAF taxonomy, scheme `meliaf-taxonomy`) is a category of this group, not a group of its own (Yeck,
     2026-10-01): as a separate group the docs scoped themselves to it and the
     reader could not move to the other control lists. Links to it use
     `documentation/One_CGIAR_Control_List/Concepts`.
