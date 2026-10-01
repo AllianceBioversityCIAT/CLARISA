@@ -36,7 +36,7 @@ export class GcSetupPanelComponent implements OnInit, OnChanges {
   /** The field form needs the list codes and the collections need the concepts, whichever section opens first. */
   private loadSupport(): void {
     this._api.lists(this.scheme).subscribe({
-      next: values => (this.listCodes = [...new Set((values ?? []).map(value => value.list_code))].sort()),
+      next: values => (this.listCodes = [...new Set((values ?? []).map(value => value.list_code))].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))),
       // Without them the list picker is empty and the Controlled lists section reports its own error.
       error: () => (this.listCodes = [])
     });

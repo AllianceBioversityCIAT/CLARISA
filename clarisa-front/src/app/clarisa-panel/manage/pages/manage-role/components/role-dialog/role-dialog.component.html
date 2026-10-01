@@ -112,8 +112,8 @@
             [disabled]="!canGrant(permission) || saving"
             (onChange)="toggle(permission, $event.checked)"></p-checkbox>
           <!-- The text toggles too: a 20px box is a small target on a phone. -->
-          <span class="acc-perm__text" (click)="toggle(permission, !isChecked(permission))">
-            <label class="acc-perm__label" [for]="'acc-perm-' + permission.id" (click)="$event.preventDefault()">{{ permission.label || permission.name }}</label>
+          <span class="acc-perm__text" (click)="toggle(permission, !isChecked(permission))" (keydown.enter)="toggle(permission, !isChecked(permission))">
+            <label class="acc-perm__label" [for]="'acc-perm-' + permission.id" (click)="$event.preventDefault()" (keydown.enter)="$event.preventDefault()">{{ permission.label || permission.name }}</label>
             <span class="acc-perm__desc" *ngIf="permission.description">{{ permission.description }}</span>
             <code class="acc-perm__route">{{ permission.name }}</code>
           </span>

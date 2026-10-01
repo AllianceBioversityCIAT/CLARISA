@@ -120,17 +120,19 @@
               <input
                 *ngIf="item.field === 'short_definition'"
                 id="gc-short_definition"
+                aria-label="Short definition"
                 name="short_definition"
                 type="text"
                 maxlength="500"
                 pInputText
                 [(ngModel)]="form.short_definition"
               (ngModelChange)="onHandEdit('short_definition', $event)" />
-              <textarea *ngIf="item.field === 'scope_note'" id="gc-scope_note" name="scope_note" pInputTextarea rows="3" [(ngModel)]="form.scope_note"
+              <textarea *ngIf="item.field === 'scope_note'" id="gc-scope_note" aria-label="Scope note" name="scope_note" pInputTextarea rows="3" [(ngModel)]="form.scope_note"
               (ngModelChange)="onHandEdit('scope_note', $event)"></textarea>
               <textarea
                 *ngIf="item.field === 'example_of_use'"
                 id="gc-example_of_use"
+                aria-label="Example of use"
                 name="example_of_use"
                 pInputTextarea
                 rows="3"

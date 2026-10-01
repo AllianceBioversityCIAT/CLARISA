@@ -81,7 +81,7 @@
 
 <!-- Phone bottom sheet -->
 <div class="gc-sheet" *ngIf="sheetOpen">
-  <div class="gc-sheet__veil" (click)="closeSheet()" aria-hidden="true"></div>
+  <div class="gc-sheet__veil" (click)="closeSheet()" (keydown.escape)="closeSheet()" aria-hidden="true"></div>
   <div class="gc-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="gc-sheet-title" (keydown)="trapFocus($event)">
     <header class="gc-sheet__head">
       <h3 class="gc-sheet__title" id="gc-sheet-title" tabindex="-1">Filters</h3>

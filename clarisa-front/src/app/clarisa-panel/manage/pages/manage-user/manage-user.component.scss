@@ -1,6 +1,7 @@
 @import '../../components/access/access-page';
 
 @include access-page-motion;
+@include access-page-root;
 
 :host {
   display: block;
