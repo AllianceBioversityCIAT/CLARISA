@@ -59,7 +59,7 @@ const iso = (date: Date) => date.toISOString().slice(0, 10);
  */
 export function fillDays(byDay: UsageSummary['by_day'], days: number, today: Date = new Date()): ChartPoint[] {
   const known = new Map((byDay ?? []).map(row => [String(row.day).slice(0, 10), row]));
-  const latest = [...known.keys()].sort().pop();
+  const latest = [...known.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).pop();
   const end = latest && latest > iso(today) ? new Date(`${latest}T00:00:00Z`) : new Date(`${iso(today)}T00:00:00Z`);
   const out: ChartPoint[] = [];
   for (let i = Math.max(1, days) - 1; i >= 0; i--) {

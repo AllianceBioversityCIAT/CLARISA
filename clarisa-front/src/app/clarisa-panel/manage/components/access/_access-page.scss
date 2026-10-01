@@ -11,15 +11,25 @@
  * The form/dialog skin (Concepts's `gc-form-skin`) comes from
  * `app-access-skin`. Tokens only, px only.
  */
-@mixin access-common {
-
-  &.acc-page {
+/* The page root (the host element carries both classes), written out in full so the selector
+   never depends on where the mixin is included. */
+@mixin access-page-root {
+  :host ::ng-deep .access-admin.acc-page {
     display: block;
     min-height: 100vh;
     padding: 24px 28px 32px;
     background: var(--cl-surface-2);
     box-sizing: border-box;
   }
+
+  @media (max-width: 991px) {
+    :host ::ng-deep .access-admin.acc-page {
+      padding: 20px 16px 28px;
+    }
+  }
+}
+
+@mixin access-common {
 
   /* ---- card, states, skeleton ------------------------------------------ */
   .acc-card {
@@ -179,11 +189,6 @@
     }
   }
 
-  @media (max-width: 991px) {
-    &.acc-page {
-      padding: 20px 16px 28px;
-    }
-  }
 }
 
 /* Users: toolbar, bulk bar and the per-person drawer. */

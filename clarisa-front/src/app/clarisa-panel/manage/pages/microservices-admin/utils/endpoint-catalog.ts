@@ -177,7 +177,7 @@ function finish(acc: Accumulator): UsageTreeEndpoint {
   node.consumers = [...acc.consumers.values()].sort((a, b) => b.total_requests - a.total_requests);
   node.unique_api_keys = node.consumers.length;
   node.avg_response_time_ms = acc.weightedCount ? Math.round(acc.weightedMs / acc.weightedCount) : null;
-  node.paths.sort();
+  node.paths.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
   return node;
 }
 

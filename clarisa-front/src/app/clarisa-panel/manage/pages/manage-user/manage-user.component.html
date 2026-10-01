@@ -105,7 +105,7 @@
       </tr>
       <ng-template #userRow>
         <tr class="acc-row" tabindex="0" [attr.aria-label]="'Open ' + fullName(row)" (click)="openUser(row)" (keydown.enter)="openUser(row)">
-          <td (click)="$event.stopPropagation()" data-label="Select">
+          <td (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()" data-label="Select">
             <p-tableCheckbox [value]="row" [ariaLabel]="'Select ' + fullName(row)"></p-tableCheckbox>
           </td>
           <td data-card-title data-label="Name" class="cell-primary">{{ fullName(row) }}</td>

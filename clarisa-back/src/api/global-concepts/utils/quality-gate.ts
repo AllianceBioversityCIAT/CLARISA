@@ -134,7 +134,7 @@ export function checkQuality(
           QualityCode.LABEL_OVERLAP,
           'error',
           Number(c.term_id),
-          `Label ${texts.get(key)} is used as ${[...kinds].sort().join(' and ')}`,
+          `Label ${texts.get(key)} is used as ${[...kinds].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join(' and ')}`,
         );
       }
     }
