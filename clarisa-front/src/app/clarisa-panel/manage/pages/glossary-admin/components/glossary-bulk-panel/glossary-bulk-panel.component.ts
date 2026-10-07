@@ -55,6 +55,8 @@ export class GlossaryBulkPanelComponent implements OnInit {
   sourceColumn: number | null = null;
   sourceUrlColumn: number | null = null;
   referenceDateColumn: number | null = null;
+  /** Same rule: unmapped leaves the stored labels as they are. */
+  alternativeLabelsColumn: number | null = null;
   selectedPortfolioIds: number[] = [];
   conflictPolicy: GlossaryBulkConflictPolicy = 'update';
   showInDashboard = false;
@@ -166,13 +168,15 @@ export class GlossaryBulkPanelComponent implements OnInit {
       this.sourceColumn = detected.sourceIndex >= 0 ? detected.sourceIndex : null;
       this.sourceUrlColumn = detected.sourceUrlIndex >= 0 ? detected.sourceUrlIndex : null;
       this.referenceDateColumn = detected.referenceDateIndex >= 0 ? detected.referenceDateIndex : null;
+      this.alternativeLabelsColumn = detected.alternativeLabelsIndex >= 0 ? detected.alternativeLabelsIndex : null;
 
       const columns = buildColumnOptions(table, [
         this.termColumn,
         this.definitionColumn,
         this.sourceColumn,
         this.sourceUrlColumn,
-        this.referenceDateColumn
+        this.referenceDateColumn,
+        this.alternativeLabelsColumn
       ]);
       this.columnOptions = columns.options;
       this.hiddenColumnCount = columns.hiddenCount;
@@ -193,9 +197,9 @@ export class GlossaryBulkPanelComponent implements OnInit {
   /** Downloads a two-column starter file so nobody has to guess the format. */
   downloadTemplate(): void {
     const csv = [
-      'term,definition,source,source url,reference date',
-      '"Impact Area","One of the five CGIAR areas where impact is pursued.","CGIAR 2025-2030 Portfolio Narrative","https://www.cgiar.org/","2025-01-15"',
-      '"Initiative","A CGIAR research portfolio investment.","CGIAR Research Initiatives",,"2022-03-01"'
+      'term,definition,source,source url,reference date,alternative labels',
+      '"Impact Area","One of the five CGIAR areas where impact is pursued.","CGIAR 2025-2030 Portfolio Narrative","https://www.cgiar.org/","2025-01-15","IA; Impact domain"',
+      '"Initiative","A CGIAR research portfolio investment.","CGIAR Research Initiatives",,"2022-03-01",'
     ].join('\n');
     const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -263,13 +267,16 @@ export class GlossaryBulkPanelComponent implements OnInit {
     const sourceColumn = this.sourceColumn;
     const sourceUrlColumn = this.sourceUrlColumn;
     const referenceDateColumn = this.referenceDateColumn;
+    const alternativeLabelsColumn = this.alternativeLabelsColumn;
 
     const rows: GlossaryBulkRow[] = (this.table?.rows ?? []).map(row => ({
       term: row[termColumn] ?? '',
       definition: row[definitionColumn] ?? '',
       ...(sourceColumn !== null ? { source: row[sourceColumn] ?? '' } : {}),
       ...(sourceUrlColumn !== null ? { source_url: row[sourceUrlColumn] ?? '' } : {}),
-      ...(referenceDateColumn !== null ? { reference_date: this.normalizeReferenceDate(row[referenceDateColumn]) } : {})
+      ...(referenceDateColumn !== null ? { reference_date: this.normalizeReferenceDate(row[referenceDateColumn]) } : {}),
+      // Sent as the raw cell: the API splits it on `;` or `|` and cleans it.
+      ...(alternativeLabelsColumn !== null ? { alternative_labels: row[alternativeLabelsColumn] ?? '' } : {})
     }));
 
     return {
@@ -377,6 +384,7 @@ export class GlossaryBulkPanelComponent implements OnInit {
     this.sourceColumn = null;
     this.sourceUrlColumn = null;
     this.referenceDateColumn = null;
+    this.alternativeLabelsColumn = null;
     this.selectedPortfolioIds = [];
     this.conflictPolicy = 'update';
     this.showInDashboard = false;

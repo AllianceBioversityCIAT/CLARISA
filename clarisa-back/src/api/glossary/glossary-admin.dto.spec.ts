@@ -71,6 +71,29 @@ describe('Glossary admin DTO validation', () => {
     // They live on a common base class, so these cases prove the inherited
     // decorators still run: class-validator reads the whole prototype chain,
     // and a broken chain would silently accept everything below.
+    it('accepts a list of alternative labels, and an empty one to clear them', async () => {
+      await expect(
+        run(
+          CreateGlossaryTermDto,
+          panelBody({ alternative_labels: ['IA', 'Impact study'] }),
+        ),
+      ).resolves.toMatchObject({ alternative_labels: ['IA', 'Impact study'] });
+      await expect(
+        run(UpdateGlossaryTermDto, { alternative_labels: [] }),
+      ).resolves.toMatchObject({ alternative_labels: [] });
+    });
+
+    it.each([
+      ['a single string', 'IA; Impact study'],
+      ['a non-string label', ['IA', 3]],
+      ['more than 30 labels', Array.from({ length: 31 }, (_, i) => `L${i}`)],
+      ['a label longer than 200 characters', ['x'.repeat(201)]],
+    ])('rejects alternative labels given as %s', async (_label, value) => {
+      await expect(
+        run(CreateGlossaryTermDto, panelBody({ alternative_labels: value })),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
     it('still enforces the length of an inherited field', async () => {
       await expect(
         run(CreateGlossaryTermDto, panelBody({ source: 'x'.repeat(501) })),

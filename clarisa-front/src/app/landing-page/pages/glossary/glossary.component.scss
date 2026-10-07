@@ -61,6 +61,52 @@
   margin-bottom: 28px;
 }
 
+// Descarga del glosario completo: enlaces de texto, no botones. Es un recurso
+// para quien integra, no la acción principal de la página.
+.glossary-download {
+  margin-top: 8px;
+  font-size: 13px;
+
+  a {
+    color: var(--cl-brand-deep, #0a6449);
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
+  a:hover,
+  a:focus {
+    color: var(--cl-brand-deeper, #08543e);
+  }
+}
+
+.glossary-download__label {
+  color: var(--cl-ink-2, #46524c);
+}
+
+// Vuelta desde un enlace permanente a la página entera.
+.glossary-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-bottom: 16px;
+  color: var(--cl-brand-deep, #0a6449);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover,
+  &:focus {
+    color: var(--cl-brand-deeper, #08543e);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cl-brand-ring, #bde3d4);
+    outline-offset: 2px;
+  }
+}
+
 // ------------------------------------------------------------------ buscador
 // Mismo campo que el del acceso: borde completo, radio de control y 16px.
 // 🛑 Los 16px son un piso, no un gusto: por debajo, iOS Safari hace zoom al
@@ -251,6 +297,64 @@
       letter-spacing: -0.01em;
     }
   }
+}
+
+// Sinónimos y siglas debajo del título: dato de apoyo, no compiten con él.
+.card-alt-labels {
+  margin: 3px 0 0;
+  color: var(--cl-ink-2, #46524c);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+// La tarjeta de un enlace permanente se distingue por el borde, sin sombra
+// (DESIGN.md § 6: borde O sombra).
+.glossary-card.is-focused {
+  border-color: var(--cl-brand-ring, #bde3d4);
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+// Botón fantasma: la acción existe en cada tarjeta, así que no puede gritar.
+.card-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--cl-radius-control, 8px);
+  background: transparent;
+  color: var(--cl-ink-2, #46524c);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease;
+
+  &:hover {
+    border-color: var(--cl-line, #d9e0da);
+    color: var(--cl-ink, #10241c);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cl-brand-ring, #bde3d4);
+    outline-offset: 1px;
+  }
+}
+
+.card-copy__feedback {
+  color: var(--cl-brand-deep, #0a6449);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .card-definition {
@@ -585,6 +689,7 @@ button.version-seg:hover:not(.is-active) {
   .letter-circle,
   .version-seg,
   .glossary-card,
+  .card-copy,
   .glossary-search input {
     transition: none;
   }

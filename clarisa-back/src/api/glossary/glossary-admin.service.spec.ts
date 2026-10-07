@@ -646,6 +646,224 @@ describe('GlossaryAdminService', () => {
 
   // -------------------------------------------------------------- provenance
 
+  describe('alternative labels', () => {
+    it('stores cleaned labels on create: trimmed, deduplicated, without the term itself', async () => {
+      manager.findOne.mockResolvedValue({
+        id: 99,
+        title: 'Impact assessment',
+        auditableFields: { is_active: true },
+      });
+
+      await service.create(
+        {
+          term: 'Impact assessment',
+          definition: 'A definition',
+          alternative_labels: [
+            ' IA ',
+            'ia',
+            '',
+            'impact ASSESSMENT',
+            'IA study',
+          ],
+        },
+        userData,
+      );
+
+      const created = savedEntities.find(
+        (e) => e && e.title === 'Impact assessment',
+      );
+      expect(JSON.parse(created.alternative_labels)).toEqual([
+        'IA',
+        'IA study',
+      ]);
+    });
+
+    it('stores null, not an empty JSON array, when there are no labels', async () => {
+      manager.findOne.mockResolvedValue({
+        id: 99,
+        title: 'Outcome',
+        auditableFields: { is_active: true },
+      });
+
+      await service.create(
+        { term: 'Outcome', definition: 'A definition' },
+        userData,
+      );
+
+      const created = savedEntities.find((e) => e && e.title === 'Outcome');
+      expect(created.alternative_labels).toBeNull();
+    });
+
+    it('leaves the labels untouched when the update does not mention them, and clears them with []', async () => {
+      const stored: any = {
+        id: 1,
+        title: 'Outcome',
+        definition: 'old',
+        alternative_labels: JSON.stringify(['Result']),
+        auditableFields: { is_active: true },
+      };
+      manager.findOne.mockResolvedValue(stored);
+
+      await service.update(1, { definition: 'new' }, userData);
+      expect(stored.alternative_labels).toBe(JSON.stringify(['Result']));
+
+      await service.update(1, { alternative_labels: [] }, userData);
+      expect(stored.alternative_labels).toBeNull();
+    });
+
+    it('splits the bulk cell on ; and | but not on commas', async () => {
+      const result = await service.bulkPreview({
+        rows: [
+          {
+            term: 'Outcome',
+            definition: 'A definition',
+            alternative_labels:
+              'Result; change in behaviour, practice | Outcome',
+          },
+        ],
+      });
+
+      expect(result.rows[0].alternative_labels).toEqual([
+        'Result',
+        'change in behaviour, practice',
+      ]);
+    });
+
+    it('keeps the stored labels when a bulk upload maps no label column', async () => {
+      const stored: any = {
+        id: 1,
+        title: 'Outcome',
+        definition: 'old',
+        alternative_labels: JSON.stringify(['Result']),
+        auditableFields: { is_active: true },
+      };
+      storedGlossary = [stored];
+      manager.findOne.mockResolvedValue(stored);
+
+      await service.bulkImport(
+        {
+          rows: [{ term: 'Outcome', definition: 'new' }],
+          on_conflict: GlossaryBulkConflictPolicy.UPDATE,
+        },
+        userData,
+      );
+
+      expect(stored.definition).toBe('new');
+      expect(stored.alternative_labels).toBe(JSON.stringify(['Result']));
+    });
+  });
+
+  describe('editorial status', () => {
+    const stored = (over: any = {}) => ({
+      id: 1,
+      title: 'Outcome',
+      definition: 'A definition',
+      editorial_status: 'approved',
+      replaced_by_id: null,
+      auditableFields: { is_active: true },
+      ...over,
+    });
+
+    it('creates terms as approved unless the panel asks for a draft', async () => {
+      manager.findOne.mockResolvedValue(stored());
+      await service.create(
+        { term: 'Outcome', definition: 'A definition' },
+        userData,
+      );
+      await service.create(
+        {
+          term: 'Output',
+          definition: 'A definition',
+          editorial_status: 'draft' as any,
+        },
+        userData,
+      );
+      const created = manager.create.mock.calls
+        .filter((c: any[]) => c[0] === Glossary)
+        .map((c: any[]) => c[1].editorial_status);
+      expect(created).toEqual(['approved', 'draft']);
+    });
+
+    it('deprecates a term pointing to an approved, active replacement', async () => {
+      const term = stored();
+      const target = stored({ id: 2, title: 'Result' });
+      manager.findOne.mockImplementation((_entity: any, { where }: any) =>
+        Promise.resolve(Number(where.id) === 2 ? target : term),
+      );
+
+      await service.setEditorialStatus(
+        1,
+        { status: 'deprecated' as any, replaced_by_id: 2 },
+        userData,
+      );
+
+      expect(term.editorial_status).toBe('deprecated');
+      expect(term.replaced_by_id).toBe(2);
+      expect(term.auditableFields.updated_by).toBe(7);
+    });
+
+    it('clears the replacement when a term leaves deprecated', async () => {
+      const term = stored({
+        editorial_status: 'deprecated',
+        replaced_by_id: 2,
+      });
+      manager.findOne.mockResolvedValue(term);
+
+      await service.setEditorialStatus(
+        1,
+        { status: 'approved' as any },
+        userData,
+      );
+
+      expect(term.editorial_status).toBe('approved');
+      expect(term.replaced_by_id).toBeNull();
+    });
+
+    it.each([
+      [
+        'a replacement on a non-deprecated status',
+        { status: 'approved', replaced_by_id: 2 },
+        stored({ id: 2 }),
+      ],
+      [
+        'a term replacing itself',
+        { status: 'deprecated', replaced_by_id: 1 },
+        stored(),
+      ],
+      [
+        'a replacement that does not exist',
+        { status: 'deprecated', replaced_by_id: 9 },
+        null,
+      ],
+      [
+        'a replacement that is itself a draft',
+        { status: 'deprecated', replaced_by_id: 2 },
+        stored({ id: 2, editorial_status: 'draft' }),
+      ],
+      [
+        'a replacement that is inactive',
+        { status: 'deprecated', replaced_by_id: 2 },
+        stored({ id: 2, auditableFields: { is_active: false } }),
+      ],
+    ])('rejects %s', async (_label, dto: any, target) => {
+      const term = stored();
+      manager.findOne.mockImplementation((_entity: any, { where }: any) =>
+        Promise.resolve(Number(where.id) === 1 ? term : target),
+      );
+      await expect(
+        service.setEditorialStatus(1, dto, userData),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(term.editorial_status).toBe('approved');
+    });
+
+    it('answers 404 for a term that does not exist', async () => {
+      manager.findOne.mockResolvedValue(null);
+      await expect(
+        service.setEditorialStatus(5, { status: 'approved' as any }, userData),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
   describe('source and reference date', () => {
     it('stores the provenance sent on create', async () => {
       manager.findOne.mockResolvedValue({

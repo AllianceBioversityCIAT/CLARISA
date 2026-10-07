@@ -442,6 +442,11 @@
   line-height: 1.4;
 }
 
+/* Labels under the term inherit the bold of the title cell otherwise. */
+.cell-previous--aliases {
+  font-weight: 400;
+}
+
 .cell-previous__label {
   font-weight: 600;
   text-transform: uppercase;
