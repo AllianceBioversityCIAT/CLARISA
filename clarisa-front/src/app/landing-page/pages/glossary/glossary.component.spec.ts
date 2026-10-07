@@ -1,19 +1,24 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { ActivatedRoute, convertToParamMap, ParamMap } from '@angular/router';
+import { BehaviorSubject, of, throwError } from 'rxjs';
 
 import { GlossaryComponent } from './glossary.component';
 import { GlossaryPageService } from './services/glossary-page.service';
+import { environment } from 'src/environments/environment';
 
 describe('GlossaryComponent', () => {
   let component: GlossaryComponent;
   let fixture: ComponentFixture<GlossaryComponent>;
   let mockService: any;
+  /** The route params; empty is `landing-page/glossary`, `{ termId }` is a permalink. */
+  let params: BehaviorSubject<ParamMap>;
 
   const terms = [
-    { term: 'Action Area', definition: 'Areas of work', portfolios: [{ id: 2, name: 'CGIAR portfolio 2022-2024' }] },
-    { term: 'Innovation', definition: 'Something new', portfolios: [{ id: 3, name: 'CGIAR portfolio 2025-2030' }] },
+    { termId: 11, term: 'Action Area', definition: 'Areas of work', portfolios: [{ id: 2, name: 'CGIAR portfolio 2022-2024' }] },
+    { termId: 12, term: 'Innovation', definition: 'Something new', portfolios: [{ id: 3, name: 'CGIAR portfolio 2025-2030' }] },
     {
+      termId: 13,
       term: 'Shared term',
       definition: 'Belongs to both',
       portfolios: [
@@ -21,16 +26,18 @@ describe('GlossaryComponent', () => {
         { id: 3, name: 'CGIAR portfolio 2025-2030' }
       ]
     },
-    { term: 'Orphan', definition: 'No portfolios yet', portfolios: [] },
+    { termId: 14, term: 'Orphan', definition: 'No portfolios yet', portfolios: [] },
     // One concept with a definition per portfolio, the way the API publishes it
     // once a term is versioned: two entries sharing a `groupId`.
     {
+      termId: 15,
       term: 'Impact',
       groupId: 90,
       definition: 'The 2022-2024 wording',
       portfolios: [{ id: 2, name: 'CGIAR portfolio 2022-2024' }]
     },
     {
+      termId: 16,
       term: 'Impact',
       groupId: 90,
       definition: 'The 2025-2030 wording',
@@ -39,8 +46,10 @@ describe('GlossaryComponent', () => {
   ];
 
   beforeEach(async () => {
+    params = new BehaviorSubject<ParamMap>(convertToParamMap({}));
     mockService = {
       getGlossary: jest.fn().mockReturnValue(of(terms)),
+      exportUrl: jest.fn((format: string) => `https://api.test/api/glossary/export?format=${format}`),
       // Shaped like `GET api/portfolios?show=all` really answers: the default
       // portfolio is picked from `start_date`, so a mock without it would hide
       // that behaviour from every test below.
@@ -57,7 +66,10 @@ describe('GlossaryComponent', () => {
     await TestBed.configureTestingModule({
       declarations: [GlossaryComponent],
       schemas: [NO_ERRORS_SCHEMA],
-      providers: [{ provide: GlossaryPageService, useValue: mockService }]
+      providers: [
+        { provide: GlossaryPageService, useValue: mockService },
+        { provide: ActivatedRoute, useValue: { paramMap: params.asObservable() } }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(GlossaryComponent);
@@ -408,6 +420,148 @@ describe('GlossaryComponent', () => {
       expect(legend).toBeTruthy();
       expect(legend.textContent.trim()).toBe('Current');
       expect(fixture.nativeElement.querySelector('.glossary-intro p').textContent).toContain('in force today');
+    });
+  });
+  describe('alternative labels', () => {
+    const withLabels = [
+      {
+        termId: 21,
+        term: 'Impact assessment',
+        definition: 'Evaluating the effects of an intervention',
+        alternativeLabels: ['IA', 'Impact study'],
+        portfolios: []
+      },
+      { termId: 22, term: 'Outcome', definition: 'A change in behaviour', alternativeLabels: [], portfolios: [] },
+      // An older API sends no labels at all.
+      { termId: 23, term: 'Output', definition: 'A product of the work', portfolios: [] }
+    ];
+
+    beforeEach(() => {
+      mockService.getGlossary.mockReturnValue(of(withLabels));
+      fixture.detectChanges();
+      // No portfolio on these fixtures: the default filter would hide them.
+      showAllPortfolios();
+      fixture.detectChanges();
+    });
+
+    it('should find a term by one of its alternative labels, case-insensitive', () => {
+      component.searchText = 'IA';
+      expect(component.filteredTerms.map(t => t.term)).toEqual(['Impact assessment']);
+
+      component.searchText = 'impact stu';
+      expect(component.filteredTerms.map(t => t.term)).toEqual(['Impact assessment']);
+    });
+
+    it('should show the labels under the title only when the term has some', () => {
+      const labels = Array.from(fixture.nativeElement.querySelectorAll('.card-alt-labels')).map((el: any) => el.textContent.trim());
+      expect(labels).toEqual(['Also known as: IA · Impact study']);
+    });
+  });
+
+  describe('download links', () => {
+    it('should offer JSON, CSV and SKOS from the export endpoint', () => {
+      fixture.detectChanges();
+      const links = Array.from(fixture.nativeElement.querySelectorAll('.glossary-download a')) as HTMLAnchorElement[];
+      expect(links.map(link => link.textContent!.trim())).toEqual(['JSON', 'CSV', 'SKOS']);
+      expect(links.map(link => link.getAttribute('href'))).toEqual([
+        'https://api.test/api/glossary/export?format=json',
+        'https://api.test/api/glossary/export?format=csv',
+        'https://api.test/api/glossary/export?format=skos'
+      ]);
+    });
+
+    it('should build the export URL on the same API base as the glossary', () => {
+      const service = new GlossaryPageService({} as any);
+      expect(service.exportUrl('skos')).toBe(`${environment.apiUrl}api/glossary/export?format=skos`);
+    });
+  });
+
+  describe('permalink of a term', () => {
+    const openPermalink = (termId: string) => {
+      params.next(convertToParamMap({ termId }));
+      fixture.detectChanges();
+    };
+
+    it('should show only that term, even when the default portfolio would hide it', () => {
+      // Action Area belongs only to 2022-2024 and the page defaults to 2025-2030.
+      openPermalink('11');
+      expect(component.filteredTerms.map(t => t.term)).toEqual(['Action Area']);
+      expect(fixture.nativeElement.querySelectorAll('.glossary-card')).toHaveLength(1);
+      expect(fixture.nativeElement.querySelector('.glossary-card.is-focused')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.glossary-back').textContent).toContain('Back to all terms');
+      expect(fixture.nativeElement.querySelector('.glossary-toolbar')).toBeNull();
+    });
+
+    it('should open a versioned concept on the exact version the link names', () => {
+      openPermalink('15');
+      const [card] = component.filteredTerms;
+      expect(card.definition).toBe('The 2022-2024 wording');
+      expect(card.termId).toBe(15);
+      // The other definition stays one tab away.
+      expect(card.versions).toHaveLength(2);
+    });
+
+    it('should show a not-found state for an unknown id, with the way back and no spinner', () => {
+      openPermalink('999');
+      expect(component.loading).toBe(false);
+      expect(component.filteredTerms).toEqual([]);
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.glossary-empty').textContent).toContain('This term was not found.');
+      expect(fixture.nativeElement.querySelector('.glossary-back')).toBeTruthy();
+    });
+
+    it('should treat an id that is not a number as not found', () => {
+      openPermalink('abc');
+      expect(fixture.nativeElement.querySelector('.glossary-empty').textContent).toContain('This term was not found.');
+    });
+
+    it('should keep the default portfolio and every filter when no id is present', () => {
+      fixture.detectChanges();
+      expect(component.focusMode).toBe(false);
+      expect(component.selectedPortfolioCode).toBe(3);
+      expect(component.filteredTerms.map(t => t.term)).toEqual(['Impact', 'Innovation', 'Shared term']);
+      expect(fixture.nativeElement.querySelector('.glossary-toolbar')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.glossary-back')).toBeNull();
+    });
+  });
+
+  describe('copy link', () => {
+    const writeText = jest.fn();
+
+    beforeEach(() => {
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      writeText.mockReset();
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      delete (navigator as any).clipboard;
+    });
+
+    it('should copy the permalink of the card and say so', async () => {
+      writeText.mockResolvedValue(undefined);
+      const card = component.filteredTerms.find(item => item.term === 'Innovation')!;
+      component.copyLink(card);
+      await Promise.resolve();
+      fixture.detectChanges();
+
+      expect(writeText).toHaveBeenCalledWith(`${location.origin}/landing-page/glossary/term/12`);
+      const cardEl = Array.from(fixture.nativeElement.querySelectorAll('.glossary-card')).find(
+        (el: any) => el.querySelector('h4')?.textContent.trim() === 'Innovation'
+      ) as HTMLElement;
+      expect(cardEl.querySelector('.card-copy')!.textContent).toContain('Copy link');
+      expect(cardEl.querySelector('.card-copy__feedback')!.textContent).toContain('Link copied');
+    });
+
+    it('should say the copy failed instead of pretending it worked', async () => {
+      writeText.mockRejectedValue(new Error('denied'));
+      component.copyLink(component.filteredTerms[0]);
+      await Promise.resolve();
+      await Promise.resolve();
+      fixture.detectChanges();
+
+      expect(component.copyFailed).toBe(true);
+      expect(fixture.nativeElement.querySelector('.card-copy__feedback').textContent).toContain('Could not copy the link');
     });
   });
 });

@@ -1,5 +1,7 @@
-import { Component, OnInit } from '@angular/core';
-import { GlossaryPageService, GlossaryTerm, GlossaryTermPortfolio } from './services/glossary-page.service';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { GlossaryExportFormat, GlossaryPageService, GlossaryTerm, GlossaryTermPortfolio } from './services/glossary-page.service';
 
 /**
  * Un concepto tal como se dibuja: sus versiones, los portafolios que cubre
@@ -14,7 +16,18 @@ export class GlossaryCard {
     public portfolios: GlossaryTermPortfolio[],
     /** Índice dentro de `versions` de la definición visible. */
     public shown: number
-  ) {}
+  ) {
+    this.alternativeLabels = uniqueLabels(versions);
+  }
+
+  /**
+   * Los nombres alternativos de todas las versiones, sin repetir (sin importar
+   * mayúsculas). De todas y no solo de la visible: la búsqueda los mira en todas,
+   * y un concepto encontrado por «IA» tiene que decir por qué salió. Se asigna en
+   * el constructor y no como inicializador: con `useDefineForClassFields` el
+   * inicializador corre antes de que exista `versions`.
+   */
+  readonly alternativeLabels: string[];
 
   /**
    * La versión que la tarjeta está mostrando. Cambiar `shown` —lo que hace una
@@ -40,6 +53,24 @@ export class GlossaryCard {
   get referenceDate(): string | null | undefined {
     return this.visible?.referenceDate;
   }
+
+  /** El id permanente de la definición visible, el que lleva su enlace. */
+  get termId(): number | undefined {
+    return this.visible?.termId;
+  }
+}
+
+function uniqueLabels(versions: GlossaryTerm[]): string[] {
+  const byKey = new Map<string, string>();
+  for (const version of versions) {
+    for (const label of version.alternativeLabels ?? []) {
+      const clean = (label ?? '').trim();
+      if (clean && !byKey.has(clean.toLowerCase())) {
+        byKey.set(clean.toLowerCase(), clean);
+      }
+    }
+  }
+  return [...byKey.values()];
 }
 
 /**
@@ -49,6 +80,9 @@ export class GlossaryCard {
  */
 const LOCALE = 'en';
 
+/** How long the "Link copied" feedback stays on the card. */
+const COPY_FEEDBACK_MS = 2000;
+
 /** Fixed English month names: the glossary content is English regardless of the reader's locale. */
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -57,7 +91,7 @@ const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
   templateUrl: './glossary.component.html',
   styleUrls: ['./glossary.component.scss']
 })
-export class GlossaryComponent implements OnInit {
+export class GlossaryComponent implements OnInit, OnDestroy {
   /** Visible text per definition, so the search getter parses each one once. */
   private readonly visibleTextCache = new Map<string, string>();
   /** Repaired markup per definition; the template asks once per change detection pass. */
@@ -92,10 +126,42 @@ export class GlossaryComponent implements OnInit {
    * while that request was still in flight.
    */
   private portfolioChosenByReader = false;
+  /**
+   * True on the permalink route `glossary/term/:termId`: the page shows that one
+   * entry and nothing else. The portfolio filter does not apply there — a link
+   * to a 2022-2024 term must open that term, not an empty list.
+   */
+  focusMode = false;
+  /** The entry the permalink asks for; null when the id is not a number. */
+  focusedTermId: number | null = null;
+  /** The card of that entry, or null when no published entry carries the id. */
+  focusedCard: GlossaryCard | null = null;
+  /** The card whose link was just copied, and whether the copy worked. */
+  copiedTermId: number | null = null;
+  copyFailed = false;
+  private copyTimer: ReturnType<typeof setTimeout> | null = null;
+  private routeSubscription?: Subscription;
 
-  constructor(private _glossaryPageService: GlossaryPageService) {}
+  readonly exportFormats: { format: GlossaryExportFormat; label: string }[] = [
+    { format: 'json', label: 'JSON' },
+    { format: 'csv', label: 'CSV' },
+    { format: 'skos', label: 'SKOS' }
+  ];
+
+  constructor(
+    private _glossaryPageService: GlossaryPageService,
+    private _route: ActivatedRoute
+  ) {}
 
   ngOnInit(): void {
+    // A subscription and not a snapshot: going from one permalink to another is
+    // the same route, so Angular keeps this component and only the id changes.
+    this.routeSubscription = this._route.paramMap.subscribe(params => {
+      this.focusMode = params.has('termId');
+      const id = Number(params.get('termId'));
+      this.focusedTermId = this.focusMode && Number.isInteger(id) ? id : null;
+      this.rebuildFocusedCard();
+    });
     this._glossaryPageService.getGlossary().subscribe({
       next: terms => {
         this.terms = terms ?? [];
@@ -107,6 +173,7 @@ export class GlossaryComponent implements OnInit {
         this.terms = [];
         this.groups = [];
         this.cards = [];
+        this.focusedCard = null;
         this.loading = false;
       }
     });
@@ -118,6 +185,13 @@ export class GlossaryComponent implements OnInit {
       this.applyDefaultPortfolio();
       this.rebuildCards();
     });
+  }
+
+  ngOnDestroy(): void {
+    this.routeSubscription?.unsubscribe();
+    if (this.copyTimer) {
+      clearTimeout(this.copyTimer);
+    }
   }
 
   // Every ACTIVE portfolio is offered as a filter (closed ones, e.g. 2016-2021, are hidden)
@@ -200,6 +274,64 @@ export class GlossaryComponent implements OnInit {
 
   private rebuildCards(): void {
     this.cards = this.groups.map(versions => this.cardFor(versions)).filter((card): card is GlossaryCard => card !== null);
+    this.rebuildFocusedCard();
+  }
+
+  /**
+   * The card of the permalinked entry, built from its whole concept so the other
+   * portfolios' definitions stay one tab away, but opened on the exact version
+   * the link names. Rebuilt when the portfolios arrive, which reorders the tabs.
+   */
+  private rebuildFocusedCard(): void {
+    const target = this.focusedTermId == null ? undefined : this.terms.find(term => term.termId === this.focusedTermId);
+    const versions = target ? this.groups.find(group => group.includes(target)) : undefined;
+    if (!target || !versions) {
+      this.focusedCard = null;
+      return;
+    }
+    const ordenadas = [...versions].sort((a, b) => this.recencyOf(b) - this.recencyOf(a));
+    this.focusedCard = new GlossaryCard(target.term, ordenadas, this.portfoliosOf(versions), ordenadas.indexOf(target));
+  }
+
+  /** The permanent link of an entry on this site. */
+  permalinkOf(termId: number): string {
+    return `${location.origin}/landing-page/glossary/term/${termId}`;
+  }
+
+  exportUrl(format: GlossaryExportFormat): string {
+    return this._glossaryPageService.exportUrl(format);
+  }
+
+  /**
+   * Copies the permalink of the definition the card is showing. The feedback
+   * says whether it worked: the clipboard API is missing on plain http and can
+   * be refused by the browser, and a silent failure reads as a copied link.
+   */
+  copyLink(card: GlossaryCard): void {
+    const termId = card.termId;
+    if (termId == null) {
+      return;
+    }
+    const done = (failed: boolean) => {
+      this.copiedTermId = termId;
+      this.copyFailed = failed;
+      if (this.copyTimer) {
+        clearTimeout(this.copyTimer);
+      }
+      this.copyTimer = setTimeout(() => {
+        this.copiedTermId = null;
+        this.copyTimer = null;
+      }, COPY_FEEDBACK_MS);
+    };
+    const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
+    if (!clipboard?.writeText) {
+      done(true);
+      return;
+    }
+    clipboard.writeText(this.permalinkOf(termId)).then(
+      () => done(false),
+      () => done(true)
+    );
   }
 
   // Concepts matching the portfolio filter (base set for the letter index)
@@ -220,6 +352,10 @@ export class GlossaryComponent implements OnInit {
   }
 
   get filteredTerms(): GlossaryCard[] {
+    // On a permalink the page is that one card, whatever the filters say.
+    if (this.focusMode) {
+      return this.focusedCard ? [this.focusedCard] : [];
+    }
     const search = this.searchText.trim().toLowerCase();
     return this.portfolioFilteredTerms
       .filter(card => {
@@ -227,6 +363,9 @@ export class GlossaryComponent implements OnInit {
         const matchesSearch =
           !search ||
           card.term?.toLowerCase().includes(search) ||
+          // Synonyms and acronyms follow the same rule as the term: typing "IA"
+          // finds "Impact assessment" when it carries that label.
+          card.alternativeLabels.some(label => label.toLowerCase().includes(search)) ||
           // Se busca en todas las versiones: una palabra que solo aparece en la
           // definición de 2022-2024 tiene que encontrar igual el concepto.
           card.versions.some(version => this.visibleText(version.definition).includes(search)) ||

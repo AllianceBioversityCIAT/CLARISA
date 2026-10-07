@@ -3,6 +3,43 @@ import { Exclude, Expose } from 'class-transformer';
 import { AuditableEntity } from '../../../shared/entities/extends/auditable-entity.entity';
 import { GlossaryPortfolio } from './glossary-portfolio.entity';
 
+/**
+ * Where a term stands in its editorial life. Only `approved` and `deprecated`
+ * are published: a draft or a term under review never reaches a consumer.
+ */
+export enum GlossaryEditorialStatus {
+  DRAFT = 'draft',
+  IN_REVIEW = 'in_review',
+  APPROVED = 'approved',
+  DEPRECATED = 'deprecated',
+}
+
+/** The statuses the public endpoints serve. */
+export const PUBLISHED_EDITORIAL_STATUSES: GlossaryEditorialStatus[] = [
+  GlossaryEditorialStatus.APPROVED,
+  GlossaryEditorialStatus.DEPRECATED,
+];
+
+/**
+ * Reads the stored alternative labels back as a clean list. Anything that is
+ * not a JSON array of strings — `null`, an empty value, text written by hand in
+ * the database — degrades to `[]` instead of failing the whole read.
+ */
+export function parseLabels(value: string | null | undefined): string[] {
+  if (!value) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed
+          .filter((label): label is string => typeof label === 'string')
+          .map((label) => label.trim())
+          .filter((label) => label !== '')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 @Entity('glossary')
 export class Glossary {
   @Exclude({ toPlainOnly: true })
@@ -58,6 +95,42 @@ export class Glossary {
   @Column({ name: 'reference_date', type: 'date', nullable: true })
   referenceDate: string;
 
+  /**
+   * Other names readers actually use for the same concept — acronyms, older
+   * wording, common variants ("IA" for "Impact assessment"). They are what lets
+   * a search, or an AI tool, recognise a term written differently.
+   *
+   * Stored as a JSON array in a nullable text column; what travels is the
+   * `alternativeLabels` getter below.
+   */
+  @Exclude()
+  @Column({ name: 'alternative_labels', type: 'text', nullable: true })
+  alternative_labels: string | null;
+
+  /**
+   * Editorial status, `approved` for every row that predates the column — so
+   * what is published today stays published, unchanged. What travels is the
+   * `editorialStatus` getter, which never returns an empty value.
+   */
+  @Exclude()
+  @Column({
+    name: 'editorial_status',
+    type: 'varchar',
+    length: 20,
+    nullable: false,
+    default: GlossaryEditorialStatus.APPROVED,
+  })
+  editorial_status: GlossaryEditorialStatus;
+
+  /**
+   * The term that supersedes this one once it is deprecated. Retired terms are
+   * never deleted, so a report that cites the old one still resolves, and a
+   * reader is sent to the current wording.
+   */
+  @Exclude()
+  @Column({ name: 'replaced_by_id', type: 'bigint', nullable: true })
+  replaced_by_id: number | null;
+
   @Exclude({ toPlainOnly: true })
   @Column({ type: 'tinyint', nullable: false, default: () => '0' })
   show_in_dashboard: boolean;
@@ -80,6 +153,42 @@ export class Glossary {
   @Expose()
   get groupId(): number {
     return Number(this.group_id ?? this.id);
+  }
+
+  /**
+   * The permanent identifier of this entry: the row id, which never changes
+   * when the wording is edited. `groupId` cannot play that role — the versions
+   * of a concept share it — so a consumer that needs to cite or link one
+   * specific entry (a permalink, a SKOS URI) reads this one.
+   *
+   * Additive: `id` itself stays excluded, so no existing key changes.
+   */
+  @Expose()
+  get termId(): number {
+    return Number(this.id);
+  }
+
+  /**
+   * Always an array: a row without synonyms — every row that predates the
+   * column — publishes `[]`, never `null`, so a consumer can iterate it
+   * without a null check.
+   */
+  @Expose()
+  get editorialStatus(): GlossaryEditorialStatus {
+    return this.editorial_status ?? GlossaryEditorialStatus.APPROVED;
+  }
+
+  /** `termId` of the replacement, or `null` while the term is current. */
+  @Expose()
+  get replacedByTermId(): number | null {
+    return this.replaced_by_id === null || this.replaced_by_id === undefined
+      ? null
+      : Number(this.replaced_by_id);
+  }
+
+  @Expose()
+  get alternativeLabels(): string[] {
+    return parseLabels(this.alternative_labels);
   }
 
   @Expose()

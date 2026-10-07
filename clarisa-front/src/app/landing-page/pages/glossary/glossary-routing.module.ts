@@ -6,6 +6,12 @@ const routes: Routes = [
   {
     path: '',
     component: GlossaryComponent
+  },
+  // Permalink of one entry. The same page, focused on that term: the SKOS URI
+  // `glossary/term/:termId` redirects here from the root router.
+  {
+    path: 'term/:termId',
+    component: GlossaryComponent
   }
 ];
 

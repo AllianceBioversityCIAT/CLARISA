@@ -26,6 +26,7 @@ import {
   GlossaryBulkResultDto,
   GlossaryTermRelationDto,
   SplitGlossaryTermDto,
+  UpdateGlossaryEditorialStatusDto,
   UpdateGlossaryStatusDto,
   UpdateGlossaryTermDto,
 } from './dto/glossary-admin.dto';
@@ -102,6 +103,19 @@ export class GlossaryAdminController {
       updateGlossaryStatusDto.is_active,
       userData,
     );
+  }
+
+  /**
+   * Draft, in review, approved or deprecated. Only approved and deprecated
+   * terms are served by the public endpoints.
+   */
+  @Patch('terms/:id/editorial-status')
+  setEditorialStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateGlossaryEditorialStatusDto,
+    @GetUserData() userData: UserData,
+  ): Promise<GlossaryAdminDto> {
+    return this._glossaryAdminService.setEditorialStatus(id, dto, userData);
   }
 
   /**

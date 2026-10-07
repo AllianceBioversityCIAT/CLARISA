@@ -252,6 +252,8 @@ export interface GlossaryAdminTerm {
   source_url: string | null;
   /** Date of the referenced material, `YYYY-MM-DD` — not the row's own date. */
   reference_date: string | null;
+  /** Other names the concept goes by (synonyms, acronyms, older wording). Never null. */
+  alternative_labels: string[];
   is_active: boolean;
   show_in_dashboard: boolean;
   application_name: string | null;
@@ -271,6 +273,8 @@ export interface CreateGlossaryTermBody {
   source_url?: string;
   /** `YYYY-MM-DD`. An empty string clears the stored date on update. */
   reference_date?: string;
+  /** Absent leaves the stored labels untouched on update; `[]` clears them. */
+  alternative_labels?: string[];
   portfolio_ids?: number[];
   show_in_dashboard?: boolean;
 }
@@ -284,6 +288,7 @@ export interface SplitGlossaryTermBody {
   source?: string;
   source_url?: string;
   reference_date?: string;
+  alternative_labels?: string[];
 }
 
 export interface GlossarySplitResult {
@@ -306,6 +311,8 @@ export interface GlossaryBulkRow {
   source?: string;
   source_url?: string;
   reference_date?: string;
+  /** Raw cell, labels separated by `;` or `|`. Absent = column not mapped. */
+  alternative_labels?: string;
   portfolio_ids?: number[];
 }
 
@@ -323,6 +330,8 @@ export interface GlossaryBulkRowResult {
   source: string | null;
   source_url: string | null;
   reference_date: string | null;
+  /** Null when the column was not mapped. */
+  alternative_labels: string[] | null;
   action: GlossaryBulkRowAction;
   glossary_id: number | null;
   current_definition?: string;

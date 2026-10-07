@@ -14,6 +14,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { GlossaryEditorialStatus } from '../entities/glossary.entity';
 
 /**
  * Maximum amount of rows accepted in a single bulk operation. Keeps the
@@ -71,6 +72,12 @@ export class GlossaryAdminDto {
   source_url: string | null;
   /** ISO day (`YYYY-MM-DD`), never a timestamp — see the entity. */
   reference_date: string | null;
+  /** Synonyms, acronyms and older wording. Always an array, `[]` when none. */
+  alternative_labels: string[];
+  /** Draft, in review, approved or deprecated. Only the last two are public. */
+  editorial_status: GlossaryEditorialStatus;
+  /** Id of the term that replaces this one; set only when deprecated. */
+  replaced_by_id: number | null;
   is_active: boolean;
   show_in_dashboard: boolean;
   application_name: string;
@@ -80,6 +87,9 @@ export class GlossaryAdminDto {
   /** Who made that change. Null when the user id does not resolve to a user. */
   last_modified_by: GlossaryAuditUserDto | null;
 }
+
+/** Upper bound for the alternative labels of one term. */
+export const GLOSSARY_MAX_ALTERNATIVE_LABELS = 30;
 
 /**
  * `YYYY-MM-DD`, the only shape accepted for a reference date.
@@ -134,6 +144,18 @@ class GlossaryTermFieldsDto {
   @ValidateIf((_, value) => value !== '' && value !== null)
   reference_date?: string;
 
+  /**
+   * Replaces the whole list of alternative labels when present; an empty
+   * array clears it. Absent means "leave them as they are", like the
+   * provenance fields.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(GLOSSARY_MAX_ALTERNATIVE_LABELS)
+  @IsString({ each: true })
+  @MaxLength(200, { each: true })
+  alternative_labels?: string[];
+
   @IsOptional()
   @IsBoolean()
   show_in_dashboard?: boolean;
@@ -163,6 +185,15 @@ export class CreateGlossaryTermDto extends GlossaryTermFieldsDto {
   @IsInt()
   @Type(() => Number)
   group_of?: number;
+
+  /**
+   * Lets a new term start as a draft, invisible to the public endpoints until
+   * it is approved. Defaults to `approved`, which is how every term created
+   * from the panel behaved before the status existed.
+   */
+  @IsOptional()
+  @IsEnum(GlossaryEditorialStatus)
+  editorial_status?: GlossaryEditorialStatus;
 }
 
 /**
@@ -201,6 +232,21 @@ export class UpdateGlossaryTermDto extends GlossaryTermFieldsDto {
   @IsString()
   @IsNotEmpty({ message: 'The definition cannot be empty' })
   definition?: string;
+}
+
+/**
+ * Moves a term through its editorial life. `replaced_by_id` only makes sense
+ * with `deprecated`: the service rejects it with any other status, and moving a
+ * term out of `deprecated` clears it.
+ */
+export class UpdateGlossaryEditorialStatusDto {
+  @IsEnum(GlossaryEditorialStatus)
+  status: GlossaryEditorialStatus;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  replaced_by_id?: number | null;
 }
 
 export class UpdateGlossaryStatusDto {
@@ -250,6 +296,15 @@ export class GlossaryBulkRowDto {
   @IsOptional()
   @IsString()
   reference_date?: string;
+
+  /**
+   * One spreadsheet cell with every alternative label, separated by `;` or
+   * `|` (a comma is not a separator: labels themselves contain commas).
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  alternative_labels?: string;
 }
 
 export class GlossaryBulkDto {
@@ -293,6 +348,11 @@ export class GlossaryBulkRowResultDto {
   source: string | null;
   source_url: string | null;
   reference_date: string | null;
+  /**
+   * Labels as they will be stored, or `null` when the file did not map the
+   * column — which leaves the stored ones untouched on an update.
+   */
+  alternative_labels: string[] | null;
   action: GlossaryBulkRowAction;
   /** Id of the affected record. Null for `create` in preview mode. */
   glossary_id: number | null;

@@ -235,7 +235,8 @@ describe('GlossaryFileParserService', () => {
         definitionIndex: 1,
         sourceIndex: -1,
         sourceUrlIndex: -1,
-        referenceDateIndex: -1
+        referenceDateIndex: -1,
+        alternativeLabelsIndex: -1
       });
     });
 
@@ -245,6 +246,13 @@ describe('GlossaryFileParserService', () => {
       expect(result.sourceIndex).toBe(2);
       expect(result.sourceUrlIndex).toBe(3);
       expect(result.referenceDateIndex).toBe(4);
+    });
+
+    it('detects the alternative labels column, plural or singular, and synonyms', () => {
+      expect(service.detectColumns(['Term', 'Definition', 'Alternative labels']).alternativeLabelsIndex).toBe(2);
+      expect(service.detectColumns(['Term', 'Definition', 'Source', 'Synonyms']).alternativeLabelsIndex).toBe(3);
+      // "Labelled" is not a labels column.
+      expect(service.detectColumns(['Term', 'Definition', 'Labelled by']).alternativeLabelsIndex).toBe(-1);
     });
 
     it('does not read "Resource" as a source nor "Last update" as a date', () => {
