@@ -14,6 +14,10 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { GlossaryService } from './glossary.service';
+import {
+  GlossaryExportFormat,
+  GlossaryExportService,
+} from './glossary-export.service';
 import { UpdateGlossaryDto } from './dto/update-glossary.dto';
 import { Glossary } from './entities/glossary.entity';
 import { Response } from 'express';
@@ -23,7 +27,10 @@ import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 @Controller()
 @UseInterceptors(ClassSerializerInterceptor)
 export class GlossaryController {
-  constructor(private readonly glossaryService: GlossaryService) {}
+  constructor(
+    private readonly glossaryService: GlossaryService,
+    private readonly glossaryExportService: GlossaryExportService,
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -58,6 +65,46 @@ export class GlossaryController {
   })
   findAll(@Query('show') show: FindAllOptions) {
     return this.glossaryService.findAll(show);
+  }
+
+  @Get('export')
+  @ApiOperation({
+    summary: 'Download the whole glossary as one file',
+    description:
+      'Every active term in one download, in the format asked for: "json" ' +
+      '(default; the same keys as GET api/glossary), "csv" (one row per term, ' +
+      'definitions as plain text, UTF-8) or "skos" (Turtle: one skos:Concept ' +
+      'per term under a skos:ConceptScheme, with its persistent URI built on ' +
+      '"termId", prefLabel, altLabel, definition and provenance). Served as an ' +
+      'attachment. Read-only and public, like GET api/glossary.',
+  })
+  @ApiQuery({
+    name: 'format',
+    enum: GlossaryExportFormat,
+    required: false,
+    description: "'json' (default), 'csv' or 'skos'.",
+  })
+  async export(@Query('format') format: string, @Res() res: Response) {
+    const wanted = (format ?? GlossaryExportFormat.JSON).toLowerCase();
+    if (
+      !Object.values(GlossaryExportFormat).includes(
+        wanted as GlossaryExportFormat,
+      )
+    ) {
+      throw new HttpException(
+        `Unknown export format "${format}". Use json, csv or skos.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const file = await this.glossaryExportService.export(
+      wanted as GlossaryExportFormat,
+    );
+    res.setHeader('Content-Type', file.contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.fileName}"`,
+    );
+    return res.status(HttpStatus.OK).send(file.body);
   }
 
   @Get('/dashboard')

@@ -9,6 +9,12 @@ const routes: Routes = [
         (m) => m.LandingPageModule
       ),
   },
+  // The persistent SKOS URI of a glossary term,
+  // `https://clarisa.cgiar.org/glossary/term/{termId}`, has to resolve.
+  {
+    path: 'glossary/term/:termId',
+    redirectTo: 'landing-page/glossary/term/:termId',
+  },
   {
     redirectTo: 'landing-page',
     path: '',

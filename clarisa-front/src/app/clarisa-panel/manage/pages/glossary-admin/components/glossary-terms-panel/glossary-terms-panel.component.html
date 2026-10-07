@@ -111,6 +111,9 @@
             pTooltip="One definition per portfolio. The row shows the most recent one; open it to see the rest."
             >{{ concept.versions.length }} versions</span
           >
+          <span class="term-aliases" *ngIf="concept.current.alternative_labels?.length"
+            >Also: {{ concept.current.alternative_labels.join(' · ') }}</span
+          >
         </td>
         <td data-label="Definition" class="cell-definition">
           <span class="cell-definition__text" [title]="concept.current.definition">{{ concept.current.definition }}</span>
@@ -294,6 +297,12 @@
       <input id="glossary-reference-date" type="date" pInputText formControlName="reference_date" />
       <small class="field-error" *ngIf="isInvalid('reference_date')">Use the format YYYY-MM-DD.</small>
       <small class="field-hint">Date of the source material, not of this record. Displayed as month and year.</small>
+    </div>
+
+    <div class="field">
+      <label for="glossary-alternative-labels">Alternative labels</label>
+      <input id="glossary-alternative-labels" type="text" pInputText formControlName="alternative_labels" placeholder="e.g. IA; Impact study" />
+      <small class="field-hint">Optional. Other names, acronyms or older wording, separated by ;</small>
     </div>
 
     <div class="field">

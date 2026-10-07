@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { GlossaryService } from './glossary.service';
+import { GlossaryExportService } from './glossary-export.service';
 import { GlossaryController } from './glossary.controller';
 import { GlossaryRepository } from './repositories/glossary.repository';
 import { GlossaryAdminService } from './glossary-admin.service';
@@ -12,6 +13,7 @@ import { GlossaryPortfolioRepository } from './repositories/glossary-portfolio.r
   controllers: [GlossaryAdminController, GlossaryController],
   providers: [
     GlossaryService,
+    GlossaryExportService,
     GlossaryRepository,
     GlossaryAdminService,
     GlossaryPortfolioRepository,

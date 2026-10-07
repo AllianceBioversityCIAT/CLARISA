@@ -260,3 +260,93 @@ describe('GlossaryTermsPanelComponent — sortable columns', () => {
     expect(byTerm.map(concept => concept.current.term)).toEqual(['Impact', 'Orphan', 'Outcome']);
   });
 });
+
+/**
+ * Alternative labels (synonyms, acronyms, older wording). The dialog edits them
+ * as one `;`-separated line; the API takes a list, and `[]` clears it.
+ */
+describe('GlossaryTermsPanelComponent — alternative labels', () => {
+  let component: GlossaryTermsPanelComponent;
+  let createGlossaryTerm: jest.Mock;
+  let updateGlossaryTerm: jest.Mock;
+
+  const stored = {
+    id: 7,
+    group_id: 7,
+    term: 'Impact assessment',
+    definition: 'Definition of Impact assessment',
+    source: null,
+    source_url: null,
+    reference_date: null,
+    alternative_labels: ['IA', 'Impact study'],
+    is_active: true,
+    show_in_dashboard: false,
+    application_name: null,
+    portfolios: []
+  } as GlossaryAdminTerm;
+
+  beforeEach(() => {
+    createGlossaryTerm = jest.fn(() => of({}));
+    updateGlossaryTerm = jest.fn(() => of({}));
+    const apiService = {
+      getGlossaryTerms: () => of([stored]),
+      getAllPortfolios: () => of([]),
+      createGlossaryTerm,
+      updateGlossaryTerm
+    } as unknown as ManageApiService;
+
+    component = new GlossaryTermsPanelComponent(
+      apiService,
+      new FormBuilder(),
+      { add: jest.fn() } as unknown as MessageService,
+      { confirm: jest.fn() } as unknown as ConfirmationService
+    );
+    component.ngOnInit();
+  });
+
+  it('sends the labels as a clean list, split on ; or |', () => {
+    component.openCreate();
+    component.form.patchValue({ term: 'Outcome', definition: 'A change', alternative_labels: ' IA ;; Impact study| old name ; ' });
+
+    component.submit();
+
+    expect(createGlossaryTerm).toHaveBeenCalledWith(expect.objectContaining({ alternative_labels: ['IA', 'Impact study', 'old name'] }));
+  });
+
+  it('keeps a comma inside a label instead of splitting on it', () => {
+    component.openCreate();
+    component.form.patchValue({ term: 'Outcome', definition: 'A change', alternative_labels: 'Monitoring, evaluation and learning; MEL' });
+
+    component.submit();
+
+    expect(createGlossaryTerm).toHaveBeenCalledWith(expect.objectContaining({ alternative_labels: ['Monitoring, evaluation and learning', 'MEL'] }));
+  });
+
+  it('prefills the input with the stored labels when editing', () => {
+    component.openEdit(stored);
+
+    expect(component.form.value.alternative_labels).toBe('IA; Impact study');
+  });
+
+  it('prefills an empty input for a term saved before labels existed', () => {
+    component.openEdit({ ...stored, alternative_labels: undefined } as unknown as GlossaryAdminTerm);
+
+    expect(component.form.value.alternative_labels).toBe('');
+  });
+
+  it('sends an empty list when the input is cleared, so the stored labels are removed', () => {
+    component.openEdit(stored);
+    component.form.patchValue({ alternative_labels: '  ' });
+
+    component.submit();
+
+    expect(updateGlossaryTerm).toHaveBeenCalledWith(7, expect.objectContaining({ alternative_labels: [] }));
+  });
+
+  it('starts a new term with no labels', () => {
+    component.openEdit(stored);
+    component.openCreate();
+
+    expect(component.form.value.alternative_labels).toBe('');
+  });
+});

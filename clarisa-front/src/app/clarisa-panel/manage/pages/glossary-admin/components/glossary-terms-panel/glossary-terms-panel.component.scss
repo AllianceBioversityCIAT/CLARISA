@@ -106,6 +106,16 @@
   margin-top: 2px;
 }
 
+/* Alternative labels under the term: secondary, so it stays muted and small. */
+.term-aliases {
+  display: block;
+  margin-top: 2px;
+  color: var(--cl-ink-3);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
 .row-inactive {
   opacity: 0.62;
 }

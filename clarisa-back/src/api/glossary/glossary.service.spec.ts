@@ -71,6 +71,28 @@ describe('GlossaryService', () => {
     expect(result).toBeDefined();
   });
 
+  it.each([
+    FindAllOptions.SHOW_ALL,
+    FindAllOptions.SHOW_ONLY_ACTIVE,
+    FindAllOptions.SHOW_ONLY_INACTIVE,
+  ])(
+    'never publishes a draft or a term under review (show=%s)',
+    async (option) => {
+      mockGlossaryRepository.find.mockResolvedValue([]);
+      await service.findAll(option);
+      const { where } = mockGlossaryRepository.find.mock.calls[0][0];
+      expect(where.editorial_status.value).toEqual(['approved', 'deprecated']);
+    },
+  );
+
+  it('does not serve a draft by id either', async () => {
+    mockGlossaryRepository.findOne.mockResolvedValue(null);
+    await service.findOne(3);
+    const { where } = mockGlossaryRepository.findOne.mock.calls[0][0];
+    expect(where.id).toBe(3);
+    expect(where.editorial_status.value).toEqual(['approved', 'deprecated']);
+  });
+
   it('should throw on findAll with invalid option', async () => {
     expect(() => service.findAll('invalid' as any)).toThrow();
   });
@@ -93,7 +115,7 @@ describe('GlossaryService', () => {
 
     await service.findOne(1);
     expect(mockGlossaryRepository.findOne).toHaveBeenCalledWith({
-      where: { id: 1 },
+      where: { id: 1, editorial_status: expect.anything() },
       relations: {
         glossary_portfolio_array: { portfolio_object: true },
       },

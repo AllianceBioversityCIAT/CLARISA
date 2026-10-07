@@ -145,6 +145,8 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
       // The API only accepts `YYYY-MM-DD`; the pattern rejects a mistyped day
       // here instead of letting the request come back a 400.
       reference_date: ['', [Validators.pattern(/^\d{4}-\d{2}-\d{2}$/)]],
+      // One text input, labels separated by `;`. Split into a list on submit.
+      alternative_labels: [''],
       portfolio_ids: [[] as number[]],
       show_in_dashboard: [false]
     });
@@ -328,6 +330,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
       source: '',
       source_url: '',
       reference_date: '',
+      alternative_labels: '',
       portfolio_ids: [],
       show_in_dashboard: false
     });
@@ -343,6 +346,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
       source: term.source ?? '',
       source_url: term.source_url ?? '',
       reference_date: term.reference_date ?? '',
+      alternative_labels: this.joinLabels(term.alternative_labels),
       portfolio_ids: term.portfolios.map(portfolio => portfolio.id),
       show_in_dashboard: term.show_in_dashboard
     });
@@ -364,13 +368,15 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     const value = this.form.value;
     // The three provenance fields are always sent, empty string included: that
     // is how the API is told to clear a source entered by mistake. Omitting
-    // them would leave the stored value untouched forever.
+    // them would leave the stored value untouched forever. The labels follow
+    // the same rule: an empty input sends `[]`, which clears them.
     const body = {
       term: (value.term ?? '').trim(),
       definition: (value.definition ?? '').trim(),
       source: (value.source ?? '').trim(),
       source_url: (value.source_url ?? '').trim(),
       reference_date: (value.reference_date ?? '').trim(),
+      alternative_labels: this.splitLabels(value.alternative_labels),
       portfolio_ids: value.portfolio_ids ?? [],
       show_in_dashboard: !!value.show_in_dashboard,
       ...(this.editingTerm || this.groupOfForNewTerm === null ? {} : { group_of: this.groupOfForNewTerm })
@@ -479,6 +485,7 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
       source: anchor.source ?? '',
       source_url: anchor.source_url ?? '',
       reference_date: anchor.reference_date ?? '',
+      alternative_labels: this.joinLabels(anchor.alternative_labels),
       portfolio_ids: [],
       show_in_dashboard: anchor.show_in_dashboard
     });
@@ -614,6 +621,22 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     const offered = new Set(this.portfolioOptions.map(option => option.value));
     const keptClosed = this.allPortfolioOptions.filter(option => linked.has(option.value) && !offered.has(option.value));
     return [...this.portfolioOptions, ...keptClosed];
+  }
+
+  /**
+   * The input holds every label in one line. `|` is accepted too because it is
+   * what the bulk upload takes; a comma is not, since labels may contain one.
+   * The API also trims and dedupes, so this only drops what is plainly empty.
+   */
+  private splitLabels(raw: string | null | undefined): string[] {
+    return (raw ?? '')
+      .split(/[;|]/)
+      .map(label => label.trim())
+      .filter(label => label.length > 0);
+  }
+
+  private joinLabels(labels: string[] | null | undefined): string {
+    return (labels ?? []).join('; ');
   }
 
   portfolioLabel(portfolio: GlossaryPortfolioRef): string {
