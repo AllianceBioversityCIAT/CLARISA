@@ -84,7 +84,10 @@ export class GlossaryController {
     required: false,
     description: "'json' (default), 'csv' or 'skos'.",
   })
-  async export(@Query('format') format: string, @Res() res: Response) {
+  async export(
+    @Query('format') format: string,
+    @Res() res: Response,
+  ): Promise<void> {
     const wanted = (format ?? GlossaryExportFormat.JSON).toLowerCase();
     if (
       !Object.values(GlossaryExportFormat).includes(
@@ -104,7 +107,10 @@ export class GlossaryController {
       'Content-Disposition',
       `attachment; filename="${file.fileName}"`,
     );
-    return res.status(HttpStatus.OK).send(file.body);
+    // Nothing is returned on purpose: the controller's ClassSerializerInterceptor
+    // would try to serialize the Express response object, which is huge and
+    // circular, and that took the whole API down after every download.
+    res.status(HttpStatus.OK).send(file.body);
   }
 
   @Get('/dashboard')
