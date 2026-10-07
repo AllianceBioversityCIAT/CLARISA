@@ -105,6 +105,15 @@ describe('GlossaryController', () => {
       expect(r.status).toHaveBeenCalledWith(200);
     });
 
+    it('returns nothing, so the serializer never walks the response object', async () => {
+      mockExportService.export.mockResolvedValue({
+        body: '[]',
+        contentType: 'application/json',
+        fileName: 'x.json',
+      });
+      await expect(controller.export('json', res())).resolves.toBeUndefined();
+    });
+
     it('defaults to json and rejects an unknown format with a 400', async () => {
       mockExportService.export.mockResolvedValue({
         body: '[]',
