@@ -13,25 +13,15 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * existing row), so PRMS and any other consumer is unaffected.
  *
  * Idempotent: in MySQL each DDL statement commits on its own, so the column is
- * guarded on INFORMATION_SCHEMA and a partially applied run can be repeated.
+ * guarded with `hasColumn` and a partially applied run can be repeated.
  */
 export class AddGlossaryAlternativeLabels1790400000000
   implements MigrationInterface
 {
   name = 'AddGlossaryAlternativeLabels1790400000000';
 
-  private async columnExists(queryRunner: QueryRunner): Promise<boolean> {
-    const [{ found }] = await queryRunner.query(
-      `SELECT COUNT(*) AS found FROM INFORMATION_SCHEMA.COLUMNS
-       WHERE TABLE_SCHEMA = DATABASE()
-         AND TABLE_NAME = 'glossary'
-         AND COLUMN_NAME = 'alternative_labels'`,
-    );
-    return Number(found) > 0;
-  }
-
   public async up(queryRunner: QueryRunner): Promise<void> {
-    if (!(await this.columnExists(queryRunner))) {
+    if (!(await queryRunner.hasColumn('glossary', 'alternative_labels'))) {
       await queryRunner.query(
         `ALTER TABLE \`glossary\` ADD COLUMN \`alternative_labels\` text NULL AFTER \`definition\``,
       );
@@ -39,7 +29,7 @@ export class AddGlossaryAlternativeLabels1790400000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    if (await this.columnExists(queryRunner)) {
+    if (await queryRunner.hasColumn('glossary', 'alternative_labels')) {
       await queryRunner.query(
         `ALTER TABLE \`glossary\` DROP COLUMN \`alternative_labels\``,
       );
