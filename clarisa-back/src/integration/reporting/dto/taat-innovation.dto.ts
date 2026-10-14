@@ -71,8 +71,11 @@ export class MaturityLevelDto {
 }
 
 export class InnovationBaseDto {
+  /** PRMS result ID. Changes with every reporting phase (version) of the same innovation. */
   id: number;
+  /** Stable identifier of the innovation across phases. Use it to track an innovation over the years. */
   result_code: number;
+  /** Phase year of this version. When a result_code appears more than once, keep the record with the highest result_year. */
   result_year: number;
   commercial_name: string;
   technology_name: string;
@@ -86,12 +89,17 @@ export class InnovationBaseDto {
   sdg: SdgDto[] | string[];
   dac_score: DacScoreDto[];
   cost: CostDto;
+  /**
+   * PRMS PDF report of this exact version: `{base}/{result_code}?phase={version_id}`.
+   * Development and use: `https://reporting.cgiar.org/reports/result-details/`.
+   * Package: `https://reporting.cgiar.org/reports/ipsr-details/`.
+   * Use it as provided; a link built from result_code alone does not point to a specific phase.
+   */
+  pdf_link: string;
 }
 
 export class InnovationDevelopmentDto extends InnovationBaseDto {
-  actors: ActorDto[] | string[];
-  organizations: OrganizationDto[] | string[];
-  other_quantitative: QuantitativeDto[] | string[];
+  end_users: EndUsersDto;
   environment_biodiversity: AssessmentDto;
   idea_maturity_level_of_use: string;
   scalling_readiness_reference: MaturityLevelDto | string;
