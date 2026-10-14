@@ -17,6 +17,12 @@ import {
   CombinedInnovationResponse,
 } from './services/taat-innovation.service';
 
+const VERSIONING_NOTES =
+  'Only quality-assessed PRMS results are exported, with no geographic restriction and no readiness-level filter. ' +
+  'Each reporting phase of an innovation is a separate record: `result_code` stays the same across phases while `id` changes, ' +
+  'so keep the record with the highest `result_year` per `result_code`. ' +
+  '`pdf_link` points to the PDF of that exact phase (`?phase={version_id}`); do not build it from `result_code` alone.';
+
 @ApiTags('Innovation')
 @Controller('innovation')
 export class InnovationController {
@@ -25,7 +31,10 @@ export class InnovationController {
   constructor(private readonly innovationService: InnovationService) {}
 
   @Get('development')
-  @ApiOperation({ summary: 'Get all Innovation Development results' })
+  @ApiOperation({
+    summary: 'Get all Innovation Development results',
+    description: VERSIONING_NOTES,
+  })
   @ApiResponse({
     status: 200,
     description: 'Innovation Development data retrieved successfully',
@@ -45,7 +54,10 @@ export class InnovationController {
   }
 
   @Get('use')
-  @ApiOperation({ summary: 'Get all Innovation Use results' })
+  @ApiOperation({
+    summary: 'Get all Innovation Use results',
+    description: VERSIONING_NOTES,
+  })
   @ApiResponse({
     status: 200,
     description: 'Innovation Use data retrieved successfully',
@@ -65,7 +77,10 @@ export class InnovationController {
   }
 
   @Get('package')
-  @ApiOperation({ summary: 'Get all Innovation Package results' })
+  @ApiOperation({
+    summary: 'Get all Innovation Package results',
+    description: VERSIONING_NOTES,
+  })
   @ApiResponse({
     status: 200,
     description: 'Innovation Package data retrieved successfully',
@@ -87,7 +102,7 @@ export class InnovationController {
   @Get('all')
   @ApiOperation({
     summary: 'Get all innovations from the three types',
-    description: 'Returns innovations grouped by type with counts',
+    description: `Returns innovations grouped by type with counts. ${VERSIONING_NOTES}`,
   })
   @ApiResponse({
     status: 200,
@@ -135,8 +150,7 @@ export class InnovationController {
   @Get('all/flat')
   @ApiOperation({
     summary: 'Get all innovations as flat array',
-    description:
-      'Returns all innovations in a single array with innovation_type field',
+    description: `Returns all innovations in a single array with innovation_type field. ${VERSIONING_NOTES}`,
   })
   @ApiResponse({
     status: 200,
@@ -177,7 +191,7 @@ export class InnovationController {
   @Get('all/unified')
   @ApiOperation({
     summary: 'Get all innovations with unified SQL query',
-    description: 'Most efficient endpoint - single SQL query with UNION ALL',
+    description: `Most efficient endpoint - single SQL query with UNION ALL. ${VERSIONING_NOTES}`,
   })
   @ApiResponse({
     status: 200,
