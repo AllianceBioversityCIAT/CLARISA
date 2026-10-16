@@ -45,6 +45,7 @@ describe('ProjectService', () => {
 
     expect(projectRepositoryMock.findAllWithRelations).toHaveBeenCalledWith(
       undefined,
+      undefined,
     );
     expect(result).toEqual([]);
   });
@@ -56,8 +57,42 @@ describe('ProjectService', () => {
 
     expect(projectRepositoryMock.findAllWithRelations).toHaveBeenCalledWith(
       2026,
+      undefined,
     );
     expect(result).toEqual([]);
+  });
+
+  it('should pass the trimmed code filter to the repository', async () => {
+    projectRepositoryMock.findAllWithRelations.mockResolvedValueOnce([]);
+
+    await service.findAll(undefined, '  F-AG10607  ');
+
+    expect(projectRepositoryMock.findAllWithRelations).toHaveBeenCalledWith(
+      undefined,
+      'F-AG10607',
+    );
+  });
+
+  it('should ignore a repeated code filter instead of failing', async () => {
+    projectRepositoryMock.findAllWithRelations.mockResolvedValueOnce([]);
+
+    await service.findAll(undefined, ['A', 'B'] as unknown as string);
+
+    expect(projectRepositoryMock.findAllWithRelations).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+    );
+  });
+
+  it('should ignore a blank code filter', async () => {
+    projectRepositoryMock.findAllWithRelations.mockResolvedValueOnce([]);
+
+    await service.findAll(2026, '   ');
+
+    expect(projectRepositoryMock.findAllWithRelations).toHaveBeenCalledWith(
+      2026,
+      undefined,
+    );
   });
 
   it('should throw for empty or blank official codes', async () => {
