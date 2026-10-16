@@ -8,7 +8,10 @@ export class ProjectRepository extends Repository<Project> {
     super(Project, dataSource.createEntityManager());
   }
 
-  async findAllWithRelations(phase?: number): Promise<Project[]> {
+  async findAllWithRelations(
+    phase?: number,
+    code?: string,
+  ): Promise<Project[]> {
     const query = this.createQueryBuilder('project')
       .leftJoinAndSelect('project.lead_institution_object', 'lead_institution')
       .leftJoinAndSelect(
@@ -46,6 +49,10 @@ export class ProjectRepository extends Repository<Project> {
 
     if (phase !== undefined) {
       query.andWhere('project.phase = :phase', { phase });
+    }
+
+    if (code !== undefined) {
+      query.andWhere('project.external_code = :code', { code });
     }
 
     return query

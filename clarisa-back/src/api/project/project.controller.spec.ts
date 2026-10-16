@@ -38,7 +38,7 @@ describe('ProjectController', () => {
 
     await controller.findAll();
 
-    expect(service.findAll).toHaveBeenCalledWith(undefined);
+    expect(service.findAll).toHaveBeenCalledWith(undefined, undefined);
   });
 
   it('should pass phase filter to the service', async () => {
@@ -46,7 +46,15 @@ describe('ProjectController', () => {
 
     await controller.findAll(2026);
 
-    expect(service.findAll).toHaveBeenCalledWith(2026);
+    expect(service.findAll).toHaveBeenCalledWith(2026, undefined);
+  });
+
+  it('should pass code filter to the service', async () => {
+    projectServiceMock.findAll.mockResolvedValueOnce([]);
+
+    await controller.findAll(undefined, 'F-AG10607');
+
+    expect(service.findAll).toHaveBeenCalledWith(undefined, 'F-AG10607');
   });
 
   it('should call service on findByGlobalUnit', async () => {
