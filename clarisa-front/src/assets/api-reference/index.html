@@ -1528,6 +1528,13 @@ const HIDDEN_COLUMNS = {
   'api/action-area-outcomes': ['id', 'actionAreaId', 'outcomeId', 'outcomeIndicatorId']
 };
 
+// Columns pulled to the front of the table, in this order; the rest keep the
+// payload order. Requested by Santiago Sánchez 2026-10-16: the same project
+// appears once per year, so the year and the project code sit next to the ID.
+const LEADING_COLUMNS = {
+  'api/projects': ['id', 'phase', 'external_code']
+};
+
 // Acronyms and compounds that splitting camelCase would mangle ("Iso alpha 2").
 // Deliberately short: a miss falls back to the derived label, never to an error.
 const LABEL_OVERRIDES = {
@@ -1537,6 +1544,7 @@ const LABEL_OVERRIDES = {
   smoCode: 'SMO code', outcomeSMOcode: 'SMO code',
   outcomeIndicatorSMOcode: 'Indicator SMO code',
   financialCode: 'Financial code', websiteLink: 'Website',
+  external_code: 'Project code',
   latitude: 'Latitude', longitude: 'Longitude'
 };
 
@@ -1564,7 +1572,8 @@ function deriveColumns(rows, route) {
   const cols = [];
   const seen = new Set();
   rows.slice(0, 200).forEach(r => Object.keys(r).forEach(k => { if (!seen.has(k)) { seen.add(k); cols.push(k); } }));
-  return cols.filter(c => !hidden.includes(c));
+  const leading = (LEADING_COLUMNS[route] || []).filter(c => seen.has(c));
+  return [...leading, ...cols.filter(c => !leading.includes(c))].filter(c => !hidden.includes(c));
 }
 
 function renderEndpointShell(loading, error = null) {
