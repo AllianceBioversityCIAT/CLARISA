@@ -11,8 +11,12 @@ export class ProjectService {
     private readonly projectMappingRepository: ProjectMappingRepository,
   ) {}
 
-  async findAll(phase?: number): Promise<Project[]> {
-    return this.projectRepository.findAllWithRelations(phase);
+  async findAll(phase?: number, code?: string): Promise<Project[]> {
+    // A repeated `?code=` arrives as an array; only a single code filters.
+    const sanitizedCode =
+      typeof code === 'string' ? code.trim() || undefined : undefined;
+
+    return this.projectRepository.findAllWithRelations(phase, sanitizedCode);
   }
 
   async findByGlobalUnit(officialCode: string): Promise<ProjectMapping[]> {

@@ -29,10 +29,18 @@ export class ProjectController {
     description:
       'Reporting phase (year) to filter by, e.g. `2026`. Omit to list every phase.',
   })
+  @ApiQuery({
+    name: 'code',
+    required: false,
+    type: String,
+    description:
+      'Project code to filter by, e.g. `F-AG10607`. Returns the project of every phase that carries it.',
+  })
   async findAll(
     @Query('phase', new ParseIntPipe({ optional: true })) phase?: number,
+    @Query('code') code?: string,
   ) {
-    return this.projectService.findAll(phase);
+    return this.projectService.findAll(phase, code);
   }
 
   @Get('by-global-unit/:officialCode')
