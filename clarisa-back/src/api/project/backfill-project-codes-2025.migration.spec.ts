@@ -1,4 +1,8 @@
 import { BackfillProjectCodes20251792170000000 } from '../../../migrations/1792170000000-BackfillProjectCodes2025';
+import {
+  fakeQueryRunner,
+  projectUpdates,
+} from './migration-query-runner.spec-helper';
 
 describe('BackfillProjectCodes20251792170000000', () => {
   const match = BackfillProjectCodes20251792170000000.matchCodes;
@@ -78,19 +82,11 @@ describe('BackfillProjectCodes20251792170000000', () => {
   });
 
   describe('up / down', () => {
-    const runner = (responses: unknown[][]) => {
-      const query = jest.fn(async (sql: string) =>
-        /^\s*SELECT/.test(sql) ? (responses.shift() ?? []) : undefined,
-      );
-      return { query };
-    };
     const updates = (query: jest.Mock) =>
-      query.mock.calls
-        .filter(([sql]) => /UPDATE project/.test(String(sql)))
-        .map(([, params]) => params);
+      projectUpdates(query).map(([, params]) => params);
 
     it('up fills only the matched empty codes', async () => {
-      const qr = runner([
+      const qr = fakeQueryRunner([
         [{ external_code: 'F-AG10607' }],
         [
           { id: 146, short_name: 'F-AG10607-ASIA-AFRICA' },
@@ -103,20 +99,10 @@ describe('BackfillProjectCodes20251792170000000', () => {
       expect(sql).toMatch(/external_code IS NULL OR external_code = ''/);
     });
 
-    it('down empties only the codes the rule wrote', async () => {
-      const qr = runner([
-        [{ external_code: 'F-AG10607' }],
-        [
-          {
-            id: 146,
-            short_name: 'F-AG10607-ASIA-AFRICA',
-            external_code: 'F-AG10607',
-          },
-          { id: 30, short_name: 'Pulses project', external_code: 'MANUAL-1' },
-        ],
-      ]);
-      await new BackfillProjectCodes20251792170000000().down(qr as any);
-      expect(updates(qr.query)).toEqual([[146]]);
+    it('down leaves every code in place', async () => {
+      await expect(
+        new BackfillProjectCodes20251792170000000().down(),
+      ).resolves.toBeUndefined();
     });
   });
 });
