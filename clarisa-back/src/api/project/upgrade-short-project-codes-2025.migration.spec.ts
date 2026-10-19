@@ -1,4 +1,8 @@
 import { UpgradeShortProjectCodes20251792420000000 } from '../../../migrations/1792420000000-UpgradeShortProjectCodes2025';
+import {
+  fakeQueryRunner,
+  projectUpdates,
+} from './migration-query-runner.spec-helper';
 
 describe('UpgradeShortProjectCodes20251792420000000', () => {
   const match = UpgradeShortProjectCodes20251792420000000.matchShortCodes;
@@ -88,15 +92,8 @@ describe('UpgradeShortProjectCodes20251792420000000', () => {
   });
 
   describe('up / down', () => {
-    const runner = (responses: unknown[][]) => {
-      const query = jest.fn(async (sql: string) =>
-        /^\s*SELECT/.test(sql) ? (responses.shift() ?? []) : undefined,
-      );
-      return { query };
-    };
-
     it('up replaces only the matched short codes, guarded by the old value', async () => {
-      const qr = runner([
+      const qr = fakeQueryRunner([
         [{ external_code: 'C-D514' }, { external_code: 'F-AG10607' }],
         [
           { id: 192, external_code: 'D514' },
@@ -106,9 +103,7 @@ describe('UpgradeShortProjectCodes20251792420000000', () => {
         [{ external_code: 'D514' }, { external_code: 'F-AG10607' }],
       ]);
       await new UpgradeShortProjectCodes20251792420000000().up(qr as any);
-      const updates = (qr.query as jest.Mock).mock.calls.filter(([sql]) =>
-        /UPDATE project/.test(String(sql)),
-      );
+      const updates = projectUpdates(qr.query);
       expect(updates.map(([, params]) => params)).toEqual([
         ['C-D514', '192', 'D514'],
       ]);
