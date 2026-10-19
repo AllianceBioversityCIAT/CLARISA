@@ -8,9 +8,9 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *
  * A 2026 code is taken only when it ends in `-` + the short code (`C-D514`
  * for `D514`, never `C-D5140` nor `C-XD514`), exactly one 2026 code does so,
- * and no other 2025 project already has it or would take it. Anything else
- * keeps its short code, to be mapped by hand (F100, D409, D510 and D527 at
- * the time of writing).
+ * and no other 2025 project (any source) already has it or would take it.
+ * Anything else keeps its short code, to be mapped by hand (F100, D409, D510
+ * and D527 at the time of writing).
  *
  * Idempotent: a code that already is a 2026 code is left alone, and each
  * UPDATE only fires while the row still holds the short code it read.
@@ -23,16 +23,20 @@ export class UpgradeShortProjectCodes20251792420000000
 {
   name = 'UpgradeShortProjectCodes20251792420000000';
 
-  /** 2025 project id → the 2026 code that replaces its short code. */
+  /**
+   * 2025 project id → the 2026 code that replaces its short code. `held2025`
+   * are the codes of every 2025 row, other sources included.
+   */
   static matchShortCodes(
     projects: ReadonlyArray<{ id: number | string; external_code: string }>,
     codes: ReadonlyArray<string>,
+    held2025: ReadonlyArray<string> = [],
   ): Map<string, string> {
     const full = codes.map((code) => code.trim()).filter(Boolean);
     const fullUpper = new Set(full.map((code) => code.toUpperCase()));
     const held = new Set(
-      projects
-        .map((p) => (p.external_code ?? '').trim().toUpperCase())
+      [...projects.map((p) => p.external_code), ...held2025]
+        .map((code) => (code ?? '').trim().toUpperCase())
         .filter((code) => fullUpper.has(code)),
     );
 
@@ -67,6 +71,10 @@ export class UpgradeShortProjectCodes20251792420000000
           WHERE phase = 2025 AND external_source IS NULL
             AND external_code IS NOT NULL AND external_code <> ''`,
       );
+    const held: { external_code: string }[] = await queryRunner.query(
+      `SELECT external_code FROM project
+        WHERE phase = 2025 AND external_code IS NOT NULL AND external_code <> ''`,
+    );
     const shortById = new Map(
       projects.map((p) => [String(p.id), p.external_code]),
     );
@@ -74,6 +82,7 @@ export class UpgradeShortProjectCodes20251792420000000
     const matches = cls.matchShortCodes(
       projects,
       rows.map((r) => r.external_code),
+      held.map((r) => r.external_code),
     );
     for (const [id, code] of matches) {
       await queryRunner.query(

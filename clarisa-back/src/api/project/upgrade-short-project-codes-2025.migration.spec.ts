@@ -65,6 +65,15 @@ describe('UpgradeShortProjectCodes20251792420000000', () => {
       expect(result.size).toBe(0);
     });
 
+    it('does not take a 2026 code a 2025 row from another source has', () => {
+      const result = match(
+        [{ id: 6, external_code: 'D514' }],
+        ['C-D514'],
+        ['c-d514'],
+      );
+      expect(result.size).toBe(0);
+    });
+
     it('leaves aside a code that more than one 2025 project would take', () => {
       const result = match(
         [
@@ -94,6 +103,7 @@ describe('UpgradeShortProjectCodes20251792420000000', () => {
           { id: 146, external_code: 'F-AG10607' },
           { id: 30, external_code: 'D409' },
         ],
+        [{ external_code: 'D514' }, { external_code: 'F-AG10607' }],
       ]);
       await new UpgradeShortProjectCodes20251792420000000().up(qr as any);
       const updates = (qr.query as jest.Mock).mock.calls.filter(([sql]) =>
