@@ -14,8 +14,9 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * that more than one 2025 project would take (Santiago validates those by
  * hand). `short_name` is never touched.
  *
- * Idempotent: only empty codes are filled. `down()` empties exactly the codes
- * this rule would have written.
+ * Idempotent: only empty codes are filled. `down()` does nothing: recomputing
+ * the rule over filled rows could empty a code set by hand that happens to
+ * match it (Santiago Sánchez, 2026-10-16), and a filled code breaks nothing.
  */
 export class BackfillProjectCodes20251792170000000
   implements MigrationInterface
@@ -66,26 +67,8 @@ export class BackfillProjectCodes20251792170000000
     }
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    const codes = await this.codes2026(queryRunner);
-    const projects: {
-      id: number | string;
-      short_name: string;
-      external_code: string;
-    }[] = await queryRunner.query(
-      `SELECT id, short_name, external_code FROM project
-        WHERE phase = 2025 AND external_source IS NULL
-          AND external_code IS NOT NULL AND external_code <> ''`,
-    );
-    const cls = BackfillProjectCodes20251792170000000;
-    const matches = cls.matchCodes(projects, codes);
-    for (const project of projects) {
-      if (matches.get(String(project.id)) !== project.external_code) continue;
-      await queryRunner.query(
-        `UPDATE project SET external_code = NULL WHERE id = ?`,
-        [project.id],
-      );
-    }
+  public async down(): Promise<void> {
+    // Intentionally empty, see the class comment.
   }
 
   private async codes2026(queryRunner: QueryRunner): Promise<string[]> {
