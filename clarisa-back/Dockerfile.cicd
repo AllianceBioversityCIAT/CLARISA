@@ -23,7 +23,10 @@ FROM node:20.13.1-alpine AS deps
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+# Lifecycle scripts off; only bcrypt (native binding) is built. The other install scripts are telemetry
+# (@scarf/scarf), banners (@nestjs/core) or optional native modules with a JavaScript fallback.
+RUN npm ci --ignore-scripts --no-audit --no-fund \
+ && npm rebuild bcrypt
 
 #################### BUILD ####################
 FROM deps AS build

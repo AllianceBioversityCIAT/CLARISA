@@ -17,7 +17,10 @@ COPY . /ctx
 FROM node:20-alpine AS deps
 WORKDIR /usr/src/app
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+# Lifecycle scripts off; only esbuild (platform binary) is set up. The other install scripts are banners (core-js)
+# or optional native modules with a JavaScript fallback.
+RUN npm ci --ignore-scripts --no-audit --no-fund \
+ && npm rebuild esbuild
 
 #################### BUILD ####################
 FROM deps AS build
