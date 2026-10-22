@@ -22,7 +22,7 @@ check_metadata() {
 
 check_backend() {
   local image="$1" migrations="$2"
-  [[ "$migrations" =~ ^[0-9]+$ ]] && (( migrations > 0 )) || fail "invalid expected migration count"
+  if ! [[ "$migrations" =~ ^[0-9]+$ ]] || (( migrations == 0 )); then fail "invalid expected migration count"; fi
   check_metadata "$image"
 
   docker run --rm -i --entrypoint sh "$image" -s "$migrations" <<'EOF'
@@ -106,8 +106,7 @@ done
 leaks=$(find / -xdev \( -name 'environment*.ts' -o -name '.env' -o -name '.env.*' -o -name 'node_modules' \
   -o -name '*.map' \) -print 2> /dev/null)
 [ -z "$leaks" ] || { echo '::error::frontend image contains:'; echo "$leaks"; status=1; }
-# Keys the application never reads must not be compiled in; no credential-like text in the bundle
-! grep -rq 'tawkToId' "$html" || { echo '::error::the bundle contains tawkToId'; status=1; }
+# No credential-like text in the bundle (the environment itself is allow-listed by write-frontend-environment.sh)
 ! grep -rEq 'AKIA[0-9A-Z]{16}|BEGIN [A-Z ]*PRIVATE KEY' "$html" \
   || { echo '::error::the bundle contains credential-like text'; status=1; }
 exit "$status"

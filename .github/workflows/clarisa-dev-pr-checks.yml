@@ -20,12 +20,15 @@ concurrency:
   group: clarisa-dev-pr-checks-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-# PUBLIC placeholder values for the frontend environment, for validation only: they are compiled into a bundle that
-# is never published. The DEV values come from GitHub Environment variables when images are published (increment I-3).
+# PUBLIC values for the frontend environment, for validation only: they are compiled into a bundle that is never
+# published. CLARISA_FRONT_API_URL is the public DEV API URL the frontend specs expect (already in the repository);
+# the other values are placeholders. The DEV values come from GitHub Environment variables when images are
+# published (increment I-3).
 env:
-  CLARISA_FRONT_API_URL: https://clarisa-ci-placeholder.invalid/api/
+  CLARISA_FRONT_API_URL: https://clarisatest-back.ciat.cgiar.org/
   CLARISA_FRONT_GA_ID: G-CIPLACEHOLDER
   CLARISA_FRONT_POWERBI_INSTITUTION_REQUEST_URL: https://clarisa-ci-placeholder.invalid/powerbi
+  CLARISA_FRONT_TAWK_TO_ID: ci-placeholder/ci-placeholder
   CLARISA_FRONT_PRODUCTION: 'false'
 
 jobs:
@@ -47,8 +50,10 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: clarisa-back/package-lock.json
-      - name: Install dependencies (lockfile)
-        run: npm ci --no-audit --no-fund
+      # Lifecycle scripts off; only bcrypt (native binding) is built. The other install scripts are telemetry
+      # (@scarf/scarf), banners (@nestjs/core) or optional native modules with a JavaScript fallback.
+      - name: Install dependencies (lockfile, no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund && npm rebuild bcrypt
       # Same gate as the legacy `npm run lint` (eslint --fix, same globs): fails only on errors autofix cannot
       # solve. --fix-dry-run computes the fixes without writing any file.
       - name: Lint (no files modified)
@@ -75,9 +80,11 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: clarisa-front/package-lock.json
-      - name: Install dependencies (lockfile)
-        run: npm ci --no-audit --no-fund
-      - name: Public test environment (placeholders)
+      # Lifecycle scripts off; only esbuild (platform binary) is set up. The other install scripts are banners
+      # (core-js) or optional native modules with a JavaScript fallback.
+      - name: Install dependencies (lockfile, no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund && npm rebuild esbuild
+      - name: Public test environment
         run: >-
           bash "$GITHUB_WORKSPACE/.github/scripts/write-frontend-environment.sh"
           src/environments/environment.ts src/environments/environment.prod.ts

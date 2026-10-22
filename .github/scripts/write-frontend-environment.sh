@@ -2,15 +2,17 @@
 # Writes the CLARISA frontend Angular environment from allow-listed PUBLIC values to each file given as argument.
 #
 # Everything written here is compiled into the browser bundle and served to every visitor, so only public settings
-# belong here. The file contains exactly the four keys the application reads; keys it never reads (for example
-# `token` and `tawkToId` in environment.ts.example) are never written.
+# belong here. The file contains exactly the five keys the application reads (tawkToId is the public Tawk.to widget
+# id, part of the script URL every visitor loads); keys it never reads (for example `token` in
+# environment.ts.example) are never written.
 # Inputs (environment): CLARISA_FRONT_API_URL, CLARISA_FRONT_GA_ID (may be empty),
-# CLARISA_FRONT_POWERBI_INSTITUTION_REQUEST_URL, CLARISA_FRONT_PRODUCTION (true | false).
+# CLARISA_FRONT_POWERBI_INSTITUTION_REQUEST_URL, CLARISA_FRONT_TAWK_TO_ID (may be empty),
+# CLARISA_FRONT_PRODUCTION (true | false).
 set -euo pipefail
 
 (( $# >= 1 )) || { echo "usage: $0 <output-file>..." >&2; exit 2; }
 : "${CLARISA_FRONT_API_URL:?}" "${CLARISA_FRONT_GA_ID?}" "${CLARISA_FRONT_POWERBI_INSTITUTION_REQUEST_URL:?}" \
-  "${CLARISA_FRONT_PRODUCTION:?}"
+  "${CLARISA_FRONT_TAWK_TO_ID?}" "${CLARISA_FRONT_PRODUCTION:?}"
 
 # Values go into TypeScript string literals: no quotes, backslashes or whitespace are accepted.
 url_re='^https?://[A-Za-z0-9._~:/?#@!$&()*+,;=%-]+$'
@@ -20,6 +22,8 @@ url_re='^https?://[A-Za-z0-9._~:/?#@!$&()*+,;=%-]+$'
   || { echo "::error::CLARISA_FRONT_POWERBI_INSTITUTION_REQUEST_URL must be an http(s) URL without quotes or spaces"; exit 1; }
 [[ "$CLARISA_FRONT_GA_ID" =~ ^[A-Za-z0-9-]*$ ]] \
   || { echo "::error::CLARISA_FRONT_GA_ID may contain only letters, digits and hyphens"; exit 1; }
+[[ "$CLARISA_FRONT_TAWK_TO_ID" =~ ^[A-Za-z0-9/_-]*$ ]] \
+  || { echo "::error::CLARISA_FRONT_TAWK_TO_ID may contain only letters, digits, '/', '_' and '-'"; exit 1; }
 [[ "$CLARISA_FRONT_PRODUCTION" =~ ^(true|false)$ ]] \
   || { echo "::error::CLARISA_FRONT_PRODUCTION must be true or false"; exit 1; }
 
@@ -32,6 +36,7 @@ export const environment = {
   apiUrl: '${CLARISA_FRONT_API_URL}',
   googleAnalyticsId: '${CLARISA_FRONT_GA_ID}',
   powerBiInstitutionRequestUrl: '${CLARISA_FRONT_POWERBI_INSTITUTION_REQUEST_URL}',
+  tawkToId: '${CLARISA_FRONT_TAWK_TO_ID}',
 };
 EOF
 done
