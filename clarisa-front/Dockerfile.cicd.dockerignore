@@ -6,6 +6,10 @@ src/environments/environment*.ts
 **/.env
 **/.env.*
 
+# Source maps of the third-party libraries committed under src/assets (Bootstrap, Pickr): only browser developer
+# tools request them; nothing in the build or the application references them.
+src/assets/**/*.map
+
 # Local artifacts
 **/node_modules
 dist
