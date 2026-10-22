@@ -1,0 +1,146 @@
+# CLARISA DEV: validation of pull requests to dev-v2 (increment I-2 of the GitHub Actions CI/CD migration).
+#
+# Runs the checks the legacy Jenkins job clarisa-application-dev runs today (dependency install, backend lint,
+# backend and frontend tests, on Node 22 as the Jenkins tool) and builds both CI/CD images (Dockerfile.cicd) to
+# prove that they build, that their build contexts exclude sensitive files and that the images hold what the
+# application needs and nothing secret.
+#
+# No secrets, no AWS credentials, no image is pushed and Jenkins is not called: deployments stay with the legacy
+# job (jenkins-trigger.yml, unchanged). Pull requests from forks are safe for the same reason.
+# Action pinning: every `uses:` is a full commit SHA (same SHAs as the Reporting Tool DEV pipeline).
+name: clarisa-dev-pr-checks
+
+on:
+  pull_request:
+    branches: [dev-v2]
+
+permissions: {}
+
+concurrency:
+  group: clarisa-dev-pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# PUBLIC placeholder values for the frontend environment, for validation only: they are compiled into a bundle that
+# is never published. The DEV values come from GitHub Environment variables when images are published (increment I-3).
+env:
+  CLARISA_FRONT_API_URL: https://clarisa-ci-placeholder.invalid/api/
+  CLARISA_FRONT_GA_ID: G-CIPLACEHOLDER
+  CLARISA_FRONT_POWERBI_INSTITUTION_REQUEST_URL: https://clarisa-ci-placeholder.invalid/powerbi
+  CLARISA_FRONT_PRODUCTION: 'false'
+
+jobs:
+  backend-checks:
+    name: backend checks (lint, tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: clarisa-back
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: clarisa-back/package-lock.json
+      - name: Install dependencies (lockfile)
+        run: npm ci --no-audit --no-fund
+      # Same gate as the legacy `npm run lint` (eslint --fix, same globs): fails only on errors autofix cannot
+      # solve. --fix-dry-run computes the fixes without writing any file.
+      - name: Lint (no files modified)
+        run: ./node_modules/.bin/eslint --fix-dry-run "{src,apps,libs,test}/**/*.ts"
+      # The specs that reach LDAPAuth mock it, so no config.ts is needed.
+      - name: Unit tests with coverage
+        run: npm run test:cov -- --ci
+
+  frontend-checks:
+    name: frontend checks (tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: clarisa-front
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: clarisa-front/package-lock.json
+      - name: Install dependencies (lockfile)
+        run: npm ci --no-audit --no-fund
+      - name: Public test environment (placeholders)
+        run: >-
+          bash "$GITHUB_WORKSPACE/.github/scripts/write-frontend-environment.sh"
+          src/environments/environment.ts src/environments/environment.prod.ts
+      # The legacy job runs no frontend lint (its stage is commented out).
+      - name: Unit tests with coverage
+        run: npm run test:coverage -- --ci
+
+  ci-script-checks:
+    name: CI script checks (bash -n, ShellCheck)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Syntax
+        run: for f in .github/scripts/*.sh; do bash -n "$f"; done
+      - name: ShellCheck
+        run: shellcheck .github/scripts/*.sh
+
+  images:
+    name: images (build, context and security checks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      DOCKER_BUILDKIT: '1'
+      BACKEND_IMAGE: clarisa-back-cicd:pr-${{ github.run_id }}
+      FRONTEND_IMAGE: clarisa-front-cicd:pr-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build contexts exclude secrets and local artifacts (canary probe)
+        run: bash .github/scripts/verify-build-context.sh
+      - name: Build the backend image
+        run: docker build --file clarisa-back/Dockerfile.cicd --target runtime --tag "$BACKEND_IMAGE" clarisa-back
+      - name: Public frontend environment (placeholders), outside the build context
+        run: bash .github/scripts/write-frontend-environment.sh "$RUNNER_TEMP/frontend-environment.ts"
+      - name: Build the frontend image
+        run: >-
+          docker build --file clarisa-front/Dockerfile.cicd --target runtime
+          --secret id=frontend_environment,src="$RUNNER_TEMP/frontend-environment.ts"
+          --tag "$FRONTEND_IMAGE" clarisa-front
+      - name: Remove the generated frontend environment
+        if: always()
+        run: rm -f "$RUNNER_TEMP/frontend-environment.ts"
+      - name: Backend image checks
+        run: >-
+          bash .github/scripts/verify-images.sh backend "$BACKEND_IMAGE"
+          "$(find clarisa-back/migrations -name '*.ts' | wc -l)"
+      - name: Frontend image checks
+        run: >-
+          bash .github/scripts/verify-images.sh frontend "$FRONTEND_IMAGE"
+          "$CLARISA_FRONT_API_URL" clarisa-front/nginx.conf
+      - name: Image summary
+        run: |
+          {
+            echo '### CI/CD images (not published)'
+            echo '| Image | Size |'
+            echo '|---|---|'
+            docker image ls --filter 'reference=clarisa-*-cicd' --format '| {{.Repository}}:{{.Tag}} | {{.Size}} |'
+          } >> "$GITHUB_STEP_SUMMARY"
