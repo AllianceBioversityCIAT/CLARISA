@@ -1,0 +1,23 @@
+# Applies only to Dockerfile.cicd (BuildKit reads <Dockerfile>.dockerignore). The legacy ./Dockerfile build keeps
+# its current context. The Angular environment comes from the `frontend_environment` build secret, never from here.
+
+# Per-environment configuration and secrets
+src/environments/environment*.ts
+**/.env
+**/.env.*
+
+# Local artifacts
+**/node_modules
+dist
+.angular
+coverage
+**/.DS_Store
+
+# Not needed by the image (assets under src/ are kept, including their .md files)
+.git
+.vscode
+/*.md
+Dockerfile
+Dockerfile.cicd
+*.dockerignore
+sonar-project.properties

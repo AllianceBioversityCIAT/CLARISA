@@ -1,0 +1,32 @@
+// CI/CD replacement for the git-ignored src/shared/config/config.ts, used only by Dockerfile.cicd, which copies
+// this file to that path before compiling. It is not a .ts file here so the regular builds never compile it.
+//
+// The application reads one key of config.ts: `active_directory` (src/auth/utils/LDAPAuth.ts passes it whole to
+// `new ActiveDirectory(...)`). Its value is the same object as in the per-environment config.ts, provided as
+// one-line JSON in CLARISA_AD_CONFIG_JSON when the process starts: nothing is compiled into the image.
+// Error messages name the variable, never its content.
+const AD_CONFIG_VARIABLE = 'CLARISA_AD_CONFIG_JSON';
+
+function readActiveDirectoryConfig(): Record<string, unknown> {
+  const raw = process.env[AD_CONFIG_VARIABLE];
+  if (!raw) {
+    throw new Error(`Missing runtime configuration variable ${AD_CONFIG_VARIABLE}`);
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // The parser message can quote part of the input: it is not propagated.
+    throw new Error(`${AD_CONFIG_VARIABLE} is not valid JSON`);
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${AD_CONFIG_VARIABLE} must be a JSON object`);
+  }
+  return parsed as Record<string, unknown>;
+}
+
+export default {
+  active_directory: readActiveDirectoryConfig(),
+};
