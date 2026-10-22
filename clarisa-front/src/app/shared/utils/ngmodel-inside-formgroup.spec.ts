@@ -1,4 +1,7 @@
 // The spec tsconfig carries no Node typings; jest runs on Node, so both exist at runtime.
+// A module, not a global script: its local declarations must not clash with those of other specs.
+export {};
+
 declare const require: (id: string) => any;
 declare const __dirname: string;
 const fs = require('fs');

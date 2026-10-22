@@ -7,6 +7,9 @@
  * pulling the Node types into every spec changes how globals like setTimeout are
  * typed across the suite, which is a far wider change than this file needs.
  */
+// A module, not a global script: its local declarations must not clash with those of other specs.
+export {};
+
 declare const require: (id: string) => any;
 
 const fs = require('fs');
