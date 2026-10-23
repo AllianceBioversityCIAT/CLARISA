@@ -2,11 +2,12 @@
 #
 #   GitHub Actions (CI)  ->  clarisa-application-dev-cd (Jenkins, CD orchestration)  ->  DEV server
 #
-# The legacy all-in-one job clarisa-application-dev is NOT used by this workflow; until the cutover it keeps
-# deploying DEV through jenkins-trigger.yml, and afterwards it stays available in Jenkins for manual recovery.
+# The legacy all-in-one job clarisa-application-dev is NOT used by this workflow. Since the cutover (2026-10-23) it no
+# longer deploys pushes to dev-v2 (jenkins-trigger.yml keeps only main, staging and workflow_dispatch) and stays
+# available in Jenkins for manual recovery only.
 # `dry-run` of the Jenkins hand-over (job `deploy` below): true = clarisa-application-dev-cd validates the request,
 # the ECR images and the server over SSH WITHOUT changing anything; false = real deploy (it also needs
-# REAL_DEPLOY_AUTHORIZED = true in the Jenkinsfile). It stays true until the cutover PR.
+# REAL_DEPLOY_AUTHORIZED = true in the Jenkinsfile). false since the cutover: every push to dev-v2 is deployed.
 #
 # Triggers: push to dev-v2 (the DEV branch) only, and workflow_dispatch (manual; GitHub offers it only once the
 # workflow file is on the default branch). Both run the full CI/CD:
@@ -213,7 +214,7 @@ jobs:
     with:
       jenkins-job: clarisa-application-dev-cd
       environment: clarisa-dev
-      dry-run: true # validation only until the cutover PR (owner authorization)
+      dry-run: false # real deploy on every push to dev-v2 (owner authorization, cutover 2026-10-23)
       artifacts: >-
         backend=${{ needs.publish-images.outputs.backend-digest }}
         frontend=${{ needs.publish-images.outputs.frontend-digest }}
