@@ -93,8 +93,10 @@ jobs:
           bash "$GITHUB_WORKSPACE/.github/scripts/write-frontend-environment.sh"
           src/environments/environment.ts src/environments/environment.prod.ts
       # The legacy job runs no frontend lint (its stage is commented out).
+      # Same command as the legacy `npm run test:coverage` (jest --coverage), with the CI-only configuration that
+      # extends clarisa-front/jest.config.js (see .github/ci/clarisa-front.jest.config.js).
       - name: Unit tests with coverage
-        run: npm run test:coverage -- --ci
+        run: ./node_modules/.bin/jest --config "$GITHUB_WORKSPACE/.github/ci/clarisa-front.jest.config.js" --coverage --ci
 
   ci-script-checks:
     name: CI script checks (bash -n, ShellCheck)
