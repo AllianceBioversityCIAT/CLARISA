@@ -1,16 +1,21 @@
 # CLARISA STAGING: continuous integration only (same model as Reporting Tool STAGING).
 #
-#   push to staging -> GitHub Actions (backend lint and tests, frontend tests, CI script checks) -> CI result
+#   push to staging -> GitHub Actions (backend lint and tests, frontend tests, CI script checks)
+#                   -> Jenkins clarisa-application-staging-ci (verify + record + final Slack)
 #
-# CI only: no Docker build, no image, no ECR, no Jenkins call, no deploy, no migrations, no AWS access and no
-# secret other than the Slack webhook. The frontend tests use public placeholder values
-# (.github/scripts/write-frontend-environment.sh), never a Secrets Manager read.
+# CI only: no Docker build, no image, no ECR, no deploy, no migrations and no AWS access. The frontend tests use
+# public placeholder values (.github/scripts/write-frontend-environment.sh), never a Secrets Manager read.
+# Jenkins finalization (jenkins-ci-finalize.reusable.yml, verbatim from Reporting Tool): only when every check passed;
+# it does not wait. GitHub Environment clarisa-staging (deployment branch staging only, no variables, no secrets) is
+# the gate of that hand-over; it uses the repository secrets JENKINS_USERNAME / JENKINS_API_TOKEN.
 # The checks are those of the CLARISA DEV pull request checks (clarisa-dev-pr-checks.yml on dev-v2), on Node 20 as the
 # legacy STAGING Jenkins job (tool "Node 20"). The legacy job clarisa-application-staging is not changed and keeps
 # running through jenkins-trigger.yml until a separate, authorized cutover.
 #
-# Slack (reusable workflow slack-notify.reusable.yml, unchanged): "started" at the start of the run and "failed" when a
-# check fails or is cancelled. A green run has no Slack message of its own: its result is the run status in GitHub.
+# Slack (one message per event, never duplicated):
+#   started     GitHub Actions, at the start of the run (slack-notify.reusable.yml)
+#   failed      GitHub Actions, when a check (or the Jenkins hand-over) failed or was cancelled; Jenkins is not called
+#   succeeded   Jenkins clarisa-application-staging-ci, after verifying the run
 #
 # Action pinning: every `uses:` is a full commit SHA (same SHAs as the CLARISA DEV pipeline):
 #   actions/checkout    v7.0.1  3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -130,10 +135,29 @@ jobs:
       - name: ShellCheck
         run: shellcheck .github/scripts/*.sh
 
+  # ---------------------------------------------------------------- Jenkins finalization
+  # Only when every check passed: Jenkins verifies the run, records it and posts the final Slack message. Does not wait.
+  finalize:
+    name: finalize (Jenkins clarisa-application-staging-ci)
+    needs: [backend-checks, frontend-checks, ci-script-checks]
+    if: >-
+      needs.backend-checks.result == 'success'
+      && needs.frontend-checks.result == 'success'
+      && needs.ci-script-checks.result == 'success'
+    permissions: {}
+    uses: ./.github/workflows/jenkins-ci-finalize.reusable.yml
+    with:
+      jenkins-job: clarisa-application-staging-ci
+      environment: clarisa-staging
+    secrets:
+      JENKINS_USERNAME: ${{ secrets.JENKINS_USERNAME }}
+      JENKINS_API_TOKEN: ${{ secrets.JENKINS_API_TOKEN }}
+
   # ---------------------------------------------------------------- CI failure notification
+  # Only when the run failed before Jenkins accepted the request. Jenkins is not called on failure.
   notify-ci-failure:
     name: notify CI failure (Slack)
-    needs: [backend-checks, frontend-checks, ci-script-checks]
+    needs: [backend-checks, frontend-checks, ci-script-checks, finalize]
     if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
     permissions: {}
     uses: ./.github/workflows/slack-notify.reusable.yml
@@ -145,6 +169,7 @@ jobs:
       detail: >-
         backend-checks=${{ needs.backend-checks.result }},
         frontend-checks=${{ needs.frontend-checks.result }},
-        ci-script-checks=${{ needs.ci-script-checks.result }}
+        ci-script-checks=${{ needs.ci-script-checks.result }},
+        jenkins-hand-over=${{ needs.finalize.result }}
     secrets:
       SLACK_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_NOTIFICATIONS_WEBHOOK_URL }}
