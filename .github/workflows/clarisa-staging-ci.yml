@@ -1,0 +1,150 @@
+# CLARISA STAGING: continuous integration only (same model as Reporting Tool STAGING).
+#
+#   push to staging -> GitHub Actions (backend lint and tests, frontend tests, CI script checks) -> CI result
+#
+# CI only: no Docker build, no image, no ECR, no Jenkins call, no deploy, no migrations, no AWS access and no
+# secret other than the Slack webhook. The frontend tests use public placeholder values
+# (.github/scripts/write-frontend-environment.sh), never a Secrets Manager read.
+# The checks are those of the CLARISA DEV pull request checks (clarisa-dev-pr-checks.yml on dev-v2), on Node 20 as the
+# legacy STAGING Jenkins job (tool "Node 20"). The legacy job clarisa-application-staging is not changed and keeps
+# running through jenkins-trigger.yml until a separate, authorized cutover.
+#
+# Slack (reusable workflow slack-notify.reusable.yml, unchanged): "started" at the start of the run and "failed" when a
+# check fails or is cancelled. A green run has no Slack message of its own: its result is the run status in GitHub.
+#
+# Action pinning: every `uses:` is a full commit SHA (same SHAs as the CLARISA DEV pipeline):
+#   actions/checkout    v7.0.1  3d3c42e5aac5ba805825da76410c181273ba90b1
+#   actions/setup-node  v7.0.0  820762786026740c76f36085b0efc47a31fe5020
+name: clarisa-staging-ci
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: clarisa-staging-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+# PUBLIC values for the frontend environment, for the tests only (never built into a published bundle).
+# CLARISA_FRONT_API_URL is the public DEV API URL the frontend specs expect (already in the repository); the other
+# values are placeholders.
+env:
+  CLARISA_FRONT_API_URL: https://clarisatest-back.ciat.cgiar.org/
+  CLARISA_FRONT_GA_ID: G-CIPLACEHOLDER
+  CLARISA_FRONT_POWERBI_INSTITUTION_REQUEST_URL: https://clarisa-ci-placeholder.invalid/powerbi
+  CLARISA_FRONT_TAWK_TO_ID: ci-placeholder/ci-placeholder
+  CLARISA_FRONT_PRODUCTION: 'false'
+
+jobs:
+  # ---------------------------------------------------------------- start notification
+  notify-start:
+    name: notify start (Slack)
+    permissions: {}
+    uses: ./.github/workflows/slack-notify.reusable.yml
+    with:
+      status: started
+      title: CLARISA NEW ENVIRONMENT
+      project: CLARISA
+      environment-label: STAGING
+    secrets:
+      SLACK_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_NOTIFICATIONS_WEBHOOK_URL }}
+
+  # ---------------------------------------------------------------- checks (no secrets, no AWS)
+  backend-checks:
+    name: backend checks (lint, tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: clarisa-back
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: clarisa-back/package-lock.json
+      # Lifecycle scripts off; only bcrypt (native binding) is built. The other install scripts are telemetry
+      # (@scarf/scarf), banners (@nestjs/core) or optional native modules with a JavaScript fallback.
+      - name: Install dependencies (lockfile, no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund && npm rebuild bcrypt
+      # Same gate as the legacy `npm run lint` (eslint --fix, same globs): fails only on errors autofix cannot
+      # solve. --fix-dry-run computes the fixes without writing any file.
+      - name: Lint (no files modified)
+        run: ./node_modules/.bin/eslint --fix-dry-run "{src,apps,libs,test}/**/*.ts"
+      # The specs that reach LDAPAuth mock it, so neither config.ts nor the backend .env is needed.
+      - name: Unit tests with coverage
+        run: npm run test:cov -- --ci
+
+  frontend-checks:
+    name: frontend checks (tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: clarisa-front
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: clarisa-front/package-lock.json
+      # Lifecycle scripts off; only esbuild (platform binary) is set up. The other install scripts are banners
+      # (core-js) or optional native modules with a JavaScript fallback.
+      - name: Install dependencies (lockfile, no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund && npm rebuild esbuild
+      - name: Public test environment
+        run: >-
+          bash "$GITHUB_WORKSPACE/.github/scripts/write-frontend-environment.sh"
+          src/environments/environment.ts src/environments/environment.prod.ts
+      # The legacy job runs no frontend lint (its stage is commented out).
+      # Same command as the legacy `npm run test:coverage` (jest --coverage), with the CI-only configuration that
+      # extends clarisa-front/jest.config.js (see .github/ci/clarisa-front.jest.config.js).
+      - name: Unit tests with coverage
+        run: ./node_modules/.bin/jest --config "$GITHUB_WORKSPACE/.github/ci/clarisa-front.jest.config.js" --coverage --ci
+
+  ci-script-checks:
+    name: CI script checks (bash -n, ShellCheck)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Syntax
+        run: for f in .github/scripts/*.sh; do bash -n "$f"; done
+      - name: ShellCheck
+        run: shellcheck .github/scripts/*.sh
+
+  # ---------------------------------------------------------------- CI failure notification
+  notify-ci-failure:
+    name: notify CI failure (Slack)
+    needs: [backend-checks, frontend-checks, ci-script-checks]
+    if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
+    permissions: {}
+    uses: ./.github/workflows/slack-notify.reusable.yml
+    with:
+      status: failed
+      title: CLARISA NEW ENVIRONMENT
+      project: CLARISA
+      environment-label: STAGING
+      detail: >-
+        backend-checks=${{ needs.backend-checks.result }},
+        frontend-checks=${{ needs.frontend-checks.result }},
+        ci-script-checks=${{ needs.ci-script-checks.result }}
+    secrets:
+      SLACK_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_NOTIFICATIONS_WEBHOOK_URL }}
