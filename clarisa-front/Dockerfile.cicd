@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1
+# CI/CD image of the CLARISA frontend, built by GitHub Actions. The legacy Jenkins job keeps building ./Dockerfile;
+# this file neither replaces nor changes it.
+#
+# The Angular environment is compiled into the bundle every browser downloads. CI passes it as the BuildKit secret
+# `frontend_environment`, so it is never part of the build context or of a layer: published images use the DEV
+# configuration from Secrets Manager, the same secret the legacy job writes (.github/scripts/write-frontend-config.sh);
+# pull request checks use public placeholders (.github/scripts/write-frontend-environment.sh). As in the legacy job, the
+# same content is used for environment.ts and environment.prod.ts (the production build replaces one with the other).
+# Same Node build image, build command (production configuration) and nginx runtime as ./Dockerfile.
+
+#################### CONTEXT PROBE (CI check only, never deployed) ####################
+# Built with --target context-probe to prove that Dockerfile.cicd.dockerignore applies to this build.
+FROM node:20-alpine AS context-probe
+COPY . /ctx
+
+#################### DEPENDENCIES ####################
+FROM node:20-alpine AS deps
+WORKDIR /usr/src/app
+COPY package.json package-lock.json ./
+# Lifecycle scripts off; only esbuild (platform binary) is set up. The other install scripts are banners (core-js)
+# or optional native modules with a JavaScript fallback.
+RUN npm ci --ignore-scripts --no-audit --no-fund \
+ && npm rebuild esbuild
+
+#################### BUILD ####################
+FROM deps AS build
+COPY . .
+RUN --mount=type=secret,id=frontend_environment,required=true \
+    mkdir -p src/environments \
+ && cp /run/secrets/frontend_environment src/environments/environment.ts \
+ && cp /run/secrets/frontend_environment src/environments/environment.prod.ts \
+ && npm run build \
+ && rm -f src/environments/environment.ts src/environments/environment.prod.ts
+
+#################### RUNTIME ####################
+FROM nginx:alpine AS runtime
+RUN rm -rf /usr/share/nginx/html/*
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY --from=build /usr/src/app/dist/clarisa-front /usr/share/nginx/html
+RUN chmod -R 755 /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
