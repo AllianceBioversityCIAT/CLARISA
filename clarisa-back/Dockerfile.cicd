@@ -1,0 +1,44 @@
+# syntax=docker/dockerfile:1
+# CI/CD image of the CLARISA backend, built by GitHub Actions. The legacy Jenkins job keeps building ./Dockerfile
+# (--target development); this file neither replaces nor changes it.
+#
+# - NestJS is compiled once here; the container runs the compiled entry, which is what `nest start` runs after
+#   compiling in the legacy container.
+# - No secret reaches the build context or a layer (see Dockerfile.cicd.dockerignore). The git-ignored
+#   src/shared/config/config.ts is replaced by docker/cicd-config.ts.template, which reads the Active Directory
+#   settings from CLARISA_AD_CONFIG_JSON when the process starts. Every other runtime setting comes from
+#   `docker run --env-file`, as for the legacy container.
+# - Migrations keep the legacy command `npm run migration:execute` (ts-node over src/ormconfig.ts and
+#   migrations/*.ts), so the sources, tsconfig files and devDependencies stay in the image.
+# - Same base image and user (root) as the legacy development stage.
+
+#################### CONTEXT PROBE (CI check only, never deployed) ####################
+# Built with --target context-probe to prove that Dockerfile.cicd.dockerignore applies to this build.
+FROM node:20.13.1-alpine AS context-probe
+COPY . /ctx
+
+#################### DEPENDENCIES ####################
+FROM node:20.13.1-alpine AS deps
+# Toolchain only to compile native modules (bcrypt); it does not reach the runtime stage.
+RUN apk add --no-cache python3 make g++
+WORKDIR /app
+COPY package.json package-lock.json ./
+# Lifecycle scripts off; only bcrypt (native binding) is built. The other install scripts are telemetry
+# (@scarf/scarf), banners (@nestjs/core) or optional native modules with a JavaScript fallback.
+RUN npm ci --ignore-scripts --no-audit --no-fund \
+ && npm rebuild bcrypt
+
+#################### BUILD ####################
+FROM deps AS build
+COPY . .
+RUN cp docker/cicd-config.ts.template src/shared/config/config.ts \
+ && npm run build
+# migrations/ is compiled too, so the entry is dist/src/main.js; fail here, not on DEV, if that ever changes.
+RUN test -f dist/src/main.js \
+ || { echo 'dist/src/main.js not found; dist contains:' >&2; ls dist >&2; exit 1; }
+
+#################### RUNTIME ####################
+FROM node:20.13.1-alpine AS runtime
+WORKDIR /app
+COPY --from=build /app /app
+CMD ["node", "dist/src/main.js"]
