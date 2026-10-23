@@ -7,23 +7,27 @@
 #
 # No secrets, no AWS credentials, no image is pushed and Jenkins is not called: deployments stay with the legacy
 # job (jenkins-trigger.yml, unchanged). Pull requests from forks are safe for the same reason.
+# clarisa-dev-cicd.yml calls this workflow as its `checks` job (workflow_call) on every push to dev-v2: the job names
+# below are part of the Jenkins CD contract (stage "Verify CI Run" expects `checks / <job name>`).
 # Action pinning: every `uses:` is a full commit SHA (same SHAs as the Reporting Tool DEV pipeline).
 name: clarisa-dev-pr-checks
 
 on:
   pull_request:
     branches: [dev-v2]
+  workflow_call:
 
 permissions: {}
 
 concurrency:
-  group: clarisa-dev-pr-checks-${{ github.event.pull_request.number }}
+  # One group per pull request; when called by clarisa-dev-cicd.yml, one group per run (never cancels another push).
+  group: clarisa-dev-pr-checks-${{ github.event.pull_request.number || format('run-{0}-{1}', github.run_id, github.run_attempt) }}
   cancel-in-progress: true
 
 # PUBLIC values for the frontend environment, for validation only: they are compiled into a bundle that is never
 # published. CLARISA_FRONT_API_URL is the public DEV API URL the frontend specs expect (already in the repository);
-# the other values are placeholders. The DEV values come from GitHub Environment variables when images are
-# published (increment I-3).
+# the other values are placeholders. The published images are built by clarisa-dev-cicd.yml from the DEV
+# configuration in Secrets Manager, as the legacy Jenkins job does.
 env:
   CLARISA_FRONT_API_URL: https://clarisatest-back.ciat.cgiar.org/
   CLARISA_FRONT_GA_ID: G-CIPLACEHOLDER

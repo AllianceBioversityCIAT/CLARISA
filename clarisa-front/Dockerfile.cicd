@@ -2,9 +2,10 @@
 # CI/CD image of the CLARISA frontend, built by GitHub Actions. The legacy Jenkins job keeps building ./Dockerfile;
 # this file neither replaces nor changes it.
 #
-# The Angular environment holds PUBLIC values only (they are compiled into the bundle every browser downloads). CI
-# generates it from allow-listed values (.github/scripts/write-frontend-environment.sh) and passes it as the BuildKit
-# secret `frontend_environment`, so it is never part of the build context or of a layer. As in the legacy job, the
+# The Angular environment is compiled into the bundle every browser downloads. CI passes it as the BuildKit secret
+# `frontend_environment`, so it is never part of the build context or of a layer: published images use the DEV
+# configuration from Secrets Manager, the same secret the legacy job writes (.github/scripts/write-frontend-config.sh);
+# pull request checks use public placeholders (.github/scripts/write-frontend-environment.sh). As in the legacy job, the
 # same content is used for environment.ts and environment.prod.ts (the production build replaces one with the other).
 # Same Node build image, build command (production configuration) and nginx runtime as ./Dockerfile.
 

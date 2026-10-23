@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Writes the CLARISA frontend Angular environment from allow-listed PUBLIC values to each file given as argument.
+# Used by the pull request checks only (placeholder values); the published images are built from the DEV
+# configuration in Secrets Manager (write-frontend-config.sh).
 #
 # Everything written here is compiled into the browser bundle and served to every visitor, so only public settings
 # belong here. The file contains exactly the five keys the application reads (tawkToId is the public Tawk.to widget

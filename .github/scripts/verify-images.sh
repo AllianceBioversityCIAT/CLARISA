@@ -106,7 +106,7 @@ done
 leaks=$(find / -xdev \( -name 'environment*.ts' -o -name '.env' -o -name '.env.*' -o -name 'node_modules' \
   -o -name '*.map' \) -print 2> /dev/null)
 [ -z "$leaks" ] || { echo '::error::frontend image contains:'; echo "$leaks"; status=1; }
-# No credential-like text in the bundle (the environment itself is allow-listed by write-frontend-environment.sh)
+# No credential-like text in the bundle
 ! grep -rEq 'AKIA[0-9A-Z]{16}|BEGIN [A-Z ]*PRIVATE KEY' "$html" \
   || { echo '::error::the bundle contains credential-like text'; status=1; }
 exit "$status"
