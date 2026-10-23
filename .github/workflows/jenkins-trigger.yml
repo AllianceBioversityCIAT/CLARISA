@@ -5,7 +5,8 @@ on:
     branches:
       - "dev-v2"
       - "main"
-      - "staging"
+      # staging is validated by clarisa-staging-ci.yml (GitHub Actions CI + Jenkins clarisa-application-staging-ci) since
+      # the STAGING cutover; clarisa-application-staging stays for manual runs through workflow_dispatch.
   workflow_dispatch:
 
 jobs:
