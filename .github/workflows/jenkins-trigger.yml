@@ -3,10 +3,10 @@ name: Trigger Jenkins Job (Clarisa)
 on:
   push:
     branches:
-      # dev-v2 is deployed by clarisa-dev-cicd.yml (GitHub Actions CI + Jenkins CD clarisa-application-dev-cd) since
-      # the cutover (2026-10-23); clarisa-application-dev stays for manual recovery through workflow_dispatch.
+      # dev-v2 is deployed by clarisa-dev-cicd.yml (GitHub Actions CI + Jenkins CD clarisa-application-dev-cd) and
+      # staging is validated by clarisa-staging-ci.yml (GitHub Actions CI + Jenkins clarisa-application-staging-ci);
+      # their legacy jobs stay for manual runs through workflow_dispatch.
       - "main"
-      - "staging"
   workflow_dispatch:
 
 jobs:
