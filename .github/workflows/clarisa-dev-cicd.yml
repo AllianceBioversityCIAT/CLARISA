@@ -1,0 +1,244 @@
+# CLARISA DEV: CI on GitHub Actions, CD on Jenkins (CD-only job clarisa-application-dev-cd).
+#
+#   GitHub Actions (CI)  ->  clarisa-application-dev-cd (Jenkins, CD orchestration)  ->  DEV server
+#
+# The legacy all-in-one job clarisa-application-dev is NOT used by this workflow. Since the cutover (2026-10-23) it no
+# longer deploys pushes to dev-v2 (jenkins-trigger.yml keeps only main, staging and workflow_dispatch) and stays
+# available in Jenkins for manual recovery only.
+# `dry-run` of the Jenkins hand-over (job `deploy` below): true = clarisa-application-dev-cd validates the request,
+# the ECR images and the server over SSH WITHOUT changing anything; false = real deploy (it also needs
+# REAL_DEPLOY_AUTHORIZED = true in the Jenkinsfile). false since the cutover: every push to dev-v2 is deployed.
+#
+# Triggers: push to dev-v2 (the DEV branch) only, and workflow_dispatch (manual; GitHub offers it only once the
+# workflow file is on the default branch). Both run the full CI/CD:
+#   the pull request checks (clarisa-dev-pr-checks.yml, called as `checks`: backend lint and tests, frontend
+#   tests, CI script checks, image build and context checks; no secret, no AWS), then ONE publish job (common
+#   quality barrier) that builds both CI/CD images (Dockerfile.cicd), checks them, pushes them to ECR by immutable
+#   digest and hands both digests, the commit and this run over to Jenkins (jenkins-cd.reusable.yml). Jenkins
+#   verifies the run and the images and only coordinates the deploy on the server (pull by digest, migrations,
+#   container update, health checks, TOC). It never lints, tests, builds or pushes images.
+# The job names are part of the Jenkins contract (stage "Verify CI Run"): `checks / backend checks (lint, tests)`,
+# `checks / frontend checks (tests)`, `checks / CI script checks (bash -n, ShellCheck)` and
+# `publish images (backend, frontend)`. Rename them only together with the Jenkinsfile.
+#
+# Slack (reusable workflow slack-notify.reusable.yml; one message per event, never duplicated):
+#   started               GitHub Actions, at the start of the run (the whole CI/CD process)
+#   failed                GitHub Actions, only when the run fails before Jenkins started the deploy build
+#   succeeded / failed    Jenkins, for the deploy (post block of the CD job)
+#
+# GitHub Environment clarisa-dev (publish and hand-over). No required reviewers (it runs on every push);
+# deployment branches: dev-v2 only; administrators cannot bypass it.
+#   Variables: CICD_BOUND_REF (refs/heads/dev-v2), CICD_AWS_REGION, CICD_ECR_BACKEND_REPOSITORY,
+#   CICD_ECR_FRONTEND_REPOSITORY.
+#   Secrets: CICD_BUILD_ROLE_ARN, CICD_FRONTEND_CONFIG_SECRET_ID. They are identifiers, not credentials; they are
+#   secrets only so GitHub masks them in these public logs (`with:` inputs and `env:` headers), which
+#   `::add-mask::` cannot do before a step runs.
+#   The build role trusts only the environment clarisa-dev and the ref refs/heads/dev-v2; it can read only the
+#   frontend DEV configuration secret and push only to the two CLARISA DEV repositories.
+#   Repository secrets JENKINS_USERNAME / JENKINS_API_TOKEN (the same as jenkins-trigger.yml).
+#   Slack: organization secret SLACK_NOTIFICATIONS_WEBHOOK_URL. Without it the notifications are skipped with a
+#   warning; they never block the pipeline.
+#
+# Secret handling (only the frontend configuration, as in the Jenkins job; the backend needs no secret in CI, its
+# runtime configuration is added by Jenkins on the server):
+#   * OIDC with `output-env-credentials: false`: credentials are never exported to the job; only the secret-read
+#     step and the push steps receive them, through their own `env:`.
+#   * The backend image is built before the configuration exists. Docker builds and image checks run through
+#     .github/scripts/without-oidc.sh: no AWS credential and no OIDC request variable.
+#   * The AWS CLI writes the secret straight to one file outside the repository (mode 0600), passed to the frontend
+#     build as a BuildKit secret (never in the build context or in a layer); its string values are also registered
+#     as log masks (defense in depth). Never echoed, never an output, never uploaded, never cached; the file is
+#     removed by an `if: always()` step. No `set -x`.
+#
+# Action pinning: every `uses:` is a full commit SHA (same SHAs as the Reporting Tool DEV pipeline):
+#   actions/checkout                       v7.0.1  3d3c42e5aac5ba805825da76410c181273ba90b1
+#   aws-actions/configure-aws-credentials  v6.3.0  e1253824e5c10ff9df46874f81ed3ec929e19cfd
+# The local reusable workflows (./.github/workflows/*.yml) run from this same commit.
+name: clarisa-dev-cicd
+
+on:
+  push:
+    branches: [dev-v2]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: clarisa-dev-cicd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------- start notification
+  # Runs in parallel with the checks and never blocks them.
+  notify-start:
+    name: notify start (Slack)
+    permissions: {}
+    uses: ./.github/workflows/slack-notify.reusable.yml
+    with:
+      status: started
+      title: CLARISA NEW ENVIRONMENT
+      project: CLARISA
+      environment-label: DEV
+    secrets:
+      SLACK_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_NOTIFICATIONS_WEBHOOK_URL }}
+
+  # ---------------------------------------------------------------- mandatory checks
+  # The same checks as the pull requests to dev-v2. No secret and no AWS access.
+  checks:
+    name: checks
+    permissions:
+      contents: read
+    uses: ./.github/workflows/clarisa-dev-pr-checks.yml
+
+  # ---------------------------------------------------------------- common quality barrier + publish
+  # Starts only when ALL checks passed. Both images are built and checked before anything is pushed, so a failed
+  # build or check pushes neither. No deploy request here.
+  publish-images:
+    name: publish images (backend, frontend)
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: clarisa-dev
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      DOCKER_BUILDKIT: '1'
+      BACKEND_IMAGE: local/backend:${{ github.run_id }}-${{ github.run_attempt }}
+      FRONTEND_IMAGE: local/frontend:${{ github.run_id }}-${{ github.run_attempt }}
+      # Provenance labels, checked by Jenkins (stage "Verify Images") before any deploy.
+      LABEL_REVISION: org.opencontainers.image.revision=${{ github.sha }}
+      LABEL_SOURCE: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+      LABEL_RUN: org.cgiar.cicd.run=${{ github.run_id }}-${{ github.run_attempt }}
+      # Public DEV API URL (also in the frontend specs): the published bundle must have been built from the DEV
+      # configuration.
+      DEV_PUBLIC_API_URL: https://clarisatest-back.ciat.cgiar.org/
+    outputs:
+      backend-digest: ${{ steps.push-backend.outputs.digest }}
+      frontend-digest: ${{ steps.push-frontend.outputs.digest }}
+    steps:
+      - name: Enforce bound ref
+        env:
+          BOUND_REF: ${{ vars.CICD_BOUND_REF }}
+          CURRENT_REF: ${{ github.ref }}
+        run: |
+          if [ -z "${BOUND_REF:-}" ] || [ "$CURRENT_REF" != "$BOUND_REF" ]; then echo "::error::ref is not the bound ref (fail closed)"; exit 1; fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The backend image needs no configuration: it is built BEFORE the frontend configuration exists.
+      - name: Build backend image (Dockerfile.cicd; no secret in its context)
+        run: >-
+          bash .github/scripts/without-oidc.sh docker build --file clarisa-back/Dockerfile.cicd --target runtime
+          --label "$LABEL_REVISION" --label "$LABEL_SOURCE" --label "$LABEL_RUN" --label org.cgiar.cicd.unit=backend
+          --tag "$BACKEND_IMAGE" -- clarisa-back
+      - name: Assume the build role through OIDC (credentials not exported to the job)
+        id: aws-config
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.CICD_BUILD_ROLE_ARN }}
+          aws-region: ${{ vars.CICD_AWS_REGION }}
+          role-session-name: clarisa-dev-ci-${{ github.run_id }}
+          mask-aws-account-id: true
+          output-env-credentials: false
+          output-credentials: true
+      - name: Frontend configuration from Secrets Manager (outside the repository)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.aws-config.outputs.aws-access-key-id }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.aws-config.outputs.aws-secret-access-key }}
+          AWS_SESSION_TOKEN: ${{ steps.aws-config.outputs.aws-session-token }}
+          AWS_REGION: ${{ vars.CICD_AWS_REGION }}
+          SECRET_ID: ${{ secrets.CICD_FRONTEND_CONFIG_SECRET_ID }}
+        run: bash .github/scripts/write-frontend-config.sh "$RUNNER_TEMP/frontend-environment.ts"
+      - name: Build frontend image (Dockerfile.cicd, DEV configuration as a BuildKit secret, as Jenkins)
+        run: >-
+          bash .github/scripts/without-oidc.sh docker build --file clarisa-front/Dockerfile.cicd --target runtime
+          --secret id=frontend_environment,src="$RUNNER_TEMP/frontend-environment.ts"
+          --label "$LABEL_REVISION" --label "$LABEL_SOURCE" --label "$LABEL_RUN" --label org.cgiar.cicd.unit=frontend
+          --tag "$FRONTEND_IMAGE" -- clarisa-front
+      - name: Remove the frontend configuration
+        if: always()
+        run: rm -f "$RUNNER_TEMP/frontend-environment.ts"
+      - name: Backend image checks
+        run: >-
+          bash .github/scripts/without-oidc.sh bash .github/scripts/verify-images.sh backend "$BACKEND_IMAGE"
+          "$(find clarisa-back/migrations -name '*.ts' | wc -l)"
+      - name: Frontend image checks
+        run: >-
+          bash .github/scripts/without-oidc.sh bash .github/scripts/verify-images.sh frontend "$FRONTEND_IMAGE"
+          "$DEV_PUBLIC_API_URL" clarisa-front/nginx.conf
+      - name: Assume the build role through OIDC for the push (credentials not exported to the job)
+        id: aws
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.CICD_BUILD_ROLE_ARN }}
+          aws-region: ${{ vars.CICD_AWS_REGION }}
+          role-session-name: clarisa-dev-ci-${{ github.run_id }}
+          mask-aws-account-id: true
+          output-env-credentials: false
+          output-credentials: true
+      - name: Push backend image and capture its digest
+        id: push-backend
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.aws.outputs.aws-access-key-id }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.aws.outputs.aws-secret-access-key }}
+          AWS_SESSION_TOKEN: ${{ steps.aws.outputs.aws-session-token }}
+          AWS_REGION: ${{ vars.CICD_AWS_REGION }}
+          REPOSITORY: ${{ vars.CICD_ECR_BACKEND_REPOSITORY }}
+          LOCAL: ${{ env.BACKEND_IMAGE }}
+          TAG: gha-${{ github.run_id }}-${{ github.run_attempt }}
+        run: bash .github/scripts/push-image.sh
+      - name: Push frontend image and capture its digest
+        id: push-frontend
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.aws.outputs.aws-access-key-id }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.aws.outputs.aws-secret-access-key }}
+          AWS_SESSION_TOKEN: ${{ steps.aws.outputs.aws-session-token }}
+          AWS_REGION: ${{ vars.CICD_AWS_REGION }}
+          REPOSITORY: ${{ vars.CICD_ECR_FRONTEND_REPOSITORY }}
+          LOCAL: ${{ env.FRONTEND_IMAGE }}
+          TAG: gha-${{ github.run_id }}-${{ github.run_attempt }}
+        run: bash .github/scripts/push-image.sh
+
+  # ---------------------------------------------------------------- CD hand-over to Jenkins
+  # Only after `publish-images` succeeded with BOTH digests. Jenkins deploys exactly these digests.
+  deploy:
+    name: deploy (Jenkins clarisa-application-dev-cd)
+    needs: publish-images
+    if: >-
+      needs.publish-images.result == 'success'
+      && needs.publish-images.outputs.backend-digest != ''
+      && needs.publish-images.outputs.frontend-digest != ''
+    permissions: {}
+    uses: ./.github/workflows/jenkins-cd.reusable.yml
+    with:
+      jenkins-job: clarisa-application-dev-cd
+      environment: clarisa-dev
+      dry-run: false # real deploy on every push to dev-v2 (owner authorization, cutover 2026-10-23)
+      artifacts: >-
+        backend=${{ needs.publish-images.outputs.backend-digest }}
+        frontend=${{ needs.publish-images.outputs.frontend-digest }}
+    secrets:
+      JENKINS_USERNAME: ${{ secrets.JENKINS_USERNAME }}
+      JENKINS_API_TOKEN: ${{ secrets.JENKINS_API_TOKEN }}
+
+  # ---------------------------------------------------------------- CI failure notification
+  # Only when the run failed before Jenkins started a build (a check, the publish or the hand-over itself).
+  # Once Jenkins started the build, Jenkins reports the outcome.
+  notify-ci-failure:
+    name: notify CI failure (Slack)
+    needs: [checks, publish-images, deploy]
+    if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
+    permissions: {}
+    uses: ./.github/workflows/slack-notify.reusable.yml
+    with:
+      status: failed
+      title: CLARISA NEW ENVIRONMENT
+      project: CLARISA
+      environment-label: DEV
+      detail: >-
+        checks=${{ needs.checks.result }},
+        publish-images=${{ needs.publish-images.result }},
+        jenkins-hand-over=${{ needs.deploy.result }}
+    secrets:
+      SLACK_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_NOTIFICATIONS_WEBHOOK_URL }}

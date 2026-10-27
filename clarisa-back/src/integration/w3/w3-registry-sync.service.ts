@@ -1,5 +1,10 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
+import {
+  ConflictException,
+  HttpStatus,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { firstValueFrom } from 'rxjs';
 import { W3RegistryApi } from './w3-registry.api';
 import {
@@ -30,13 +35,35 @@ interface ProcessResult {
 }
 
 /**
- * El W3 Registry publica solo mappings acordados por el comité y los marca
- * `agreed`. Se traduce al enum de CLARISA; cualquier otro valor, o su
- * ausencia, queda `Pending` para no dar por aprobado lo que el registro no
- * confirmó.
+ * Un sync `RUNNING` con al menos esta antigüedad se considera abandonado (por
+ * ejemplo, el proceso se reinició a mitad). Un sync completo dura ~2 min.
+ */
+export const STALE_SYNC_MINUTES = 30;
+
+/**
+ * Status del W3 Registry que cuentan como mapping aprobado: `agreed` (acordado
+ * por el comité) y `admin_decision` (decidido por un administrador).
+ */
+const APPROVED_SOURCE_STATUSES = new Set(['agreed', 'admin_decision']);
+
+const normalizeSourceStatus = (source?: string | null): string =>
+  source?.trim().toLowerCase() ?? '';
+
+/**
+ * Indica si CLARISA conoce el status de origen. Los no reconocidos se
+ * registran como warning del proyecto.
+ */
+export function isRecognizedMappingStatus(source?: string | null): boolean {
+  return APPROVED_SOURCE_STATUSES.has(normalizeSourceStatus(source));
+}
+
+/**
+ * Traduce el status del W3 Registry al enum de CLARISA: los status aprobados
+ * quedan `Confirmed`; cualquier otro valor, o su ausencia, queda `Pending`
+ * para no dar por aprobado lo que el registro no confirmó.
  */
 export function toMappingStatus(source?: string | null): MappingStatus {
-  return source?.trim().toLowerCase() === 'agreed' ? 'Confirmed' : 'Pending';
+  return isRecognizedMappingStatus(source) ? 'Confirmed' : 'Pending';
 }
 
 @Injectable()
@@ -50,6 +77,7 @@ export class W3RegistrySyncService {
 
   async syncProjects(): Promise<W3RegistrySync> {
     const syncRepository = this.dataSource.getRepository(W3RegistrySync);
+    await this.acquireSyncSlot(syncRepository);
     const sync = await syncRepository.save(
       syncRepository.create({
         status: 'RUNNING',
@@ -115,6 +143,38 @@ export class W3RegistrySyncService {
       this.logger.error(sync.error_message);
       throw error;
     }
+  }
+
+  /**
+   * Impide dos syncs simultáneos: si hay un `RUNNING` vigente lanza
+   * `ConflictException` (409 en el endpoint manual); los `RUNNING` colgados
+   * pasan a `FAILED` y el sync nuevo continúa.
+   */
+  private async acquireSyncSlot(
+    syncRepository: Repository<W3RegistrySync>,
+  ): Promise<void> {
+    const running = await syncRepository.find({
+      where: { status: 'RUNNING' },
+      order: { started_at: 'DESC' },
+    });
+    if (!running.length) return;
+
+    const now = new Date();
+    const staleBefore = now.getTime() - STALE_SYNC_MINUTES * 60 * 1000;
+    const latest = running[0];
+    if (new Date(latest.started_at).getTime() > staleBefore) {
+      throw new ConflictException(
+        `W3 Registry sync ${latest.id} is already running since ${new Date(latest.started_at).toISOString()}`,
+      );
+    }
+
+    for (const stale of running) {
+      stale.status = 'FAILED';
+      stale.finished_at = now;
+      stale.error_message = `Abandoned: exceeded ${STALE_SYNC_MINUTES} min without finishing`;
+      this.logger.warn(`Closing abandoned W3 Registry sync ${stale.id}`);
+    }
+    await syncRepository.save(running);
   }
 
   private async processProject(
@@ -308,6 +368,11 @@ export class W3RegistrySyncService {
       mapping.source_program_code = sourceMapping.programCode;
       mapping.source_program_name = sourceMapping.programName;
       mapping.status = toMappingStatus(sourceMapping.status);
+      if (!isRecognizedMappingStatus(sourceMapping.status)) {
+        warnings.push(
+          `Unknown mapping status '${sourceMapping.status?.trim() || '(empty)'}' for ${sourceMapping.programCode}`,
+        );
+      }
       mapping.auditableFields ??= new AuditableEntity();
       mapping.auditableFields.is_active = true;
       mapping.auditableFields.created_by ??= SYSTEM_USER_ID;

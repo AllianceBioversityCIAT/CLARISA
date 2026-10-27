@@ -1,0 +1,27 @@
+# Applies only to Dockerfile.cicd (BuildKit reads <Dockerfile>.dockerignore). The legacy ./Dockerfile build keeps
+# its current context. Keeps secrets, local artifacts and files the image does not need out of the CI build context.
+
+# Secrets and per-environment configuration
+**/.env
+**/.env.*
+src/shared/config/config.ts
+src/shared/config/config.ts.example
+
+# Local artifacts
+**/node_modules
+dist
+coverage
+**/*.tsbuildinfo
+**/.DS_Store
+
+# Not needed by the image (the nest build excludes tests; docs are not served)
+.git
+.vscode
+docs
+test
+**/*.spec.ts
+/*.md
+Dockerfile
+Dockerfile.cicd
+*.dockerignore
+sonar-project.properties
