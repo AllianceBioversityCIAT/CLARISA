@@ -11,6 +11,7 @@ import { applyAiMatches, buildImportRows, ColumnMapping, confidenceLabel, exactM
 import { IMPORT_FIELDS, REQUIRED_IMPORT_FIELD } from '../../utils/import-fields';
 import { importColumnInfo } from '../../utils/field-info';
 import { StableOptions } from '../../utils/stable-options';
+import { CONCEPT_CREATION_PAUSED, MIGRATION_NOTICE } from '../../utils/migration-notice';
 
 /** Same ceiling as the glossary upload: checked before a byte is parsed. */
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
@@ -316,8 +317,15 @@ export class GcImportPanelComponent implements OnChanges, OnInit {
     return summary ? summary.to_create + summary.to_update : 0;
   }
 
+  /**
+   * While MELIAF taxonomy moves into the Glossary the wizard still reads and
+   * previews a file, but the final write is refused (see utils/migration-notice).
+   */
+  creationPaused = CONCEPT_CREATION_PAUSED;
+  readonly migrationNotice = MIGRATION_NOTICE;
+
   get canImport(): boolean {
-    return !!this.preview && this.writableCount > 0 && (this.invalidCount === 0 || this.skipInvalid);
+    return !this.creationPaused && !!this.preview && this.writableCount > 0 && (this.invalidCount === 0 || this.skipInvalid);
   }
 
   confirmImport(): void {

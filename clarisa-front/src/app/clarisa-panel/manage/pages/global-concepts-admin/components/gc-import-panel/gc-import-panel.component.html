@@ -2,8 +2,8 @@
   <div class="gc-bar">
     <div>
       <p class="gc-bar__hint">
-        Load many concepts at once from the concepts Excel or a CSV. Rows are matched by TERM ID, then by preferred label; an empty cell never clears a
-        stored value. Nothing is written until the preview is reviewed and confirmed.
+        Load many concepts at once from the concepts Excel or a CSV. Rows are matched by TERM ID, then by preferred label; an empty cell never clears
+        a stored value. Nothing is written until the preview is reviewed and confirmed.
       </p>
     </div>
   </div>
@@ -243,6 +243,9 @@
     </div>
 
     <p class="gc-hint-line" *ngIf="!writableCount">Nothing to write: every row is unchanged or invalid.</p>
+    <p class="admin-note gc-import__notice" *ngIf="creationPaused" role="status">
+      <i class="pi pi-info-circle" aria-hidden="true"></i> {{ migrationNotice }}
+    </p>
 
     <div class="admin-form__actions">
       <button pButton type="button" label="Back" class="p-button-outlined" (click)="backToMapping()"></button>

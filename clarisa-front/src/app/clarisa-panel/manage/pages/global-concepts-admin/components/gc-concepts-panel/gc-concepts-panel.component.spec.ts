@@ -163,6 +163,7 @@ describe('GcConceptsPanelComponent', () => {
     jest.useFakeTimers();
     try {
       const panel = new GcConceptsPanelComponent(api as unknown as GlobalConceptsApiService, { add: jest.fn() } as unknown as MessageService);
+      panel.creationPaused = false;
       const open = jest.fn();
       const openCreate = jest.fn();
       panel.createDialog = { open } as never;
@@ -183,7 +184,32 @@ describe('GcConceptsPanelComponent', () => {
     }
   });
 
+  it('keeps the create form closed while concept creation is paused: from the button and from a Usage request', () => {
+    jest.useFakeTimers();
+    try {
+      const open = jest.fn();
+      component.createDialog = { open } as never;
+      expect(component.creationPaused).toBe(true);
+      expect(component.creationPausedHint).toContain('migrated into the Glossary');
+
+      component.openCreate('anything');
+      expect(open).not.toHaveBeenCalled();
+
+      // The Usage shortcut is consumed (no retry loop) but opens nothing either.
+      const handled = jest.fn();
+      component.createHandled.subscribe(handled);
+      component.createRequest = { label: 'theory of change', token: 9 };
+      component.ngOnChanges({ createRequest: {} as never });
+      jest.runOnlyPendingTimers();
+      expect(open).not.toHaveBeenCalled();
+      expect(handled).toHaveBeenCalledWith(9);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('"New concept" opens the short form, and a created concept opens the full editor on it and reloads the table', () => {
+    component.creationPaused = false;
     const open = jest.fn();
     const openEdit = jest.fn();
     const openCreate = jest.fn();

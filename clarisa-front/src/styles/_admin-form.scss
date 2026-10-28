@@ -340,6 +340,15 @@
     padding: 22px;
     color: var(--cl-ink-2);
     font-size: 14px;
+    /* El diálogo ya se topa en el 90 % de la ventana (PrimeNG), pero su
+       contenido no se desplazaba: en una pantalla de 900 px el formulario de
+       «New term» (938 px) quedaba cortado por arriba y por abajo, sin forma de
+       llegar al término ni al botón de guardar (Ángel, 28-oct-2026). El
+       contenido es el que se desplaza; cabecera y pie se quedan a la vista.
+       `min-height: 0` deja que el hijo flexible encoja por debajo de su
+       contenido, que es lo que hace posible el scroll. */
+    overflow-y: auto;
+    min-height: 0;
   }
 
   .p-dialog-footer {
