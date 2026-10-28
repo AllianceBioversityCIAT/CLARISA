@@ -2,8 +2,18 @@
 // contenido) vive dentro del iframe, igual que en el panel vive en su shell.
 // `svh` y no `vh`: en Safari móvil `100vh` es el viewport grande y el marco
 // quedaría más alto que la pantalla con la barra de direcciones a la vista.
+// `position: fixed; inset: 0` y no solo una altura: así el marco mide SIEMPRE
+// lo que mide la ventana, venga de donde venga el ancestro (el armazón del
+// panel, un contenedor con relleno, la barra del tema), y la ventana exterior
+// no tiene nada que desplazar. Yeck (28-oct-2026) vio la doc con tres scrolls
+// —ventana, marco y tabla— y la columna del catálogo subida y cortada: el
+// marco había quedado más corto que la ventana y la página de afuera
+// desplazaba. Con el marco clavado a la ventana solo queda el scroll propio
+// de la doc (y el de la tabla, que es suyo).
 .api-reference-proposal {
   display: block;
+  position: fixed;
+  inset: 0;
   height: 100vh;
   height: 100svh;
 }

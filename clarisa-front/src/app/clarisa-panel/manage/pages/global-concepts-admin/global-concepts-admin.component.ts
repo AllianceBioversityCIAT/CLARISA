@@ -4,6 +4,7 @@ import { PanelAccessService } from '../../../../shared/services/access-admin/pan
 import { permits } from '../../../../shared/services/access-admin/access-rules';
 import { MeAccess } from '../../../../shared/services/access-admin/access-admin-api.service';
 import { CreateRequest } from './components/gc-concepts-panel/gc-concepts-panel.component';
+import { CONCEPT_CREATION_PAUSED, MIGRATION_NOTICE } from './utils/migration-notice';
 
 export type GlobalConceptsSection = 'concepts' | 'requests' | 'import' | 'setup' | 'usage';
 
@@ -38,6 +39,8 @@ export function isConceptsFullAdmin(access: MeAccess | null): boolean {
 export class GlobalConceptsAdminComponent implements OnInit {
   activeSection: GlobalConceptsSection = 'concepts';
   scheme = DEFAULT_SCHEME;
+  /** Shown under the title while concept creation is paused (migration into the Glossary). */
+  readonly migrationNotice: string | null = CONCEPT_CREATION_PAUSED ? MIGRATION_NOTICE : null;
   schemeOptions: { label: string; value: string }[] = [];
 
   /**
