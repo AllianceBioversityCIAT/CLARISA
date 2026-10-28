@@ -52,6 +52,18 @@ describe('GcImportPanelComponent', () => {
     expect(component.mappingError).toContain('preferred_label');
   });
 
+  it('refuses the final write while concept creation is paused, and says why', () => {
+    expect(component.creationPaused).toBe(true);
+    expect(component.migrationNotice).toContain('migrated into the Glossary');
+    component.mappings[1] = { ...component.mappings[1], field: 'preferred_label' };
+    component.runPreview();
+    expect(component.canImport).toBe(false);
+
+    component.confirmImport();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(api['importRows']).not.toHaveBeenCalled();
+  });
+
   it('does not call the AI when it is disabled', () => {
     component.aiEnabled = false;
     component.autoMatch();
@@ -77,6 +89,7 @@ describe('GcImportPanelComponent', () => {
   });
 
   it('previews the built rows and imports exactly those, skipping invalid ones when asked', () => {
+    component.creationPaused = false;
     const emitted = jest.fn();
     component.imported.subscribe(emitted);
     component.onPick(1, 'preferred_label');

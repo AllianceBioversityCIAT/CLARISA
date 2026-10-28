@@ -53,6 +53,10 @@ describe('GlobalConceptsAdminComponent', () => {
     });
   });
 
+  it('shows the migration notice while concept creation is paused', () => {
+    expect(build(quiet()).migrationNotice).toContain('migrated into the Glossary');
+  });
+
   it('keeps AI off and the scheme picker hidden with one scheme', () => {
     const component = build({
       schemes: jest.fn(() => of([{ code: 'concepts', title: 'Concepts' }])),

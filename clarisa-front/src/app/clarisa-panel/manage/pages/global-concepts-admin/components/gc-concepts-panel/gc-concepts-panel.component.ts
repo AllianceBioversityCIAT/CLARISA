@@ -23,6 +23,7 @@ import {
 import { STATUS_LABELS, statusSeverity } from '../../utils/concept-form';
 import { activeFields, customCellText } from '../../utils/custom-fields';
 import { groupLists, ListOption, listLabel } from '../../utils/list-values';
+import { CONCEPT_CREATION_PAUSED, CREATION_PAUSED_HINT } from '../../utils/migration-notice';
 import { GcConceptDialogComponent } from '../gc-concept-dialog/gc-concept-dialog.component';
 import { GcConceptCreateDialogComponent } from '../gc-concept-create-dialog/gc-concept-create-dialog.component';
 
@@ -82,6 +83,14 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges, OnDestroy {
   @Input() createRequest: CreateRequest | null = null;
   /** The create request was used: the shell clears it, so a recreated panel does not open it again. */
   @Output() createHandled = new EventEmitter<number>();
+
+  /**
+   * While MELIAF taxonomy moves into the Glossary no concept is created here:
+   * the button is disabled and `openCreate` is a no-op, so the Usage shortcut
+   * cannot open the form either. A field, not a constant, so a test can lift it.
+   */
+  creationPaused = CONCEPT_CREATION_PAUSED;
+  readonly creationPausedHint = CREATION_PAUSED_HINT;
   @ViewChild(GcConceptDialogComponent) dialog?: GcConceptDialogComponent;
   /** «New concept» asks only the basics here; the full editor opens on the result. */
   @ViewChild(GcConceptCreateDialogComponent) createDialog?: GcConceptCreateDialogComponent;
@@ -344,6 +353,7 @@ export class GcConceptsPanelComponent implements OnInit, OnChanges, OnDestroy {
 
   /** Short form first (label, definition, optional TERM ID); the full editor opens once the concept exists. */
   openCreate(label = ''): void {
+    if (this.creationPaused) return;
     this.createDialog?.open(label);
   }
 

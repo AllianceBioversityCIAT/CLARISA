@@ -4,6 +4,9 @@
       <span class="admin-page__eyebrow">Manage</span>
       <h1 class="admin-page__title">MELIAF taxonomy</h1>
       <p class="admin-page__hint">The official CGIAR vocabulary: its concepts, change requests and bulk loads.</p>
+      <p class="admin-note gc-admin__notice" *ngIf="migrationNotice" role="status">
+        <i class="pi pi-info-circle" aria-hidden="true"></i> {{ migrationNotice }}
+      </p>
     </div>
 
     <div class="admin-page__aside gc-admin__aside">

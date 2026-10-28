@@ -123,9 +123,14 @@
   width: 100%;
 }
 
-:host ::ng-deep .admin-dialog .p-dialog-content {
-  overflow: visible;
-}
+/* Aquí vivía `:host ::ng-deep .admin-dialog .p-dialog-content { overflow:
+   visible }` (API keys, jun-2026), para que los desplegables de los diálogos
+   no quedaran recortados. Hoy todos los desplegables de esos diálogos van al
+   `body` (`appendTo="body"`), y la regla —heredada por todo el que importa
+   este parcial: glosario, carga masiva, ciclo de vida, MIS, API keys— era la
+   que impedía desplazar el contenido de un diálogo más alto que la pantalla
+   (Ángel, 28-oct-2026: «New term» sin scroll ni arriba ni abajo). El scroll
+   lo da la regla global de `styles/_admin-form.scss`. */
 
 :host ::ng-deep .admin-form {
   .field {

@@ -16,7 +16,16 @@
         pTooltip="Reload"
         (click)="load()"></button>
       <button pButton type="button" label="Export" icon="pi pi-download" class="p-button-outlined" (click)="exportOpen = true"></button>
-      <button pButton type="button" label="New concept" icon="pi pi-plus" class="btn-brand" (click)="openCreate()"></button>
+      <button
+        pButton
+        type="button"
+        label="New concept"
+        icon="pi pi-plus"
+        class="btn-brand"
+        [disabled]="creationPaused"
+        [pTooltip]="creationPaused ? creationPausedHint : ''"
+        tooltipPosition="bottom"
+        (click)="openCreate()"></button>
     </div>
   </div>
 
@@ -168,7 +177,8 @@
     <div class="gc-state" *ngIf="!loading && !loadError && !concepts.length">
       <span class="gc-state__icon"><i class="pi pi-sitemap"></i></span>
       <p class="gc-state__title">No concepts yet</p>
-      <p class="gc-state__text">
+      <p class="gc-state__text" *ngIf="creationPaused">{{ creationPausedHint }}</p>
+      <p class="gc-state__text" *ngIf="!creationPaused">
         Create the first one with <strong>New concept</strong>, or load a whole spreadsheet from the <strong>Import</strong> tab.
       </p>
     </div>
