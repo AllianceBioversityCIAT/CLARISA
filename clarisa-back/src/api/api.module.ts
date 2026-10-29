@@ -5,6 +5,7 @@ import { RoleModule } from './role/role.module';
 import { UserModule } from './user/user.module';
 import { ActionAreaModule } from './action-area/action-area.module';
 import { GlossaryModule } from './glossary/glossary.module';
+import { GlossaryV2Module } from './glossary/glossary-v2.module';
 import { ImpactAreaModule } from './impact-area/impact-area.module';
 import { StudyTypeModule } from './study-type/study-type.module';
 import { SdgModule } from './sdg/sdg.module';
@@ -96,6 +97,7 @@ import { AccessAdminModule } from './access-admin/access-admin.module';
     RoleModule,
     ActionAreaModule,
     GlossaryModule,
+    GlossaryV2Module, // mounted at api/v2/glossary by api.routes.ts; RouterModule only prefixes, the import instantiates it
     ImpactAreaModule,
     GlobalTargetModule,
     StudyTypeModule,
