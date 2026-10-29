@@ -8,7 +8,8 @@
 # Only when every check passed, the hand-over (jenkins-prod-cd.reusable.yml) requests the deploy and does not wait;
 # Jenkins verifies this run through the GitHub API and that main's head is this commit before touching production.
 # `dry-run` of the hand-over: true = Jenkins validates only; false = real deploy (it also needs
-# REAL_DEPLOY_AUTHORIZED = true in the Jenkinsfile). Both keys stay closed until the owner authorizes real deploys.
+# REAL_DEPLOY_AUTHORIZED = true in the Jenkinsfile). Here dry-run is false: the gate is REAL_DEPLOY_AUTHORIZED, which
+# stays false (every request rejected, nothing deployed) until the owner authorizes real deploys in devops.
 # This file arrives on main together with the cutover of jenkins-trigger.yml (no automatic legacy deploy any more).
 # Node 22.23.4 (security release 2026-10-20): the legacy PROD Jenkins tool is "Node 22" and the CLARISA DEV checks pass
 # on this exact version.
@@ -156,7 +157,7 @@ jobs:
     uses: ./.github/workflows/jenkins-prod-cd.reusable.yml
     with:
       environment: clarisa-prod
-      dry-run: true # validation only until the owner authorizes real deploys (see the header)
+      dry-run: false # real deploy requested; Jenkins blocks it while REAL_DEPLOY_AUTHORIZED = false (owner authorization)
     secrets:
       JENKINS_USERNAME: ${{ secrets.JENKINS_USERNAME }}
       JENKINS_API_TOKEN: ${{ secrets.JENKINS_API_TOKEN }}
