@@ -44,6 +44,11 @@
               "method": "get"
             },
             {
+              "name": "Glossary (v2)",
+              "route": "api/v2/glossary",
+              "method": "get"
+            },
+            {
               "name": "CGIAR entities groups",
               "route": "api/cgiar-entities/groups",
               "method": "get"
