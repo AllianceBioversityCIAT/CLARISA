@@ -1,12 +1,9 @@
 name: Trigger Jenkins Job (Clarisa)
 
 on:
-  push:
-    branches:
-      # dev-v2 is deployed by clarisa-dev-cicd.yml (GitHub Actions CI + Jenkins CD clarisa-application-dev-cd) and
-      # staging is validated by clarisa-staging-ci.yml (GitHub Actions CI + Jenkins clarisa-application-staging-ci);
-      # their legacy jobs stay for manual runs through workflow_dispatch.
-      - "main"
+  # No automatic trigger: pushes are handled by GitHub Actions: dev-v2 by clarisa-dev-cicd.yml (CI + Jenkins CD),
+  # staging by clarisa-staging-ci.yml (CI + Jenkins finalization) and main by clarisa-prod-ci.yml (CI + Jenkins CD
+  # clarisa-application-prod-cd). The legacy jobs below stay for manual recovery runs (Run workflow on the branch).
   workflow_dispatch:
 
 jobs:
