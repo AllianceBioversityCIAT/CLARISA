@@ -1,0 +1,183 @@
+# CLARISA PRODUCTION: CI on GitHub Actions, CD on Jenkins (CD-only job clarisa-application-prod-cd).
+#
+#   push to main -> GitHub Actions (backend lint and tests, frontend tests, CI script checks)
+#                -> Jenkins clarisa-application-prod-cd (verify run and commit -> existing deploy: upCLARISA.sh)
+#
+# Same model as Reporting Tool PROD (reporting-tool-prod-ci.yml). The checks are the STAGING ones
+# (clarisa-staging-ci.yml): no build, no image, no ECR, no AWS access; the frontend tests use public placeholder values.
+# Only when every check passed, the hand-over (jenkins-prod-cd.reusable.yml) requests the deploy and does not wait;
+# Jenkins verifies this run through the GitHub API and that main's head is this commit before touching production.
+# `dry-run` of the hand-over: true = Jenkins validates only; false = real deploy (it also needs
+# REAL_DEPLOY_AUTHORIZED = true in the Jenkinsfile). Both keys stay closed until the owner authorizes real deploys.
+# This file arrives on main together with the cutover of jenkins-trigger.yml (no automatic legacy deploy any more).
+# Node 22.23.4 (security release 2026-10-20): the legacy PROD Jenkins tool is "Node 22" and the CLARISA DEV checks pass
+# on this exact version.
+# Inert outside main: the trigger is push to main only and every job is guarded with the same condition.
+# GitHub Environment clarisa-prod: deployment branch main only, no variables, no secrets, no required reviewers.
+#
+# Slack (one message per event, never duplicated):
+#   started     GitHub Actions, at the start of the run (slack-notify.reusable.yml)
+#   failed      GitHub Actions, when a check (or the Jenkins hand-over) failed or was cancelled; Jenkins is not called
+#   result      Jenkins clarisa-application-prod-cd (deploy result, or the validation result while dry-run is true)
+#
+# Action pinning: every `uses:` is a full commit SHA (same SHAs as the CLARISA DEV pipeline):
+#   actions/checkout    v7.0.1  3d3c42e5aac5ba805825da76410c181273ba90b1
+#   actions/setup-node  v7.0.0  820762786026740c76f36085b0efc47a31fe5020
+name: clarisa-prod-ci
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: clarisa-prod-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+# PUBLIC values for the frontend environment, for the tests only (the PROD bundle is built by upCLARISA.sh on the server).
+# CLARISA_FRONT_API_URL is the public DEV API URL the frontend specs expect (already in the repository); the other
+# values are placeholders.
+env:
+  CLARISA_FRONT_API_URL: https://clarisatest-back.ciat.cgiar.org/
+  CLARISA_FRONT_GA_ID: G-CIPLACEHOLDER
+  CLARISA_FRONT_POWERBI_INSTITUTION_REQUEST_URL: https://clarisa-ci-placeholder.invalid/powerbi
+  CLARISA_FRONT_TAWK_TO_ID: ci-placeholder/ci-placeholder
+  CLARISA_FRONT_PRODUCTION: 'false'
+
+jobs:
+  # ---------------------------------------------------------------- start notification
+  notify-start:
+    name: notify start (Slack)
+    if: github.ref == 'refs/heads/main'
+    permissions: {}
+    uses: ./.github/workflows/slack-notify.reusable.yml
+    with:
+      status: started
+      title: CLARISA
+      project: CLARISA
+      environment-label: PROD
+    secrets:
+      SLACK_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_NOTIFICATIONS_WEBHOOK_URL }}
+
+  # ---------------------------------------------------------------- checks (no secrets, no AWS)
+  backend-checks:
+    name: backend checks (lint, tests)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: clarisa-back
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.4
+          cache: npm
+          cache-dependency-path: clarisa-back/package-lock.json
+      # Lifecycle scripts off; only bcrypt (native binding) is built. The other install scripts are telemetry
+      # (@scarf/scarf), banners (@nestjs/core) or optional native modules with a JavaScript fallback.
+      - name: Install dependencies (lockfile, no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund && npm rebuild bcrypt
+      # Same gate as the legacy `npm run lint` (eslint --fix, same globs): fails only on errors autofix cannot
+      # solve. --fix-dry-run computes the fixes without writing any file.
+      - name: Lint (no files modified)
+        run: ./node_modules/.bin/eslint --fix-dry-run "{src,apps,libs,test}/**/*.ts"
+      # The specs that reach LDAPAuth mock it, so neither config.ts nor the backend .env is needed.
+      - name: Unit tests with coverage
+        run: npm run test:cov -- --ci
+
+  frontend-checks:
+    name: frontend checks (tests)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: clarisa-front
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.4
+          cache: npm
+          cache-dependency-path: clarisa-front/package-lock.json
+      # Lifecycle scripts off; only esbuild (platform binary) is set up. The other install scripts are banners
+      # (core-js) or optional native modules with a JavaScript fallback.
+      - name: Install dependencies (lockfile, no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund && npm rebuild esbuild
+      - name: Public test environment
+        run: >-
+          bash "$GITHUB_WORKSPACE/.github/scripts/write-frontend-environment.sh"
+          src/environments/environment.ts src/environments/environment.prod.ts
+      # The legacy job runs no frontend lint (its stage is commented out).
+      # Same command as the legacy `npm run test:coverage` (jest --coverage), with the CI-only configuration that
+      # extends clarisa-front/jest.config.js (see .github/ci/clarisa-front.jest.config.js).
+      - name: Unit tests with coverage
+        run: ./node_modules/.bin/jest --config "$GITHUB_WORKSPACE/.github/ci/clarisa-front.jest.config.js" --coverage --ci
+
+  ci-script-checks:
+    name: CI script checks (bash -n, ShellCheck)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Syntax
+        run: for f in .github/scripts/*.sh; do bash -n "$f"; done
+      - name: ShellCheck
+        run: shellcheck .github/scripts/*.sh
+
+  # ---------------------------------------------------------------- CD hand-over to Jenkins
+  # Only when every check passed: Jenkins verifies the run and main's head, then runs the existing PROD deploy
+  # (dry-run false) or validates only (dry-run true). Does not wait.
+  deploy:
+    name: deploy (Jenkins clarisa-application-prod-cd)
+    needs: [backend-checks, frontend-checks, ci-script-checks]
+    if: >-
+      github.ref == 'refs/heads/main'
+      && needs.backend-checks.result == 'success'
+      && needs.frontend-checks.result == 'success'
+      && needs.ci-script-checks.result == 'success'
+    permissions: {}
+    uses: ./.github/workflows/jenkins-prod-cd.reusable.yml
+    with:
+      environment: clarisa-prod
+      dry-run: true # validation only until the owner authorizes real deploys (see the header)
+    secrets:
+      JENKINS_USERNAME: ${{ secrets.JENKINS_USERNAME }}
+      JENKINS_API_TOKEN: ${{ secrets.JENKINS_API_TOKEN }}
+
+  # ---------------------------------------------------------------- CI failure notification
+  # Only when the run failed before Jenkins accepted the request. Jenkins is not called on failure.
+  notify-ci-failure:
+    name: notify CI failure (Slack)
+    needs: [backend-checks, frontend-checks, ci-script-checks, deploy]
+    if: ${{ always() && github.ref == 'refs/heads/main' && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
+    permissions: {}
+    uses: ./.github/workflows/slack-notify.reusable.yml
+    with:
+      status: failed
+      title: CLARISA
+      project: CLARISA
+      environment-label: PROD
+      detail: >-
+        backend-checks=${{ needs.backend-checks.result }},
+        frontend-checks=${{ needs.frontend-checks.result }},
+        ci-script-checks=${{ needs.ci-script-checks.result }},
+        jenkins-hand-over=${{ needs.deploy.result }}
+    secrets:
+      SLACK_NOTIFICATIONS_WEBHOOK_URL: ${{ secrets.SLACK_NOTIFICATIONS_WEBHOOK_URL }}
