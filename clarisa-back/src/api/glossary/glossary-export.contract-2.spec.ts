@@ -494,11 +494,14 @@ describe('Glossary export contract, batch 2', () => {
         expect(await sourceLines(url)).toEqual([`  dcterms:source ${iri} .`]);
       });
 
-      it('accepts a caret in the path because the URL parser encodes it', async () => {
-        // pinned as-is: ^ becomes %5E, while | stays as it is and is refused.
-        expect(await sourceLines('https://example.org/a^b')).toEqual([
-          '  dcterms:source <https://example.org/a%5Eb> .',
-        ]);
+      it('follows the URL parser on a caret in the path: encoded on Node 24+, refused on Node 22', async () => {
+        // pinned as-is: `new URL` decides. Node 24 turns ^ into %5E and the IRI
+        // is emitted; Node 22 (CI and the prod image) leaves it as ^ and the
+        // character check refuses it. `|` is never encoded and always refused.
+        const href = new URL('https://example.org/a^b').href;
+        expect(await sourceLines('https://example.org/a^b')).toEqual(
+          href.includes('^') ? [] : [`  dcterms:source <${href}> .`],
+        );
       });
 
       it('accepts a space in the path because the URL parser encodes it', async () => {
