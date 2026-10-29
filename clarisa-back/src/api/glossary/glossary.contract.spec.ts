@@ -245,10 +245,17 @@ describe('Glossary public contract (as production answers it)', () => {
       ).toEqual([GlossaryAdminController, GlossaryController]);
     });
 
-    it('is the only glossary path in the public OpenAPI allow-list', () => {
-      expect(PUBLIC_OPENAPI_PATHS.filter((p) => /glossary/.test(p))).toEqual([
-        '/api/glossary',
-      ]);
+    it('is in the public OpenAPI allow-list, and only a path-versioned twin may join it', () => {
+      // `/api/v2/glossary` arrives with feat/glossary-v2-path (Yeck,
+      // 2026-10-29: new versions travel in the URL path). Anything else named
+      // glossary in the allow-list is a leak.
+      const glossaryPaths = PUBLIC_OPENAPI_PATHS.filter((p) =>
+        /glossary/.test(p),
+      );
+      expect(glossaryPaths[0]).toBe('/api/glossary');
+      expect(
+        glossaryPaths.every((p) => /^\/api\/(v\d+\/)?glossary$/.test(p)),
+      ).toBe(true);
     });
 
     it('declares exactly these public routes', () => {
