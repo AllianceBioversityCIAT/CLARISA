@@ -2508,6 +2508,14 @@ const V2_ENDPOINTS = {
   'sdg-indicators':        'Returns the v2 indicator shape.',
 };
 
+/* Resources versioned in the URL PATH (industry convention, adopted from the
+   glossary on, 2026-10-29): the plain route stays v1 and `api/v2/<route>` is
+   v2. Keyed by the v1 route; the value says what v2 changes today. The
+   `?version=N` endpoints above keep their mechanism until each one migrates. */
+const PATH_VERSIONED = {
+  'glossary': 'Same terms and the same keys as <code class="docpill">api/glossary</code> today. New glossary fields will arrive here first; v1 stays unchanged.',
+};
+
 function tsType(node) {
   if (!node) return 'any';
   if (node.$ref) return node.$ref.split('/').pop();
@@ -2542,8 +2550,29 @@ function renderDoc() {
 
   /* ── 1. Versioning ── */
   const v2 = V2_ENDPOINTS[baseRoute];
+  /* `v2/glossary` is the v2 door of `glossary`; both pages show the pair. */
+  const pathV2 = baseRoute.match(/^v2\/(.+)$/);
+  const v1Route = pathV2 ? pathV2[1] : baseRoute;
+  const pathVersioned = PATH_VERSIONED[v1Route];
   let versioningBody;
-  if (v2) {
+  if (pathVersioned) {
+    const v1Url = `${API_BASE}api/${v1Route}`;
+    const v2Url = `${API_BASE}api/v2/${v1Route}`;
+    const here = '<span class="ml-auto text-[11px] font-semibold uppercase tracking-wide text-slate-400">this page</span>';
+    const vEx = `# v1 — the plain route\nGET ${v1Url}\n\n# v2 — the version travels in the path\nGET ${v2Url}`;
+    versioningBody = `
+      <div class="mb-4 grid gap-3 sm:grid-cols-2">
+        <div class="rounded-xl border ${pathV2 ? 'border-slate-200 bg-white' : 'border-leaf-300 bg-leaf-50'} p-4 shadow-card">
+          <div class="flex items-center gap-2"><span class="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[12px] font-bold text-slate-600">v1</span><code class="docpill">api/${v1Route}</code>${pathV2 ? '' : here}</div>
+          <p class="mt-2 text-[13.5px] leading-relaxed text-slate-600">The plain route. It keeps answering what it answers today.</p>
+        </div>
+        <div class="rounded-xl border ${pathV2 ? 'border-leaf-300 bg-leaf-50' : 'border-slate-200 bg-white'} p-4 shadow-card">
+          <div class="flex items-center gap-2"><span class="rounded-md bg-leaf-500 px-2 py-0.5 font-mono text-[12px] font-bold text-white">v2</span><code class="docpill">api/v2/${v1Route}</code>${pathV2 ? here : ''}</div>
+          <p class="mt-2 text-[13.5px] leading-relaxed text-leaf-900">${pathVersioned}</p>
+        </div>
+      </div>
+      ${docCodeBlock('Selecting a version', vEx)}`;
+  } else if (v2) {
     const vEx = `# v1 — default, no param needed\nGET ${url}\n\n# v2 — opt in with the version query param\nGET ${url}?version=2`;
     versioningBody = `
       <div class="mb-4 grid gap-3 sm:grid-cols-2">
@@ -2568,7 +2597,7 @@ function renderDoc() {
   }
   const versioning = docSection(
     'Versioning',
-    `CLARISA versions the API through an optional <code class="docpill">?version=N</code> query param — not via the URI and not via a header. Omit it and you get <b class="font-semibold text-ink">v1</b>.`,
+    `CLARISA versions the API in two ways. The original resources take an optional <code class="docpill">?version=N</code> query param — omit it and you get <b>v1</b>. Resources versioned from the glossary on carry the version in the path: the plain route stays <b>v1</b> and <code class="docpill">api/v2/…</code> is <b>v2</b>. Never via a header.`,
     versioningBody,
   );
 
