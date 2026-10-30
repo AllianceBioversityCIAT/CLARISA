@@ -129,6 +129,66 @@ const canon = (key: string, value: unknown): unknown =>
     ? [...value].sort((a, b) => a.id - b.id)
     : value;
 
+/**
+ * The records of a text export, each one in a canonical form. v1 sorts the
+ * export by title only, so terms with the same title (the P22 and P25
+ * versions of one term) and the portfolios of a term come in any order between
+ * two calls. Order is not part of the contract: compare the records as a
+ * multiset, every byte of every record still counts.
+ */
+const textRecords = (name: TextVariant, text: string): string[] => {
+  const clean = text.replace(/^\uFEFF/, '');
+  if (name === 'export-csv') {
+    const records: string[][] = [];
+    let row: string[] = [];
+    let cell = '';
+    let quoted = false;
+    for (let i = 0; i < clean.length; i++) {
+      const ch = clean[i];
+      if (quoted) {
+        if (ch === '"' && clean[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else if (ch === '"') quoted = false;
+        else cell += ch;
+      } else if (ch === '"') quoted = true;
+      else if (ch === ',') {
+        row.push(cell);
+        cell = '';
+      } else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && clean[i + 1] === '\n') i++;
+        row.push(cell);
+        records.push(row);
+        row = [];
+        cell = '';
+      } else cell += ch;
+    }
+    if (cell || row.length) records.push([...row, cell]);
+    const header = records[0] ?? [];
+    const at = header.indexOf('portfolios');
+    return records
+      .filter((r) => r.some((c) => c !== ''))
+      .map((r) =>
+        JSON.stringify(
+          r.map((c, i) =>
+            i === at && r !== header ? c.split('; ').sort().join('; ') : c,
+          ),
+        ),
+      );
+  }
+  return clean
+    .split(/\n\s*\n/)
+    .filter((block) => block.trim())
+    .map((block) => {
+      const lines = block.split('\n').map((l) => l.replace(/ [;.]$/, ''));
+      const notes = lines.filter((l) => l.includes('skos:scopeNote')).sort();
+      return [
+        ...lines.filter((l) => !l.includes('skos:scopeNote')),
+        ...notes,
+      ].join('\n');
+    });
+};
+
 /** Field-level differences between two lists of terms, keyed by termId. */
 const diffTerms = (expected: Term[], actual: Term[]): string[] => {
   const e = new Map(expected.map((t) => [t.termId, t]));
@@ -209,9 +269,7 @@ describe(`glossary parity against ${base || '(GLOSSARY_BASE missing)'}`, () => {
     });
 
     it('the default list is the active list, and active + inactive = all', () => {
-      expect([...lists.list].sort(byTermId)).toEqual(
-        [...lists.active].sort(byTermId),
-      );
+      expect(diffTerms(lists.active, lists.list)).toEqual([]);
       const ids = (l: Term[]) => l.map((t) => t.termId).sort((a, b) => a - b);
       expect(ids([...lists.active, ...lists.inactive])).toEqual(ids(lists.all));
       expect(
@@ -284,9 +342,29 @@ describe(`glossary parity against ${base || '(GLOSSARY_BASE missing)'}`, () => {
         },
       );
 
-      it.each(Object.keys(TEXT_VARIANTS))('%s: identical text', (name) => {
-        expect(texts[name as TextVariant]).toBe(read(`${name}.txt`));
-      });
+      it.each(Object.keys(TEXT_VARIANTS))(
+        '%s: same records, same text',
+        (name) => {
+          const now = textRecords(name as TextVariant, texts[name]);
+          const before = textRecords(name as TextVariant, read(`${name}.txt`));
+          const count = (list: string[]) =>
+            list.reduce(
+              (m, r) => m.set(r, (m.get(r) ?? 0) + 1),
+              new Map<string, number>(),
+            );
+          const n = count(now);
+          const b = count(before);
+          const short = (r: string) =>
+            r.length > 160 ? `${r.slice(0, 160)}…` : r;
+          const missing = [...b]
+            .filter(([r, c]) => (n.get(r) ?? 0) < c)
+            .map(([r]) => short(r));
+          const extra = [...n]
+            .filter(([r, c]) => (b.get(r) ?? 0) < c)
+            .map(([r]) => short(r));
+          expect({ missing, extra }).toEqual({ missing: [], extra: [] });
+        },
+      );
 
       it('get/:id: same answer per term', () => {
         const before: Record<string, { status: number; body: Term | null }> =
