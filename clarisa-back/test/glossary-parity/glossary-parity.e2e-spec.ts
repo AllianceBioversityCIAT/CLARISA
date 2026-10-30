@@ -119,6 +119,16 @@ const mapLimit = async <T, R>(
   return out;
 };
 
+/**
+ * v1 loads `portfolios` through a relation with no ORDER BY, so two calls can
+ * return the same portfolios in a different order. Order is not part of the
+ * contract: compare them sorted by id.
+ */
+const canon = (key: string, value: unknown): unknown =>
+  key === 'portfolios' && Array.isArray(value)
+    ? [...value].sort((a, b) => a.id - b.id)
+    : value;
+
 /** Field-level differences between two lists of terms, keyed by termId. */
 const diffTerms = (expected: Term[], actual: Term[]): string[] => {
   const e = new Map(expected.map((t) => [t.termId, t]));
@@ -131,8 +141,8 @@ const diffTerms = (expected: Term[], actual: Term[]): string[] => {
     else if (!y) out.push(`term ${id} disappeared ("${x.term}")`);
     else
       for (const key of TERM_KEYS) {
-        const left = JSON.stringify((x as any)[key]);
-        const right = JSON.stringify((y as any)[key]);
+        const left = JSON.stringify(canon(key, (x as any)[key]));
+        const right = JSON.stringify(canon(key, (y as any)[key]));
         if (left !== right)
           out.push(`term ${id} "${x.term}" ${key}: ${left} → ${right}`);
       }
