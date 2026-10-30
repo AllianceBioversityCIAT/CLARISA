@@ -24,6 +24,7 @@ type PortfolioRow = {
   id: number | string;
   name: string | null;
   acronym: string | null;
+  is_active?: number | boolean | null;
 };
 
 type ExistingConcept = {
@@ -42,7 +43,8 @@ const STATUSES = ['draft', 'in_review', 'approved', 'deprecated'];
  *
  * What it creates in the scheme `meliaf-taxonomy`:
  * - a controlled list `portfolios` (one value per row of `portfolios`, value =
- *   the portfolio id, label = acronym + name) and the custom field
+ *   the portfolio id, label = acronym + name, inactive when the portfolio is)
+ *   and the custom field
  *   `portfolios` (`multi_list`) that uses it — the "dropdown" Yeck asked for;
  * - a collection `glossary` that groups the copied terms;
  * - one concept per glossary row, `term_id` = the glossary `id` (so `termId`
@@ -170,12 +172,12 @@ export class CopyGlossaryIntoTaxonomy1793404800000
 
     // The controlled list of portfolios and the custom field that uses it.
     const portfolios: PortfolioRow[] = await queryRunner.query(
-      `SELECT id, name, acronym FROM portfolios ORDER BY id`,
+      `SELECT id, name, acronym, is_active FROM portfolios ORDER BY id`,
     );
     for (const [index, p] of (portfolios ?? []).entries()) {
       await queryRunner.query(
         `INSERT INTO gc_lists (scope, list_code, value, label, sort, is_active)
-         SELECT ?, ?, ?, ?, ?, 1 FROM DUAL
+         SELECT ?, ?, ?, ?, ?, ? FROM DUAL
          WHERE NOT EXISTS (
            SELECT 1 FROM gc_lists WHERE scope = ? AND list_code = ? AND value = ?
          )`,
@@ -185,6 +187,7 @@ export class CopyGlossaryIntoTaxonomy1793404800000
           String(p.id),
           cls.listLabel(p),
           index,
+          Number(p.is_active ?? 1) ? 1 : 0,
           scheme.code,
           cls.LIST_CODE,
           String(p.id),
