@@ -320,7 +320,7 @@ describe('CopyGlossaryIntoTaxonomy1793404800000', () => {
       { id: 56, term_id: 6, extra: '{"notes":"mentions _glossary"}' },
     ];
 
-    it('removes only the marked concepts with their labels, history and memberships, then the empty collection', async () => {
+    it('removes only the marked concepts with everything hanging from them, then the empty collection', async () => {
       const calls = await run('down', { existing });
       expect(
         find(calls, /SELECT id, term_id, extra FROM gc_concepts/)[0][1],
@@ -330,13 +330,18 @@ describe('CopyGlossaryIntoTaxonomy1793404800000', () => {
         ['gc_collection_members', [55]],
         ['gc_labels', [55]],
         ['gc_history', [55]],
+        ['gc_mappings', [55]],
+        ['gc_icons', [55]],
+        ['gc_embeddings', [55]],
+        ['gc_relations', [55, 55]],
         ['gc_concepts', [55]],
         ['gc_collections', [7, 'glossary']],
       ]);
+      expect(deletes[6][0]).toMatch(/related_concept_id IN/);
       expect(
         find(calls, /UPDATE gc_concepts SET replaced_by_id = NULL/)[0][1],
       ).toEqual([55]);
-      expect(deletes[4][0]).toMatch(/NOT EXISTS/);
+      expect(deletes[8][0]).toMatch(/NOT EXISTS/);
     });
 
     it('deletes no concept when none is marked', async () => {

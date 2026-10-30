@@ -361,7 +361,7 @@ export class CopyGlossaryIntoTaxonomy1793404800000
     }
   }
 
-  /** Removes only the copied concepts (marked rows) and the collection when it is left empty. The list and the field stay: other concepts may already use them. */
+  /** Removes only the copied concepts (marked rows) with everything hanging from them, and the collection when it is left empty. The list and the field stay: other concepts may already use them. */
   public async down(queryRunner: QueryRunner): Promise<void> {
     const cls = CopyGlossaryIntoTaxonomy1793404800000;
     const schemes: { id: number | string }[] = await queryRunner.query(
@@ -383,12 +383,20 @@ export class CopyGlossaryIntoTaxonomy1793404800000
         'gc_collection_members',
         'gc_labels',
         'gc_history',
+        'gc_mappings',
+        'gc_icons',
+        'gc_embeddings',
       ]) {
         await queryRunner.query(
           `DELETE FROM ${table} WHERE concept_id IN (${marks})`,
           ids,
         );
       }
+      // No foreign keys in the module: a relation added in dev after the copy would otherwise point at nothing.
+      await queryRunner.query(
+        `DELETE FROM gc_relations WHERE concept_id IN (${marks}) OR related_concept_id IN (${marks})`,
+        [...ids, ...ids],
+      );
       await queryRunner.query(
         `UPDATE gc_concepts SET replaced_by_id = NULL WHERE replaced_by_id IN (${marks})`,
         ids,
