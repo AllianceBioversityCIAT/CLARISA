@@ -60,9 +60,12 @@ const STATUSES = ['draft', 'in_review', 'approved', 'deprecated'];
  * row, which is what makes the migration idempotent and lets `down()` remove
  * only what it created.
  *
- * Collisions: a `term_id` already used by a concept that is not a copy is
- * left alone (the glossary row is skipped, nothing is overwritten). Production
- * has no concepts, so there every row is copied.
+ * All or nothing: the copy re-opens a real transaction (an earlier DDL of the
+ * same run commits TypeORM's) and reads and checks before it writes. A
+ * `term_id` already used by a concept that is not a copy stops the migration
+ * with the list of terms: the term is neither skipped nor overwritten.
+ * Labels, history and membership are ensured on every run, so a run that was
+ * cut half way is completed by the next one.
  */
 export class CopyGlossaryIntoTaxonomy1793404800000
   implements MigrationInterface
@@ -170,10 +173,69 @@ export class CopyGlossaryIntoTaxonomy1793404800000
     if (!schemes?.length) return;
     const scheme = schemes[0];
 
-    // The controlled list of portfolios and the custom field that uses it.
+    // All or nothing. An earlier migration of the same run may have run DDL
+    // (the backup one creates tables) and MySQL commits on every DDL: the
+    // transaction TypeORM opened is gone and each statement below would
+    // commit on its own, so a failure half way would leave a partial copy
+    // that the next run cannot repair. Re-open a real transaction; TypeORM's
+    // own COMMIT or ROLLBACK at the end of the run closes it.
+    if (queryRunner.isTransactionActive)
+      await queryRunner.query(`START TRANSACTION`);
+
+    // Read everything first: no write happens before the checks pass.
     const portfolios: PortfolioRow[] = await queryRunner.query(
       `SELECT id, name, acronym, is_active FROM portfolios ORDER BY id`,
     );
+    // The glossary as stored, dates as `YYYY-MM-DD` strings so no timezone moves a day.
+    const rows: GlossaryRow[] = await queryRunner.query(
+      `SELECT id, title, definition, source, source_url,
+              DATE_FORMAT(reference_date, '%Y-%m-%d') AS reference_date,
+              group_id, alternative_labels, editorial_status, replaced_by_id,
+              show_in_dashboard, is_active, applicationName AS application_name,
+              DATE_FORMAT(created_at, '%Y-%m-%d') AS created_on,
+              DATE_FORMAT(updated_at, '%Y-%m-%d') AS updated_on
+         FROM glossary ORDER BY id`,
+    );
+    const links: {
+      glossary_id: number | string;
+      portfolio_id: number | string;
+    }[] = await queryRunner.query(
+      `SELECT glossary_id, portfolio_id FROM glossary_portfolios
+          WHERE is_active = 1 ORDER BY glossary_id, portfolio_id`,
+    );
+    const portfoliosOf = new Map<number, string[]>();
+    for (const l of links ?? []) {
+      const key = Number(l.glossary_id);
+      portfoliosOf.set(key, [
+        ...(portfoliosOf.get(key) ?? []),
+        String(l.portfolio_id),
+      ]);
+    }
+    const existing: ExistingConcept[] = await queryRunner.query(
+      `SELECT id, term_id, extra FROM gc_concepts WHERE scheme_id = ?`,
+      [scheme.id],
+    );
+    const byTermId = new Map(
+      (existing ?? []).map((c) => [Number(c.term_id), c] as const),
+    );
+
+    // A term_id owned by a concept that is not a copy: skipping the term
+    // would lose it without a trace once the glossary is read from here, and
+    // overwriting would damage the other concept. Stop and say which.
+    const taken = (rows ?? [])
+      .map((r) => Number(r.id))
+      .filter((id) => {
+        const found = byTermId.get(id);
+        return !!found && !cls.isCopy(found.extra);
+      });
+    if (taken.length)
+      throw new Error(
+        `CopyGlossaryIntoTaxonomy: the term_id of glossary term(s) ${taken.join(', ')} ` +
+          `already belongs to a ${cls.SCHEME_CODE} concept that is not a glossary copy. ` +
+          `Nothing was copied. Give those concepts another TERM ID, then deploy again.`,
+      );
+
+    // The controlled list of portfolios and the custom field that uses it.
     for (const [index, p] of (portfolios ?? []).entries()) {
       await queryRunner.query(
         `INSERT INTO gc_lists (scope, list_code, value, label, sort, is_active)
@@ -229,53 +291,15 @@ export class CopyGlossaryIntoTaxonomy1793404800000
     );
     const collectionId = Number(collections?.[0]?.id);
 
-    // The glossary as stored, dates as `YYYY-MM-DD` strings so no timezone moves a day.
-    const rows: GlossaryRow[] = await queryRunner.query(
-      `SELECT id, title, definition, source, source_url,
-              DATE_FORMAT(reference_date, '%Y-%m-%d') AS reference_date,
-              group_id, alternative_labels, editorial_status, replaced_by_id,
-              show_in_dashboard, is_active, applicationName AS application_name,
-              DATE_FORMAT(created_at, '%Y-%m-%d') AS created_on,
-              DATE_FORMAT(updated_at, '%Y-%m-%d') AS updated_on
-         FROM glossary ORDER BY id`,
-    );
-    const links: {
-      glossary_id: number | string;
-      portfolio_id: number | string;
-    }[] = await queryRunner.query(
-      `SELECT glossary_id, portfolio_id FROM glossary_portfolios
-          WHERE is_active = 1 ORDER BY glossary_id, portfolio_id`,
-    );
-    const portfoliosOf = new Map<number, string[]>();
-    for (const l of links ?? []) {
-      const key = Number(l.glossary_id);
-      portfoliosOf.set(key, [
-        ...(portfoliosOf.get(key) ?? []),
-        String(l.portfolio_id),
-      ]);
-    }
-
-    const existing: ExistingConcept[] = await queryRunner.query(
-      `SELECT id, term_id, extra FROM gc_concepts WHERE scheme_id = ?`,
-      [scheme.id],
-    );
-    const byTermId = new Map(
-      (existing ?? []).map((c) => [Number(c.term_id), c] as const),
-    );
-
     const txId = randomUUID();
     /** term_id → id of the copied concept (new or already there). */
     const copied = new Map<number, number>();
     for (const row of rows ?? []) {
       const termId = Number(row.id);
-      const found = byTermId.get(termId);
-      let conceptId: number;
-      if (found) {
-        // Another concept owns this term_id: never overwritten, the row is skipped.
-        if (!cls.isCopy(found.extra)) continue;
-        conceptId = Number(found.id);
-      } else {
-        const c = cls.conceptRow(row, portfoliosOf.get(termId) ?? []);
+      const c = cls.conceptRow(row, portfoliosOf.get(termId) ?? []);
+      // Only copies are left in byTermId for these rows (checked above).
+      let conceptId = Number(byTermId.get(termId)?.id);
+      if (!byTermId.has(termId)) {
         const result: { insertId?: number } | undefined =
           await queryRunner.query(
             `INSERT INTO gc_concepts
@@ -304,31 +328,43 @@ export class CopyGlossaryIntoTaxonomy1793404800000
           );
           conceptId = Number(inserted?.[0]?.id);
         }
-        for (const label of cls.altLabels(row.alternative_labels)) {
-          await queryRunner.query(
-            `INSERT INTO gc_labels (concept_id, label, language, kind, status)
-             VALUES (?, ?, 'en', 'alt', 'active')`,
-            [conceptId, label],
-          );
-        }
-        const changes: Record<string, { from: null; to: unknown }> = {};
-        for (const [field, value] of Object.entries({
-          preferred_label: c.preferred_label,
-          status: c.status,
-          definition: c.definition,
-          source_citation: c.source_citation,
-          source_url: c.source_url,
-          extra: JSON.parse(c.extra) as unknown,
-        })) {
-          if (value !== null && value !== undefined)
-            changes[field] = { from: null, to: value };
-        }
+      }
+      // Labels, history and membership are ensured for new and earlier
+      // copies alike, so a run that stopped half way is completed by the next.
+      // The label guard compares like the unique key of gc_labels does (the
+      // column collation, first 191 characters): "Café" and "Cafe" are one
+      // label for MySQL, and a second one would abort the whole copy.
+      for (const label of cls.altLabels(row.alternative_labels)) {
         await queryRunner.query(
-          `INSERT INTO gc_history (concept_id, action, changes, changed_by_email, tx_id)
-           VALUES (?, 'create', ?, NULL, ?)`,
-          [conceptId, JSON.stringify(changes), txId],
+          `INSERT INTO gc_labels (concept_id, label, language, kind, status)
+           SELECT ?, ?, 'en', 'alt', 'active' FROM DUAL
+           WHERE NOT EXISTS (
+             SELECT 1 FROM gc_labels
+              WHERE concept_id = ? AND language = 'en' AND LEFT(label, 191) = LEFT(?, 191)
+           )`,
+          [conceptId, label, conceptId, label],
         );
       }
+      const changes: Record<string, { from: null; to: unknown }> = {};
+      for (const [field, value] of Object.entries({
+        preferred_label: c.preferred_label,
+        status: c.status,
+        definition: c.definition,
+        source_citation: c.source_citation,
+        source_url: c.source_url,
+        extra: JSON.parse(c.extra) as unknown,
+      })) {
+        if (value !== null && value !== undefined)
+          changes[field] = { from: null, to: value };
+      }
+      await queryRunner.query(
+        `INSERT INTO gc_history (concept_id, action, changes, changed_by_email, tx_id)
+         SELECT ?, 'create', ?, NULL, ? FROM DUAL
+         WHERE NOT EXISTS (
+           SELECT 1 FROM gc_history WHERE concept_id = ? AND action = 'create'
+         )`,
+        [conceptId, JSON.stringify(changes), txId, conceptId],
+      );
       copied.set(termId, conceptId);
       await queryRunner.query(
         `INSERT INTO gc_collection_members (collection_id, concept_id)

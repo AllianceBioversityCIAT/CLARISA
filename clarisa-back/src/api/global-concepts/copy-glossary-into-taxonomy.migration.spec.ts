@@ -73,10 +73,13 @@ const LINKS = [
   { glossary_id: 9, portfolio_id: 2 },
 ];
 
+let lastError: unknown;
 type Options = {
+  expectError?: boolean;
   scheme?: typeof SCHEME | null;
   existing?: { id: number; term_id: number; extra: string | null }[];
   insertId?: boolean;
+  inTransaction?: boolean;
 };
 
 const run = async (dir: 'up' | 'down', opts: Options = {}) => {
@@ -100,7 +103,17 @@ const run = async (dir: 'up' | 'down', opts: Options = {}) => {
       return [{ id: 900 }];
     return undefined;
   });
-  await new Migration()[dir]({ query } as any);
+  let error: unknown;
+  try {
+    await new Migration()[dir]({
+      query,
+      isTransactionActive: opts.inTransaction ?? false,
+    } as any);
+  } catch (e) {
+    error = e;
+  }
+  if (error && !opts.expectError) throw error;
+  lastError = error;
   return query.mock.calls.map(([sql, params]) => [
     String(sql).replace(/\s+/g, ' ').trim(),
     (params ?? []) as unknown[],
@@ -245,12 +258,16 @@ describe('CopyGlossaryIntoTaxonomy1793404800000', () => {
           application_name: null,
         },
       });
-      expect(find(calls, /INSERT INTO gc_labels/).map(([, p]) => p)).toEqual([
-        [101, 'IA'],
-      ]);
+      const labels = find(calls, /INSERT INTO gc_labels/);
+      expect(labels.map(([, p]) => p)).toEqual([[101, 'IA', 101, 'IA']]);
+      // Same comparison as the unique key: column collation, 191 characters.
+      expect(labels[0][0]).toMatch(
+        /WHERE NOT EXISTS .*LEFT\(label, 191\) = LEFT\(\?, 191\)/,
+      );
       const history = find(calls, /INSERT INTO gc_history/);
       expect(history.map(([, p]) => p[0])).toEqual([101, 102, 103]);
       expect(history[0][0]).toMatch(/'create'/);
+      expect(history[0][0]).toMatch(/WHERE NOT EXISTS/);
       expect(JSON.parse(String(history[0][1][1]))).toMatchObject({
         preferred_label: { from: null, to: 'Impact' },
         status: { from: null, to: 'approved' },
@@ -300,26 +317,45 @@ describe('CopyGlossaryIntoTaxonomy1793404800000', () => {
       expect(
         find(calls, /INSERT INTO gc_collection_members/).map(([, p]) => p[1]),
       ).toEqual([55, 101, 102]);
+      // A run cut half way left the copy without its labels or history: the
+      // next run completes them (each insert guarded, so nothing doubles).
+      expect(find(calls, /INSERT INTO gc_labels/).map(([, p]) => p[0])).toEqual(
+        [55],
+      );
+      expect(
+        find(calls, /INSERT INTO gc_history/).map(([, p]) => [p[0], p[3]]),
+      ).toEqual([
+        [55, 55],
+        [101, 101],
+        [102, 102],
+      ]);
       expect(
         find(calls, /UPDATE gc_concepts SET replaced_by_id/).map(([, p]) => p),
       ).toEqual([[55, 101]]);
     });
 
-    it('never overwrites a concept of another origin that already owns the term_id', async () => {
+    it('stops with the list of terms, writing nothing, when a concept of another origin owns a term_id', async () => {
       const calls = await run('up', {
         existing: [{ id: 56, term_id: 5, extra: '{"audiences":["donors"]}' }],
+        expectError: true,
       });
+      expect(String(lastError)).toMatch(
+        /glossary term\(s\) 5 already belongs to a meliaf-taxonomy concept/,
+      );
+      expect(find(calls, /^(INSERT|UPDATE|DELETE)/)).toEqual([]);
+    });
+
+    it('re-opens a real transaction before writing, because a DDL earlier in the run commits the one TypeORM opened', async () => {
+      const calls = await run('up', { inTransaction: true });
+      const start = calls.findIndex(([sql]) => sql === 'START TRANSACTION');
+      const firstWrite = calls.findIndex(([sql]) =>
+        /^(INSERT|UPDATE|DELETE)/.test(sql),
+      );
+      expect(start).toBeGreaterThan(-1);
+      expect(start).toBeLessThan(firstWrite);
       expect(
-        find(calls, /^INSERT INTO gc_concepts/).map(([, p]) => p[1]),
-      ).toEqual([9, 12]);
-      expect(
-        find(calls, /INSERT INTO gc_collection_members/).map(([, p]) => p[1]),
-      ).toEqual([101, 102]);
-      // Its replacement was not copied, so the deprecated term points nowhere.
-      expect(find(calls, /UPDATE gc_concepts SET replaced_by_id/)).toEqual([]);
-      expect(find(calls, /UPDATE gc_schemes SET next_term_id/)[0][1]).toEqual([
-        13, 7,
-      ]);
+        find(await run('up', { inTransaction: false }), /START TRANSACTION/),
+      ).toEqual([]);
     });
 
     it('leaves next_term_id alone when the scheme is already past the glossary ids', async () => {
