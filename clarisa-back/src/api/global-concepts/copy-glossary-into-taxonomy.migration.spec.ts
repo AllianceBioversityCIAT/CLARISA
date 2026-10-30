@@ -4,9 +4,15 @@ type Call = [string, unknown[]];
 
 const SCHEME = { id: 7, code: 'meliaf-taxonomy', next_term_id: 1 };
 const PORTFOLIOS = [
-  { id: 2, name: 'CGIAR portfolio 2022-2024​', acronym: 'P22' },
-  { id: 3, name: 'CGIAR portfolio 2025-2030', acronym: 'P25' },
-  { id: 4, name: 'CGIAR general​', acronym: null },
+  { id: 1, name: 'CGIAR portfolio 2016-2021', acronym: null, is_active: 0 },
+  {
+    id: 2,
+    name: 'CGIAR portfolio 2022-2024\u200b',
+    acronym: 'P22',
+    is_active: 1,
+  },
+  { id: 3, name: 'CGIAR portfolio 2025-2030', acronym: 'P25', is_active: 1 },
+  { id: 4, name: 'CGIAR general\u200b', acronym: null, is_active: 1 },
 ];
 const ROWS = [
   {
@@ -108,10 +114,10 @@ const extraOf = (params: unknown[]) =>
 describe('CopyGlossaryIntoTaxonomy1793404800000', () => {
   describe('helpers', () => {
     it('labels a portfolio with acronym and name, without zero-width spaces', () => {
-      expect(Migration.listLabel(PORTFOLIOS[0])).toBe(
+      expect(Migration.listLabel(PORTFOLIOS[1])).toBe(
         'P22 — CGIAR portfolio 2022-2024',
       );
-      expect(Migration.listLabel(PORTFOLIOS[2])).toBe('CGIAR general');
+      expect(Migration.listLabel(PORTFOLIOS[3])).toBe('CGIAR general');
     });
 
     it('recognises the copy mark only in a JSON object', () => {
@@ -175,25 +181,35 @@ describe('CopyGlossaryIntoTaxonomy1793404800000', () => {
       expect(calls).toHaveLength(1);
     });
 
-    it('seeds the portfolios list (value = id), the multi_list field and the collection, all guarded by NOT EXISTS', async () => {
+    it('seeds the portfolios list (value = id, retired portfolio = inactive value), the multi_list field and the collection, all guarded by NOT EXISTS', async () => {
       const calls = await run('up');
       const lists = find(calls, /INSERT INTO gc_lists/);
-      expect(lists.map(([, p]) => [p[0], p[1], p[2], p[3], p[4]])).toEqual([
+      expect(lists.map(([, p]) => p.slice(0, 6))).toEqual([
+        [
+          'meliaf-taxonomy',
+          'portfolios',
+          '1',
+          'CGIAR portfolio 2016-2021',
+          0,
+          0,
+        ],
         [
           'meliaf-taxonomy',
           'portfolios',
           '2',
           'P22 — CGIAR portfolio 2022-2024',
-          0,
+          1,
+          1,
         ],
         [
           'meliaf-taxonomy',
           'portfolios',
           '3',
           'P25 — CGIAR portfolio 2025-2030',
+          2,
           1,
         ],
-        ['meliaf-taxonomy', 'portfolios', '4', 'CGIAR general', 2],
+        ['meliaf-taxonomy', 'portfolios', '4', 'CGIAR general', 3, 1],
       ]);
       const [field] = find(calls, /INSERT INTO gc_fields/);
       expect(field[0]).toMatch(/'multi_list'/);
