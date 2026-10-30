@@ -232,7 +232,8 @@ export class CopyGlossaryIntoTaxonomy1793404800000
       throw new Error(
         `CopyGlossaryIntoTaxonomy: the term_id of glossary term(s) ${taken.join(', ')} ` +
           `already belongs to a ${cls.SCHEME_CODE} concept that is not a glossary copy. ` +
-          `Nothing was copied. Give those concepts another TERM ID, then deploy again.`,
+          `Nothing was copied and nothing was changed. Decide which concept keeps each TERM ID ` +
+          `(renumbering a published concept changes its URI) before deploying again.`,
       );
 
     // The controlled list of portfolios and the custom field that uses it.
