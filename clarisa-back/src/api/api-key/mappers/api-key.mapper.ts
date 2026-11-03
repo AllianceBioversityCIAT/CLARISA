@@ -14,6 +14,7 @@ export class ApiKeyMapper {
     dto.scopes = apiKey.scopes;
     dto.environment_id = apiKey.environment_id;
     dto.allowed_ips = apiKey.allowed_ips;
+    dto.allowed_endpoints = apiKey.allowed_endpoints;
     dto.expires_at = apiKey.expires_at;
     dto.last_used_at = apiKey.last_used_at;
     dto.usage_count = apiKey.usage_count ?? 0;

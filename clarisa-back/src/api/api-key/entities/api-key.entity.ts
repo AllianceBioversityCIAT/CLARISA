@@ -44,6 +44,10 @@ export class ApiKey {
   @Column({ type: 'json', nullable: true })
   allowed_ips: string[];
 
+  /** Routes of the calling microservice the key may use. NULL: no restriction */
+  @Column({ type: 'json', nullable: true })
+  allowed_endpoints: string[];
+
   @Column({ type: 'timestamp', nullable: true })
   expires_at: Date;
 

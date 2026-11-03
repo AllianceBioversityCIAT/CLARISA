@@ -21,6 +21,10 @@ import { ValidateApiKeyDto } from './dto/validate-api-key.dto';
 import { ValidateApiKeyResponseDto } from './dto/validate-api-key-response.dto';
 import { ApiKeyUsageLogService } from './api-key-usage-log.service';
 import { isClientIpAllowed } from './utils/ip-allowlist';
+import {
+  isEndpointAllowed,
+  normalizeEndpoint,
+} from './utils/endpoint-allowlist';
 
 export interface ValidateApiKeyOptions {
   clientIp?: string;
@@ -105,6 +109,9 @@ export class ApiKeyService {
       scopes: createApiKeyDto.scopes ?? null,
       environment_id: environmentId,
       allowed_ips: createApiKeyDto.allowed_ips ?? null,
+      allowed_endpoints: this._cleanEndpoints(
+        createApiKeyDto.allowed_endpoints,
+      ),
       expires_at: createApiKeyDto.expires_at
         ? new Date(createApiKeyDto.expires_at)
         : null,
@@ -175,6 +182,15 @@ export class ApiKeyService {
       validateApiKeyDto.ip_address?.trim() || options.clientIp;
     if (!isClientIpAllowed(effectiveIp, matched.allowed_ips)) {
       return { valid: false, error: 'IP address is not allowed for this key' };
+    }
+
+    if (
+      !isEndpointAllowed(
+        validateApiKeyDto.endpoint_accessed,
+        matched.allowed_endpoints,
+      )
+    ) {
+      return { valid: false, error: 'Endpoint is not allowed for this key' };
     }
 
     const scopes = matched.scopes ?? [];
@@ -327,6 +343,12 @@ export class ApiKeyService {
       apiKey.allowed_ips = ips && ips.length ? ips : null;
     }
 
+    if (has('allowed_endpoints')) {
+      apiKey.allowed_endpoints = this._cleanEndpoints(
+        updateApiKeyDto.allowed_endpoints,
+      );
+    }
+
     if (has('expires_at')) {
       const raw = updateApiKeyDto.expires_at;
       if (raw === null || raw === '') {
@@ -394,12 +416,21 @@ export class ApiKeyService {
         scopes: existing.scopes ?? undefined,
         environment: environmentAcronym,
         allowed_ips: existing.allowed_ips ?? undefined,
+        allowed_endpoints: existing.allowed_endpoints ?? undefined,
         expires_at: existing.expires_at
           ? existing.expires_at.toISOString()
           : undefined,
       },
       userData,
     );
+  }
+
+  /** Normalized, de-duplicated routes; an empty list is stored as NULL (no restriction). */
+  private _cleanEndpoints(endpoints?: string[] | null): string[] | null {
+    const cleaned = [
+      ...new Set((endpoints ?? []).map(normalizeEndpoint).filter(Boolean)),
+    ];
+    return cleaned.length ? cleaned : null;
   }
 
   private async _loadForUpdate(id: number): Promise<ApiKey> {
