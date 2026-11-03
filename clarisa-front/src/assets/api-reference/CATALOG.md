@@ -141,6 +141,26 @@ with `name`, `description`, and `endpoints`. To add a **new group**, append to
 
 ---
 
+### Step 3 — Say how it is versioned
+
+CLARISA has two versioning mechanisms, and the Doc tab of every endpoint
+explains which one applies:
+
+- **Query param `?version=N`** — the original resources (`cgiar-entities`,
+  `sdgs`, …). They are declared with `@Version(...)` in the back controller.
+  If the new endpoint has a v2 this way, add it to `V2_ENDPOINTS` in
+  `index.html` with a one-line note of what v2 changes.
+- **Version in the path `api/v2/<route>`** — the industry convention, adopted
+  from the glossary on (2026-10-29). The plain route stays v1; v2 is a separate
+  route mounted under `v2` in `api.routes.ts` (no `@Version` decorator). Add the
+  v1 route to `PATH_VERSIONED` in `index.html` with what v2 changes today, list
+  **both** routes in `catalog.json` (`Glossary` and `Glossary (v2)`) and both in
+  the back allowlist. Each page then shows the v1/v2 pair and marks the one
+  being read.
+
+New versions go in the path. The `?version=N` endpoints keep their mechanism
+until each one migrates.
+
 ## Keep three sources in sync
 
 When you expose, rename, or remove an endpoint, update all three:

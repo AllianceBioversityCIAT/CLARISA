@@ -19,6 +19,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --verbose --config ./test/jest-e2e.json --detectOpenHandles",
+    "glossary:parity": "jest --verbose --runInBand --config ./test/jest-glossary-parity.json",
     "typeorm": "ts-node ./node_modules/typeorm/cli.js",
     "migration:empty": "cross-replace npm run typeorm migration:create ./migrations/${npm_config_name}",
     "migration:generate": "cross-replace npm run typeorm migration:generate -- ./migrations/${npm_config_name} -d ./src/ormconfig.ts",

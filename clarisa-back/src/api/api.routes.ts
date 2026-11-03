@@ -2,6 +2,7 @@ import { ActionAreaModule } from './action-area/action-area.module';
 import { RoleModule } from './role/role.module';
 import { UserModule } from './user/user.module';
 import { GlossaryModule } from './glossary/glossary.module';
+import { GlossaryV2Module } from './glossary/glossary-v2.module';
 import { GlobalConceptsModule } from './global-concepts/global-concepts.module';
 import { AccessAdminModule } from './access-admin/access-admin.module';
 import { ImpactAreaModule } from './impact-area/impact-area.module';
@@ -102,6 +103,17 @@ export const apiRoutes = [
   {
     path: 'glossary',
     module: GlossaryModule,
+  },
+  {
+    // Versions in the URL path from the glossary on (`api/v2/...`); the
+    // `?version=N` endpoints above keep their mechanism until each migrates.
+    path: 'v2',
+    children: [
+      {
+        path: 'glossary',
+        module: GlossaryV2Module,
+      },
+    ],
   },
   {
     path: 'global-targets',
