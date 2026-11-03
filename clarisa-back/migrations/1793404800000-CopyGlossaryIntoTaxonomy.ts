@@ -48,8 +48,9 @@ const STATUSES = ['draft', 'in_review', 'approved', 'deprecated'];
  *   `portfolios` (`multi_list`) that uses it — the "dropdown" Yeck asked for;
  * - a collection `glossary` that groups the copied terms;
  * - one concept per glossary row, `term_id` = the glossary `id` (so `termId`
- *   of v1 survives), `status` = the editorial status, alternative labels as
- *   `alt` labels, `replaced_by_id` resolved to the copied replacement, and a
+ *   of v1 survives), `status` = the editorial status (`statusOf`: an inactive
+ *   term is `deprecated`, never `approved`), alternative labels as `alt`
+ *   labels, `replaced_by_id` resolved to the copied replacement, and a
  *   `create` row in the history.
  *
  * What the taxonomy has no column for travels inside `extra._glossary`
@@ -133,11 +134,26 @@ export class CopyGlossaryIntoTaxonomy1793404800000
     return out;
   }
 
-  /** The `gc_concepts` values of one glossary row. */
-  static conceptRow(row: GlossaryRow, portfolioIds: string[]) {
-    const status = STATUSES.includes(String(row.editorial_status ?? ''))
+  /**
+   * Taxonomy status of a glossary row. An inactive term stays out of what the
+   * taxonomy calls current: `approved` is v1 `show=active`, `deprecated` is
+   * v1 `show=inactive` (public, marked as retired) and the public default
+   * lists both, like `show=all`. A draft or in-review term keeps its own,
+   * stricter status (not public at all).
+   */
+  static statusOf(row: GlossaryRow): string {
+    const editorial = STATUSES.includes(String(row.editorial_status ?? ''))
       ? String(row.editorial_status)
       : 'approved';
+    const active = Boolean(Number(row.is_active ?? 1));
+    return active || editorial === 'draft' || editorial === 'in_review'
+      ? editorial
+      : 'deprecated';
+  }
+
+  /** The `gc_concepts` values of one glossary row. */
+  static conceptRow(row: GlossaryRow, portfolioIds: string[]) {
+    const status = CopyGlossaryIntoTaxonomy1793404800000.statusOf(row);
     const extra: Record<string, unknown> = {};
     if (portfolioIds.length) extra.portfolios = portfolioIds;
     extra[CopyGlossaryIntoTaxonomy1793404800000.MARKER] = {

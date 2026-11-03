@@ -173,6 +173,27 @@ describe('CopyGlossaryIntoTaxonomy1793404800000', () => {
       });
     });
 
+    it('an inactive term is never approved: deprecated, unless draft or in review already keeps it private', () => {
+      const row = (is_active: unknown, editorial_status: unknown) =>
+        ({ ...ROWS[0], is_active, editorial_status }) as any;
+      expect(Migration.statusOf(row(0, 'approved'))).toBe('deprecated');
+      expect(Migration.statusOf(row('0', null))).toBe('deprecated');
+      expect(Migration.statusOf(row(false, 'unknown'))).toBe('deprecated');
+      expect(Migration.statusOf(row(0, 'deprecated'))).toBe('deprecated');
+      expect(Migration.statusOf(row(0, 'draft'))).toBe('draft');
+      expect(Migration.statusOf(row(0, 'in_review'))).toBe('in_review');
+      expect(Migration.statusOf(row(1, 'approved'))).toBe('approved');
+      expect(Migration.statusOf(row(true, null))).toBe('approved');
+      expect(Migration.statusOf(row(null, null))).toBe('approved');
+      expect(Migration.statusOf(row(1, 'deprecated'))).toBe('deprecated');
+    });
+
+    it('copies an inactive approved term as deprecated and keeps is_active false in _glossary', () => {
+      const c = Migration.conceptRow({ ...ROWS[0], is_active: 0 } as any, []);
+      expect(c.status).toBe('deprecated');
+      expect(JSON.parse(c.extra)._glossary.is_active).toBe(false);
+    });
+
     it('a row with no status is approved, its own group, and carries no portfolios key', () => {
       const c = Migration.conceptRow(ROWS[2], []);
       expect(c.status).toBe('approved');
