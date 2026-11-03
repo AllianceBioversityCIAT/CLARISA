@@ -22,7 +22,7 @@ import { ValidateApiKeyResponseDto } from './dto/validate-api-key-response.dto';
 import { ApiKeyUsageLogService } from './api-key-usage-log.service';
 import { isClientIpAllowed } from './utils/ip-allowlist';
 import {
-  isEndpointAllowed,
+  isEndpointGranted,
   normalizeEndpoint,
 } from './utils/endpoint-allowlist';
 
@@ -184,15 +184,6 @@ export class ApiKeyService {
       return { valid: false, error: 'IP address is not allowed for this key' };
     }
 
-    if (
-      !isEndpointAllowed(
-        validateApiKeyDto.endpoint_accessed,
-        matched.allowed_endpoints,
-      )
-    ) {
-      return { valid: false, error: 'Endpoint is not allowed for this key' };
-    }
-
     const scopes = matched.scopes ?? [];
     if (
       validateApiKeyDto.required_scope &&
@@ -225,6 +216,11 @@ export class ApiKeyService {
       key_prefix: matched.key_prefix,
       environment: matched.environment_object?.acronym,
       scopes: scopes.length ? scopes : undefined,
+      allowed_endpoints: matched.allowed_endpoints ?? [],
+      endpoint_allowed: isEndpointGranted(
+        validateApiKeyDto.endpoint_accessed,
+        matched.allowed_endpoints,
+      ),
     };
 
     if (matched.mis_object) {

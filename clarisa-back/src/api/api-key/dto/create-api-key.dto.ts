@@ -50,7 +50,7 @@ export class CreateApiKeyDto {
   @MaxLength(45, { each: true })
   allowed_ips?: string[];
 
-  /** Exact routes the key may call, e.g. `/api/qa/results/intake`. Empty: no restriction */
+  /** Protected routes this key is granted, e.g. `/api/qa/results/intake`. Empty: none */
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(100)

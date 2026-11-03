@@ -1,6 +1,6 @@
-import { isEndpointAllowed, normalizeEndpoint } from './endpoint-allowlist';
+import { isEndpointGranted, normalizeEndpoint } from './endpoint-allowlist';
 
-describe('endpoint allowlist', () => {
+describe('endpoint grants', () => {
   const qa = [
     '/api/qa/catalog',
     '/api/qa/results',
@@ -9,37 +9,37 @@ describe('endpoint allowlist', () => {
     '/api/qa/results/release',
   ];
 
-  it('allows any endpoint when the key has no list', () => {
-    expect(isEndpointAllowed('/zzz/nada', null)).toBe(true);
-    expect(isEndpointAllowed('/zzz/nada', [])).toBe(true);
+  it('grants nothing to a key without a list', () => {
+    expect(isEndpointGranted('/api/qa/results/intake', null)).toBe(false);
+    expect(isEndpointGranted('/api/qa/results/intake', [])).toBe(false);
   });
 
-  it('allows only the listed routes', () => {
-    expect(isEndpointAllowed('/api/qa/results/intake', qa)).toBe(true);
-    expect(isEndpointAllowed('/api/qa/results/release', qa)).toBe(true);
-    expect(isEndpointAllowed('/zzz/nada', qa)).toBe(false);
+  it('grants only the listed routes', () => {
+    expect(isEndpointGranted('/api/qa/results/intake', qa)).toBe(true);
+    expect(isEndpointGranted('/api/qa/results/release', qa)).toBe(true);
+    expect(isEndpointGranted('/zzz/nada', qa)).toBe(false);
   });
 
   it('does not let a parent route cover its children', () => {
     expect(
-      isEndpointAllowed('/api/qa/results/intake', ['/api/qa/results']),
+      isEndpointGranted('/api/qa/results/intake', ['/api/qa/results']),
     ).toBe(false);
   });
 
   it('ignores the query string and a trailing slash', () => {
-    expect(isEndpointAllowed('/api/qa/results/?phase_year=2026', qa)).toBe(
+    expect(isEndpointGranted('/api/qa/results/?phase_year=2026', qa)).toBe(
       true,
     );
     expect(
-      isEndpointAllowed('/api/qa/catalog?x=/api/qa/results', [
+      isEndpointGranted('/api/qa/catalog?x=/api/qa/results', [
         '/api/qa/results',
       ]),
     ).toBe(false);
   });
 
-  it('rejects an empty endpoint when the key has a list', () => {
-    expect(isEndpointAllowed('', qa)).toBe(false);
-    expect(isEndpointAllowed(undefined, qa)).toBe(false);
+  it('grants nothing for an empty endpoint', () => {
+    expect(isEndpointGranted('', qa)).toBe(false);
+    expect(isEndpointGranted(undefined, qa)).toBe(false);
   });
 
   it('normalizes the root and repeated trailing slashes', () => {
