@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -48,6 +49,18 @@ export class CreateApiKeyDto {
   @IsString({ each: true })
   @MaxLength(45, { each: true })
   allowed_ips?: string[];
+
+  /** Exact routes the key may call, e.g. `/api/qa/results/intake`. Empty: no restriction */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  @Matches(/^\/\S*$/, {
+    each: true,
+    message: 'each allowed endpoint must be a path starting with /',
+  })
+  @MaxLength(500, { each: true })
+  allowed_endpoints?: string[];
 
   @IsOptional()
   @IsISO8601()

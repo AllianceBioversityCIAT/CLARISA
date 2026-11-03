@@ -6,6 +6,7 @@ import {
   IsISO8601,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   Min,
   ValidateIf,
@@ -16,7 +17,7 @@ import { API_KEY_SCOPE_VALUES } from '../constants/api-key-scopes';
  * Editable fields of an existing API key.
  *
  * Every field is optional: a key that is absent from the body is left as it
- * is. `mis_id`, `expires_at`, `scopes` and `allowed_ips` also accept `null`
+ * is. `mis_id`, `expires_at`, `scopes`, `allowed_ips` and `allowed_endpoints` also accept `null`
  * (and, for the two scalars, `''`) to CLEAR the stored value, because the
  * panel form always sends every control and an emptied date picker yields
  * `''`, not `undefined` (same lesson as the glossary `reference_date`, CLR-53).
@@ -55,6 +56,18 @@ export class UpdateApiKeyDto {
   @IsString({ each: true })
   @MaxLength(45, { each: true })
   allowed_ips?: string[] | null;
+
+  @ValidateIf((o) => o.allowed_endpoints !== null)
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  @Matches(/^\/\S*$/, {
+    each: true,
+    message: 'each allowed endpoint must be a path starting with /',
+  })
+  @MaxLength(500, { each: true })
+  allowed_endpoints?: string[] | null;
 
   @ValidateIf((o) => o.expires_at !== null && o.expires_at !== '')
   @IsOptional()

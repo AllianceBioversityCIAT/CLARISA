@@ -141,6 +141,38 @@ describe('ApiKeyService.validate', () => {
     });
   });
 
+  it('rejects an endpoint outside the key allowlist', async () => {
+    const key = activeKey();
+    key.allowed_endpoints = ['/api/qa/results', '/api/qa/results/intake'];
+    getMany.mockResolvedValue([key]);
+    bcryptMock.matches.mockReturnValue(true);
+
+    const result = await service.validate({
+      ...baseDto,
+      endpoint_accessed: '/zzz/nada',
+    });
+
+    expect(result).toEqual({
+      valid: false,
+      error: 'Endpoint is not allowed for this key',
+    });
+    expect(usageLogServiceMock.touchKeyUsage).not.toHaveBeenCalled();
+  });
+
+  it('accepts an endpoint in the key allowlist', async () => {
+    const key = activeKey();
+    key.allowed_endpoints = ['/api/qa/results', '/api/qa/results/intake'];
+    getMany.mockResolvedValue([key]);
+    bcryptMock.matches.mockReturnValue(true);
+
+    const result = await service.validate({
+      ...baseDto,
+      endpoint_accessed: '/api/qa/results/intake',
+    });
+
+    expect(result.valid).toBe(true);
+  });
+
   it('rejects missing required scope', async () => {
     getMany.mockResolvedValue([activeKey()]);
     bcryptMock.matches.mockReturnValue(true);
