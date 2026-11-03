@@ -5,23 +5,19 @@ export function normalizeEndpoint(endpoint: string | null | undefined): string {
 }
 
 /**
- * Returns true when the endpoint is allowed. Empty allowlist means no
- * restriction, the same rule as `allowed_ips`, so keys created before the
- * column existed keep working until someone sets their list.
+ * Returns true when the key is granted the endpoint. A grant is explicit: a
+ * key without a list is granted nothing. It never makes the key invalid; the
+ * calling service decides which of its routes require the grant.
  *
  * Exact match on purpose: `/api/qa/results` does not cover
  * `/api/qa/results/intake`; each route is granted on its own.
  */
-export function isEndpointAllowed(
+export function isEndpointGranted(
   endpoint: string | null | undefined,
   allowedEndpoints: string[] | null | undefined,
 ): boolean {
-  if (!allowedEndpoints?.length) {
-    return true;
-  }
-
   const path = normalizeEndpoint(endpoint);
-  if (!path) {
+  if (!path || !allowedEndpoints?.length) {
     return false;
   }
 

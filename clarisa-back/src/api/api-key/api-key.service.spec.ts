@@ -141,7 +141,7 @@ describe('ApiKeyService.validate', () => {
     });
   });
 
-  it('rejects an endpoint outside the key allowlist', async () => {
+  it('stays valid outside the key grants and reports endpoint_allowed false', async () => {
     const key = activeKey();
     key.allowed_endpoints = ['/api/qa/results', '/api/qa/results/intake'];
     getMany.mockResolvedValue([key]);
@@ -152,14 +152,15 @@ describe('ApiKeyService.validate', () => {
       endpoint_accessed: '/zzz/nada',
     });
 
-    expect(result).toEqual({
-      valid: false,
-      error: 'Endpoint is not allowed for this key',
+    expect(result).toMatchObject({
+      valid: true,
+      allowed_endpoints: ['/api/qa/results', '/api/qa/results/intake'],
+      endpoint_allowed: false,
     });
-    expect(usageLogServiceMock.touchKeyUsage).not.toHaveBeenCalled();
+    expect(usageLogServiceMock.touchKeyUsage).toHaveBeenCalledWith(42);
   });
 
-  it('accepts an endpoint in the key allowlist', async () => {
+  it('reports endpoint_allowed true for a granted endpoint', async () => {
     const key = activeKey();
     key.allowed_endpoints = ['/api/qa/results', '/api/qa/results/intake'];
     getMany.mockResolvedValue([key]);
@@ -170,7 +171,23 @@ describe('ApiKeyService.validate', () => {
       endpoint_accessed: '/api/qa/results/intake',
     });
 
-    expect(result.valid).toBe(true);
+    expect(result).toMatchObject({ valid: true, endpoint_allowed: true });
+  });
+
+  it('returns an empty list and no grant for a key without a list', async () => {
+    getMany.mockResolvedValue([activeKey()]);
+    bcryptMock.matches.mockReturnValue(true);
+
+    const result = await service.validate({
+      ...baseDto,
+      endpoint_accessed: '/api/qa/results/intake',
+    });
+
+    expect(result).toMatchObject({
+      valid: true,
+      allowed_endpoints: [],
+      endpoint_allowed: false,
+    });
   });
 
   it('rejects missing required scope', async () => {
@@ -203,6 +220,8 @@ describe('ApiKeyService.validate', () => {
       key_prefix: keyPrefix,
       environment: 'PROD',
       scopes: ['institutions:read', 'email:send'],
+      allowed_endpoints: [],
+      endpoint_allowed: false,
       mis: { id: 7, name: 'PRMS', acronym: 'PRMS' },
     });
     expect(usageLogServiceMock.touchKeyUsage).toHaveBeenCalledWith(42);
