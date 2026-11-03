@@ -10,6 +10,7 @@ export class ApiKeyDto {
   environment?: string;
   environment_id?: number;
   allowed_ips?: string[];
+  allowed_endpoints?: string[];
   expires_at?: Date;
   last_used_at?: Date;
   usage_count: number;
