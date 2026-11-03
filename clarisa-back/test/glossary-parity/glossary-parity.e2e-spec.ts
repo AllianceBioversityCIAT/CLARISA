@@ -134,7 +134,10 @@ const canon = (key: string, value: unknown): unknown =>
  * export by title only, so terms with the same title (the P22 and P25
  * versions of one term) and the portfolios of a term come in any order between
  * two calls. Order is not part of the contract: compare the records as a
- * multiset, every byte of every record still counts.
+ * multiset, every byte of every record still counts. The one exception is the
+ * `dcterms:modified` date of the SKOS concept scheme, which is the day the
+ * export was generated (UTC), not data: a snapshot taken on another day must
+ * still match.
  */
 const textRecords = (name: TextVariant, text: string): string[] => {
   const clean = text.replace(/^\uFEFF/, '');
@@ -180,7 +183,18 @@ const textRecords = (name: TextVariant, text: string): string[] => {
     .split(/\n\s*\n/)
     .filter((block) => block.trim())
     .map((block) => {
-      const lines = block.split('\n').map((l) => l.replace(/ [;.]$/, ''));
+      const scheme = block.includes(' a skos:ConceptScheme');
+      const lines = block
+        .split('\n')
+        .map((l) => l.replace(/ [;.]$/, ''))
+        .map((l) =>
+          scheme
+            ? l.replace(
+                /^(\s*dcterms:modified )"\d{4}-\d{2}-\d{2}"/,
+                '$1"<export day>"',
+              )
+            : l,
+        );
       const notes = lines.filter((l) => l.includes('skos:scopeNote')).sort();
       return [
         ...lines.filter((l) => !l.includes('skos:scopeNote')),
