@@ -174,7 +174,12 @@ const textRecords = (name: TextVariant, text: string): string[] => {
       .map((r) =>
         JSON.stringify(
           r.map((c, i) =>
-            i === at && r !== header ? c.split('; ').sort().join('; ') : c,
+            i === at && r !== header
+              ? c
+                  .split('; ')
+                  .sort((x, y) => x.localeCompare(y))
+                  .join('; ')
+              : c,
           ),
         ),
       );
@@ -195,7 +200,9 @@ const textRecords = (name: TextVariant, text: string): string[] => {
               )
             : l,
         );
-      const notes = lines.filter((l) => l.includes('skos:scopeNote')).sort();
+      const notes = lines
+        .filter((l) => l.includes('skos:scopeNote'))
+        .sort((x, y) => x.localeCompare(y));
       return [
         ...lines.filter((l) => !l.includes('skos:scopeNote')),
         ...notes,
