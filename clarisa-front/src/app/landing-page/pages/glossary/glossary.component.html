@@ -169,12 +169,16 @@
           <!-- The persistent URI of the term in the MELIAF taxonomy: the id other systems cite. -->
           <!-- prettier-ignore -->
           <a class="card-uri" *ngIf="safeTermUri(item.termUri) as uri" [href]="uri" target="_blank" rel="noopener" [title]="uri" [attr.aria-label]="'Persistent URI of ' + item.term + ': ' + uri"><i class="pi pi-globe" aria-hidden="true"></i>Persistent URI</a>
+          <button type="button" class="card-cite" (click)="copyCitation(item)" [attr.aria-label]="'Copy a citation of ' + item.term">
+            <i class="pi pi-bookmark" aria-hidden="true"></i>
+            Cite
+          </button>
           <button type="button" class="card-copy" (click)="copyLink(item)">
             <i class="pi pi-link" aria-hidden="true"></i>
             Copy link
           </button>
           <span class="card-copy__feedback" role="status" aria-live="polite">
-            <ng-container *ngIf="copiedTermId === item.termId">{{ copyFailed ? 'Could not copy the link' : 'Link copied' }}</ng-container>
+            <ng-container *ngIf="copiedTermId === item.termId">{{ copyFeedback }}</ng-container>
           </span>
         </div>
       </article>
