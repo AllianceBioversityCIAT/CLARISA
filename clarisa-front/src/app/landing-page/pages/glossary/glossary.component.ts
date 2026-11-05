@@ -146,8 +146,9 @@ export class GlossaryComponent implements OnInit, OnDestroy {
   focusedTermId: number | null = null;
   /** The card of that entry, or null when no published entry carries the id. */
   focusedCard: GlossaryCard | null = null;
-  /** The card whose link was just copied, and whether the copy worked. */
+  /** The card whose link or citation was just copied, which one, and whether the copy worked. */
   copiedTermId: number | null = null;
+  copiedKind: 'link' | 'citation' = 'link';
   copyFailed = false;
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
   private routeSubscription?: Subscription;
@@ -346,12 +347,42 @@ export class GlossaryComponent implements OnInit, OnDestroy {
    * be refused by the browser, and a silent failure reads as a copied link.
    */
   copyLink(card: GlossaryCard): void {
-    const termId = card.termId;
-    if (termId == null) {
+    if (card.termId == null) {
       return;
     }
+    this.copyToClipboard(card.termId, this.permalinkOf(card.termId), 'link');
+  }
+
+  /**
+   * A ready-to-paste citation of the definition the card is showing, e.g.
+   * `Outcome. CLARISA Glossary, CGIAR. https://api.clarisa.cgiar.org/meliaf-taxonomy/304 (accessed 2026-11-05).`
+   * It cites the persistent URI of the taxonomy when the term has one — the id
+   * other systems resolve — and this site's permalink otherwise.
+   */
+  citationOf(card: GlossaryCard, today: Date = new Date()): string {
+    const uri = this.safeTermUri(card.termUri) ?? (card.termId != null ? this.permalinkOf(card.termId) : '');
+    // Local date by parts: toISOString() is UTC and gives tomorrow after 7 pm in Cali.
+    const accessed = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+    return `${(card.term ?? '').trim()}. CLARISA Glossary, CGIAR. ${uri} (accessed ${accessed}).`;
+  }
+
+  copyCitation(card: GlossaryCard): void {
+    if (card.termId == null) {
+      return;
+    }
+    this.copyToClipboard(card.termId, this.citationOf(card), 'citation');
+  }
+
+  /** What the feedback next to the buttons says after a copy. */
+  get copyFeedback(): string {
+    const what = this.copiedKind === 'citation' ? 'citation' : 'link';
+    return this.copyFailed ? `Could not copy the ${what}` : what === 'citation' ? 'Citation copied' : 'Link copied';
+  }
+
+  private copyToClipboard(termId: number, text: string, kind: 'link' | 'citation'): void {
     const done = (failed: boolean) => {
       this.copiedTermId = termId;
+      this.copiedKind = kind;
       this.copyFailed = failed;
       if (this.copyTimer) {
         clearTimeout(this.copyTimer);
@@ -366,7 +397,7 @@ export class GlossaryComponent implements OnInit, OnDestroy {
       done(true);
       return;
     }
-    clipboard.writeText(this.permalinkOf(termId)).then(
+    clipboard.writeText(text).then(
       () => done(false),
       () => done(true)
     );

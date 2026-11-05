@@ -713,4 +713,79 @@ describe('GlossaryComponent', () => {
       expect(component.showingSimilar).toBe(false);
     }));
   });
+
+  describe('cite a term', () => {
+    const writeText = jest.fn();
+    const NOV_5 = new Date(2026, 10, 5, 21, 30); // 9:30 pm local: still the 5th, whatever UTC says
+
+    beforeEach(() => {
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      writeText.mockReset();
+      mockService.getGlossary.mockReturnValue(
+        of([
+          { ...terms[1], termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/12' },
+          { ...terms[2], termUri: null },
+          { ...terms[3], termUri: 'javascript:alert(1)' }
+        ])
+      );
+      fixture.detectChanges();
+      showAllPortfolios();
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      delete (navigator as any).clipboard;
+    });
+
+    const card = (term: string) => component.filteredTerms.find(item => item.term === term)!;
+
+    it('cites the taxonomy URI with the local date of access', () => {
+      expect(component.citationOf(card('Innovation'), NOV_5)).toBe(
+        'Innovation. CLARISA Glossary, CGIAR. https://api.clarisa.cgiar.org/meliaf-taxonomy/12 (accessed 2026-11-05).'
+      );
+    });
+
+    it("falls back to this site's permalink when the term has no taxonomy URI", () => {
+      expect(component.citationOf(card('Shared term'), NOV_5)).toBe(
+        `Shared term. CLARISA Glossary, CGIAR. ${location.origin}/landing-page/glossary/term/13 (accessed 2026-11-05).`
+      );
+    });
+
+    it('never cites a URI that is not http(s)', () => {
+      expect(component.citationOf(card('Orphan'), NOV_5)).toContain(`${location.origin}/landing-page/glossary/term/14`);
+      expect(component.citationOf(card('Orphan'), NOV_5)).not.toContain('javascript');
+    });
+
+    it('copies the citation and says so, next to the other actions', async () => {
+      writeText.mockResolvedValue(undefined);
+      const cardEl = Array.from(fixture.nativeElement.querySelectorAll('.glossary-card')).find(
+        (el: any) => el.querySelector('h4')?.textContent.trim() === 'Innovation'
+      ) as HTMLElement;
+      (cardEl.querySelector('.card-cite') as HTMLButtonElement).click();
+      await Promise.resolve();
+      fixture.detectChanges();
+
+      expect(writeText).toHaveBeenCalledTimes(1);
+      expect(writeText.mock.calls[0][0]).toMatch(
+        /^Innovation\. CLARISA Glossary, CGIAR\. https:\/\/api\.clarisa\.cgiar\.org\/meliaf-taxonomy\/12 \(accessed \d{4}-\d{2}-\d{2}\)\.$/
+      );
+      expect(cardEl.querySelector('.card-copy__feedback')!.textContent).toContain('Citation copied');
+    });
+
+    it('says the citation could not be copied instead of pretending', async () => {
+      writeText.mockRejectedValue(new Error('denied'));
+      component.copyCitation(card('Innovation'));
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(component.copyFeedback).toBe('Could not copy the citation');
+    });
+
+    it('"Copy link" still copies the permalink, not the citation', async () => {
+      writeText.mockResolvedValue(undefined);
+      component.copyLink(card('Innovation'));
+      await Promise.resolve();
+      expect(writeText).toHaveBeenCalledWith(`${location.origin}/landing-page/glossary/term/12`);
+      expect(component.copyFeedback).toBe('Link copied');
+    });
+  });
 });

@@ -2513,7 +2513,7 @@ const V2_ENDPOINTS = {
    v2. Keyed by the v1 route; the value says what v2 changes today. The
    `?version=N` endpoints above keep their mechanism until each one migrates. */
 const PATH_VERSIONED = {
-  'glossary': 'Same terms and the same keys as <code class="docpill">api/glossary</code> today. New glossary fields will arrive here first; v1 stays unchanged.',
+  'glossary': 'Same terms and the same keys as <code class="docpill">api/glossary</code>, plus two fields from the MELIAF taxonomy at the end of each term: <code class="docpill">termUri</code>, the persistent URI of the term (e.g. <code class="docpill">https://api.clarisa.cgiar.org/meliaf-taxonomy/391</code>), and <code class="docpill">taxonomyStatus</code>, <code class="docpill">approved</code> for an active term or <code class="docpill">deprecated</code> for an inactive one. Both are <code class="docpill">null</code> for a term not yet in the taxonomy. v1 stays unchanged.',
 };
 
 function tsType(node) {

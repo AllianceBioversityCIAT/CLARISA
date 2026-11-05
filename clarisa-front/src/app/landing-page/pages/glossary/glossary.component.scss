@@ -332,6 +332,7 @@
 // Botón fantasma: la acción existe en cada tarjeta, así que no puede gritar.
 // La URI de la taxonomía es un enlace con el mismo peso visual que «Copy link».
 .card-copy,
+.card-cite,
 .card-uri {
   display: inline-flex;
   align-items: center;
@@ -704,6 +705,7 @@ button.version-seg:hover:not(.is-active) {
   .version-seg,
   .glossary-card,
   .card-copy,
+  .card-cite,
   .card-uri,
   .glossary-search input {
     transition: none;
