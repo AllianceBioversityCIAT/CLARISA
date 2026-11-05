@@ -225,6 +225,13 @@
 
 // ------------------------------------------------------------------- estados
 
+// Aviso de que lo que sigue son términos parecidos y no coincidencias exactas.
+.glossary-similar {
+  margin: 0 0 14px;
+  color: var(--cl-ink-2, #46524c);
+  font-size: 14px;
+}
+
 .glossary-loading,
 .glossary-empty {
   text-align: center;
@@ -315,6 +322,7 @@
 
 .card-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
@@ -322,7 +330,9 @@
 }
 
 // Botón fantasma: la acción existe en cada tarjeta, así que no puede gritar.
-.card-copy {
+// La URI de la taxonomía es un enlace con el mismo peso visual que «Copy link».
+.card-copy,
+.card-uri {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -349,6 +359,10 @@
     outline: 2px solid var(--cl-brand-ring, #bde3d4);
     outline-offset: 1px;
   }
+}
+
+.card-uri {
+  text-decoration: none;
 }
 
 .card-copy__feedback {
@@ -690,6 +704,7 @@ button.version-seg:hover:not(.is-active) {
   .version-seg,
   .glossary-card,
   .card-copy,
+  .card-uri,
   .glossary-search input {
     transition: none;
   }
