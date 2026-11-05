@@ -91,17 +91,17 @@ describe('GlossaryTaxonomyLinksService', () => {
     expect(query.mock.calls[0][1]).toHaveLength(6);
   });
 
-  it('linksForOrEmpty: a taxonomy that fails leaves no links and logs why', async () => {
-    const warn = jest
-      .spyOn(Logger.prototype, 'warn')
+  it('linksForOrEmpty: a taxonomy that fails leaves no links and logs the error', async () => {
+    const logged = jest
+      .spyOn(Logger.prototype, 'error')
       .mockImplementation(() => undefined);
     query.mockRejectedValue(new Error("Table 'gc_concepts' doesn't exist"));
 
     await expect(service.linksForOrEmpty([391])).resolves.toEqual(new Map());
-    expect(warn).toHaveBeenCalledWith(
+    expect(logged).toHaveBeenCalledWith(
       expect.stringContaining("Table 'gc_concepts' doesn't exist"),
     );
-    warn.mockRestore();
+    logged.mockRestore();
   });
 
   it('linksForOrEmpty: passes the links through when the taxonomy answers', async () => {

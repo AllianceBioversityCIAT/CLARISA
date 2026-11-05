@@ -225,7 +225,6 @@
 
 // ------------------------------------------------------------------- estados
 
-.glossary-loading,
 // Aviso de que lo que sigue son términos parecidos y no coincidencias exactas.
 .glossary-similar {
   margin: 0 0 14px;
@@ -233,6 +232,7 @@
   font-size: 14px;
 }
 
+.glossary-loading,
 .glossary-empty {
   text-align: center;
   padding: 64px 0;

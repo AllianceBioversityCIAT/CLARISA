@@ -504,6 +504,11 @@ export class GlossaryComponent implements OnInit, OnDestroy {
     return text;
   }
 
+  /** The taxonomy URI, under the same http(s)-only rule as a source link. */
+  safeTermUri(uri: string | null | undefined): string | null {
+    return this.safeSourceUrl(uri);
+  }
+
   /**
    * The source link, only when it actually resolves to http(s).
    *
@@ -513,11 +518,6 @@ export class GlossaryComponent implements OnInit, OnDestroy {
    * looks real and leads nowhere. Checking here means a bad URL shows the
    * source as plain text instead of a broken link.
    */
-  /** The taxonomy URI, under the same http(s)-only rule as a source link. */
-  safeTermUri(uri: string | null | undefined): string | null {
-    return this.safeSourceUrl(uri);
-  }
-
   safeSourceUrl(url: string | null | undefined): string | null {
     const candidate = (url ?? '').trim();
     if (!candidate) {

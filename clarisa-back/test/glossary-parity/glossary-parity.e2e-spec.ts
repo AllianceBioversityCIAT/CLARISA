@@ -376,8 +376,12 @@ describe(`glossary parity against ${base || '(GLOSSARY_BASE missing)'}`, () => {
         )
         .map((t) => `${t.termId} ${t.taxonomyStatus}`);
       expect(mismatched).toEqual([]);
+      // A taxonomy that cannot be read leaves every link null and passes the
+      // checks above vacuously: the copy exists in dev and prod, so at least
+      // one term must be linked.
       const linked = terms.filter((t) => t.termUri !== null).length;
       console.info(`api/v2/glossary: ${linked}/${terms.length} terms linked`);
+      expect(linked).toBeGreaterThan(0);
     });
   });
 

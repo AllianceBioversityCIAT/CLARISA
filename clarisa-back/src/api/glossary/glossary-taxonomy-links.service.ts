@@ -79,7 +79,8 @@ export class GlossaryTaxonomyLinksService {
   /**
    * Same as `linksFor`, but a taxonomy that cannot be read (tables missing in
    * an environment, a failing query) leaves every term without a link instead
-   * of breaking the glossary. The failure is logged, never swallowed silently.
+   * of breaking the glossary. The failure is logged as an error, never
+   * swallowed silently.
    */
   async linksForOrEmpty(
     termIds: number[],
@@ -87,7 +88,7 @@ export class GlossaryTaxonomyLinksService {
     try {
       return await this.linksFor(termIds);
     } catch (error) {
-      this.logger.warn(
+      this.logger.error(
         `Glossary v2 served without taxonomy links: ${(error as Error)?.message ?? error}`,
       );
       return new Map();
