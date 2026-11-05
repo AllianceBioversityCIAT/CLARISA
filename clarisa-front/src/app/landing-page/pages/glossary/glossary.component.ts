@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subject, Subscription, catchError, debounceTime, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import { GlossaryExportFormat, GlossaryPageService, GlossaryTerm, GlossaryTermPortfolio } from './services/glossary-page.service';
 
 /**
@@ -58,6 +58,11 @@ export class GlossaryCard {
   get termId(): number | undefined {
     return this.visible?.termId;
   }
+
+  /** URI permanente de la definición visible en la taxonomía MELIAF, si la tiene. */
+  get termUri(): string | null | undefined {
+    return this.visible?.termUri;
+  }
 }
 
 function uniqueLabels(versions: GlossaryTerm[]): string[] {
@@ -79,6 +84,11 @@ function uniqueLabels(versions: GlossaryTerm[]): string[] {
  * readers. The content is English.
  */
 const LOCALE = 'en';
+
+/** Shortest search that asks the taxonomy for similar terms; shorter ones match too much. */
+const SIMILAR_MIN_CHARS = 3;
+/** Pause in typing before the taxonomy is asked, so one search is one request. */
+const SIMILAR_DEBOUNCE_MS = 300;
 
 /** How long the "Link copied" feedback stays on the card. */
 const COPY_FEEDBACK_MS = 2000;
@@ -141,6 +151,15 @@ export class GlossaryComponent implements OnInit, OnDestroy {
   copyFailed = false;
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
   private routeSubscription?: Subscription;
+  private similarSubscription?: Subscription;
+  private readonly searchChanges = new Subject<string>();
+  /**
+   * What the taxonomy search found for `similarFor`, best match first. Only
+   * used when the page's own search finds nothing: the exact search stays the
+   * one the reader sees whenever it has results.
+   */
+  similarTermIds: number[] = [];
+  similarFor = '';
 
   readonly exportFormats: { format: GlossaryExportFormat; label: string }[] = [
     { format: 'json', label: 'JSON' },
@@ -177,6 +196,24 @@ export class GlossaryComponent implements OnInit, OnDestroy {
         this.loading = false;
       }
     });
+    this.similarSubscription = this.searchChanges
+      .pipe(
+        debounceTime(SIMILAR_DEBOUNCE_MS),
+        distinctUntilChanged(),
+        switchMap(search =>
+          search.length < SIMILAR_MIN_CHARS
+            ? of({ search, ids: [] as number[] })
+            : this._glossaryPageService.searchSimilarTermIds(search).pipe(
+                map(ids => ({ search, ids })),
+                // A taxonomy that does not answer only means no suggestions.
+                catchError(() => of({ search, ids: [] as number[] }))
+              )
+        )
+      )
+      .subscribe(({ search, ids }) => {
+        this.similarFor = search;
+        this.similarTermIds = ids;
+      });
     this._glossaryPageService.getPortfolios().subscribe(portfolios => {
       this.portfolios = portfolios ?? [];
       this.portfolioStartYear = new Map(
@@ -189,6 +226,7 @@ export class GlossaryComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routeSubscription?.unsubscribe();
+    this.similarSubscription?.unsubscribe();
     if (this.copyTimer) {
       clearTimeout(this.copyTimer);
     }
@@ -351,6 +389,40 @@ export class GlossaryComponent implements OnInit, OnDestroy {
     return Array.from(letters).sort((a, b) => a.localeCompare(b, LOCALE));
   }
 
+  /** Called on every keystroke of the search box. */
+  onSearchChange(value: string): void {
+    this.searchChanges.next((value ?? '').trim().toLowerCase());
+  }
+
+  /**
+   * Cards the taxonomy search found for what is typed now, in its order, inside
+   * the same portfolio and letter the reader chose. Empty while the answer is
+   * for an older search, so a slow reply never shows under a new query.
+   */
+  get similarTerms(): GlossaryCard[] {
+    const search = this.searchText.trim().toLowerCase();
+    if (this.focusMode || !search || search !== this.similarFor || !this.similarTermIds.length) {
+      return [];
+    }
+    const rank = new Map(this.similarTermIds.map((id, index) => [id, index]));
+    const best = (card: GlossaryCard) => Math.min(...card.versions.map(version => rank.get(version.termId as number) ?? Infinity));
+    return this.portfolioFilteredTerms
+      .filter(card => best(card) !== Infinity)
+      .filter(card => this.selectedLetter == null || card.term?.trim().toUpperCase().startsWith(this.selectedLetter))
+      .sort((a, b) => best(a) - best(b));
+  }
+
+  /** The exact matches, or — only when there are none — the similar ones. */
+  get shownTerms(): GlossaryCard[] {
+    const exact = this.filteredTerms;
+    return exact.length ? exact : this.similarTerms;
+  }
+
+  /** True when the cards on screen are suggestions and not exact matches. */
+  get showingSimilar(): boolean {
+    return !this.filteredTerms.length && this.similarTerms.length > 0;
+  }
+
   get filteredTerms(): GlossaryCard[] {
     // On a permalink the page is that one card, whatever the filters say.
     if (this.focusMode) {
@@ -441,6 +513,11 @@ export class GlossaryComponent implements OnInit, OnDestroy {
    * looks real and leads nowhere. Checking here means a bad URL shows the
    * source as plain text instead of a broken link.
    */
+  /** The taxonomy URI, under the same http(s)-only rule as a source link. */
+  safeTermUri(uri: string | null | undefined): string | null {
+    return this.safeSourceUrl(uri);
+  }
+
   safeSourceUrl(url: string | null | undefined): string | null {
     const candidate = (url ?? '').trim();
     if (!candidate) {
