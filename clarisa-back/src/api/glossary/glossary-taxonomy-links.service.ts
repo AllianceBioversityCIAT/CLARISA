@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import {
   DEFAULT_SCHEME_CODE,
+  GLOSSARY_COLLECTION_CODE,
   conceptUri,
 } from '../global-concepts/global-concepts.config';
 import {
@@ -9,8 +10,7 @@ import {
   GcConceptStatus,
 } from '../global-concepts/entities/gc-concept.entity';
 
-/** Code of the taxonomy collection that holds the copy of the glossary. */
-export const GLOSSARY_COLLECTION_CODE = 'glossary';
+export { GLOSSARY_COLLECTION_CODE };
 
 /** What the taxonomy knows about one glossary term. */
 export interface GlossaryTaxonomyLink {
