@@ -59,11 +59,15 @@ describe('persistent URIs (meliaf-taxonomy is the root)', () => {
     const concept = {
       scheme: 'meliaf-taxonomy',
       term_id: 2374,
+      status: 'approved',
       collections: [] as { code: string; label: string }[],
     };
-    const build = (collections: { code: string; label: string }[] = []) => {
+    const build = (
+      collections: { code: string; label: string }[] = [],
+      status = 'approved',
+    ) => {
       const read = {
-        get: jest.fn(async () => ({ ...concept, collections })),
+        get: jest.fn(async () => ({ ...concept, collections, status })),
         scheme: jest.fn(async () => ({ code: 'meliaf-taxonomy' })),
       };
       const loader = {
@@ -118,6 +122,18 @@ describe('persistent URIs (meliaf-taxonomy is the root)', () => {
       expect(res.redirect).toHaveBeenCalledWith(
         303,
         'https://clarisa.cgiar.org/landing-page/glossary/term/2374',
+      );
+    });
+
+    it('a deprecated glossary term keeps the taxonomy page: the glossary only lists active terms', async () => {
+      const { controller, res } = build(
+        [{ code: 'glossary', label: 'Glossary' }],
+        'deprecated',
+      );
+      await controller.concept(1, res, 'text/html');
+      expect(res.redirect).toHaveBeenCalledWith(
+        303,
+        'https://clarisa.cgiar.org/landing-page/concepts/meliaf-taxonomy/2374',
       );
     });
 
