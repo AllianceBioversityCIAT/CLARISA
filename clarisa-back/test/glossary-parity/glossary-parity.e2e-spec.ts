@@ -365,14 +365,16 @@ describe(`glossary parity against ${base || '(GLOSSARY_BASE missing)'}`, () => {
         )
         .map((t) => `${t.termId} → ${t.termUri}`);
       expect(wrong).toEqual([]);
-      // Copy rule (2026-11-03): active term → approved, inactive → deprecated.
+      // Copy rule (2026-11-03, `statusOf`): an inactive term is deprecated;
+      // an active one keeps its editorial status (approved, or deprecated
+      // when it was retired with a replacement).
       const active = new Set(lists.active.map((t) => t.termId));
       const mismatched = terms
         .filter((t) => t.taxonomyStatus !== null)
         .filter(
           (t) =>
             t.taxonomyStatus !==
-            (active.has(t.termId) ? 'approved' : 'deprecated'),
+            (active.has(t.termId) ? t.editorialStatus : 'deprecated'),
         )
         .map((t) => `${t.termId} ${t.taxonomyStatus}`);
       expect(mismatched).toEqual([]);
