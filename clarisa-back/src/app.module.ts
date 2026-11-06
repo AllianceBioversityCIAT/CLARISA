@@ -16,6 +16,7 @@ import { dataSource } from './ormconfig';
 import { AuthModule } from './auth/auth.module';
 import { GuardsModule } from './shared/guards/guards.module';
 import { BasicAuthMiddleware } from './shared/guards/basic-auth.middleware';
+import { ContentEditingLockMiddleware } from './shared/guards/content-editing-lock.middleware';
 import { RequestLoggingInterceptor } from './shared/interceptors/request-logging.interceptor';
 import { ResponseFormattingInterceptor } from './shared/interceptors/response-formatting.interceptor';
 import { ExceptionsFilter } from './shared/filters/exceptions.filter';
@@ -68,6 +69,16 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(BasicAuthMiddleware)
+      .forRoutes(
+        { path: 'api/*', method: RequestMethod.POST },
+        { path: 'api/*', method: RequestMethod.PUT },
+        { path: 'api/*', method: RequestMethod.PATCH },
+        { path: 'api/*', method: RequestMethod.DELETE },
+      );
+    // Editing lock (Parameters page): checked on every write, the
+    // middleware decides which paths it holds back (`isLockedWrite`).
+    consumer
+      .apply(ContentEditingLockMiddleware)
       .forRoutes(
         { path: 'api/*', method: RequestMethod.POST },
         { path: 'api/*', method: RequestMethod.PUT },
