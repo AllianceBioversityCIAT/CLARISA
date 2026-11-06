@@ -1,0 +1,35 @@
+<p-toast position="top-right"></p-toast>
+<div class="parameters-layout">
+  <header class="admin-page">
+    <div class="admin-page__head">
+      <span class="admin-page__eyebrow">System</span>
+      <h1 class="admin-page__title">Parameters</h1>
+      <p class="admin-page__hint">Settings of the platform that take effect at once, without a deploy.</p>
+    </div>
+  </header>
+
+  <section class="panel-card parameter" [class.parameter--on]="state?.locked">
+    <div class="parameter__text">
+      <h2 class="parameter__title" id="lock-title">Pause editing of glossary terms and taxonomy concepts</h2>
+      <p class="parameter__hint" id="lock-hint">
+        While it is on, nobody can create, edit, import, approve or deprecate glossary terms or taxonomy concepts, from the panel or through the API.
+        Reading, downloads and new change proposals keep working.
+      </p>
+      <p class="parameter__meta" *ngIf="state?.updated_at">
+        Last changed by {{ state?.updated_by || 'someone' }} on {{ state?.updated_at | date: 'medium' }}.
+      </p>
+      <p class="parameter__meta parameter__meta--error" *ngIf="loadFailed" role="alert">
+        The current value could not be read.
+        <button type="button" class="parameter__retry" (click)="load()">Try again</button>
+      </p>
+    </div>
+    <div class="parameter__control">
+      <span class="parameter__state" aria-live="polite">{{ loading ? 'Loading…' : state?.locked ? 'Paused' : 'Open' }}</span>
+      <p-inputSwitch
+        [ngModel]="state?.locked ?? false"
+        (ngModelChange)="onToggle($event)"
+        [disabled]="loading || saving || loadFailed"
+        ariaLabelledBy="lock-title"></p-inputSwitch>
+    </div>
+  </section>
+</div>
