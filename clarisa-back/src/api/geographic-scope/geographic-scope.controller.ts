@@ -46,7 +46,8 @@ export class GeographicScopeController {
     try {
       const result: GeographicScope[] =
         await this.geographicScopeService.update(updateGeographicScopeDtoList);
-      return res.status(HttpStatus.OK).json(result);
+      res.status(HttpStatus.OK).json(result);
+      return;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }

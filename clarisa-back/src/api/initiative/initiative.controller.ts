@@ -55,7 +55,8 @@ export class InitiativeController {
       const result: Initiative[] = await this.initiativeService.update(
         updateInitiativeDtoList,
       );
-      return res.status(HttpStatus.OK).json(result);
+      res.status(HttpStatus.OK).json(result);
+      return;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }

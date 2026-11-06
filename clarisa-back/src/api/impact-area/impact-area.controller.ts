@@ -55,7 +55,8 @@ export class ImpactAreaController {
       const result: ImpactArea[] = await this.impactAreaService.update(
         updateImpactAreaDtoList,
       );
-      return res.status(HttpStatus.OK).json(result);
+      res.status(HttpStatus.OK).json(result);
+      return;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
