@@ -65,6 +65,15 @@ describe('admin navigation', () => {
     });
   });
 
+  it('Parameters opens with /api/settings only (Super admin), never for a module role', () => {
+    const parameters = ADMIN_GROUPS.find(group => group.title === 'System')?.links.find(link => link.label === 'Parameters');
+    expect(parameters?.route).toBe('/clarisa-panel/manage/parameters');
+    expect(parameters?.access).toEqual(['/api/settings']);
+    const labelsFor = (permissions: string[]) => groupsFor({ isSuper: false, permissions }).flatMap(group => group.links.map(link => link.label));
+    expect(labelsFor(['/api/settings'])).toContain('Parameters');
+    expect(labelsFor(['/api/glossary/admin', '/api/meliaf-taxonomy/admin'])).not.toContain('Parameters');
+  });
+
   describe('by permission', () => {
     const labels = (groups: ReturnType<typeof groupsFor>) => groups.flatMap(group => group.links.map(link => link.label));
     const tabs = (groups: ReturnType<typeof groupsFor>) =>
@@ -169,9 +178,7 @@ describe('admin navigation', () => {
       it('Concepts-only → Concepts, on the home and after login', () => {
         expect(onlyProtectedSection(concepts)?.link.route).toBe('/clarisa-panel/manage/concepts-admin');
         expect(postLoginRoute(concepts)).toBe('/clarisa-panel/manage/concepts-admin');
-        expect(postLoginRoute({ isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/concepts'] })).toBe(
-          '/clarisa-panel/manage/concepts-admin'
-        );
+        expect(postLoginRoute({ isSuper: false, permissions: ['/api/meliaf-taxonomy/admin/concepts'] })).toBe('/clarisa-panel/manage/concepts-admin');
       });
 
       it('IRC (create only) and FIR → Institution requests', () => {

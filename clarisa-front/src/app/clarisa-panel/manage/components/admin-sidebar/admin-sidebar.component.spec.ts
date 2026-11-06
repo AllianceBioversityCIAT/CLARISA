@@ -77,9 +77,10 @@ describe('AdminSidebarComponent', () => {
     expect(component.groups.map(group => group.title)).toEqual(['Manage', 'Access', 'System']);
     expect(labels()).toContain('Glossary');
     expect(labels()).toContain('MELIAF taxonomy');
-    // 6 links directos: los 7 de la lista menos «Microservices & API keys», que
-    // ahora es un toggle (botón) en vez de un link.
-    expect(labels()?.length).toBe(6);
+    // 7 links directos: los 8 de la lista menos «Microservices & API keys», que
+    // ahora es un toggle (botón) en vez de un link. El 8.º es «Parameters».
+    expect(labels()).toContain('Parameters');
+    expect(labels()?.length).toBe(7);
   });
 
   // La columna blanca que esto reemplazó mostraba sus tres pestañas siempre a

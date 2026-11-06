@@ -58,7 +58,8 @@ export class BusinessCategoryController {
         await this.businessCategoryService.update(
           updateBusinessCategoryDtoList,
         );
-      return res.status(HttpStatus.OK).json(result);
+      res.status(HttpStatus.OK).json(result);
+      return;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }

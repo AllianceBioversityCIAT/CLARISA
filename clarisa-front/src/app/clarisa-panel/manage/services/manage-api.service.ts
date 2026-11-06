@@ -3,6 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { Observable } from 'rxjs';
 
+/** The editing lock of the Parameters page (`api/settings/content-editing`). */
+export interface ContentEditingState {
+  locked: boolean;
+  updated_at: string | null;
+  updated_by: string | null;
+}
+
 export interface CreateApiKeyBody {
   name: string;
   environment: string;
@@ -496,6 +503,16 @@ export class ManageApiService {
   }
 
   // ------------------------------------------------------------- Glossary
+
+  /** Whether creating and editing glossary terms and concepts is paused. */
+  getContentEditing() {
+    return this.http.get<ContentEditingState>(`${this.urlApi}api/settings/content-editing`);
+  }
+
+  /** Pauses (`true`) or resumes (`false`) editing; Super admin only. */
+  setContentEditing(locked: boolean) {
+    return this.http.patch<ContentEditingState>(`${this.urlApi}api/settings/content-editing`, { locked });
+  }
 
   getGlossaryTerms(show: 'active' | 'all' | 'inactive' = 'all') {
     return this.http.get<GlossaryAdminTerm[]>(`${this.urlApi}api/glossary/admin/terms`, { params: { show } });
