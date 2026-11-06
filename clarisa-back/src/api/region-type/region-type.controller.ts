@@ -42,7 +42,8 @@ export class RegionTypeController {
       const result: RegionType[] = await this.regionTypeService.update(
         updateRegionTypeDtoList,
       );
-      return res.status(HttpStatus.OK).json(result);
+      res.status(HttpStatus.OK).json(result);
+      return;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }

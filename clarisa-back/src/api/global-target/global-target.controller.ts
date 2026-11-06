@@ -41,7 +41,8 @@ export class GlobalTargetController {
     try {
       const result: GlobalTarget[] =
         await this.globalTargetsService.update(updateUserDtoList);
-      return res.status(HttpStatus.OK).json(result);
+      res.status(HttpStatus.OK).json(result);
+      return;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
