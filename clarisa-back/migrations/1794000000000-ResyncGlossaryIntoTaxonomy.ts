@@ -87,6 +87,7 @@ export class ResyncGlossaryIntoTaxonomy1794000000000
 
   static meta(row: GlossaryRow) {
     const cls = ResyncGlossaryIntoTaxonomy1794000000000;
+    const raw = cls.v1Labels(row.alternative_labels);
     const num = (v: number | string | null) =>
       v === null || v === undefined ? null : Number(v);
     return {
@@ -101,7 +102,49 @@ export class ResyncGlossaryIntoTaxonomy1794000000000
       created_by: num(row.created_by),
       updated_by: num(row.updated_by),
       modification_justification: row.modification_justification ?? null,
+      // Kept only when two labels are one for the gc_labels unique key, so
+      // the glossary still serves both spellings (GlossaryStore reads it).
+      ...(raw.length !== cls.distinct(raw).length
+        ? { alternative_labels: raw }
+        : {}),
     };
+  }
+
+  /**
+   * Labels without the ones the unique key of `gc_labels` holds equal
+   * (first 191 characters, case and accents ignored); first spelling wins.
+   * Without it a pair like "Café" / "Cafe" would differ from what the copy
+   * stored on every run and fail on the second insert.
+   */
+  static distinct(labels: string[]): string[] {
+    const seen = new Set<string>();
+    return labels.filter((label) => {
+      const key = String(label)
+        .trim()
+        .slice(0, 191)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  /** The labels as v1 reads them (`parseLabels`): strings, trimmed, no blanks. */
+  static v1Labels(value: string | null): string[] {
+    if (!value) return [];
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return Array.isArray(parsed)
+        ? parsed
+            .filter((l): l is string => typeof l === 'string')
+            .map((l) => l.trim())
+            .filter((l) => l !== '')
+        : [];
+    } catch {
+      return [];
+    }
   }
 
   static parse(extra: string | null): Record<string, unknown> {
@@ -195,8 +238,8 @@ export class ResyncGlossaryIntoTaxonomy1794000000000
           ? null
           : byTerm.get(Number(row.replaced_by_id));
       const replacedBy = replacement ? Number(replacement.id) : null;
-      const labels = CopyGlossaryIntoTaxonomy1793404800000.altLabels(
-        row.alternative_labels,
+      const labels = cls.distinct(
+        CopyGlossaryIntoTaxonomy1793404800000.altLabels(row.alternative_labels),
       );
       const portfolios = portfoliosOf.get(Number(row.id)) ?? [];
 
@@ -253,10 +296,15 @@ export class ResyncGlossaryIntoTaxonomy1794000000000
           [conceptId],
         );
         for (const label of labels) {
+          // Guarded like the copy: the unique key ignores case and accents.
           await queryRunner.query(
             `INSERT INTO gc_labels (concept_id, label, language, kind, status)
-             VALUES (?, ?, 'en', 'alt', 'active')`,
-            [conceptId, label],
+             SELECT ?, ?, 'en', 'alt', 'active' FROM DUAL
+             WHERE NOT EXISTS (
+               SELECT 1 FROM gc_labels
+                WHERE concept_id = ? AND language = 'en' AND LEFT(label, 191) = LEFT(?, 191)
+             )`,
+            [conceptId, label, conceptId, label],
           );
         }
       }

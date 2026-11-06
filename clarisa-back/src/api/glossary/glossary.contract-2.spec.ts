@@ -181,6 +181,7 @@ describe('Glossary public contract, batch 2', () => {
       portfolioIds: jest.fn(),
       save: jest.fn(),
       setPortfolios: jest.fn(),
+      transaction: jest.fn((work: any) => work(undefined)),
     };
 
     beforeAll(async () => {
@@ -433,7 +434,7 @@ describe('Glossary public contract, batch 2', () => {
           .patch('/update')
           .send(body);
         expect(res.status).toBe(HttpStatus.OK);
-        expect(repository.byId).toHaveBeenCalledWith(7);
+        expect(repository.byId.mock.calls[0][0]).toBe(7);
         expect(repository.save).toHaveBeenCalledTimes(1);
         expect(repository.save.mock.calls[0][0]).toMatchObject({
           definition: 'edited',
@@ -573,6 +574,7 @@ describe('Glossary public contract, batch 2', () => {
 
   describe('ordering and ties', () => {
     const storeOf = (rows: Glossary[]) => ({
+      transaction: jest.fn((work: any) => work(undefined)),
       all: jest.fn().mockResolvedValue(rows),
       byId: jest.fn(),
       portfolioIds: jest.fn(),

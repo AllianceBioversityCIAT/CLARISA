@@ -6,6 +6,7 @@ import {
   bumpMinor,
   conceptStatusOf,
   glossaryStateOf,
+  labelKey,
 } from './glossary-store';
 import { Glossary, GlossaryEditorialStatus } from './entities/glossary.entity';
 
@@ -267,6 +268,57 @@ describe('GlossaryStore', () => {
       expect(extra.custom_note).toBe('kept');
       expect(extra.portfolios).toEqual(['3']);
       expect(extra._glossary.is_active).toBe(false);
+    });
+
+    it('labels MySQL holds equal (case, accents) are written once, guarded by NOT EXISTS', async () => {
+      const { store, calls } = fakeDb([concept()]);
+      const g = await store.byId(391);
+      g.alternative_labels = JSON.stringify([
+        'Café',
+        'Cafe',
+        'IA',
+        'ia',
+        'Other',
+      ]);
+      await store.save(g);
+      const inserts = calls.filter((c) =>
+        c.sql.includes('INSERT INTO gc_labels'),
+      );
+      expect(inserts.map((c) => c.params[1])).toEqual(['Café', 'IA', 'Other']);
+      expect(inserts.every((c) => /NOT EXISTS/.test(c.sql))).toBe(true);
+    });
+
+    it('variants the label key holds equal are kept for v1 in _glossary and served back', async () => {
+      const { store, calls } = fakeDb([concept()]);
+      const g = await store.byId(391);
+      g.alternative_labels = JSON.stringify(['Café', 'Cafe']);
+      await store.save(g);
+      const update = calls.find((c) => c.sql.includes('UPDATE gc_concepts'));
+      const extra = JSON.parse(update.params[8] as string);
+      expect(extra._glossary.alternative_labels).toEqual(['Café', 'Cafe']);
+
+      const read = fakeDb(
+        [concept({}, { alternative_labels: ['Café', 'Cafe'] })],
+        [{ concept_id: 10, label: 'Café' }],
+      );
+      expect((await read.store.byId(391)).alternativeLabels).toEqual([
+        'Café',
+        'Cafe',
+      ]);
+      // Labels changed from the taxonomy since: gc_labels wins.
+      const changed = fakeDb(
+        [concept({}, { alternative_labels: ['Café', 'Cafe'] })],
+        [{ concept_id: 10, label: 'Tea' }],
+      );
+      expect((await changed.store.byId(391)).alternativeLabels).toEqual([
+        'Tea',
+      ]);
+    });
+
+    it('labelKey compares like the gc_labels unique key', () => {
+      expect(labelKey('Café')).toBe(labelKey('cafe'));
+      expect(labelKey(' IA ')).toBe(labelKey('ia'));
+      expect(labelKey('x'.repeat(200))).toBe(labelKey('x'.repeat(191) + 'y'));
     });
 
     it('a term of an unknown id is refused, never created with that id', async () => {

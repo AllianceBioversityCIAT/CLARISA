@@ -34,6 +34,11 @@ export interface GlossaryMeta {
   created_by?: number | null;
   updated_by?: number | null;
   modification_justification?: string | null;
+  /**
+   * The alternative labels as the glossary has them, kept only when two of
+   * them are one label for `gc_labels` ("Café" / "Cafe"), which stores one.
+   */
+  alternative_labels?: string[];
 }
 
 /** Who writes: the panel user, for `gc_history` and the audit fields. */
@@ -72,6 +77,8 @@ export interface GlossaryStorage {
     manager?: EntityManager,
     actor?: GlossaryActor,
   ): Promise<void>;
+  /** Runs `work` in one transaction (all or nothing). */
+  transaction<T>(work: (manager?: EntityManager) => Promise<T>): Promise<T>;
 }
 
 export const GLOSSARY_STORAGE = Symbol('GLOSSARY_STORAGE');
@@ -129,6 +136,31 @@ export function glossaryStateOf(
   }
 }
 
+/**
+ * How the unique key of `gc_labels` compares two labels
+ * (`concept_id, language, label(191)`, utf8mb4_0900_ai_ci): first 191
+ * characters, case and accents ignored. "Café" and "cafe" are one label.
+ */
+export function labelKey(label: string): string {
+  return String(label ?? '')
+    .trim()
+    .slice(0, 191)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+/** Labels without the ones the database holds equal; first spelling wins. */
+export function distinctLabels(labels: string[]): string[] {
+  const seen = new Set<string>();
+  return labels.filter((label) => {
+    const key = labelKey(label);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function parseExtra(value: string | null): Record<string, unknown> {
   if (!value) return {};
   try {
@@ -183,6 +215,10 @@ export class GlossaryStore implements GlossaryStorage {
 
   private m(manager?: EntityManager): EntityManager {
     return manager ?? this.dataSource.manager;
+  }
+
+  transaction<T>(work: (manager?: EntityManager) => Promise<T>): Promise<T> {
+    return this.dataSource.transaction((manager) => work(manager));
   }
 
   // ------------------------------------------------------------------ read
@@ -330,7 +366,15 @@ export class GlossaryStore implements GlossaryStorage {
     g.source = row.source_citation ?? null;
     g.sourceUrl = row.source_url ?? null;
     g.referenceDate = meta.reference_date ?? null;
-    g.alternative_labels = labels.length ? JSON.stringify(labels) : null;
+    // Variants the label key cannot hold apart come from the glossary's own
+    // list, while it still matches what `gc_labels` has.
+    const shown =
+      Array.isArray(meta.alternative_labels) &&
+      JSON.stringify(distinctLabels(meta.alternative_labels)) ===
+        JSON.stringify(labels)
+        ? meta.alternative_labels
+        : labels;
+    g.alternative_labels = shown.length ? JSON.stringify(shown) : null;
     const state = glossaryStateOf(meta, row.status);
     g.editorial_status = state.editorial as GlossaryEditorialStatus;
     g.replaced_by_id =
@@ -374,6 +418,9 @@ export class GlossaryStore implements GlossaryStorage {
 
   private metaOf(g: Glossary, now: string): GlossaryMeta {
     const a = g.auditableFields ?? ({} as Glossary['auditableFields']);
+    const raw = parseLabels(g.alternative_labels);
+    const variants =
+      distinctLabels(raw).length !== raw.length ? raw : undefined;
     return {
       is_active: a.is_active === undefined ? true : !!a.is_active,
       show_in_dashboard: !!g.show_in_dashboard,
@@ -391,6 +438,7 @@ export class GlossaryStore implements GlossaryStorage {
       created_by: a.created_by ?? null,
       updated_by: a.updated_by ?? null,
       modification_justification: a.modification_justification ?? null,
+      ...(variants ? { alternative_labels: variants } : {}),
     };
   }
 
@@ -448,7 +496,7 @@ export class GlossaryStore implements GlossaryStorage {
         : !!g.auditableFields.is_active;
     const status = conceptStatusOf(g.editorial_status, isActive);
     const replacedBy = await this.conceptIdOf(manager, g.replaced_by_id);
-    const labels = parseLabels(g.alternative_labels);
+    const labels = distinctLabels(parseLabels(g.alternative_labels));
     const email = actor.email ?? null;
     const existing =
       g.id === undefined || g.id === null
@@ -634,11 +682,17 @@ export class GlossaryStore implements GlossaryStorage {
         `DELETE FROM gc_labels WHERE concept_id = ? AND kind = 'alt'`,
         [conceptId],
       );
-    for (const label of labels) {
+    // Same guard as the copy: a label the unique key holds equal to one
+    // already there is skipped instead of failing the whole write.
+    for (const label of distinctLabels(labels)) {
       await manager.query(
         `INSERT INTO gc_labels (concept_id, label, language, kind, status)
-         VALUES (?, ?, 'en', 'alt', 'active')`,
-        [conceptId, label],
+         SELECT ?, ?, 'en', 'alt', 'active' FROM DUAL
+         WHERE NOT EXISTS (
+           SELECT 1 FROM gc_labels
+            WHERE concept_id = ? AND language = 'en' AND LEFT(label, 191) = LEFT(?, 191)
+         )`,
+        [conceptId, label, conceptId, label],
       );
     }
   }

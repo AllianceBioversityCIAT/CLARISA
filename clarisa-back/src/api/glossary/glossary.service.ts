@@ -88,15 +88,18 @@ export class GlossaryService {
       ? updateGlossary
       : [updateGlossary]
     ).filter(Boolean) as unknown as Record<string, unknown>[];
-    for (const dto of list) {
-      const g = await this.store.byId(Number(dto.id));
-      if (!g) throw new Error(`Glossary term ${dto.id} was not found`);
-      for (const column of WRITABLE_COLUMNS) {
-        if (dto[column] !== undefined)
-          (g as unknown as Record<string, unknown>)[column] = dto[column];
+    // One transaction for the batch, as `repository.save(array)` was.
+    await this.store.transaction(async (manager) => {
+      for (const dto of list) {
+        const g = await this.store.byId(Number(dto.id), manager);
+        if (!g) throw new Error(`Glossary term ${dto.id} was not found`);
+        for (const column of WRITABLE_COLUMNS) {
+          if (dto[column] !== undefined)
+            (g as unknown as Record<string, unknown>)[column] = dto[column];
+        }
+        await this.store.save(g, manager);
       }
-      await this.store.save(g);
-    }
+    });
     return updateGlossary as unknown as Glossary[];
   }
 

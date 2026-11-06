@@ -29,6 +29,11 @@ export class InMemoryGlossaryStore implements GlossaryStorage {
     return row;
   }
 
+  /** No database: the work simply runs. */
+  async transaction<T>(work: (manager?: undefined) => Promise<T>): Promise<T> {
+    return work(undefined);
+  }
+
   async all(): Promise<Glossary[]> {
     return [...this.rows.values()].sort(
       (a, b) =>

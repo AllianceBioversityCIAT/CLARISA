@@ -483,6 +483,18 @@ describe('Glossary public contract (as production answers it)', () => {
       expect(store.saves).toHaveLength(1);
     });
 
+    it('update runs the whole batch in one transaction of the store', async () => {
+      // All or nothing on a real database: test/glossary-store (e2e).
+      const transaction = jest.spyOn(store, 'transaction');
+      await expect(
+        service.update([
+          { id: 1, definition: 'first' },
+          { id: 999, definition: 'missing' },
+        ] as any),
+      ).rejects.toThrow('Glossary term 999 was not found');
+      expect(transaction).toHaveBeenCalledTimes(1);
+    });
+
     it('update of an unknown term fails instead of creating it', async () => {
       await expect(
         service.update([{ id: 999, definition: 'x' }] as any),

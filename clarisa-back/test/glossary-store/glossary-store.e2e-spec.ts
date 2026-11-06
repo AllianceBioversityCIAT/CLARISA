@@ -283,6 +283,31 @@ describeIf('glossary on the taxonomy, real MySQL', () => {
     expect((await concept(created)).status).toBe('approved');
   });
 
+  it('labels MySQL holds equal (case, accents) do not break a save, and v1 keeps both spellings', async () => {
+    // The panel drops case-only duplicates ("ia"), as it always did.
+    await admin.update(
+      created,
+      { alternative_labels: ['Café', 'Cafe', 'IA', 'ia'] } as any,
+      user,
+    );
+    expect(
+      (await v1()).find((t) => t.termId === created).alternativeLabels,
+    ).toEqual(['Café', 'Cafe', 'IA']);
+  });
+
+  it('PATCH api/glossary/update is all or nothing', async () => {
+    const before = (await v1()).find((t) => t.termId === created).definition;
+    await expect(
+      read.update([
+        { id: created, definition: 'half written' },
+        { id: 999999, definition: 'missing' },
+      ] as any),
+    ).rejects.toThrow(/not found/);
+    expect((await v1()).find((t) => t.termId === created).definition).toBe(
+      before,
+    );
+  });
+
   it('a term that is not in the glossary cannot be edited', async () => {
     await expect(
       admin.update(999999, { definition: 'x' } as any, user),

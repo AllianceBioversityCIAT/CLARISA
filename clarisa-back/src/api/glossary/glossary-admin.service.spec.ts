@@ -102,6 +102,7 @@ describe('GlossaryAdminService', () => {
     // The store the service uses since 2026-11-06, delegating to the fake
     // manager above, so every case below keeps its own fake answers.
     const store: GlossaryStorage = {
+      transaction: (work: any) => work(manager),
       // The admin list reads without a transaction (the old repository).
       all: async (m?: any) =>
         m ? m.find(Glossary) : mockGlossaryRepository.find(),
