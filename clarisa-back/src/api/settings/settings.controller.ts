@@ -40,6 +40,6 @@ export class SettingsController {
     dto: UpdateContentEditingDto,
     @GetUserData() user: UserData,
   ): Promise<ContentEditingState> {
-    return this.settings.setContentEditing(dto.locked, user?.email ?? null);
+    return this.settings.setContentEditing(dto.locked, user?.userId);
   }
 }
