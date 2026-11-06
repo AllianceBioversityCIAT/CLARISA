@@ -55,7 +55,8 @@ export class TechnicalFieldController {
       const result: TechnicalField[] = await this.technicalFieldService.update(
         updateTechnicalFieldDtoList,
       );
-      return res.status(HttpStatus.OK).json(result);
+      res.status(HttpStatus.OK).json(result);
+      return;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }

@@ -54,7 +54,8 @@ export class OneCgiarUserController {
       const result: OneCgiarUser[] = await this.oneCgiarUserService.update(
         updateOneCgiarUserDtoList,
       );
-      return res.status(HttpStatus.OK).json(result);
+      res.status(HttpStatus.OK).json(result);
+      return;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
