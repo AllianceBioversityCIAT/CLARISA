@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { GlossaryAdminService } from './glossary-admin.service';
-import { GlossaryRepository } from './repositories/glossary.repository';
+import { GLOSSARY_STORAGE, GlossaryStorage } from './glossary-store';
 import { Glossary } from './entities/glossary.entity';
 import { Portfolio } from '../portfolio/entities/portfolio.entity';
 import { GlossaryPortfolio } from './entities/glossary-portfolio.entity';
@@ -99,10 +99,66 @@ describe('GlossaryAdminService', () => {
       transaction: jest.fn((cb: any) => cb(manager)),
     };
 
+    // The store the service uses since 2026-11-06, delegating to the fake
+    // manager above, so every case below keeps its own fake answers.
+    const store: GlossaryStorage = {
+      // The admin list reads without a transaction (the old repository).
+      all: async (m?: any) =>
+        m ? m.find(Glossary) : mockGlossaryRepository.find(),
+      byId: async (id, m = manager) => m.findOne(Glossary, { where: { id } }),
+      portfolioIds: async (id, m = manager) =>
+        (await m.find(GlossaryPortfolio, { where: { glossary_id: id } }))
+          .filter((gp: any) => gp.auditableFields?.is_active)
+          .map((gp: any) => Number(gp.portfolio_id)),
+      save: async (value: any, m: any = manager) => {
+        const result = await m.save(Glossary, value);
+        if (!Array.isArray(value) && value.id === undefined)
+          value.id = result?.id;
+      },
+      setPortfolios: async (id, wanted, m = manager, actor = {}) => {
+        const existing = await m.find(GlossaryPortfolio, {
+          where: { glossary_id: id },
+        });
+        const toSave = existing.filter(
+          (gp: any) =>
+            gp.auditableFields?.is_active &&
+            !wanted.includes(Number(gp.portfolio_id)),
+        );
+        for (const row of toSave) {
+          row.auditableFields.is_active = false;
+          row.auditableFields.updated_by = actor.userId;
+        }
+        for (const pid of wanted) {
+          const current = existing.find(
+            (gp: any) => Number(gp.portfolio_id) === pid,
+          );
+          if (current) {
+            if (!current.auditableFields?.is_active) {
+              current.auditableFields.is_active = true;
+              current.auditableFields.updated_by = actor.userId;
+              toSave.push(current);
+            }
+            continue;
+          }
+          const created = m.create(GlossaryPortfolio, {
+            glossary_id: id,
+            portfolio_id: pid,
+          });
+          created.auditableFields = {
+            ...created.auditableFields,
+            is_active: true,
+            created_by: actor.userId,
+          };
+          toSave.push(created);
+        }
+        if (toSave.length) await m.save(GlossaryPortfolio, toSave);
+      },
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GlossaryAdminService,
-        { provide: GlossaryRepository, useValue: mockGlossaryRepository },
+        { provide: GLOSSARY_STORAGE, useValue: store },
         { provide: DataSource, useValue: mockDataSource },
       ],
     }).compile();

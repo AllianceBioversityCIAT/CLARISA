@@ -37,7 +37,8 @@ import { GlossaryModule } from './glossary.module';
 import { GlossaryService } from './glossary.service';
 import { GlossaryV2Controller } from './glossary-v2.controller';
 import { GlossaryV2Module } from './glossary-v2.module';
-import { GlossaryRepository } from './repositories/glossary.repository';
+import { GLOSSARY_STORAGE, GlossaryStore } from './glossary-store';
+import { InMemoryGlossaryStore } from './testing/in-memory-glossary-store';
 import {
   GlossaryTaxonomyLink,
   GlossaryTaxonomyLinksService,
@@ -239,23 +240,20 @@ describe('Glossary v2 in the URL path (api/v2/glossary)', () => {
       ]);
     });
 
-    it('reads through the same service and repository as v1, plus the taxonomy links', () => {
+    it('reads through the same service and store as v1, plus the taxonomy links', () => {
+      const store = { provide: GLOSSARY_STORAGE, useClass: GlossaryStore };
       expect(
         Reflect.getMetadata(MODULE_METADATA.PROVIDERS, GlossaryV2Module),
-      ).toEqual([
-        GlossaryService,
-        GlossaryRepository,
-        GlossaryTaxonomyLinksService,
-      ]);
+      ).toEqual([GlossaryService, store, GlossaryTaxonomyLinksService]);
       expect(
         Reflect.getMetadata(MODULE_METADATA.PROVIDERS, GlossaryModule),
-      ).toEqual(expect.arrayContaining([GlossaryService, GlossaryRepository]));
+      ).toEqual(expect.arrayContaining([GlossaryService, store]));
     });
   });
 
   describe('the v2 module stands on its own', () => {
     it('builds GlossaryService with what the module declares (nothing missing at boot)', async () => {
-      const repository = { find: jest.fn().mockResolvedValue(ROWS) };
+      const store = new InMemoryGlossaryStore(ROWS);
       // In production TypeOrmModule.forRoot provides the DataSource globally.
       @Global()
       @Module({
@@ -266,14 +264,16 @@ describe('Glossary v2 in the URL path (api/v2/glossary)', () => {
       const moduleRef = await Test.createTestingModule({
         imports: [Db, GlossaryV2Module],
       })
-        // The repository needs a live DataSource; everything else is real.
-        .overrideProvider(GlossaryRepository)
-        .useValue(repository)
+        // The store needs a live DataSource; everything else is real.
+        .overrideProvider(GLOSSARY_STORAGE)
+        .useValue(store)
         .compile();
 
       const service = moduleRef.get(GlossaryService);
       expect(service).toBeInstanceOf(GlossaryService);
-      await expect(service.findAll(undefined)).resolves.toBe(ROWS);
+      await expect(service.findAll(undefined)).resolves.toEqual(
+        (await store.all()).filter((g) => g.auditableFields?.is_active),
+      );
       expect(moduleRef.get(GlossaryV2Controller)).toBeInstanceOf(
         GlossaryV2Controller,
       );

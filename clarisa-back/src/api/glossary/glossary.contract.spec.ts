@@ -20,7 +20,6 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { instanceToPlain } from 'class-transformer';
 import request from 'supertest';
-import { In } from 'typeorm';
 import { apiRoutes } from '../api.routes';
 import { PUBLIC_OPENAPI_PATHS } from '../../shared/swagger/public-endpoints';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
@@ -43,6 +42,7 @@ import {
 } from './glossary-export.service';
 import { GlossaryModule } from './glossary.module';
 import { GlossaryService } from './glossary.service';
+import { InMemoryGlossaryStore } from './testing/in-memory-glossary-store';
 
 /**
  * The PUBLIC CONTRACT of the glossary, pinned exactly as production answers it
@@ -405,76 +405,88 @@ describe('Glossary public contract (as production answers it)', () => {
     });
   });
 
-  describe('what the service asks the database', () => {
+  describe('what the service answers from the store (since 2026-11-06)', () => {
+    // Before the glossary moved into the taxonomy this block pinned the
+    // TypeORM query. The store is now `gc_concepts`; what is pinned is the
+    // same selection: the rows each `show` returns, in term order.
+    const row = (
+      id: number,
+      title: string,
+      active: boolean,
+      status: GlossaryEditorialStatus,
+      dashboard = false,
+    ) => {
+      const g = hydrate({
+        id: String(id),
+        title,
+        definition: `definition of ${title}`,
+        editorial_status: status,
+        show_in_dashboard: dashboard,
+        portfolios: [P25],
+      } as Row);
+      g.auditableFields.is_active = active;
+      return g;
+    };
+    const ROWS = [
+      row(1, 'Outcome', true, GlossaryEditorialStatus.APPROVED, true),
+      row(2, 'impact', false, GlossaryEditorialStatus.APPROVED, true),
+      row(3, 'Draft term', true, GlossaryEditorialStatus.DRAFT, true),
+      row(4, 'Review term', false, GlossaryEditorialStatus.IN_REVIEW),
+      row(5, 'Activity', true, GlossaryEditorialStatus.DEPRECATED),
+      row(6, 'Zeta', false, GlossaryEditorialStatus.DEPRECATED, true),
+    ];
     let service: GlossaryService;
-    let repository: { find: jest.Mock; findOne: jest.Mock; save: jest.Mock };
-
-    const published = { editorial_status: In(PUBLISHED_EDITORIAL_STATUSES) };
-    const order = { title: 'ASC' };
-    const relations = { glossary_portfolio_array: { portfolio_object: true } };
+    let store: InMemoryGlossaryStore;
+    const ids = (terms: Glossary[]) => terms.map((t) => Number(t.id));
 
     beforeEach(() => {
-      repository = {
-        find: jest.fn().mockResolvedValue([]),
-        findOne: jest.fn().mockResolvedValue(null),
-        save: jest.fn(),
-      };
-      service = new GlossaryService(repository as any);
+      store = new InMemoryGlossaryStore(ROWS);
+      service = new GlossaryService(store);
     });
 
     it('GET api/glossary (no show) = active, published, by term, with portfolios', async () => {
-      await service.findAll(undefined);
-      expect(repository.find).toHaveBeenCalledWith({
-        where: { ...published, auditableFields: { is_active: true } },
-        order,
-        relations,
-      });
+      const terms = await service.findAll(undefined);
+      expect(ids(terms)).toEqual([5, 1]);
+      expect(terms[1].portfolios).toEqual([P25]);
     });
 
     it('show=inactive flips only the active flag', async () => {
-      await service.findAll(FindAllOptions.SHOW_ONLY_INACTIVE);
-      expect(repository.find).toHaveBeenCalledWith({
-        where: { ...published, auditableFields: { is_active: false } },
-        order,
-        relations,
-      });
+      expect(
+        ids(await service.findAll(FindAllOptions.SHOW_ONLY_INACTIVE)),
+      ).toEqual([2, 6]);
     });
 
     it('show=all drops the active filter but still hides drafts', async () => {
-      await service.findAll(FindAllOptions.SHOW_ALL);
-      expect(repository.find).toHaveBeenCalledWith({
-        where: published,
-        order,
-        relations,
-      });
+      expect(ids(await service.findAll(FindAllOptions.SHOW_ALL))).toEqual([
+        5, 2, 1, 6,
+      ]);
     });
 
     it('dashboard adds show_in_dashboard on top of the same filters', async () => {
-      await service.findAll(undefined, true);
-      expect(repository.find).toHaveBeenCalledWith({
-        where: {
-          ...published,
-          show_in_dashboard: true,
-          auditableFields: { is_active: true },
-        },
-        order,
-        relations,
-      });
+      expect(ids(await service.findAll(undefined, true))).toEqual([1]);
+      expect(ids(await service.findAll(FindAllOptions.SHOW_ALL, true))).toEqual(
+        [2, 1, 6],
+      );
     });
 
     it('get/:id reads one published row with its portfolios', async () => {
-      await service.findOne(391);
-      expect(repository.findOne).toHaveBeenCalledWith({
-        where: { id: 391, ...published },
-        relations,
-      });
+      expect((await service.findOne(1))?.portfolios).toEqual([P25]);
+      expect(await service.findOne(3)).toBeNull();
+      expect(await service.findOne(999)).toBeNull();
     });
 
-    it('update saves the payload as it comes', async () => {
-      const payload = [{ id: 391, definition: 'edited' }];
-      repository.save.mockResolvedValue(payload);
+    it('update writes term, definition and application, and answers the payload as it comes', async () => {
+      const payload = [{ id: 1, definition: 'edited' }];
       await expect(service.update(payload as any)).resolves.toBe(payload);
-      expect(repository.save).toHaveBeenCalledWith(payload);
+      expect((await store.byId(1)).definition).toBe('edited');
+      expect((await store.byId(1)).title).toBe('Outcome');
+      expect(store.saves).toHaveLength(1);
+    });
+
+    it('update of an unknown term fails instead of creating it', async () => {
+      await expect(
+        service.update([{ id: 999, definition: 'x' }] as any),
+      ).rejects.toThrow('Glossary term 999 was not found');
     });
   });
 
