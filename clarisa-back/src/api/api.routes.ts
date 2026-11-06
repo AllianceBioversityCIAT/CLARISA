@@ -2,6 +2,7 @@ import { ActionAreaModule } from './action-area/action-area.module';
 import { RoleModule } from './role/role.module';
 import { UserModule } from './user/user.module';
 import { GlossaryModule } from './glossary/glossary.module';
+import { SettingsModule } from './settings/settings.module';
 import { GlossaryV2Module } from './glossary/glossary-v2.module';
 import { GlobalConceptsModule } from './global-concepts/global-concepts.module';
 import { AccessAdminModule } from './access-admin/access-admin.module';
@@ -103,6 +104,11 @@ export const apiRoutes = [
   {
     path: 'glossary',
     module: GlossaryModule,
+  },
+  {
+    // Parameters an administrator changes from the panel (editing lock).
+    path: 'settings',
+    module: SettingsModule,
   },
   {
     // Versions in the URL path from the glossary on (`api/v2/...`); the

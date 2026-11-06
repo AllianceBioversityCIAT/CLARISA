@@ -144,6 +144,13 @@ export const ADMIN_GROUPS: AdminGroup[] = [
             access: ['/api/api-keys/create']
           }
         ]
+      },
+      {
+        label: 'Parameters',
+        route: '/clarisa-panel/manage/parameters',
+        icon: 'fa fa-sliders',
+        // Granted to the Super admin role only (migration 1794100000000).
+        access: ['/api/settings']
       }
     ]
   }

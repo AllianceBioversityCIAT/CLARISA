@@ -62,6 +62,14 @@ const routes: Routes = [
         canActivate: guarded,
       },
       {
+        path: 'parameters',
+        loadChildren: () =>
+          import('./pages/parameters/parameters.module').then(
+            (m) => m.ParametersModule
+          ),
+        canActivate: guarded,
+      },
+      {
         path: 'glossary-admin',
         loadChildren: () =>
           import('./pages/glossary-admin/glossary-admin.module').then(
