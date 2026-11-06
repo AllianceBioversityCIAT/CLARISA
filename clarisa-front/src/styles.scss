@@ -166,9 +166,13 @@ html *:not(.fa, .fe, .pi, pre, code) {
   max-width: 100%;
 }
 
+/* Pinned above the highest modal in the app: the partner-request dialogs use
+   [baseZIndex]="10000", so PrimeNG puts their mask at 10000 + 1100 = 11100.
+   Below that the list opens behind the mask (Edit request, 2026-11-06).
+   Guarded by utils/dropdown-panel-z-index.spec.ts. */
 .admin-dropdown-panel.p-dropdown-panel,
 .admin-dropdown-panel.p-datepicker {
-  z-index: 11002 !important;
+  z-index: 12000 !important;
   font-size: 0.8125rem;
 
   .p-dropdown-filter {
