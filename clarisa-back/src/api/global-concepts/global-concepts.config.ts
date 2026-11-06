@@ -85,6 +85,22 @@ export function conceptPagePath(schemeCode: string, termId: number) {
   return `/${schemeCode}/${termId}`;
 }
 
+/** Code of the collection that holds the copy of the glossary (2026-11-03). */
+export const GLOSSARY_COLLECTION_CODE = 'glossary';
+
+/**
+ * The glossary's own page of a term, on the same site as the taxonomy pages
+ * (`…/landing-page/concepts` → `…/landing-page/glossary/term/{id}`). The
+ * glossary is the base the reader knows (Yeck, 2026-10-28), so a glossary
+ * term's URI opens there and not on the taxonomy page. Null when the base is
+ * not that site's taxonomy path: the caller keeps the taxonomy page.
+ */
+export function glossaryPageUrl(webBase: string, termId: number) {
+  const base = webBase.replace(/\/+$/, '');
+  if (!/\/concepts$/.test(base)) return null;
+  return `${base.replace(/\/concepts$/, '')}/glossary/term/${termId}`;
+}
+
 /** Persistent URI of a concept: derived, never stored (V32). */
 export function conceptUri(
   scheme: { code: string; uri_base: string | null },

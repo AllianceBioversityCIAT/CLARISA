@@ -332,7 +332,7 @@ describe(`glossary parity against ${base || '(GLOSSARY_BASE missing)'}`, () => {
       expect(missing.map((t) => t.termId)).toEqual([]);
     });
 
-    it('GET api/v2/glossary, where it exists, answers byte for byte like v1', async () => {
+    it('GET api/v2/glossary, where it exists, answers the v1 terms and fields', async () => {
       const v2 = await get('api/v2/glossary?show=all');
       if (v2.status === 404) {
         console.warn(
@@ -344,6 +344,44 @@ describe(`glossary parity against ${base || '(GLOSSARY_BASE missing)'}`, () => {
       const v1 = await get('api/glossary?show=all');
       // Same request twice: a tie in the ORDER BY may flip two same-name terms.
       expect(diffTerms(JSON.parse(v1.text), JSON.parse(v2.text))).toEqual([]);
+    });
+
+    it('GET api/v2/glossary, where it carries the taxonomy keys, points each term at its own concept', async () => {
+      const v2 = await get('api/v2/glossary?show=all');
+      if (v2.status === 404) return;
+      const terms: (Term & {
+        termUri?: string | null;
+        taxonomyStatus?: string | null;
+      })[] = JSON.parse(v2.text);
+      if (!terms.length || !('termUri' in terms[0])) {
+        console.warn('api/v2/glossary without taxonomy keys here: not checked');
+        return;
+      }
+      const wrong = terms
+        .filter(
+          (t) =>
+            t.termUri !== null &&
+            !String(t.termUri).endsWith(`/meliaf-taxonomy/${t.termId}`),
+        )
+        .map((t) => `${t.termId} → ${t.termUri}`);
+      expect(wrong).toEqual([]);
+      // Copy rule (2026-11-03): active term → approved, inactive → deprecated.
+      const active = new Set(lists.active.map((t) => t.termId));
+      const mismatched = terms
+        .filter((t) => t.taxonomyStatus !== null)
+        .filter(
+          (t) =>
+            t.taxonomyStatus !==
+            (active.has(t.termId) ? 'approved' : 'deprecated'),
+        )
+        .map((t) => `${t.termId} ${t.taxonomyStatus}`);
+      expect(mismatched).toEqual([]);
+      // A taxonomy that cannot be read leaves every link null and passes the
+      // checks above vacuously: the copy exists in dev and prod, so at least
+      // one term must be linked.
+      const linked = terms.filter((t) => t.termUri !== null).length;
+      console.info(`api/v2/glossary: ${linked}/${terms.length} terms linked`);
+      expect(linked).toBeGreaterThan(0);
     });
   });
 
