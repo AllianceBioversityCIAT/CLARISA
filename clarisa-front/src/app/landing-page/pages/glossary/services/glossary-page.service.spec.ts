@@ -33,6 +33,19 @@ describe('GlossaryPageService — API contract', () => {
     req.flush([]);
   });
 
+  // Only for the permalink of a term that is not among the active ones: the
+  // normal page never asks for inactive terms.
+  it('getInactiveGlossary calls exactly GET api/v2/glossary?show=inactive', () => {
+    let received: GlossaryTerm[] | undefined;
+    service.getInactiveGlossary().subscribe(terms => (received = terms));
+    const req = httpMock.expectOne(`${baseUrl}api/v2/glossary?show=inactive`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.keys()).toEqual(['show']);
+    const answer = [{ termId: 40, term: 'Old', definition: 'x', portfolios: [], replacedByTermId: 12 }];
+    req.flush(answer);
+    expect(received).toEqual(answer);
+  });
+
   it('getGlossary hands the response through untouched, with every key the page reads', () => {
     const response: GlossaryTerm[] = [
       {
@@ -123,13 +136,16 @@ describe('GlossaryPageService — API contract', () => {
     expect(service.exportUrl('skos')).toBe(`${baseUrl}api/glossary/export?format=skos`);
   });
 
-  it('GlossaryTerm has no editorialStatus / replacedByTermId (the page cannot type them)', () => {
+  it('GlossaryTerm has no editorialStatus (the page cannot type it)', () => {
     const term: GlossaryTerm = { term: 'x', definition: 'y', portfolios: [] };
     // @ts-expect-error pinned as-is: v1 contract has no editorialStatus
     const withStatus: GlossaryTerm = { ...term, editorialStatus: 'deprecated' as const };
-    // @ts-expect-error pinned as-is: v1 contract has no replacedByTermId
-    const withReplacement: GlossaryTerm = { ...term, replacedByTermId: 3 };
     expect(withStatus).toBeTruthy();
-    expect(withReplacement).toBeTruthy();
+  });
+
+  // Since 2026-11-11 the permalink of an inactive term links to its replacement.
+  it('GlossaryTerm carries replacedByTermId, which the inactive-term permalink reads', () => {
+    const term: GlossaryTerm = { term: 'x', definition: 'y', portfolios: [], replacedByTermId: 3 };
+    expect(term.replacedByTermId).toBe(3);
   });
 });

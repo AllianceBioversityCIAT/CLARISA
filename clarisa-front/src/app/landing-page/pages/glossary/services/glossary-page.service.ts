@@ -42,6 +42,8 @@ export interface GlossaryTerm {
   termUri?: string | null;
   /** `approved` or `deprecated` in the taxonomy. Null/absent like `termUri`. */
   taxonomyStatus?: string | null;
+  /** `termId` of the term that replaces this one once it is retired; null while current. */
+  replacedByTermId?: number | null;
 }
 
 /** Glossary collection of the MELIAF taxonomy: where the copy of the glossary lives. */
@@ -65,6 +67,15 @@ export class GlossaryPageService {
    */
   getGlossary(): Observable<GlossaryTerm[]> {
     return this.http.get<GlossaryTerm[]>(`${this.urlApi}api/v2/glossary`);
+  }
+
+  /**
+   * The terms no longer in use (`?show=inactive`), same keys as `getGlossary`.
+   * Only asked for on the permalink of a term that is not among the active
+   * ones: the back sends the persistent URI of a retired term there.
+   */
+  getInactiveGlossary(): Observable<GlossaryTerm[]> {
+    return this.http.get<GlossaryTerm[]>(`${this.urlApi}api/v2/glossary`, { params: new HttpParams().set('show', 'inactive') });
   }
 
   /**

@@ -84,7 +84,7 @@
                   <a routerLink="/clarisa-panel/documentation/One_CGIAR_Operation"> One CGIAR Operation </a>
                 </li>
 
-                <li>
+                <li *ngIf="!meliafHidden">
                   <a routerLink="/clarisa-panel/documentation/One_CGIAR_Control_List/MELIAF_taxonomy"> MELIAF taxonomy API </a>
                 </li>
 
@@ -92,7 +92,7 @@
                   <a routerLink="/clarisa-panel/manage/partner-request"> Institution Request </a>
                 </li>
 
-                <li>
+                <li *ngIf="!meliafHidden">
                   <a routerLink="/landing-page/concepts"> MELIAF taxonomy </a>
                 </li>
               </ul>

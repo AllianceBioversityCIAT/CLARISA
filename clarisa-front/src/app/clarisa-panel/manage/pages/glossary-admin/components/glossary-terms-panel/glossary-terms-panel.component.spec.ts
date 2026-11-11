@@ -1,4 +1,4 @@
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { FormBuilder } from '@angular/forms';
 import { ObjectUtils } from 'primeng/utils';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -348,5 +348,28 @@ describe('GlossaryTermsPanelComponent — alternative labels', () => {
     component.openCreate();
 
     expect(component.form.value.alternative_labels).toBe('');
+  });
+});
+
+// A 423 "editing is paused" disappeared after PrimeNG's default ~3 s while the
+// dialog stayed open; an API error has to stay long enough to be read.
+describe('GlossaryTermsPanelComponent — error toasts', () => {
+  it('keeps an API error on screen for 8 seconds', () => {
+    const add = jest.fn();
+    const paused = { status: 423, error: { message: 'Editing of glossary terms is paused.' } };
+    const apiService = {
+      getGlossaryTerms: () => throwError(() => paused),
+      getAllPortfolios: () => of([])
+    } as unknown as ManageApiService;
+    const component = new GlossaryTermsPanelComponent(
+      apiService,
+      new FormBuilder(),
+      { add } as unknown as MessageService,
+      { confirm: jest.fn() } as unknown as ConfirmationService
+    );
+
+    component.ngOnInit();
+
+    expect(add).toHaveBeenCalledWith(expect.objectContaining({ severity: 'error', life: 8000 }));
   });
 });

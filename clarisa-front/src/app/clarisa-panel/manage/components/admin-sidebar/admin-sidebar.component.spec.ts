@@ -76,11 +76,12 @@ describe('AdminSidebarComponent', () => {
   it('lists every section, grouped, when nothing is typed', () => {
     expect(component.groups.map(group => group.title)).toEqual(['Manage', 'Access', 'System']);
     expect(labels()).toContain('Glossary');
-    expect(labels()).toContain('MELIAF taxonomy');
-    // 7 links directos: los 8 de la lista menos «Microservices & API keys», que
-    // ahora es un toggle (botón) en vez de un link. El 8.º es «Parameters».
+    // MELIAF taxonomy is hidden (MELIAF_TAXONOMY_HIDDEN, 2026-11-11).
+    expect(labels()).not.toContain('MELIAF taxonomy');
+    // 6 links directos: los 7 de la lista menos «Microservices & API keys», que
+    // es un toggle (botón) en vez de un link. El último es «Parameters».
     expect(labels()).toContain('Parameters');
-    expect(labels()?.length).toBe(7);
+    expect(labels()?.length).toBe(6);
   });
 
   // La columna blanca que esto reemplazó mostraba sus tres pestañas siempre a
@@ -163,15 +164,28 @@ describe('AdminSidebarComponent', () => {
     expect(component.isEmpty).toBe(false);
   });
 
-  it('shows a Concepts Data Admin only Concepts', () => {
+  // MELIAF taxonomy is hidden (MELIAF_TAXONOMY_HIDDEN): its permission alone opens nothing.
+  it('shows a MELIAF-only member no section', () => {
     access.state$.next({
       status: 'ready',
       access: { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/meliaf-taxonomy/admin'], isSuper: false }
     });
     fixture.detectChanges();
 
+    expect(labels()).toEqual([]);
+    expect(subLabels()).toEqual([]);
+    expect(component.noAccess).toBe(true);
+  });
+
+  it('shows a Glossary-only member only Glossary', () => {
+    access.state$.next({
+      status: 'ready',
+      access: { userId: 2, email: 'm@cgiar.org', roles: [], permissions: ['/api/glossary/admin'], isSuper: false }
+    });
+    fixture.detectChanges();
+
     // `labels()` reads plain links; «Microservices & API keys» is a toggle with its tabs (`subLabels()`).
-    expect(labels()).toEqual(['MELIAF taxonomy']);
+    expect(labels()).toEqual(['Glossary']);
     expect(component.groups.map(group => group.title)).toEqual(['Manage']);
     expect(subLabels()).toEqual([]);
     expect(fixture.nativeElement.querySelector('.admin-sidebar__notice')).toBeNull();

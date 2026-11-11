@@ -71,6 +71,54 @@ describe('ApiKeysPanelComponent', () => {
     expect(manageApiMock.getAllMis).toHaveBeenCalled();
   });
 
+  // MELIAF_TAXONOMY_HIDDEN: the module's scopes leave the picker, but a key
+  // that already holds one still shows it (with its label) and keeps it on save.
+  describe('MELIAF taxonomy scopes (hidden)', () => {
+    const catalog = [
+      { value: 'institutions:read', label: 'Institutions — read', group: 'CLARISA API' },
+      { value: 'concepts:read', label: 'MELIAF taxonomy — read', group: 'CLARISA API' },
+      { value: 'concepts:request', label: 'MELIAF taxonomy — request', group: 'CLARISA API' },
+      { value: 'concepts:write', label: 'MELIAF taxonomy — write own scheme', group: 'CLARISA API' },
+      { value: 'concepts:review', label: 'MELIAF taxonomy — review own scheme', group: 'CLARISA API' },
+      { value: 'email:send', label: 'Email service — send', group: 'Microservices' }
+    ];
+    const values = () => component.scopeGroups.flatMap(group => group.items.map(item => item.value));
+    const labels = () => component.scopeGroups.flatMap(group => group.items.map(item => item.label));
+
+    beforeEach(() => {
+      manageApiMock.getApiKeyScopes.mockReturnValue(of(catalog));
+      component.loadScopeCatalog();
+    });
+
+    it('leaves them out of the picker for a new key', () => {
+      component.openCreate();
+      expect(values()).toEqual(['institutions:read', 'email:send']);
+      expect(labels().some(label => /MELIAF/.test(label))).toBe(false);
+    });
+
+    it('keeps the ones an existing key holds, readable, and saves them unchanged', () => {
+      manageApiMock.updateApiKey.mockReturnValue(of({}));
+      component.openEdit(key({ scopes: ['institutions:read', 'concepts:read'] }));
+      expect(values()).toEqual(['institutions:read', 'concepts:read', 'email:send']);
+      expect(labels()).toContain('MELIAF taxonomy — read');
+
+      component.submit();
+      expect(manageApiMock.updateApiKey).toHaveBeenCalledWith(7, expect.objectContaining({ scopes: ['institutions:read', 'concepts:read'] }));
+
+      // Back to a new key: the picker is clean again.
+      component.openCreate();
+      expect(values()).toEqual(['institutions:read', 'email:send']);
+    });
+
+    it('keeps them readable when the catalog arrives after the edit dialog opened', () => {
+      component.scopeGroups = [];
+      manageApiMock.getApiKeyScopes.mockReturnValue(of(catalog));
+      component.openEdit(key({ scopes: ['concepts:review'] }));
+      component.loadScopeCatalog();
+      expect(values()).toEqual(['institutions:read', 'concepts:review', 'email:send']);
+    });
+  });
+
   it('should build key prefix preview from environment acronym', () => {
     expect(component.keyPrefixPreview('PROD')).toBe('cl_prod_');
     expect(component.keyPrefixPreview(null)).toBe('cl_{env}_');

@@ -314,6 +314,44 @@
   line-height: 1.4;
 }
 
+// Término que ya no se usa, abierto por su enlace permanente o su URI: el aviso
+// va antes de la definición, en el color de estado `--cl-warn` (texto en tinta
+// para que el contraste no dependa del ámbar).
+.card-inactive {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--cl-line, #d9e0da);
+  border-left: 3px solid var(--cl-warn, #9a6b00);
+  border-radius: var(--cl-radius-control, 8px);
+  background: var(--cl-surface-2, #f7f9f6);
+  color: var(--cl-ink, #10241c);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+
+  i {
+    margin-top: 3px;
+    color: var(--cl-warn, #9a6b00);
+  }
+
+  strong {
+    font-weight: 600;
+  }
+
+  a {
+    color: var(--cl-brand-deep, #0a6449);
+    text-decoration: underline;
+  }
+
+  a:hover,
+  a:focus {
+    color: var(--cl-brand-deeper, #08543e);
+  }
+}
+
 // La tarjeta de un enlace permanente se distingue por el borde, sin sombra
 // (DESIGN.md § 6: borde O sombra).
 .glossary-card.is-focused {
