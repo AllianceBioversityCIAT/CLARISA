@@ -160,7 +160,7 @@
             <strong>This term is no longer in use.</strong>
             <ng-container *ngIf="focusedReplacement as replacement">
               Replaced by:
-              <a [routerLink]="replacement.link">{{ replacement.term || 'the term that replaces it' }}</a>
+              <a [routerLink]="replacement.link">{{ replacement.term }}</a>
             </ng-container>
           </span>
         </p>

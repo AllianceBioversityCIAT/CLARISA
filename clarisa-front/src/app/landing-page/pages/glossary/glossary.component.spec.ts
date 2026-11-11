@@ -542,7 +542,9 @@ describe('GlossaryComponent', () => {
         taxonomyStatus: 'deprecated'
       },
       { termId: 41, term: 'Older outcome', definition: 'Even older', portfolios: [], replacedByTermId: 40, termUri: null },
-      { termId: 42, term: 'Gone', definition: 'Nothing replaces it', portfolios: [], replacedByTermId: null, termUri: null }
+      { termId: 42, term: 'Gone', definition: 'Nothing replaces it', portfolios: [], replacedByTermId: null, termUri: null },
+      // Replaced by a concept that is not a public glossary term.
+      { termId: 43, term: 'Pointed away', definition: 'Replaced elsewhere', portfolios: [], replacedByTermId: 777, termUri: null }
     ];
     const openPermalink = (termId: string) => {
       params.next(convertToParamMap({ termId }));
@@ -619,6 +621,44 @@ describe('GlossaryComponent', () => {
       openPermalink('42');
       expect(notice()!.textContent).toContain('This term is no longer in use.');
       expect(replacementLink()).toBeNull();
+    });
+
+    it('shows no replacement link when the replacement is in neither list (it would lead to "not found")', () => {
+      openPermalink('43');
+      expect(notice()!.textContent).toContain('This term is no longer in use.');
+      expect(notice()!.textContent).not.toContain('Replaced by');
+      expect(replacementLink()).toBeNull();
+      expect(component.focusedReplacement).toBeNull();
+    });
+
+    it('takes the loader off when the route moves to an active term while the inactive request is pending', () => {
+      const pending = new Subject<any[]>();
+      mockService.getInactiveGlossary.mockReturnValue(pending.asObservable());
+      openPermalink('40');
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeTruthy();
+
+      openPermalink('12');
+      expect(component.loading).toBe(false);
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeNull();
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Innovation']);
+
+      pending.next(inactive);
+      pending.complete();
+      fixture.detectChanges();
+      expect(component.loading).toBe(false);
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Innovation']);
+      expect(notice()).toBeNull();
+    });
+
+    it('takes the loader off when the route moves back to the list while the inactive request is pending', () => {
+      const pending = new Subject<any[]>();
+      mockService.getInactiveGlossary.mockReturnValue(pending.asObservable());
+      openPermalink('40');
+      params.next(convertToParamMap({}));
+      fixture.detectChanges();
+      expect(component.loading).toBe(false);
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeNull();
+      expect(component.filteredTerms.length).toBeGreaterThan(0);
     });
 
     it('keeps "This term was not found." for an id that exists nowhere', () => {
