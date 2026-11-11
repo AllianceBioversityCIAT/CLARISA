@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { GlossaryService } from './glossary.service';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
@@ -91,7 +92,9 @@ describe('GlossaryService', () => {
   });
 
   it('should throw on findAll with invalid option', async () => {
-    expect(() => service.findAll('invalid' as FindAllOptions)).toThrow('?!');
+    expect(() => service.findAll('invalid' as FindAllOptions)).toThrow(
+      BadRequestException,
+    );
   });
 
   it('should return a single item on findOne', async () => {

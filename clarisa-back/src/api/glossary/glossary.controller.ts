@@ -95,8 +95,13 @@ export class GlossaryController {
     @Query('format') format: string,
     @Res() res: Response,
   ): Promise<void> {
-    const wanted = (format ?? GlossaryExportFormat.JSON).toLowerCase();
+    // A repeated `format` arrives as an array: a 400 like any unknown value.
+    const wanted =
+      typeof format === 'string' || format === undefined
+        ? (format ?? GlossaryExportFormat.JSON).toLowerCase()
+        : null;
     if (
+      !wanted ||
       !Object.values(GlossaryExportFormat).includes(
         wanted as GlossaryExportFormat,
       )

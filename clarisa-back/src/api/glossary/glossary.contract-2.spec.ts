@@ -7,6 +7,7 @@ jest.mock('../../auth/utils/LDAPAuth', () => ({
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
+  BadRequestException,
   CanActivate,
   ClassSerializerInterceptor,
   ExecutionContext,
@@ -316,11 +317,13 @@ describe('Glossary public contract, batch 2', () => {
       expect(Object.keys(one.body)).toEqual(PUBLIC_KEYS);
     });
 
-    it('?show=foo is a 500 with the message "?!" in the production envelope', async () => {
-      // pinned as-is: the service throws `Error('?!')` for an unknown option and
-      // nothing turns it into a 400.
+    const SHOW_400 = (value: string) =>
+      `Unknown show value "${value}". Use all, active or inactive.`;
+
+    it('?show=foo is a 400 naming the accepted values, in the production envelope', async () => {
+      // 2026-11-11: it was a 500 "?!" (the service threw a plain Error).
       const res = await request(app.getHttpServer()).get('/?show=foo');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
       expect(Object.keys(res.body)).toEqual([
         'response',
         'message',
@@ -328,36 +331,46 @@ describe('Glossary public contract, batch 2', () => {
         'date',
         'path',
       ]);
-      expect(res.body.message).toBe('?!');
-      expect(res.body.status).toBe(500);
+      expect(res.body.message).toBe(SHOW_400('foo'));
+      expect(res.body.status).toBe(400);
       expect(res.body.path).toBe('/?show=foo');
       expect(repository.all).not.toHaveBeenCalled();
     });
 
-    it('?show=a&show=b (a repeated param) is the same 500', async () => {
-      // pinned as-is: Express hands the service an array, which matches no case.
+    it('?show=a&show=b (a repeated param) is the same 400', async () => {
+      // Express hands the service an array, which matches no option.
       const res = await request(app.getHttpServer()).get('/?show=a&show=b');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(res.body.message).toBe('?!');
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.message).toBe(SHOW_400('a,b'));
       expect(repository.all).not.toHaveBeenCalled();
     });
 
-    it('?show= (empty) is the same 500, not the default', async () => {
-      // pinned as-is: only a MISSING show means "active"; an empty one is unknown.
+    it('?show=active&show=active (repeated, even equal) is a 400 too', async () => {
+      const res = await request(app.getHttpServer()).get(
+        '/?show=active&show=active',
+      );
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(repository.all).not.toHaveBeenCalled();
+    });
+
+    it('?show= (empty) is a 400, not the default', async () => {
+      // Only a MISSING show means "active"; an empty one is unknown.
       const res = await request(app.getHttpServer()).get('/?show=');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(res.body.message).toBe('?!');
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.message).toBe(SHOW_400(''));
     });
 
-    it('?show=ALL is a 500: the option is case-sensitive', async () => {
+    it('?show=ALL is a 400: the option stays case-sensitive', async () => {
       const res = await request(app.getHttpServer()).get('/?show=ALL');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.message).toBe(SHOW_400('ALL'));
     });
 
-    it('/dashboard?show=foo is the same 500', async () => {
+    it('/dashboard?show=foo is the same 400', async () => {
       const res = await request(app.getHttpServer()).get('/dashboard?show=foo');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(res.body.message).toBe('?!');
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.message).toBe(SHOW_400('foo'));
+      expect(repository.all).not.toHaveBeenCalled();
     });
 
     const termIds = (res: request.Response) =>
@@ -540,21 +553,25 @@ describe('Glossary public contract, batch 2', () => {
         );
       });
 
-      it('?format=a&format=b is a 500 from .toLowerCase on an array', async () => {
-        // pinned as-is: a repeated param is an array and the controller calls
-        // `.toLowerCase()` on it before it validates anything.
+      it('?format=a&format=b is a 400 naming the accepted formats', async () => {
+        // 2026-11-11: it was a 500 (`.toLowerCase` on the array Express hands).
         const res = await request(app.getHttpServer()).get(
           '/export?format=a&format=b',
         );
-        expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-        expect(res.body.message).toMatch(/toLowerCase is not a function/);
+        expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+        expect(res.body.message).toBe(
+          'Unknown export format "a,b". Use json, csv or skos.',
+        );
       });
 
-      it('?format=json&format=json (equal values) is still the 500', async () => {
+      it('?format=json&format=json (repeated, even equal) is a 400 too', async () => {
         const res = await request(app.getHttpServer()).get(
           '/export?format=json&format=json',
         );
-        expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+        expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+        expect(res.body.message).toBe(
+          'Unknown export format "json,json". Use json, csv or skos.',
+        );
       });
 
       it('?format=JSON and ?format=Skos are accepted whatever the case', async () => {
@@ -685,16 +702,22 @@ describe('Glossary public contract, batch 2', () => {
       ).resolves.toEqual({ items: [], count: 0 });
     });
 
-    it('findAll throws "?!" for a value outside FindAllOptions', () => {
+    it('findAll throws a 400 for a value outside FindAllOptions, before any read', () => {
       const service = new GlossaryService({ find: jest.fn() } as any);
-      expect(() => service.findAll('banana' as any)).toThrow('?!');
-      expect(() => service.findAll(['active'] as any)).toThrow('?!');
+      expect(() => service.findAll('banana' as any)).toThrow(
+        new BadRequestException(
+          'Unknown show value "banana". Use all, active or inactive.',
+        ),
+      );
+      expect(() => service.findAll(['active'] as any)).toThrow(
+        BadRequestException,
+      );
     });
 
     it('findAll(null) is NOT the default: it throws too', () => {
       // pinned as-is: only `undefined` triggers the default parameter.
       const service = new GlossaryService({ find: jest.fn() } as any);
-      expect(() => service.findAll(null as any)).toThrow('?!');
+      expect(() => service.findAll(null as any)).toThrow(BadRequestException);
     });
   });
 

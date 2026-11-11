@@ -464,4 +464,52 @@ describe('Glossary v2 in the URL path (api/v2/glossary)', () => {
       expect(v2.body.path).toBe('/api/v2/glossary');
     });
   });
+
+  describe('invalid ?show= on api/v2/glossary, with the real service (2026-11-11)', () => {
+    let app: INestApplication;
+    const store = new InMemoryGlossaryStore(ROWS);
+    const links = { linksForOrEmpty: jest.fn(async () => new Map()) };
+
+    beforeAll(async () => {
+      const moduleRef = await Test.createTestingModule({
+        controllers: [GlossaryV2Controller],
+        providers: [
+          GlossaryService,
+          { provide: GLOSSARY_STORAGE, useValue: store },
+          { provide: GlossaryTaxonomyLinksService, useValue: links },
+          { provide: APP_FILTER, useClass: ExceptionsFilter },
+          { provide: APP_INTERCEPTOR, useClass: ResponseFormattingInterceptor },
+        ],
+      }).compile();
+      app = moduleRef.createNestApplication();
+      await app.init();
+    });
+
+    afterAll(async () => {
+      await app.close();
+    });
+
+    it.each([
+      ['?show=foo', 'foo'],
+      ['?show=', ''],
+      ['?show=ALL', 'ALL'],
+      ['?show=a&show=b', 'a,b'],
+    ])(
+      '%s is a 400 naming the accepted values (it was a 500)',
+      async (q, v) => {
+        const res = await request(app.getHttpServer()).get(`/${q}`);
+        expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+        expect(res.body.status).toBe(400);
+        expect(res.body.message).toBe(
+          `Unknown show value "${v}". Use all, active or inactive.`,
+        );
+        expect(links.linksForOrEmpty).not.toHaveBeenCalled();
+      },
+    );
+
+    it('a valid ?show= still answers 200', async () => {
+      const res = await request(app.getHttpServer()).get('/?show=all');
+      expect(res.status).toBe(HttpStatus.OK);
+    });
+  });
 });
