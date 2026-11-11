@@ -417,58 +417,16 @@ export class CopyGlossaryIntoTaxonomy1793404800000
     }
   }
 
-  /** Removes only the copied concepts (marked rows) with everything hanging from them, and the collection when it is left empty. The list and the field stay: other concepts may already use them. */
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    const cls = CopyGlossaryIntoTaxonomy1793404800000;
-    const schemes: { id: number | string }[] = await queryRunner.query(
-      `SELECT id FROM gc_schemes WHERE code = ? LIMIT 1`,
-      [cls.SCHEME_CODE],
-    );
-    if (!schemes?.length) return;
-    const schemeId = schemes[0].id;
-    const candidates: ExistingConcept[] = await queryRunner.query(
-      `SELECT id, term_id, extra FROM gc_concepts WHERE scheme_id = ? AND extra LIKE ?`,
-      [schemeId, `%"${cls.MARKER}"%`],
-    );
-    const ids = (candidates ?? [])
-      .filter((c) => cls.isCopy(c.extra))
-      .map((c) => Number(c.id));
-    if (ids.length) {
-      const marks = ids.map(() => '?').join(', ');
-      for (const table of [
-        'gc_collection_members',
-        'gc_labels',
-        'gc_history',
-        'gc_mappings',
-        'gc_icons',
-        'gc_embeddings',
-      ]) {
-        await queryRunner.query(
-          `DELETE FROM ${table} WHERE concept_id IN (${marks})`,
-          ids,
-        );
-      }
-      // No foreign keys in the module: a relation added in dev after the copy would otherwise point at nothing.
-      await queryRunner.query(
-        `DELETE FROM gc_relations WHERE concept_id IN (${marks}) OR related_concept_id IN (${marks})`,
-        [...ids, ...ids],
-      );
-      await queryRunner.query(
-        `UPDATE gc_concepts SET replaced_by_id = NULL WHERE replaced_by_id IN (${marks})`,
-        ids,
-      );
-      await queryRunner.query(
-        `DELETE FROM gc_concepts WHERE id IN (${marks})`,
-        ids,
-      );
-    }
-    await queryRunner.query(
-      `DELETE FROM gc_collections
-        WHERE scheme_id = ? AND code = ?
-          AND NOT EXISTS (
-            SELECT 1 FROM gc_collection_members m WHERE m.collection_id = gc_collections.id
-          )`,
-      [schemeId, cls.COLLECTION_CODE],
+  /**
+   * Irreversible since the single-table cutover (2026-11-11): gc_concepts
+   * holds the only live copy of the glossary, and the old down() deleted every
+   * copied concept with everything hanging from it. It refuses, writing nothing.
+   */
+  public async down(): Promise<void> {
+    throw new Error(
+      'CopyGlossaryIntoTaxonomy1793404800000 cannot be reverted: since the ' +
+        'single-table cutover gc_concepts holds the only live copy of the ' +
+        'glossary, and reverting would delete it. Restore a database backup instead.',
     );
   }
 }

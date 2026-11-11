@@ -57,8 +57,9 @@ type ConceptRow = {
  * agree (prod on 2026-11-06), the only write is that enrichment. Other keys
  * of `extra` (custom fields of the taxonomy) are kept.
  *
- * `down()` changes nothing: the previous state of the copy is not kept, and
- * the `glossary` table is untouched by `up()`.
+ * `down()` refuses to run (2026-11-11): the previous state of the copy is
+ * not kept, and a revert followed by a new run would replay `up()` and
+ * overwrite every later edit with the stale `glossary` table.
  */
 export class ResyncGlossaryIntoTaxonomy1794000000000
   implements MigrationInterface
@@ -323,6 +324,11 @@ export class ResyncGlossaryIntoTaxonomy1794000000000
   }
 
   public async down(): Promise<void> {
-    // Nothing to undo: see the class comment.
+    throw new Error(
+      'ResyncGlossaryIntoTaxonomy1794000000000 cannot be reverted: gc_concepts ' +
+        'holds the only live copy of the glossary, and running it again after a ' +
+        'revert would overwrite later edits with the old glossary table. ' +
+        'Restore a database backup instead.',
+    );
   }
 }
