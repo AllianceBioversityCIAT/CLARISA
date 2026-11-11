@@ -786,6 +786,9 @@ export class RequestsService {
       if (Number(targetScheme.id) === Number(scheme.id))
         throw new BadRequestException('Promote to a different scheme');
     }
+    // A request about a glossary term (the concept or the merge target) could
+    // never be approved: refused here, before anything is stored or emailed.
+    await assertNotGlossaryConcepts(manager, [concept, target]);
     return { concept, target, targetScheme };
   }
 

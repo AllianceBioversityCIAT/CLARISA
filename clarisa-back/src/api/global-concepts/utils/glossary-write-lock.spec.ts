@@ -10,6 +10,7 @@ import {
   MODULE_METADATA,
   PATH_METADATA,
 } from '@nestjs/common/constants';
+import { createHash } from 'crypto';
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import {
@@ -17,7 +18,10 @@ import {
   GlobalConceptsUriModule,
 } from '../global-concepts.module';
 import { GlobalConceptsAdminController } from '../controllers/global-concepts-admin.controller';
-import { GlobalConceptsPlatformController } from '../controllers/global-concepts-requests.controller';
+import {
+  GlobalConceptsPlatformController,
+  GlobalConceptsRequestsController,
+} from '../controllers/global-concepts-requests.controller';
 import { ConceptsAdminService } from '../services/concepts-admin.service';
 import { ConceptsCatalogService } from '../services/concepts-catalog.service';
 import {
@@ -46,7 +50,10 @@ import {
 import { GcIcon } from '../entities/gc-icon.entity';
 import { GcHistory } from '../entities/gc-history.entity';
 import {
+  GcEmailVerification,
+  GcOutbox,
   GcProposal,
+  GcProposalEvent,
   GcProposalOrigin,
   GcProposalState,
   GcProposalType,
@@ -66,6 +73,7 @@ interface World {
   db: FakeManager;
   adminCtl: GlobalConceptsAdminController;
   platformCtl: GlobalConceptsPlatformController;
+  requestsCtl: GlobalConceptsRequestsController;
   ids: {
     glossaryTerm: number; // term_id of a glossary concept (391)
     otherTerm: number; // term_id of a concept outside the glossary (500)
@@ -204,10 +212,12 @@ function world(): World {
     none, // platformUsage
   );
   const platformCtl = new GlobalConceptsPlatformController(requests, admin);
+  const requestsCtl = new GlobalConceptsRequestsController(requests);
   return {
     db,
     adminCtl,
     platformCtl,
+    requestsCtl,
     ids: {
       glossaryTerm: 391,
       otherTerm: 500,
@@ -263,6 +273,25 @@ const refused = async (call: Promise<unknown>) => {
 };
 
 type Scenario = (w: World) => Promise<void>;
+
+/** Request bookkeeping rows: a refused submission stores and emails nothing. */
+const requestRows = (db: FakeManager) =>
+  [GcProposal, GcProposalEvent, GcOutbox, GcEmailVerification].map(
+    (t) => db.rows(t as any).length,
+  );
+const refusedSubmission = async (w: World, call: () => Promise<unknown>) => {
+  const before = requestRows(w.db);
+  await refused(call());
+  expect(requestRows(w.db)).toEqual(before);
+};
+const edit = (termId: number) => ({
+  type: GcProposalType.EDIT,
+  term_id: termId,
+  payload: { definition: 'Proposed.' },
+  rationale: 'Better wording',
+});
+const sha256 = (text: string) =>
+  createHash('sha256').update(text).digest('hex');
 
 /**
  * Every write route of the module that could change a glossary term or the
@@ -548,6 +577,89 @@ const GUARDED: Record<string, Scenario[]> = {
         ),
       ),
   ],
+  // Submitting a request about a glossary term (as the concept or as the
+  // merge target) is refused before anything is stored or emailed.
+  'GlobalConceptsRequestsController.start': [
+    (w) =>
+      refusedSubmission(w, () =>
+        w.requestsCtl.start(SCHEME, {
+          ...edit(w.ids.glossaryTerm),
+          email: 'someone@cgiar.org',
+        }),
+      ),
+  ],
+  'GlobalConceptsRequestsController.verify': [
+    async (w) => {
+      // A draft confirmed by email after the lock shipped.
+      w.db.seed(GcEmailVerification, {
+        email: 'someone@cgiar.org',
+        token_hash: sha256('tok'),
+        proposal_draft: { scheme: SCHEME, ...edit(w.ids.glossaryTerm) },
+        expires_at: new Date(Date.now() + 3600_000),
+        used_at: null,
+      } as any);
+      const proposals = w.db.rows(GcProposal).length;
+      const outbox = w.db.rows(GcOutbox).length;
+      await refused(w.requestsCtl.verify({ token: 'tok' }));
+      expect(w.db.rows(GcProposal)).toHaveLength(proposals);
+      expect(w.db.rows(GcOutbox)).toHaveLength(outbox);
+    },
+  ],
+  'GlobalConceptsRequestsController.submitAsUser': [
+    (w) =>
+      refusedSubmission(w, () =>
+        w.requestsCtl.submitAsUser(SCHEME, edit(w.ids.glossaryTerm), user),
+      ),
+    (w) =>
+      refusedSubmission(w, () =>
+        w.requestsCtl.submitAsUser(
+          SCHEME,
+          {
+            type: GcProposalType.DEPRECATE,
+            term_id: w.ids.glossaryTerm,
+            rationale: 'Old',
+          },
+          user,
+        ),
+      ),
+    (w) =>
+      refusedSubmission(w, () =>
+        w.requestsCtl.submitAsUser(
+          SCHEME,
+          {
+            type: GcProposalType.MERGE,
+            term_id: w.ids.otherTerm,
+            target_term_id: w.ids.glossaryTerm,
+            rationale: 'Same thing',
+          },
+          user,
+        ),
+      ),
+  ],
+  'GlobalConceptsPlatformController.submit': [
+    (w) =>
+      refusedSubmission(w, () =>
+        w.platformCtl.submit(
+          SCHEME,
+          { ...edit(w.ids.glossaryTerm), requester_email: 'p@cgiar.org' },
+          platformAuth,
+        ),
+      ),
+    (w) =>
+      refusedSubmission(w, () =>
+        w.platformCtl.submit(
+          SCHEME,
+          {
+            type: GcProposalType.MERGE,
+            term_id: w.ids.glossaryTerm,
+            target_term_id: w.ids.otherTerm,
+            rationale: 'Same thing',
+            requester_email: 'p@cgiar.org',
+          },
+          platformAuth,
+        ),
+      ),
+  ],
   'GlobalConceptsPlatformController.transition': [
     (w) =>
       refused(
@@ -585,15 +697,10 @@ const NOT_GLOSSARY_WRITES: Record<string, string> = {
     'a new concept is never a member of any collection',
   'GlobalConceptsAdminController.publish':
     'writes a release snapshot and stamps release_id on history rows; no concept or collection changes',
-  'GlobalConceptsRequestsController.start':
-    'stores a request; it changes a concept only when approved (transition)',
-  'GlobalConceptsRequestsController.verify': 'request bookkeeping',
-  'GlobalConceptsRequestsController.resubmitPublic': 'request bookkeeping',
-  'GlobalConceptsRequestsController.submitAsUser':
-    'stores a request; it changes a concept only when approved (transition)',
-  'GlobalConceptsPlatformController.submit':
-    'stores a request; it changes a concept only when approved (transition)',
-  'GlobalConceptsPlatformController.resubmit': 'request bookkeeping',
+  'GlobalConceptsRequestsController.resubmitPublic':
+    'a stored request: payload and rationale only, its concepts were fixed (and checked) at submit; approval is refused by the lock',
+  'GlobalConceptsPlatformController.resubmit':
+    'a stored request: payload and rationale only, its concepts were fixed (and checked) at submit; approval is refused by the lock',
   'GlobalConceptsPlatformController.create':
     'a new concept is never a member of any collection',
   'GlobalConceptsMcpController.post': 'MCP tools are read-only',
@@ -653,6 +760,51 @@ describe('Glossary write lock (taxonomy routes never change the glossary)', () =
       });
     });
   }
+
+  describe('requests that do not touch a glossary term work as before', () => {
+    it('a request for a brand-new concept is accepted through every door', async () => {
+      const w = world();
+      const fresh = {
+        type: GcProposalType.NEW,
+        payload: { preferred_label: 'Brand new' },
+        rationale: 'Missing term',
+      };
+      const asUser = await w.requestsCtl.submitAsUser(SCHEME, fresh, user);
+      expect(asUser.state).toBe(GcProposalState.SUBMITTED);
+      const asPlatform = await w.platformCtl.submit(
+        SCHEME,
+        { ...fresh, requester_email: 'p@cgiar.org' },
+        platformAuth,
+      );
+      expect(asPlatform.state).toBe(GcProposalState.SUBMITTED);
+      await expect(
+        w.requestsCtl.start(SCHEME, { ...fresh, email: 'someone@cgiar.org' }),
+      ).resolves.toEqual({ status: 'verification_sent', expires_in_hours: 24 });
+    });
+
+    it('an edit of a concept outside the glossary is accepted', async () => {
+      const w = world();
+      const r = await w.requestsCtl.submitAsUser(
+        SCHEME,
+        edit(w.ids.otherTerm),
+        user,
+      );
+      expect(r.state).toBe(GcProposalState.SUBMITTED);
+    });
+
+    it('a request already stored about a glossary term can still be rejected', async () => {
+      const w = world();
+      const r = await w.adminCtl.transition(
+        w.ids.proposalId,
+        {
+          action: GcRequestAction.REJECT,
+          expected_state: GcProposalState.IN_REVIEW,
+        },
+        user,
+      );
+      expect(r.state).toBe(GcProposalState.REJECTED);
+    });
+  });
 
   describe('outside the glossary nothing changes', () => {
     it('a concept outside the glossary is still edited, merged and re-membered', async () => {
