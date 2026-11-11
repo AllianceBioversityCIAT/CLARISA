@@ -119,6 +119,23 @@ describe('AdminSidebarComponent', () => {
     expect(component.isEmpty).toBe(false);
   });
 
+  // Ratchet: while searching, every change-detection pass must get the SAME
+  // filtered groups and keep the same DOM. New objects on each pass make
+  // *ngFor rebuild every row, each rebuilt `routerLinkActive` queues a
+  // promise, the promise triggers another pass… and the page freezes for good
+  // (clarisatest, 2026-11-11: typing in this box hung the browser twice).
+  it('keeps the same groups and the same DOM between checks while searching', () => {
+    component.query = 'glossary';
+    fixture.detectChanges();
+    const groups = component.groups;
+    const link = fixture.nativeElement.querySelector('.admin-sidebar__list > li > a');
+
+    fixture.detectChanges();
+
+    expect(component.groups).toBe(groups);
+    expect(fixture.nativeElement.querySelector('.admin-sidebar__list > li > a')).toBe(link);
+  });
+
   it('says so when nothing matches, instead of leaving the column blank', () => {
     component.query = 'zzz';
     fixture.detectChanges();
