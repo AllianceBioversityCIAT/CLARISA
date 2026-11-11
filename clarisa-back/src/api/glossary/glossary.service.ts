@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { UpdateGlossaryDto } from './dto/update-glossary.dto';
 import {
   Glossary,
@@ -42,13 +42,17 @@ export class GlossaryService {
     option: FindAllOptions = FindAllOptions.SHOW_ONLY_ACTIVE,
     onlyDashboard = false,
   ): Promise<Glossary[]> {
-    // Thrown before any read, as it always was (not a rejected promise).
+    // Thrown before any read, as it always was (not a rejected promise). A
+    // client error since 2026-11-11 (it was a 500 "?!"): empty, repeated
+    // (an array) and other-case values stay invalid.
     if (
       option !== FindAllOptions.SHOW_ALL &&
       option !== FindAllOptions.SHOW_ONLY_ACTIVE &&
       option !== FindAllOptions.SHOW_ONLY_INACTIVE
     ) {
-      throw Error('?!');
+      throw new BadRequestException(
+        `Unknown show value "${String(option)}". Use all, active or inactive.`,
+      );
     }
     // A draft or a term under review is never public, whatever `show` says.
     // Every row that predates the editorial status is `approved`, so this

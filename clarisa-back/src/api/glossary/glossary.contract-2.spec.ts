@@ -7,9 +7,13 @@ jest.mock('../../auth/utils/LDAPAuth', () => ({
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
+  BadRequestException,
+  CanActivate,
   ClassSerializerInterceptor,
+  ExecutionContext,
   HttpStatus,
   INestApplication,
+  UnauthorizedException,
   VersioningType,
 } from '@nestjs/common';
 import {
@@ -24,6 +28,11 @@ import { instanceToPlain } from 'class-transformer';
 import request from 'supertest';
 import { getMetadataArgsStorage } from 'typeorm';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { PERMISSION_ROUTE } from '../../shared/decorators/permission-route.decorator';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { UserService } from '../user/user.service';
+import { SeedGlossaryAdminPermission1786320000000 } from '../../../migrations/1786320000000-SeedGlossaryAdminPermission';
 import { ExceptionsFilter } from '../../shared/filters/exceptions.filter';
 import { versionExtractor } from '../../shared/interfaces/version-extractor';
 import { ResponseFormattingInterceptor } from '../../shared/interceptors/response-formatting.interceptor';
@@ -184,6 +193,30 @@ describe('Glossary public contract, batch 2', () => {
       transaction: jest.fn((work: any) => work(undefined)),
     };
 
+    // A session is `Authorization: Bearer <email>` here; without it the JWT
+    // guard answers 401 like passport-jwt does. The PermissionGuard is the real one.
+    const fakeJwt: CanActivate = {
+      canActivate: (ctx: ExecutionContext) => {
+        const req = ctx.switchToHttp().getRequest();
+        const email = /^Bearer (.+)$/.exec(
+          req.headers.authorization ?? '',
+        )?.[1];
+        if (!email) throw new UnauthorizedException();
+        req.user = { email };
+        return true;
+      },
+    };
+    const users = {
+      findOneByEmail: jest.fn(async (email: string) => ({
+        id: 9,
+        email,
+        permissions:
+          email === 'admin@cgiar.org'
+            ? ['/api/glossary/admin']
+            : ['/api/countries'],
+      })),
+    };
+
     beforeAll(async () => {
       const moduleRef = await Test.createTestingModule({
         controllers: [GlossaryController],
@@ -191,10 +224,14 @@ describe('Glossary public contract, batch 2', () => {
           GlossaryService,
           GlossaryExportService,
           { provide: GLOSSARY_STORAGE, useValue: repository },
+          { provide: UserService, useValue: users },
           { provide: APP_FILTER, useClass: ExceptionsFilter },
           { provide: APP_INTERCEPTOR, useClass: ResponseFormattingInterceptor },
         ],
-      }).compile();
+      })
+        .overrideGuard(JwtAuthGuard)
+        .useValue(fakeJwt)
+        .compile();
       app = moduleRef.createNestApplication();
       app.enableVersioning({
         type: VersioningType.CUSTOM,
@@ -280,11 +317,13 @@ describe('Glossary public contract, batch 2', () => {
       expect(Object.keys(one.body)).toEqual(PUBLIC_KEYS);
     });
 
-    it('?show=foo is a 500 with the message "?!" in the production envelope', async () => {
-      // pinned as-is: the service throws `Error('?!')` for an unknown option and
-      // nothing turns it into a 400.
+    const SHOW_400 = (value: string) =>
+      `Unknown show value "${value}". Use all, active or inactive.`;
+
+    it('?show=foo is a 400 naming the accepted values, in the production envelope', async () => {
+      // 2026-11-11: it was a 500 "?!" (the service threw a plain Error).
       const res = await request(app.getHttpServer()).get('/?show=foo');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
       expect(Object.keys(res.body)).toEqual([
         'response',
         'message',
@@ -292,36 +331,46 @@ describe('Glossary public contract, batch 2', () => {
         'date',
         'path',
       ]);
-      expect(res.body.message).toBe('?!');
-      expect(res.body.status).toBe(500);
+      expect(res.body.message).toBe(SHOW_400('foo'));
+      expect(res.body.status).toBe(400);
       expect(res.body.path).toBe('/?show=foo');
       expect(repository.all).not.toHaveBeenCalled();
     });
 
-    it('?show=a&show=b (a repeated param) is the same 500', async () => {
-      // pinned as-is: Express hands the service an array, which matches no case.
+    it('?show=a&show=b (a repeated param) is the same 400', async () => {
+      // Express hands the service an array, which matches no option.
       const res = await request(app.getHttpServer()).get('/?show=a&show=b');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(res.body.message).toBe('?!');
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.message).toBe(SHOW_400('a,b'));
       expect(repository.all).not.toHaveBeenCalled();
     });
 
-    it('?show= (empty) is the same 500, not the default', async () => {
-      // pinned as-is: only a MISSING show means "active"; an empty one is unknown.
+    it('?show=active&show=active (repeated, even equal) is a 400 too', async () => {
+      const res = await request(app.getHttpServer()).get(
+        '/?show=active&show=active',
+      );
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(repository.all).not.toHaveBeenCalled();
+    });
+
+    it('?show= (empty) is a 400, not the default', async () => {
+      // Only a MISSING show means "active"; an empty one is unknown.
       const res = await request(app.getHttpServer()).get('/?show=');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(res.body.message).toBe('?!');
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.message).toBe(SHOW_400(''));
     });
 
-    it('?show=ALL is a 500: the option is case-sensitive', async () => {
+    it('?show=ALL is a 400: the option stays case-sensitive', async () => {
       const res = await request(app.getHttpServer()).get('/?show=ALL');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.message).toBe(SHOW_400('ALL'));
     });
 
-    it('/dashboard?show=foo is the same 500', async () => {
+    it('/dashboard?show=foo is the same 400', async () => {
       const res = await request(app.getHttpServer()).get('/dashboard?show=foo');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(res.body.message).toBe('?!');
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.message).toBe(SHOW_400('foo'));
+      expect(repository.all).not.toHaveBeenCalled();
     });
 
     const termIds = (res: request.Response) =>
@@ -404,10 +453,18 @@ describe('Glossary public contract, batch 2', () => {
       });
     });
 
-    describe('PATCH update is public and unvalidated', () => {
-      it('declares no guard and no pipe, on the route or on the class', () => {
+    describe('PATCH update needs a session with the glossary admin permission (2026-11-11)', () => {
+      const ADMIN = 'Bearer admin@cgiar.org';
+
+      it('declares the JWT and permission guards on the route, pinned to /api/glossary/admin; still no pipe', () => {
         const handler = GlossaryController.prototype.update;
-        expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toBeUndefined();
+        expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
+          JwtAuthGuard,
+          PermissionGuard,
+        ]);
+        expect(Reflect.getMetadata(PERMISSION_ROUTE, handler)).toBe(
+          (SeedGlossaryAdminPermission1786320000000 as any).ROUTE,
+        );
         expect(
           Reflect.getMetadata(GUARDS_METADATA, GlossaryController),
         ).toBeUndefined();
@@ -417,7 +474,26 @@ describe('Glossary public contract, batch 2', () => {
         ).toBeUndefined();
       });
 
-      it('writes any column of the body (no whitelist), now through the store', async () => {
+      it('without credentials is a 401 and writes nothing', async () => {
+        const res = await request(app.getHttpServer())
+          .patch('/update')
+          .send([{ id: 7, definition: 'anonymous' }]);
+        expect(res.status).toBe(HttpStatus.UNAUTHORIZED);
+        expect(repository.byId).not.toHaveBeenCalled();
+        expect(repository.save).not.toHaveBeenCalled();
+      });
+
+      it('a session without the glossary admin permission is a 403 and writes nothing', async () => {
+        const res = await request(app.getHttpServer())
+          .patch('/update')
+          .set('Authorization', 'Bearer reader@cgiar.org')
+          .send([{ id: 7, definition: 'not mine' }]);
+        expect(res.status).toBe(HttpStatus.FORBIDDEN);
+        expect(repository.byId).not.toHaveBeenCalled();
+        expect(repository.save).not.toHaveBeenCalled();
+      });
+
+      it('with the permission it writes any column of the body (no whitelist), through the store', async () => {
         // pinned as-is: no whitelist, so `editorial_status` and `is_active` travel.
         const body = [
           {
@@ -432,6 +508,7 @@ describe('Glossary public contract, batch 2', () => {
         ];
         const res = await request(app.getHttpServer())
           .patch('/update')
+          .set('Authorization', ADMIN)
           .send(body);
         expect(res.status).toBe(HttpStatus.OK);
         expect(repository.byId.mock.calls[0][0]).toBe(7);
@@ -445,10 +522,11 @@ describe('Glossary public contract, batch 2', () => {
         expect(res.body).toEqual(body);
       });
 
-      it('accepts a body that is not even an array', async () => {
+      it('with the permission it accepts a body that is not even an array', async () => {
         // pinned as-is: `@Body() UpdateGlossaryDto[]` is a type, not a validation.
         const res = await request(app.getHttpServer())
           .patch('/update')
+          .set('Authorization', ADMIN)
           .send({ id: 7, title: 'one object' });
         expect(res.status).toBe(HttpStatus.OK);
         expect(repository.save.mock.calls[0][0]).toMatchObject({
@@ -456,9 +534,10 @@ describe('Glossary public contract, batch 2', () => {
         });
       });
 
-      it('does not need any credential: no Authorization header is asked for', async () => {
+      it('with the permission an empty list answers 200 and []', async () => {
         const res = await request(app.getHttpServer())
           .patch('/update')
+          .set('Authorization', ADMIN)
           .send([]);
         expect(res.status).toBe(HttpStatus.OK);
         expect(res.body).toEqual([]);
@@ -474,21 +553,25 @@ describe('Glossary public contract, batch 2', () => {
         );
       });
 
-      it('?format=a&format=b is a 500 from .toLowerCase on an array', async () => {
-        // pinned as-is: a repeated param is an array and the controller calls
-        // `.toLowerCase()` on it before it validates anything.
+      it('?format=a&format=b is a 400 naming the accepted formats', async () => {
+        // 2026-11-11: it was a 500 (`.toLowerCase` on the array Express hands).
         const res = await request(app.getHttpServer()).get(
           '/export?format=a&format=b',
         );
-        expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-        expect(res.body.message).toMatch(/toLowerCase is not a function/);
+        expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+        expect(res.body.message).toBe(
+          'Unknown export format "a,b". Use json, csv or skos.',
+        );
       });
 
-      it('?format=json&format=json (equal values) is still the 500', async () => {
+      it('?format=json&format=json (repeated, even equal) is a 400 too', async () => {
         const res = await request(app.getHttpServer()).get(
           '/export?format=json&format=json',
         );
-        expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+        expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+        expect(res.body.message).toBe(
+          'Unknown export format "json,json". Use json, csv or skos.',
+        );
       });
 
       it('?format=JSON and ?format=Skos are accepted whatever the case', async () => {
@@ -619,22 +702,32 @@ describe('Glossary public contract, batch 2', () => {
       ).resolves.toEqual({ items: [], count: 0 });
     });
 
-    it('findAll throws "?!" for a value outside FindAllOptions', () => {
+    it('findAll throws a 400 for a value outside FindAllOptions, before any read', () => {
       const service = new GlossaryService({ find: jest.fn() } as any);
-      expect(() => service.findAll('banana' as any)).toThrow('?!');
-      expect(() => service.findAll(['active'] as any)).toThrow('?!');
+      expect(() => service.findAll('banana' as any)).toThrow(
+        new BadRequestException(
+          'Unknown show value "banana". Use all, active or inactive.',
+        ),
+      );
+      expect(() => service.findAll(['active'] as any)).toThrow(
+        BadRequestException,
+      );
     });
 
     it('findAll(null) is NOT the default: it throws too', () => {
       // pinned as-is: only `undefined` triggers the default parameter.
       const service = new GlossaryService({ find: jest.fn() } as any);
-      expect(() => service.findAll(null as any)).toThrow('?!');
+      expect(() => service.findAll(null as any)).toThrow(BadRequestException);
     });
   });
 
   // ------------------------------------------------------------- swagger
 
   describe('what the public Swagger decorators say', () => {
+    const SHOW_DOC =
+      "Filter by status: 'all', 'active' (default) or 'inactive'. Any other " +
+      'value (empty, repeated or in another case) answers 400. Drafts and ' +
+      'terms under review never appear, whatever the value.';
     const proto = GlossaryController.prototype;
 
     it('lists the glossary with this exact summary', () => {
@@ -642,7 +735,7 @@ describe('Glossary public contract, batch 2', () => {
       expect(op.summary).toBe('List glossary terms');
     });
 
-    it('describes the list with this exact text', () => {
+    it('describes the list with this exact text, every returned field named', () => {
       const op = Reflect.getMetadata(DECORATORS.API_OPERATION, proto.findAll);
       expect(op.description).toBe(
         'Each term includes a "portfolios" array with the CGIAR portfolios ' +
@@ -659,13 +752,22 @@ describe('Glossary public contract, batch 2', () => {
           'the definition comes from), "sourceUrl" (a link to it, when public) and ' +
           '"referenceDate" (the date of that material, as YYYY-MM-DD). The three are ' +
           'null while a definition has not been attributed yet. ' +
+          'Besides "term" and "definition", every term carries "termId" (its ' +
+          'permanent identifier, which never changes when the wording is ' +
+          'edited), "alternativeLabels" (other names readers use for it, such as ' +
+          'acronyms; an empty list when there are none), "editorialStatus" ' +
+          '("approved" or "deprecated") and "replacedByTermId" (the "termId" of ' +
+          'the term that replaces it, or null). ' +
           'A term whose meaning changed between portfolios is published once per ' +
           'version, so the same "term" can appear more than once: each entry ' +
           'carries the portfolios its definition applies to, and every entry of ' +
           'the same concept shares a "groupId". Terms that were never versioned ' +
           'return a single entry, as they always have. ' +
-          'Last updated September 2026.',
+          'Drafts and terms under review are never listed. ' +
+          'Last updated November 2026.',
       );
+      for (const key of PUBLIC_KEYS)
+        expect(op.description).toContain(`"${key}"`);
     });
 
     it('documents ?show with its three values, optional', () => {
@@ -676,8 +778,7 @@ describe('Glossary public contract, batch 2', () => {
           name: 'show',
           required: false,
           in: 'query',
-          description:
-            "Filter by status: 'all', 'active' (default) or 'inactive'.",
+          description: SHOW_DOC,
           schema: { enum: ['all', 'active', 'inactive'], type: 'string' },
         },
       ]);

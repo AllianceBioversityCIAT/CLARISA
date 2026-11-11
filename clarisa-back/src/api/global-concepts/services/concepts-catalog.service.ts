@@ -20,6 +20,10 @@ import {
   UpdateListValueDto,
 } from '../dto/catalog.dto';
 import { ConceptsAdminService } from './concepts-admin.service';
+import {
+  assertNotGlossaryCollection,
+  assertNotGlossaryConcepts,
+} from '../utils/glossary-write-lock';
 
 /** Same slug rule as the migration seed ('IA (ex ante)' → 'ia_ex_ante'). */
 export const toListValue = (label: string) =>
@@ -61,6 +65,7 @@ export class ConceptsCatalogService {
     return this.dataSource.transaction(async (manager) => {
       const scheme = await this.admin.lockScheme(manager, code);
       const collectionCode = dto.code.trim().toLowerCase();
+      assertNotGlossaryCollection(collectionCode);
       if (!CODE.test(collectionCode))
         throw new BadRequestException(
           'code may only contain lower-case letters, digits, _ and -',
@@ -90,6 +95,7 @@ export class ConceptsCatalogService {
     collectionCode: string,
     dto: UpdateCollectionDto,
   ) {
+    assertNotGlossaryCollection(collectionCode);
     return this.dataSource.transaction(async (manager) => {
       const scheme = await this.admin.lockScheme(manager, code);
       const c = await this.collection(manager, scheme, collectionCode);
@@ -110,6 +116,7 @@ export class ConceptsCatalogService {
     collectionCode: string,
     dto: CollectionMembersDto,
   ) {
+    assertNotGlossaryCollection(collectionCode);
     return this.dataSource.transaction(async (manager) => {
       const scheme = await this.admin.lockScheme(manager, code);
       const c = await this.collection(manager, scheme, collectionCode);
@@ -125,6 +132,20 @@ export class ConceptsCatalogService {
         throw new BadRequestException(
           `Not concepts of "${scheme.code}": ${missing.join(', ')}`,
         );
+      // A glossary term may not join or leave another collection from here.
+      const current = await manager.find(GcCollectionMember, {
+        where: { collection_id: c.id },
+      });
+      const kept = new Set(concepts.map((x) => Number(x.id)));
+      const had = new Set(current.map((m) => Number(m.concept_id)));
+      const moved = [
+        ...concepts.filter((x) => !had.has(Number(x.id))),
+        ...(await this.conceptsByIds(
+          manager,
+          [...had].filter((id) => !kept.has(id)),
+        )),
+      ];
+      await assertNotGlossaryConcepts(manager, moved);
       await manager.delete(GcCollectionMember, { collection_id: c.id });
       if (termIds.length)
         await manager.save(
@@ -142,9 +163,20 @@ export class ConceptsCatalogService {
   }
 
   async deleteCollection(code: string, collectionCode: string) {
+    assertNotGlossaryCollection(collectionCode);
     return this.dataSource.transaction(async (manager) => {
       const scheme = await this.admin.lockScheme(manager, code);
       const c = await this.collection(manager, scheme, collectionCode);
+      const members = await manager.find(GcCollectionMember, {
+        where: { collection_id: c.id },
+      });
+      await assertNotGlossaryConcepts(
+        manager,
+        await this.conceptsByIds(
+          manager,
+          members.map((m) => Number(m.concept_id)),
+        ),
+      );
       await manager.delete(GcCollectionMember, { collection_id: c.id });
       await manager.delete(GcCollection, { id: c.id });
       return { deleted: c.code };
@@ -279,6 +311,12 @@ export class ConceptsCatalogService {
           })),
       };
     });
+  }
+
+  private async conceptsByIds(manager: EntityManager, ids: number[]) {
+    return ids.length
+      ? manager.find(GcConcept, { where: { id: In(ids) } })
+      : [];
   }
 
   private async scheme(manager: EntityManager, code: string) {

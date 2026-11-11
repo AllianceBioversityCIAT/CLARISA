@@ -11,6 +11,7 @@ import {
   ParseIntPipe,
   UseInterceptors,
   ClassSerializerInterceptor,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { GlossaryService } from './glossary.service';
@@ -22,6 +23,12 @@ import { UpdateGlossaryDto } from './dto/update-glossary.dto';
 import { Glossary } from './entities/glossary.entity';
 import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { PermissionRoute } from '../../shared/decorators/permission-route.decorator';
+
+/** Permission of the glossary admin panel (SeedGlossaryAdminPermission1786320000000). */
+const GLOSSARY_ADMIN_ROUTE = '/api/glossary/admin';
 
 @ApiTags('Glossary')
 @Controller()
@@ -50,18 +57,28 @@ export class GlossaryController {
       'the definition comes from), "sourceUrl" (a link to it, when public) and ' +
       '"referenceDate" (the date of that material, as YYYY-MM-DD). The three are ' +
       'null while a definition has not been attributed yet. ' +
+      'Besides "term" and "definition", every term carries "termId" (its ' +
+      'permanent identifier, which never changes when the wording is ' +
+      'edited), "alternativeLabels" (other names readers use for it, such as ' +
+      'acronyms; an empty list when there are none), "editorialStatus" ' +
+      '("approved" or "deprecated") and "replacedByTermId" (the "termId" of ' +
+      'the term that replaces it, or null). ' +
       'A term whose meaning changed between portfolios is published once per ' +
       'version, so the same "term" can appear more than once: each entry ' +
       'carries the portfolios its definition applies to, and every entry of ' +
       'the same concept shares a "groupId". Terms that were never versioned ' +
       'return a single entry, as they always have. ' +
-      'Last updated September 2026.',
+      'Drafts and terms under review are never listed. ' +
+      'Last updated November 2026.',
   })
   @ApiQuery({
     name: 'show',
     enum: FindAllOptions,
     required: false,
-    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+    description:
+      "Filter by status: 'all', 'active' (default) or 'inactive'. Any other " +
+      'value (empty, repeated or in another case) answers 400. Drafts and ' +
+      'terms under review never appear, whatever the value.',
   })
   findAll(@Query('show') show: FindAllOptions) {
     return this.glossaryService.findAll(show);
@@ -88,8 +105,13 @@ export class GlossaryController {
     @Query('format') format: string,
     @Res() res: Response,
   ): Promise<void> {
-    const wanted = (format ?? GlossaryExportFormat.JSON).toLowerCase();
+    // A repeated `format` arrives as an array: a 400 like any unknown value.
+    const wanted =
+      typeof format === 'string' || format === undefined
+        ? (format ?? GlossaryExportFormat.JSON).toLowerCase()
+        : null;
     if (
+      !wanted ||
       !Object.values(GlossaryExportFormat).includes(
         wanted as GlossaryExportFormat,
       )
@@ -123,7 +145,13 @@ export class GlossaryController {
     return await this.glossaryService.findOne(id);
   }
 
+  /**
+   * The old bulk edit. It writes the glossary, so it needs a session with the
+   * glossary admin permission (2026-11-11; it used to answer anonymous calls).
+   */
   @Patch('update')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @PermissionRoute(GLOSSARY_ADMIN_ROUTE)
   async update(
     @Res() res: Response,
     @Body() updateGlossaryDto: UpdateGlossaryDto[],

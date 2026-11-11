@@ -28,7 +28,6 @@ import {
 } from '../global-concepts.config';
 import { UsageService } from '../services/usage.service';
 import { GcUsageKind } from '../entities/gc-usage-daily.entity';
-import { GcConceptStatus } from '../entities/gc-concept.entity';
 import { OptionalApiKeyUsageInterceptor } from '../../../shared/interceptors/optional-api-key-usage.interceptor';
 
 /**
@@ -39,8 +38,9 @@ import { OptionalApiKeyUsageInterceptor } from '../../../shared/interceptors/opt
  * - `Accept: text/turtle` or `application/ld+json` (or `?format=skos|jsonld|json`)
  *   → the resource as data, with `Vary: Accept`;
  * - anything else (a browser) → 303 to the human page on the CLARISA site:
- *   the glossary page for an approved term of the `glossary` collection, the
- *   taxonomy page for any other concept (deprecated glossary terms included).
+ *   the glossary page for every term of the `glossary` collection (approved or
+ *   deprecated: the glossary page shows an inactive term and its replacement),
+ *   the taxonomy page for any other concept.
  *
  * Deprecated concepts keep resolving and carry their replacement (V8).
  */
@@ -78,13 +78,11 @@ export class ConceptUriController {
       // Not counted here: the page it redirects to reads the concept and that
       // read is the view (counting both made every human visit count twice).
       const webBase = webBaseOf(schemeRow);
-      // The glossary page lists active terms only (approved concepts); a
-      // deprecated one stays on the taxonomy page, which shows its replacement.
-      const onGlossaryPage =
-        concept.status === GcConceptStatus.APPROVED &&
-        (concept.collections ?? []).some(
-          (collection) => collection.code === GLOSSARY_COLLECTION_CODE,
-        );
+      // Every glossary term, deprecated ones included, opens on the glossary
+      // page (2026-11-11): the taxonomy pages are hidden from the site.
+      const onGlossaryPage = (concept.collections ?? []).some(
+        (collection) => collection.code === GLOSSARY_COLLECTION_CODE,
+      );
       const glossaryPage = onGlossaryPage
         ? glossaryPageUrl(webBase, concept.term_id)
         : null;

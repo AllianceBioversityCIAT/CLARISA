@@ -38,14 +38,13 @@ describe('Concepts public prefix', () => {
     ).toBe(false);
   });
 
-  it('publishes only the new prefix in the swagger allow-list', () => {
+  it('publishes no path of the module in the swagger allow-list (hidden 2026-11-11)', () => {
+    // The routes keep answering (the glossary uses them); only the public
+    // documentation leaves them out, under the old prefixes as well.
     const module = PUBLIC_OPENAPI_PATHS.filter((p) =>
       /global-concepts|meliaf-taxonomy|^\/api\/concepts(\/|$)/.test(p),
     );
-    expect(module.length).toBeGreaterThan(0);
-    for (const p of module)
-      expect(/^\/api\/meliaf-taxonomy(\/|$)/.test(p)).toBe(true);
-    expect(module.some((p) => p.includes('{scheme}'))).toBe(false);
+    expect(module).toEqual([]);
   });
 
   it('names the API key scopes concepts:*', () => {

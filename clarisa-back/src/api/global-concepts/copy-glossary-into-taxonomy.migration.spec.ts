@@ -388,39 +388,26 @@ describe('CopyGlossaryIntoTaxonomy1793404800000', () => {
   });
 
   describe('down', () => {
+    // 2026-11-11: after the cutover gc_concepts is the only live copy of the
+    // glossary; the old down() deleted every copied concept. It now refuses.
     const existing = [
       { id: 55, term_id: 5, extra: '{"_glossary":{"is_active":true}}' },
-      { id: 56, term_id: 6, extra: '{"notes":"mentions _glossary"}' },
     ];
 
-    it('removes only the marked concepts with everything hanging from them, then the empty collection', async () => {
-      const calls = await run('down', { existing });
-      expect(
-        find(calls, /SELECT id, term_id, extra FROM gc_concepts/)[0][1],
-      ).toEqual([7, '%"_glossary"%']);
-      const deletes = find(calls, /^DELETE FROM/);
-      expect(deletes.map(([sql, p]) => [sql.split(' ')[2], p])).toEqual([
-        ['gc_collection_members', [55]],
-        ['gc_labels', [55]],
-        ['gc_history', [55]],
-        ['gc_mappings', [55]],
-        ['gc_icons', [55]],
-        ['gc_embeddings', [55]],
-        ['gc_relations', [55, 55]],
-        ['gc_concepts', [55]],
-        ['gc_collections', [7, 'glossary']],
-      ]);
-      expect(deletes[6][0]).toMatch(/related_concept_id IN/);
-      expect(
-        find(calls, /UPDATE gc_concepts SET replaced_by_id = NULL/)[0][1],
-      ).toEqual([55]);
-      expect(deletes[8][0]).toMatch(/NOT EXISTS/);
+    it('refuses to run: it throws and sends no query at all', async () => {
+      const calls = await run('down', { existing, expectError: true });
+      expect(lastError).toBeInstanceOf(Error);
+      expect(String((lastError as Error).message)).toMatch(
+        /cannot be reverted/,
+      );
+      expect(calls).toEqual([]);
     });
 
-    it('deletes no concept when none is marked', async () => {
-      const calls = await run('down', { existing: [existing[1]] });
-      expect(find(calls, /DELETE FROM gc_concepts/)).toEqual([]);
-      expect(find(calls, /DELETE FROM gc_collections/)).toHaveLength(1);
+    it('keeps its class name and migration name', () => {
+      expect(Migration.name).toBe('CopyGlossaryIntoTaxonomy1793404800000');
+      expect(new Migration().name).toBe(
+        'CopyGlossaryIntoTaxonomy1793404800000',
+      );
     });
   });
 });
