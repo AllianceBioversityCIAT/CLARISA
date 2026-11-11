@@ -149,7 +149,7 @@ export class GlossaryComponent implements OnInit, OnDestroy {
   /** The focused entry is a term no longer in use (from `?show=inactive`). */
   focusedInactive = false;
   /** The term that replaces the focused inactive one, when it has one. */
-  focusedReplacement: { termId: number; term: string | null; link: string } | null = null;
+  focusedReplacement: { termId: number; term: string; link: string } | null = null;
   /** Whether the active terms have arrived (the inactive ones are only asked after). */
   private activeLoaded = false;
   /**
@@ -194,6 +194,12 @@ export class GlossaryComponent implements OnInit, OnDestroy {
       const id = Number(params.get('termId'));
       this.focusedTermId = this.focusMode && Number.isInteger(id) ? id : null;
       this.rebuildFocusedCard();
+      // Once the active terms are here, the loader only waits for the inactive
+      // ones, and only on a permalink that has no card yet: moving to an active
+      // term or to the list while that request runs must not stay covered.
+      if (this.activeLoaded) {
+        this.loading = this.inactivePending && this.focusMode && !this.focusedCard;
+      }
       this.loadInactiveIfNeeded();
     });
     this._glossaryPageService.getGlossary().subscribe({
@@ -365,7 +371,11 @@ export class GlossaryComponent implements OnInit, OnDestroy {
     if (replacedBy != null && Number.isInteger(Number(replacedBy))) {
       const id = Number(replacedBy);
       const replacement = this.terms.find(term => term.termId === id) ?? this.inactiveTerms?.find(term => term.termId === id);
-      this.focusedReplacement = { termId: id, term: replacement?.term ?? null, link: `/landing-page/glossary/term/${id}` };
+      // Only a replacement the page can open: an id in neither list (a concept
+      // that is not a public glossary term) would lead to "not found".
+      if (replacement) {
+        this.focusedReplacement = { termId: id, term: replacement.term, link: `/landing-page/glossary/term/${id}` };
+      }
     }
     return new GlossaryCard(target.term, [target], this.portfoliosOf([target]), 0);
   }
