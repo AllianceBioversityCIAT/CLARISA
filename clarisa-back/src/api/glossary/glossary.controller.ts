@@ -11,6 +11,7 @@ import {
   ParseIntPipe,
   UseInterceptors,
   ClassSerializerInterceptor,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { GlossaryService } from './glossary.service';
@@ -22,6 +23,12 @@ import { UpdateGlossaryDto } from './dto/update-glossary.dto';
 import { Glossary } from './entities/glossary.entity';
 import { Response } from 'express';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { PermissionRoute } from '../../shared/decorators/permission-route.decorator';
+
+/** Permission of the glossary admin panel (SeedGlossaryAdminPermission1786320000000). */
+const GLOSSARY_ADMIN_ROUTE = '/api/glossary/admin';
 
 @ApiTags('Glossary')
 @Controller()
@@ -123,7 +130,13 @@ export class GlossaryController {
     return await this.glossaryService.findOne(id);
   }
 
+  /**
+   * The old bulk edit. It writes the glossary, so it needs a session with the
+   * glossary admin permission (2026-11-11; it used to answer anonymous calls).
+   */
   @Patch('update')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @PermissionRoute(GLOSSARY_ADMIN_ROUTE)
   async update(
     @Res() res: Response,
     @Body() updateGlossaryDto: UpdateGlossaryDto[],

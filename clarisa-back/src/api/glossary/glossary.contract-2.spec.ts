@@ -7,9 +7,12 @@ jest.mock('../../auth/utils/LDAPAuth', () => ({
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
+  CanActivate,
   ClassSerializerInterceptor,
+  ExecutionContext,
   HttpStatus,
   INestApplication,
+  UnauthorizedException,
   VersioningType,
 } from '@nestjs/common';
 import {
@@ -24,6 +27,11 @@ import { instanceToPlain } from 'class-transformer';
 import request from 'supertest';
 import { getMetadataArgsStorage } from 'typeorm';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { PERMISSION_ROUTE } from '../../shared/decorators/permission-route.decorator';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { UserService } from '../user/user.service';
+import { SeedGlossaryAdminPermission1786320000000 } from '../../../migrations/1786320000000-SeedGlossaryAdminPermission';
 import { ExceptionsFilter } from '../../shared/filters/exceptions.filter';
 import { versionExtractor } from '../../shared/interfaces/version-extractor';
 import { ResponseFormattingInterceptor } from '../../shared/interceptors/response-formatting.interceptor';
@@ -184,6 +192,30 @@ describe('Glossary public contract, batch 2', () => {
       transaction: jest.fn((work: any) => work(undefined)),
     };
 
+    // A session is `Authorization: Bearer <email>` here; without it the JWT
+    // guard answers 401 like passport-jwt does. The PermissionGuard is the real one.
+    const fakeJwt: CanActivate = {
+      canActivate: (ctx: ExecutionContext) => {
+        const req = ctx.switchToHttp().getRequest();
+        const email = /^Bearer (.+)$/.exec(
+          req.headers.authorization ?? '',
+        )?.[1];
+        if (!email) throw new UnauthorizedException();
+        req.user = { email };
+        return true;
+      },
+    };
+    const users = {
+      findOneByEmail: jest.fn(async (email: string) => ({
+        id: 9,
+        email,
+        permissions:
+          email === 'admin@cgiar.org'
+            ? ['/api/glossary/admin']
+            : ['/api/countries'],
+      })),
+    };
+
     beforeAll(async () => {
       const moduleRef = await Test.createTestingModule({
         controllers: [GlossaryController],
@@ -191,10 +223,14 @@ describe('Glossary public contract, batch 2', () => {
           GlossaryService,
           GlossaryExportService,
           { provide: GLOSSARY_STORAGE, useValue: repository },
+          { provide: UserService, useValue: users },
           { provide: APP_FILTER, useClass: ExceptionsFilter },
           { provide: APP_INTERCEPTOR, useClass: ResponseFormattingInterceptor },
         ],
-      }).compile();
+      })
+        .overrideGuard(JwtAuthGuard)
+        .useValue(fakeJwt)
+        .compile();
       app = moduleRef.createNestApplication();
       app.enableVersioning({
         type: VersioningType.CUSTOM,
@@ -404,10 +440,18 @@ describe('Glossary public contract, batch 2', () => {
       });
     });
 
-    describe('PATCH update is public and unvalidated', () => {
-      it('declares no guard and no pipe, on the route or on the class', () => {
+    describe('PATCH update needs a session with the glossary admin permission (2026-11-11)', () => {
+      const ADMIN = 'Bearer admin@cgiar.org';
+
+      it('declares the JWT and permission guards on the route, pinned to /api/glossary/admin; still no pipe', () => {
         const handler = GlossaryController.prototype.update;
-        expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toBeUndefined();
+        expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
+          JwtAuthGuard,
+          PermissionGuard,
+        ]);
+        expect(Reflect.getMetadata(PERMISSION_ROUTE, handler)).toBe(
+          (SeedGlossaryAdminPermission1786320000000 as any).ROUTE,
+        );
         expect(
           Reflect.getMetadata(GUARDS_METADATA, GlossaryController),
         ).toBeUndefined();
@@ -417,7 +461,26 @@ describe('Glossary public contract, batch 2', () => {
         ).toBeUndefined();
       });
 
-      it('writes any column of the body (no whitelist), now through the store', async () => {
+      it('without credentials is a 401 and writes nothing', async () => {
+        const res = await request(app.getHttpServer())
+          .patch('/update')
+          .send([{ id: 7, definition: 'anonymous' }]);
+        expect(res.status).toBe(HttpStatus.UNAUTHORIZED);
+        expect(repository.byId).not.toHaveBeenCalled();
+        expect(repository.save).not.toHaveBeenCalled();
+      });
+
+      it('a session without the glossary admin permission is a 403 and writes nothing', async () => {
+        const res = await request(app.getHttpServer())
+          .patch('/update')
+          .set('Authorization', 'Bearer reader@cgiar.org')
+          .send([{ id: 7, definition: 'not mine' }]);
+        expect(res.status).toBe(HttpStatus.FORBIDDEN);
+        expect(repository.byId).not.toHaveBeenCalled();
+        expect(repository.save).not.toHaveBeenCalled();
+      });
+
+      it('with the permission it writes any column of the body (no whitelist), through the store', async () => {
         // pinned as-is: no whitelist, so `editorial_status` and `is_active` travel.
         const body = [
           {
@@ -432,6 +495,7 @@ describe('Glossary public contract, batch 2', () => {
         ];
         const res = await request(app.getHttpServer())
           .patch('/update')
+          .set('Authorization', ADMIN)
           .send(body);
         expect(res.status).toBe(HttpStatus.OK);
         expect(repository.byId.mock.calls[0][0]).toBe(7);
@@ -445,10 +509,11 @@ describe('Glossary public contract, batch 2', () => {
         expect(res.body).toEqual(body);
       });
 
-      it('accepts a body that is not even an array', async () => {
+      it('with the permission it accepts a body that is not even an array', async () => {
         // pinned as-is: `@Body() UpdateGlossaryDto[]` is a type, not a validation.
         const res = await request(app.getHttpServer())
           .patch('/update')
+          .set('Authorization', ADMIN)
           .send({ id: 7, title: 'one object' });
         expect(res.status).toBe(HttpStatus.OK);
         expect(repository.save.mock.calls[0][0]).toMatchObject({
@@ -456,9 +521,10 @@ describe('Glossary public contract, batch 2', () => {
         });
       });
 
-      it('does not need any credential: no Authorization header is asked for', async () => {
+      it('with the permission an empty list answers 200 and []', async () => {
         const res = await request(app.getHttpServer())
           .patch('/update')
+          .set('Authorization', ADMIN)
           .send([]);
         expect(res.status).toBe(HttpStatus.OK);
         expect(res.body).toEqual([]);
