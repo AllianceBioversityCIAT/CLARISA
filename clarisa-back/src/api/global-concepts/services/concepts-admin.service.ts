@@ -49,6 +49,7 @@ import { ExtraContext, mergeExtra, termLinkIds } from '../utils/custom-fields';
 import { ConceptGraphLoader } from './concept-graph.loader';
 import { rankByRelevance } from './concepts-read.service';
 import { SearchMatch } from '../utils/concept-search';
+import { assertNotGlossaryConcepts } from '../utils/glossary-write-lock';
 
 /** A row of the admin list; `match` only when the list was searched. */
 type AdminListRow = Awaited<
@@ -269,6 +270,7 @@ export class ConceptsAdminService {
     actor: GcActor,
     txId: string = randomUUID(),
   ) {
+    await assertNotGlossaryConcepts(manager, [concept]);
     const before = this.snapshot(concept);
     const lists = await this.loadLists(manager, scheme);
     Object.assign(concept, this.cleanFields(dto, lists));
@@ -340,6 +342,7 @@ export class ConceptsAdminService {
     actor: GcActor,
     txId: string = randomUUID(),
   ) {
+    await assertNotGlossaryConcepts(manager, [concept]);
     const before = this.snapshot(concept);
     if (dto.status === GcConceptStatus.DEPRECATED) {
       let replacement: GcConcept | null = null;
@@ -423,6 +426,7 @@ export class ConceptsAdminService {
     actor: GcActor,
     txId: string = randomUUID(),
   ) {
+    await assertNotGlossaryConcepts(manager, [concept]);
     const lists = await this.loadLists(manager, scheme);
     const languages = lists.get('language');
     const seen = new Set<string>();
@@ -533,6 +537,7 @@ export class ConceptsAdminService {
     actor: GcActor,
     txId: string = randomUUID(),
   ) {
+    await assertNotGlossaryConcepts(manager, [concept, target]);
     const a = Number(concept.id);
     const b = Number(target.id);
     if (a === b)
@@ -603,6 +608,7 @@ export class ConceptsAdminService {
         scheme,
         dto.target_term_id,
       );
+      await assertNotGlossaryConcepts(manager, [concept, target]);
       const a = Number(concept.id);
       const b = Number(target.id);
       const [x, y] =
@@ -643,6 +649,7 @@ export class ConceptsAdminService {
     return this.dataSource.transaction(async (manager) => {
       const scheme = await this.lockScheme(manager, code);
       const concept = await this.findConcept(manager, scheme, termId);
+      await assertNotGlossaryConcepts(manager, [concept]);
       const match = dto.match_type ?? GcMatchType.CLOSE;
       const existing = await manager.findOne(GcMapping, {
         where: {
@@ -694,6 +701,7 @@ export class ConceptsAdminService {
     return this.dataSource.transaction(async (manager) => {
       const scheme = await this.lockScheme(manager, code);
       const concept = await this.findConcept(manager, scheme, termId);
+      await assertNotGlossaryConcepts(manager, [concept]);
       const mapping = await manager.findOne(GcMapping, {
         where: { id: mappingId, concept_id: concept.id },
       });
@@ -745,6 +753,14 @@ export class ConceptsAdminService {
     actor: GcActor,
     txId: string = randomUUID(),
   ) {
+    // Source, survivor, and the concepts whose replacement the merge re-points.
+    await assertNotGlossaryConcepts(manager, [
+      source,
+      target,
+      ...(await manager.find(GcConcept, {
+        where: { replaced_by_id: source.id },
+      })),
+    ]);
     const s = Number(source.id);
     const t = Number(target.id);
     if (s === t)

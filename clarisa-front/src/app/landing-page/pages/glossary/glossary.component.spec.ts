@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, ParamMap } from '@angular/router';
-import { BehaviorSubject, of, throwError } from 'rxjs';
+import { BehaviorSubject, Subject, of, throwError } from 'rxjs';
 
 import { GlossaryComponent } from './glossary.component';
 import { GlossaryPageService } from './services/glossary-page.service';
@@ -49,6 +49,7 @@ describe('GlossaryComponent', () => {
     params = new BehaviorSubject<ParamMap>(convertToParamMap({}));
     mockService = {
       getGlossary: jest.fn().mockReturnValue(of(terms)),
+      getInactiveGlossary: jest.fn().mockReturnValue(of([])),
       exportUrl: jest.fn((format: string) => `https://api.test/api/glossary/export?format=${format}`),
       searchSimilarTermIds: jest.fn().mockReturnValue(of([])),
       // Shaped like `GET api/portfolios?show=all` really answers: the default
@@ -524,6 +525,186 @@ describe('GlossaryComponent', () => {
       expect(fixture.nativeElement.querySelector('.glossary-toolbar')).toBeTruthy();
       expect(fixture.nativeElement.querySelector('.glossary-back')).toBeNull();
     });
+  });
+
+  // The back redirects the persistent URI of an inactive glossary term to its
+  // permalink (2026-11-11), so the page has to show it, flagged as retired.
+  describe('permalink of an inactive term', () => {
+    const inactive = [
+      {
+        termId: 40,
+        term: 'Old outcome',
+        definition: 'The retired wording',
+        portfolios: [{ id: 2, name: 'CGIAR portfolio 2022-2024' }],
+        editorialStatus: 'deprecated',
+        replacedByTermId: 12,
+        termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/40',
+        taxonomyStatus: 'deprecated'
+      },
+      { termId: 41, term: 'Older outcome', definition: 'Even older', portfolios: [], replacedByTermId: 40, termUri: null },
+      { termId: 42, term: 'Gone', definition: 'Nothing replaces it', portfolios: [], replacedByTermId: null, termUri: null },
+      // Replaced by a concept that is not a public glossary term.
+      { termId: 43, term: 'Pointed away', definition: 'Replaced elsewhere', portfolios: [], replacedByTermId: 777, termUri: null }
+    ];
+    const openPermalink = (termId: string) => {
+      params.next(convertToParamMap({ termId }));
+      fixture.detectChanges();
+    };
+    const notice = () => fixture.nativeElement.querySelector('.glossary-card .card-inactive') as HTMLElement | null;
+    const replacementLink = () => notice()?.querySelector('a') as HTMLAnchorElement | null;
+
+    beforeEach(() => {
+      mockService.getInactiveGlossary.mockReturnValue(of(inactive));
+    });
+
+    it('never asks for inactive terms on the normal page, nor on the permalink of an active term', () => {
+      fixture.detectChanges();
+      component.searchText = 'old';
+      expect(component.filteredTerms).toEqual([]);
+      openPermalink('12');
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Innovation']);
+      expect(notice()).toBeNull();
+      expect(mockService.getInactiveGlossary).not.toHaveBeenCalled();
+    });
+
+    it('shows the inactive term with a notice and a link to the active term that replaces it', () => {
+      openPermalink('40');
+      expect(mockService.getInactiveGlossary).toHaveBeenCalledTimes(1);
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Old outcome']);
+      expect(fixture.nativeElement.querySelectorAll('.glossary-card')).toHaveLength(1);
+      expect(fixture.nativeElement.querySelector('.glossary-card.is-inactive')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.glossary-card .card-definition').textContent).toContain('The retired wording');
+      expect(notice()!.textContent).toContain('This term is no longer in use.');
+      expect(notice()!.textContent).toContain('Replaced by');
+      expect(replacementLink()!.textContent!.trim()).toBe('Innovation');
+      expect((replacementLink() as any).routerLink).toBe('/landing-page/glossary/term/12');
+      expect(fixture.nativeElement.querySelector('.glossary-empty')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.glossary-back')).toBeTruthy();
+    });
+
+    it('keeps the three actions working on it: Persistent URI, Cite and Copy link', async () => {
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      try {
+        openPermalink('40');
+        const card = component.filteredTerms[0];
+        const uri = fixture.nativeElement.querySelector('.glossary-card a.card-uri') as HTMLAnchorElement;
+        expect(uri.getAttribute('href')).toBe('https://api.clarisa.cgiar.org/meliaf-taxonomy/40');
+        expect(fixture.nativeElement.querySelector('.glossary-card .card-cite')).toBeTruthy();
+        expect(fixture.nativeElement.querySelector('.glossary-card .card-copy')).toBeTruthy();
+
+        component.copyLink(card);
+        await Promise.resolve();
+        expect(writeText).toHaveBeenLastCalledWith(`${location.origin}/landing-page/glossary/term/40`);
+        expect(component.citationOf(card, new Date(2026, 10, 11))).toBe(
+          'Old outcome. CLARISA Glossary, CGIAR. https://api.clarisa.cgiar.org/meliaf-taxonomy/40 (accessed 2026-11-11).'
+        );
+      } finally {
+        delete (navigator as any).clipboard;
+      }
+    });
+
+    it('links to a replacement that is itself inactive, and follows it without asking again', () => {
+      openPermalink('41');
+      expect(replacementLink()!.textContent!.trim()).toBe('Old outcome');
+      expect((replacementLink() as any).routerLink).toBe('/landing-page/glossary/term/40');
+
+      openPermalink('40');
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Old outcome']);
+      openPermalink('12');
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Innovation']);
+      expect(notice()).toBeNull();
+      expect(mockService.getInactiveGlossary).toHaveBeenCalledTimes(1);
+    });
+
+    it('says the term is no longer in use without a link when nothing replaces it', () => {
+      openPermalink('42');
+      expect(notice()!.textContent).toContain('This term is no longer in use.');
+      expect(replacementLink()).toBeNull();
+    });
+
+    it('shows no replacement link when the replacement is in neither list (it would lead to "not found")', () => {
+      openPermalink('43');
+      expect(notice()!.textContent).toContain('This term is no longer in use.');
+      expect(notice()!.textContent).not.toContain('Replaced by');
+      expect(replacementLink()).toBeNull();
+      expect(component.focusedReplacement).toBeNull();
+    });
+
+    it('takes the loader off when the route moves to an active term while the inactive request is pending', () => {
+      const pending = new Subject<any[]>();
+      mockService.getInactiveGlossary.mockReturnValue(pending.asObservable());
+      openPermalink('40');
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeTruthy();
+
+      openPermalink('12');
+      expect(component.loading).toBe(false);
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeNull();
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Innovation']);
+
+      pending.next(inactive);
+      pending.complete();
+      fixture.detectChanges();
+      expect(component.loading).toBe(false);
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Innovation']);
+      expect(notice()).toBeNull();
+    });
+
+    it('takes the loader off when the route moves back to the list while the inactive request is pending', () => {
+      const pending = new Subject<any[]>();
+      mockService.getInactiveGlossary.mockReturnValue(pending.asObservable());
+      openPermalink('40');
+      params.next(convertToParamMap({}));
+      fixture.detectChanges();
+      expect(component.loading).toBe(false);
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeNull();
+      expect(component.filteredTerms.length).toBeGreaterThan(0);
+    });
+
+    it('keeps "This term was not found." for an id that exists nowhere', () => {
+      openPermalink('999');
+      expect(mockService.getInactiveGlossary).toHaveBeenCalledTimes(1);
+      expect(component.loading).toBe(false);
+      expect(component.filteredTerms).toEqual([]);
+      expect(fixture.nativeElement.querySelector('.glossary-empty').textContent).toContain('This term was not found.');
+    });
+
+    it('shows the not-found state, not an error, when the inactive request fails', () => {
+      mockService.getInactiveGlossary.mockReturnValue(throwError(() => new Error('down')));
+      openPermalink('40');
+      expect(component.loading).toBe(false);
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.glossary-empty').textContent).toContain('This term was not found.');
+    });
+
+    it('shows the loader, not "not found", while the inactive terms are on their way', () => {
+      const pending = new Subject<any[]>();
+      mockService.getInactiveGlossary.mockReturnValue(pending.asObservable());
+      openPermalink('40');
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.glossary-empty')).toBeNull();
+      pending.next(inactive);
+      pending.complete();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeNull();
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Old outcome']);
+    });
+
+    it('never puts an inactive term in the list, the search or the similar terms', fakeAsync(() => {
+      openPermalink('40');
+      params.next(convertToParamMap({}));
+      fixture.detectChanges();
+      showAllPortfolios();
+      expect(component.cards.map(card => card.term)).not.toContain('Old outcome');
+      component.searchText = 'retired';
+      expect(component.filteredTerms).toEqual([]);
+
+      mockService.searchSimilarTermIds.mockReturnValue(of([40, 12]));
+      component.searchText = 'oldd outcom';
+      component.onSearchChange('oldd outcom');
+      tick(300);
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Innovation']);
+    }));
   });
 
   describe('copy link', () => {

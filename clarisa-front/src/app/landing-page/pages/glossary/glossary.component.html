@@ -98,7 +98,11 @@
     </p>
 
     <div class="glossary-list" *ngIf="!loading && shownTerms.length">
-      <article class="glossary-card" *ngFor="let item of shownTerms" [class.is-focused]="focusMode">
+      <article
+        class="glossary-card"
+        *ngFor="let item of shownTerms"
+        [class.is-focused]="focusMode"
+        [class.is-inactive]="focusMode && focusedInactive">
         <div class="card-header">
           <div class="card-title">
             <h4>{{ item.term }}</h4>
@@ -149,6 +153,17 @@
             </span>
           </div>
         </div>
+        <!-- A retired term opened from its permalink or its persistent URI: kept readable, flagged, and pointing to its replacement. -->
+        <p class="card-inactive" *ngIf="focusMode && focusedInactive">
+          <i class="pi pi-info-circle" aria-hidden="true"></i>
+          <span>
+            <strong>This term is no longer in use.</strong>
+            <ng-container *ngIf="focusedReplacement as replacement">
+              Replaced by:
+              <a [routerLink]="replacement.link">{{ replacement.term }}</a>
+            </ng-container>
+          </span>
+        </p>
         <p class="card-definition" [innerHTML]="renderable(item.definition)"></p>
         <p class="card-source" *ngIf="item.source || item.referenceDate">
           <!-- prettier-ignore -->

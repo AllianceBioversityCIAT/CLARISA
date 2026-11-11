@@ -66,6 +66,20 @@ describe('filterPublicPaths', () => {
   });
 });
 
+describe('PUBLIC_OPENAPI_PATHS', () => {
+  it('leaves the MELIAF taxonomy out (hidden 2026-11-11; its routes keep answering)', () => {
+    expect(
+      PUBLIC_OPENAPI_PATHS.filter((p) => /meliaf-taxonomy/.test(p)),
+    ).toEqual([]);
+  });
+
+  it('publishes 42 paths: the home "API endpoints" figure is this length', () => {
+    // 50 until 2026-11-11, minus the 8 MELIAF taxonomy paths.
+    expect(PUBLIC_OPENAPI_PATHS).toHaveLength(42);
+    expect(new Set(PUBLIC_OPENAPI_PATHS).size).toBe(42);
+  });
+});
+
 describe('PUBLIC_RECORD_LOOKUPS', () => {
   it('only names lists that are themselves public', () => {
     const lists = new Set(PUBLIC_OPENAPI_PATHS);

@@ -43,19 +43,29 @@ export class GlossaryV2Controller {
       'Version 2 of the glossary, versioned in the URL path: api/glossary ' +
       'keeps serving v1 unchanged and api/v2/glossary is where the glossary ' +
       'grows from now on. v2 answers the same terms and keys as v1, plus ' +
-      '"termUri" (the persistent URI of the term in the MELIAF taxonomy) and ' +
-      '"taxonomyStatus" ("approved" or "deprecated"), both null for a term ' +
-      'that is not in the taxonomy yet. ' +
-      'Each term includes a "portfolios" array with the CGIAR portfolios ' +
-      '(id, name, acronym) the term belongs to, and may carry its ' +
-      'provenance: "source", "sourceUrl" and "referenceDate" (YYYY-MM-DD), ' +
-      'null while a definition has not been attributed yet.',
+      '"termUri" (the persistent URI of the term) and "taxonomyStatus" (the ' +
+      'status of the term in the taxonomy: "approved" or "deprecated"), both ' +
+      'null when the term has no public concept. ' +
+      'Each term carries "term", "definition", "termId" (its permanent ' +
+      'identifier), "groupId" (shared by every entry of the same concept: a ' +
+      'term whose meaning changed between portfolios is published once per ' +
+      'version), "alternativeLabels" (other names readers use for it; an ' +
+      'empty list when there are none), "editorialStatus" ("approved" or ' +
+      '"deprecated"), "replacedByTermId" (the "termId" of the term that ' +
+      'replaces it, or null), a "portfolios" array with the CGIAR portfolios ' +
+      '(id, name, acronym) the term belongs to, and its provenance: ' +
+      '"source", "sourceUrl" and "referenceDate" (YYYY-MM-DD), null while a ' +
+      'definition has not been attributed yet. ' +
+      'Drafts and terms under review are never listed.',
   })
   @ApiQuery({
     name: 'show',
     enum: FindAllOptions,
     required: false,
-    description: "Filter by status: 'all', 'active' (default) or 'inactive'.",
+    description:
+      "Filter by status: 'all', 'active' (default) or 'inactive'. Any other " +
+      'value (empty, repeated or in another case) answers 400. Drafts and ' +
+      'terms under review never appear, whatever the value.',
   })
   async findAll(@Query('show') show: FindAllOptions) {
     const terms = await this.glossaryService.findAll(show);

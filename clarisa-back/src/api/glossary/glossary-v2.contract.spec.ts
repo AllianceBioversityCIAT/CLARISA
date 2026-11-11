@@ -21,6 +21,7 @@ import {
 } from '@nestjs/common/constants';
 import { APP_FILTER, APP_INTERCEPTOR, RouterModule } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
+import { DECORATORS } from '@nestjs/swagger/dist/constants';
 import { DataSource } from 'typeorm';
 import request from 'supertest';
 import { apiRoutes } from '../api.routes';
@@ -462,6 +463,105 @@ describe('Glossary v2 in the URL path (api/v2/glossary)', () => {
         path: null,
       });
       expect(v2.body.path).toBe('/api/v2/glossary');
+    });
+  });
+
+  describe('invalid ?show= on api/v2/glossary, with the real service (2026-11-11)', () => {
+    let app: INestApplication;
+    const store = new InMemoryGlossaryStore(ROWS);
+    const links = { linksForOrEmpty: jest.fn(async () => new Map()) };
+
+    beforeAll(async () => {
+      const moduleRef = await Test.createTestingModule({
+        controllers: [GlossaryV2Controller],
+        providers: [
+          GlossaryService,
+          { provide: GLOSSARY_STORAGE, useValue: store },
+          { provide: GlossaryTaxonomyLinksService, useValue: links },
+          { provide: APP_FILTER, useClass: ExceptionsFilter },
+          { provide: APP_INTERCEPTOR, useClass: ResponseFormattingInterceptor },
+        ],
+      }).compile();
+      app = moduleRef.createNestApplication();
+      await app.init();
+    });
+
+    afterAll(async () => {
+      await app.close();
+    });
+
+    it.each([
+      ['?show=foo', 'foo'],
+      ['?show=', ''],
+      ['?show=ALL', 'ALL'],
+      ['?show=a&show=b', 'a,b'],
+    ])(
+      '%s is a 400 naming the accepted values (it was a 500)',
+      async (q, v) => {
+        const res = await request(app.getHttpServer()).get(`/${q}`);
+        expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+        expect(res.body.status).toBe(400);
+        expect(res.body.message).toBe(
+          `Unknown show value "${v}". Use all, active or inactive.`,
+        );
+        expect(links.linksForOrEmpty).not.toHaveBeenCalled();
+      },
+    );
+
+    it('a valid ?show= still answers 200', async () => {
+      const res = await request(app.getHttpServer()).get('/?show=all');
+      expect(res.status).toBe(HttpStatus.OK);
+    });
+  });
+
+  describe('what the public Swagger decorators of v2 say (2026-11-11)', () => {
+    const proto = GlossaryV2Controller.prototype;
+
+    it('keeps its summary', () => {
+      const op = Reflect.getMetadata(DECORATORS.API_OPERATION, proto.findAll);
+      expect(op.summary).toBe('List glossary terms (v2)');
+    });
+
+    it('names every returned field, and never the product name of the taxonomy', () => {
+      const op = Reflect.getMetadata(DECORATORS.API_OPERATION, proto.findAll);
+      expect(op.description).toBe(
+        'Version 2 of the glossary, versioned in the URL path: api/glossary ' +
+          'keeps serving v1 unchanged and api/v2/glossary is where the glossary ' +
+          'grows from now on. v2 answers the same terms and keys as v1, plus ' +
+          '"termUri" (the persistent URI of the term) and "taxonomyStatus" (the ' +
+          'status of the term in the taxonomy: "approved" or "deprecated"), both ' +
+          'null when the term has no public concept. ' +
+          'Each term carries "term", "definition", "termId" (its permanent ' +
+          'identifier), "groupId" (shared by every entry of the same concept: a ' +
+          'term whose meaning changed between portfolios is published once per ' +
+          'version), "alternativeLabels" (other names readers use for it; an ' +
+          'empty list when there are none), "editorialStatus" ("approved" or ' +
+          '"deprecated"), "replacedByTermId" (the "termId" of the term that ' +
+          'replaces it, or null), a "portfolios" array with the CGIAR portfolios ' +
+          '(id, name, acronym) the term belongs to, and its provenance: ' +
+          '"source", "sourceUrl" and "referenceDate" (YYYY-MM-DD), null while a ' +
+          'definition has not been attributed yet. ' +
+          'Drafts and terms under review are never listed.',
+      );
+      expect(op.description).not.toMatch(/MELIAF/i);
+      for (const key of V2_KEYS) expect(op.description).toContain(`"${key}"`);
+    });
+
+    it('documents ?show with its three values and what any other value does', () => {
+      expect(
+        Reflect.getMetadata(DECORATORS.API_PARAMETERS, proto.findAll),
+      ).toEqual([
+        {
+          name: 'show',
+          required: false,
+          in: 'query',
+          description:
+            "Filter by status: 'all', 'active' (default) or 'inactive'. Any other " +
+            'value (empty, repeated or in another case) answers 400. Drafts and ' +
+            'terms under review never appear, whatever the value.',
+          schema: { enum: ['all', 'active', 'inactive'], type: 'string' },
+        },
+      ]);
     });
   });
 });

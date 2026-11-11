@@ -125,7 +125,7 @@ describe('persistent URIs (meliaf-taxonomy is the root)', () => {
       );
     });
 
-    it('a deprecated glossary term keeps the taxonomy page: the glossary only lists active terms', async () => {
+    it('a deprecated glossary term also opens its glossary page (the taxonomy pages are hidden)', async () => {
       const { controller, res } = build(
         [{ code: 'glossary', label: 'Glossary' }],
         'deprecated',
@@ -133,8 +133,31 @@ describe('persistent URIs (meliaf-taxonomy is the root)', () => {
       await controller.concept(1, res, 'text/html');
       expect(res.redirect).toHaveBeenCalledWith(
         303,
+        'https://clarisa.cgiar.org/landing-page/glossary/term/2374',
+      );
+    });
+
+    it('a deprecated concept outside the glossary keeps the taxonomy page', async () => {
+      const { controller, res } = build([], 'deprecated');
+      await controller.concept(2374, res, 'text/html');
+      expect(res.redirect).toHaveBeenCalledWith(
+        303,
         'https://clarisa.cgiar.org/landing-page/concepts/meliaf-taxonomy/2374',
       );
+    });
+
+    it('a deprecated glossary term asked as data still answers the data', async () => {
+      const { controller, exporter, res } = build(
+        [{ code: 'glossary', label: 'Glossary' }],
+        'deprecated',
+      );
+      await controller.concept(391, res, 'text/turtle');
+      await controller.concept(391, res, 'text/html', 'jsonld');
+      expect(res.redirect).not.toHaveBeenCalled();
+      expect(exporter.render).toHaveBeenCalledTimes(2);
+      expect(
+        (exporter.render.mock.calls as unknown[][]).map((c) => c[2]),
+      ).toEqual(['skos', 'jsonld']);
     });
 
     it('a concept in another collection keeps the taxonomy page', async () => {

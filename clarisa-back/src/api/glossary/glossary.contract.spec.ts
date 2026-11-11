@@ -25,6 +25,8 @@ import { PUBLIC_OPENAPI_PATHS } from '../../shared/swagger/public-endpoints';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { ExceptionsFilter } from '../../shared/filters/exceptions.filter';
 import { ResponseFormattingInterceptor } from '../../shared/interceptors/response-formatting.interceptor';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { PermissionGuard } from '../../shared/guards/permission.guard';
 import { Portfolio } from '../portfolio/entities/portfolio.entity';
 import {
   Glossary,
@@ -520,7 +522,15 @@ describe('Glossary public contract (as production answers it)', () => {
           { provide: APP_FILTER, useClass: ExceptionsFilter },
           { provide: APP_INTERCEPTOR, useClass: ResponseFormattingInterceptor },
         ],
-      }).compile();
+      })
+        // PATCH /update needs a session with the glossary admin permission
+        // since 2026-11-11 (401/403 pinned in glossary.contract-2.spec); here
+        // the caller holds it, and what is pinned is the reply.
+        .overrideGuard(JwtAuthGuard)
+        .useValue({ canActivate: () => true })
+        .overrideGuard(PermissionGuard)
+        .useValue({ canActivate: () => true })
+        .compile();
       app = moduleRef.createNestApplication();
       await app.init();
     });

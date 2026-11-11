@@ -53,10 +53,22 @@ describe('AdminHomeComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/clarisa-panel/manage/partner-request'], { queryParams: undefined, replaceUrl: true });
   });
 
-  it('sends a Concepts-only member straight to Concepts, replacing the history entry (denied note dropped)', () => {
-    const { home, router } = build(member(['/api/meliaf-taxonomy/admin']), { denied: 'Users' });
+  // MELIAF taxonomy is hidden (MELIAF_TAXONOMY_HIDDEN): a member whose only
+  // permission is a MELIAF one stays on the home (no dead link, no loop).
+  ['/api/meliaf-taxonomy/admin', '/api/meliaf-taxonomy/admin/concepts'].forEach(permission =>
+    it(`keeps a MELIAF-only member (${permission}) on the home, with no card and no redirect`, () => {
+      const { home, router } = build(member([permission]));
+      expect(router.navigate).not.toHaveBeenCalled();
+      expect(labels(home)).toEqual([]);
+      expect(home.isEmpty).toBe(true);
+      expect(home.loading).toBe(false);
+    })
+  );
+
+  it('sends a Glossary-only member straight to Glossary, replacing the history entry (denied note dropped)', () => {
+    const { home, router } = build(member(['/api/glossary/admin']), { denied: 'Users' });
     expect(router.navigate).toHaveBeenCalledTimes(1);
-    expect(router.navigate).toHaveBeenCalledWith(['/clarisa-panel/manage/concepts-admin'], { queryParams: undefined, replaceUrl: true });
+    expect(router.navigate).toHaveBeenCalledWith(['/clarisa-panel/manage/glossary-admin'], { queryParams: undefined, replaceUrl: true });
     // The list never flashes while the navigation runs.
     expect(home.loading).toBe(true);
   });
