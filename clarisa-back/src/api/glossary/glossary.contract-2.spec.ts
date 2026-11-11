@@ -22,17 +22,13 @@ import { Test } from '@nestjs/testing';
 import { DECORATORS } from '@nestjs/swagger/dist/constants';
 import { instanceToPlain } from 'class-transformer';
 import request from 'supertest';
-import { getMetadataArgsStorage, In } from 'typeorm';
+import { getMetadataArgsStorage } from 'typeorm';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { ExceptionsFilter } from '../../shared/filters/exceptions.filter';
 import { versionExtractor } from '../../shared/interfaces/version-extractor';
 import { ResponseFormattingInterceptor } from '../../shared/interceptors/response-formatting.interceptor';
 import { Portfolio } from '../portfolio/entities/portfolio.entity';
-import {
-  Glossary,
-  GlossaryEditorialStatus,
-  PUBLISHED_EDITORIAL_STATUSES,
-} from './entities/glossary.entity';
+import { Glossary, GlossaryEditorialStatus } from './entities/glossary.entity';
 import { GlossaryPortfolio } from './entities/glossary-portfolio.entity';
 import { GlossaryController } from './glossary.controller';
 import {
@@ -40,7 +36,7 @@ import {
   GlossaryExportService,
 } from './glossary-export.service';
 import { GlossaryService } from './glossary.service';
-import { GlossaryRepository } from './repositories/glossary.repository';
+import { GLOSSARY_STORAGE } from './glossary-store';
 
 /**
  * SECOND BATCH of the glossary contract (Yeck, 2026-10-29): the gaps batch 1
@@ -178,19 +174,14 @@ describe('Glossary public contract, batch 2', () => {
 
   describe('over HTTP, with versioning on like main.ts', () => {
     let app: INestApplication;
+    // The store the service reads since 2026-11-06 (the taxonomy), faked.
     const repository = {
-      find: jest.fn(),
-      findOne: jest.fn(),
+      all: jest.fn(),
+      byId: jest.fn(),
+      portfolioIds: jest.fn(),
       save: jest.fn(),
-    };
-
-    const published = { editorial_status: In(PUBLISHED_EDITORIAL_STATUSES) };
-    const order = { title: 'ASC' };
-    const relations = { glossary_portfolio_array: { portfolio_object: true } };
-    const activeFind = {
-      where: { ...published, auditableFields: { is_active: true } },
-      order,
-      relations,
+      setPortfolios: jest.fn(),
+      transaction: jest.fn((work: any) => work(undefined)),
     };
 
     beforeAll(async () => {
@@ -199,7 +190,7 @@ describe('Glossary public contract, batch 2', () => {
         providers: [
           GlossaryService,
           GlossaryExportService,
-          { provide: GlossaryRepository, useValue: repository },
+          { provide: GLOSSARY_STORAGE, useValue: repository },
           { provide: APP_FILTER, useClass: ExceptionsFilter },
           { provide: APP_INTERCEPTOR, useClass: ResponseFormattingInterceptor },
         ],
@@ -218,11 +209,26 @@ describe('Glossary public contract, batch 2', () => {
 
     beforeEach(() => {
       jest.clearAllMocks();
-      repository.find.mockResolvedValue([
+      const dashboard = (id: number, title: string, active: boolean) => {
+        const g = term(id, title, `${title} definition`, {
+          show_in_dashboard: true,
+        });
+        g.auditableFields.is_active = active;
+        return g;
+      };
+      repository.all.mockResolvedValue([
         term(1, 'Alpha', 'First', {}, [{ ...P25 }]),
+        dashboard(11, 'Dash active', true),
+        dashboard(12, 'Dash inactive', false),
+        term(13, 'Dash draft', 'x', {
+          show_in_dashboard: true,
+          editorial_status: GlossaryEditorialStatus.DRAFT,
+        }),
+        Object.assign(term(14, 'Gone', 'Inactive one'), {
+          auditableFields: { is_active: false },
+        }),
       ]);
-      repository.findOne.mockResolvedValue(term(1, 'Alpha', 'First'));
-      repository.save.mockImplementation(async (rows) => rows);
+      repository.byId.mockResolvedValue(term(1, 'Alpha', 'First'));
     });
 
     it.each([
@@ -236,7 +242,7 @@ describe('Glossary public contract, batch 2', () => {
     ])('GET %s answers the v1 shape, eleven keys, unchanged', async (url) => {
       const res = await request(app.getHttpServer()).get(url);
       expect(res.status).toBe(HttpStatus.OK);
-      expect(res.body).toHaveLength(1);
+      expect(res.body).toHaveLength(2);
       expect(Object.keys(res.body[0])).toEqual(PUBLIC_KEYS);
       expect(res.body[0]).toEqual({
         term: 'Alpha',
@@ -253,10 +259,14 @@ describe('Glossary public contract, batch 2', () => {
       });
     });
 
-    it('unknown query params do not change what the repository is asked', async () => {
-      await request(app.getHttpServer()).get('/?version=2&portfolio=3&foo=bar');
-      expect(repository.find).toHaveBeenCalledTimes(1);
-      expect(repository.find).toHaveBeenCalledWith(activeFind);
+    it('unknown query params do not change what is answered', async () => {
+      const plain = await request(app.getHttpServer()).get('/');
+      const odd = await request(app.getHttpServer()).get(
+        '/?version=2&portfolio=3&foo=bar',
+      );
+      expect(repository.all).toHaveBeenCalledTimes(2);
+      expect(odd.body).toEqual(plain.body);
+      expect(plain.body.map((t: any) => t.termId)).toEqual([1, 11]);
     });
 
     it('?version=2 on the dashboard and on get/:id is ignored as well', async () => {
@@ -285,7 +295,7 @@ describe('Glossary public contract, batch 2', () => {
       expect(res.body.message).toBe('?!');
       expect(res.body.status).toBe(500);
       expect(res.body.path).toBe('/?show=foo');
-      expect(repository.find).not.toHaveBeenCalled();
+      expect(repository.all).not.toHaveBeenCalled();
     });
 
     it('?show=a&show=b (a repeated param) is the same 500', async () => {
@@ -293,7 +303,7 @@ describe('Glossary public contract, batch 2', () => {
       const res = await request(app.getHttpServer()).get('/?show=a&show=b');
       expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
       expect(res.body.message).toBe('?!');
-      expect(repository.find).not.toHaveBeenCalled();
+      expect(repository.all).not.toHaveBeenCalled();
     });
 
     it('?show= (empty) is the same 500, not the default', async () => {
@@ -314,56 +324,37 @@ describe('Glossary public contract, batch 2', () => {
       expect(res.body.message).toBe('?!');
     });
 
-    it('/dashboard (no show) asks for active dashboard terms', async () => {
-      await request(app.getHttpServer()).get('/dashboard');
-      expect(repository.find).toHaveBeenCalledWith({
-        where: {
-          ...published,
-          show_in_dashboard: true,
-          auditableFields: { is_active: true },
-        },
-        order,
-        relations,
-      });
+    const termIds = (res: request.Response) =>
+      res.body.map((t: any) => t.termId);
+
+    it('/dashboard (no show) answers active dashboard terms', async () => {
+      const res = await request(app.getHttpServer()).get('/dashboard');
+      expect(termIds(res)).toEqual([11]);
     });
 
     it('/dashboard?show=all drops only the active filter, keeps dashboard and published', async () => {
-      await request(app.getHttpServer()).get('/dashboard?show=all');
-      expect(repository.find).toHaveBeenCalledWith({
-        where: { ...published, show_in_dashboard: true },
-        order,
-        relations,
-      });
+      const res = await request(app.getHttpServer()).get('/dashboard?show=all');
+      expect(termIds(res)).toEqual([11, 12]);
     });
 
-    it('/dashboard?show=inactive asks for inactive dashboard terms', async () => {
-      await request(app.getHttpServer()).get('/dashboard?show=inactive');
-      expect(repository.find).toHaveBeenCalledWith({
-        where: {
-          ...published,
-          show_in_dashboard: true,
-          auditableFields: { is_active: false },
-        },
-        order,
-        relations,
-      });
+    it('/dashboard?show=inactive answers inactive dashboard terms', async () => {
+      const res = await request(app.getHttpServer()).get(
+        '/dashboard?show=inactive',
+      );
+      expect(termIds(res)).toEqual([12]);
     });
 
     it('/dashboard?show=active equals /dashboard with no show', async () => {
-      await request(app.getHttpServer()).get('/dashboard?show=active');
-      await request(app.getHttpServer()).get('/dashboard');
-      expect(repository.find.mock.calls[0]).toEqual(
-        repository.find.mock.calls[1],
+      const a = await request(app.getHttpServer()).get(
+        '/dashboard?show=active',
       );
+      const b = await request(app.getHttpServer()).get('/dashboard');
+      expect(a.body).toEqual(b.body);
     });
 
-    it('?show=inactive on the main list asks for inactive published terms', async () => {
-      await request(app.getHttpServer()).get('/?show=inactive');
-      expect(repository.find).toHaveBeenCalledWith({
-        where: { ...published, auditableFields: { is_active: false } },
-        order,
-        relations,
-      });
+    it('?show=inactive on the main list answers inactive published terms', async () => {
+      const res = await request(app.getHttpServer()).get('/?show=inactive');
+      expect(termIds(res)).toEqual([12, 14]);
     });
 
     describe('GET get/:id with unusual ids', () => {
@@ -380,26 +371,20 @@ describe('Glossary public contract, batch 2', () => {
         const res = await request(app.getHttpServer()).get(`/get/${id}`);
         expect(res.status).toBe(HttpStatus.BAD_REQUEST);
         expect(res.body.status).toBe(400);
-        expect(repository.findOne).not.toHaveBeenCalled();
+        expect(repository.byId).not.toHaveBeenCalled();
       });
 
       it('-1 is accepted and asked for as a negative id', async () => {
         // pinned as-is: ParseIntPipe takes any integer, signed ones included.
         const res = await request(app.getHttpServer()).get('/get/-1');
         expect(res.status).toBe(HttpStatus.OK);
-        expect(repository.findOne).toHaveBeenCalledWith({
-          where: { id: -1, ...published },
-          relations,
-        });
+        expect(repository.byId).toHaveBeenCalledWith(-1);
       });
 
       it('0 is accepted and asked for as id 0', async () => {
         const res = await request(app.getHttpServer()).get('/get/0');
         expect(res.status).toBe(HttpStatus.OK);
-        expect(repository.findOne).toHaveBeenCalledWith({
-          where: { id: 0, ...published },
-          relations,
-        });
+        expect(repository.byId).toHaveBeenCalledWith(0);
       });
 
       it('a huge number is accepted and rounded to a double', async () => {
@@ -408,14 +393,14 @@ describe('Glossary public contract, batch 2', () => {
           '/get/99999999999999999999',
         );
         expect(res.status).toBe(HttpStatus.OK);
-        const arg = repository.findOne.mock.calls[0][0];
-        expect(arg.where.id).toBe(1e20);
-        expect(Number.isSafeInteger(arg.where.id)).toBe(false);
+        const arg = repository.byId.mock.calls[0][0];
+        expect(arg).toBe(1e20);
+        expect(Number.isSafeInteger(arg)).toBe(false);
       });
 
       it('leading zeros are read as decimal (007 is 7)', async () => {
         await request(app.getHttpServer()).get('/get/007');
-        expect(repository.findOne.mock.calls[0][0].where.id).toBe(7);
+        expect(repository.byId.mock.calls[0][0]).toBe(7);
       });
     });
 
@@ -432,7 +417,7 @@ describe('Glossary public contract, batch 2', () => {
         ).toBeUndefined();
       });
 
-      it('sends any column of the body straight to repository.save', async () => {
+      it('writes any column of the body (no whitelist), now through the store', async () => {
         // pinned as-is: no whitelist, so `editorial_status` and `is_active` travel.
         const body = [
           {
@@ -449,8 +434,14 @@ describe('Glossary public contract, batch 2', () => {
           .patch('/update')
           .send(body);
         expect(res.status).toBe(HttpStatus.OK);
+        expect(repository.byId.mock.calls[0][0]).toBe(7);
         expect(repository.save).toHaveBeenCalledTimes(1);
-        expect(repository.save).toHaveBeenCalledWith(body);
+        expect(repository.save.mock.calls[0][0]).toMatchObject({
+          definition: 'edited',
+          editorial_status: 'draft',
+          show_in_dashboard: true,
+          replaced_by_id: 99,
+        });
         expect(res.body).toEqual(body);
       });
 
@@ -460,8 +451,7 @@ describe('Glossary public contract, batch 2', () => {
           .patch('/update')
           .send({ id: 7, title: 'one object' });
         expect(res.status).toBe(HttpStatus.OK);
-        expect(repository.save).toHaveBeenCalledWith({
-          id: 7,
+        expect(repository.save.mock.calls[0][0]).toMatchObject({
           title: 'one object',
         });
       });
@@ -526,9 +516,9 @@ describe('Glossary public contract, batch 2', () => {
         );
       });
 
-      it('export asks the repository for active published terms only, whatever ?show says', async () => {
-        await request(app.getHttpServer()).get('/export?show=all');
-        expect(repository.find).toHaveBeenCalledWith(activeFind);
+      it('export publishes active published terms only, whatever ?show says', async () => {
+        const res = await request(app.getHttpServer()).get('/export?show=all');
+        expect(JSON.parse(res.text).map((t: any) => t.termId)).toEqual([1, 11]);
       });
 
       it('?version=2 does not change the export either', async () => {
@@ -583,46 +573,50 @@ describe('Glossary public contract, batch 2', () => {
   });
 
   describe('ordering and ties', () => {
-    it('asks the database for title ASC and nothing else: no secondary sort', async () => {
-      const repository = { find: jest.fn().mockResolvedValue([]) };
-      const service = new GlossaryService(repository as any);
-      await service.findAll();
-      const options = repository.find.mock.calls[0][0];
-      expect(Object.keys(options)).toEqual(['where', 'order', 'relations']);
-      expect(options.order).toEqual({ title: 'ASC' });
-      expect(Object.keys(options.order)).toEqual(['title']);
+    const storeOf = (rows: Glossary[]) => ({
+      transaction: jest.fn((work: any) => work(undefined)),
+      all: jest.fn().mockResolvedValue(rows),
+      byId: jest.fn(),
+      portfolioIds: jest.fn(),
+      save: jest.fn(),
+      setPortfolios: jest.fn(),
     });
 
-    it('two terms with the same title keep the order the repository gave', async () => {
+    it('reads the store once and keeps its order (the store sorts by term, like title ASC)', async () => {
+      const store = storeOf([term(2, 'Zeta', 'z'), term(1, 'Alpha', 'a')]);
+      const service = new GlossaryService(store);
+      const rows = await service.findAll();
+      expect(store.all).toHaveBeenCalledTimes(1);
+      expect(rows.map((r) => Number(r.id))).toEqual([2, 1]);
+    });
+
+    it('two terms with the same title keep the order the store gave', async () => {
       // pinned as-is: the service never re-sorts, so ties follow the database.
       const first = term(20, 'Outcome', 'newer', { group_id: 5 as any });
       const second = term(5, 'Outcome', 'older');
-      const repository = {
-        find: jest.fn().mockResolvedValue([first, second]),
-      };
-      const service = new GlossaryService(repository as any);
+      const store = storeOf([first, second]);
+      const service = new GlossaryService(store);
       const rows = await service.findAll();
       expect(rows.map((r) => Number(r.id))).toEqual([20, 5]);
-      repository.find.mockResolvedValue([second, first]);
+      store.all.mockResolvedValue([second, first]);
       const swapped = await service.findAll();
       expect(swapped.map((r) => Number(r.id))).toEqual([5, 20]);
     });
 
     it('getRolesPagination (leftover) orders by id and defaults to 10', async () => {
       // pinned as-is: a method with a copy-pasted name that nothing routes to.
-      const repository = {
-        findAndCount: jest.fn().mockResolvedValue([[], 0]),
-      };
-      const service = new GlossaryService(repository as any);
-      await expect(service.getRolesPagination()).resolves.toEqual({
-        items: [],
-        count: 0,
-      });
-      expect(repository.findAndCount).toHaveBeenCalledWith({
-        order: { id: 'ASC' },
-        skip: undefined,
-        take: 10,
-      });
+      const many = Array.from({ length: 12 }, (_, i) =>
+        term(12 - i, `T${i}`, 'd'),
+      );
+      const service = new GlossaryService(storeOf(many));
+      const page = await service.getRolesPagination();
+      expect(page.count).toBe(12);
+      expect(page.items.map((r) => Number(r.id))).toEqual([
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+      ]);
+      await expect(
+        new GlossaryService(storeOf([])).getRolesPagination(),
+      ).resolves.toEqual({ items: [], count: 0 });
     });
 
     it('findAll throws "?!" for a value outside FindAllOptions', () => {

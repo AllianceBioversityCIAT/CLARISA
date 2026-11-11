@@ -6,6 +6,7 @@ jest.mock('../../auth/utils/LDAPAuth', () => ({
 
 import {
   ClassSerializerInterceptor,
+  Global,
   HttpStatus,
   INestApplication,
   Module,
@@ -20,6 +21,7 @@ import {
 } from '@nestjs/common/constants';
 import { APP_FILTER, APP_INTERCEPTOR, RouterModule } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
+import { DataSource } from 'typeorm';
 import request from 'supertest';
 import { apiRoutes } from '../api.routes';
 import { PUBLIC_OPENAPI_PATHS } from '../../shared/swagger/public-endpoints';
@@ -35,14 +37,20 @@ import { GlossaryModule } from './glossary.module';
 import { GlossaryService } from './glossary.service';
 import { GlossaryV2Controller } from './glossary-v2.controller';
 import { GlossaryV2Module } from './glossary-v2.module';
-import { GlossaryRepository } from './repositories/glossary.repository';
+import { GLOSSARY_STORAGE, GlossaryStore } from './glossary-store';
+import { InMemoryGlossaryStore } from './testing/in-memory-glossary-store';
+import {
+  GlossaryTaxonomyLink,
+  GlossaryTaxonomyLinksService,
+} from './glossary-taxonomy-links.service';
 
 /**
  * `GET api/v2/glossary` is the glossary versioned in the URL path (Yeck,
  * 2026-10-29: new versions follow the industry, `/v2/...`; the `?version=N`
- * endpoints migrate later, one by one). Until the taxonomy fields arrive it
- * must answer EXACTLY what `GET api/glossary` answers, so these tests run the
- * same rows through both doors and compare the bytes.
+ * endpoints migrate later, one by one). It answers EXACTLY what
+ * `GET api/glossary` answers plus two keys from the taxonomy at the end of
+ * each term (`termUri`, `taxonomyStatus`), so these tests run the same rows
+ * through both doors and compare the bytes once those two keys are removed.
  */
 
 // ---------- rows, hydrated the way TypeORM hands them to the service ----------
@@ -136,6 +144,35 @@ const PUBLIC_KEYS = [
   'portfolios',
 ];
 
+/** v2 = the v1 keys, in v1's order, then what the taxonomy adds. */
+const V2_KEYS = [...PUBLIC_KEYS, 'termUri', 'taxonomyStatus'];
+
+/** Taxonomy copy as of the fixtures: 391 approved, 354 deprecated, 290 absent. */
+const LINKS = new Map<number, GlossaryTaxonomyLink>([
+  [
+    391,
+    {
+      termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/391',
+      taxonomyStatus: 'approved' as any,
+    },
+  ],
+  [
+    354,
+    {
+      termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/354',
+      taxonomyStatus: 'deprecated' as any,
+    },
+  ],
+]);
+
+/** A v2 body with the taxonomy keys removed, re-serialised like v1. */
+function withoutTaxonomyKeys(body: Record<string, unknown>[]): string {
+  return JSON.stringify(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    body.map(({ termUri, taxonomyStatus, ...v1 }) => v1),
+  );
+}
+
 /** `(method, path)` of every handler a controller class declares. */
 function routesOf(controller: new (...args: any[]) => unknown): string[] {
   return Object.getOwnPropertyNames(controller.prototype)
@@ -203,32 +240,45 @@ describe('Glossary v2 in the URL path (api/v2/glossary)', () => {
       ]);
     });
 
-    it('reads through the same service and repository as v1', () => {
+    it('reads through the same service and store as v1, plus the taxonomy links', () => {
+      const store = { provide: GLOSSARY_STORAGE, useClass: GlossaryStore };
       expect(
         Reflect.getMetadata(MODULE_METADATA.PROVIDERS, GlossaryV2Module),
-      ).toEqual([GlossaryService, GlossaryRepository]);
+      ).toEqual([GlossaryService, store, GlossaryTaxonomyLinksService]);
       expect(
         Reflect.getMetadata(MODULE_METADATA.PROVIDERS, GlossaryModule),
-      ).toEqual(expect.arrayContaining([GlossaryService, GlossaryRepository]));
+      ).toEqual(expect.arrayContaining([GlossaryService, store]));
     });
   });
 
   describe('the v2 module stands on its own', () => {
     it('builds GlossaryService with what the module declares (nothing missing at boot)', async () => {
-      const repository = { find: jest.fn().mockResolvedValue(ROWS) };
-      const moduleRef = await Test.createTestingModule({
-        imports: [GlossaryV2Module],
+      const store = new InMemoryGlossaryStore(ROWS);
+      // In production TypeOrmModule.forRoot provides the DataSource globally.
+      @Global()
+      @Module({
+        providers: [{ provide: DataSource, useValue: { query: jest.fn() } }],
+        exports: [DataSource],
       })
-        // The repository needs a live DataSource; everything else is real.
-        .overrideProvider(GlossaryRepository)
-        .useValue(repository)
+      class Db {}
+      const moduleRef = await Test.createTestingModule({
+        imports: [Db, GlossaryV2Module],
+      })
+        // The store needs a live DataSource; everything else is real.
+        .overrideProvider(GLOSSARY_STORAGE)
+        .useValue(store)
         .compile();
 
       const service = moduleRef.get(GlossaryService);
       expect(service).toBeInstanceOf(GlossaryService);
-      await expect(service.findAll(undefined)).resolves.toBe(ROWS);
+      await expect(service.findAll(undefined)).resolves.toEqual(
+        (await store.all()).filter((g) => g.auditableFields?.is_active),
+      );
       expect(moduleRef.get(GlossaryV2Controller)).toBeInstanceOf(
         GlossaryV2Controller,
+      );
+      expect(moduleRef.get(GlossaryTaxonomyLinksService)).toBeInstanceOf(
+        GlossaryTaxonomyLinksService,
       );
       await moduleRef.close();
     });
@@ -242,6 +292,7 @@ describe('Glossary v2 in the URL path (api/v2/glossary)', () => {
       update: jest.fn(),
     };
     const exporter = { export: jest.fn() };
+    const links = { linksForOrEmpty: jest.fn() };
 
     @Module({
       controllers: [GlossaryController],
@@ -254,7 +305,10 @@ describe('Glossary v2 in the URL path (api/v2/glossary)', () => {
 
     @Module({
       controllers: [GlossaryV2Controller],
-      providers: [{ provide: GlossaryService, useValue: service }],
+      providers: [
+        { provide: GlossaryService, useValue: service },
+        { provide: GlossaryTaxonomyLinksService, useValue: links },
+      ],
     })
     class V2 {}
 
@@ -290,18 +344,22 @@ describe('Glossary v2 in the URL path (api/v2/glossary)', () => {
     beforeEach(() => {
       jest.clearAllMocks();
       service.findAll.mockResolvedValue(ROWS);
+      links.linksForOrEmpty.mockResolvedValue(LINKS);
     });
 
     const get = (path: string) => request(app.getHttpServer()).get(path);
 
-    it('GET api/v2/glossary answers the published list with the eleven v1 keys', async () => {
+    it('GET api/v2/glossary answers the eleven v1 keys, then termUri and taxonomyStatus', async () => {
       const res = await get('/api/v2/glossary');
       expect(res.status).toBe(HttpStatus.OK);
       expect(res.headers['content-type']).toMatch(/^application\/json/);
       expect(res.body).toHaveLength(3);
       for (const term of res.body) {
-        expect(Object.keys(term)).toEqual(PUBLIC_KEYS);
+        expect(Object.keys(term)).toEqual(V2_KEYS);
       }
+      // One lookup for the whole page, by glossary id (= taxonomy term_id).
+      expect(links.linksForOrEmpty).toHaveBeenCalledTimes(1);
+      expect(links.linksForOrEmpty).toHaveBeenCalledWith([391, 290, 354]);
       expect(res.body[0]).toEqual({
         term: 'Outcome',
         definition: 'A change in knowledge, skills, attitudes or practices.',
@@ -314,7 +372,26 @@ describe('Glossary v2 in the URL path (api/v2/glossary)', () => {
         replacedByTermId: null,
         alternativeLabels: ['Result'],
         portfolios: [{ id: 3, name: P25.name, acronym: 'P25' }],
+        termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/391',
+        taxonomyStatus: 'approved',
       });
+      // A term created after the copy is not in the taxonomy: nulls, not absent.
+      expect(res.body[1].termId).toBe(290);
+      expect(res.body[1].termUri).toBeNull();
+      expect(res.body[1].taxonomyStatus).toBeNull();
+      expect(res.body[2].taxonomyStatus).toBe('deprecated');
+    });
+
+    it('a taxonomy that answers nothing leaves every term with null links, nothing else changes', async () => {
+      links.linksForOrEmpty.mockResolvedValue(new Map());
+      const v1 = await get('/api/glossary');
+      const v2 = await get('/api/v2/glossary');
+      expect(v2.status).toBe(HttpStatus.OK);
+      for (const term of v2.body) {
+        expect(term.termUri).toBeNull();
+        expect(term.taxonomyStatus).toBeNull();
+      }
+      expect(withoutTaxonomyKeys(v2.body)).toBe(v1.text);
     });
 
     it.each([
@@ -323,14 +400,14 @@ describe('Glossary v2 in the URL path (api/v2/glossary)', () => {
       ['?show=all', FindAllOptions.SHOW_ALL],
       ['?show=inactive', FindAllOptions.SHOW_ONLY_INACTIVE],
     ])(
-      'GET api/v2/glossary%s answers byte-identical to GET api/glossary with the same query',
+      'GET api/v2/glossary%s, without the taxonomy keys, is byte-identical to GET api/glossary with the same query',
       async (query, expected) => {
         const v1 = await get(`/api/glossary${query}`);
         const v2 = await get(`/api/v2/glossary${query}`);
 
         expect(v1.status).toBe(HttpStatus.OK);
         expect(v2.status).toBe(HttpStatus.OK);
-        expect(v2.text).toBe(v1.text);
+        expect(withoutTaxonomyKeys(v2.body)).toBe(v1.text);
         expect(v2.headers['content-type']).toBe(v1.headers['content-type']);
 
         // Both doors ask the service exactly the same thing.
@@ -346,6 +423,7 @@ describe('Glossary v2 in the URL path (api/v2/glossary)', () => {
       const v2 = await get('/api/v2/glossary');
       expect(v2.text).toBe(v1.text);
       expect(v2.body).toEqual([]);
+      expect(links.linksForOrEmpty).toHaveBeenCalledWith([]);
     });
 
     it('?version=2 on either door changes nothing (the path is the version)', async () => {
@@ -353,7 +431,7 @@ describe('Glossary v2 in the URL path (api/v2/glossary)', () => {
       const withParam = await get('/api/v2/glossary?version=2');
       const v1WithParam = await get('/api/glossary?version=2');
       expect(withParam.text).toBe(plain.text);
-      expect(v1WithParam.text).toBe(plain.text);
+      expect(v1WithParam.text).toBe(withoutTaxonomyKeys(plain.body));
       // `version` is never forwarded as the `show` filter.
       expect(service.findAll).toHaveBeenCalledTimes(3);
       expect(service.findAll).toHaveBeenNthCalledWith(2, undefined);

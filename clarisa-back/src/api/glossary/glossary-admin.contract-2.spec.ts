@@ -123,8 +123,99 @@ function harness() {
     manager,
     transaction: jest.fn((cb: any) => cb(manager)),
   };
-  const repository: any = { find: jest.fn(async () => [...rows.values()]) };
-  const service = new GlossaryAdminService(repository, dataSource);
+  /**
+   * The store the service writes through since 2026-11-06, in memory. It
+   * keeps the call log and the link semantics the fake manager had (links
+   * are deactivated, never deleted), so every rule below is pinned as before.
+   */
+  const hydrateLinks = (row: Glossary) => {
+    row.glossary_portfolio_array = links
+      .filter((l) => Number(l.glossary_id) === Number(row.id))
+      .map((l) => {
+        l.portfolio_object = PORTFOLIOS.find(
+          (p) => Number(p.id) === Number(l.portfolio_id),
+        ) as Portfolio;
+        return l;
+      });
+    return row;
+  };
+  const store: any = {
+    all: jest.fn(async () => {
+      log.push('find:Glossary');
+      return [...rows.values()];
+    }),
+    byId: jest.fn(async (id: number) => {
+      log.push('findOne:Glossary');
+      const row = rows.get(Number(id));
+      return row ? hydrateLinks(row) : null;
+    }),
+    portfolioIds: jest.fn(async (id: number) => {
+      log.push('find:GlossaryPortfolio');
+      return links
+        .filter(
+          (l) =>
+            Number(l.glossary_id) === Number(id) &&
+            l.auditableFields?.is_active,
+        )
+        .map((l) => Number(l.portfolio_id));
+    }),
+    save: jest.fn(async (value: any) => {
+      log.push('save:Glossary');
+      const list = Array.isArray(value) ? value : [value];
+      saved.push({ entity: 'Glossary', value: snapshot(value) });
+      for (const v of list) {
+        if (v.id === undefined) {
+          v.id = nextId++;
+          rows.set(Number(v.id), v);
+        }
+      }
+    }),
+    setPortfolios: jest.fn(
+      async (id: number, wanted: number[], _m: any, actor: any) => {
+        log.push('find:GlossaryPortfolio');
+        const existing = links.filter(
+          (l) => Number(l.glossary_id) === Number(id),
+        );
+        const toSave: any[] = existing.filter(
+          (l) =>
+            l.auditableFields?.is_active &&
+            !wanted.includes(Number(l.portfolio_id)),
+        );
+        for (const l of toSave) {
+          l.auditableFields.is_active = false;
+          l.auditableFields.updated_by = actor?.userId;
+        }
+        for (const pid of wanted) {
+          const current = existing.find((l) => Number(l.portfolio_id) === pid);
+          if (current) {
+            if (!current.auditableFields?.is_active) {
+              current.auditableFields.is_active = true;
+              current.auditableFields.updated_by = actor?.userId;
+              toSave.push(current);
+            }
+            continue;
+          }
+          const plain = { glossary_id: Number(id), portfolio_id: pid };
+          created.push({ entity: 'GlossaryPortfolio', plain });
+          const link: any = Object.assign(new GlossaryPortfolio(), plain);
+          link.auditableFields = { is_active: true, created_by: actor?.userId };
+          toSave.push(link);
+        }
+        if (toSave.length) {
+          log.push('save:GlossaryPortfolio');
+          saved.push({ entity: 'GlossaryPortfolio', value: snapshot(toSave) });
+          for (const v of toSave) {
+            if (!links.includes(v)) {
+              if (v.id === undefined) v.id = nextId++;
+              links.push(v);
+            }
+          }
+        }
+      },
+    ),
+  };
+  const repository = store;
+  const service = new GlossaryAdminService(store, dataSource);
 
   const addRow = (
     id: number,
@@ -178,6 +269,7 @@ function harness() {
     manager,
     dataSource,
     repository,
+    store,
     service,
     addRow,
     addLink,
@@ -212,71 +304,81 @@ const refusal = async (metatype: unknown, body: unknown): Promise<string[]> => {
 describe('Glossary admin contract, batch 2', () => {
   // ----------------------------------------------------------------- reads
 
-  describe('findAllForAdmin: what the repository is asked (buildFindOptions)', () => {
-    const relations = { glossary_portfolio_array: { portfolio_object: true } };
-
-    it('show=all: relations and order, with NO where', async () => {
+  describe('findAllForAdmin: what the store answers, by show', () => {
+    // Before 2026-11-06 this block pinned the TypeORM options; the store is
+    // the taxonomy now, and what is pinned is the selection itself.
+    const seed = () => {
       const h = harness();
-      await h.service.findAllForAdmin(FindAllOptions.SHOW_ALL);
-      const options = h.repository.find.mock.calls[0][0];
-      expect(options).toEqual({ relations, order: { title: 'ASC' } });
-      expect('where' in options).toBe(false);
+      h.addRow(1, 'Active');
+      h.addRow(2, 'Inactive', {}, { is_active: false });
+      h.addRow(3, 'Draft', {
+        editorial_status: GlossaryEditorialStatus.DRAFT,
+      });
+      h.addRow(
+        4,
+        'Review',
+        {
+          editorial_status: GlossaryEditorialStatus.IN_REVIEW,
+        },
+        { is_active: false },
+      );
+      return h;
+    };
+    const ids = (list: { id: number }[]) => list.map((t) => t.id);
+
+    it('show=all: every row, active or not', async () => {
+      const h = seed();
+      expect(
+        ids(await h.service.findAllForAdmin(FindAllOptions.SHOW_ALL)),
+      ).toEqual([1, 2, 3, 4]);
     });
 
     it('no argument is show=all', async () => {
-      const h = harness();
-      await h.service.findAllForAdmin();
-      expect(h.repository.find.mock.calls[0][0]).toEqual({
-        relations,
-        order: { title: 'ASC' },
-      });
+      const h = seed();
+      expect(ids(await h.service.findAllForAdmin())).toEqual([1, 2, 3, 4]);
     });
 
-    it('show=active asks for is_active true on the audit columns', async () => {
-      const h = harness();
-      await h.service.findAllForAdmin(FindAllOptions.SHOW_ONLY_ACTIVE);
-      expect(h.repository.find.mock.calls[0][0]).toEqual({
-        relations,
-        order: { title: 'ASC' },
-        where: { auditableFields: { is_active: true } },
-      });
+    it('show=active lists the active rows only', async () => {
+      const h = seed();
+      expect(
+        ids(await h.service.findAllForAdmin(FindAllOptions.SHOW_ONLY_ACTIVE)),
+      ).toEqual([1, 3]);
     });
 
-    it('show=inactive asks for is_active false', async () => {
-      const h = harness();
-      await h.service.findAllForAdmin(FindAllOptions.SHOW_ONLY_INACTIVE);
-      expect(h.repository.find.mock.calls[0][0].where).toEqual({
-        auditableFields: { is_active: false },
-      });
+    it('show=inactive lists the inactive rows only', async () => {
+      const h = seed();
+      expect(
+        ids(await h.service.findAllForAdmin(FindAllOptions.SHOW_ONLY_INACTIVE)),
+      ).toEqual([2, 4]);
     });
 
     it('?show=foo is treated as active, silently', async () => {
       // pinned as-is: `show !== inactive` — unlike the public list, no error.
-      const h = harness();
-      await h.service.findAllForAdmin('foo' as any);
-      expect(h.repository.find.mock.calls[0][0].where).toEqual({
-        auditableFields: { is_active: true },
-      });
+      const h = seed();
+      expect(ids(await h.service.findAllForAdmin('foo' as any))).toEqual([
+        1, 3,
+      ]);
     });
 
     it('does not filter by editorial status: drafts and in-review terms are listed', async () => {
-      const h = harness();
-      await h.service.findAllForAdmin(FindAllOptions.SHOW_ALL);
-      expect(JSON.stringify(h.repository.find.mock.calls[0][0])).not.toMatch(
-        /editorial/,
-      );
+      const h = seed();
+      const list = await h.service.findAllForAdmin(FindAllOptions.SHOW_ALL);
+      expect(list.map((t) => t.editorial_status)).toEqual([
+        'approved',
+        'approved',
+        'draft',
+        'in_review',
+      ]);
     });
 
-    it('has no pagination: no skip, no take', async () => {
-      const h = harness();
+    it('has no pagination: one read of the store, every row', async () => {
+      const h = seed();
       await h.service.findAllForAdmin(FindAllOptions.SHOW_ONLY_ACTIVE);
-      const options = h.repository.find.mock.calls[0][0];
-      expect(options.skip).toBeUndefined();
-      expect(options.take).toBeUndefined();
-      expect(Object.keys(options)).toEqual(['relations', 'order', 'where']);
+      expect(h.store.all).toHaveBeenCalledTimes(1);
+      expect(h.store.all.mock.calls[0]).toEqual([]);
     });
 
-    it('keeps the order of the repository: the service never re-sorts', async () => {
+    it('keeps the order of the store: the service never re-sorts', async () => {
       const h = harness();
       h.addRow(2, 'Zeta');
       h.addRow(1, 'Alpha');

@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, ParamMap } from '@angular/router';
 import { BehaviorSubject, of, throwError } from 'rxjs';
@@ -50,6 +50,7 @@ describe('GlossaryComponent', () => {
     mockService = {
       getGlossary: jest.fn().mockReturnValue(of(terms)),
       exportUrl: jest.fn((format: string) => `https://api.test/api/glossary/export?format=${format}`),
+      searchSimilarTermIds: jest.fn().mockReturnValue(of([])),
       // Shaped like `GET api/portfolios?show=all` really answers: the default
       // portfolio is picked from `start_date`, so a mock without it would hide
       // that behaviour from every test below.
@@ -562,6 +563,229 @@ describe('GlossaryComponent', () => {
 
       expect(component.copyFailed).toBe(true);
       expect(fixture.nativeElement.querySelector('.card-copy__feedback').textContent).toContain('Could not copy the link');
+    });
+  });
+
+  describe('persistent URI of the taxonomy', () => {
+    const cardEl = (term: string) =>
+      Array.from(fixture.nativeElement.querySelectorAll('.glossary-card')).find(
+        (el: any) => el.querySelector('h4')?.textContent.trim() === term
+      ) as HTMLElement;
+
+    beforeEach(() => {
+      mockService.getGlossary.mockReturnValue(
+        of([
+          { ...terms[1], termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/12', taxonomyStatus: 'approved' },
+          { ...terms[2], termUri: null, taxonomyStatus: null },
+          { ...terms[3], termUri: 'javascript:alert(1)' },
+          { ...terms[4], termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/15' },
+          { ...terms[5], termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/16' }
+        ])
+      );
+      fixture.detectChanges();
+      showAllPortfolios();
+      fixture.detectChanges();
+    });
+
+    it('links the card to its URI, opening in a new tab', () => {
+      const link = cardEl('Innovation').querySelector('a.card-uri') as HTMLAnchorElement;
+      expect(link).not.toBeNull();
+      expect(link.getAttribute('href')).toBe('https://api.clarisa.cgiar.org/meliaf-taxonomy/12');
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener');
+      expect(link.textContent!.trim()).toBe('Persistent URI');
+      // "Copy link" (the page permalink) stays next to it.
+      expect(cardEl('Innovation').querySelector('.card-copy')).not.toBeNull();
+    });
+
+    it('shows no URI link for a term that is not in the taxonomy yet', () => {
+      expect(cardEl('Shared term').querySelector('a.card-uri')).toBeNull();
+      expect(cardEl('Shared term').querySelector('.card-copy')).not.toBeNull();
+    });
+
+    it('never renders a URI that is not http(s)', () => {
+      expect(cardEl('Orphan').querySelector('a.card-uri')).toBeNull();
+    });
+
+    it('follows the definition the card is showing on a versioned concept', () => {
+      const card = component.filteredTerms.find(item => item.term === 'Impact')!;
+      const uriNow = () => (cardEl('Impact').querySelector('a.card-uri') as HTMLAnchorElement).getAttribute('href');
+      expect(uriNow()).toBe(`https://api.clarisa.cgiar.org/meliaf-taxonomy/${card.termId}`);
+      component.showVersion(card, card.shown === 0 ? 1 : 0);
+      fixture.detectChanges();
+      expect(uriNow()).toBe(`https://api.clarisa.cgiar.org/meliaf-taxonomy/${card.termId}`);
+    });
+  });
+
+  describe('similar terms from the taxonomy search', () => {
+    const type = (text: string) => {
+      component.searchText = text;
+      component.onSearchChange(text);
+    };
+
+    beforeEach(() => {
+      fixture.detectChanges();
+      showAllPortfolios();
+    });
+
+    it('does not ask the taxonomy while the exact search has results', fakeAsync(() => {
+      mockService.searchSimilarTermIds.mockReturnValue(of([12]));
+      type('innovation');
+      tick(300);
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Innovation']);
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Innovation']);
+      expect(component.showingSimilar).toBe(false);
+    }));
+
+    it('shows the similar terms, in the order the taxonomy ranks them, when nothing matches exactly', fakeAsync(() => {
+      mockService.searchSimilarTermIds.mockReturnValue(of([16, 12, 999]));
+      type('inovashun');
+      tick(300);
+      fixture.detectChanges();
+
+      expect(mockService.searchSimilarTermIds).toHaveBeenCalledWith('inovashun');
+      expect(component.filteredTerms).toEqual([]);
+      // 999 is not on the page (unpublished or new): it is simply skipped.
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Impact', 'Innovation']);
+      expect(component.showingSimilar).toBe(true);
+      const notice = fixture.nativeElement.querySelector('.glossary-similar');
+      expect(notice.textContent).toContain('No exact match for “inovashun”');
+      expect(fixture.nativeElement.querySelector('.glossary-empty')).toBeNull();
+    }));
+
+    it('asks once per pause in typing, not once per key', fakeAsync(() => {
+      type('ino');
+      tick(100);
+      type('inov');
+      tick(100);
+      type('inova');
+      tick(300);
+      expect(mockService.searchSimilarTermIds).toHaveBeenCalledTimes(1);
+      expect(mockService.searchSimilarTermIds).toHaveBeenCalledWith('inova');
+    }));
+
+    it('does not ask for searches shorter than three characters', fakeAsync(() => {
+      type('zq');
+      tick(300);
+      expect(mockService.searchSimilarTermIds).not.toHaveBeenCalled();
+      expect(component.shownTerms).toEqual([]);
+    }));
+
+    it('never shows an answer that belongs to an older search', fakeAsync(() => {
+      mockService.searchSimilarTermIds.mockReturnValue(of([12]));
+      type('inovashun');
+      tick(300);
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Innovation']);
+      // The reader keeps typing; until the new answer arrives nothing old is shown.
+      component.searchText = 'inovashunzz';
+      expect(component.shownTerms).toEqual([]);
+      expect(component.showingSimilar).toBe(false);
+    }));
+
+    it('keeps the portfolio and letter the reader chose', fakeAsync(() => {
+      mockService.searchSimilarTermIds.mockReturnValue(of([11, 12]));
+      component.selectPortfolio(3); // 2025-2030: "Action Area" (11) is 2022-2024 only
+      type('akshon');
+      tick(300);
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Innovation']);
+    }));
+
+    it('shows the empty state when the taxonomy search fails', fakeAsync(() => {
+      mockService.searchSimilarTermIds.mockReturnValue(throwError(() => new Error('down')));
+      type('inovashun');
+      tick(300);
+      fixture.detectChanges();
+      expect(component.shownTerms).toEqual([]);
+      expect(fixture.nativeElement.querySelector('.glossary-empty')).not.toBeNull();
+      // And the next search still works: one failure does not end the stream.
+      mockService.searchSimilarTermIds.mockReturnValue(of([12]));
+      type('inovashan');
+      tick(300);
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Innovation']);
+    }));
+
+    it('does nothing on a permalink', fakeAsync(() => {
+      mockService.searchSimilarTermIds.mockReturnValue(of([12]));
+      params.next(convertToParamMap({ termId: '11' }));
+      type('inovashun');
+      tick(300);
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Action Area']);
+      expect(component.showingSimilar).toBe(false);
+    }));
+  });
+
+  describe('cite a term', () => {
+    const writeText = jest.fn();
+    const NOV_5 = new Date(2026, 10, 5, 21, 30); // 9:30 pm local: still the 5th, whatever UTC says
+
+    beforeEach(() => {
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      writeText.mockReset();
+      mockService.getGlossary.mockReturnValue(
+        of([
+          { ...terms[1], termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/12' },
+          { ...terms[2], termUri: null },
+          { ...terms[3], termUri: 'javascript:alert(1)' }
+        ])
+      );
+      fixture.detectChanges();
+      showAllPortfolios();
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      delete (navigator as any).clipboard;
+    });
+
+    const card = (term: string) => component.filteredTerms.find(item => item.term === term)!;
+
+    it('cites the taxonomy URI with the local date of access', () => {
+      expect(component.citationOf(card('Innovation'), NOV_5)).toBe(
+        'Innovation. CLARISA Glossary, CGIAR. https://api.clarisa.cgiar.org/meliaf-taxonomy/12 (accessed 2026-11-05).'
+      );
+    });
+
+    it("falls back to this site's permalink when the term has no taxonomy URI", () => {
+      expect(component.citationOf(card('Shared term'), NOV_5)).toBe(
+        `Shared term. CLARISA Glossary, CGIAR. ${location.origin}/landing-page/glossary/term/13 (accessed 2026-11-05).`
+      );
+    });
+
+    it('never cites a URI that is not http(s)', () => {
+      expect(component.citationOf(card('Orphan'), NOV_5)).toContain(`${location.origin}/landing-page/glossary/term/14`);
+      expect(component.citationOf(card('Orphan'), NOV_5)).not.toContain('javascript');
+    });
+
+    it('copies the citation and says so, next to the other actions', async () => {
+      writeText.mockResolvedValue(undefined);
+      const cardEl = Array.from(fixture.nativeElement.querySelectorAll('.glossary-card')).find(
+        (el: any) => el.querySelector('h4')?.textContent.trim() === 'Innovation'
+      ) as HTMLElement;
+      (cardEl.querySelector('.card-cite') as HTMLButtonElement).click();
+      await Promise.resolve();
+      fixture.detectChanges();
+
+      expect(writeText).toHaveBeenCalledTimes(1);
+      expect(writeText.mock.calls[0][0]).toMatch(
+        /^Innovation\. CLARISA Glossary, CGIAR\. https:\/\/api\.clarisa\.cgiar\.org\/meliaf-taxonomy\/12 \(accessed \d{4}-\d{2}-\d{2}\)\.$/
+      );
+      expect(cardEl.querySelector('.card-copy__feedback')!.textContent).toContain('Citation copied');
+    });
+
+    it('says the citation could not be copied instead of pretending', async () => {
+      writeText.mockRejectedValue(new Error('denied'));
+      component.copyCitation(card('Innovation'));
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(component.copyFeedback).toBe('Could not copy the citation');
+    });
+
+    it('"Copy link" still copies the permalink, not the citation', async () => {
+      writeText.mockResolvedValue(undefined);
+      component.copyLink(card('Innovation'));
+      await Promise.resolve();
+      expect(writeText).toHaveBeenCalledWith(`${location.origin}/landing-page/glossary/term/12`);
+      expect(component.copyFeedback).toBe('Link copied');
     });
   });
 });

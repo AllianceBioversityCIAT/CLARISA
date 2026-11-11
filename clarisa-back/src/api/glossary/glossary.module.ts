@@ -2,10 +2,9 @@ import { Module } from '@nestjs/common';
 import { GlossaryService } from './glossary.service';
 import { GlossaryExportService } from './glossary-export.service';
 import { GlossaryController } from './glossary.controller';
-import { GlossaryRepository } from './repositories/glossary.repository';
+import { GLOSSARY_STORAGE, GlossaryStore } from './glossary-store';
 import { GlossaryAdminService } from './glossary-admin.service';
 import { GlossaryAdminController } from './glossary-admin.controller';
-import { GlossaryPortfolioRepository } from './repositories/glossary-portfolio.repository';
 
 @Module({
   // The admin controller is declared first so `api/glossary/admin/...` is
@@ -14,9 +13,9 @@ import { GlossaryPortfolioRepository } from './repositories/glossary-portfolio.r
   providers: [
     GlossaryService,
     GlossaryExportService,
-    GlossaryRepository,
     GlossaryAdminService,
-    GlossaryPortfolioRepository,
+    // The glossary's only store: the `glossary` collection of the taxonomy.
+    { provide: GLOSSARY_STORAGE, useClass: GlossaryStore },
   ],
 })
 export class GlossaryModule {}
