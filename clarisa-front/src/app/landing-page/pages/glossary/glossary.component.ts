@@ -146,6 +146,19 @@ export class GlossaryComponent implements OnInit, OnDestroy {
   focusedTermId: number | null = null;
   /** The card of that entry, or null when no published entry carries the id. */
   focusedCard: GlossaryCard | null = null;
+  /** The focused entry is a term no longer in use (from `?show=inactive`). */
+  focusedInactive = false;
+  /** The term that replaces the focused inactive one, when it has one. */
+  focusedReplacement: { termId: number; term: string | null; link: string } | null = null;
+  /** Whether the active terms have arrived (the inactive ones are only asked after). */
+  private activeLoaded = false;
+  /**
+   * Terms no longer in use, asked once and only for a permalink whose id is not
+   * among the active terms. Never part of `terms`, `cards` or the search.
+   */
+  private inactiveTerms: GlossaryTerm[] | null = null;
+  private inactivePending = false;
+  private inactiveSubscription?: Subscription;
   /** The card whose link or citation was just copied, which one, and whether the copy worked. */
   copiedTermId: number | null = null;
   copiedKind: 'link' | 'citation' = 'link';
@@ -181,13 +194,16 @@ export class GlossaryComponent implements OnInit, OnDestroy {
       const id = Number(params.get('termId'));
       this.focusedTermId = this.focusMode && Number.isInteger(id) ? id : null;
       this.rebuildFocusedCard();
+      this.loadInactiveIfNeeded();
     });
     this._glossaryPageService.getGlossary().subscribe({
       next: terms => {
         this.terms = terms ?? [];
+        this.activeLoaded = true;
         this.buildGroups();
         this.rebuildCards();
         this.loading = false;
+        this.loadInactiveIfNeeded();
       },
       error: () => {
         this.terms = [];
@@ -228,6 +244,7 @@ export class GlossaryComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.routeSubscription?.unsubscribe();
     this.similarSubscription?.unsubscribe();
+    this.inactiveSubscription?.unsubscribe();
     if (this.copyTimer) {
       clearTimeout(this.copyTimer);
     }
@@ -322,14 +339,67 @@ export class GlossaryComponent implements OnInit, OnDestroy {
    * the link names. Rebuilt when the portfolios arrive, which reorders the tabs.
    */
   private rebuildFocusedCard(): void {
+    this.focusedInactive = false;
+    this.focusedReplacement = null;
     const target = this.focusedTermId == null ? undefined : this.terms.find(term => term.termId === this.focusedTermId);
     const versions = target ? this.groups.find(group => group.includes(target)) : undefined;
     if (!target || !versions) {
-      this.focusedCard = null;
+      this.focusedCard = this.inactiveCard();
       return;
     }
     const ordenadas = [...versions].sort((a, b) => this.recencyOf(b) - this.recencyOf(a));
     this.focusedCard = new GlossaryCard(target.term, ordenadas, this.portfoliosOf(versions), ordenadas.indexOf(target));
+  }
+
+  /**
+   * The card of the focused entry when it is a term no longer in use: on its
+   * own (its versions are not looked up), with the term that replaces it.
+   */
+  private inactiveCard(): GlossaryCard | null {
+    const target = this.focusedTermId == null ? undefined : this.inactiveTerms?.find(term => term.termId === this.focusedTermId);
+    if (!target) {
+      return null;
+    }
+    this.focusedInactive = true;
+    const replacedBy = target.replacedByTermId;
+    if (replacedBy != null && Number.isInteger(Number(replacedBy))) {
+      const id = Number(replacedBy);
+      const replacement = this.terms.find(term => term.termId === id) ?? this.inactiveTerms?.find(term => term.termId === id);
+      this.focusedReplacement = { termId: id, term: replacement?.term ?? null, link: `/landing-page/glossary/term/${id}` };
+    }
+    return new GlossaryCard(target.term, [target], this.portfoliosOf([target]), 0);
+  }
+
+  /**
+   * A permalink whose id is not among the active terms may be a term no longer
+   * in use: only then, and only once, the inactive terms are asked for. The
+   * loader stays on meanwhile, so "not found" never flashes first. If the
+   * request fails, the page shows "not found", as before.
+   */
+  private loadInactiveIfNeeded(): void {
+    if (!this.activeLoaded || !this.focusMode || this.focusedTermId == null || this.focusedCard || this.inactiveTerms || this.inactivePending) {
+      return;
+    }
+    this.loading = true;
+    this.inactivePending = true;
+    this.inactiveSubscription?.unsubscribe();
+    this.inactiveSubscription = this._glossaryPageService.getInactiveGlossary().subscribe({
+      next: terms => {
+        this.inactiveTerms = Array.isArray(terms) ? terms : [];
+        this.inactivePending = false;
+        this.rebuildFocusedCard();
+        this.loading = false;
+      },
+      // Not kept: the next permalink that needs it asks again.
+      error: () => {
+        this.inactivePending = false;
+        this.loading = false;
+      },
+      complete: () => {
+        this.inactivePending = false;
+        this.loading = false;
+      }
+    });
   }
 
   /** The permanent link of an entry on this site. */
