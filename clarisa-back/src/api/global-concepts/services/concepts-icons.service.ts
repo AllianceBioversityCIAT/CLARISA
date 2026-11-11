@@ -11,6 +11,7 @@ import { GcIcon } from '../entities/gc-icon.entity';
 import { GcScheme } from '../entities/gc-scheme.entity';
 import { IconDto, UpdateIconDto } from '../dto/icon.dto';
 import { presentIcon } from '../utils/concept-presenter';
+import { assertNotGlossaryConcepts } from '../utils/glossary-write-lock';
 import { isRealDay } from '../utils/custom-fields';
 import { ConceptsAdminService, GcActor } from './concepts-admin.service';
 
@@ -73,6 +74,7 @@ export class ConceptsIconsService {
     return this.dataSource.transaction(async (manager) => {
       const scheme = await this.admin.lockScheme(manager, code);
       const concept = await this.admin.findConcept(manager, scheme, termId);
+      await assertNotGlossaryConcepts(manager, [concept]);
       // Double submit: the same file attached twice returns the first one.
       if (dto.file_link_primary) {
         const same = await manager.findOne(GcIcon, {
@@ -113,6 +115,7 @@ export class ConceptsIconsService {
     return this.dataSource.transaction(async (manager) => {
       const scheme = await this.admin.lockScheme(manager, code);
       const { icon, concept } = await this.find(manager, scheme, id, termId);
+      await assertNotGlossaryConcepts(manager, [concept]);
       const before = this.view(icon);
       await this.apply(manager, scheme, icon, dto);
       await manager.save(GcIcon, icon);
@@ -135,6 +138,7 @@ export class ConceptsIconsService {
     return this.dataSource.transaction(async (manager) => {
       const scheme = await this.admin.lockScheme(manager, code);
       const { icon, concept } = await this.find(manager, scheme, id, termId);
+      await assertNotGlossaryConcepts(manager, [concept]);
       await manager.delete(GcIcon, { id: icon.id });
       await this.admin.touch(
         manager,

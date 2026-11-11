@@ -43,6 +43,7 @@ import {
 } from '../dto/request.dto';
 import { conceptUri, webBaseOf } from '../global-concepts.config';
 import { ConceptsAdminService } from './concepts-admin.service';
+import { assertNotGlossaryConcepts } from '../utils/glossary-write-lock';
 import { likePattern } from './concepts-read.service';
 import { escapeHtml, OutboxService } from './outbox.service';
 
@@ -571,6 +572,9 @@ export class RequestsService {
     const concept = p.concept_id
       ? await manager.findOne(GcConcept, { where: { id: p.concept_id } })
       : null;
+    // Edit, deprecate, merge (source; the survivor is checked by mergeIn) and
+    // promote (it writes a mapping on the source) never touch a glossary term.
+    await assertNotGlossaryConcepts(manager, [concept]);
     switch (p.type) {
       case GcProposalType.NEW: {
         const created = await this.admin.createIn(
