@@ -51,7 +51,7 @@
             autocapitalize="characters"
             [disabled]="readOnly || saving"
             [(ngModel)]="acronym"
-            placeholder="e.g. CONCEPTS_DA" />
+            placeholder="e.g. GLOSSARY_ED" />
           <small class="field-error" *ngIf="acronymError">{{ acronymError }}</small>
         </div>
 
@@ -68,7 +68,7 @@
             [maxlength]="limits.descriptionMax"
             [disabled]="readOnly || saving"
             [(ngModel)]="description"
-            placeholder="e.g. MELIAF taxonomy Data Admins" />
+            placeholder="e.g. Glossary Editors" />
           <small class="field-error" *ngIf="descriptionError">{{ descriptionError }}</small>
         </div>
 

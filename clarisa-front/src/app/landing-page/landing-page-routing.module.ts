@@ -1,8 +1,28 @@
 import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { Route, RouterModule, Routes } from '@angular/router';
 import { LandingPageComponent } from './landing-page.component';
+import { MELIAF_TAXONOMY_HIDDEN } from '../shared/feature-flags/meliaf-taxonomy';
+import { HIDDEN_PUBLIC_CONCEPTS_ROUTES } from '../shared/feature-flags/meliaf-taxonomy.routes';
 
-const routes: Routes = [
+/**
+ * `meliafHidden` (`MELIAF_TAXONOMY_HIDDEN`): `concepts` only redirects to the
+ * glossary and the MELIAF taxonomy module is never loaded. The legacy
+ * `global-concepts*` addresses keep sending to `concepts`, which then
+ * redirects (a concept detail lands on its glossary term).
+ */
+export function conceptsRoute(meliafHidden: boolean): Route {
+  return meliafHidden
+    ? { path: 'concepts', children: HIDDEN_PUBLIC_CONCEPTS_ROUTES }
+    : {
+        path: 'concepts',
+        loadChildren: () =>
+          import('./pages/global-concepts/global-concepts.module').then(
+            (m) => m.GlobalConceptsModule
+          ),
+      };
+}
+
+export const LANDING_PAGE_ROUTES: Routes = [
   {
     path: '',
     component: LandingPageComponent,
@@ -43,13 +63,7 @@ const routes: Routes = [
             (m) => m.GlossaryModule
           ),
       },
-      {
-        path: 'concepts',
-        loadChildren: () =>
-          import('./pages/global-concepts/global-concepts.module').then(
-            (m) => m.GlobalConceptsModule
-          ),
-      },
+      conceptsRoute(MELIAF_TAXONOMY_HIDDEN),
       // Old address of the section (links in e-mails and bookmarks) → new one.
       { path: 'global-concepts', redirectTo: 'concepts', pathMatch: 'full' },
       { path: 'global-concepts/:a', redirectTo: 'concepts/:a' },
@@ -78,7 +92,7 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  imports: [RouterModule.forChild(routes)],
+  imports: [RouterModule.forChild(LANDING_PAGE_ROUTES)],
   exports: [RouterModule],
 })
 export class LandingPageRoutingModule {}

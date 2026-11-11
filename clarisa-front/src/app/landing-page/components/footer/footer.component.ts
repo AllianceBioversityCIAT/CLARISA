@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { MELIAF_TAXONOMY_HIDDEN } from '../../../shared/feature-flags/meliaf-taxonomy';
 
 @Component({
   selector: 'app-footer',
@@ -23,9 +24,14 @@ export class FooterComponent {
       name: 'Glossary',
       link: '/landing-page/glossary',
     },
-    {
-      name: 'MELIAF taxonomy',
-      link: '/landing-page/concepts',
-    },
+    // Hidden while MELIAF_TAXONOMY_HIDDEN is on.
+    ...(MELIAF_TAXONOMY_HIDDEN
+      ? []
+      : [
+          {
+            name: 'MELIAF taxonomy',
+            link: '/landing-page/concepts',
+          },
+        ]),
   ];
 }
