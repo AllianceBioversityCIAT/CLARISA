@@ -3,6 +3,8 @@ import { RouterModule, Routes } from '@angular/router';
 import { ManageComponent } from './manage.component';
 import { LoginGuardGuard } from '../../shared/services/login-guard.guard';
 import { AdminAccessGuard } from './admin-access.guard';
+import { MELIAF_TAXONOMY_HIDDEN } from '../../shared/feature-flags/meliaf-taxonomy';
+import { HIDDEN_CONCEPTS_ADMIN_ROUTES } from '../../shared/feature-flags/meliaf-taxonomy.routes';
 
 /**
  * Every screen passes two guards: a usable session (`LoginGuardGuard`), then
@@ -10,7 +12,33 @@ import { AdminAccessGuard } from './admin-access.guard';
  */
 const guarded = [LoginGuardGuard, AdminAccessGuard];
 
-const routes: Routes = [
+/**
+ * `meliafHidden` (`MELIAF_TAXONOMY_HIDDEN`): `concepts-admin` and
+ * `global-concepts-admin` redirect to the panel home and the MELIAF taxonomy
+ * module is never loaded. A redirect, not only a hidden menu entry:
+ * `AdminAccessGuard` opens any URL that has no entry in the nav.
+ */
+export function conceptsAdminRoutes(meliafHidden: boolean): Routes {
+  return meliafHidden
+    ? HIDDEN_CONCEPTS_ADMIN_ROUTES
+    : [
+        {
+          path: 'global-concepts-admin',
+          redirectTo: 'concepts-admin',
+          pathMatch: 'full',
+        },
+        {
+          path: 'concepts-admin',
+          loadChildren: () =>
+            import(
+              './pages/global-concepts-admin/global-concepts-admin.module'
+            ).then((m) => m.GlobalConceptsAdminModule),
+          canActivate: guarded,
+        },
+      ];
+}
+
+export const MANAGE_ROUTES: Routes = [
   {
     path: '',
     component: ManageComponent,
@@ -77,25 +105,13 @@ const routes: Routes = [
           ),
         canActivate: guarded,
       },
-      {
-        path: 'global-concepts-admin',
-        redirectTo: 'concepts-admin',
-        pathMatch: 'full',
-      },
-      {
-        path: 'concepts-admin',
-        loadChildren: () =>
-          import(
-            './pages/global-concepts-admin/global-concepts-admin.module'
-          ).then((m) => m.GlobalConceptsAdminModule),
-        canActivate: guarded,
-      },
+      ...conceptsAdminRoutes(MELIAF_TAXONOMY_HIDDEN),
     ],
   },
 ];
 
 @NgModule({
-  imports: [RouterModule.forChild(routes)],
+  imports: [RouterModule.forChild(MANAGE_ROUTES)],
   exports: [RouterModule],
 })
 export class ManageRoutingModule {}

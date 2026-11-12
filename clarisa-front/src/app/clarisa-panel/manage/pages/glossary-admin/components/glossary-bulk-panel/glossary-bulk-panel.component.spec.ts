@@ -1,4 +1,4 @@
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { GlossaryBulkPanelComponent } from './glossary-bulk-panel.component';
 import { GlossaryFileParserService } from '../../services/glossary-file-parser.service';
@@ -169,5 +169,17 @@ describe('GlossaryBulkPanelComponent', () => {
 
       expect(component.reviewRows).toEqual([]);
     });
+  });
+});
+
+describe('GlossaryBulkPanelComponent — error toasts', () => {
+  it('keeps an API error on screen for 8 seconds, like the terms panel', () => {
+    const add = jest.fn();
+    const apiService = { getAllPortfolios: () => throwError(() => ({ status: 500, error: { message: 'down' } })) } as unknown as ManageApiService;
+    const component = new GlossaryBulkPanelComponent(apiService, new GlossaryFileParserService(), { add } as unknown as MessageService);
+
+    component.ngOnInit();
+
+    expect(add).toHaveBeenCalledWith(expect.objectContaining({ severity: 'error', life: 8000 }));
   });
 });

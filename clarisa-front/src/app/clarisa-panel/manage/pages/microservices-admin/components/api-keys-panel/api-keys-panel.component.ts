@@ -5,6 +5,12 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ApiKeyUsageStats, CreateApiKeyBody, ManageApiService, UpdateApiKeyBody } from '../../../../services/manage-api.service';
 import { matchDropdownPanelToTrigger } from '../../../../utils/dropdown-panel-width';
 import { absoluteTime, relativeTime } from '../../utils/relative-time';
+import { MELIAF_TAXONOMY_HIDDEN, isMeliafTaxonomyScope } from '../../../../../../shared/feature-flags/meliaf-taxonomy';
+
+interface ScopeGroup {
+  label: string;
+  items: { label: string; value: string; title?: string }[];
+}
 
 export interface ApiKeyRow {
   id: number;
@@ -63,11 +69,10 @@ export class ApiKeysPanelComponent implements OnInit {
   environments: { acronym: string; name: string; label: string }[] = [];
   environmentsLoading = false;
 
-  scopeGroups: {
-    label: string;
-    items: { label: string; value: string; title?: string }[];
-  }[] = [];
+  scopeGroups: ScopeGroup[] = [];
   scopesLoading = false;
+  /** Whole catalog from `GET api/api-keys/scopes`; `scopeGroups` is what the picker offers. */
+  private scopeCatalog: ScopeGroup[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -144,16 +149,33 @@ export class ApiKeysPanelComponent implements OnInit {
             title: item.description
           });
         }
-        this.scopeGroups = [...byGroup.entries()].map(([label, items]) => ({
+        this.scopeCatalog = [...byGroup.entries()].map(([label, items]) => ({
           label,
           items
         }));
+        this.refreshScopeGroups();
         this.scopesLoading = false;
       },
       error: () => {
         this.scopesLoading = false;
       }
     });
+  }
+
+  /**
+   * The picker's options. While `MELIAF_TAXONOMY_HIDDEN` is on, the module's
+   * scopes leave it, except the ones the key being edited already holds: they
+   * stay as options so their chips keep a readable label and the key keeps
+   * them on save (removing one stays possible).
+   */
+  private refreshScopeGroups(): void {
+    const held = this.cleanScopes(this.form.get('scopes')?.value);
+    this.scopeGroups = this.scopeCatalog
+      .map(group => ({
+        label: group.label,
+        items: group.items.filter(item => !MELIAF_TAXONOMY_HIDDEN || !isMeliafTaxonomyScope(item.value) || held.includes(item.value))
+      }))
+      .filter(group => group.items.length > 0);
   }
 
   loadEnvironments(): void {
@@ -248,6 +270,7 @@ export class ApiKeysPanelComponent implements OnInit {
       expires_at: null
     });
     this.form.get('environment')?.enable();
+    this.refreshScopeGroups();
     this.dialogVisible = true;
   }
 
@@ -264,6 +287,7 @@ export class ApiKeysPanelComponent implements OnInit {
     });
     // The environment lives in the prefix: changing it means rotating.
     this.form.get('environment')?.disable();
+    this.refreshScopeGroups();
     this.dialogVisible = true;
   }
 

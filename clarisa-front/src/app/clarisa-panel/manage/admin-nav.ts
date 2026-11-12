@@ -1,3 +1,5 @@
+import { MELIAF_TAXONOMY_HIDDEN } from '../../shared/feature-flags/meliaf-taxonomy';
+
 /**
  * Navegación del panel de administración, declarada una sola vez.
  *
@@ -51,11 +53,30 @@ export interface AdminGroup {
 }
 
 /**
+ * The MELIAF taxonomy entry. Hidden while `MELIAF_TAXONOMY_HIDDEN` is on: the
+ * sidebar, ⌘K and the admin home cards all read `ADMIN_GROUPS`, so they follow;
+ * its routes redirect to the panel home (`manage-routing.module.ts`).
+ */
+export const MELIAF_TAXONOMY_LINK: AdminLink = {
+  label: 'MELIAF taxonomy',
+  route: '/clarisa-panel/manage/concepts-admin',
+  icon: 'fa fa-sitemap',
+  // Both `/api/meliaf-taxonomy/admin` (full admin) and
+  // `/api/meliaf-taxonomy/admin/concepts` (CONCEPTS_CE, concepts
+  // only) are substrings of this route, so either one opens the screen.
+  access: ['/api/meliaf-taxonomy/admin/concepts']
+};
+
+/** Panel entries switched off by a feature flag (see `postLoginRoute`). */
+export const HIDDEN_ADMIN_LINKS: AdminLink[] = MELIAF_TAXONOMY_HIDDEN ? [MELIAF_TAXONOMY_LINK] : [];
+
+/**
  * Agrupada en vez de plana («S3» en DESIGN.md): seis entradas en una sola
  * columna se leen como un montón, y los tres grupos responden preguntas
  * distintas — qué curo, quién puede entrar, con qué habla la plataforma.
+ * Every entry, hidden ones included; the panel reads `ADMIN_GROUPS`.
  */
-export const ADMIN_GROUPS: AdminGroup[] = [
+const ALL_ADMIN_GROUPS: AdminGroup[] = [
   {
     title: 'Manage',
     links: [
@@ -79,15 +100,7 @@ export const ADMIN_GROUPS: AdminGroup[] = [
         icon: 'fa fa-book',
         access: ['/api/glossary/admin/terms']
       },
-      {
-        label: 'MELIAF taxonomy',
-        route: '/clarisa-panel/manage/concepts-admin',
-        icon: 'fa fa-sitemap',
-        // Both `/api/meliaf-taxonomy/admin` (full admin) and
-        // `/api/meliaf-taxonomy/admin/concepts` (CONCEPTS_CE, concepts
-        // only) are substrings of this route, so either one opens the screen.
-        access: ['/api/meliaf-taxonomy/admin/concepts']
-      }
+      MELIAF_TAXONOMY_LINK
     ]
   },
   {
@@ -155,6 +168,17 @@ export const ADMIN_GROUPS: AdminGroup[] = [
     ]
   }
 ];
+
+/**
+ * The navigation without the MELIAF taxonomy entry when `meliafHidden`
+ * (`MELIAF_TAXONOMY_HIDDEN`; a parameter so both states are testable).
+ */
+export function buildAdminGroups(meliafHidden: boolean): AdminGroup[] {
+  if (!meliafHidden) return ALL_ADMIN_GROUPS;
+  return ALL_ADMIN_GROUPS.map(group => ({ ...group, links: group.links.filter(link => link !== MELIAF_TAXONOMY_LINK) }));
+}
+
+export const ADMIN_GROUPS: AdminGroup[] = buildAdminGroups(MELIAF_TAXONOMY_HIDDEN);
 
 /**
  * Sección en la que está una URL. Compara por prefijo porque las pantallas
@@ -262,7 +286,8 @@ export function sectionUrl(section: ProtectedSection): string {
 /**
  * The first screen after signing in (a URL, for `navigateByUrl`):
  * - access unknown (`null`) or Super admin → partner-request, as always;
- * - no section open → the public home: the panel has nothing for them;
+ * - no section open → the public home: the panel has nothing for them
+ *   (the panel home when their roles only open a hidden section);
  * - exactly one section → that section;
  * - several → partner-request when the caller opens it, else the panel home
  *   instead of bouncing off the guard (login → partner-request → refused → home).
@@ -270,7 +295,10 @@ export function sectionUrl(section: ProtectedSection): string {
 export function postLoginRoute(who: NavAccess | null): string {
   if (!who || who.isSuper) return LOGIN_LANDING;
   const sections = protectedSections(who);
-  if (sections.length === 0) return NO_ROLE_LANDING;
+  // A member whose roles only open a hidden section (e.g. MELIAF taxonomy)
+  // lands on the panel home, which says no section is open, instead of the
+  // public site as if they had no role at all.
+  if (sections.length === 0) return HIDDEN_ADMIN_LINKS.some(link => opens(link.access, who)) ? PANEL_HOME : NO_ROLE_LANDING;
   const only = onlyProtectedSection(who);
   if (only) return sectionUrl(only);
   const landing = adminLinkFor(LOGIN_LANDING);

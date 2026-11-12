@@ -225,6 +225,13 @@
 
 // ------------------------------------------------------------------- estados
 
+// Aviso de que lo que sigue son términos parecidos y no coincidencias exactas.
+.glossary-similar {
+  margin: 0 0 14px;
+  color: var(--cl-ink-2, #46524c);
+  font-size: 14px;
+}
+
 .glossary-loading,
 .glossary-empty {
   text-align: center;
@@ -307,6 +314,44 @@
   line-height: 1.4;
 }
 
+// Término que ya no se usa, abierto por su enlace permanente o su URI: el aviso
+// va antes de la definición, en el color de estado `--cl-warn` (texto en tinta
+// para que el contraste no dependa del ámbar).
+.card-inactive {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--cl-line, #d9e0da);
+  border-left: 3px solid var(--cl-warn, #9a6b00);
+  border-radius: var(--cl-radius-control, 8px);
+  background: var(--cl-surface-2, #f7f9f6);
+  color: var(--cl-ink, #10241c);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+
+  i {
+    margin-top: 3px;
+    color: var(--cl-warn, #9a6b00);
+  }
+
+  strong {
+    font-weight: 600;
+  }
+
+  a {
+    color: var(--cl-brand-deep, #0a6449);
+    text-decoration: underline;
+  }
+
+  a:hover,
+  a:focus {
+    color: var(--cl-brand-deeper, #08543e);
+  }
+}
+
 // La tarjeta de un enlace permanente se distingue por el borde, sin sombra
 // (DESIGN.md § 6: borde O sombra).
 .glossary-card.is-focused {
@@ -315,6 +360,7 @@
 
 .card-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
@@ -322,7 +368,10 @@
 }
 
 // Botón fantasma: la acción existe en cada tarjeta, así que no puede gritar.
-.card-copy {
+// La URI de la taxonomía es un enlace con el mismo peso visual que «Copy link».
+.card-copy,
+.card-cite,
+.card-uri {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -349,6 +398,10 @@
     outline: 2px solid var(--cl-brand-ring, #bde3d4);
     outline-offset: 1px;
   }
+}
+
+.card-uri {
+  text-decoration: none;
 }
 
 .card-copy__feedback {
@@ -690,6 +743,8 @@ button.version-seg:hover:not(.is-active) {
   .version-seg,
   .glossary-card,
   .card-copy,
+  .card-cite,
+  .card-uri,
   .glossary-search input {
     transition: none;
   }

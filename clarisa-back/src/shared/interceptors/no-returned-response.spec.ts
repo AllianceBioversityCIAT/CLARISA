@@ -13,6 +13,8 @@ import { ResponseFormattingInterceptor } from './response-formatting.interceptor
 import { GlossaryController } from '../../api/glossary/glossary.controller';
 import { GlossaryService } from '../../api/glossary/glossary.service';
 import { GlossaryExportService } from '../../api/glossary/glossary-export.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { PermissionGuard } from '../guards/permission.guard';
 
 /**
  * A handler that writes the reply itself (`@Res()`) and also RETURNS the
@@ -64,7 +66,15 @@ describe('no handler returns the Express response it already wrote', () => {
           { provide: APP_INTERCEPTOR, useClass: ResponseFormattingInterceptor },
           { provide: APP_INTERCEPTOR, useClass: ClassSerializerInterceptor },
         ],
-      }).compile();
+      })
+        // The route needs a session with the glossary admin permission since
+        // 2026-11-11 (pinned in glossary.contract-2.spec); here only the reply
+        // path is under test, so both guards let the request through.
+        .overrideGuard(JwtAuthGuard)
+        .useValue({ canActivate: () => true })
+        .overrideGuard(PermissionGuard)
+        .useValue({ canActivate: () => true })
+        .compile();
       app = moduleRef.createNestApplication();
       await app.init();
     });

@@ -1,15 +1,15 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource, EntityManager, In } from 'typeorm';
 import { Glossary, GlossaryEditorialStatus } from './entities/glossary.entity';
-import { GlossaryPortfolio } from './entities/glossary-portfolio.entity';
 import { Portfolio } from '../portfolio/entities/portfolio.entity';
 import { User } from '../user/entities/user.entity';
-import { GlossaryRepository } from './repositories/glossary.repository';
+import { GLOSSARY_STORAGE, GlossaryStorage } from './glossary-store';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
 import { UserData } from '../../shared/interfaces/user-data';
 import {
@@ -34,11 +34,15 @@ import {
  * The public read endpoints (`GET api/glossary`) keep their contract untouched:
  * this service never renames columns nor changes what consumers already read.
  * Everything here is additive.
+ *
+ * Since 2026-11-06 every read and write goes through `GlossaryStore`, the
+ * glossary's only store (the taxonomy's `gc_concepts`); the rules of the
+ * panel (versions per portfolio, merge, bulk load) are unchanged.
  */
 @Injectable()
 export class GlossaryAdminService {
   constructor(
-    private readonly _glossaryRepository: GlossaryRepository,
+    @Inject(GLOSSARY_STORAGE) private readonly _store: GlossaryStorage,
     private readonly _dataSource: DataSource,
   ) {}
 
@@ -251,7 +255,7 @@ export class GlossaryAdminService {
     excludeId?: number,
   ): Promise<Glossary[]> {
     const key = this.termKey(title);
-    const all = await manager.find(Glossary);
+    const all = await this._store.all(manager);
     return all.filter(
       (g) =>
         this.termKey(g.title) === key &&
@@ -264,12 +268,7 @@ export class GlossaryAdminService {
     manager: EntityManager,
     glossaryId: number,
   ): Promise<number[]> {
-    const links = await manager.find(GlossaryPortfolio, {
-      where: { glossary_id: glossaryId },
-    });
-    return links
-      .filter((gp) => gp.auditableFields?.is_active)
-      .map((gp) => Number(gp.portfolio_id));
+    return this._store.portfolioIds(glossaryId, manager);
   }
 
   /**
@@ -312,24 +311,11 @@ export class GlossaryAdminService {
     }
   }
 
-  private buildFindOptions(show: FindAllOptions) {
-    const relations = {
-      glossary_portfolio_array: { portfolio_object: true },
-    };
-
-    if (show === FindAllOptions.SHOW_ALL) {
-      return { relations, order: { title: 'ASC' as const } };
-    }
-
-    return {
-      relations,
-      order: { title: 'ASC' as const },
-      where: {
-        auditableFields: {
-          is_active: show !== FindAllOptions.SHOW_ONLY_INACTIVE,
-        },
-      },
-    };
+  /** The terms `show` asks for, ordered by term (the store's order). */
+  private filterShow(terms: Glossary[], show: FindAllOptions): Glossary[] {
+    if (show === FindAllOptions.SHOW_ALL) return terms;
+    const active = show !== FindAllOptions.SHOW_ONLY_INACTIVE;
+    return terms.filter((g) => !!g.auditableFields?.is_active === active);
   }
 
   /**
@@ -365,77 +351,26 @@ export class GlossaryAdminService {
     return portfolios;
   }
 
-  /**
-   * Makes the stored portfolio assignment match `portfolioIds`.
-   *
-   * Rows are never deleted: the ones that no longer apply are deactivated and
-   * an existing inactive row is reused when the same pair comes back. That
-   * keeps the audit trail intact, which is what the rest of CLARISA does.
-   */
+  /** Makes the stored portfolio assignment match `portfolioIds`. */
   private async syncPortfolios(
     manager: EntityManager,
     glossaryId: number,
     portfolioIds: number[],
-    userId: number,
+    userData: UserData,
   ): Promise<void> {
-    const wanted = [...new Set((portfolioIds ?? []).map((id) => Number(id)))];
-
-    const existing = await manager.find(GlossaryPortfolio, {
-      where: { glossary_id: glossaryId },
-    });
-
-    const toDeactivate = existing.filter(
-      (gp) =>
-        gp.auditableFields?.is_active &&
-        !wanted.includes(Number(gp.portfolio_id)),
+    await this._store.setPortfolios(
+      glossaryId,
+      [...new Set((portfolioIds ?? []).map((id) => Number(id)))],
+      manager,
+      userData,
     );
-
-    for (const row of toDeactivate) {
-      row.auditableFields.is_active = false;
-      row.auditableFields.updated_by = userId;
-    }
-
-    const toSave: GlossaryPortfolio[] = [...toDeactivate];
-
-    for (const portfolioId of wanted) {
-      const current = existing.find(
-        (gp) => Number(gp.portfolio_id) === portfolioId,
-      );
-
-      if (current) {
-        if (!current.auditableFields?.is_active) {
-          current.auditableFields.is_active = true;
-          current.auditableFields.updated_by = userId;
-          toSave.push(current);
-        }
-        continue;
-      }
-
-      const created = manager.create(GlossaryPortfolio, {
-        glossary_id: glossaryId,
-        portfolio_id: portfolioId,
-      });
-      created.auditableFields = {
-        ...created.auditableFields,
-        is_active: true,
-        created_by: userId,
-      } as GlossaryPortfolio['auditableFields'];
-      toSave.push(created);
-    }
-
-    if (toSave.length) {
-      await manager.save(GlossaryPortfolio, toSave);
-    }
   }
 
   private async findOneWithRelations(
     manager: EntityManager,
     id: number,
   ): Promise<Glossary> {
-    return manager.findOne(Glossary, {
-      where: { id },
-      relations: { glossary_portfolio_array: { portfolio_object: true } },
-    });
+    return this._store.byId(id, manager);
   }
 
   // ------------------------------------------------------------------- read
@@ -443,9 +378,7 @@ export class GlossaryAdminService {
   async findAllForAdmin(
     show: FindAllOptions = FindAllOptions.SHOW_ALL,
   ): Promise<GlossaryAdminDto[]> {
-    const terms = await this._glossaryRepository.find(
-      this.buildFindOptions(show) as never,
-    );
+    const terms = this.filterShow(await this._store.all(), show);
     const users = await this.auditUsers(this._dataSource.manager, terms);
 
     return terms.map((term) => this.toAdminDto(term, users));
@@ -506,13 +439,14 @@ export class GlossaryAdminService {
         created_by: userData.userId,
       } as Glossary['auditableFields'];
 
-      const saved = await manager.save(Glossary, glossary);
+      await this._store.save(glossary, manager, userData);
+      const saved = glossary;
 
       await this.syncPortfolios(
         manager,
         Number(saved.id),
         dto.portfolio_ids ?? [],
-        userData.userId,
+        userData,
       );
 
       return this.toAdminDto(
@@ -527,7 +461,7 @@ export class GlossaryAdminService {
     userData: UserData,
   ): Promise<GlossaryAdminDto> {
     return this._dataSource.transaction(async (manager) => {
-      const glossary = await manager.findOne(Glossary, { where: { id } });
+      const glossary = await this._store.byId(id, manager);
 
       if (!glossary) {
         throw new NotFoundException(`Glossary term ${id} was not found`);
@@ -574,7 +508,7 @@ export class GlossaryAdminService {
       }
 
       glossary.auditableFields.updated_by = userData.userId;
-      await manager.save(Glossary, glossary);
+      await this._store.save(glossary, manager, userData);
 
       if (dto.portfolio_ids !== undefined) {
         await this.resolvePortfolios(manager, dto.portfolio_ids);
@@ -588,7 +522,7 @@ export class GlossaryAdminService {
           manager,
           Number(id),
           dto.portfolio_ids,
-          userData.userId,
+          userData,
         );
       }
 
@@ -602,7 +536,7 @@ export class GlossaryAdminService {
     userData: UserData,
   ): Promise<GlossaryAdminDto> {
     return this._dataSource.transaction(async (manager) => {
-      const glossary = await manager.findOne(Glossary, { where: { id } });
+      const glossary = await this._store.byId(id, manager);
 
       if (!glossary) {
         throw new NotFoundException(`Glossary term ${id} was not found`);
@@ -610,7 +544,7 @@ export class GlossaryAdminService {
 
       glossary.auditableFields.is_active = isActive;
       glossary.auditableFields.updated_by = userData.userId;
-      await manager.save(Glossary, glossary);
+      await this._store.save(glossary, manager, userData);
 
       return this.toAdminDto(await this.findOneWithRelations(manager, id));
     });
@@ -629,9 +563,7 @@ export class GlossaryAdminService {
       return null;
     }
 
-    const target = await manager.findOne(Glossary, {
-      where: { id: Number(groupOf) },
-    });
+    const target = await this._store.byId(Number(groupOf), manager);
     if (!target) {
       throw new BadRequestException(`Glossary term ${groupOf} was not found`);
     }
@@ -662,7 +594,7 @@ export class GlossaryAdminService {
     userData: UserData,
   ): Promise<GlossaryAdminDto> {
     return this._dataSource.transaction(async (manager) => {
-      const glossary = await manager.findOne(Glossary, { where: { id } });
+      const glossary = await this._store.byId(id, manager);
       if (!glossary) {
         throw new NotFoundException(`Glossary term ${id} was not found`);
       }
@@ -677,9 +609,7 @@ export class GlossaryAdminService {
         if (Number(replacedBy) === Number(id)) {
           throw new BadRequestException('A term cannot replace itself');
         }
-        const target = await manager.findOne(Glossary, {
-          where: { id: replacedBy },
-        });
+        const target = await this._store.byId(replacedBy, manager);
         if (!target) {
           throw new BadRequestException(
             `The replacement term ${replacedBy} was not found`,
@@ -700,7 +630,7 @@ export class GlossaryAdminService {
       glossary.replaced_by_id =
         dto.status === GlossaryEditorialStatus.DEPRECATED ? replacedBy : null;
       glossary.auditableFields.updated_by = userData.userId;
-      await manager.save(Glossary, glossary);
+      await this._store.save(glossary, manager, userData);
 
       return this.toAdminDto(await this.findOneWithRelations(manager, id));
     });
@@ -717,7 +647,7 @@ export class GlossaryAdminService {
     }
 
     return this._dataSource.transaction(async (manager) => {
-      const source = await manager.findOne(Glossary, { where: { id } });
+      const source = await this._store.byId(id, manager);
       if (!source) {
         throw new NotFoundException(`Glossary term ${id} was not found`);
       }
@@ -747,8 +677,8 @@ export class GlossaryAdminService {
 
       const remaining = held.filter((pid) => !wanted.includes(pid));
       source.auditableFields.updated_by = userData.userId;
-      await manager.save(Glossary, source);
-      await this.syncPortfolios(manager, id, remaining, userData.userId);
+      await this._store.save(source, manager, userData);
+      await this.syncPortfolios(manager, id, remaining, userData);
 
       const version = manager.create(Glossary, {
         title: source.title,
@@ -774,13 +704,9 @@ export class GlossaryAdminService {
         modification_justification: `Split from glossary term ${id} to hold its own definition for portfolio(s) ${wanted.join(', ')}`,
       } as Glossary['auditableFields'];
 
-      const saved = await manager.save(Glossary, version);
-      await this.syncPortfolios(
-        manager,
-        Number(saved.id),
-        wanted,
-        userData.userId,
-      );
+      await this._store.save(version, manager, userData);
+      const saved = version;
+      await this.syncPortfolios(manager, Number(saved.id), wanted, userData);
 
       return {
         source: this.toAdminDto(await this.findOneWithRelations(manager, id)),
@@ -806,10 +732,8 @@ export class GlossaryAdminService {
     }
 
     return this._dataSource.transaction(async (manager) => {
-      const source = await manager.findOne(Glossary, { where: { id } });
-      const target = await manager.findOne(Glossary, {
-        where: { id: Number(intoId) },
-      });
+      const source = await this._store.byId(id, manager);
+      const target = await this._store.byId(Number(intoId), manager);
       if (!source) {
         throw new NotFoundException(`Glossary term ${id} was not found`);
       }
@@ -836,21 +760,21 @@ export class GlossaryAdminService {
         );
       }
 
-      await this.syncPortfolios(manager, id, [], userData.userId);
+      await this.syncPortfolios(manager, id, [], userData);
       await this.syncPortfolios(
         manager,
         Number(intoId),
         [...kept, ...moving],
-        userData.userId,
+        userData,
       );
 
       source.auditableFields.is_active = false;
       source.auditableFields.updated_by = userData.userId;
       source.auditableFields.modification_justification = `Merged into glossary term ${intoId}; its portfolio(s) ${moving.join(', ') || '(none)'} moved there`;
-      await manager.save(Glossary, source);
+      await this._store.save(source, manager, userData);
 
       target.auditableFields.updated_by = userData.userId;
-      await manager.save(Glossary, target);
+      await this._store.save(target, manager, userData);
 
       return {
         target: this.toAdminDto(
@@ -877,10 +801,8 @@ export class GlossaryAdminService {
     }
 
     return this._dataSource.transaction(async (manager) => {
-      const row = await manager.findOne(Glossary, { where: { id } });
-      const target = await manager.findOne(Glossary, {
-        where: { id: Number(intoId) },
-      });
+      const row = await this._store.byId(id, manager);
+      const target = await this._store.byId(Number(intoId), manager);
       if (!row) {
         throw new NotFoundException(`Glossary term ${id} was not found`);
       }
@@ -894,7 +816,7 @@ export class GlossaryAdminService {
         return this.toAdminDto(await this.findOneWithRelations(manager, id));
       }
 
-      const all = await manager.find(Glossary);
+      const all = await this._store.all(manager);
       const moving = all.filter((g) => this.groupOf(g) === from);
       const staying = all.filter((g) => this.groupOf(g) === to);
 
@@ -925,7 +847,7 @@ export class GlossaryAdminService {
         g.group_id = to;
         g.auditableFields.updated_by = userData.userId;
       }
-      await manager.save(Glossary, moving);
+      await this._store.save(moving, manager, userData);
 
       return this.toAdminDto(await this.findOneWithRelations(manager, id));
     });
@@ -938,14 +860,14 @@ export class GlossaryAdminService {
    */
   async clearGroup(id: number, userData: UserData): Promise<GlossaryAdminDto> {
     return this._dataSource.transaction(async (manager) => {
-      const row = await manager.findOne(Glossary, { where: { id } });
+      const row = await this._store.byId(id, manager);
       if (!row) {
         throw new NotFoundException(`Glossary term ${id} was not found`);
       }
 
       row.group_id = null;
       row.auditableFields.updated_by = userData.userId;
-      await manager.save(Glossary, row);
+      await this._store.save(row, manager, userData);
 
       return this.toAdminDto(await this.findOneWithRelations(manager, id));
     });
@@ -1021,7 +943,7 @@ export class GlossaryAdminService {
             manager,
             row.glossary_id,
             portfolioIds,
-            userData.userId,
+            userData,
           );
         }
       }
@@ -1075,7 +997,8 @@ export class GlossaryAdminService {
       created_by: userData.userId,
     } as Glossary['auditableFields'];
 
-    const saved = await manager.save(Glossary, glossary);
+    await this._store.save(glossary, manager, userData);
+    const saved = glossary;
     return Number(saved.id);
   }
 
@@ -1089,9 +1012,7 @@ export class GlossaryAdminService {
     dto: GlossaryBulkDto,
     userData: UserData,
   ): Promise<void> {
-    const glossary = await manager.findOne(Glossary, {
-      where: { id: row.glossary_id },
-    });
+    const glossary = await this._store.byId(row.glossary_id, manager);
 
     // The plan is built inside this same transaction, so the row is there.
     // Guard anyway: a silent crash mid-import would be far worse than a clear
@@ -1125,7 +1046,7 @@ export class GlossaryAdminService {
       glossary.show_in_dashboard = dto.show_in_dashboard;
     }
 
-    await manager.save(Glossary, glossary);
+    await this._store.save(glossary, manager, userData);
   }
 
   /**
@@ -1160,7 +1081,7 @@ export class GlossaryAdminService {
     // the old map kept whichever row the database happened to return last —
     // which meant a file could update one version while the other, identical in
     // name, was never touched and nobody could tell.
-    const existing = await manager.find(Glossary);
+    const existing = await this._store.all(manager);
     const existingByKey = new Map<string, Glossary[]>();
     for (const term of existing) {
       const key = this.termKey(term.title);

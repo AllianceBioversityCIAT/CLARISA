@@ -31,6 +31,15 @@ describe('NavigationBarComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  // MELIAF_TAXONOMY_HIDDEN: neither the page nor its API doc is in the menu.
+  it('has no MELIAF taxonomy link in the menu', () => {
+    const text = fixture.nativeElement.textContent as string;
+    const hrefs = Array.from(fixture.nativeElement.querySelectorAll('a')).map(a => (a as HTMLAnchorElement).getAttribute('href') ?? '');
+    expect(text).not.toMatch(/MELIAF/i);
+    expect(hrefs.some(href => href.includes('/concepts') || href.includes('MELIAF_taxonomy'))).toBe(false);
+    expect(hrefs).toContain('/clarisa-panel/documentation/One_CGIAR_Control_List');
+  });
+
   // Al login solo se llegaba escribiendo la URL o siendo expulsado por el guard
   // desde "Institution Request" — la vía enredada que reportó Héctor en el
   // ticket 161964. La barra tiene que ofrecer la puerta.

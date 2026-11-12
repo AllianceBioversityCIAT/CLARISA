@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subject, Subscription, catchError, debounceTime, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import { GlossaryExportFormat, GlossaryPageService, GlossaryTerm, GlossaryTermPortfolio } from './services/glossary-page.service';
 
 /**
@@ -58,6 +58,11 @@ export class GlossaryCard {
   get termId(): number | undefined {
     return this.visible?.termId;
   }
+
+  /** URI permanente de la definición visible en la taxonomía MELIAF, si la tiene. */
+  get termUri(): string | null | undefined {
+    return this.visible?.termUri;
+  }
 }
 
 function uniqueLabels(versions: GlossaryTerm[]): string[] {
@@ -79,6 +84,11 @@ function uniqueLabels(versions: GlossaryTerm[]): string[] {
  * readers. The content is English.
  */
 const LOCALE = 'en';
+
+/** Shortest search that asks the taxonomy for similar terms; shorter ones match too much. */
+const SIMILAR_MIN_CHARS = 3;
+/** Pause in typing before the taxonomy is asked, so one search is one request. */
+const SIMILAR_DEBOUNCE_MS = 300;
 
 /** How long the "Link copied" feedback stays on the card. */
 const COPY_FEEDBACK_MS = 2000;
@@ -136,11 +146,34 @@ export class GlossaryComponent implements OnInit, OnDestroy {
   focusedTermId: number | null = null;
   /** The card of that entry, or null when no published entry carries the id. */
   focusedCard: GlossaryCard | null = null;
-  /** The card whose link was just copied, and whether the copy worked. */
+  /** The focused entry is a term no longer in use (from `?show=inactive`). */
+  focusedInactive = false;
+  /** The term that replaces the focused inactive one, when it has one. */
+  focusedReplacement: { termId: number; term: string; link: string } | null = null;
+  /** Whether the active terms have arrived (the inactive ones are only asked after). */
+  private activeLoaded = false;
+  /**
+   * Terms no longer in use, asked once and only for a permalink whose id is not
+   * among the active terms. Never part of `terms`, `cards` or the search.
+   */
+  private inactiveTerms: GlossaryTerm[] | null = null;
+  private inactivePending = false;
+  private inactiveSubscription?: Subscription;
+  /** The card whose link or citation was just copied, which one, and whether the copy worked. */
   copiedTermId: number | null = null;
+  copiedKind: 'link' | 'citation' = 'link';
   copyFailed = false;
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
   private routeSubscription?: Subscription;
+  private similarSubscription?: Subscription;
+  private readonly searchChanges = new Subject<string>();
+  /**
+   * What the taxonomy search found for `similarFor`, best match first. Only
+   * used when the page's own search finds nothing: the exact search stays the
+   * one the reader sees whenever it has results.
+   */
+  similarTermIds: number[] = [];
+  similarFor = '';
 
   readonly exportFormats: { format: GlossaryExportFormat; label: string }[] = [
     { format: 'json', label: 'JSON' },
@@ -161,13 +194,22 @@ export class GlossaryComponent implements OnInit, OnDestroy {
       const id = Number(params.get('termId'));
       this.focusedTermId = this.focusMode && Number.isInteger(id) ? id : null;
       this.rebuildFocusedCard();
+      // Once the active terms are here, the loader only waits for the inactive
+      // ones, and only on a permalink that has no card yet: moving to an active
+      // term or to the list while that request runs must not stay covered.
+      if (this.activeLoaded) {
+        this.loading = this.inactivePending && this.focusMode && !this.focusedCard;
+      }
+      this.loadInactiveIfNeeded();
     });
     this._glossaryPageService.getGlossary().subscribe({
       next: terms => {
         this.terms = terms ?? [];
+        this.activeLoaded = true;
         this.buildGroups();
         this.rebuildCards();
         this.loading = false;
+        this.loadInactiveIfNeeded();
       },
       error: () => {
         this.terms = [];
@@ -177,6 +219,24 @@ export class GlossaryComponent implements OnInit, OnDestroy {
         this.loading = false;
       }
     });
+    this.similarSubscription = this.searchChanges
+      .pipe(
+        debounceTime(SIMILAR_DEBOUNCE_MS),
+        distinctUntilChanged(),
+        switchMap(search =>
+          search.length < SIMILAR_MIN_CHARS
+            ? of({ search, ids: [] as number[] })
+            : this._glossaryPageService.searchSimilarTermIds(search).pipe(
+                map(ids => ({ search, ids })),
+                // A taxonomy that does not answer only means no suggestions.
+                catchError(() => of({ search, ids: [] as number[] }))
+              )
+        )
+      )
+      .subscribe(({ search, ids }) => {
+        this.similarFor = search;
+        this.similarTermIds = ids;
+      });
     this._glossaryPageService.getPortfolios().subscribe(portfolios => {
       this.portfolios = portfolios ?? [];
       this.portfolioStartYear = new Map(
@@ -189,6 +249,8 @@ export class GlossaryComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routeSubscription?.unsubscribe();
+    this.similarSubscription?.unsubscribe();
+    this.inactiveSubscription?.unsubscribe();
     if (this.copyTimer) {
       clearTimeout(this.copyTimer);
     }
@@ -283,14 +345,71 @@ export class GlossaryComponent implements OnInit, OnDestroy {
    * the link names. Rebuilt when the portfolios arrive, which reorders the tabs.
    */
   private rebuildFocusedCard(): void {
+    this.focusedInactive = false;
+    this.focusedReplacement = null;
     const target = this.focusedTermId == null ? undefined : this.terms.find(term => term.termId === this.focusedTermId);
     const versions = target ? this.groups.find(group => group.includes(target)) : undefined;
     if (!target || !versions) {
-      this.focusedCard = null;
+      this.focusedCard = this.inactiveCard();
       return;
     }
     const ordenadas = [...versions].sort((a, b) => this.recencyOf(b) - this.recencyOf(a));
     this.focusedCard = new GlossaryCard(target.term, ordenadas, this.portfoliosOf(versions), ordenadas.indexOf(target));
+  }
+
+  /**
+   * The card of the focused entry when it is a term no longer in use: on its
+   * own (its versions are not looked up), with the term that replaces it.
+   */
+  private inactiveCard(): GlossaryCard | null {
+    const target = this.focusedTermId == null ? undefined : this.inactiveTerms?.find(term => term.termId === this.focusedTermId);
+    if (!target) {
+      return null;
+    }
+    this.focusedInactive = true;
+    const replacedBy = target.replacedByTermId;
+    if (replacedBy != null && Number.isInteger(Number(replacedBy))) {
+      const id = Number(replacedBy);
+      const replacement = this.terms.find(term => term.termId === id) ?? this.inactiveTerms?.find(term => term.termId === id);
+      // Only a replacement the page can open: an id in neither list (a concept
+      // that is not a public glossary term) would lead to "not found".
+      if (replacement) {
+        this.focusedReplacement = { termId: id, term: replacement.term, link: `/landing-page/glossary/term/${id}` };
+      }
+    }
+    return new GlossaryCard(target.term, [target], this.portfoliosOf([target]), 0);
+  }
+
+  /**
+   * A permalink whose id is not among the active terms may be a term no longer
+   * in use: only then, and only once, the inactive terms are asked for. The
+   * loader stays on meanwhile, so "not found" never flashes first. If the
+   * request fails, the page shows "not found", as before.
+   */
+  private loadInactiveIfNeeded(): void {
+    if (!this.activeLoaded || !this.focusMode || this.focusedTermId == null || this.focusedCard || this.inactiveTerms || this.inactivePending) {
+      return;
+    }
+    this.loading = true;
+    this.inactivePending = true;
+    this.inactiveSubscription?.unsubscribe();
+    this.inactiveSubscription = this._glossaryPageService.getInactiveGlossary().subscribe({
+      next: terms => {
+        this.inactiveTerms = Array.isArray(terms) ? terms : [];
+        this.inactivePending = false;
+        this.rebuildFocusedCard();
+        this.loading = false;
+      },
+      // Not kept: the next permalink that needs it asks again.
+      error: () => {
+        this.inactivePending = false;
+        this.loading = false;
+      },
+      complete: () => {
+        this.inactivePending = false;
+        this.loading = false;
+      }
+    });
   }
 
   /** The permanent link of an entry on this site. */
@@ -308,12 +427,42 @@ export class GlossaryComponent implements OnInit, OnDestroy {
    * be refused by the browser, and a silent failure reads as a copied link.
    */
   copyLink(card: GlossaryCard): void {
-    const termId = card.termId;
-    if (termId == null) {
+    if (card.termId == null) {
       return;
     }
+    this.copyToClipboard(card.termId, this.permalinkOf(card.termId), 'link');
+  }
+
+  /**
+   * A ready-to-paste citation of the definition the card is showing, e.g.
+   * `Outcome. CLARISA Glossary, CGIAR. https://api.clarisa.cgiar.org/meliaf-taxonomy/304 (accessed 2026-11-05).`
+   * It cites the persistent URI of the taxonomy when the term has one — the id
+   * other systems resolve — and this site's permalink otherwise.
+   */
+  citationOf(card: GlossaryCard, today: Date = new Date()): string {
+    const uri = this.safeTermUri(card.termUri) ?? (card.termId != null ? this.permalinkOf(card.termId) : '');
+    // Local date by parts: toISOString() is UTC and gives tomorrow after 7 pm in Cali.
+    const accessed = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+    return `${(card.term ?? '').trim()}. CLARISA Glossary, CGIAR. ${uri} (accessed ${accessed}).`;
+  }
+
+  copyCitation(card: GlossaryCard): void {
+    if (card.termId == null) {
+      return;
+    }
+    this.copyToClipboard(card.termId, this.citationOf(card), 'citation');
+  }
+
+  /** What the feedback next to the buttons says after a copy. */
+  get copyFeedback(): string {
+    const what = this.copiedKind === 'citation' ? 'citation' : 'link';
+    return this.copyFailed ? `Could not copy the ${what}` : what === 'citation' ? 'Citation copied' : 'Link copied';
+  }
+
+  private copyToClipboard(termId: number, text: string, kind: 'link' | 'citation'): void {
     const done = (failed: boolean) => {
       this.copiedTermId = termId;
+      this.copiedKind = kind;
       this.copyFailed = failed;
       if (this.copyTimer) {
         clearTimeout(this.copyTimer);
@@ -328,7 +477,7 @@ export class GlossaryComponent implements OnInit, OnDestroy {
       done(true);
       return;
     }
-    clipboard.writeText(this.permalinkOf(termId)).then(
+    clipboard.writeText(text).then(
       () => done(false),
       () => done(true)
     );
@@ -349,6 +498,40 @@ export class GlossaryComponent implements OnInit, OnDestroy {
       }
     }
     return Array.from(letters).sort((a, b) => a.localeCompare(b, LOCALE));
+  }
+
+  /** Called on every keystroke of the search box. */
+  onSearchChange(value: string): void {
+    this.searchChanges.next((value ?? '').trim().toLowerCase());
+  }
+
+  /**
+   * Cards the taxonomy search found for what is typed now, in its order, inside
+   * the same portfolio and letter the reader chose. Empty while the answer is
+   * for an older search, so a slow reply never shows under a new query.
+   */
+  get similarTerms(): GlossaryCard[] {
+    const search = this.searchText.trim().toLowerCase();
+    if (this.focusMode || !search || search !== this.similarFor || !this.similarTermIds.length) {
+      return [];
+    }
+    const rank = new Map(this.similarTermIds.map((id, index) => [id, index]));
+    const best = (card: GlossaryCard) => Math.min(...card.versions.map(version => rank.get(version.termId as number) ?? Infinity));
+    return this.portfolioFilteredTerms
+      .filter(card => best(card) !== Infinity)
+      .filter(card => this.selectedLetter == null || card.term?.trim().toUpperCase().startsWith(this.selectedLetter))
+      .sort((a, b) => best(a) - best(b));
+  }
+
+  /** The exact matches, or — only when there are none — the similar ones. */
+  get shownTerms(): GlossaryCard[] {
+    const exact = this.filteredTerms;
+    return exact.length ? exact : this.similarTerms;
+  }
+
+  /** True when the cards on screen are suggestions and not exact matches. */
+  get showingSimilar(): boolean {
+    return !this.filteredTerms.length && this.similarTerms.length > 0;
   }
 
   get filteredTerms(): GlossaryCard[] {
@@ -430,6 +613,11 @@ export class GlossaryComponent implements OnInit, OnDestroy {
     const text = (holder.content.textContent ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
     this.visibleTextCache.set(definition, text);
     return text;
+  }
+
+  /** The taxonomy URI, under the same http(s)-only rule as a source link. */
+  safeTermUri(uri: string | null | undefined): string | null {
+    return this.safeSourceUrl(uri);
   }
 
   /**

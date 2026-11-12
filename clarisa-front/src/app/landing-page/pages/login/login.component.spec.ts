@@ -282,9 +282,15 @@ describe('LoginComponent · dónde aterriza al entrar', () => {
     expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/partner-request');
   });
 
-  it('a member whose roles open exactly one protected section lands in it (Concepts-only → Concepts)', async () => {
+  it('a member whose roles open exactly one protected section lands in it (Glossary-only → Glossary)', async () => {
+    const { navigate } = await signIn(who(['/api/glossary/admin']));
+    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/glossary-admin');
+  });
+
+  // MELIAF taxonomy is hidden (MELIAF_TAXONOMY_HIDDEN): its section no longer opens.
+  it('a MELIAF-only member lands on the panel home, not on the hidden page', async () => {
     const { navigate } = await signIn(who(['/api/meliaf-taxonomy/admin']));
-    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage/concepts-admin');
+    expect(navigate).toHaveBeenCalledWith('/clarisa-panel/manage');
   });
 
   it('a single protected tab lands on that tab', async () => {

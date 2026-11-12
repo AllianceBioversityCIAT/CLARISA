@@ -7,9 +7,13 @@ jest.mock('../../auth/utils/LDAPAuth', () => ({
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
+  BadRequestException,
+  CanActivate,
   ClassSerializerInterceptor,
+  ExecutionContext,
   HttpStatus,
   INestApplication,
+  UnauthorizedException,
   VersioningType,
 } from '@nestjs/common';
 import {
@@ -22,17 +26,18 @@ import { Test } from '@nestjs/testing';
 import { DECORATORS } from '@nestjs/swagger/dist/constants';
 import { instanceToPlain } from 'class-transformer';
 import request from 'supertest';
-import { getMetadataArgsStorage, In } from 'typeorm';
+import { getMetadataArgsStorage } from 'typeorm';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { PERMISSION_ROUTE } from '../../shared/decorators/permission-route.decorator';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { PermissionGuard } from '../../shared/guards/permission.guard';
+import { UserService } from '../user/user.service';
+import { SeedGlossaryAdminPermission1786320000000 } from '../../../migrations/1786320000000-SeedGlossaryAdminPermission';
 import { ExceptionsFilter } from '../../shared/filters/exceptions.filter';
 import { versionExtractor } from '../../shared/interfaces/version-extractor';
 import { ResponseFormattingInterceptor } from '../../shared/interceptors/response-formatting.interceptor';
 import { Portfolio } from '../portfolio/entities/portfolio.entity';
-import {
-  Glossary,
-  GlossaryEditorialStatus,
-  PUBLISHED_EDITORIAL_STATUSES,
-} from './entities/glossary.entity';
+import { Glossary, GlossaryEditorialStatus } from './entities/glossary.entity';
 import { GlossaryPortfolio } from './entities/glossary-portfolio.entity';
 import { GlossaryController } from './glossary.controller';
 import {
@@ -40,7 +45,7 @@ import {
   GlossaryExportService,
 } from './glossary-export.service';
 import { GlossaryService } from './glossary.service';
-import { GlossaryRepository } from './repositories/glossary.repository';
+import { GLOSSARY_STORAGE } from './glossary-store';
 
 /**
  * SECOND BATCH of the glossary contract (Yeck, 2026-10-29): the gaps batch 1
@@ -178,19 +183,38 @@ describe('Glossary public contract, batch 2', () => {
 
   describe('over HTTP, with versioning on like main.ts', () => {
     let app: INestApplication;
+    // The store the service reads since 2026-11-06 (the taxonomy), faked.
     const repository = {
-      find: jest.fn(),
-      findOne: jest.fn(),
+      all: jest.fn(),
+      byId: jest.fn(),
+      portfolioIds: jest.fn(),
       save: jest.fn(),
+      setPortfolios: jest.fn(),
+      transaction: jest.fn((work: any) => work(undefined)),
     };
 
-    const published = { editorial_status: In(PUBLISHED_EDITORIAL_STATUSES) };
-    const order = { title: 'ASC' };
-    const relations = { glossary_portfolio_array: { portfolio_object: true } };
-    const activeFind = {
-      where: { ...published, auditableFields: { is_active: true } },
-      order,
-      relations,
+    // A session is `Authorization: Bearer <email>` here; without it the JWT
+    // guard answers 401 like passport-jwt does. The PermissionGuard is the real one.
+    const fakeJwt: CanActivate = {
+      canActivate: (ctx: ExecutionContext) => {
+        const req = ctx.switchToHttp().getRequest();
+        const email = /^Bearer (.+)$/.exec(
+          req.headers.authorization ?? '',
+        )?.[1];
+        if (!email) throw new UnauthorizedException();
+        req.user = { email };
+        return true;
+      },
+    };
+    const users = {
+      findOneByEmail: jest.fn(async (email: string) => ({
+        id: 9,
+        email,
+        permissions:
+          email === 'admin@cgiar.org'
+            ? ['/api/glossary/admin']
+            : ['/api/countries'],
+      })),
     };
 
     beforeAll(async () => {
@@ -199,11 +223,15 @@ describe('Glossary public contract, batch 2', () => {
         providers: [
           GlossaryService,
           GlossaryExportService,
-          { provide: GlossaryRepository, useValue: repository },
+          { provide: GLOSSARY_STORAGE, useValue: repository },
+          { provide: UserService, useValue: users },
           { provide: APP_FILTER, useClass: ExceptionsFilter },
           { provide: APP_INTERCEPTOR, useClass: ResponseFormattingInterceptor },
         ],
-      }).compile();
+      })
+        .overrideGuard(JwtAuthGuard)
+        .useValue(fakeJwt)
+        .compile();
       app = moduleRef.createNestApplication();
       app.enableVersioning({
         type: VersioningType.CUSTOM,
@@ -218,11 +246,26 @@ describe('Glossary public contract, batch 2', () => {
 
     beforeEach(() => {
       jest.clearAllMocks();
-      repository.find.mockResolvedValue([
+      const dashboard = (id: number, title: string, active: boolean) => {
+        const g = term(id, title, `${title} definition`, {
+          show_in_dashboard: true,
+        });
+        g.auditableFields.is_active = active;
+        return g;
+      };
+      repository.all.mockResolvedValue([
         term(1, 'Alpha', 'First', {}, [{ ...P25 }]),
+        dashboard(11, 'Dash active', true),
+        dashboard(12, 'Dash inactive', false),
+        term(13, 'Dash draft', 'x', {
+          show_in_dashboard: true,
+          editorial_status: GlossaryEditorialStatus.DRAFT,
+        }),
+        Object.assign(term(14, 'Gone', 'Inactive one'), {
+          auditableFields: { is_active: false },
+        }),
       ]);
-      repository.findOne.mockResolvedValue(term(1, 'Alpha', 'First'));
-      repository.save.mockImplementation(async (rows) => rows);
+      repository.byId.mockResolvedValue(term(1, 'Alpha', 'First'));
     });
 
     it.each([
@@ -236,7 +279,7 @@ describe('Glossary public contract, batch 2', () => {
     ])('GET %s answers the v1 shape, eleven keys, unchanged', async (url) => {
       const res = await request(app.getHttpServer()).get(url);
       expect(res.status).toBe(HttpStatus.OK);
-      expect(res.body).toHaveLength(1);
+      expect(res.body).toHaveLength(2);
       expect(Object.keys(res.body[0])).toEqual(PUBLIC_KEYS);
       expect(res.body[0]).toEqual({
         term: 'Alpha',
@@ -253,10 +296,14 @@ describe('Glossary public contract, batch 2', () => {
       });
     });
 
-    it('unknown query params do not change what the repository is asked', async () => {
-      await request(app.getHttpServer()).get('/?version=2&portfolio=3&foo=bar');
-      expect(repository.find).toHaveBeenCalledTimes(1);
-      expect(repository.find).toHaveBeenCalledWith(activeFind);
+    it('unknown query params do not change what is answered', async () => {
+      const plain = await request(app.getHttpServer()).get('/');
+      const odd = await request(app.getHttpServer()).get(
+        '/?version=2&portfolio=3&foo=bar',
+      );
+      expect(repository.all).toHaveBeenCalledTimes(2);
+      expect(odd.body).toEqual(plain.body);
+      expect(plain.body.map((t: any) => t.termId)).toEqual([1, 11]);
     });
 
     it('?version=2 on the dashboard and on get/:id is ignored as well', async () => {
@@ -270,11 +317,13 @@ describe('Glossary public contract, batch 2', () => {
       expect(Object.keys(one.body)).toEqual(PUBLIC_KEYS);
     });
 
-    it('?show=foo is a 500 with the message "?!" in the production envelope', async () => {
-      // pinned as-is: the service throws `Error('?!')` for an unknown option and
-      // nothing turns it into a 400.
+    const SHOW_400 = (value: string) =>
+      `Unknown show value "${value}". Use all, active or inactive.`;
+
+    it('?show=foo is a 400 naming the accepted values, in the production envelope', async () => {
+      // 2026-11-11: it was a 500 "?!" (the service threw a plain Error).
       const res = await request(app.getHttpServer()).get('/?show=foo');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
       expect(Object.keys(res.body)).toEqual([
         'response',
         'message',
@@ -282,88 +331,79 @@ describe('Glossary public contract, batch 2', () => {
         'date',
         'path',
       ]);
-      expect(res.body.message).toBe('?!');
-      expect(res.body.status).toBe(500);
+      expect(res.body.message).toBe(SHOW_400('foo'));
+      expect(res.body.status).toBe(400);
       expect(res.body.path).toBe('/?show=foo');
-      expect(repository.find).not.toHaveBeenCalled();
+      expect(repository.all).not.toHaveBeenCalled();
     });
 
-    it('?show=a&show=b (a repeated param) is the same 500', async () => {
-      // pinned as-is: Express hands the service an array, which matches no case.
+    it('?show=a&show=b (a repeated param) is the same 400', async () => {
+      // Express hands the service an array, which matches no option.
       const res = await request(app.getHttpServer()).get('/?show=a&show=b');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(res.body.message).toBe('?!');
-      expect(repository.find).not.toHaveBeenCalled();
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.message).toBe(SHOW_400('a,b'));
+      expect(repository.all).not.toHaveBeenCalled();
     });
 
-    it('?show= (empty) is the same 500, not the default', async () => {
-      // pinned as-is: only a MISSING show means "active"; an empty one is unknown.
+    it('?show=active&show=active (repeated, even equal) is a 400 too', async () => {
+      const res = await request(app.getHttpServer()).get(
+        '/?show=active&show=active',
+      );
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(repository.all).not.toHaveBeenCalled();
+    });
+
+    it('?show= (empty) is a 400, not the default', async () => {
+      // Only a MISSING show means "active"; an empty one is unknown.
       const res = await request(app.getHttpServer()).get('/?show=');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(res.body.message).toBe('?!');
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.message).toBe(SHOW_400(''));
     });
 
-    it('?show=ALL is a 500: the option is case-sensitive', async () => {
+    it('?show=ALL is a 400: the option stays case-sensitive', async () => {
       const res = await request(app.getHttpServer()).get('/?show=ALL');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.message).toBe(SHOW_400('ALL'));
     });
 
-    it('/dashboard?show=foo is the same 500', async () => {
+    it('/dashboard?show=foo is the same 400', async () => {
       const res = await request(app.getHttpServer()).get('/dashboard?show=foo');
-      expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(res.body.message).toBe('?!');
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(res.body.message).toBe(SHOW_400('foo'));
+      expect(repository.all).not.toHaveBeenCalled();
     });
 
-    it('/dashboard (no show) asks for active dashboard terms', async () => {
-      await request(app.getHttpServer()).get('/dashboard');
-      expect(repository.find).toHaveBeenCalledWith({
-        where: {
-          ...published,
-          show_in_dashboard: true,
-          auditableFields: { is_active: true },
-        },
-        order,
-        relations,
-      });
+    const termIds = (res: request.Response) =>
+      res.body.map((t: any) => t.termId);
+
+    it('/dashboard (no show) answers active dashboard terms', async () => {
+      const res = await request(app.getHttpServer()).get('/dashboard');
+      expect(termIds(res)).toEqual([11]);
     });
 
     it('/dashboard?show=all drops only the active filter, keeps dashboard and published', async () => {
-      await request(app.getHttpServer()).get('/dashboard?show=all');
-      expect(repository.find).toHaveBeenCalledWith({
-        where: { ...published, show_in_dashboard: true },
-        order,
-        relations,
-      });
+      const res = await request(app.getHttpServer()).get('/dashboard?show=all');
+      expect(termIds(res)).toEqual([11, 12]);
     });
 
-    it('/dashboard?show=inactive asks for inactive dashboard terms', async () => {
-      await request(app.getHttpServer()).get('/dashboard?show=inactive');
-      expect(repository.find).toHaveBeenCalledWith({
-        where: {
-          ...published,
-          show_in_dashboard: true,
-          auditableFields: { is_active: false },
-        },
-        order,
-        relations,
-      });
+    it('/dashboard?show=inactive answers inactive dashboard terms', async () => {
+      const res = await request(app.getHttpServer()).get(
+        '/dashboard?show=inactive',
+      );
+      expect(termIds(res)).toEqual([12]);
     });
 
     it('/dashboard?show=active equals /dashboard with no show', async () => {
-      await request(app.getHttpServer()).get('/dashboard?show=active');
-      await request(app.getHttpServer()).get('/dashboard');
-      expect(repository.find.mock.calls[0]).toEqual(
-        repository.find.mock.calls[1],
+      const a = await request(app.getHttpServer()).get(
+        '/dashboard?show=active',
       );
+      const b = await request(app.getHttpServer()).get('/dashboard');
+      expect(a.body).toEqual(b.body);
     });
 
-    it('?show=inactive on the main list asks for inactive published terms', async () => {
-      await request(app.getHttpServer()).get('/?show=inactive');
-      expect(repository.find).toHaveBeenCalledWith({
-        where: { ...published, auditableFields: { is_active: false } },
-        order,
-        relations,
-      });
+    it('?show=inactive on the main list answers inactive published terms', async () => {
+      const res = await request(app.getHttpServer()).get('/?show=inactive');
+      expect(termIds(res)).toEqual([12, 14]);
     });
 
     describe('GET get/:id with unusual ids', () => {
@@ -380,26 +420,20 @@ describe('Glossary public contract, batch 2', () => {
         const res = await request(app.getHttpServer()).get(`/get/${id}`);
         expect(res.status).toBe(HttpStatus.BAD_REQUEST);
         expect(res.body.status).toBe(400);
-        expect(repository.findOne).not.toHaveBeenCalled();
+        expect(repository.byId).not.toHaveBeenCalled();
       });
 
       it('-1 is accepted and asked for as a negative id', async () => {
         // pinned as-is: ParseIntPipe takes any integer, signed ones included.
         const res = await request(app.getHttpServer()).get('/get/-1');
         expect(res.status).toBe(HttpStatus.OK);
-        expect(repository.findOne).toHaveBeenCalledWith({
-          where: { id: -1, ...published },
-          relations,
-        });
+        expect(repository.byId).toHaveBeenCalledWith(-1);
       });
 
       it('0 is accepted and asked for as id 0', async () => {
         const res = await request(app.getHttpServer()).get('/get/0');
         expect(res.status).toBe(HttpStatus.OK);
-        expect(repository.findOne).toHaveBeenCalledWith({
-          where: { id: 0, ...published },
-          relations,
-        });
+        expect(repository.byId).toHaveBeenCalledWith(0);
       });
 
       it('a huge number is accepted and rounded to a double', async () => {
@@ -408,21 +442,29 @@ describe('Glossary public contract, batch 2', () => {
           '/get/99999999999999999999',
         );
         expect(res.status).toBe(HttpStatus.OK);
-        const arg = repository.findOne.mock.calls[0][0];
-        expect(arg.where.id).toBe(1e20);
-        expect(Number.isSafeInteger(arg.where.id)).toBe(false);
+        const arg = repository.byId.mock.calls[0][0];
+        expect(arg).toBe(1e20);
+        expect(Number.isSafeInteger(arg)).toBe(false);
       });
 
       it('leading zeros are read as decimal (007 is 7)', async () => {
         await request(app.getHttpServer()).get('/get/007');
-        expect(repository.findOne.mock.calls[0][0].where.id).toBe(7);
+        expect(repository.byId.mock.calls[0][0]).toBe(7);
       });
     });
 
-    describe('PATCH update is public and unvalidated', () => {
-      it('declares no guard and no pipe, on the route or on the class', () => {
+    describe('PATCH update needs a session with the glossary admin permission (2026-11-11)', () => {
+      const ADMIN = 'Bearer admin@cgiar.org';
+
+      it('declares the JWT and permission guards on the route, pinned to /api/glossary/admin; still no pipe', () => {
         const handler = GlossaryController.prototype.update;
-        expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toBeUndefined();
+        expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
+          JwtAuthGuard,
+          PermissionGuard,
+        ]);
+        expect(Reflect.getMetadata(PERMISSION_ROUTE, handler)).toBe(
+          (SeedGlossaryAdminPermission1786320000000 as any).ROUTE,
+        );
         expect(
           Reflect.getMetadata(GUARDS_METADATA, GlossaryController),
         ).toBeUndefined();
@@ -432,7 +474,26 @@ describe('Glossary public contract, batch 2', () => {
         ).toBeUndefined();
       });
 
-      it('sends any column of the body straight to repository.save', async () => {
+      it('without credentials is a 401 and writes nothing', async () => {
+        const res = await request(app.getHttpServer())
+          .patch('/update')
+          .send([{ id: 7, definition: 'anonymous' }]);
+        expect(res.status).toBe(HttpStatus.UNAUTHORIZED);
+        expect(repository.byId).not.toHaveBeenCalled();
+        expect(repository.save).not.toHaveBeenCalled();
+      });
+
+      it('a session without the glossary admin permission is a 403 and writes nothing', async () => {
+        const res = await request(app.getHttpServer())
+          .patch('/update')
+          .set('Authorization', 'Bearer reader@cgiar.org')
+          .send([{ id: 7, definition: 'not mine' }]);
+        expect(res.status).toBe(HttpStatus.FORBIDDEN);
+        expect(repository.byId).not.toHaveBeenCalled();
+        expect(repository.save).not.toHaveBeenCalled();
+      });
+
+      it('with the permission it writes any column of the body (no whitelist), through the store', async () => {
         // pinned as-is: no whitelist, so `editorial_status` and `is_active` travel.
         const body = [
           {
@@ -447,28 +508,36 @@ describe('Glossary public contract, batch 2', () => {
         ];
         const res = await request(app.getHttpServer())
           .patch('/update')
+          .set('Authorization', ADMIN)
           .send(body);
         expect(res.status).toBe(HttpStatus.OK);
+        expect(repository.byId.mock.calls[0][0]).toBe(7);
         expect(repository.save).toHaveBeenCalledTimes(1);
-        expect(repository.save).toHaveBeenCalledWith(body);
+        expect(repository.save.mock.calls[0][0]).toMatchObject({
+          definition: 'edited',
+          editorial_status: 'draft',
+          show_in_dashboard: true,
+          replaced_by_id: 99,
+        });
         expect(res.body).toEqual(body);
       });
 
-      it('accepts a body that is not even an array', async () => {
+      it('with the permission it accepts a body that is not even an array', async () => {
         // pinned as-is: `@Body() UpdateGlossaryDto[]` is a type, not a validation.
         const res = await request(app.getHttpServer())
           .patch('/update')
+          .set('Authorization', ADMIN)
           .send({ id: 7, title: 'one object' });
         expect(res.status).toBe(HttpStatus.OK);
-        expect(repository.save).toHaveBeenCalledWith({
-          id: 7,
+        expect(repository.save.mock.calls[0][0]).toMatchObject({
           title: 'one object',
         });
       });
 
-      it('does not need any credential: no Authorization header is asked for', async () => {
+      it('with the permission an empty list answers 200 and []', async () => {
         const res = await request(app.getHttpServer())
           .patch('/update')
+          .set('Authorization', ADMIN)
           .send([]);
         expect(res.status).toBe(HttpStatus.OK);
         expect(res.body).toEqual([]);
@@ -484,21 +553,25 @@ describe('Glossary public contract, batch 2', () => {
         );
       });
 
-      it('?format=a&format=b is a 500 from .toLowerCase on an array', async () => {
-        // pinned as-is: a repeated param is an array and the controller calls
-        // `.toLowerCase()` on it before it validates anything.
+      it('?format=a&format=b is a 400 naming the accepted formats', async () => {
+        // 2026-11-11: it was a 500 (`.toLowerCase` on the array Express hands).
         const res = await request(app.getHttpServer()).get(
           '/export?format=a&format=b',
         );
-        expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-        expect(res.body.message).toMatch(/toLowerCase is not a function/);
+        expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+        expect(res.body.message).toBe(
+          'Unknown export format "a,b". Use json, csv or skos.',
+        );
       });
 
-      it('?format=json&format=json (equal values) is still the 500', async () => {
+      it('?format=json&format=json (repeated, even equal) is a 400 too', async () => {
         const res = await request(app.getHttpServer()).get(
           '/export?format=json&format=json',
         );
-        expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+        expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+        expect(res.body.message).toBe(
+          'Unknown export format "json,json". Use json, csv or skos.',
+        );
       });
 
       it('?format=JSON and ?format=Skos are accepted whatever the case', async () => {
@@ -526,9 +599,9 @@ describe('Glossary public contract, batch 2', () => {
         );
       });
 
-      it('export asks the repository for active published terms only, whatever ?show says', async () => {
-        await request(app.getHttpServer()).get('/export?show=all');
-        expect(repository.find).toHaveBeenCalledWith(activeFind);
+      it('export publishes active published terms only, whatever ?show says', async () => {
+        const res = await request(app.getHttpServer()).get('/export?show=all');
+        expect(JSON.parse(res.text).map((t: any) => t.termId)).toEqual([1, 11]);
       });
 
       it('?version=2 does not change the export either', async () => {
@@ -583,64 +656,78 @@ describe('Glossary public contract, batch 2', () => {
   });
 
   describe('ordering and ties', () => {
-    it('asks the database for title ASC and nothing else: no secondary sort', async () => {
-      const repository = { find: jest.fn().mockResolvedValue([]) };
-      const service = new GlossaryService(repository as any);
-      await service.findAll();
-      const options = repository.find.mock.calls[0][0];
-      expect(Object.keys(options)).toEqual(['where', 'order', 'relations']);
-      expect(options.order).toEqual({ title: 'ASC' });
-      expect(Object.keys(options.order)).toEqual(['title']);
+    const storeOf = (rows: Glossary[]) => ({
+      transaction: jest.fn((work: any) => work(undefined)),
+      all: jest.fn().mockResolvedValue(rows),
+      byId: jest.fn(),
+      portfolioIds: jest.fn(),
+      save: jest.fn(),
+      setPortfolios: jest.fn(),
     });
 
-    it('two terms with the same title keep the order the repository gave', async () => {
+    it('reads the store once and keeps its order (the store sorts by term, like title ASC)', async () => {
+      const store = storeOf([term(2, 'Zeta', 'z'), term(1, 'Alpha', 'a')]);
+      const service = new GlossaryService(store);
+      const rows = await service.findAll();
+      expect(store.all).toHaveBeenCalledTimes(1);
+      expect(rows.map((r) => Number(r.id))).toEqual([2, 1]);
+    });
+
+    it('two terms with the same title keep the order the store gave', async () => {
       // pinned as-is: the service never re-sorts, so ties follow the database.
       const first = term(20, 'Outcome', 'newer', { group_id: 5 as any });
       const second = term(5, 'Outcome', 'older');
-      const repository = {
-        find: jest.fn().mockResolvedValue([first, second]),
-      };
-      const service = new GlossaryService(repository as any);
+      const store = storeOf([first, second]);
+      const service = new GlossaryService(store);
       const rows = await service.findAll();
       expect(rows.map((r) => Number(r.id))).toEqual([20, 5]);
-      repository.find.mockResolvedValue([second, first]);
+      store.all.mockResolvedValue([second, first]);
       const swapped = await service.findAll();
       expect(swapped.map((r) => Number(r.id))).toEqual([5, 20]);
     });
 
     it('getRolesPagination (leftover) orders by id and defaults to 10', async () => {
       // pinned as-is: a method with a copy-pasted name that nothing routes to.
-      const repository = {
-        findAndCount: jest.fn().mockResolvedValue([[], 0]),
-      };
-      const service = new GlossaryService(repository as any);
-      await expect(service.getRolesPagination()).resolves.toEqual({
-        items: [],
-        count: 0,
-      });
-      expect(repository.findAndCount).toHaveBeenCalledWith({
-        order: { id: 'ASC' },
-        skip: undefined,
-        take: 10,
-      });
+      const many = Array.from({ length: 12 }, (_, i) =>
+        term(12 - i, `T${i}`, 'd'),
+      );
+      const service = new GlossaryService(storeOf(many));
+      const page = await service.getRolesPagination();
+      expect(page.count).toBe(12);
+      expect(page.items.map((r) => Number(r.id))).toEqual([
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+      ]);
+      await expect(
+        new GlossaryService(storeOf([])).getRolesPagination(),
+      ).resolves.toEqual({ items: [], count: 0 });
     });
 
-    it('findAll throws "?!" for a value outside FindAllOptions', () => {
+    it('findAll throws a 400 for a value outside FindAllOptions, before any read', () => {
       const service = new GlossaryService({ find: jest.fn() } as any);
-      expect(() => service.findAll('banana' as any)).toThrow('?!');
-      expect(() => service.findAll(['active'] as any)).toThrow('?!');
+      expect(() => service.findAll('banana' as any)).toThrow(
+        new BadRequestException(
+          'Unknown show value "banana". Use all, active or inactive.',
+        ),
+      );
+      expect(() => service.findAll(['active'] as any)).toThrow(
+        BadRequestException,
+      );
     });
 
     it('findAll(null) is NOT the default: it throws too', () => {
       // pinned as-is: only `undefined` triggers the default parameter.
       const service = new GlossaryService({ find: jest.fn() } as any);
-      expect(() => service.findAll(null as any)).toThrow('?!');
+      expect(() => service.findAll(null as any)).toThrow(BadRequestException);
     });
   });
 
   // ------------------------------------------------------------- swagger
 
   describe('what the public Swagger decorators say', () => {
+    const SHOW_DOC =
+      "Filter by status: 'all', 'active' (default) or 'inactive'. Any other " +
+      'value (empty, repeated or in another case) answers 400. Drafts and ' +
+      'terms under review never appear, whatever the value.';
     const proto = GlossaryController.prototype;
 
     it('lists the glossary with this exact summary', () => {
@@ -648,7 +735,7 @@ describe('Glossary public contract, batch 2', () => {
       expect(op.summary).toBe('List glossary terms');
     });
 
-    it('describes the list with this exact text', () => {
+    it('describes the list with this exact text, every returned field named', () => {
       const op = Reflect.getMetadata(DECORATORS.API_OPERATION, proto.findAll);
       expect(op.description).toBe(
         'Each term includes a "portfolios" array with the CGIAR portfolios ' +
@@ -665,13 +752,22 @@ describe('Glossary public contract, batch 2', () => {
           'the definition comes from), "sourceUrl" (a link to it, when public) and ' +
           '"referenceDate" (the date of that material, as YYYY-MM-DD). The three are ' +
           'null while a definition has not been attributed yet. ' +
+          'Besides "term" and "definition", every term carries "termId" (its ' +
+          'permanent identifier, which never changes when the wording is ' +
+          'edited), "alternativeLabels" (other names readers use for it, such as ' +
+          'acronyms; an empty list when there are none), "editorialStatus" ' +
+          '("approved" or "deprecated") and "replacedByTermId" (the "termId" of ' +
+          'the term that replaces it, or null). ' +
           'A term whose meaning changed between portfolios is published once per ' +
           'version, so the same "term" can appear more than once: each entry ' +
           'carries the portfolios its definition applies to, and every entry of ' +
           'the same concept shares a "groupId". Terms that were never versioned ' +
           'return a single entry, as they always have. ' +
-          'Last updated September 2026.',
+          'Drafts and terms under review are never listed. ' +
+          'Last updated November 2026.',
       );
+      for (const key of PUBLIC_KEYS)
+        expect(op.description).toContain(`"${key}"`);
     });
 
     it('documents ?show with its three values, optional', () => {
@@ -682,8 +778,7 @@ describe('Glossary public contract, batch 2', () => {
           name: 'show',
           required: false,
           in: 'query',
-          description:
-            "Filter by status: 'all', 'active' (default) or 'inactive'.",
+          description: SHOW_DOC,
           schema: { enum: ['all', 'active', 'inactive'], type: 'string' },
         },
       ]);
