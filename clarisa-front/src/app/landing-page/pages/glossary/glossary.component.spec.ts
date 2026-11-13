@@ -1,7 +1,7 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, ParamMap } from '@angular/router';
-import { BehaviorSubject, of, throwError } from 'rxjs';
+import { BehaviorSubject, Subject, of, throwError } from 'rxjs';
 
 import { GlossaryComponent } from './glossary.component';
 import { GlossaryPageService } from './services/glossary-page.service';
@@ -49,7 +49,9 @@ describe('GlossaryComponent', () => {
     params = new BehaviorSubject<ParamMap>(convertToParamMap({}));
     mockService = {
       getGlossary: jest.fn().mockReturnValue(of(terms)),
+      getInactiveGlossary: jest.fn().mockReturnValue(of([])),
       exportUrl: jest.fn((format: string) => `https://api.test/api/glossary/export?format=${format}`),
+      searchSimilarTermIds: jest.fn().mockReturnValue(of([])),
       // Shaped like `GET api/portfolios?show=all` really answers: the default
       // portfolio is picked from `start_date`, so a mock without it would hide
       // that behaviour from every test below.
@@ -525,6 +527,186 @@ describe('GlossaryComponent', () => {
     });
   });
 
+  // The back redirects the persistent URI of an inactive glossary term to its
+  // permalink (2026-11-11), so the page has to show it, flagged as retired.
+  describe('permalink of an inactive term', () => {
+    const inactive = [
+      {
+        termId: 40,
+        term: 'Old outcome',
+        definition: 'The retired wording',
+        portfolios: [{ id: 2, name: 'CGIAR portfolio 2022-2024' }],
+        editorialStatus: 'deprecated',
+        replacedByTermId: 12,
+        termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/40',
+        taxonomyStatus: 'deprecated'
+      },
+      { termId: 41, term: 'Older outcome', definition: 'Even older', portfolios: [], replacedByTermId: 40, termUri: null },
+      { termId: 42, term: 'Gone', definition: 'Nothing replaces it', portfolios: [], replacedByTermId: null, termUri: null },
+      // Replaced by a concept that is not a public glossary term.
+      { termId: 43, term: 'Pointed away', definition: 'Replaced elsewhere', portfolios: [], replacedByTermId: 777, termUri: null }
+    ];
+    const openPermalink = (termId: string) => {
+      params.next(convertToParamMap({ termId }));
+      fixture.detectChanges();
+    };
+    const notice = () => fixture.nativeElement.querySelector('.glossary-card .card-inactive') as HTMLElement | null;
+    const replacementLink = () => notice()?.querySelector('a') as HTMLAnchorElement | null;
+
+    beforeEach(() => {
+      mockService.getInactiveGlossary.mockReturnValue(of(inactive));
+    });
+
+    it('never asks for inactive terms on the normal page, nor on the permalink of an active term', () => {
+      fixture.detectChanges();
+      component.searchText = 'old';
+      expect(component.filteredTerms).toEqual([]);
+      openPermalink('12');
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Innovation']);
+      expect(notice()).toBeNull();
+      expect(mockService.getInactiveGlossary).not.toHaveBeenCalled();
+    });
+
+    it('shows the inactive term with a notice and a link to the active term that replaces it', () => {
+      openPermalink('40');
+      expect(mockService.getInactiveGlossary).toHaveBeenCalledTimes(1);
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Old outcome']);
+      expect(fixture.nativeElement.querySelectorAll('.glossary-card')).toHaveLength(1);
+      expect(fixture.nativeElement.querySelector('.glossary-card.is-inactive')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.glossary-card .card-definition').textContent).toContain('The retired wording');
+      expect(notice()!.textContent).toContain('This term is no longer in use.');
+      expect(notice()!.textContent).toContain('Replaced by');
+      expect(replacementLink()!.textContent!.trim()).toBe('Innovation');
+      expect((replacementLink() as any).routerLink).toBe('/landing-page/glossary/term/12');
+      expect(fixture.nativeElement.querySelector('.glossary-empty')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.glossary-back')).toBeTruthy();
+    });
+
+    it('keeps the three actions working on it: Persistent URI, Cite and Copy link', async () => {
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      try {
+        openPermalink('40');
+        const card = component.filteredTerms[0];
+        const uri = fixture.nativeElement.querySelector('.glossary-card a.card-uri') as HTMLAnchorElement;
+        expect(uri.getAttribute('href')).toBe('https://api.clarisa.cgiar.org/meliaf-taxonomy/40');
+        expect(fixture.nativeElement.querySelector('.glossary-card .card-cite')).toBeTruthy();
+        expect(fixture.nativeElement.querySelector('.glossary-card .card-copy')).toBeTruthy();
+
+        component.copyLink(card);
+        await Promise.resolve();
+        expect(writeText).toHaveBeenLastCalledWith(`${location.origin}/landing-page/glossary/term/40`);
+        expect(component.citationOf(card, new Date(2026, 10, 11))).toBe(
+          'Old outcome. CLARISA Glossary, CGIAR. https://api.clarisa.cgiar.org/meliaf-taxonomy/40 (accessed 2026-11-11).'
+        );
+      } finally {
+        delete (navigator as any).clipboard;
+      }
+    });
+
+    it('links to a replacement that is itself inactive, and follows it without asking again', () => {
+      openPermalink('41');
+      expect(replacementLink()!.textContent!.trim()).toBe('Old outcome');
+      expect((replacementLink() as any).routerLink).toBe('/landing-page/glossary/term/40');
+
+      openPermalink('40');
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Old outcome']);
+      openPermalink('12');
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Innovation']);
+      expect(notice()).toBeNull();
+      expect(mockService.getInactiveGlossary).toHaveBeenCalledTimes(1);
+    });
+
+    it('says the term is no longer in use without a link when nothing replaces it', () => {
+      openPermalink('42');
+      expect(notice()!.textContent).toContain('This term is no longer in use.');
+      expect(replacementLink()).toBeNull();
+    });
+
+    it('shows no replacement link when the replacement is in neither list (it would lead to "not found")', () => {
+      openPermalink('43');
+      expect(notice()!.textContent).toContain('This term is no longer in use.');
+      expect(notice()!.textContent).not.toContain('Replaced by');
+      expect(replacementLink()).toBeNull();
+      expect(component.focusedReplacement).toBeNull();
+    });
+
+    it('takes the loader off when the route moves to an active term while the inactive request is pending', () => {
+      const pending = new Subject<any[]>();
+      mockService.getInactiveGlossary.mockReturnValue(pending.asObservable());
+      openPermalink('40');
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeTruthy();
+
+      openPermalink('12');
+      expect(component.loading).toBe(false);
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeNull();
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Innovation']);
+
+      pending.next(inactive);
+      pending.complete();
+      fixture.detectChanges();
+      expect(component.loading).toBe(false);
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Innovation']);
+      expect(notice()).toBeNull();
+    });
+
+    it('takes the loader off when the route moves back to the list while the inactive request is pending', () => {
+      const pending = new Subject<any[]>();
+      mockService.getInactiveGlossary.mockReturnValue(pending.asObservable());
+      openPermalink('40');
+      params.next(convertToParamMap({}));
+      fixture.detectChanges();
+      expect(component.loading).toBe(false);
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeNull();
+      expect(component.filteredTerms.length).toBeGreaterThan(0);
+    });
+
+    it('keeps "This term was not found." for an id that exists nowhere', () => {
+      openPermalink('999');
+      expect(mockService.getInactiveGlossary).toHaveBeenCalledTimes(1);
+      expect(component.loading).toBe(false);
+      expect(component.filteredTerms).toEqual([]);
+      expect(fixture.nativeElement.querySelector('.glossary-empty').textContent).toContain('This term was not found.');
+    });
+
+    it('shows the not-found state, not an error, when the inactive request fails', () => {
+      mockService.getInactiveGlossary.mockReturnValue(throwError(() => new Error('down')));
+      openPermalink('40');
+      expect(component.loading).toBe(false);
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.glossary-empty').textContent).toContain('This term was not found.');
+    });
+
+    it('shows the loader, not "not found", while the inactive terms are on their way', () => {
+      const pending = new Subject<any[]>();
+      mockService.getInactiveGlossary.mockReturnValue(pending.asObservable());
+      openPermalink('40');
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.glossary-empty')).toBeNull();
+      pending.next(inactive);
+      pending.complete();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.glossary-loading')).toBeNull();
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Old outcome']);
+    });
+
+    it('never puts an inactive term in the list, the search or the similar terms', fakeAsync(() => {
+      openPermalink('40');
+      params.next(convertToParamMap({}));
+      fixture.detectChanges();
+      showAllPortfolios();
+      expect(component.cards.map(card => card.term)).not.toContain('Old outcome');
+      component.searchText = 'retired';
+      expect(component.filteredTerms).toEqual([]);
+
+      mockService.searchSimilarTermIds.mockReturnValue(of([40, 12]));
+      component.searchText = 'oldd outcom';
+      component.onSearchChange('oldd outcom');
+      tick(300);
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Innovation']);
+    }));
+  });
+
   describe('copy link', () => {
     const writeText = jest.fn();
 
@@ -562,6 +744,229 @@ describe('GlossaryComponent', () => {
 
       expect(component.copyFailed).toBe(true);
       expect(fixture.nativeElement.querySelector('.card-copy__feedback').textContent).toContain('Could not copy the link');
+    });
+  });
+
+  describe('persistent URI of the taxonomy', () => {
+    const cardEl = (term: string) =>
+      Array.from(fixture.nativeElement.querySelectorAll('.glossary-card')).find(
+        (el: any) => el.querySelector('h4')?.textContent.trim() === term
+      ) as HTMLElement;
+
+    beforeEach(() => {
+      mockService.getGlossary.mockReturnValue(
+        of([
+          { ...terms[1], termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/12', taxonomyStatus: 'approved' },
+          { ...terms[2], termUri: null, taxonomyStatus: null },
+          { ...terms[3], termUri: 'javascript:alert(1)' },
+          { ...terms[4], termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/15' },
+          { ...terms[5], termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/16' }
+        ])
+      );
+      fixture.detectChanges();
+      showAllPortfolios();
+      fixture.detectChanges();
+    });
+
+    it('links the card to its URI, opening in a new tab', () => {
+      const link = cardEl('Innovation').querySelector('a.card-uri') as HTMLAnchorElement;
+      expect(link).not.toBeNull();
+      expect(link.getAttribute('href')).toBe('https://api.clarisa.cgiar.org/meliaf-taxonomy/12');
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener');
+      expect(link.textContent!.trim()).toBe('Persistent URI');
+      // "Copy link" (the page permalink) stays next to it.
+      expect(cardEl('Innovation').querySelector('.card-copy')).not.toBeNull();
+    });
+
+    it('shows no URI link for a term that is not in the taxonomy yet', () => {
+      expect(cardEl('Shared term').querySelector('a.card-uri')).toBeNull();
+      expect(cardEl('Shared term').querySelector('.card-copy')).not.toBeNull();
+    });
+
+    it('never renders a URI that is not http(s)', () => {
+      expect(cardEl('Orphan').querySelector('a.card-uri')).toBeNull();
+    });
+
+    it('follows the definition the card is showing on a versioned concept', () => {
+      const card = component.filteredTerms.find(item => item.term === 'Impact')!;
+      const uriNow = () => (cardEl('Impact').querySelector('a.card-uri') as HTMLAnchorElement).getAttribute('href');
+      expect(uriNow()).toBe(`https://api.clarisa.cgiar.org/meliaf-taxonomy/${card.termId}`);
+      component.showVersion(card, card.shown === 0 ? 1 : 0);
+      fixture.detectChanges();
+      expect(uriNow()).toBe(`https://api.clarisa.cgiar.org/meliaf-taxonomy/${card.termId}`);
+    });
+  });
+
+  describe('similar terms from the taxonomy search', () => {
+    const type = (text: string) => {
+      component.searchText = text;
+      component.onSearchChange(text);
+    };
+
+    beforeEach(() => {
+      fixture.detectChanges();
+      showAllPortfolios();
+    });
+
+    it('does not ask the taxonomy while the exact search has results', fakeAsync(() => {
+      mockService.searchSimilarTermIds.mockReturnValue(of([12]));
+      type('innovation');
+      tick(300);
+      expect(component.filteredTerms.map(card => card.term)).toEqual(['Innovation']);
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Innovation']);
+      expect(component.showingSimilar).toBe(false);
+    }));
+
+    it('shows the similar terms, in the order the taxonomy ranks them, when nothing matches exactly', fakeAsync(() => {
+      mockService.searchSimilarTermIds.mockReturnValue(of([16, 12, 999]));
+      type('inovashun');
+      tick(300);
+      fixture.detectChanges();
+
+      expect(mockService.searchSimilarTermIds).toHaveBeenCalledWith('inovashun');
+      expect(component.filteredTerms).toEqual([]);
+      // 999 is not on the page (unpublished or new): it is simply skipped.
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Impact', 'Innovation']);
+      expect(component.showingSimilar).toBe(true);
+      const notice = fixture.nativeElement.querySelector('.glossary-similar');
+      expect(notice.textContent).toContain('No exact match for “inovashun”');
+      expect(fixture.nativeElement.querySelector('.glossary-empty')).toBeNull();
+    }));
+
+    it('asks once per pause in typing, not once per key', fakeAsync(() => {
+      type('ino');
+      tick(100);
+      type('inov');
+      tick(100);
+      type('inova');
+      tick(300);
+      expect(mockService.searchSimilarTermIds).toHaveBeenCalledTimes(1);
+      expect(mockService.searchSimilarTermIds).toHaveBeenCalledWith('inova');
+    }));
+
+    it('does not ask for searches shorter than three characters', fakeAsync(() => {
+      type('zq');
+      tick(300);
+      expect(mockService.searchSimilarTermIds).not.toHaveBeenCalled();
+      expect(component.shownTerms).toEqual([]);
+    }));
+
+    it('never shows an answer that belongs to an older search', fakeAsync(() => {
+      mockService.searchSimilarTermIds.mockReturnValue(of([12]));
+      type('inovashun');
+      tick(300);
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Innovation']);
+      // The reader keeps typing; until the new answer arrives nothing old is shown.
+      component.searchText = 'inovashunzz';
+      expect(component.shownTerms).toEqual([]);
+      expect(component.showingSimilar).toBe(false);
+    }));
+
+    it('keeps the portfolio and letter the reader chose', fakeAsync(() => {
+      mockService.searchSimilarTermIds.mockReturnValue(of([11, 12]));
+      component.selectPortfolio(3); // 2025-2030: "Action Area" (11) is 2022-2024 only
+      type('akshon');
+      tick(300);
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Innovation']);
+    }));
+
+    it('shows the empty state when the taxonomy search fails', fakeAsync(() => {
+      mockService.searchSimilarTermIds.mockReturnValue(throwError(() => new Error('down')));
+      type('inovashun');
+      tick(300);
+      fixture.detectChanges();
+      expect(component.shownTerms).toEqual([]);
+      expect(fixture.nativeElement.querySelector('.glossary-empty')).not.toBeNull();
+      // And the next search still works: one failure does not end the stream.
+      mockService.searchSimilarTermIds.mockReturnValue(of([12]));
+      type('inovashan');
+      tick(300);
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Innovation']);
+    }));
+
+    it('does nothing on a permalink', fakeAsync(() => {
+      mockService.searchSimilarTermIds.mockReturnValue(of([12]));
+      params.next(convertToParamMap({ termId: '11' }));
+      type('inovashun');
+      tick(300);
+      expect(component.shownTerms.map(card => card.term)).toEqual(['Action Area']);
+      expect(component.showingSimilar).toBe(false);
+    }));
+  });
+
+  describe('cite a term', () => {
+    const writeText = jest.fn();
+    const NOV_5 = new Date(2026, 10, 5, 21, 30); // 9:30 pm local: still the 5th, whatever UTC says
+
+    beforeEach(() => {
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      writeText.mockReset();
+      mockService.getGlossary.mockReturnValue(
+        of([
+          { ...terms[1], termUri: 'https://api.clarisa.cgiar.org/meliaf-taxonomy/12' },
+          { ...terms[2], termUri: null },
+          { ...terms[3], termUri: 'javascript:alert(1)' }
+        ])
+      );
+      fixture.detectChanges();
+      showAllPortfolios();
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      delete (navigator as any).clipboard;
+    });
+
+    const card = (term: string) => component.filteredTerms.find(item => item.term === term)!;
+
+    it('cites the taxonomy URI with the local date of access', () => {
+      expect(component.citationOf(card('Innovation'), NOV_5)).toBe(
+        'Innovation. CLARISA Glossary, CGIAR. https://api.clarisa.cgiar.org/meliaf-taxonomy/12 (accessed 2026-11-05).'
+      );
+    });
+
+    it("falls back to this site's permalink when the term has no taxonomy URI", () => {
+      expect(component.citationOf(card('Shared term'), NOV_5)).toBe(
+        `Shared term. CLARISA Glossary, CGIAR. ${location.origin}/landing-page/glossary/term/13 (accessed 2026-11-05).`
+      );
+    });
+
+    it('never cites a URI that is not http(s)', () => {
+      expect(component.citationOf(card('Orphan'), NOV_5)).toContain(`${location.origin}/landing-page/glossary/term/14`);
+      expect(component.citationOf(card('Orphan'), NOV_5)).not.toContain('javascript');
+    });
+
+    it('copies the citation and says so, next to the other actions', async () => {
+      writeText.mockResolvedValue(undefined);
+      const cardEl = Array.from(fixture.nativeElement.querySelectorAll('.glossary-card')).find(
+        (el: any) => el.querySelector('h4')?.textContent.trim() === 'Innovation'
+      ) as HTMLElement;
+      (cardEl.querySelector('.card-cite') as HTMLButtonElement).click();
+      await Promise.resolve();
+      fixture.detectChanges();
+
+      expect(writeText).toHaveBeenCalledTimes(1);
+      expect(writeText.mock.calls[0][0]).toMatch(
+        /^Innovation\. CLARISA Glossary, CGIAR\. https:\/\/api\.clarisa\.cgiar\.org\/meliaf-taxonomy\/12 \(accessed \d{4}-\d{2}-\d{2}\)\.$/
+      );
+      expect(cardEl.querySelector('.card-copy__feedback')!.textContent).toContain('Citation copied');
+    });
+
+    it('says the citation could not be copied instead of pretending', async () => {
+      writeText.mockRejectedValue(new Error('denied'));
+      component.copyCitation(card('Innovation'));
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(component.copyFeedback).toBe('Could not copy the citation');
+    });
+
+    it('"Copy link" still copies the permalink, not the citation', async () => {
+      writeText.mockResolvedValue(undefined);
+      component.copyLink(card('Innovation'));
+      await Promise.resolve();
+      expect(writeText).toHaveBeenCalledWith(`${location.origin}/landing-page/glossary/term/12`);
+      expect(component.copyFeedback).toBe('Link copied');
     });
   });
 });

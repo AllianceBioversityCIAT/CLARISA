@@ -65,16 +65,9 @@ export const PUBLIC_OPENAPI_PATHS: string[] = [
   '/api/account-types',
   '/api/science-groups',
   '/api/units',
-  // Concepts (the Global Concepts module) — public read only; writes, requests,
-  // admin and MCP stay out of the spec.
-  '/api/meliaf-taxonomy',
-  '/api/meliaf-taxonomy/lists',
-  '/api/meliaf-taxonomy/concepts',
-  '/api/meliaf-taxonomy/concepts/{termId}',
-  '/api/meliaf-taxonomy/concepts/{termId}/history',
-  '/api/meliaf-taxonomy/changes',
-  '/api/meliaf-taxonomy/releases',
-  '/api/meliaf-taxonomy/export',
+  // MELIAF taxonomy (`/api/meliaf-taxonomy/...`): hidden from the public
+  // documentation since 2026-11-11. Its routes keep answering, because the
+  // glossary uses them (persistent URIs, the similar-terms search).
 ];
 
 /**

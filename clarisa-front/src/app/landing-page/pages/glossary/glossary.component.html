@@ -37,7 +37,12 @@
     <div class="glossary-toolbar" *ngIf="!focusMode">
       <div class="glossary-search">
         <i class="pi pi-search" aria-hidden="true"></i>
-        <input type="search" aria-label="Search a term or definition" [(ngModel)]="searchText" placeholder="Search a term or definition..." />
+        <input
+          type="search"
+          aria-label="Search a term or definition"
+          [(ngModel)]="searchText"
+          (ngModelChange)="onSearchChange($event)"
+          placeholder="Search a term or definition..." />
       </div>
 
       <div class="glossary-filters" *ngIf="filterPortfolios.length" role="group" aria-label="Filter by portfolio">
@@ -81,14 +86,23 @@
       <p>Loading glossary...</p>
     </div>
 
-    <div class="glossary-empty" *ngIf="!loading && !filteredTerms.length">
+    <div class="glossary-empty" *ngIf="!loading && !shownTerms.length">
       <i class="pi pi-book"></i>
       <p *ngIf="!focusMode">No terms match your search.</p>
       <p *ngIf="focusMode">This term was not found.</p>
     </div>
 
-    <div class="glossary-list" *ngIf="!loading && filteredTerms.length">
-      <article class="glossary-card" *ngFor="let item of filteredTerms" [class.is-focused]="focusMode">
+    <!-- Only when the exact search finds nothing: the taxonomy search forgives typos and word order. -->
+    <p class="glossary-similar" *ngIf="!loading && showingSimilar" role="status">
+      No exact match for “{{ searchText.trim() }}”. Showing similar terms:
+    </p>
+
+    <div class="glossary-list" *ngIf="!loading && shownTerms.length">
+      <article
+        class="glossary-card"
+        *ngFor="let item of shownTerms"
+        [class.is-focused]="focusMode"
+        [class.is-inactive]="focusMode && focusedInactive">
         <div class="card-header">
           <div class="card-title">
             <h4>{{ item.term }}</h4>
@@ -139,6 +153,17 @@
             </span>
           </div>
         </div>
+        <!-- A retired term opened from its permalink or its persistent URI: kept readable, flagged, and pointing to its replacement. -->
+        <p class="card-inactive" *ngIf="focusMode && focusedInactive">
+          <i class="pi pi-info-circle" aria-hidden="true"></i>
+          <span>
+            <strong>This term is no longer in use.</strong>
+            <ng-container *ngIf="focusedReplacement as replacement">
+              Replaced by:
+              <a [routerLink]="replacement.link">{{ replacement.term }}</a>
+            </ng-container>
+          </span>
+        </p>
         <p class="card-definition" [innerHTML]="renderable(item.definition)"></p>
         <p class="card-source" *ngIf="item.source || item.referenceDate">
           <!-- prettier-ignore -->
@@ -156,12 +181,19 @@
           </span>
         </p>
         <div class="card-actions" *ngIf="item.termId != null">
+          <!-- The persistent URI of the term in the MELIAF taxonomy: the id other systems cite. -->
+          <!-- prettier-ignore -->
+          <a class="card-uri" *ngIf="safeTermUri(item.termUri) as uri" [href]="uri" target="_blank" rel="noopener" [title]="uri" [attr.aria-label]="'Persistent URI of ' + item.term + ': ' + uri"><i class="pi pi-globe" aria-hidden="true"></i>Persistent URI</a>
+          <button type="button" class="card-cite" (click)="copyCitation(item)" [attr.aria-label]="'Copy a citation of ' + item.term">
+            <i class="pi pi-bookmark" aria-hidden="true"></i>
+            Cite
+          </button>
           <button type="button" class="card-copy" (click)="copyLink(item)">
             <i class="pi pi-link" aria-hidden="true"></i>
             Copy link
           </button>
           <span class="card-copy__feedback" role="status" aria-live="polite">
-            <ng-container *ngIf="copiedTermId === item.termId">{{ copyFailed ? 'Could not copy the link' : 'Link copied' }}</ng-container>
+            <ng-container *ngIf="copiedTermId === item.termId">{{ copyFeedback }}</ng-container>
           </span>
         </div>
       </article>

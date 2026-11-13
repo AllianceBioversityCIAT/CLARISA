@@ -3,6 +3,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 
 import { AuthService } from '../../../shared/services/auth.service';
+import { MELIAF_TAXONOMY_HIDDEN } from '../../../shared/feature-flags/meliaf-taxonomy';
 
 /**
  * 🛑 Lo que de verdad hay en `localStorage.user`, que NO es lo que declara
@@ -54,6 +55,8 @@ export class NavigationBarComponent implements OnInit, OnDestroy {
 
   /** Menú de la cuenta desplegado. */
   accountOpen = false;
+  /** MELIAF_TAXONOMY_HIDDEN: its two Services links leave the menu. */
+  readonly meliafHidden = MELIAF_TAXONOMY_HIDDEN;
 
   private lastY = 0;
   private ticking = false;

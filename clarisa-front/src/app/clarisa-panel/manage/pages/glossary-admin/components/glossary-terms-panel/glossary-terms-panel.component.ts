@@ -652,7 +652,8 @@ export class GlossaryTermsPanelComponent implements OnInit, OnChanges {
     return !!control && control.invalid && (control.dirty || control.touched);
   }
 
+  /** 8 s instead of PrimeNG's ~3 s: an API error (e.g. 423 "editing is paused") has to stay long enough to be read. */
   private toastError(error: any): void {
-    this._messageService.add({ severity: 'error', summary: 'Error', detail: apiErrorMessage(error) });
+    this._messageService.add({ severity: 'error', summary: 'Error', detail: apiErrorMessage(error), life: 8000 });
   }
 }

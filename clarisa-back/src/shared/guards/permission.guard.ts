@@ -10,6 +10,7 @@ import { ModuleRef, Reflector } from '@nestjs/core';
 import { User } from '../../api/user/entities/user.entity';
 import { UserService } from '../../api/user/user.service';
 import { IS_CLARISA_PAGE } from '../decorators/clarisa-page.decorator';
+import { PERMISSION_ROUTE } from '../decorators/permission-route.decorator';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
@@ -37,6 +38,13 @@ export class PermissionGuard implements CanActivate {
     // strictly more restrictive than the previous behaviour.
     const originalUrl = request.originalUrl as string;
     const route = originalUrl?.split('?')[0] ?? originalUrl;
+    // `@PermissionRoute(...)` on the handler: that route is authorised instead
+    // of the path. Without it nothing changes.
+    const pinned: string | undefined =
+      typeof context.getHandler === 'function'
+        ? this.reflector.get<string>(PERMISSION_ROUTE, context.getHandler())
+        : undefined;
+    const authorised = pinned ?? route;
 
     if (!userPayload?.email) {
       throw new UnauthorizedException('Missing authenticated user');
@@ -56,7 +64,7 @@ export class PermissionGuard implements CanActivate {
     }
 
     const isRoutePermitted = (userDb.permissions ?? []).some((p) =>
-      route.includes(p),
+      authorised.includes(p),
     );
     if (!isRoutePermitted) {
       this._logger.error(

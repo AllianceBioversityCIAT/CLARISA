@@ -152,6 +152,32 @@ export class AdminSidebarComponent implements OnDestroy {
       return this.allowed;
     }
 
+    // Same search + same menu → same array. Building new objects on every
+    // change-detection pass makes *ngFor rebuild each row; every rebuilt
+    // `routerLinkActive` queues a promise that triggers another pass, and the
+    // page freezes for good.
+    const cached = this.filtered;
+    if (cached && cached.needle === needle && cached.source === this.allowed) {
+      return cached.result;
+    }
+
+    const result = this.filterGroups(needle);
+    this.filtered = { needle, source: this.allowed, result };
+    return result;
+  }
+
+  /** Last search result, reused while neither the text nor the menu change. */
+  private filtered?: { needle: string; source: AdminGroup[]; result: AdminGroup[] };
+
+  trackGroup(_: number, group: AdminGroup): string {
+    return group.title;
+  }
+
+  trackLink(_: number, link: AdminLink): string {
+    return link.route;
+  }
+
+  private filterGroups(needle: string): AdminGroup[] {
     return this.allowed.map(group => ({
       ...group,
       links: group.links.filter(

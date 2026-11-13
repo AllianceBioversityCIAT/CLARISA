@@ -217,32 +217,6 @@
               "method": "get"
             }
           ]
-        },
-        {
-          "name": "MELIAF taxonomy",
-          "description": "Official CGIAR vocabulary: published concepts with persistent URIs, controlled lists, releases and a change feed. Exports as JSON, CSV, SKOS Turtle and JSON-LD.",
-          "endpoints": [
-            {
-              "name": "Concepts",
-              "route": "api/meliaf-taxonomy/concepts",
-              "method": "get"
-            },
-            {
-              "name": "Controlled lists",
-              "route": "api/meliaf-taxonomy/lists",
-              "method": "get"
-            },
-            {
-              "name": "Releases",
-              "route": "api/meliaf-taxonomy/releases",
-              "method": "get"
-            },
-            {
-              "name": "Change feed",
-              "route": "api/meliaf-taxonomy/changes",
-              "method": "get"
-            }
-          ]
         }
       ],
       "description": "Official control lists identified by the Management Information Systems during the Annual Reporting process, reusable to standardize and provide interoperability across CGIAR platforms."

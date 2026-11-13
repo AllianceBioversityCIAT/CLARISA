@@ -2513,7 +2513,7 @@ const V2_ENDPOINTS = {
    v2. Keyed by the v1 route; the value says what v2 changes today. The
    `?version=N` endpoints above keep their mechanism until each one migrates. */
 const PATH_VERSIONED = {
-  'glossary': 'Same terms and the same keys as <code class="docpill">api/glossary</code> today. New glossary fields will arrive here first; v1 stays unchanged.',
+  'glossary': 'Same terms and the same keys as <code class="docpill">api/glossary</code>, plus two fields at the end of each term: <code class="docpill">termUri</code>, the persistent URI of the term (e.g. <code class="docpill">https://api.clarisa.cgiar.org/meliaf-taxonomy/391</code>), and <code class="docpill">taxonomyStatus</code>, the term\'s status in the taxonomy: <code class="docpill">approved</code>, <code class="docpill">deprecated</code>, or <code class="docpill">null</code> when the term has no public concept. v1 stays unchanged.',
 };
 
 function tsType(node) {
@@ -2597,7 +2597,7 @@ function renderDoc() {
   }
   const versioning = docSection(
     'Versioning',
-    `CLARISA versions the API in two ways. The original resources take an optional <code class="docpill">?version=N</code> query param — omit it and you get <b>v1</b>. Resources versioned from the glossary on carry the version in the path: the plain route stays <b>v1</b> and <code class="docpill">api/v2/…</code> is <b>v2</b>. Never via a header.`,
+    `CLARISA versions the API in two ways. The original resources take an optional <code class="docpill">?version=N</code> query param — omit it and you get <b>v1</b>. Resources versioned from the glossary on carry the version in the path and ignore <code class="docpill">?version=N</code>: the plain route stays <b>v1</b> and <code class="docpill">api/v2/…</code> is <b>v2</b>. Never via a header.`,
     versioningBody,
   );
 

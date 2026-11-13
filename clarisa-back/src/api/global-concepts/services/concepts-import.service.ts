@@ -22,6 +22,10 @@ import {
   GcActor,
   WRITABLE_FIELDS,
 } from './concepts-admin.service';
+import {
+  glossaryConceptIds,
+  glossaryImportRowError,
+} from '../utils/glossary-write-lock';
 
 export const MAX_IMPORT_ROWS = 2000;
 
@@ -249,6 +253,11 @@ export class ConceptsImportService {
         labelsByConcept.set(Number(l.concept_id), set);
       }
     }
+    // A row that matches a glossary term is an error, never an update.
+    const glossary = await glossaryConceptIds(
+      manager,
+      existing.map((c) => Number(c.id)),
+    );
     const seenIds = new Set<number>();
     const seenLabels = new Map<string, number>();
     const claimed = new Set<number>();
@@ -305,6 +314,8 @@ export class ConceptsImportService {
         dto.term_id !== undefined ? (byTermId.get(dto.term_id) ?? null) : null;
       if (!target && dto.term_id === undefined && dto.preferred_label)
         target = byLabel.get(labelKey) ?? null;
+      if (target && glossary.has(Number(target.id)))
+        r.errors.push(glossaryImportRowError(Number(target.term_id)));
       if (target && claimed.has(Number(target.id))) {
         r.errors.push(
           `Another row of the file already updates term ${target.term_id}`,

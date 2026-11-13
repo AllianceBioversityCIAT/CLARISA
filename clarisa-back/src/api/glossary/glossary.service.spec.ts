@@ -1,42 +1,56 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { GlossaryService } from './glossary.service';
-import { GlossaryRepository } from './repositories/glossary.repository';
 import { FindAllOptions } from '../../shared/entities/enums/find-all-options';
+import { GLOSSARY_STORAGE } from './glossary-store';
+import { InMemoryGlossaryStore } from './testing/in-memory-glossary-store';
+import { Glossary, GlossaryEditorialStatus } from './entities/glossary.entity';
+import { GlossaryPortfolio } from './entities/glossary-portfolio.entity';
+import { Portfolio } from '../portfolio/entities/portfolio.entity';
+
+const term = (
+  id: number,
+  title: string,
+  active = true,
+  status = GlossaryEditorialStatus.APPROVED,
+): Glossary => {
+  const g = new Glossary();
+  g.id = id;
+  g.title = title;
+  g.definition = `definition of ${title}`;
+  g.editorial_status = status;
+  g.show_in_dashboard = false;
+  const portfolio = Object.assign(new Portfolio(), {
+    id: 3,
+    name: 'CGIAR portfolio 2025-2030',
+    acronym: 'P25',
+  });
+  g.glossary_portfolio_array = [
+    Object.assign(new GlossaryPortfolio(), {
+      glossary_id: id,
+      portfolio_id: 3,
+      portfolio_object: portfolio,
+      auditableFields: { is_active: true },
+    }),
+  ];
+  g.auditableFields = { is_active: active } as Glossary['auditableFields'];
+  return g;
+};
 
 describe('GlossaryService', () => {
   let service: GlossaryService;
-
-  const mockGlossaryRepository: any = {
-    find: jest.fn(),
-    findOneBy: jest.fn(),
-    save: jest.fn(),
-    findAndCount: jest.fn(),
-    findOne: jest.fn(),
-    create: jest.fn(),
-    query: jest.fn(),
-    createQueryBuilder: jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnThis(),
-      addSelect: jest.fn().mockReturnThis(),
-      leftJoin: jest.fn().mockReturnThis(),
-      leftJoinAndSelect: jest.fn().mockReturnThis(),
-      innerJoinAndSelect: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      orderBy: jest.fn().mockReturnThis(),
-      getMany: jest.fn().mockResolvedValue([]),
-      getOne: jest.fn().mockResolvedValue(null),
-      getRawOne: jest.fn().mockResolvedValue({}),
-      getRawMany: jest.fn().mockResolvedValue([]),
-    }),
-  };
+  let store: InMemoryGlossaryStore;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
-
+    store = new InMemoryGlossaryStore([
+      term(1, 'Outcome'),
+      term(2, 'Impact', false),
+      term(3, 'Draft', true, GlossaryEditorialStatus.DRAFT),
+    ]);
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GlossaryService,
-        { provide: GlossaryRepository, useValue: mockGlossaryRepository },
+        { provide: GLOSSARY_STORAGE, useValue: store },
       ],
     }).compile();
 
@@ -48,106 +62,65 @@ describe('GlossaryService', () => {
   });
 
   it('should return items on findAll with SHOW_ALL', async () => {
-    const mockItems = [{ id: 1 }, { id: 2 }];
-    Object.keys(mockGlossaryRepository).forEach((k) => {
-      if (typeof mockGlossaryRepository[k]?.mockResolvedValue === 'function') {
-        mockGlossaryRepository[k].mockResolvedValue(mockItems);
-      }
-    });
-
     const result = await service.findAll(FindAllOptions.SHOW_ALL);
-    expect(result).toBeDefined();
+    expect(result.map((g) => g.id)).toEqual([2, 1]);
   });
 
   it('should return active items on findAll with SHOW_ONLY_ACTIVE', async () => {
-    const mockItems = [{ id: 1 }];
-    Object.keys(mockGlossaryRepository).forEach((k) => {
-      if (typeof mockGlossaryRepository[k]?.mockResolvedValue === 'function') {
-        mockGlossaryRepository[k].mockResolvedValue(mockItems);
-      }
-    });
-
     const result = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
-    expect(result).toBeDefined();
+    expect(result.map((g) => g.id)).toEqual([1]);
   });
 
-  it.each([
-    FindAllOptions.SHOW_ALL,
-    FindAllOptions.SHOW_ONLY_ACTIVE,
-    FindAllOptions.SHOW_ONLY_INACTIVE,
-  ])(
-    'never publishes a draft or a term under review (show=%s)',
-    async (option) => {
-      mockGlossaryRepository.find.mockResolvedValue([]);
-      await service.findAll(option);
-      const { where } = mockGlossaryRepository.find.mock.calls[0][0];
-      expect(where.editorial_status.value).toEqual(['approved', 'deprecated']);
-    },
-  );
+  it('never publishes a draft or a term under review (show=all)', async () => {
+    const result = await service.findAll(FindAllOptions.SHOW_ALL);
+    expect(result.some((g) => g.id === 3)).toBe(false);
+  });
+
+  it('never publishes a draft or a term under review (show=active)', async () => {
+    const result = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
+    expect(result.some((g) => g.id === 3)).toBe(false);
+  });
+
+  it('never publishes a draft or a term under review (show=inactive)', async () => {
+    store.put(term(4, 'Review', false, GlossaryEditorialStatus.IN_REVIEW));
+    const result = await service.findAll(FindAllOptions.SHOW_ONLY_INACTIVE);
+    expect(result.map((g) => g.id)).toEqual([2]);
+  });
 
   it('does not serve a draft by id either', async () => {
-    mockGlossaryRepository.findOne.mockResolvedValue(null);
-    await service.findOne(3);
-    const { where } = mockGlossaryRepository.findOne.mock.calls[0][0];
-    expect(where.id).toBe(3);
-    expect(where.editorial_status.value).toEqual(['approved', 'deprecated']);
+    await expect(service.findOne(3)).resolves.toBeNull();
   });
 
   it('should throw on findAll with invalid option', async () => {
-    expect(() => service.findAll('invalid' as any)).toThrow();
-  });
-
-  it('should return a single item on findOne', async () => {
-    const mockItem = { id: 1 };
-    mockGlossaryRepository.findOneBy =
-      mockGlossaryRepository.findOneBy || jest.fn();
-    mockGlossaryRepository.findOne =
-      mockGlossaryRepository.findOne || jest.fn();
-    mockGlossaryRepository.findOneBy.mockResolvedValue(mockItem);
-    mockGlossaryRepository.findOne.mockResolvedValue(mockItem);
-
-    const result = await service.findOne(1);
-    expect(result).toBeDefined();
-  });
-
-  it('should load the portfolio relation on findOne', async () => {
-    mockGlossaryRepository.findOne.mockResolvedValue({ id: 1 });
-
-    await service.findOne(1);
-    expect(mockGlossaryRepository.findOne).toHaveBeenCalledWith({
-      where: { id: 1, editorial_status: expect.anything() },
-      relations: {
-        glossary_portfolio_array: { portfolio_object: true },
-      },
-    });
-  });
-
-  it('should load the portfolio relation on findAll', async () => {
-    mockGlossaryRepository.find.mockResolvedValue([]);
-
-    await service.findAll(FindAllOptions.SHOW_ALL);
-    expect(mockGlossaryRepository.find).toHaveBeenCalledWith(
-      expect.objectContaining({
-        relations: {
-          glossary_portfolio_array: { portfolio_object: true },
-        },
-      }),
+    expect(() => service.findAll('invalid' as FindAllOptions)).toThrow(
+      BadRequestException,
     );
   });
 
-  it('should save items on update', async () => {
-    const dto = [{ id: 1 }];
-    mockGlossaryRepository.save.mockResolvedValue(dto);
+  it('should return a single item on findOne', async () => {
+    await expect(service.findOne(1)).resolves.toMatchObject({ id: 1 });
+  });
 
-    await service.update(dto as any);
-    expect(mockGlossaryRepository.save).toHaveBeenCalledWith(dto);
+  it('should load the portfolio relation on findOne', async () => {
+    expect((await service.findOne(1)).portfolios).toEqual([
+      { id: 3, name: 'CGIAR portfolio 2025-2030', acronym: 'P25' },
+    ]);
+  });
+
+  it('should load the portfolio relation on findAll', async () => {
+    const [first] = await service.findAll(FindAllOptions.SHOW_ONLY_ACTIVE);
+    expect(first.portfolios).toHaveLength(1);
+  });
+
+  it('should save items on update', async () => {
+    const payload = [{ id: 1, title: 'Outcome (edited)' }];
+    await expect(service.update(payload as never)).resolves.toBe(payload);
+    expect((await store.byId(1)).title).toBe('Outcome (edited)');
   });
 
   it('should return paginated items on getRolesPagination', async () => {
-    const mockItems = [{ id: 1 }];
-    mockGlossaryRepository.findAndCount.mockResolvedValue([mockItems, 1]);
-
-    const result = await service.getRolesPagination(0, 10);
-    expect(result).toEqual({ items: mockItems, count: 1 });
+    const page = await service.getRolesPagination(1, 1);
+    expect(page.count).toBe(3);
+    expect(page.items.map((g) => g.id)).toEqual([2]);
   });
 });
