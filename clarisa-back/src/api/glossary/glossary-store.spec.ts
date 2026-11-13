@@ -122,6 +122,16 @@ describe('GlossaryStore', () => {
       expect(g.auditableFields.created_at.toISOString()).toBe(META.created_at);
     });
 
+    it('portfolios come by ascending id, whatever order the custom field keeps', async () => {
+      // The old `glossary` table answered them in portfolio id order; production
+      // term 370 keeps ['3', '2'] in the taxonomy and must still read [2, 3].
+      const { store } = fakeDb([concept({}, {}, { portfolios: ['3', '2'] })]);
+      const [g] = await store.all();
+      expect(
+        (instanceToPlain(g).portfolios as { id: number }[]).map((p) => p.id),
+      ).toEqual([2, 3]);
+    });
+
     it('the replacement travels as its termId, not the internal concept id', async () => {
       const { store } = fakeDb([
         concept(

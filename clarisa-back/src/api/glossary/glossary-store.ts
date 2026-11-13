@@ -390,8 +390,11 @@ export class GlossaryStore implements GlossaryStorage {
       updated_by: meta.updated_by ?? null,
       modification_justification: meta.modification_justification ?? null,
     } as Glossary['auditableFields'];
+    // Ascending id, as the old `glossary_portfolios` join answered: the custom
+    // field keeps its own write order (a term can hold ['3', '2']).
     g.glossary_portfolio_array = portfolioIdsOf(extra)
       .filter((pid) => portfolioById.has(pid))
+      .sort((a, b) => a - b)
       .map((pid) =>
         Object.assign(new GlossaryPortfolio(), {
           glossary_id: termId,
