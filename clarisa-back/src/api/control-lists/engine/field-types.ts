@@ -130,8 +130,17 @@ const RESERVED = new Set([
   'version',
 ]);
 
-/** List codes that would shadow a route of the module. */
-const RESERVED_LIST_CODES = new Set(['admin', 'get']);
+/**
+ * List codes that would shadow a route of the module, or whose table
+ * (`cl_<code>`) is one of the catalog's own tables.
+ */
+const RESERVED_LIST_CODES = new Set([
+  'admin',
+  'get',
+  'lists',
+  'fields',
+  'schema_ops',
+]);
 
 export function assertListCode(code: unknown): asserts code is string {
   assertCode(code, 'list code');

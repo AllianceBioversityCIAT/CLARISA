@@ -47,8 +47,19 @@ const describeIf = RUN ? describe : describe.skip;
 const HOST = process.env.CL_E2E_HOST ?? '127.0.0.1';
 const PORT = Number(process.env.CL_E2E_PORT ?? 3308);
 const ROOT_PASS = process.env.CL_E2E_ROOT_PASS ?? 'e2eroot';
-const MAIN = 'cl_e2e_main';
-const LISTS = 'cl_e2e_lists';
+/**
+ * `shared` (default) = the list tables live in CLARISA's own database, as
+ * deployed (infrastructure, 2026-11-17). `separate` = their own database,
+ * still supported through `CONTROL_LISTS_DB_NAME`.
+ */
+const SHARED = process.env.CL_E2E_MODE !== 'separate';
+// Capitals on purpose in shared mode: CLARISA's database is named like `clarisaDB`.
+const MAIN = SHARED ? 'clE2eMain' : 'cl_e2e_main';
+const LISTS = SHARED ? MAIN : 'cl_e2e_lists';
+/** The MySQL user the engine connects with. */
+const ENGINE_USER = SHARED ? 'cl_e2e_app' : 'cl_e2e_engine';
+const itShared = SHARED ? it : it.skip;
+const itSeparate = SHARED ? it.skip : it;
 
 jest.setTimeout(90_000);
 
@@ -217,8 +228,8 @@ describeIf('control lists engine, real MySQL', () => {
       (
         await sql(
           `SELECT ID FROM information_schema.PROCESSLIST
-            WHERE ID <> CONNECTION_ID() AND USER = 'cl_e2e_engine' AND INFO LIKE ?`,
-          [`ALTER TABLE %ADD COLUMN \`${column}\`%`],
+            WHERE ID <> CONNECTION_ID() AND USER = ? AND INFO LIKE ?`,
+          [ENGINE_USER, `ALTER TABLE %ADD COLUMN \`${column}\`%`],
         )
       )[0]?.ID ?? 0,
     );
@@ -238,6 +249,22 @@ describeIf('control lists engine, real MySQL', () => {
         await qr.release();
       },
     };
+  }
+
+  /**
+   * Every table of the database with its rows, before the catalog exists and
+   * after the migration is undone: CLARISA's own tables must end identical.
+   */
+  let clarisaBefore: unknown;
+  async function clarisaSnapshot() {
+    const tables = (await sql(`SHOW TABLES FROM ${MAIN}`))
+      .map((r) => String(Object.values(r)[0]))
+      .sort();
+    const rows: Record<string, unknown> = {};
+    for (const t of tables)
+      rows[t] = await sql(`SELECT * FROM ${MAIN}.\`${t}\` ORDER BY id`);
+    const create = (await sql(`SHOW CREATE TABLE ${MAIN}.institutions`))[0];
+    return { tables, rows, create };
   }
 
   async function createList(
@@ -279,20 +306,36 @@ describeIf('control lists engine, real MySQL', () => {
     }).initialize();
 
     for (const stmt of [
-      `DROP DATABASE IF EXISTS ${MAIN}`,
-      `DROP DATABASE IF EXISTS ${LISTS}`,
+      `DROP DATABASE IF EXISTS cl_e2e_main`,
+      `DROP DATABASE IF EXISTS cl_e2e_lists`,
+      `DROP DATABASE IF EXISTS clE2eMain`,
       `CREATE DATABASE ${MAIN} CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`,
-      `CREATE DATABASE ${LISTS} CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`,
+      ...(SHARED
+        ? []
+        : [
+            `CREATE DATABASE ${LISTS} CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci`,
+          ]),
       `DROP USER IF EXISTS 'cl_e2e_app'@'%', 'cl_e2e_engine'@'%', 'cl_e2e_data'@'%'`,
       `CREATE USER 'cl_e2e_app'@'%' IDENTIFIED BY 'app'`,
       `CREATE USER 'cl_e2e_engine'@'%' IDENTIFIED BY 'engine'`,
       `CREATE USER 'cl_e2e_data'@'%' IDENTIFIED BY 'data'`,
-      // The CLARISA application user: data on the main schema, nothing on the lists schema.
-      `GRANT SELECT, INSERT, UPDATE, DELETE ON ${MAIN}.* TO 'cl_e2e_app'@'%'`,
-      // What infrastructure is asked for: DDL only inside the lists schema…
-      `GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, LOCK TABLES, SELECT, INSERT, UPDATE, DELETE ON ${LISTS}.* TO 'cl_e2e_engine'@'%'`,
-      // …and a data user with no DDL at all.
-      `GRANT SELECT, INSERT, UPDATE, DELETE ON ${LISTS}.* TO 'cl_e2e_data'@'%'`,
+      ...(SHARED
+        ? [
+            // CLARISA's own user, which already runs the migrations: one database, one user.
+            `GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, LOCK TABLES, SELECT, INSERT, UPDATE, DELETE ON ${MAIN}.* TO 'cl_e2e_app'@'%'`,
+          ]
+        : [
+            // The CLARISA application user: data on the main schema, nothing on the lists schema.
+            `GRANT SELECT, INSERT, UPDATE, DELETE ON ${MAIN}.* TO 'cl_e2e_app'@'%'`,
+            // DDL only inside the lists schema…
+            `GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, LOCK TABLES, SELECT, INSERT, UPDATE, DELETE ON ${LISTS}.* TO 'cl_e2e_engine'@'%'`,
+            // …and a data user with no DDL at all.
+            `GRANT SELECT, INSERT, UPDATE, DELETE ON ${LISTS}.* TO 'cl_e2e_data'@'%'`,
+          ]),
+      // A CLARISA table with data: it must end the suite exactly as it started.
+      `CREATE TABLE ${MAIN}.institutions (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100),
+         is_active TINYINT DEFAULT 1)`,
+      `INSERT INTO ${MAIN}.institutions (name) VALUES ('CIAT'), ('IRRI'), ('ILRI')`,
       // Minimal shape of the CLARISA tables the migration writes to.
       `CREATE TABLE ${MAIN}.roles (id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, description TEXT, acronym VARCHAR(50),
          \`order\` INT, is_system TINYINT DEFAULT 0, level VARCHAR(20) DEFAULT 'module', is_active TINYINT DEFAULT 1,
@@ -309,18 +352,34 @@ describeIf('control lists engine, real MySQL', () => {
       await sql(stmt);
     }
 
+    clarisaBefore = await clarisaSnapshot();
+
     proxy = await startProxy();
+    for (const k of [
+      'CONTROL_LISTS_DB_NAME',
+      'CONTROL_LISTS_DB_USER',
+      'CONTROL_LISTS_DB_PASS',
+      'CONTROL_LISTS_DATA_DB_USER',
+      'CONTROL_LISTS_DATA_DB_PASS',
+    ])
+      delete process.env[k];
     Object.assign(process.env, {
       CONTROL_LISTS_ENABLED: 'true',
+      // Through the proxy, so the tests can cut the engine's connection.
       CONTROL_LISTS_DB_HOST: '127.0.0.1',
       CONTROL_LISTS_DB_PORT: String(proxy.port),
-      CONTROL_LISTS_DB_NAME: LISTS,
-      CONTROL_LISTS_DB_USER: 'cl_e2e_engine',
-      CONTROL_LISTS_DB_PASS: 'engine',
-      CONTROL_LISTS_DATA_DB_USER: 'cl_e2e_data',
-      CONTROL_LISTS_DATA_DB_PASS: 'data',
       CONTROL_LISTS_RECONCILE_EVERY_SECONDS: '3600', // ticks are driven by the tests
       CONTROL_LISTS_RECONCILE_GRACE_SECONDS: '3',
+      ...(SHARED
+        ? // Nothing of its own: the module falls back to CLARISA's DB_* (as deployed).
+          { DB_NAME: MAIN, DB_USER: 'cl_e2e_app', DB_PASS: 'app' }
+        : {
+            CONTROL_LISTS_DB_NAME: LISTS,
+            CONTROL_LISTS_DB_USER: 'cl_e2e_engine',
+            CONTROL_LISTS_DB_PASS: 'engine',
+            CONTROL_LISTS_DATA_DB_USER: 'cl_e2e_data',
+            CONTROL_LISTS_DATA_DB_PASS: 'data',
+          }),
     });
 
     mainDs = await new DataSource({
@@ -439,38 +498,90 @@ describeIf('control lists engine, real MySQL', () => {
     expect((await pub('')).status).toBe(200);
   });
 
-  it('the engine user cannot read the main schema; the data user cannot change structure', async () => {
-    const engine = await new DataSource({
-      type: 'mysql',
-      host: HOST,
-      port: PORT,
-      username: 'cl_e2e_engine',
-      password: 'engine',
-      name: 'cl-e2e-eng',
-    }).initialize();
-    const data = await new DataSource({
-      type: 'mysql',
-      host: HOST,
-      port: PORT,
-      username: 'cl_e2e_data',
-      password: 'data',
-      name: 'cl-e2e-data',
-    }).initialize();
-    try {
-      await expect(engine.query(`SELECT * FROM ${MAIN}.roles`)).rejects.toThrow(
-        /denied/,
+  itShared(
+    'shared database: catalog codes are refused and a table that already exists is never adopted',
+    async () => {
+      const owner = roleId.TEAM_A;
+      for (const code of ['lists', 'fields', 'schema_ops']) {
+        const r = await admin('post', 'schema/lists', {
+          code,
+          name: code,
+          owner_role_id: owner,
+        });
+        expect([code, r.status]).toEqual([code, 400]);
+      }
+      // A table that is not a list, with the name a list would get.
+      await sql(
+        `CREATE TABLE ${MAIN}.cl_legacy (id INT PRIMARY KEY, v VARCHAR(10))`,
       );
-      await expect(
-        engine.query(`CREATE TABLE ${MAIN}.x (id INT)`),
-      ).rejects.toThrow(/denied/);
-      await expect(
-        data.query(`CREATE TABLE ${LISTS}.x (id INT)`),
-      ).rejects.toThrow(/denied/);
-    } finally {
-      await engine.destroy();
-      await data.destroy();
-    }
-  });
+      await sql(`INSERT INTO ${MAIN}.cl_legacy VALUES (1, 'keep')`);
+      const refused = await admin('post', 'schema/lists', {
+        code: 'legacy',
+        name: 'legacy',
+        owner_role_id: owner,
+      });
+      expect(refused.status).toBe(409);
+      // Appears between the draft and the publish: refused again, nothing changes.
+      const late = await createList(
+        'late_one',
+        [{ code: 'name', label: 'Name', type: 'text' }],
+        false,
+      );
+      await sql(`CREATE TABLE ${MAIN}.cl_late_one (id INT PRIMARY KEY)`);
+      const publish = await admin('post', `schema/lists/${late}/publish`, {});
+      expect(publish.status).toBe(409);
+      expect((await admin('get', `schema/lists/${late}`)).body.status).toBe(
+        'draft',
+      );
+      expect((await admin('delete', `schema/lists/${late}`)).status).toBe(200);
+      expect(await tableExists('cl_late_one')).toBe(true);
+      expect(await sql(`SELECT v FROM ${MAIN}.cl_legacy`)).toEqual([
+        { v: 'keep' },
+      ]);
+      expect(
+        await sql(`SELECT id FROM ${MAIN}.cl_schema_ops WHERE list_id = ?`, [
+          late,
+        ]),
+      ).toEqual([]);
+      await sql(`DROP TABLE ${MAIN}.cl_legacy, ${MAIN}.cl_late_one`);
+    },
+  );
+
+  itSeparate(
+    'the engine user cannot read the main schema; the data user cannot change structure',
+    async () => {
+      const engine = await new DataSource({
+        type: 'mysql',
+        host: HOST,
+        port: PORT,
+        username: 'cl_e2e_engine',
+        password: 'engine',
+        name: 'cl-e2e-eng',
+      }).initialize();
+      const data = await new DataSource({
+        type: 'mysql',
+        host: HOST,
+        port: PORT,
+        username: 'cl_e2e_data',
+        password: 'data',
+        name: 'cl-e2e-data',
+      }).initialize();
+      try {
+        await expect(
+          engine.query(`SELECT * FROM ${MAIN}.roles`),
+        ).rejects.toThrow(/denied/);
+        await expect(
+          engine.query(`CREATE TABLE ${MAIN}.x (id INT)`),
+        ).rejects.toThrow(/denied/);
+        await expect(
+          data.query(`CREATE TABLE ${LISTS}.x (id INT)`),
+        ).rejects.toThrow(/denied/);
+      } finally {
+        await engine.destroy();
+        await data.destroy();
+      }
+    },
+  );
 
   describe('access', () => {
     it('no session → 401; no permission → 403; an editor cannot design', async () => {
@@ -1148,5 +1259,9 @@ describeIf('control lists engine, real MySQL', () => {
         await qr.release();
       }
     });
+  });
+
+  it("CLARISA's own tables end exactly as they started", async () => {
+    expect(await clarisaSnapshot()).toEqual(clarisaBefore);
   });
 });

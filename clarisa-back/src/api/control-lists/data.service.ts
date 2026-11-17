@@ -3,7 +3,12 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { FieldRow, ListRow } from './engine/engine.service';
+import {
+  FieldRow,
+  ListRow,
+  assertListTable,
+  quoteSchema,
+} from './engine/engine.service';
 import { coerceValue, formatValue } from './engine/field-types';
 import { LazyDb } from './engine/lazy-db';
 import { ListsService } from './lists.service';
@@ -46,7 +51,8 @@ export class DataService {
   }
 
   private table(list: ListRow): string {
-    return `${this.col(this.schema())}.${this.col(list.table_name)}`;
+    assertListTable(list.table_name);
+    return `${quoteSchema(this.schema())}.${this.col(list.table_name)}`;
   }
 
   private assertPublished(list: ListRow) {
