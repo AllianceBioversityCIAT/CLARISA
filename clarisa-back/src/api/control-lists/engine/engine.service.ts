@@ -22,7 +22,8 @@ import { LazyDb } from './lazy-db';
  *   1. CATALOG (`cl_lists`, `cl_fields`, main schema) describes every list. It
  *      is the source of truth.
  *   2. COMPILER turns one change of the catalog into exactly ONE DDL statement
- *      on the lists schema.
+ *      on a list table (`cl_<code>`, CLARISA's database by default; nothing
+ *      else can be named, see `assertListTable`).
  *   3. LOG (`cl_schema_ops`) records the operation BEFORE the DDL runs and is
  *      closed after the catalog is written, because MySQL cannot roll back a
  *      DDL statement (dev.mysql.com/doc/refman/8.0/en/cannot-roll-back.html).
@@ -128,6 +129,43 @@ export function isServerSqlError(e: any): boolean {
   );
 }
 
+/** The catalog's own tables: never the table of a list. */
+export const CATALOG_TABLES = new Set([
+  'cl_lists',
+  'cl_fields',
+  'cl_schema_ops',
+]);
+
+/**
+ * Quotes the database name. It comes from configuration (CLARISA's own
+ * database may have capitals, e.g. `clarisaDB`), never from a request.
+ */
+export function quoteSchema(name: string): string {
+  if (typeof name !== 'string' || !/^[A-Za-z0-9_$-]{1,64}$/.test(name)) {
+    throw new ServiceUnavailableException(
+      'Control lists are not configured: no valid database name.',
+    );
+  }
+  return '`' + name + '`';
+}
+
+/**
+ * Chokepoint: the only tables the module ever names are list tables
+ * (`cl_<code>`, not the catalog). The lists share CLARISA's database, so a
+ * bug can never reach `institutions`, `roles` or any other table.
+ */
+export function assertListTable(table: string): void {
+  if (
+    typeof table !== 'string' ||
+    !/^cl_[a-z][a-z0-9_]{0,60}$/.test(table) ||
+    CATALOG_TABLES.has(table)
+  ) {
+    throw new InternalServerErrorException(
+      `Refused to touch "${table}": it is not the table of a control list.`,
+    );
+  }
+}
+
 export const LIMITS = {
   listsPerOwner: 50,
   fieldsPerList: 40,
@@ -151,8 +189,11 @@ export class EngineService {
     private readonly graceSeconds: () => number,
   ) {}
 
+  /** Validated on every read: an empty or odd name stops the module (503), before any query. */
   get schema(): string {
-    return this.schemaName();
+    const name = this.schemaName();
+    quoteSchema(name);
+    return name;
   }
 
   // ───────────────────────────── identifiers ─────────────────────────────
@@ -165,7 +206,8 @@ export class EngineService {
   }
 
   qualified(table: string): string {
-    return `${this.id(this.schema)}.${this.id(table)}`;
+    assertListTable(table);
+    return `${quoteSchema(this.schema)}.${this.id(table)}`;
   }
 
   /** Lock names are server-wide: two environments on one server must not share one. */

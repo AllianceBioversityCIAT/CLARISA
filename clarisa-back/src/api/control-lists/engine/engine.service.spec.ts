@@ -2,6 +2,7 @@ import {
   EngineService,
   FieldRow,
   ListRow,
+  assertListTable,
   isServerSqlError,
 } from './engine.service';
 
@@ -126,6 +127,59 @@ describe('control lists · engine', () => {
           field({ type: 'long_text', is_indexed: 1 }),
         ),
       ).toThrow(/long text/);
+    });
+  });
+
+  // Infrastructure, 2026-11-17: the list tables live in CLARISA's own
+  // database. Only `cl_<code>` tables can ever be named by the module.
+  describe("sharing CLARISA's database", () => {
+    it('only ever names the table of a list, never a CLARISA table or the catalog', () => {
+      for (const bad of [
+        'institutions',
+        'roles',
+        'cl_lists',
+        'cl_fields',
+        'cl_schema_ops',
+        'cl_',
+        'clx',
+      ]) {
+        expect(() => assertListTable(bad)).toThrow(
+          /not the table of a control list/,
+        );
+        expect(() => engine.qualified(bad)).toThrow();
+      }
+      expect(() =>
+        engine.buildDropTable({ ...list, table_name: 'roles' }),
+      ).toThrow();
+      expect(() => assertListTable('cl_soil')).not.toThrow();
+    });
+
+    it("works with CLARISA's database name, capitals included", () => {
+      const shared = new EngineService(
+        {} as any,
+        {} as any,
+        () => 'clarisaDB',
+        () => 120,
+      );
+      expect(shared.buildDropTable(list)).toBe(
+        'DROP TABLE `clarisaDB`.`cl_soil`',
+      );
+      const unset = new EngineService(
+        {} as any,
+        {} as any,
+        () => '',
+        () => 120,
+      );
+      expect(() => unset.buildDropTable(list)).toThrow(/not configured/);
+      // Before any query, so an empty DB_NAME never reaches information_schema.
+      expect(() => unset.schema).toThrow(/not configured/);
+      const odd = new EngineService(
+        {} as any,
+        {} as any,
+        () => 'a`b',
+        () => 120,
+      );
+      expect(() => odd.qualified('cl_soil')).toThrow(/not configured/);
     });
   });
 });

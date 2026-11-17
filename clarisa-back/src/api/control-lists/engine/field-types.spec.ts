@@ -173,6 +173,9 @@ describe('control lists · field types', () => {
     it('refuses list codes that would shadow a route', () => {
       expect(() => assertListCode('admin')).toThrow(BadRequestException);
       expect(() => assertListCode('get')).toThrow(BadRequestException);
+      // Their tables would be cl_lists, cl_fields and cl_schema_ops: the catalog.
+      for (const c of ['lists', 'fields', 'schema_ops'])
+        expect(() => assertListCode(c)).toThrow(BadRequestException);
       expect(() => assertListCode('soil_types')).not.toThrow();
     });
   });

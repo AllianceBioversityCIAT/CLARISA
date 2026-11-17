@@ -263,7 +263,7 @@ export class ListsService {
     );
     const owner = await this.resolveOwner(dto.owner_role_id, actor);
 
-    return this.engine.withSchemaLock(async () => {
+    return this.engine.withSchemaLock(async (lock) => {
       const count = await this.main.query(
         'SELECT COUNT(*) AS n FROM cl_lists WHERE owner_role_id = ?',
         [owner],
@@ -282,6 +282,7 @@ export class ListsService {
           `A list with code "${code}" already exists. The code is the public address and is unique in CLARISA.`,
         );
       }
+      await this.assertTableFree(`cl_${code}`, lock);
       await this.main.query(
         `INSERT INTO cl_lists (code, name, description, owner_role_id, table_name, status, created_by)
          VALUES (?, ?, ?, ?, ?, 'draft', ?)`,
@@ -289,6 +290,19 @@ export class ListsService {
       );
       return this.byCode(code);
     });
+  }
+
+  /**
+   * The lists share CLARISA's database: a table that already exists with the
+   * list's name was not made by this list, so it is never adopted (a later
+   * delete would drop it). Checked again right before publishing.
+   */
+  private async assertTableFree(table: string, lock: SchemaLock) {
+    if (await this.engine.tableExists(table, lock.qr)) {
+      throw new ConflictException(
+        `The database already has a table named "${table}". Choose another list code.`,
+      );
+    }
   }
 
   /** The owner role: one the actor holds (any active role for a super user). */
@@ -715,6 +729,7 @@ export class ListsService {
           relTables.set(target.id, target.table_name);
         }
       }
+      await this.assertTableFree(list.table_name, lock);
       const op = await this.engine.runDdl(lock, {
         kind: 'publish_list',
         sql: this.engine.buildCreateTable(list, fields, relTables),
