@@ -1,0 +1,103 @@
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { ControlListsApiService } from '../../services/control-lists-api.service';
+import { FieldRow, FieldTypeOption, ListDetail, ListRow } from '../../models/control-lists.models';
+import { relationTargets } from '../../utils/list-format';
+import { isOn } from '../../utils/record-values';
+import { readApiError } from '../../utils/api-error';
+
+@Component({
+  selector: 'app-cl-fields-tab',
+  templateUrl: './fields-tab.component.html'
+})
+export class FieldsTabComponent implements OnChanges, OnDestroy {
+  @Input() detail!: ListDetail;
+  @Input() types: FieldTypeOption[] = [];
+  @Input() lists: ListRow[] = [];
+  /** A write succeeded: the parent reloads the list from the server. */
+  @Output() changed = new EventEmitter<void>();
+  @Output() listDeleted = new EventEmitter<void>();
+
+  readonly isOn = isOn;
+
+  addVisible = false;
+  renameVisible = false;
+  typeVisible = false;
+  deleteFieldVisible = false;
+  deleteListVisible = false;
+  target: FieldRow | null = null;
+
+  sqlOpen = false;
+  sql: string | null = null;
+  sqlLoading = false;
+  sqlError: string | null = null;
+  private sqlSub?: Subscription;
+
+  constructor(private api: ControlListsApiService) {}
+
+  get published(): boolean {
+    return this.detail.status === 'published';
+  }
+
+  /** A change to the list is still being applied: no writes until it ends. */
+  get locked(): boolean {
+    return this.detail.pending_changes > 0;
+  }
+
+  get targets(): ListRow[] {
+    return relationTargets(this.lists, this.detail);
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // The definition changes after every schema write: refresh it while it is open.
+    if (changes['detail'] && !changes['detail'].firstChange && this.sqlOpen) this.loadSql();
+  }
+
+  ngOnDestroy(): void {
+    this.sqlSub?.unsubscribe();
+  }
+
+  openAdd(): void {
+    this.addVisible = true;
+  }
+
+  openRename(field: FieldRow): void {
+    this.target = field;
+    this.renameVisible = true;
+  }
+
+  openType(field: FieldRow): void {
+    this.target = field;
+    this.typeVisible = true;
+  }
+
+  openDeleteField(field: FieldRow): void {
+    this.target = field;
+    this.deleteFieldVisible = true;
+  }
+
+  toggleSql(): void {
+    this.sqlOpen = !this.sqlOpen;
+    if (this.sqlOpen) this.loadSql();
+  }
+
+  private loadSql(): void {
+    this.sqlSub?.unsubscribe();
+    this.sqlLoading = true;
+    this.sqlError = null;
+    this.sqlSub = this.api.sql(this.detail.id).subscribe({
+      next: res => {
+        this.sql = res?.sql ?? null;
+        this.sqlLoading = false;
+      },
+      error: err => {
+        this.sqlError = readApiError(err).message;
+        this.sqlLoading = false;
+      }
+    });
+  }
+
+  trackField(_: number, field: FieldRow): number {
+    return field.id;
+  }
+}

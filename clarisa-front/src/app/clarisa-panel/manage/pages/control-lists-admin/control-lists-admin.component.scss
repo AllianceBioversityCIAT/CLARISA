@@ -1,0 +1,9 @@
+@import 'control-lists';
+
+:host {
+  display: block;
+}
+
+:host ::ng-deep {
+  @include cl-skin;
+}

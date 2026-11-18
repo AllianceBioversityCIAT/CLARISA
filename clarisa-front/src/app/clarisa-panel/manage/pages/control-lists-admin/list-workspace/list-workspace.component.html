@@ -1,0 +1,82 @@
+<section class="cl-state" *ngIf="state === 'loading'" role="status">
+  <i class="pi pi-spin pi-spinner cl-state__icon" aria-hidden="true"></i>
+  <h2 class="cl-state__title">Loading the list…</h2>
+</section>
+
+<section class="cl-state" *ngIf="state === 'missing' || state === 'error'" [attr.role]="state === 'error' ? 'alert' : null">
+  <i class="pi cl-state__icon" [ngClass]="state === 'missing' ? 'pi-search' : 'pi-exclamation-circle'" aria-hidden="true"></i>
+  <h2 class="cl-state__title">{{ state === 'missing' ? 'This list could not be found.' : 'The list could not be loaded' }}</h2>
+  <p class="cl-state__text" *ngIf="state === 'error'">{{ errorMessage }}</p>
+  <p class="cl-state__text" *ngIf="state === 'missing'">It may not exist, or it belongs to a role you do not have.</p>
+  <div class="cl-state__actions">
+    <button *ngIf="state === 'error'" pButton type="button" label="Retry" icon="pi pi-refresh" class="btn-brand" (click)="load()"></button>
+    <a class="p-button p-component btn-ghost" [routerLink]="url"
+      ><span class="p-button-icon p-button-icon-left pi pi-arrow-left" aria-hidden="true"></span><span class="p-button-label">Control lists</span></a
+    >
+  </div>
+</section>
+
+<ng-container *ngIf="state === 'ready' && detail as list">
+  <header class="admin-page">
+    <div class="admin-page__head">
+      <nav class="cl-crumbs" aria-label="Breadcrumb">
+        <a [routerLink]="url"><i class="pi pi-arrow-left" aria-hidden="true"></i> Control lists</a>
+      </nav>
+      <h1 class="admin-page__title">{{ list.name }}</h1>
+      <p class="cl-meta">
+        <code class="cl-mono">{{ list.code }}</code>
+        <span class="cl-chip" [ngClass]="'cl-chip--' + list.status"
+          ><span class="cl-chip__dot" aria-hidden="true"></span>{{ statusLabel(list) }}</span
+        >
+        <span class="cl-meta__owner"
+          >Owner role <strong>{{ ownerName }}</strong></span
+        >
+      </p>
+      <p class="admin-page__hint" *ngIf="list.description">{{ list.description }}</p>
+    </div>
+
+    <div class="admin-page__aside cl-publish" *ngIf="!published">
+      <span class="field-hint" *ngIf="publishHint" id="cl-publish-hint">{{ publishHint }}</span>
+      <button
+        pButton
+        type="button"
+        label="Publish"
+        icon="pi pi-cloud-upload"
+        class="btn-brand"
+        [disabled]="!canPublish"
+        [attr.aria-describedby]="publishHint ? 'cl-publish-hint' : null"
+        (click)="publishVisible = true"></button>
+    </div>
+  </header>
+
+  <nav class="admin-tabs cl-tabs" role="tablist" aria-label="List sections">
+    <button
+      *ngFor="let t of tabs"
+      type="button"
+      role="tab"
+      class="admin-tabs__item"
+      [id]="'cl-tab-' + t.id"
+      [class.is-active]="tab === t.id"
+      [attr.aria-selected]="tab === t.id"
+      [attr.aria-controls]="'cl-panel'"
+      (click)="setTab(t.id)">
+      <span>{{ t.label }}</span>
+      <span class="admin-tabs__count" *ngIf="t.id === 'fields'">{{ list.fields.length }}</span>
+      <span class="admin-tabs__count" *ngIf="t.id === 'records' && published">{{ list.rows }}</span>
+    </button>
+  </nav>
+
+  <div id="cl-panel" role="tabpanel" [attr.aria-labelledby]="'cl-tab-' + tab" class="cl-panel">
+    <app-cl-fields-tab
+      *ngIf="tab === 'fields'"
+      [detail]="list"
+      [types]="types"
+      [lists]="lists"
+      (changed)="reload()"
+      (listDeleted)="onListDeleted()"></app-cl-fields-tab>
+    <app-cl-records-tab *ngIf="tab === 'records'" [detail]="list" (changed)="reload()"></app-cl-records-tab>
+    <app-cl-endpoint-tab *ngIf="tab === 'endpoint'" [detail]="list"></app-cl-endpoint-tab>
+  </div>
+
+  <app-cl-publish-dialog [(visible)]="publishVisible" [list]="list" (done)="reload()" (unsettled)="reload()"></app-cl-publish-dialog>
+</ng-container>
