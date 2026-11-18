@@ -1,0 +1,163 @@
+<p class="admin-note cl-note cl-note--warn" role="status" *ngIf="locked">
+  <i class="pi pi-clock" aria-hidden="true"></i>
+  <span>A change to this list is still being applied. Try again in a moment.</span>
+  <button pButton type="button" label="Check again" icon="pi pi-refresh" class="btn-ghost p-button-sm" (click)="changed.emit()"></button>
+</p>
+
+<header class="panel-head">
+  <div class="panel-head__text">
+    <h2 class="panel-head__title">Fields</h2>
+    <p class="panel-head__desc">Every list also has <code>id</code> and <code>is_active</code>; you do not need to add them.</p>
+  </div>
+  <button pButton type="button" label="Add field" icon="pi pi-plus" class="btn-brand" [disabled]="locked" (click)="openAdd()"></button>
+</header>
+
+<section class="panel-card">
+  <p-table [value]="detail.fields" [rowTrackBy]="trackField" dataKey="id" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
+    <ng-template pTemplate="header">
+      <tr>
+        <th scope="col">Label</th>
+        <th scope="col" style="width: 170px">Code</th>
+        <th scope="col" style="width: 150px">Type</th>
+        <th scope="col" style="width: 210px">Options</th>
+        <th scope="col" style="width: 170px">Relation</th>
+        <th scope="col" style="width: 120px">Status</th>
+        <th scope="col" style="width: 140px">Actions</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-field>
+      <tr>
+        <td data-card-title data-label="Label">
+          <span class="cell-primary">{{ field.label }}</span>
+        </td>
+        <td data-label="Code">
+          <code class="cl-mono">{{ field.code }}</code>
+        </td>
+        <td data-label="Type">{{ field.type_label || field.type }}</td>
+        <td data-label="Options">
+          <span class="cl-flag" *ngIf="isOn(field.is_required)">Required</span>
+          <span class="cl-flag" *ngIf="isOn(field.is_unique)">Unique</span>
+          <span class="cl-flag" *ngIf="isOn(field.is_indexed)">Filterable</span>
+          <span class="cell-empty" *ngIf="!isOn(field.is_required) && !isOn(field.is_unique) && !isOn(field.is_indexed)">—</span>
+        </td>
+        <td data-label="Relation">
+          <ng-container *ngIf="field.type === 'relation'; else noRelation">
+            {{ field.relation_name || '—' }}
+            <code class="cl-mono" *ngIf="field.relation_code">{{ field.relation_code }}</code>
+          </ng-container>
+          <ng-template #noRelation><span class="cell-empty">—</span></ng-template>
+        </td>
+        <td data-label="Status">
+          <span class="cl-chip" [ngClass]="'cl-chip--' + field.status"
+            ><span class="cl-chip__dot" aria-hidden="true"></span>{{ field.status === 'published' ? 'Published' : 'Draft' }}</span
+          >
+        </td>
+        <td>
+          <div class="row-actions">
+            <button
+              pButton
+              type="button"
+              icon="pi pi-pencil"
+              class="p-button-text p-button-sm"
+              pTooltip="Rename"
+              [attr.aria-label]="'Rename ' + field.label"
+              [disabled]="locked"
+              (click)="openRename(field)"></button>
+            <button
+              pButton
+              type="button"
+              icon="pi pi-sync"
+              class="p-button-text p-button-sm"
+              pTooltip="Change type"
+              [attr.aria-label]="'Change type of ' + field.label"
+              [disabled]="locked || field.type === 'relation'"
+              (click)="openType(field)"></button>
+            <button
+              pButton
+              type="button"
+              icon="pi pi-trash"
+              class="p-button-text p-button-sm p-button-danger"
+              pTooltip="Delete"
+              [attr.aria-label]="'Delete ' + field.label"
+              [disabled]="locked"
+              (click)="openDeleteField(field)"></button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="7">
+          <div class="cl-empty-row">
+            <i class="pi pi-list" aria-hidden="true"></i>
+            <strong>No fields yet</strong>
+            <span>Add at least one field. A list needs fields before it can be published.</span>
+            <button pButton type="button" label="Add the first field" class="btn-brand" [disabled]="locked" (click)="openAdd()"></button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</section>
+
+<section class="panel-card cl-block" *ngIf="published">
+  <button type="button" class="cl-disclosure" [attr.aria-expanded]="sqlOpen" aria-controls="cl-sql" (click)="toggleSql()">
+    <i class="pi" [ngClass]="sqlOpen ? 'pi-chevron-down' : 'pi-chevron-right'" aria-hidden="true"></i>
+    Table definition
+  </button>
+  <div id="cl-sql" *ngIf="sqlOpen">
+    <p class="cl-loading" *ngIf="sqlLoading" role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Loading the definition…</p>
+    <p class="field-error" role="alert" *ngIf="sqlError">{{ sqlError }}</p>
+    <pre
+      class="cl-code"
+      tabindex="0"
+      *ngIf="!sqlLoading && !sqlError"><code>{{ sql || 'No table definition is available for this list.' }}</code></pre>
+  </div>
+</section>
+
+<section class="cl-danger" aria-labelledby="cl-danger-title">
+  <div>
+    <h2 id="cl-danger-title" class="cl-danger__title">Delete this list</h2>
+    <p class="cl-danger__text">Removes the list and its table. The confirmation shows what it would take with it.</p>
+  </div>
+  <button
+    pButton
+    type="button"
+    label="Delete list…"
+    icon="pi pi-trash"
+    class="btn-caution"
+    [disabled]="locked"
+    (click)="deleteListVisible = true"></button>
+</section>
+
+<app-cl-field-add-dialog
+  [(visible)]="addVisible"
+  [list]="detail"
+  [types]="types"
+  [targets]="targets"
+  (done)="changed.emit()"
+  (unsettled)="changed.emit()"></app-cl-field-add-dialog>
+<app-cl-field-rename-dialog
+  [(visible)]="renameVisible"
+  [field]="target"
+  [published]="published"
+  (done)="changed.emit()"
+  (unsettled)="changed.emit()"></app-cl-field-rename-dialog>
+<app-cl-field-type-dialog
+  [(visible)]="typeVisible"
+  [field]="target"
+  [types]="types"
+  (done)="changed.emit()"
+  (unsettled)="changed.emit()"></app-cl-field-type-dialog>
+<app-cl-field-delete-dialog
+  [(visible)]="deleteFieldVisible"
+  [field]="target"
+  (done)="changed.emit()"
+  (unsettled)="changed.emit()"></app-cl-field-delete-dialog>
+<app-cl-delete-list-dialog
+  [(visible)]="deleteListVisible"
+  [list]="detail"
+  (done)="listDeleted.emit()"
+  (unsettled)="changed.emit()"></app-cl-delete-list-dialog>

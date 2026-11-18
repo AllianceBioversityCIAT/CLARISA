@@ -1,0 +1,116 @@
+<section class="cl-state" *ngIf="!published">
+  <i class="pi pi-lock cl-state__icon" aria-hidden="true"></i>
+  <h3 class="cl-state__title">This list is not published yet.</h3>
+  <p class="cl-state__text">
+    Its address will be <code class="cl-address">{{ address }}</code> and answers 404 until you publish.
+  </p>
+</section>
+
+<ng-container *ngIf="published">
+  <header class="panel-head">
+    <div class="panel-head__text">
+      <h2 class="panel-head__title">Public address</h2>
+      <p class="panel-head__desc">Anyone can read this list at this address. No token is needed.</p>
+    </div>
+  </header>
+
+  <section class="panel-card cl-block">
+    <div class="cl-endpoint">
+      <code class="cl-endpoint__url">GET {{ address }}</code>
+      <div class="cl-endpoint__actions">
+        <button
+          pButton
+          type="button"
+          class="btn-ghost"
+          icon="pi pi-copy"
+          [label]="copiedKey === 'main' ? 'Copied' : 'Copy'"
+          (click)="copy(address, 'main')"></button>
+        <a class="p-button p-component btn-ghost" [href]="address" target="_blank" rel="noopener">
+          <span class="p-button-icon p-button-icon-left pi pi-external-link" aria-hidden="true"></span><span class="p-button-label">Open</span>
+        </a>
+      </div>
+    </div>
+    <span class="cl-sr-only" role="status">{{ copiedKey ? 'Copied to the clipboard' : '' }}</span>
+  </section>
+
+  <header class="panel-head cl-gap">
+    <div class="panel-head__text">
+      <h2 class="panel-head__title">Variants</h2>
+      <p class="panel-head__desc">Only filterable fields can filter; any other field answers 400.</p>
+    </div>
+  </header>
+  <section class="panel-card cl-block">
+    <ul class="cl-variants">
+      <li *ngFor="let v of variants">
+        <div class="cl-variants__text">
+          <strong>{{ v.title }}</strong>
+          <span>{{ v.note }}</span>
+          <code class="cl-endpoint__url cl-endpoint__url--small">{{ v.url }}</code>
+        </div>
+        <button
+          pButton
+          type="button"
+          class="btn-ghost"
+          icon="pi pi-copy"
+          [label]="copiedKey === v.key ? 'Copied' : 'Copy'"
+          [attr.aria-label]="'Copy: ' + v.title"
+          (click)="copy(v.url, v.key)"></button>
+      </li>
+    </ul>
+    <p class="field-hint" *ngIf="!hasFilterable">This list has no filterable fields yet.</p>
+  </section>
+
+  <header class="panel-head cl-gap">
+    <div class="panel-head__text">
+      <h2 class="panel-head__title">Example response</h2>
+      <p class="panel-head__desc">What the public address answers right now.</p>
+    </div>
+    <button pButton type="button" class="btn-ghost" icon="pi pi-refresh" label="Refresh" [disabled]="exampleLoading" (click)="refresh()"></button>
+  </header>
+  <section class="panel-card cl-block">
+    <p class="cl-loading" *ngIf="exampleLoading" role="status">
+      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Reading the public address…
+    </p>
+    <p class="field-error" role="alert" *ngIf="exampleError">{{ exampleError }}</p>
+    <ng-container *ngIf="exampleStatus !== null && !exampleError">
+      <p class="cl-example-meta">
+        <span class="cl-chip cl-chip--published"><span class="cl-chip__dot" aria-hidden="true"></span>{{ exampleStatus }}</span>
+        <span *ngIf="exampleNote">{{ exampleNote }}</span>
+      </p>
+      <pre class="cl-code" tabindex="0"><code>{{ exampleJson }}</code></pre>
+    </ng-container>
+  </section>
+
+  <header class="panel-head cl-gap">
+    <div class="panel-head__text">
+      <h2 class="panel-head__title">Fields in the response</h2>
+    </div>
+  </header>
+  <section class="panel-card">
+    <p-table [value]="rows" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
+      <ng-template pTemplate="header">
+        <tr>
+          <th scope="col" style="width: 190px">Field</th>
+          <th scope="col" style="width: 160px">Type</th>
+          <th scope="col" style="width: 100px">Required</th>
+          <th scope="col" style="width: 110px">Filterable</th>
+          <th scope="col">Notes</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr>
+          <td data-card-title data-label="Field">
+            <code class="cl-mono">{{ row.code }}</code>
+          </td>
+          <td data-label="Type">{{ row.type }}</td>
+          <td data-label="Required">{{ row.required }}</td>
+          <td data-label="Filterable">{{ row.filterable }}</td>
+          <td data-label="Notes">
+            <span *ngIf="row.note; else none">{{ row.note }}</span>
+            <ng-template #none><span class="cell-empty">—</span></ng-template>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </section>
+</ng-container>

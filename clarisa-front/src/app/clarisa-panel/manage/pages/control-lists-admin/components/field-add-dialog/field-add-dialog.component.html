@@ -1,0 +1,112 @@
+<p-dialog
+  header="Add field"
+  [visible]="visible"
+  (visibleChange)="onVisibleChange($event)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [style]="{ width: '38rem' }"
+  [breakpoints]="{ '720px': '94vw' }"
+  styleClass="admin-dialog">
+  <form class="admin-form" (ngSubmit)="submit()" autocomplete="off">
+    <div class="admin-form__grid">
+      <div class="field">
+        <label for="cl-fa-label">Label <span class="tag-req">Required</span></label>
+        <input
+          id="cl-fa-label"
+          name="label"
+          pInputText
+          class="w-full"
+          autofocus
+          [(ngModel)]="label"
+          (ngModelChange)="onLabelChange()"
+          [disabled]="saving" />
+      </div>
+      <div class="field">
+        <label for="cl-fa-code">Code <span class="tag-req">Required</span></label>
+        <input
+          id="cl-fa-code"
+          name="code"
+          pInputText
+          class="w-full cl-mono"
+          [(ngModel)]="code"
+          (ngModelChange)="onCodeChange()"
+          [disabled]="saving" />
+        <small class="field-hint">The field name in the public address.</small>
+        <small class="field-error" *ngIf="codeInvalid">Lowercase letters, digits and underscores, starting with a letter.</small>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="cl-fa-type">Type <span class="tag-req">Required</span></label>
+      <p-dropdown
+        inputId="cl-fa-type"
+        name="type"
+        [options]="types"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="type"
+        placeholder="Select a type"
+        appendTo="body"
+        [style]="{ width: '100%' }"
+        styleClass="w-full admin-dropdown"
+        panelStyleClass="admin-dropdown-panel"
+        [disabled]="saving"></p-dropdown>
+      <small class="field-error" *ngIf="!types.length">Field types could not be loaded. Close this dialog and try again.</small>
+    </div>
+
+    <div class="field" *ngIf="isRelation">
+      <label for="cl-fa-rel">Related list <span class="tag-req">Required</span></label>
+      <p-dropdown
+        inputId="cl-fa-rel"
+        name="relation"
+        [options]="targets"
+        optionLabel="name"
+        optionValue="id"
+        [(ngModel)]="relationListId"
+        placeholder="Select a published list"
+        appendTo="body"
+        [style]="{ width: '100%' }"
+        styleClass="w-full admin-dropdown"
+        panelStyleClass="admin-dropdown-panel"
+        [disabled]="saving"></p-dropdown>
+      <small class="field-hint" *ngIf="targets.length">Only published lists of the same owner role can be related.</small>
+      <small class="field-error" *ngIf="!targets.length">There is no published list of the same owner role to relate to yet.</small>
+    </div>
+
+    <fieldset class="cl-switches" [disabled]="saving">
+      <legend>Behaviour</legend>
+      <label class="cl-switch" for="cl-fa-req">
+        <p-inputSwitch inputId="cl-fa-req" name="required" [(ngModel)]="isRequired"></p-inputSwitch>
+        <span><strong>Required</strong><small>Every record must have a value.</small></span>
+      </label>
+      <label class="cl-switch" for="cl-fa-uniq">
+        <p-inputSwitch inputId="cl-fa-uniq" name="unique" [(ngModel)]="isUnique"></p-inputSwitch>
+        <span><strong>Unique</strong><small>No two records can share a value.</small></span>
+      </label>
+      <label class="cl-switch" for="cl-fa-idx">
+        <p-inputSwitch inputId="cl-fa-idx" name="indexed" [(ngModel)]="isIndexed"></p-inputSwitch>
+        <span><strong>Filterable</strong><small>Filterable fields can be used as filters in the public address.</small></span>
+      </label>
+    </fieldset>
+
+    <p class="admin-note cl-note" *ngIf="requiredNote">
+      <i class="pi pi-info-circle" aria-hidden="true"></i>
+      <span>This list is published and already has records, so a new field cannot start as required.</span>
+    </p>
+
+    <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="close()"></button>
+      <button
+        pButton
+        type="submit"
+        [label]="saving ? 'Adding…' : 'Add field'"
+        class="btn-brand"
+        [loading]="saving"
+        [disabled]="saving || !valid"></button>
+    </div>
+  </form>
+</p-dialog>

@@ -1,0 +1,49 @@
+<p-dialog
+  header="Delete list"
+  [visible]="visible"
+  (visibleChange)="onVisibleChange($event)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [style]="{ width: '36rem' }"
+  [breakpoints]="{ '720px': '94vw' }"
+  styleClass="admin-dialog">
+  <form class="admin-form" (ngSubmit)="submit()">
+    <p class="cl-lead" *ngIf="list">
+      You are about to delete <strong>{{ list.name }}</strong> (<code>{{ list.code }}</code
+      >).
+    </p>
+    <p class="cl-loading" *ngIf="impactLoading" role="status">
+      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Checking what this would affect…
+    </p>
+    <p class="field-error cl-error" role="alert" *ngIf="impactError"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ impactError }}</p>
+
+    <div class="cl-impact" [class.cl-impact--danger]="!blocked" [class.cl-impact--warn]="blocked" *ngIf="impact" role="status">
+      <strong class="cl-impact__count">{{ impact.rows }}</strong>
+      <div>
+        <span class="cl-impact__label">{{ impact.rows === 1 ? 'record' : 'records' }}</span>
+        <p>{{ impact.message }}</p>
+        <ul class="cl-deps" *ngIf="blocked">
+          <li *ngFor="let dependent of impact.dependents">
+            <code>{{ dependent }}</code>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <div class="admin-form__actions">
+      <button pButton type="button" [label]="blocked ? 'Close' : 'Cancel'" class="btn-ghost" autofocus [disabled]="saving" (click)="close()"></button>
+      <button
+        *ngIf="!blocked"
+        pButton
+        type="submit"
+        [label]="saving ? 'Deleting…' : 'Delete list'"
+        class="btn-caution-solid"
+        [loading]="saving"
+        [disabled]="!canSubmit"></button>
+    </div>
+  </form>
+</p-dialog>

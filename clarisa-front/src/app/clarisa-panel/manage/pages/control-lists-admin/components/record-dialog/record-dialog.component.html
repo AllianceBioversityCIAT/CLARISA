@@ -1,0 +1,165 @@
+<p-dialog
+  [header]="editing ? 'Edit record #' + record?.id : 'New record'"
+  [visible]="visible"
+  (visibleChange)="onVisibleChange($event)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [style]="{ width: '40rem' }"
+  [breakpoints]="{ '720px': '94vw' }"
+  styleClass="admin-dialog">
+  <form class="admin-form" (ngSubmit)="submit()" autocomplete="off">
+    <div class="field" *ngFor="let f of fields; let first = first">
+      <label [for]="'cl-rec-' + f.code">
+        {{ f.label }}
+        <span class="tag-req" *ngIf="isOn(f.is_required)">Required</span>
+      </label>
+
+      <ng-container [ngSwitch]="f.type">
+        <textarea
+          *ngSwitchCase="'long_text'"
+          [id]="'cl-rec-' + f.code"
+          [name]="f.code"
+          pInputTextarea
+          rows="4"
+          class="w-full"
+          [attr.autofocus]="first ? '' : null"
+          [(ngModel)]="values[f.code]"
+          [disabled]="saving"></textarea>
+
+        <ng-container *ngSwitchCase="'boolean'">
+          <p-inputSwitch
+            *ngIf="isOn(f.is_required); else triState"
+            [inputId]="'cl-rec-' + f.code"
+            [name]="f.code"
+            [(ngModel)]="values[f.code]"
+            [disabled]="saving"></p-inputSwitch>
+          <ng-template #triState>
+            <select [id]="'cl-rec-' + f.code" [name]="f.code" class="cl-select" [(ngModel)]="values[f.code]" [disabled]="saving">
+              <option value="">Not set</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </ng-template>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'relation'">
+          <p-dropdown
+            [inputId]="'cl-rec-' + f.code"
+            [name]="f.code"
+            [options]="options[f.code] || []"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="values[f.code]"
+            [showClear]="!isOn(f.is_required)"
+            [filter]="(options[f.code] || []).length > 15"
+            filterBy="label"
+            [placeholder]="'Select a record' + (f.relation_name ? ' of ' + f.relation_name : '')"
+            appendTo="body"
+            [style]="{ width: '100%' }"
+            styleClass="w-full admin-dropdown"
+            panelStyleClass="admin-dropdown-panel"
+            [disabled]="saving"></p-dropdown>
+          <small class="field-error" *ngIf="relationFailed(f)"
+            >The records of {{ f.relation_name }} could not be loaded. Only the current value is shown.</small
+          >
+        </ng-container>
+
+        <input
+          *ngSwitchCase="'date'"
+          [id]="'cl-rec-' + f.code"
+          [name]="f.code"
+          type="date"
+          pInputText
+          class="w-full"
+          [(ngModel)]="values[f.code]"
+          [disabled]="saving" />
+        <input
+          *ngSwitchCase="'datetime'"
+          [id]="'cl-rec-' + f.code"
+          [name]="f.code"
+          type="datetime-local"
+          pInputText
+          class="w-full"
+          [(ngModel)]="values[f.code]"
+          [disabled]="saving" />
+        <input
+          *ngSwitchCase="'integer'"
+          [id]="'cl-rec-' + f.code"
+          [name]="f.code"
+          type="text"
+          inputmode="numeric"
+          pInputText
+          class="w-full"
+          [(ngModel)]="values[f.code]"
+          [disabled]="saving" />
+        <input
+          *ngSwitchCase="'decimal'"
+          [id]="'cl-rec-' + f.code"
+          [name]="f.code"
+          type="text"
+          inputmode="decimal"
+          pInputText
+          class="w-full"
+          [(ngModel)]="values[f.code]"
+          [disabled]="saving" />
+        <input
+          *ngSwitchCase="'url'"
+          [id]="'cl-rec-' + f.code"
+          [name]="f.code"
+          type="url"
+          pInputText
+          class="w-full"
+          [(ngModel)]="values[f.code]"
+          [disabled]="saving" />
+        <input
+          *ngSwitchCase="'email'"
+          [id]="'cl-rec-' + f.code"
+          [name]="f.code"
+          type="email"
+          pInputText
+          class="w-full"
+          [(ngModel)]="values[f.code]"
+          [disabled]="saving" />
+        <input
+          *ngSwitchDefault
+          [id]="'cl-rec-' + f.code"
+          [name]="f.code"
+          type="text"
+          pInputText
+          class="w-full"
+          [attr.autofocus]="first ? '' : null"
+          [(ngModel)]="values[f.code]"
+          [disabled]="saving" />
+      </ng-container>
+    </div>
+
+    <div class="field" *ngIf="editing">
+      <label for="cl-record-reason">Reason for the change <span class="tag-opt">Optional</span></label>
+      <textarea
+        id="cl-record-reason"
+        name="cl-reason"
+        pInputTextarea
+        rows="2"
+        class="w-full"
+        [maxlength]="reasonMax"
+        [(ngModel)]="reason"
+        [disabled]="saving"></textarea>
+      <small class="field-hint">{{ reason.length }}/{{ reasonMax }} · kept with the record's history.</small>
+    </div>
+
+    <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="close()"></button>
+      <button
+        pButton
+        type="submit"
+        [label]="saving ? 'Saving…' : editing ? 'Save changes' : 'Create record'"
+        class="btn-brand"
+        [loading]="saving"
+        [disabled]="!canSubmit"></button>
+    </div>
+  </form>
+</p-dialog>
