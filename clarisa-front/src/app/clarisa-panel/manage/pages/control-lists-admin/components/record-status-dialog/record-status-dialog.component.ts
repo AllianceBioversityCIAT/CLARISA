@@ -29,6 +29,10 @@ export class RecordStatusDialogComponent extends WriteDialogBase<ListRecord> {
     this.reason = '';
   }
 
+  protected override isDirty(): boolean {
+    return this.reason.trim() !== '';
+  }
+
   get deactivating(): boolean {
     return this.mode === 'deactivate';
   }

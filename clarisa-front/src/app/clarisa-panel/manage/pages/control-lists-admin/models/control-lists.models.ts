@@ -102,3 +102,6 @@ export interface PublicResponse {
   status: number;
   body: unknown;
 }
+
+/** Why the workspace reads the list again: it decides what the screen says if that read fails. */
+export type ReloadReason = 'saved' | 'unsettled' | 'check' | 'retry';

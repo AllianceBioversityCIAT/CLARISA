@@ -2,7 +2,8 @@ import { Component, Input } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { ControlListsApiService } from '../../services/control-lists-api.service';
 import { FieldRow } from '../../models/control-lists.models';
-import { isValidCode } from '../../utils/code-suggest';
+import { codeProblem, isUsableCode } from '../../utils/code-suggest';
+import { LIMITS } from '../../utils/limits';
 import { WriteDialogBase } from '../write-dialog.base';
 
 @Component({
@@ -13,6 +14,7 @@ export class FieldRenameDialogComponent extends WriteDialogBase<FieldRow> {
   @Input() field: FieldRow | null = null;
   @Input() published = false;
 
+  readonly limits = LIMITS;
   label = '';
   code = '';
 
@@ -32,12 +34,24 @@ export class FieldRenameDialogComponent extends WriteDialogBase<FieldRow> {
     return !!this.field && this.code !== this.field.code;
   }
 
+  /** Why the code cannot be used (wrong shape, or a word the back keeps for itself), or `''`. */
+  get codeError(): string {
+    return codeProblem(this.code, 'field');
+  }
+
   get codeInvalid(): boolean {
-    return this.code !== '' && !isValidCode(this.code);
+    return this.codeError !== '';
   }
 
   get valid(): boolean {
-    return !!this.field && this.label.trim() !== '' && isValidCode(this.code) && (this.label.trim() !== this.field.label || this.codeChanged);
+    return (
+      !!this.field && this.label.trim() !== '' && isUsableCode(this.code, 'field') && (this.label.trim() !== this.field.label || this.codeChanged)
+    );
+  }
+
+  /** The label or the code is not what the field has now. */
+  protected override isDirty(): boolean {
+    return !!this.field && (this.label !== this.field.label || this.code !== this.field.code);
   }
 
   submit(): void {

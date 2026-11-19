@@ -1,8 +1,10 @@
 import { Component, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControlListsApiService } from '../../services/control-lists-api.service';
+import { readApiError, TIMEOUT_ERROR } from '../../utils/api-error';
 import { ListDetail } from '../../models/control-lists.models';
 import { filterableFields } from '../../utils/list-format';
+import { typeName } from '../../utils/field-types';
 import { isOn } from '../../utils/record-values';
 
 export interface Variant {
@@ -24,7 +26,8 @@ const EXAMPLE_RECORDS = 3;
 
 @Component({
   selector: 'app-cl-endpoint-tab',
-  templateUrl: './endpoint-tab.component.html'
+  templateUrl: './endpoint-tab.component.html',
+  styleUrls: ['./endpoint-tab.component.scss']
 })
 export class EndpointTabComponent implements OnChanges, OnDestroy {
   @Input() detail!: ListDetail;
@@ -73,7 +76,7 @@ export class EndpointTabComponent implements OnChanges, OnDestroy {
     for (const f of published.filter(x => x.type === 'relation')) {
       variants.push({
         key: `e-${f.code}`,
-        title: `Nest ${f.relation_name || f.code}`,
+        title: `Include the full record of ${f.relation_name || f.code}`,
         note: `Replaces the id in ${f.code} with the related record.`,
         url: `${base}?expand=${f.code}`
       });
@@ -84,7 +87,7 @@ export class EndpointTabComponent implements OnChanges, OnDestroy {
       { code: 'id', type: 'Number', required: '—', filterable: '—', note: 'Always present.' },
       ...published.map(f => ({
         code: f.code,
-        type: f.type_label || String(f.type),
+        type: typeName(String(f.type), f.type_label),
         required: isOn(f.is_required) ? 'Yes' : 'No',
         filterable: filterable.includes(f) ? 'Yes' : 'No',
         note: f.type === 'relation' ? `id of a record of ${f.relation_code || 'the related list'}; use ?expand=${f.code}` : ''
@@ -140,7 +143,11 @@ export class EndpointTabComponent implements OnChanges, OnDestroy {
         this.exampleLoading = false;
         this.exampleStatus = typeof err?.status === 'number' && err.status > 0 ? err.status : null;
         this.exampleError =
-          this.exampleStatus === null ? 'The public address could not be reached.' : `The public address answered ${this.exampleStatus}.`;
+          this.exampleStatus !== null
+            ? `The public address answered ${this.exampleStatus}.`
+            : readApiError(err).message === TIMEOUT_ERROR
+              ? 'The public address is taking too long to answer.'
+              : 'The public address could not be reached.';
       }
     });
   }

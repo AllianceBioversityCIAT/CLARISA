@@ -32,10 +32,12 @@
         [maxlength]="reasonMax"
         [(ngModel)]="reason"
         [disabled]="saving"></textarea>
-      <small class="field-hint">{{ reason.length }}/{{ reasonMax }} · kept with the record's history.</small>
+      <small class="field-hint">{{ reason.length }}/{{ reasonMax }} · Saved with the record as the reason for its latest change.</small>
     </div>
 
     <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <app-cl-discard-bar *ngIf="confirmingClose" (keep)="keepEditing()" (discard)="discard()"></app-cl-discard-bar>
 
     <div class="admin-form__actions">
       <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="close()"></button>

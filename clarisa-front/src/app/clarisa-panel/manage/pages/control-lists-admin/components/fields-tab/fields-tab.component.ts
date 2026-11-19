@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControlListsApiService } from '../../services/control-lists-api.service';
-import { FieldRow, FieldTypeOption, ListDetail, ListRow } from '../../models/control-lists.models';
+import { FieldRow, FieldTypeOption, ListDetail, ListRow, ReloadReason } from '../../models/control-lists.models';
 import { relationTargets } from '../../utils/list-format';
 import { isOn } from '../../utils/record-values';
 import { readApiError } from '../../utils/api-error';
@@ -16,8 +16,10 @@ export class FieldsTabComponent implements OnChanges, OnDestroy {
   @Input() detail!: ListDetail;
   @Input() types: FieldTypeOption[] = [];
   @Input() lists: ListRow[] = [];
-  /** A write succeeded: the parent reloads the list from the server. */
-  @Output() changed = new EventEmitter<void>();
+  /** The parent reloads the list from the server; `reason` says why, so a failed reload is reported truthfully. */
+  @Output() changed = new EventEmitter<ReloadReason>();
+  /** The lists of this user could not be read: the Add field dialog says it cannot check codes. */
+  @Input() listsFailed = false;
   @Output() listDeleted = new EventEmitter<void>();
 
   readonly isOn = isOn;

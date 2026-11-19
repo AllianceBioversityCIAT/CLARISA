@@ -1,7 +1,8 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { environment } from '../../../../../../environments/environment';
-import { ControlListsApiService } from './control-lists-api.service';
+import { readApiError } from '../utils/api-error';
+import { ControlListsApiService, REQUEST_TIMEOUT_MS } from './control-lists-api.service';
 import { NewFieldBody } from '../models/control-lists.models';
 
 describe('ControlListsApiService', () => {
@@ -128,5 +129,59 @@ describe('ControlListsApiService', () => {
       done();
     });
     expectOne('GET', `${environment.apiUrl}api/control-lists/crops`).flush([]);
+  });
+
+  describe('a call that never answers', () => {
+    it('gives up after 30 seconds', () => {
+      expect(REQUEST_TIMEOUT_MS).toBe(30_000);
+    });
+
+    const calls: [string, string, (a: ControlListsApiService) => import('rxjs').Observable<unknown>][] = [
+      ['GET', 'types', a => a.types()],
+      ['GET', 'owners', a => a.owners()],
+      ['GET', 'lists', a => a.lists()],
+      ['GET', 'one list', a => a.list(7)],
+      ['GET', 'sql', a => a.sql(7)],
+      ['GET', 'delete impact', a => a.deleteImpact(7)],
+      ['GET', 'field impact', a => a.fieldImpact(3, 'delete')],
+      ['GET', 'records', a => a.records('crops')],
+      ['GET', 'public address', a => a.publicRead('crops')],
+      ['POST', 'create list', a => a.createList({ code: 'c', name: 'C' })],
+      [
+        'POST',
+        'add field',
+        a => a.addField(7, { code: 'a', label: 'A', type: 'text', is_required: false, is_unique: false, is_indexed: false, request_id: 'r' })
+      ],
+      ['POST', 'publish', a => a.publish(7, 'r')],
+      ['POST', 'create record', a => a.createRecord('crops', {})],
+      ['PATCH', 'rename field', a => a.renameField(3, { label: 'A', code: 'a', request_id: 'r' })],
+      ['PATCH', 'change type', a => a.changeType(3, { type: 'integer', confirm_affected: 0, request_id: 'r' })],
+      ['PATCH', 'update record', a => a.updateRecord('crops', 4, {})],
+      ['DELETE', 'delete list', a => a.deleteList(7, 'r')],
+      ['DELETE', 'delete field', a => a.deleteField(3, 'r')],
+      ['DELETE', 'deactivate record', a => a.deactivateRecord('crops', 4)]
+    ];
+
+    it.each(calls)('%s %s ends in a timeout the screens can read, and the request is cancelled', (method, _name, call) => {
+      fakeAsync(() => {
+        let failure: unknown = null;
+        call(api).subscribe({ error: e => (failure = e) });
+        const pending = http.match(r => r.method === method);
+        expect(pending).toHaveLength(1);
+        tick(REQUEST_TIMEOUT_MS - 1);
+        expect(failure).toBeNull();
+        tick(1);
+        expect(readApiError(failure)).toMatchObject({ message: 'The server is taking too long to answer.', unsettled: true });
+        expect(pending[0].cancelled).toBe(true);
+      })();
+    });
+
+    it('does not time out a call that answered', fakeAsync(() => {
+      let answered: unknown = null;
+      api.types().subscribe(r => (answered = r));
+      expectOne('GET', `${admin}schema/types`).flush([{ value: 'text', label: 'Short text' }]);
+      tick(REQUEST_TIMEOUT_MS * 2);
+      expect(answered).toEqual([{ value: 'text', label: 'Short text' }]);
+    }));
   });
 });

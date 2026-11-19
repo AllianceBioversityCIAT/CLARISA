@@ -140,12 +140,12 @@
   [fields]="fields"
   [record]="target"
   [related]="related"
-  (done)="onWritten()"
-  (unsettled)="onWritten()"></app-cl-record-dialog>
+  (done)="onWritten('saved')"
+  (unsettled)="onWritten('unsettled')"></app-cl-record-dialog>
 <app-cl-record-status-dialog
   [(visible)]="statusVisible"
   [code]="code"
   [record]="target"
   [mode]="statusMode"
-  (done)="onWritten()"
-  (unsettled)="onWritten()"></app-cl-record-status-dialog>
+  (done)="onWritten('saved')"
+  (unsettled)="onWritten('unsettled')"></app-cl-record-status-dialog>

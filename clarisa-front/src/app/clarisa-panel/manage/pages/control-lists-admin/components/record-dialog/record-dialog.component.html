@@ -24,6 +24,7 @@
           pInputTextarea
           rows="4"
           class="w-full"
+          [attr.maxlength]="maxLength(f.type)"
           [attr.autofocus]="first ? '' : null"
           [(ngModel)]="values[f.code]"
           [disabled]="saving"></textarea>
@@ -55,12 +56,13 @@
             [showClear]="!isOn(f.is_required)"
             [filter]="(options[f.code] || []).length > 15"
             filterBy="label"
-            [placeholder]="'Select a record' + (f.relation_name ? ' of ' + f.relation_name : '')"
+            [placeholder]="f.relation_name ? 'Select from ' + f.relation_name : 'Select a record'"
             appendTo="body"
             [style]="{ width: '100%' }"
             styleClass="w-full admin-dropdown"
             panelStyleClass="admin-dropdown-panel"
             [disabled]="saving"></p-dropdown>
+          <small class="field-error" role="alert" *ngIf="noOptions(f)">"{{ f.relation_name }}" has no active records yet. Add one there first.</small>
           <small class="field-error" *ngIf="relationFailed(f)"
             >The records of {{ f.relation_name }} could not be loaded. Only the current value is shown.</small
           >
@@ -111,6 +113,7 @@
           type="url"
           pInputText
           class="w-full"
+          [attr.maxlength]="maxLength(f.type)"
           [(ngModel)]="values[f.code]"
           [disabled]="saving" />
         <input
@@ -120,6 +123,7 @@
           type="email"
           pInputText
           class="w-full"
+          [attr.maxlength]="maxLength(f.type)"
           [(ngModel)]="values[f.code]"
           [disabled]="saving" />
         <input
@@ -129,6 +133,7 @@
           type="text"
           pInputText
           class="w-full"
+          [attr.maxlength]="maxLength(f.type)"
           [attr.autofocus]="first ? '' : null"
           [(ngModel)]="values[f.code]"
           [disabled]="saving" />
@@ -146,10 +151,14 @@
         [maxlength]="reasonMax"
         [(ngModel)]="reason"
         [disabled]="saving"></textarea>
-      <small class="field-hint">{{ reason.length }}/{{ reasonMax }} · kept with the record's history.</small>
+      <small class="field-hint">{{ reason.length }}/{{ reasonMax }} · Saved with the record as the reason for its latest change.</small>
     </div>
 
     <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <p class="field-hint" id="cl-record-missing" *ngIf="missing.length">Fill in to continue: {{ missing.join(', ') }}.</p>
+
+    <app-cl-discard-bar *ngIf="confirmingClose" (keep)="keepEditing()" (discard)="discard()"></app-cl-discard-bar>
 
     <div class="admin-form__actions">
       <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="close()"></button>
@@ -159,6 +168,7 @@
         [label]="saving ? 'Saving…' : editing ? 'Save changes' : 'Create record'"
         class="btn-brand"
         [loading]="saving"
+        [attr.aria-describedby]="missing.length ? 'cl-record-missing' : null"
         [disabled]="!canSubmit"></button>
     </div>
   </form>

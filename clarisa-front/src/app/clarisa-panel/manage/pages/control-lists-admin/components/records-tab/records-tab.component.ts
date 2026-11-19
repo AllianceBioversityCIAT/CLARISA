@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleCha
 import { forkJoin, of, Subject } from 'rxjs';
 import { catchError, map, switchMap, takeUntil } from 'rxjs/operators';
 import { ControlListsApiService } from '../../services/control-lists-api.service';
-import { FieldRow, ListDetail, ListRecord } from '../../models/control-lists.models';
+import { FieldRow, ListDetail, ListRecord, ReloadReason } from '../../models/control-lists.models';
 import { readApiError } from '../../utils/api-error';
 import { publishedFields, recordIsActive, recordLabel } from '../../utils/record-values';
 
@@ -15,7 +15,7 @@ export type RecordFilter = 'active' | 'inactive' | 'all';
 export class RecordsTabComponent implements OnChanges, OnDestroy {
   @Input() detail!: ListDetail;
   /** A record was written: the workspace reads the list again (its record count). */
-  @Output() changed = new EventEmitter<void>();
+  @Output() changed = new EventEmitter<ReloadReason>();
 
   fields: FieldRow[] = [];
   records: ListRecord[] = [];
@@ -74,9 +74,9 @@ export class RecordsTabComponent implements OnChanges, OnDestroy {
     this.destroy$.complete();
   }
 
-  onWritten(): void {
+  onWritten(reason: ReloadReason = 'saved'): void {
     this.load();
-    this.changed.emit();
+    this.changed.emit(reason);
   }
 
   load(): void {

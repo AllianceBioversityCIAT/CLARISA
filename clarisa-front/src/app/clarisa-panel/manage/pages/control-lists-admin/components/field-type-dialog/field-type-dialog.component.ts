@@ -4,6 +4,7 @@ import { Subscription } from 'rxjs';
 import { ControlListsApiService } from '../../services/control-lists-api.service';
 import { FieldImpact, FieldRow, FieldTypeOption } from '../../models/control-lists.models';
 import { ApiErrorInfo, readApiError } from '../../utils/api-error';
+import { typeName } from '../../utils/field-types';
 import { WriteDialogBase } from '../write-dialog.base';
 
 @Component({
@@ -29,9 +30,13 @@ export class FieldTypeDialogComponent extends WriteDialogBase<FieldRow> {
     super(toast);
   }
 
+  readonly typeName = typeName;
+
   get options(): FieldTypeOption[] {
     // A field does not become a relation by changing type; the back refuses it.
-    return this.types.filter(t => t.value !== this.field?.type && t.value !== 'relation');
+    return this.types
+      .filter(t => t.value !== this.field?.type && t.value !== 'relation')
+      .map(t => ({ ...t, label: typeName(String(t.value), t.label) }));
   }
 
   protected override onOpen(): void {
@@ -50,6 +55,11 @@ export class FieldTypeDialogComponent extends WriteDialogBase<FieldRow> {
 
   get canSubmit(): boolean {
     return !this.saving && !!this.field && !!this.type && !!this.impact && !this.impactLoading;
+  }
+
+  /** «Try again» after the impact could not be read. */
+  retryImpact(): void {
+    this.onTypeChange();
   }
 
   onTypeChange(): void {
@@ -88,7 +98,7 @@ export class FieldTypeDialogComponent extends WriteDialogBase<FieldRow> {
     const body = { type: this.type, confirm_affected: this.impact.affected, request_id: this.requestId };
     this.write(
       () => this.api.changeType(id, body),
-      field => this.success('Type changed', `"${field.label}" is now ${field.type_label ?? field.type}.`)
+      field => this.success('Type changed', `"${field.label}" is now ${typeName(field.type, field.type_label)}.`)
     );
   }
 }

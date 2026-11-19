@@ -17,7 +17,8 @@ export interface ListViewRow extends ListRow {
 
 @Component({
   selector: 'app-cl-lists-screen',
-  templateUrl: './lists-screen.component.html'
+  templateUrl: './lists-screen.component.html',
+  styleUrls: ['./lists-screen.component.scss']
 })
 export class ListsScreenComponent implements OnInit, OnDestroy {
   state: ListsState = 'loading';

@@ -10,7 +10,9 @@ export const UNKNOWN_OUTCOME = 'The change may still have been applied: check th
 /**
  * What every write dialog of the module shares: it opens with a fresh
  * `request_id` (kept for retries of that same opening), locks while its request
- * is open, and on a 4xx keeps itself open showing the back's message.
+ * is open, and on a 4xx keeps itself open showing the back's message. Closing
+ * it with typed content asks first (`isDirty`), and when it closes the keyboard
+ * goes back to what opened it.
  */
 @Directive()
 export abstract class WriteDialogBase<R = void> implements OnChanges, OnDestroy {
@@ -25,6 +27,10 @@ export abstract class WriteDialogBase<R = void> implements OnChanges, OnDestroy 
   /** This opening already wrote: Enter during the closing animation must not write again. */
   private finished = false;
   error: string | null = null;
+  /** A close was asked while there is typed content: the «Discard what you wrote?» bar shows. */
+  confirmingClose = false;
+  /** What had the keyboard when the dialog opened: it gets it back when the dialog closes. */
+  private opener: HTMLElement | null = null;
   protected requestId = '';
   protected readonly destroy$ = new Subject<void>();
 
@@ -35,6 +41,8 @@ export abstract class WriteDialogBase<R = void> implements OnChanges, OnDestroy 
       this.saving = false;
       this.finished = false;
       this.error = null;
+      this.confirmingClose = false;
+      this.opener = typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
       this.requestId = newRequestId();
       this.onOpen();
     }
@@ -48,20 +56,61 @@ export abstract class WriteDialogBase<R = void> implements OnChanges, OnDestroy 
   /** Reset the dialog's own fields from its inputs. */
   protected onOpen(): void {}
 
+  /** Typed content that closing would lose. Dialogs that hold some say when; the rest close at once. */
+  protected isDirty(): boolean {
+    return false;
+  }
+
   /** Return `true` when the error was handled and must not show as the generic message. */
   protected onWriteError(_info: ApiErrorInfo): boolean {
     return false;
   }
 
-  /** Dismiss from the header or the mask: ignored while a request is open. */
+  /** Dismiss from the header or Escape: ignored while a request is open. */
   onVisibleChange(open: boolean): void {
     if (!open) this.close();
   }
 
+  /**
+   * A request to close (X, Cancel, Escape). With typed content the dialog stays
+   * open and asks; asking again while the question shows (a second Escape) keeps
+   * editing. Never while saving, and never once the write went through.
+   */
   close(): void {
     if (this.saving) return;
+    if (this.isDirty() && !this.finished) {
+      this.confirmingClose = !this.confirmingClose;
+      return;
+    }
+    this.hide();
+  }
+
+  /** «Discard» on the bar. */
+  discard(): void {
+    if (this.saving) return;
+    this.hide();
+  }
+
+  /** «Keep editing» on the bar. */
+  keepEditing(): void {
+    this.confirmingClose = false;
+  }
+
+  private hide(): void {
+    this.confirmingClose = false;
     this.visible = false;
     this.visibleChange.emit(false);
+    this.restoreFocus();
+  }
+
+  /** After the closing animation: the dialog's own buttons are gone, so the opener is the next stop. */
+  private restoreFocus(): void {
+    const opener = this.opener;
+    this.opener = null;
+    if (!opener || typeof document === 'undefined') return;
+    setTimeout(() => {
+      if (opener !== document.body && document.contains(opener)) opener.focus();
+    });
   }
 
   protected success(summary: string, detail: string): void {
@@ -73,6 +122,7 @@ export abstract class WriteDialogBase<R = void> implements OnChanges, OnDestroy 
     if (this.saving || this.finished) return;
     this.saving = true;
     this.error = null;
+    this.confirmingClose = false;
     call()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -80,8 +130,7 @@ export abstract class WriteDialogBase<R = void> implements OnChanges, OnDestroy 
           this.saving = false;
           this.finished = true;
           onSuccess(result);
-          this.visible = false;
-          this.visibleChange.emit(false);
+          this.hide();
           this.done.emit(result);
         },
         error: err => {

@@ -1,4 +1,5 @@
-import { GENERIC_ERROR, readApiError, UNAVAILABLE_ERROR } from './api-error';
+import { TimeoutError } from 'rxjs';
+import { GENERIC_ERROR, readApiError, TIMEOUT_ERROR, UNAVAILABLE_ERROR } from './api-error';
 
 describe('readApiError', () => {
   it('shows the back message on a 4xx', () => {
@@ -62,6 +63,18 @@ describe('readApiError', () => {
       path: '/api/control-lists/admin/schema/fields/7/type'
     };
     expect(readApiError({ status: 409, error: body })).toMatchObject({ affected: 3, message: body.message });
+  });
+
+  it('says the server is taking too long when the call timed out, and leaves a write unsettled', () => {
+    expect(readApiError(new TimeoutError())).toEqual({
+      status: 0,
+      message: 'The server is taking too long to answer.',
+      affected: null,
+      unsettled: true
+    });
+    expect(readApiError(new TimeoutError()).message).toBe(TIMEOUT_ERROR);
+    // Same error from another copy of rxjs (recognised by its name).
+    expect(readApiError({ name: 'TimeoutError' }).message).toBe(TIMEOUT_ERROR);
   });
 
   it('survives garbage', () => {

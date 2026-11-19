@@ -3,6 +3,7 @@ import {
   buildChangedBody,
   buildCreateBody,
   initialValues,
+  isMissing,
   publishedFields,
   recordIsActive,
   recordLabel,
@@ -53,7 +54,10 @@ describe('record values', () => {
 
     it('sends what is not a plain number as typed, so the back explains', () => {
       expect(toApiValue(field('integer'), '12.5')).toBe('12.5');
-      expect(toApiValue(field('decimal'), '12,5')).toBe('12,5');
+      // A comma between digits is a decimal separator; anything else (thousands, two commas) goes as typed.
+      expect(toApiValue(field('decimal'), '1,000.5')).toBe('1,000.5');
+      expect(toApiValue(field('decimal'), '1,2,3')).toBe('1,2,3');
+      expect(toApiValue(field('integer'), '12,5')).toBe('12,5');
       expect(toApiValue(field('integer'), '9007199254740993')).toBe('9007199254740993');
     });
 
@@ -80,6 +84,36 @@ describe('record values', () => {
       expect(toApiValue(field('relation'), 5)).toBe(5);
       expect(toApiValue(field('relation'), '5')).toBe(5);
       expect(toApiValue(field('relation'), null)).toBeNull();
+    });
+  });
+
+  describe('decimal typed with a comma', () => {
+    it('is sent with a dot', () => {
+      expect(toApiValue(field('decimal'), '3,5')).toBe(3.5);
+      expect(toApiValue(field('decimal'), ' -0,25 ')).toBe(-0.25);
+      expect(toApiValue(field('decimal'), '3.5')).toBe(3.5);
+    });
+
+    it('reaches the create and edit bodies as a number', () => {
+      const fields = [field('decimal', { code: 'share' })];
+      expect(buildCreateBody(fields, { share: '3,5' })).toEqual({ share: 3.5 });
+      expect(buildChangedBody(fields, { share: '1' }, { share: '3,5' })).toEqual({ share: 3.5 });
+    });
+  });
+
+  describe('isMissing', () => {
+    it('is true for a required field with nothing in it, and for blank text', () => {
+      expect(isMissing(field('text', { is_required: 1 }), '')).toBe(true);
+      expect(isMissing(field('text', { is_required: 1 }), '   ')).toBe(true);
+      expect(isMissing(field('relation', { is_required: 1 }), null)).toBe(true);
+      expect(isMissing(field('integer', { is_required: 1 }), undefined)).toBe(true);
+    });
+
+    it('is false for a value, for 0, for a switch, and for an optional field', () => {
+      expect(isMissing(field('text', { is_required: 1 }), 'Maize')).toBe(false);
+      expect(isMissing(field('integer', { is_required: 1 }), '0')).toBe(false);
+      expect(isMissing(field('boolean', { is_required: 1 }), false)).toBe(false);
+      expect(isMissing(field('text'), '')).toBe(false);
     });
   });
 

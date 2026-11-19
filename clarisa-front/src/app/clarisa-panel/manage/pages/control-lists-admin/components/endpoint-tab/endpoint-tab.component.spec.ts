@@ -1,6 +1,6 @@
 import { NO_ERRORS_SCHEMA, SimpleChange } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { of, throwError, TimeoutError } from 'rxjs';
 import { ControlListsApiService } from '../../services/control-lists-api.service';
 import { EndpointTabComponent } from './endpoint-tab.component';
 
@@ -83,5 +83,48 @@ describe('EndpointTabComponent', () => {
     api.publicRead.mockReturnValueOnce(throwError(() => ({ status: 0 })));
     c.refresh();
     expect(c.exampleError).toBe('The public address could not be reached.');
+  });
+
+  it('names a field type as the rest of the screens do: «Options», never «Relation to another list»', () => {
+    api.publicRead.mockReturnValue(of({ status: 200, body: [] }));
+    const c = create({
+      code: 'varieties',
+      status: 'published',
+      fields: [
+        f('name', 'text', { type_label: 'Short text' }),
+        f('crop', 'relation', { type_label: 'Relation to another list', relation_code: 'crops', relation_name: 'Crops' }),
+        f('odd', 'geometry', { type_label: 'Geometry' })
+      ]
+    });
+    expect(c.rows.map(r => [r.code, r.type])).toEqual([
+      ['id', 'Number'],
+      ['name', 'Short text'],
+      ['crop', 'Options'],
+      ['odd', 'Geometry'],
+      ['is_active', 'Yes / No']
+    ]);
+  });
+
+  it('calls the expand variant «Include the full record of …»', () => {
+    api.publicRead.mockReturnValue(of({ status: 200, body: [] }));
+    const c = create({
+      code: 'varieties',
+      status: 'published',
+      fields: [
+        f('crop', 'relation', { relation_code: 'crops', relation_name: 'Crops' }),
+        f('kind', 'relation', { relation_code: 'kinds', relation_name: null })
+      ]
+    });
+    const titles = c.variants.filter(v => v.key.startsWith('e-')).map(v => v.title);
+    expect(titles).toEqual(['Include the full record of Crops', 'Include the full record of kind']);
+    expect(titles.join()).not.toContain('Nest');
+  });
+
+  it('says the public address is slow when the call timed out', () => {
+    api.publicRead.mockReturnValue(of({ status: 200, body: [] }));
+    const c = create({ code: 'crops', status: 'published', fields: [] });
+    api.publicRead.mockReturnValueOnce(throwError(() => new TimeoutError()));
+    c.refresh();
+    expect(c.exampleError).toBe('The public address is taking too long to answer.');
   });
 });

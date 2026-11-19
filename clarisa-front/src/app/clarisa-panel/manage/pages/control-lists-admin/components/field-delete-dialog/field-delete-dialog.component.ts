@@ -26,9 +26,19 @@ export class FieldDeleteDialogComponent extends WriteDialogBase<unknown> {
   }
 
   protected override onOpen(): void {
+    this.loadImpact();
+  }
+
+  /** «Try again» after the impact could not be read. */
+  retryImpact(): void {
+    this.loadImpact();
+  }
+
+  private loadImpact(): void {
     this.impactSub?.unsubscribe();
     this.impact = null;
     this.impactError = null;
+    this.impactLoading = false;
     if (!this.field) return;
     this.impactLoading = true;
     this.impactSub = this.api.fieldImpact(this.field.id, 'delete').subscribe({

@@ -1,0 +1,60 @@
+/* The list workspace: the refresh state, the notice about missing reference data, long titles. Tokens only, px only. */
+.cl-wrap {
+  overflow-wrap: anywhere;
+}
+
+.ws-partial {
+  margin-top: 16px;
+}
+
+.ws-tabrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+/* «Updating…» next to the tabs: a word and a spinner, never colour alone. */
+.ws-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--cl-line);
+  border-radius: 999px;
+  background: var(--cl-surface);
+  color: var(--cl-ink-2);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ws-path {
+  display: block;
+  transition: opacity 0.15s ease;
+
+  &.is-busy {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+}
+
+/* The panel is dimmed by a veil, not by its own opacity: an opacity on it would also dim and trap the dialogs drawn inside it. */
+.ws-panel {
+  position: relative;
+}
+
+.ws-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--cl-radius-card);
+  background: var(--cl-surface-2);
+  opacity: 0.6;
+  cursor: progress;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-path {
+    transition: none;
+  }
+}

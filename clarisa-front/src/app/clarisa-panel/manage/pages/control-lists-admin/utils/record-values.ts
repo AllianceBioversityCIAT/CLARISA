@@ -66,7 +66,9 @@ export function toApiValue(field: FieldRow, value: FormValue | undefined): strin
     case 'integer':
     case 'decimal': {
       if (isEmpty(value)) return null;
-      const raw = String(value).trim();
+      const typed = String(value).trim();
+      // «3,5» is how many people write a decimal: the back reads the point only.
+      const raw = field.type === 'decimal' && /^-?\d+,\d+$/.test(typed) ? typed.replace(',', '.') : typed;
       const pattern = field.type === 'integer' ? /^-?\d+$/ : /^-?\d+(\.\d+)?$/;
       // Anything that is not a plain number goes as typed, so the back says why.
       if (!pattern.test(raw)) return raw;
@@ -84,6 +86,11 @@ export function toApiValue(field: FieldRow, value: FormValue | undefined): strin
     default:
       return isEmpty(value) ? null : String(value);
   }
+}
+
+/** A required field with no value (empty text, no option chosen); a switch always has one. */
+export function isMissing(field: FieldRow, value: FormValue | undefined): boolean {
+  return isOn(field.is_required) && toApiValue(field, value) === null;
 }
 
 /** «New record» body: empty values are left out, `false` and `0` are kept. */

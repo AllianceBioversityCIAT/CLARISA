@@ -11,7 +11,7 @@
   styleClass="admin-dialog">
   <form class="admin-form" (ngSubmit)="submit()" autocomplete="off">
     <p class="cl-lead" *ngIf="field">
-      <strong>{{ field.label }}</strong> is currently <strong>{{ field.type_label }}</strong
+      <strong>{{ field.label }}</strong> is currently <strong>{{ typeName(field.type, field.type_label) }}</strong
       >.
     </p>
 
@@ -36,7 +36,10 @@
     <p class="cl-loading" *ngIf="impactLoading" role="status">
       <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Checking what this change would affect…
     </p>
-    <p class="field-error cl-error" role="alert" *ngIf="impactError"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ impactError }}</p>
+    <p class="field-error cl-error" role="alert" *ngIf="impactError">
+      <i class="pi pi-times-circle" aria-hidden="true"></i> {{ impactError }}
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost p-button-sm cl-retry" (click)="retryImpact()"></button>
+    </p>
 
     <div class="cl-impact" *ngIf="impact" [class.cl-impact--warn]="reconfirm || impact.affected > 0" role="status">
       <strong class="cl-impact__count">{{ impact.affected }}</strong>

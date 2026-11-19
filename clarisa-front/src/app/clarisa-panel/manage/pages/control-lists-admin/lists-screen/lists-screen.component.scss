@@ -1,0 +1,17 @@
+/* Long names and descriptions in the lists table. Tokens only, px only. */
+.ls-name {
+  min-width: 0;
+  /* `anywhere` (not `break-word`) also lowers the column's minimum width: a name with no spaces wraps instead of widening the row. */
+  overflow-wrap: anywhere;
+}
+
+/* The full text stays in the `title`; the row keeps its height however long the description is. */
+.ls-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  /* ink-3 on the hovered row (surface-2) is about 3.7:1: this text carries information. */
+  color: var(--cl-ink-2);
+}

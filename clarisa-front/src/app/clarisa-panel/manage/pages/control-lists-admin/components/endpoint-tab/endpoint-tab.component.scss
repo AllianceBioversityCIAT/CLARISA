@@ -1,0 +1,87 @@
+/* Public address tab: the address bar, the variants and the example. Tokens only, px only. */
+.cl-endpoint__url {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.cl-endpoint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.cl-endpoint__url {
+  display: block;
+  flex: 1 1 320px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface-2);
+  color: var(--cl-ink);
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.cl-endpoint__url--small {
+  margin-top: 6px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
+
+.cl-endpoint__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cl-variants {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--cl-line);
+  }
+
+  li:last-child {
+    border-bottom: 0;
+  }
+}
+
+.cl-variants__text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+
+  span {
+    color: var(--cl-ink-2);
+    font-size: 12.5px;
+  }
+}
+
+.cl-example-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--cl-ink-2);
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .cl-variants li {
+    flex-direction: column;
+  }
+
+  .cl-endpoint__actions {
+    width: 100%;
+  }
+}

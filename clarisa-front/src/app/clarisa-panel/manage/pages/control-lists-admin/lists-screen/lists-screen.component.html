@@ -62,7 +62,7 @@
         <th scope="col" style="width: 100px">Owner</th>
         <th scope="col" style="width: 80px">Fields</th>
         <th scope="col" style="width: 90px">Records</th>
-        <th scope="col" style="width: 100px">Relations</th>
+        <th scope="col" style="width: 110px">Linked lists</th>
         <th scope="col" pSortableColumn="updated_at" style="width: 120px">Updated <p-sortIcon field="updated_at"></p-sortIcon></th>
         <th scope="col" style="width: 100px">Actions</th>
       </tr>
@@ -70,9 +70,9 @@
 
     <ng-template pTemplate="body" let-row>
       <tr class="cl-row" (click)="open(row)">
-        <td data-card-title data-label="Name">
+        <td data-card-title data-label="Name" class="ls-name">
           <a class="cell-link cell-primary" [routerLink]="[url, row.id]" (click)="$event.stopPropagation()">{{ row.name }}</a>
-          <span class="cell-sub" *ngIf="row.description">{{ row.description }}</span>
+          <span class="cell-sub ls-desc" *ngIf="row.description" [attr.title]="row.description">{{ row.description }}</span>
         </td>
         <td data-label="Code">
           <code class="cl-mono">{{ row.code }}</code>
@@ -85,7 +85,7 @@
         <td data-label="Owner">{{ owner(row) }}</td>
         <td data-label="Fields" class="cell-num">{{ row.counts === undefined ? '…' : row.counts ? row.counts.fields : '—' }}</td>
         <td data-label="Records" class="cell-num">{{ row.counts === undefined ? '…' : row.counts ? row.counts.records : '—' }}</td>
-        <td data-label="Relations" class="cell-num">{{ row.counts === undefined ? '…' : row.counts ? row.counts.relations : '—' }}</td>
+        <td data-label="Linked lists" class="cell-num">{{ row.counts === undefined ? '…' : row.counts ? row.counts.relations : '—' }}</td>
         <td data-label="Updated" class="cell-num">{{ shortDate(row.updated_at) }}</td>
         <td>
           <div class="row-actions">
