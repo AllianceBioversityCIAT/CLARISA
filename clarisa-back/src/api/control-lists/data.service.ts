@@ -41,7 +41,13 @@ export class DataService {
     private readonly data: LazyDb,
     private readonly lists: ListsService,
     private readonly schema: () => string,
-  ) {}
+  ) {
+    // ListsService cannot receive this service (it depends on it): the
+    // options of a new relation field are written through this hook.
+    this.lists.attachRecordsWriter?.((list, rows, userId) =>
+      this.createMany(list, rows, userId),
+    );
+  }
 
   private col(name: string): string {
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]{0,63}$/.test(name)) {
@@ -313,6 +319,46 @@ export class DataService {
         const existing = await this.byRequestId(list, requestId);
         if (existing) return existing;
       }
+      this.translate(e);
+    }
+  }
+
+  /**
+   * Several records in ONE `INSERT`: all of them or none. Same chokepoints as
+   * `create` (published fields, catalog column names, `coerceValue`).
+   */
+  async createMany(
+    list: ListRow,
+    rows: Record<string, unknown>[],
+    userId: number,
+  ): Promise<number> {
+    this.assertPublished(list);
+    if (!rows.length) return 0;
+    const fields = await this.publishedFields(list.id);
+    if (!fields.length)
+      throw new BadRequestException('This list has no published fields yet.');
+    const cols = [
+      ...fields.map((f) => this.col(f.column_name)),
+      '`created_by`',
+    ];
+    const params: unknown[] = [];
+    for (const body of rows) {
+      for (const f of fields) {
+        const value = coerceValue(f.type, body?.[f.code], f.label);
+        if (value === null && f.is_required)
+          throw new BadRequestException(`"${f.label}" is required.`);
+        params.push(value);
+      }
+      params.push(userId);
+    }
+    const one = `(${cols.map(() => '?').join(', ')})`;
+    try {
+      const r: any = await this.data.query(
+        `INSERT INTO ${this.table(list)} (${cols.join(', ')}) VALUES ${rows.map(() => one).join(', ')}`,
+        params,
+      );
+      return Number(r?.affectedRows ?? rows.length);
+    } catch (e) {
       this.translate(e);
     }
   }

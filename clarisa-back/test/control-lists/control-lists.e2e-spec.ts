@@ -35,6 +35,7 @@ import {
   ControlListsAdminController,
   ControlListsPublicController,
 } from '../../src/api/control-lists/control-lists.controller';
+import { DataService } from '../../src/api/control-lists/data.service';
 import { UserAccessService } from '../../src/api/user/user-access.service';
 import { UserService } from '../../src/api/user/user.service';
 import { JwtAuthGuard } from '../../src/shared/guards/jwt-auth.guard';
@@ -1194,6 +1195,277 @@ describeIf('control lists engine, real MySQL', () => {
           )
         )[0].n,
       ).toBe('0');
+    });
+  });
+
+  describe('a field with its own options list', () => {
+    const parents: number[] = [];
+    const optionLists: string[] = [];
+    const nameField = [{ code: 'name', label: 'Name', type: 'text' }];
+    const listCount = async () =>
+      Number((await sql(`SELECT COUNT(*) AS n FROM ${MAIN}.cl_lists`))[0].n);
+    const fieldCount = async (listId: number) =>
+      Number(
+        (
+          await sql(
+            `SELECT COUNT(*) AS n FROM ${MAIN}.cl_fields WHERE list_id = ?`,
+            [listId],
+          )
+        )[0].n,
+      );
+    const relationBody = (
+      code: string,
+      options: unknown[],
+      extra: Record<string, unknown> = {},
+    ) => ({
+      code: 'kind',
+      label: 'Kind',
+      type: 'relation',
+      options_list: { code, name: code.replace(/_/g, ' '), options },
+      ...extra,
+    });
+    const newParent = async (code: string, publish: boolean) => {
+      const id = await createList(code, nameField, publish);
+      parents.push(id);
+      return id;
+    };
+    /** The request leaves no trace: same number of lists, same fields in the parent. */
+    async function expectNothingLeft(
+      parent: number,
+      body: unknown,
+      message: RegExp,
+      status = 400,
+    ) {
+      const lists = await listCount();
+      const fields = await fieldCount(parent);
+      const r = await admin('post', `schema/lists/${parent}/fields`, body);
+      expect(r.status).toBe(status);
+      expect(String(r.body?.message)).toMatch(message);
+      expect(await listCount()).toBe(lists);
+      expect(await fieldCount(parent)).toBe(fields);
+      return r;
+    }
+
+    afterAll(async () => {
+      // Relations first, then the parents, then the option lists they pointed to.
+      for (const id of parents.reverse()) {
+        const detail = await admin('get', `schema/lists/${id}`);
+        for (const f of detail.body.fields ?? [])
+          if (f.type === 'relation')
+            await admin('delete', `schema/fields/${f.id}`);
+        await admin('delete', `schema/lists/${id}`);
+      }
+      for (const code of optionLists) {
+        const l = (await admin('get', 'schema/lists')).body.find(
+          (x: any) => x.code === code,
+        );
+        if (l) await admin('delete', `schema/lists/${l.id}`);
+      }
+    });
+
+    it('a draft parent: the options list is published, in order, and the parent points to it', async () => {
+      const parent = await newParent('opt_draft_parent', false);
+      optionLists.push('opt_draft_kinds');
+      const r = await admin(
+        'post',
+        `schema/lists/${parent}/fields`,
+        relationBody('opt_draft_kinds', ['Sandy', '  Clay ', 'Loam']),
+      );
+      expect([r.status, r.body?.message]).toEqual([201, undefined]);
+      expect(r.body).toMatchObject({
+        code: 'kind',
+        type: 'relation',
+        list_id: parent,
+        options_list: { code: 'opt_draft_kinds', name: 'opt draft kinds' },
+      });
+      expect(
+        (await pub('opt_draft_kinds')).body.map((o: any) => o.name),
+      ).toEqual(['Sandy', 'Clay', 'Loam']);
+      const opts = (await admin('get', 'schema/lists')).body.find(
+        (l: any) => l.code === 'opt_draft_kinds',
+      );
+      expect(opts.status).toBe('published');
+      expect(r.body.options_list.id).toBe(opts.id);
+      expect(r.body.relation_list_id).toBe(opts.id);
+
+      expect(
+        (await admin('post', `schema/lists/${parent}/publish`, {})).status,
+      ).toBe(201);
+      const clay = (await pub('opt_draft_kinds')).body[1].id;
+      const rec = await admin('post', 'data/opt_draft_parent', {
+        name: 'plot 1',
+        kind: clay,
+      });
+      expect(rec.status).toBe(201);
+      expect(
+        (await pub('opt_draft_parent?expand=kind')).body[0].kind.name,
+      ).toBe('Clay');
+    });
+
+    it('a published parent without records: the column and the foreign key exist', async () => {
+      const parent = await newParent('opt_pub_parent', true);
+      optionLists.push('opt_pub_kinds');
+      const r = await admin(
+        'post',
+        `schema/lists/${parent}/fields`,
+        relationBody('opt_pub_kinds', ['A', 'B'], { is_required: true }),
+      );
+      expect([r.status, r.body?.message, r.body?.status]).toEqual([
+        201,
+        undefined,
+        'published',
+      ]);
+      expect(await columnExists('cl_opt_pub_parent', 'kind')).toBe(true);
+      const ddl = (await admin('get', `schema/lists/${parent}/sql`)).body.sql;
+      expect(ddl).toContain('FOREIGN KEY');
+      expect(ddl).toContain('cl_opt_pub_kinds');
+    });
+
+    it('the same request_id twice, and two identical requests at once: one of everything', async () => {
+      const parent = await newParent('opt_twice_parent', false);
+      optionLists.push('opt_twice_kinds', 'opt_par_kinds');
+      const body = relationBody('opt_twice_kinds', ['One', 'Two'], {
+        request_id: 'opt-twice',
+      });
+      const first = await admin('post', `schema/lists/${parent}/fields`, body);
+      const again = await admin('post', `schema/lists/${parent}/fields`, body);
+      expect([first.status, again.status]).toEqual([201, 201]);
+      expect(again.body.id).toBe(first.body.id);
+      expect(again.body.options_list.id).toBe(first.body.options_list.id);
+      expect(await fieldCount(parent)).toBe(2);
+      expect(
+        (await pub('opt_twice_kinds')).body.map((o: any) => o.name),
+      ).toEqual(['One', 'Two']);
+
+      const parent2 = await newParent('opt_par_parent', false);
+      const par = relationBody('opt_par_kinds', ['X', 'Y', 'Z'], {
+        request_id: 'opt-par',
+      });
+      const both = await Promise.all([
+        admin('post', `schema/lists/${parent2}/fields`, par),
+        admin('post', `schema/lists/${parent2}/fields`, par),
+      ]);
+      expect(both.map((r) => r.status)).toEqual([201, 201]);
+      expect(both[1].body.id).toBe(both[0].body.id);
+      expect(await fieldCount(parent2)).toBe(2);
+      expect(
+        Number(
+          (
+            await sql(
+              `SELECT COUNT(*) AS n FROM ${MAIN}.cl_lists WHERE code = 'opt_par_kinds'`,
+            )
+          )[0].n,
+        ),
+      ).toBe(1);
+      expect((await pub('opt_par_kinds')).body).toHaveLength(3);
+    });
+
+    it('what is wrong is refused before anything is written', async () => {
+      const draft = await newParent('opt_val_draft', false);
+      const full = await newParent('opt_val_full', true);
+      await admin('post', 'data/opt_val_full', { name: 'row' });
+
+      const refused: [number, unknown, RegExp][] = [
+        [draft, relationBody('opt_v1', ['Café', 'cafe']), /is repeated/],
+        [draft, relationBody('opt_v2', []), /at least one option/],
+        [
+          draft,
+          relationBody(
+            'opt_v3',
+            Array.from({ length: 101 }, (_, i) => `option ${i}`),
+          ),
+          /100 options at most/,
+        ],
+        [draft, relationBody('opt_v4', ['a', ' ']), /option is empty/],
+        [
+          draft,
+          relationBody('opt_v5', ['a'], { relation_list_id: full }),
+          /not both/,
+        ],
+        // code of a list that exists
+        [draft, relationBody('opt_val_full', ['a']), /already exists/],
+        // the field exists in the parent
+        [
+          draft,
+          relationBody('opt_v6', ['a'], { code: 'name' }),
+          /field "name" already exists/,
+        ],
+        // the parent has records
+        [
+          full,
+          relationBody('opt_v7', ['a'], { is_required: true }),
+          /cannot start as required/,
+        ],
+        [
+          draft,
+          relationBody('opt_v8', ['a'], { request_id: 'r'.repeat(60) }),
+          /operation id admits/,
+        ],
+        [
+          draft,
+          { ...relationBody('opt_v9', ['a']), type: 'text' },
+          /only goes with a relation field/,
+        ],
+        // equal for the table's collation, though not for JavaScript
+        [
+          draft,
+          relationBody('opt_v10', ['Strasse', 'Straße']),
+          /"Strasse" and "Straße" read as the same value/,
+        ],
+      ];
+      for (const [parent, body, message] of refused)
+        await expectNothingLeft(parent, body, message);
+      expect(await tableExists('cl_opt_v10')).toBe(false);
+
+      const repeated = await expectNothingLeft(
+        draft,
+        relationBody('opt_v1', ['Café', 'cafe']),
+        /is repeated/,
+      );
+      expect(repeated.body.message).toBe('The option "cafe" is repeated.');
+      expect(await tableExists('cl_opt_v1')).toBe(false);
+    });
+
+    it('a failure after the options list was published is finished by repeating the request', async () => {
+      const parent = await newParent('opt_resume_parent', false);
+      optionLists.push('opt_resume_kinds');
+      const body = relationBody('opt_resume_kinds', ['Red', 'Green'], {
+        request_id: 'opt-resume',
+      });
+      const spy = jest
+        .spyOn(DataService.prototype, 'createMany')
+        .mockRejectedValueOnce(new Error('simulated failure'));
+      try {
+        const failed = await admin(
+          'post',
+          `schema/lists/${parent}/fields`,
+          body,
+        );
+        expect(failed.status).toBe(500);
+        expect(spy).toHaveBeenCalledTimes(1);
+      } finally {
+        spy.mockRestore();
+      }
+      // Half done: the list is real and empty, the parent has no relation yet.
+      expect(await tableExists('cl_opt_resume_kinds')).toBe(true);
+      expect(await fieldCount(parent)).toBe(1);
+      expect((await pub('opt_resume_kinds')).body).toEqual([]);
+
+      const retry = await admin('post', `schema/lists/${parent}/fields`, body);
+      expect([retry.status, retry.body?.message]).toEqual([201, undefined]);
+      expect(await fieldCount(parent)).toBe(2);
+      expect(
+        (await pub('opt_resume_kinds')).body.map((o: any) => o.name),
+      ).toEqual(['Red', 'Green']);
+      expect(
+        Number(
+          (
+            await sql(
+              `SELECT COUNT(*) AS n FROM ${MAIN}.cl_lists WHERE code = 'opt_resume_kinds'`,
+            )
+          )[0].n,
+        ),
+      ).toBe(1);
     });
   });
 

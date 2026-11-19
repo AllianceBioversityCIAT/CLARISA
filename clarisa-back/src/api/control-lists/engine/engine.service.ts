@@ -170,6 +170,8 @@ export const LIMITS = {
   listsPerOwner: 50,
   fieldsPerList: 40,
   indexesPerList: 15,
+  /** Options a relation field can bring with it when it is created. */
+  optionsInline: 100,
 };
 
 /** Seconds a DDL waits for a busy table before answering "try again". */

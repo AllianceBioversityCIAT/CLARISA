@@ -3,6 +3,7 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { DataSource } from 'typeorm';
 import {
   EngineService,
@@ -14,6 +15,7 @@ import {
 import {
   FIELD_TYPES,
   FieldType,
+  TEXT_MAX,
   assertFieldCode,
   assertIndexable,
   assertListCode,
@@ -32,6 +34,44 @@ export interface Actor {
 }
 
 const MAX = { name: 150, description: 500, label: 150 };
+
+/** A field as the request describes it, already validated. */
+interface FieldSpec {
+  code: string;
+  type: FieldType;
+  label: string;
+  is_required: boolean;
+  is_unique: boolean;
+  is_indexed: boolean;
+}
+
+/** `cl_schema_ops.request_id` is VARCHAR(64): the options step adds this suffix. */
+const OPTIONS_SUFFIX = ':options';
+
+/** What a relation created with its own options answers besides the field. */
+export interface OptionsListInfo {
+  id: number;
+  code: string;
+  name: string;
+}
+
+/** `cl_schema_ops.request_id` length. */
+const REQUEST_ID_MAX = 64;
+
+/** Writes records of a published list. Bound by DataService (it needs this service, so it cannot be injected). */
+export type RecordsWriter = (
+  list: ListRow,
+  rows: Record<string, unknown>[],
+  userId: number,
+) => Promise<unknown>;
+
+/** The collation every list table is created with (`buildCreateTable`). */
+const OPTIONS_COLLATION = 'utf8mb4_0900_ai_ci';
+
+/** A first, cheap look at repeats: case and accents do not count. The database has the last word (`assertOptionsDistinct`). */
+function collationKey(value: string): string {
+  return value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+}
 
 function text(
   value: unknown,
@@ -263,33 +303,48 @@ export class ListsService {
     );
     const owner = await this.resolveOwner(dto.owner_role_id, actor);
 
-    return this.engine.withSchemaLock(async (lock) => {
-      const count = await this.main.query(
-        'SELECT COUNT(*) AS n FROM cl_lists WHERE owner_role_id = ?',
-        [owner],
+    return this.engine.withSchemaLock((lock) =>
+      this.createListIn(lock, { code, name, description, owner }, actor),
+    );
+  }
+
+  /** The body of `createList`, for a caller that already holds the schema lock. */
+  private async createListIn(
+    lock: SchemaLock,
+    l: {
+      code: string;
+      name: string | null;
+      description: string | null;
+      owner: number;
+    },
+    actor: Actor,
+  ): Promise<ListRow> {
+    const { code, name, description, owner } = l;
+    const count = await this.main.query(
+      'SELECT COUNT(*) AS n FROM cl_lists WHERE owner_role_id = ?',
+      [owner],
+    );
+    if (Number(count[0].n) >= LIMITS.listsPerOwner) {
+      throw new BadRequestException(
+        `That role already owns ${LIMITS.listsPerOwner} lists, the maximum. Delete one it no longer uses first.`,
       );
-      if (Number(count[0].n) >= LIMITS.listsPerOwner) {
-        throw new BadRequestException(
-          `That role already owns ${LIMITS.listsPerOwner} lists, the maximum. Delete one it no longer uses first.`,
-        );
-      }
-      const dup = await this.main.query(
-        'SELECT id FROM cl_lists WHERE code = ?',
-        [code],
+    }
+    const dup = await this.main.query(
+      'SELECT id FROM cl_lists WHERE code = ?',
+      [code],
+    );
+    if (dup.length) {
+      throw new BadRequestException(
+        `A list with code "${code}" already exists. The code is the public address and is unique in CLARISA.`,
       );
-      if (dup.length) {
-        throw new BadRequestException(
-          `A list with code "${code}" already exists. The code is the public address and is unique in CLARISA.`,
-        );
-      }
-      await this.assertTableFree(`cl_${code}`, lock);
-      await this.main.query(
-        `INSERT INTO cl_lists (code, name, description, owner_role_id, table_name, status, created_by)
-         VALUES (?, ?, ?, ?, ?, 'draft', ?)`,
-        [code, name, description, owner, `cl_${code}`, actor.userId],
-      );
-      return this.byCode(code);
-    });
+    }
+    await this.assertTableFree(`cl_${code}`, lock);
+    await this.main.query(
+      `INSERT INTO cl_lists (code, name, description, owner_role_id, table_name, status, created_by)
+       VALUES (?, ?, ?, ?, ?, 'draft', ?)`,
+      [code, name, description, owner, `cl_${code}`, actor.userId],
+    );
+    return this.byCode(code);
   }
 
   /**
@@ -332,122 +387,424 @@ export class ListsService {
     dto: Record<string, unknown>,
     actor: Actor,
     requestId?: string,
-  ): Promise<FieldRow> {
+  ): Promise<FieldRow & { options_list?: OptionsListInfo }> {
     assertFieldCode(dto.code);
     const code = dto.code;
     if (!isFieldType(dto.type))
       throw new BadRequestException('Unknown field type.');
     const type: FieldType = dto.type;
     const label = text(dto.label, 'The field label', MAX.label, false) ?? code;
-    const flags = {
+    const spec: FieldSpec = {
+      code,
+      type,
+      label,
       is_required: bool(dto.is_required),
       is_unique: bool(dto.is_unique),
       is_indexed: bool(dto.is_indexed),
     };
-    assertIndexable({ type, ...flags, label });
+    assertIndexable({ type, ...spec });
 
-    return this.engine.withSchemaLock(async (lock) => {
-      const list = await this.settledList(lock, listId, actor);
-
-      const existing = await this.fields(listId);
-      if (existing.length >= LIMITS.fieldsPerList) {
+    const hasOptions =
+      dto.options_list !== undefined && dto.options_list !== null;
+    if (hasOptions) {
+      if (type !== 'relation')
         throw new BadRequestException(
-          `This list already has ${LIMITS.fieldsPerList} fields, the maximum.`,
+          'A list of options only goes with a relation field.',
         );
-      }
-      const indexed = existing.filter(
-        (f) => f.is_unique || f.is_indexed || f.type === 'relation',
-      ).length;
       if (
-        (flags.is_unique || flags.is_indexed || type === 'relation') &&
-        indexed >= LIMITS.indexesPerList
-      ) {
+        dto.relation_list_id !== undefined &&
+        dto.relation_list_id !== null &&
+        dto.relation_list_id !== ''
+      )
         throw new BadRequestException(
-          `This list already has ${LIMITS.indexesPerList} filterable or unique fields, the maximum.`,
+          'Choose an existing list or write new options, not both.',
         );
-      }
-      if (existing.some((f) => f.code === code)) {
-        throw new BadRequestException(
-          `The field "${code}" already exists in this list.`,
-        );
-      }
+      return this.addFieldWithOptions(
+        listId,
+        spec,
+        dto.options_list,
+        actor,
+        requestId,
+      );
+    }
 
-      // Only a relation field stores a target: a text field with someone
-      // else's list id would otherwise block deleting that list.
-      let relTable: string | undefined;
-      let relationId: number | null = null;
+    return this.engine.withSchemaLock((lock) =>
+      this.addFieldIn(
+        lock,
+        listId,
+        spec,
+        dto.relation_list_id,
+        actor,
+        requestId,
+      ),
+    );
+  }
+
+  /**
+   * The body of `addField`, for a caller that already holds the schema lock.
+   * `relationListId` is the raw request value; it is only read for relations.
+   */
+  private async addFieldIn(
+    lock: SchemaLock,
+    listId: number,
+    spec: FieldSpec,
+    relationListId: unknown,
+    actor: Actor,
+    requestId?: string,
+  ): Promise<FieldRow> {
+    const { code, type, label } = spec;
+    const list = await this.settledList(lock, listId, actor);
+
+    // Only a relation field stores a target: a text field with someone
+    // else's list id would otherwise block deleting that list.
+    let relTable: string | undefined;
+    let relationId: number | null = null;
+    await this.checkFieldFits(lock, list, spec, async () => {
       if (type === 'relation') {
-        const target = await this.assertRelationAllowed(
-          list,
-          dto.relation_list_id,
-        );
+        const target = await this.assertRelationAllowed(list, relationListId);
         relTable = target.table_name;
         relationId = target.id;
       }
+    });
 
-      if (list.status === 'published' && flags.is_required) {
-        const rows = await this.engine.countRows(list.table_name, lock.qr);
-        if (rows > 0) {
-          throw new BadRequestException(
-            `The list already has ${rows} record(s). A new field cannot start as required: create it optional and fill the data first.`,
-          );
+    const pos = await this.main.query(
+      'SELECT COALESCE(MAX(position), 0) + 1 AS p FROM cl_fields WHERE list_id = ?',
+      [listId],
+    );
+    // Born as draft: it becomes published only when its column exists.
+    const ins: any = await this.main.query(
+      `INSERT INTO cl_fields (list_id, code, label, type, column_name, is_required, is_unique, is_indexed,
+                              relation_list_id, position, status, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)`,
+      [
+        listId,
+        code,
+        label,
+        type,
+        code,
+        spec.is_required ? 1 : 0,
+        spec.is_unique ? 1 : 0,
+        spec.is_indexed ? 1 : 0,
+        relationId,
+        Number(pos[0].p),
+        actor.userId,
+      ],
+    );
+    const fieldId = Number(ins.insertId);
+
+    if (list.status === 'published') {
+      const f = await this.fieldRaw(fieldId);
+      try {
+        await this.engine.runDdl(lock, {
+          kind: 'publish_field',
+          sql: this.engine.buildAddColumn(list, f, relTable),
+          listId,
+          requestId,
+          userId: actor.userId,
+          intent: {
+            kind: 'publish_field',
+            fieldId,
+            table: list.table_name,
+            column: f.column_name,
+          },
+        });
+      } catch (e) {
+        // Undone ONLY when the database surely did not change. Otherwise the
+        // field stays as draft with its operation open, and the settle step
+        // decides from the real structure (defect D: deleting it here left
+        // a NOT NULL orphan column that broke every insert).
+        if (e?.schemaUnchanged)
+          await this.main.query('DELETE FROM cl_fields WHERE id = ?', [
+            fieldId,
+          ]);
+        throw e;
+      }
+    }
+    return this.fieldRaw(fieldId);
+  }
+
+  /**
+   * Everything that can refuse a new field of `list`, before anything is
+   * written. `relationCheck` runs where the relation target used to be
+   * checked, so the order of the refusals is the one this method always had.
+   */
+  private async checkFieldFits(
+    lock: SchemaLock,
+    list: ListRow,
+    spec: FieldSpec,
+    relationCheck?: () => Promise<void>,
+  ): Promise<void> {
+    const existing = await this.fields(list.id);
+    if (existing.length >= LIMITS.fieldsPerList) {
+      throw new BadRequestException(
+        `This list already has ${LIMITS.fieldsPerList} fields, the maximum.`,
+      );
+    }
+    const indexed = existing.filter(
+      (f) => f.is_unique || f.is_indexed || f.type === 'relation',
+    ).length;
+    if (
+      (spec.is_unique || spec.is_indexed || spec.type === 'relation') &&
+      indexed >= LIMITS.indexesPerList
+    ) {
+      throw new BadRequestException(
+        `This list already has ${LIMITS.indexesPerList} filterable or unique fields, the maximum.`,
+      );
+    }
+    if (existing.some((f) => f.code === spec.code)) {
+      throw new BadRequestException(
+        `The field "${spec.code}" already exists in this list.`,
+      );
+    }
+    if (relationCheck) await relationCheck();
+
+    if (list.status === 'published' && spec.is_required) {
+      const rows = await this.engine.countRows(list.table_name, lock.qr);
+      if (rows > 0) {
+        throw new BadRequestException(
+          `The list already has ${rows} record(s). A new field cannot start as required: create it optional and fill the data first.`,
+        );
+      }
+    }
+  }
+
+  // ───────────────────── a relation with its own options ─────────────────────
+
+  /** Bound once by `DataService`, which depends on this service. */
+  private writeRecords?: RecordsWriter;
+  attachRecordsWriter(fn: RecordsWriter): void {
+    this.writeRecords = fn;
+  }
+
+  /** The options list of the request, validated: nothing is written yet. */
+  private parseOptionsList(raw: unknown): {
+    code: string;
+    name: string;
+    options: string[];
+  } {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw))
+      throw new BadRequestException(
+        'The options list must have a code, a name and its options.',
+      );
+    const o = raw as Record<string, unknown>;
+    assertListCode(o.code);
+    const name = text(
+      o.name,
+      'The name of the options list',
+      MAX.name,
+    ) as string;
+    if (!Array.isArray(o.options) || o.options.length === 0)
+      throw new BadRequestException('Write at least one option.');
+    if (o.options.length > LIMITS.optionsInline)
+      throw new BadRequestException(
+        `A field can start with ${LIMITS.optionsInline} options at most; add the rest in the list afterwards.`,
+      );
+    const seen = new Set<string>();
+    const options: string[] = [];
+    for (const item of o.options) {
+      if (typeof item !== 'string')
+        throw new BadRequestException('Every option must be text.');
+      const v = item.trim();
+      if (!v) throw new BadRequestException('An option is empty.');
+      if (v.length > TEXT_MAX.text)
+        throw new BadRequestException(
+          `The option "${v.slice(0, 30)}…" admits ${TEXT_MAX.text} characters at most.`,
+        );
+      // The table's collation treats "Café" and "cafe" as one value and the
+      // field is unique: the insert would fail halfway otherwise.
+      const key = collationKey(v);
+      if (seen.has(key))
+        throw new BadRequestException(`The option "${v}" is repeated.`);
+      seen.add(key);
+      options.push(v);
+    }
+    return { code: o.code, name, options };
+  }
+
+  /**
+   * `collationKey` covers case and accents; the database also reads "ß" as
+   * "ss", "Æ" as "AE" and ignores invisible characters. The table's own
+   * collation is asked here, so the insert of the options cannot fail on a
+   * repeat after the list is already published (it would stay empty).
+   */
+  private async assertOptionsDistinct(
+    lock: SchemaLock,
+    options: string[],
+  ): Promise<void> {
+    if (options.length < 2) return;
+    const rows: { a: number; b: number }[] = await lock.qr.query(
+      `SELECT MIN(t.i) AS a, MAX(t.i) AS b
+         FROM (${options.map(() => 'SELECT ? AS v, ? AS i').join(' UNION ALL ')}) t
+        GROUP BY CONVERT(t.v USING utf8mb4) COLLATE ${OPTIONS_COLLATION}
+       HAVING COUNT(*) > 1
+        LIMIT 1`,
+      options.flatMap((v, i) => [v, i]),
+    );
+    if (rows.length) {
+      throw new BadRequestException(
+        `The options "${options[Number(rows[0].a)]}" and "${options[Number(rows[0].b)]}" read as the same value. Change one of them.`,
+      );
+    }
+  }
+
+  /**
+   * A relation field and the list it points to, created together under ONE
+   * schema lock: options list → its `name` field → publish → records → the
+   * relation on the parent. Each step can be repeated with the same
+   * `request_id`: what is already done is recognised and skipped, so a failure
+   * in the middle is finished by retrying, never by cleaning up by hand.
+   */
+  private async addFieldWithOptions(
+    listId: number,
+    spec: FieldSpec,
+    rawOptions: unknown,
+    actor: Actor,
+    requestId?: string,
+  ): Promise<FieldRow & { options_list: OptionsListInfo }> {
+    const opt = this.parseOptionsList(rawOptions);
+    if (
+      requestId &&
+      requestId.length + OPTIONS_SUFFIX.length > REQUEST_ID_MAX
+    ) {
+      throw new BadRequestException(
+        `The operation id admits ${REQUEST_ID_MAX - OPTIONS_SUFFIX.length} characters at most when the field brings its own options.`,
+      );
+    }
+    const rid = requestId ?? randomUUID();
+    const optionsRid = `${rid}${OPTIONS_SUFFIX}`;
+
+    return this.engine.withSchemaLock(async (lock) => {
+      const parent = await this.settledList(lock, listId, actor);
+      await this.assertOptionsDistinct(lock, opt.options);
+
+      // a. A previous attempt of this same request already made the list.
+      let options: ListRow | null = null;
+      const prev = await this.main.query(
+        'SELECT list_id FROM cl_schema_ops WHERE request_id = ?',
+        [optionsRid],
+      );
+      if (prev.length && prev[0].list_id) {
+        const found = await this.main.query(
+          'SELECT * FROM cl_lists WHERE id = ?',
+          [prev[0].list_id],
+        );
+        if (found.length) {
+          const l: ListRow = found[0];
+          // The request id is chosen by the client: it only resumes a list
+          // that is what this request would have created.
+          if (
+            l.code !== opt.code ||
+            Number(l.owner_role_id) !== Number(parent.owner_role_id)
+          ) {
+            throw new ConflictException(
+              'That operation id was already used for a different change. Start again from the screen.',
+            );
+          }
+          await this.engine.settleList(lock, l.id);
+          options = (await this.find(l.id)) as ListRow;
         }
       }
 
-      const pos = await this.main.query(
-        'SELECT COALESCE(MAX(position), 0) + 1 AS p FROM cl_fields WHERE list_id = ?',
-        [listId],
-      );
-      // Born as draft: it becomes published only when its column exists.
-      const ins: any = await this.main.query(
-        `INSERT INTO cl_fields (list_id, code, label, type, column_name, is_required, is_unique, is_indexed,
-                                relation_list_id, position, status, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)`,
-        [
-          listId,
-          code,
-          label,
-          type,
-          code,
-          flags.is_required ? 1 : 0,
-          flags.is_unique ? 1 : 0,
-          flags.is_indexed ? 1 : 0,
-          relationId,
-          Number(pos[0].p),
-          actor.userId,
-        ],
-      );
-      const fieldId = Number(ins.insertId);
-
-      if (list.status === 'published') {
-        const f = await this.fieldRaw(fieldId);
+      // b. Otherwise the parent is checked FIRST, so a request that is going
+      // to fail on it creates nothing.
+      let createdNow = false;
+      if (!options) {
+        await this.checkFieldFits(lock, parent, spec);
+        const created = await this.createListIn(
+          lock,
+          {
+            code: opt.code,
+            name: opt.name,
+            description:
+              `Options of the field "${spec.label}" of "${parent.name}".`.slice(
+                0,
+                MAX.description,
+              ),
+            owner: Number(parent.owner_role_id),
+          },
+          actor,
+        );
         try {
-          await this.engine.runDdl(lock, {
-            kind: 'publish_field',
-            sql: this.engine.buildAddColumn(list, f, relTable),
-            listId,
-            requestId,
-            userId: actor.userId,
-            intent: {
-              kind: 'publish_field',
-              fieldId,
-              table: list.table_name,
-              column: f.column_name,
+          await this.addFieldIn(
+            lock,
+            created.id,
+            {
+              code: 'name',
+              type: 'text',
+              label: 'Name',
+              is_required: true,
+              is_unique: true,
+              is_indexed: false,
             },
-          });
+            undefined,
+            actor,
+          );
         } catch (e) {
-          // Undone ONLY when the database surely did not change. Otherwise the
-          // field stays as draft with its operation open, and the settle step
-          // decides from the real structure (defect D: deleting it here left
-          // a NOT NULL orphan column that broke every insert).
-          if (e?.schemaUnchanged)
-            await this.main.query('DELETE FROM cl_fields WHERE id = ?', [
-              fieldId,
-            ]);
+          // No table exists yet: only this request's catalog rows to remove.
+          await this.main.query('DELETE FROM cl_fields WHERE list_id = ?', [
+            created.id,
+          ]);
+          await this.main.query('DELETE FROM cl_lists WHERE id = ?', [
+            created.id,
+          ]);
           throw e;
         }
+        options = created;
+        createdNow = true;
       }
-      return this.fieldRaw(fieldId);
+
+      // c. Real table.
+      if (options.status !== 'published') {
+        try {
+          await this.publishIn(lock, options.id, actor, optionsRid);
+        } catch (e) {
+          // Refused before its operation was recorded: no retry could find
+          // this draft again, and no table was made, so its rows go.
+          const logged = await this.main.query(
+            'SELECT id FROM cl_schema_ops WHERE request_id = ?',
+            [optionsRid],
+          );
+          if (createdNow && !logged.length) {
+            await this.main.query('DELETE FROM cl_fields WHERE list_id = ?', [
+              options.id,
+            ]);
+            await this.main.query('DELETE FROM cl_lists WHERE id = ?', [
+              options.id,
+            ]);
+          }
+          throw e;
+        }
+        options = await this.find(options.id);
+      }
+
+      // d. Its records, once.
+      if ((await this.engine.countRows(options.table_name, lock.qr)) === 0) {
+        if (!this.writeRecords)
+          throw new Error('The records writer is not attached.');
+        await this.writeRecords(
+          options,
+          opt.options.map((name) => ({ name })),
+          actor.userId,
+        );
+      }
+
+      // e. The relation on the parent (a repeat finds it already there).
+      const mine = (await this.fields(parent.id)).find(
+        (f) =>
+          f.code === spec.code &&
+          Number(f.relation_list_id) === Number(options.id),
+      );
+      const field =
+        mine ??
+        (await this.addFieldIn(lock, parent.id, spec, options.id, actor, rid));
+      return {
+        ...field,
+        options_list: {
+          id: Number(options.id),
+          code: options.code,
+          name: options.name,
+        },
+      };
     });
   }
 
@@ -709,42 +1066,52 @@ export class ListsService {
 
   /** Draft → real table, in one CREATE TABLE. */
   async publish(listId: number, actor: Actor, requestId?: string) {
-    return this.engine.withSchemaLock(async (lock) => {
-      const list = await this.settledList(lock, listId, actor);
-      if (list.status === 'published')
-        throw new BadRequestException('That list is already published.');
-      const fields = await this.fields(listId);
-      if (!fields.length)
-        throw new BadRequestException(
-          'Add at least one field before publishing.',
-        );
+    return this.engine.withSchemaLock((lock) =>
+      this.publishIn(lock, listId, actor, requestId),
+    );
+  }
 
-      const relTables = new Map<number, string>();
-      for (const f of fields) {
-        if (f.type === 'relation') {
-          const target = await this.assertRelationAllowed(
-            list,
-            f.relation_list_id,
-          );
-          relTables.set(target.id, target.table_name);
-        }
+  /** The body of `publish`, for a caller that already holds the schema lock. */
+  private async publishIn(
+    lock: SchemaLock,
+    listId: number,
+    actor: Actor,
+    requestId?: string,
+  ) {
+    const list = await this.settledList(lock, listId, actor);
+    if (list.status === 'published')
+      throw new BadRequestException('That list is already published.');
+    const fields = await this.fields(listId);
+    if (!fields.length)
+      throw new BadRequestException(
+        'Add at least one field before publishing.',
+      );
+
+    const relTables = new Map<number, string>();
+    for (const f of fields) {
+      if (f.type === 'relation') {
+        const target = await this.assertRelationAllowed(
+          list,
+          f.relation_list_id,
+        );
+        relTables.set(target.id, target.table_name);
       }
-      await this.assertTableFree(list.table_name, lock);
-      const op = await this.engine.runDdl(lock, {
+    }
+    await this.assertTableFree(list.table_name, lock);
+    const op = await this.engine.runDdl(lock, {
+      kind: 'publish_list',
+      sql: this.engine.buildCreateTable(list, fields, relTables),
+      listId,
+      requestId,
+      userId: actor.userId,
+      intent: {
         kind: 'publish_list',
-        sql: this.engine.buildCreateTable(list, fields, relTables),
         listId,
-        requestId,
-        userId: actor.userId,
-        intent: {
-          kind: 'publish_list',
-          listId,
-          table: list.table_name,
-          fieldIds: fields.map((f) => f.id),
-        },
-      });
-      return { ...(await this.find(listId)), sql: op.sql };
+        table: list.table_name,
+        fieldIds: fields.map((f) => f.id),
+      },
     });
+    return { ...(await this.find(listId)), sql: op.sql };
   }
 
   async deleteList(listId: number, actor: Actor, requestId?: string) {
