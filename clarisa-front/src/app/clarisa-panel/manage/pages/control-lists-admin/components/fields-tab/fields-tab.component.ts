@@ -5,6 +5,8 @@ import { FieldRow, FieldTypeOption, ListDetail, ListRow } from '../../models/con
 import { relationTargets } from '../../utils/list-format';
 import { isOn } from '../../utils/record-values';
 import { readApiError } from '../../utils/api-error';
+import { typeName } from '../../utils/field-types';
+import { CONTROL_LISTS_URL } from '../../utils/routes';
 
 @Component({
   selector: 'app-cl-fields-tab',
@@ -19,6 +21,10 @@ export class FieldsTabComponent implements OnChanges, OnDestroy {
   @Output() listDeleted = new EventEmitter<void>();
 
   readonly isOn = isOn;
+  readonly typeName = typeName;
+  readonly url = CONTROL_LISTS_URL;
+  /** Codes of the lists this user sees; a new options list needs a free one. */
+  takenCodes: string[] = [];
 
   addVisible = false;
   renameVisible = false;
@@ -49,6 +55,7 @@ export class FieldsTabComponent implements OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['lists']) this.takenCodes = this.lists.map(l => l.code);
     // The definition changes after every schema write: refresh it while it is open.
     if (changes['detail'] && !changes['detail'].firstChange && this.sqlOpen) this.loadSql();
   }

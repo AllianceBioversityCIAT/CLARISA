@@ -29,6 +29,8 @@ import { RecordsTabComponent } from './components/records-tab/records-tab.compon
 import { RecordDialogComponent } from './components/record-dialog/record-dialog.component';
 import { RecordStatusDialogComponent } from './components/record-status-dialog/record-status-dialog.component';
 import { EndpointTabComponent } from './components/endpoint-tab/endpoint-tab.component';
+import { ListPathComponent } from './components/list-path/list-path.component';
+import { FieldTypePickerComponent } from './components/field-type-picker/field-type-picker.component';
 
 @NgModule({
   declarations: [
@@ -46,7 +48,9 @@ import { EndpointTabComponent } from './components/endpoint-tab/endpoint-tab.com
     RecordsTabComponent,
     RecordDialogComponent,
     RecordStatusDialogComponent,
-    EndpointTabComponent
+    EndpointTabComponent,
+    ListPathComponent,
+    FieldTypePickerComponent
   ],
   imports: [
     CommonModule,
