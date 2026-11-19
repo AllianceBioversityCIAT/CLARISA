@@ -78,6 +78,8 @@ export interface NewFieldBody {
   is_unique: boolean;
   is_indexed: boolean;
   relation_list_id?: number;
+  /** Instead of `relation_list_id`: the back creates this list with these options and relates the field to it. */
+  options_list?: { code: string; name: string; options: string[] };
   request_id: string;
 }
 

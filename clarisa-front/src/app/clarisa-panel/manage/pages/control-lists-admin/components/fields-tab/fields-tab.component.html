@@ -19,8 +19,8 @@
         <th scope="col">Label</th>
         <th scope="col" style="width: 170px">Code</th>
         <th scope="col" style="width: 150px">Type</th>
-        <th scope="col" style="width: 210px">Options</th>
-        <th scope="col" style="width: 170px">Relation</th>
+        <th scope="col" style="width: 210px">Rules</th>
+        <th scope="col" style="width: 190px">Options from</th>
         <th scope="col" style="width: 120px">Status</th>
         <th scope="col" style="width: 140px">Actions</th>
       </tr>
@@ -34,16 +34,24 @@
         <td data-label="Code">
           <code class="cl-mono">{{ field.code }}</code>
         </td>
-        <td data-label="Type">{{ field.type_label || field.type }}</td>
-        <td data-label="Options">
+        <td data-label="Type">{{ typeName(field.type, field.type_label) }}</td>
+        <td data-label="Rules">
           <span class="cl-flag" *ngIf="isOn(field.is_required)">Required</span>
           <span class="cl-flag" *ngIf="isOn(field.is_unique)">Unique</span>
           <span class="cl-flag" *ngIf="isOn(field.is_indexed)">Filterable</span>
           <span class="cell-empty" *ngIf="!isOn(field.is_required) && !isOn(field.is_unique) && !isOn(field.is_indexed)">—</span>
         </td>
-        <td data-label="Relation">
+        <td data-label="Options from">
           <ng-container *ngIf="field.type === 'relation'; else noRelation">
-            {{ field.relation_name || '—' }}
+            <a
+              class="cell-link"
+              *ngIf="field.relation_list_id && field.relation_name; else relationText"
+              [routerLink]="[url, field.relation_list_id]"
+              [queryParams]="{ tab: 'records' }"
+              [attr.aria-label]="'Open the options list ' + field.relation_name"
+              >{{ field.relation_name }}</a
+            >
+            <ng-template #relationText>{{ field.relation_name || '—' }}</ng-template>
             <code class="cl-mono" *ngIf="field.relation_code">{{ field.relation_code }}</code>
           </ng-container>
           <ng-template #noRelation><span class="cell-empty">—</span></ng-template>
@@ -137,6 +145,7 @@
   [list]="detail"
   [types]="types"
   [targets]="targets"
+  [takenCodes]="takenCodes"
   (done)="changed.emit()"
   (unsettled)="changed.emit()"></app-cl-field-add-dialog>
 <app-cl-field-rename-dialog

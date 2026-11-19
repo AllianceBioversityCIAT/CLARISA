@@ -86,14 +86,8 @@ describe('ListWorkspaceComponent', () => {
     expect(c.errorMessage).toContain('temporarily unavailable');
   });
 
-  it('allows publishing only with at least one field and no change in progress', () => {
-    expect(create().canPublish).toBe(true);
-    api.list.mockReturnValue(of(detail({ fields: [] })));
-    const empty = create();
-    expect(empty.canPublish).toBe(false);
-    expect(empty.publishHint).toBe('Add at least one field to publish.');
-    api.list.mockReturnValue(of(detail({ pending_changes: 2 })));
-    expect(create().canPublish).toBe(false);
+  it('names its tabs with the words of the screens', () => {
+    expect(create().tabs.map(t => t.label)).toEqual(['Fields', 'Records', 'Public address']);
   });
 
   it('reads the list again after a write and keeps what is shown if that fails', () => {

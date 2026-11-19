@@ -34,20 +34,9 @@
       </p>
       <p class="admin-page__hint" *ngIf="list.description">{{ list.description }}</p>
     </div>
-
-    <div class="admin-page__aside cl-publish" *ngIf="!published">
-      <span class="field-hint" *ngIf="publishHint" id="cl-publish-hint">{{ publishHint }}</span>
-      <button
-        pButton
-        type="button"
-        label="Publish"
-        icon="pi pi-cloud-upload"
-        class="btn-brand"
-        [disabled]="!canPublish"
-        [attr.aria-describedby]="publishHint ? 'cl-publish-hint' : null"
-        (click)="publishVisible = true"></button>
-    </div>
   </header>
+
+  <app-cl-list-path [list]="list" [onRecords]="tab === 'records'" (publish)="publishVisible = true" (records)="setTab('records')"></app-cl-list-path>
 
   <nav class="admin-tabs cl-tabs" role="tablist" aria-label="List sections">
     <button

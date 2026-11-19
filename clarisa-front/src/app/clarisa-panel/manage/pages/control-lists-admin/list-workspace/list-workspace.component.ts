@@ -15,7 +15,7 @@ export type WorkspaceState = 'loading' | 'ready' | 'missing' | 'error';
 export const WORKSPACE_TABS: { id: WorkspaceTab; label: string }[] = [
   { id: 'fields', label: 'Fields' },
   { id: 'records', label: 'Records' },
-  { id: 'endpoint', label: 'Endpoint' }
+  { id: 'endpoint', label: 'Public address' }
 ];
 
 @Component({
@@ -75,16 +75,6 @@ export class ListWorkspaceComponent implements OnInit, OnDestroy {
 
   get published(): boolean {
     return this.detail?.status === 'published';
-  }
-
-  /** Publish needs at least one field, and no change still being applied. */
-  get canPublish(): boolean {
-    return !!this.detail && this.detail.fields.length > 0 && this.detail.pending_changes === 0;
-  }
-
-  get publishHint(): string {
-    if (!this.detail || this.canPublish) return '';
-    return this.detail.pending_changes > 0 ? 'A change to this list is still being applied.' : 'Add at least one field to publish.';
   }
 
   load(): void {

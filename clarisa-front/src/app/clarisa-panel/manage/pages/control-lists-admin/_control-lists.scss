@@ -68,12 +68,6 @@
     }
   }
 
-  .cl-publish {
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-  }
-
   .cl-tabs {
     display: flex;
     width: fit-content;
@@ -396,24 +390,23 @@
   }
 
   /* ---- danger zone ---- */
+  /* Deleting is rare: a quiet last row, not a red box under the fields. */
   .cl-danger {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 12px 20px;
-    margin-top: 28px;
-    padding: 16px 18px;
-    border: 1px solid rgba(180, 35, 24, 0.35);
-    border-radius: var(--cl-radius-card);
-    background: var(--cl-surface);
+    gap: 10px 20px;
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid var(--cl-line);
   }
 
   .cl-danger__title {
     margin: 0 0 2px;
-    color: var(--cl-error);
-    font-size: 15px;
-    font-weight: 700;
+    color: var(--cl-ink);
+    font-size: 14px;
+    font-weight: 600;
   }
 
   .cl-danger__text {

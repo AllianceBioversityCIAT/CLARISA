@@ -1,0 +1,22 @@
+<div class="types" role="radiogroup" [attr.aria-labelledby]="labelledBy || null">
+  <button
+    *ngFor="let choice of choices; let i = index; trackBy: track"
+    type="button"
+    role="radio"
+    class="types__item"
+    [class.is-on]="choice.value === value"
+    [attr.aria-checked]="choice.value === value"
+    [attr.tabindex]="tabIndex(choice, i)"
+    [attr.data-type]="choice.value"
+    [disabled]="disabled"
+    (click)="pick(choice)"
+    (keydown)="onKey($event, i)">
+    <span class="types__icon" aria-hidden="true"><i class="pi" [ngClass]="choice.icon"></i></span>
+    <span class="types__text">
+      <strong>{{ choice.label }}</strong>
+      <small *ngIf="choice.example">{{ choice.example }}</small>
+    </span>
+    <i class="pi pi-check types__check" aria-hidden="true" *ngIf="choice.value === value"></i>
+  </button>
+</div>
+<p class="types__empty" *ngIf="!choices.length">Field types could not be loaded. Close this dialog and try again.</p>

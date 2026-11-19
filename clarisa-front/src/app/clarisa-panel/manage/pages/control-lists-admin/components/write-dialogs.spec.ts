@@ -261,7 +261,8 @@ describe('write dialog details', () => {
     api.addField.mockReturnValue(new Subject());
     dialog.label = 'Crop';
     dialog.onLabelChange();
-    dialog.type = 'relation';
+    dialog.onTypeChange('relation');
+    dialog.setSource('existing');
     dialog.relationListId = null;
     expect(dialog.valid).toBe(false);
     dialog.relationListId = 5;
@@ -283,6 +284,114 @@ describe('write dialog details', () => {
     text.relationListId = 5;
     text.submit();
     expect(api.addField.mock.calls[0][1].relation_list_id).toBeUndefined();
+  });
+
+  it('adds an options field with the options written in the dialog, saved as a list of its own', async () => {
+    const dialog = await open(FieldAddDialogComponent, { list, takenCodes: ['crops', 'crops_type'] });
+    api.addField.mockReturnValue(of(field({ label: 'Type', code: 'type', type: 'relation' })));
+    dialog.label = 'Type';
+    dialog.onLabelChange();
+    dialog.onTypeChange('relation');
+    // The short way is the default; the list is named after its parent and its code is one nobody uses.
+    expect(dialog.source).toBe('new');
+    expect(dialog.optionsName).toBe('Crops – Type');
+    expect(dialog.optionsCode).toBe('crops_type_2');
+    expect(dialog.valid).toBe(false);
+
+    dialog.optionsText = 'Cereal\n  Root \n\nroot';
+    expect(dialog.optionsError).toBe('"root" is repeated.');
+    expect(dialog.valid).toBe(false);
+    dialog.optionsText = 'Cereal\n  Root \n\nLegume';
+    expect(dialog.valid).toBe(true);
+
+    dialog.relationListId = 5;
+    dialog.submit();
+    const body = api.addField.mock.calls[0][1];
+    expect(body).toMatchObject({
+      code: 'type',
+      type: 'relation',
+      options_list: { code: 'crops_type_2', name: 'Crops – Type', options: ['Cereal', 'Root', 'Legume'] }
+    });
+    expect(body.relation_list_id).toBeUndefined();
+  });
+
+  it('keeps the name and code of the options list once the person edits them, and refuses a code in use', async () => {
+    const dialog = await open(FieldAddDialogComponent, { list, takenCodes: ['crops', 'kinds'] });
+    dialog.label = 'Type';
+    dialog.onLabelChange();
+    dialog.onTypeChange('relation');
+    dialog.optionsText = 'Cereal';
+    dialog.optionsName = 'Crop kinds';
+    dialog.onOptionsNameChange();
+    dialog.optionsCode = 'kinds';
+    dialog.onOptionsCodeChange();
+    dialog.label = 'Kind';
+    dialog.onLabelChange();
+    expect(dialog.optionsName).toBe('Crop kinds');
+    expect(dialog.optionsCode).toBe('kinds');
+    expect(dialog.optionsCodeTaken).toBe(true);
+    expect(dialog.valid).toBe(false);
+    dialog.optionsCode = 'crop_kinds';
+    dialog.onOptionsCodeChange();
+    expect(dialog.valid).toBe(true);
+  });
+
+  it('sends neither options nor a related list once the type stops being Options', async () => {
+    const dialog = await open(FieldAddDialogComponent, { list });
+    api.addField.mockReturnValue(new Subject());
+    dialog.label = 'Type';
+    dialog.onLabelChange();
+    dialog.onTypeChange('relation');
+    dialog.optionsText = 'Cereal';
+    dialog.relationListId = 5;
+    dialog.onTypeChange('text');
+    expect(dialog.valid).toBe(true);
+    dialog.submit();
+    const body = api.addField.mock.calls[0][1];
+    expect(body.type).toBe('text');
+    expect(body.options_list).toBeUndefined();
+    expect(body.relation_list_id).toBeUndefined();
+  });
+
+  it('starts clean every time it opens: nothing of the previous field stays', async () => {
+    const dialog = await open(FieldAddDialogComponent, { list });
+    dialog.label = 'Type';
+    dialog.onLabelChange();
+    dialog.onTypeChange('relation');
+    dialog.onTypePicked();
+    dialog.setSource('existing');
+    dialog.relationListId = 5;
+    dialog.optionsText = 'Cereal';
+    dialog.optionsOpen = true;
+    dialog.codeOpen = true;
+    dialog.isRequired = true;
+
+    dialog.ngOnChanges({ visible: new SimpleChange(false, true, false) });
+    expect(dialog).toMatchObject({
+      label: '',
+      code: '',
+      codeOpen: false,
+      type: null,
+      typeOpen: true,
+      source: 'new',
+      relationListId: null,
+      optionsText: '',
+      optionsName: '',
+      optionsCode: '',
+      optionsOpen: false,
+      isRequired: false
+    });
+  });
+
+  it('opens the code box when the label gives no usable code', async () => {
+    const dialog = await open(FieldAddDialogComponent, { list });
+    dialog.label = 'Name';
+    dialog.onLabelChange();
+    expect(dialog.codeOpen).toBe(false);
+    dialog.label = '2026';
+    dialog.onLabelChange();
+    expect(dialog.code).toBe('');
+    expect(dialog.codeOpen).toBe(true);
   });
 
   it('shows the required note only on a published list that already has records', async () => {
