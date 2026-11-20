@@ -102,6 +102,14 @@ describe('control lists · engine', () => {
       expect(sql.match(/;/g)).toBeNull();
     });
 
+    it('stores record request ids exactly: "AbC" is not "abc"', () => {
+      // With the table's collation (case-insensitive) a bulk request whose id
+      // differed only by case was answered with the other one's count.
+      expect(engine.buildCreateTable(list, [field({})], new Map())).toContain(
+        '`request_id` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL',
+      );
+    });
+
     it('drops the foreign key together with its column', () => {
       expect(
         engine.buildDropColumn(
@@ -180,6 +188,138 @@ describe('control lists · engine', () => {
         () => 120,
       );
       expect(() => odd.qualified('cl_soil')).toThrow(/not configured/);
+    });
+  });
+
+  describe('buildSetRules (required, unique and filterable of a published field)', () => {
+    const rules = (
+      over: Partial<{
+        is_required: boolean;
+        is_unique: boolean;
+        is_indexed: boolean;
+      }>,
+    ) => ({
+      is_required: false,
+      is_unique: false,
+      is_indexed: false,
+      ...over,
+    });
+    const T = 'ALTER TABLE `clarisa_control_lists`.`cl_soil` ';
+
+    it('is one statement: nullability and the index swap land together', () => {
+      const plan = engine.buildSetRules(
+        list,
+        field({ is_indexed: 1 }),
+        rules({ is_required: true, is_unique: true, is_indexed: true }),
+      );
+      expect(plan.sql).toBe(
+        T +
+          'MODIFY COLUMN `name` VARCHAR(255) NOT NULL, ' +
+          'ADD UNIQUE KEY `uq_cl_7_11` (`name`), DROP KEY `ix_cl_7_11`',
+      );
+      expect(plan.intent).toEqual({
+        kind: 'set_rules',
+        fieldId: 11,
+        table: 'cl_soil',
+        column: 'name',
+        required: true,
+        unique: true,
+        indexed: true,
+        index: 'unique',
+        ix: 'ix_cl_7_11',
+        uq: 'uq_cl_7_11',
+      });
+    });
+
+    it('each rule alone touches only its own part', () => {
+      expect(
+        engine.buildSetRules(list, field({}), rules({ is_required: true })).sql,
+      ).toBe(T + 'MODIFY COLUMN `name` VARCHAR(255) NOT NULL');
+      expect(
+        engine.buildSetRules(
+          list,
+          field({ is_required: 1 }),
+          rules({ is_required: false }),
+        ).sql,
+      ).toBe(T + 'MODIFY COLUMN `name` VARCHAR(255) NULL');
+      expect(
+        engine.buildSetRules(list, field({}), rules({ is_indexed: true })).sql,
+      ).toBe(T + 'ADD KEY `ix_cl_7_11` (`name`)');
+      expect(
+        engine.buildSetRules(list, field({ is_indexed: 1 }), rules({})).sql,
+      ).toBe(T + 'DROP KEY `ix_cl_7_11`');
+      expect(
+        engine.buildSetRules(list, field({ is_unique: 1 }), rules({})).sql,
+      ).toBe(T + 'DROP KEY `uq_cl_7_11`');
+      expect(
+        engine.buildSetRules(
+          list,
+          field({ is_unique: 1, is_indexed: 1 }),
+          rules({ is_indexed: true }),
+        ).sql,
+      ).toBe(T + 'ADD KEY `ix_cl_7_11` (`name`), DROP KEY `uq_cl_7_11`');
+    });
+
+    it('carries who asked, so the catalog keeps the author once it lands', () => {
+      const plan = engine.buildSetRules(
+        list,
+        field({}),
+        rules({ is_required: true }),
+        101,
+      );
+      expect(plan.intent).toMatchObject({ kind: 'set_rules', by: 101 });
+    });
+
+    it('nothing to change in the table gives no statement', () => {
+      expect(engine.buildSetRules(list, field({}), rules({}))).toBeNull();
+      // Filterable on a unique field: the unique key already serves the filter.
+      expect(
+        engine.buildSetRules(
+          list,
+          field({ is_unique: 1 }),
+          rules({ is_unique: true, is_indexed: true }),
+        ),
+      ).toBeNull();
+    });
+
+    it('a relation never loses its index: the foreign key needs one', () => {
+      const rel = (over: Partial<FieldRow>) =>
+        field({
+          id: 12,
+          code: 'kind',
+          column_name: 'kind',
+          type: 'relation',
+          relation_list_id: 5,
+          ...over,
+        });
+      // Filterable off on a relation: catalog only.
+      expect(
+        engine.buildSetRules(list, rel({ is_indexed: 1 }), rules({})),
+      ).toBeNull();
+      expect(
+        engine.buildSetRules(list, rel({}), rules({ is_unique: true })).sql,
+      ).toBe(T + 'ADD UNIQUE KEY `uq_cl_7_12` (`kind`), DROP KEY `ix_cl_7_12`');
+      const back = engine.buildSetRules(list, rel({ is_unique: 1 }), rules({}));
+      expect(back.sql).toBe(
+        T + 'ADD KEY `ix_cl_7_12` (`kind`), DROP KEY `uq_cl_7_12`',
+      );
+      expect(back.intent).toMatchObject({ index: 'plain', unique: false });
+      expect(
+        engine.buildSetRules(list, rel({}), rules({ is_required: true })).sql,
+      ).toBe(T + 'MODIFY COLUMN `kind` BIGINT NOT NULL');
+    });
+
+    it('long text is refused before MySQL sees it', () => {
+      const long = field({ type: 'long_text' });
+      expect(() =>
+        engine.buildSetRules(list, long, rules({ is_unique: true })),
+      ).toThrow(/long text/);
+      expect(() =>
+        engine.buildSetRules(list, long, rules({ is_indexed: true })),
+      ).toThrow(/long text/);
+      expect(
+        engine.buildSetRules(list, long, rules({ is_required: true })).sql,
+      ).toBe(T + 'MODIFY COLUMN `name` TEXT NOT NULL');
     });
   });
 });

@@ -128,6 +128,10 @@ const RESERVED = new Set([
   'dir',
   // Read by CLARISA's version extractor on every route (src/main.ts).
   'version',
+  // Every JavaScript object already has it: a record that does not send that
+  // field would hand over the object's own (it is the only inherited property
+  // name a code can spell: the rest carry capitals or leading underscores).
+  'constructor',
 ]);
 
 /**
@@ -321,12 +325,25 @@ export function coerceValue(
   }
 }
 
+/** What a TEXT column holds, in bytes. */
+const LONG_TEXT_BYTES = 65_535;
+
 function assertLength(type: FieldType, value: string, label: string): string {
   const max = TEXT_MAX[type] ?? 255;
   if (value.length > max) {
     throw new BadRequestException(
       `"${label}" admits ${max} characters at most (it has ${value.length}).`,
     );
+  }
+  // TEXT is measured in bytes: accents and non-Latin scripts take 2 to 4 each,
+  // so a text within the character limit can still not fit.
+  if (type === 'long_text') {
+    const bytes = Buffer.byteLength(value, 'utf8');
+    if (bytes > LONG_TEXT_BYTES) {
+      throw new BadRequestException(
+        `"${label}" is too long: accents and non-Latin characters take more room, and this text needs ${bytes} bytes of the ${LONG_TEXT_BYTES} a long text holds.`,
+      );
+    }
   }
   return value;
 }

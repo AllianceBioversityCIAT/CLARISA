@@ -94,6 +94,16 @@ export class ControlListsAdminController {
     return this.lists.createList(body ?? {}, await this.actor(user));
   }
 
+  /** Name and description only: the code and the owner role stay. */
+  @Patch('schema/lists/:id')
+  async updateList(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: any,
+    @GetUserData() user: UserData,
+  ) {
+    return this.lists.updateList(id, body ?? {}, await this.actor(user));
+  }
+
   @Get('schema/lists/:id')
   async detail(
     @Param('id', ParseIntPipe) id: number,
@@ -204,6 +214,21 @@ export class ControlListsAdminController {
     );
   }
 
+  /** Required, unique and filterable of a field that already exists. */
+  @Patch('schema/fields/:fieldId/rules')
+  async setRules(
+    @Param('fieldId', ParseIntPipe) fieldId: number,
+    @Body() body: any,
+    @GetUserData() user: UserData,
+  ) {
+    return this.lists.setRules(
+      fieldId,
+      body ?? {},
+      await this.actor(user),
+      reqId(body?.request_id),
+    );
+  }
+
   @Delete('schema/fields/:fieldId')
   async deleteField(
     @Param('fieldId', ParseIntPipe) fieldId: number,
@@ -242,6 +267,20 @@ export class ControlListsAdminController {
   ) {
     const actor = await this.actor(user);
     return this.data.create(
+      await this.lists.ownedByCode(code, actor),
+      body ?? {},
+      actor.userId,
+    );
+  }
+
+  @Post('data/:code/bulk')
+  async createRows(
+    @Param('code') code: string,
+    @Body() body: any,
+    @GetUserData() user: UserData,
+  ) {
+    const actor = await this.actor(user);
+    return this.data.createBulk(
       await this.lists.ownedByCode(code, actor),
       body ?? {},
       actor.userId,

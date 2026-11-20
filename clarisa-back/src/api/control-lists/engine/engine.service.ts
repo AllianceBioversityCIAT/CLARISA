@@ -86,8 +86,34 @@ export type Intent =
       column: string;
       type: FieldType;
     }
+  | {
+      kind: 'set_rules';
+      fieldId: number;
+      table: string;
+      column: string;
+      /** What the catalog records. */
+      required: boolean;
+      unique: boolean;
+      indexed: boolean;
+      /** What the table must show for the statement to count as landed. */
+      index: IndexState;
+      ix: string;
+      uq: string;
+      /** Who asked for it: the catalog keeps the author, like the draft path. */
+      by?: number;
+    }
   | { kind: 'delete_field'; fieldId: number; table: string; column: string }
   | { kind: 'delete_list'; listId: number; table: string };
+
+/** The index a field carries in its table. */
+export type IndexState = 'none' | 'plain' | 'unique';
+
+/** Required, unique and filterable of a field, as the request asks for them. */
+export interface FieldRules {
+  is_required: boolean;
+  is_unique: boolean;
+  is_indexed: boolean;
+}
 
 export interface OpRow {
   id: number;
@@ -172,6 +198,14 @@ export const LIMITS = {
   indexesPerList: 15,
   /** Options a relation field can bring with it when it is created. */
   optionsInline: 100,
+  /** Records one "add several" request can carry. */
+  recordsPerBulk: 500,
+  /**
+   * Bytes of text one "add several" request can carry: it travels as ONE
+   * INSERT, and a statement over the server's `max_allowed_packet` drops the
+   * connection instead of answering.
+   */
+  bulkBytes: 2_000_000,
 };
 
 /** Seconds a DDL waits for a busy table before answering "try again". */
@@ -255,7 +289,9 @@ export class EngineService {
       '`modification_justification` VARCHAR(500) NULL',
       // Idempotent record creation: the same form sent twice carries the same
       // id and the second insert hits this key instead of creating a twin.
-      '`request_id` VARCHAR(64) NULL',
+      // Binary: two ids that differ only by case are two requests. With the
+      // table's own collation "AbC" answered for "abc" and wrote nothing.
+      '`request_id` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL',
       '`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
       '`updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
       'PRIMARY KEY (`id`)',
@@ -321,6 +357,73 @@ export class EngineService {
 
   buildModifyColumn(list: ListRow, f: FieldRow, type: FieldType): string {
     return `ALTER TABLE ${this.qualified(list.table_name)} MODIFY COLUMN ${this.columnDef({ ...f, type })}`;
+  }
+
+  /**
+   * Unique wins over filterable; a relation always keeps an index, because its
+   * foreign key needs one (MySQL 1553 refuses to drop the last one).
+   */
+  indexState(
+    f: Pick<FieldRow, 'type' | 'is_unique' | 'is_indexed'>,
+  ): IndexState {
+    if (f.is_unique) return 'unique';
+    return f.is_indexed || f.type === 'relation' ? 'plain' : 'none';
+  }
+
+  /**
+   * Required / unique / filterable of a published field in ONE statement:
+   * nullability and the index swap land together or not at all (checked on
+   * MySQL 8.4: a repeated value in the new unique key leaves the column and
+   * the old index untouched). `null` when the table stays as it is and only
+   * the catalog changes (filterable on a unique field or on a relation).
+   */
+  buildSetRules(
+    list: ListRow,
+    f: FieldRow,
+    next: FieldRules,
+    userId?: number,
+  ): { sql: string; intent: Intent } | null {
+    const after: FieldRow = {
+      ...f,
+      is_required: next.is_required ? 1 : 0,
+      is_unique: next.is_unique ? 1 : 0,
+      is_indexed: next.is_indexed ? 1 : 0,
+    };
+    assertIndexable(after);
+    const col = this.id(f.column_name);
+    const ix = this.indexName(list, f);
+    const uq = this.uniqueName(list, f);
+    const from = this.indexState(f);
+    const to = this.indexState(after);
+
+    const clauses: string[] = [];
+    if (Boolean(f.is_required) !== next.is_required)
+      clauses.push(`MODIFY COLUMN ${this.columnDef(after)}`);
+    if (from !== to) {
+      // The new index first: the foreign key of a relation always finds one.
+      if (to === 'unique')
+        clauses.push(`ADD UNIQUE KEY ${this.id(uq)} (${col})`);
+      if (to === 'plain') clauses.push(`ADD KEY ${this.id(ix)} (${col})`);
+      if (from === 'unique') clauses.push(`DROP KEY ${this.id(uq)}`);
+      if (from === 'plain') clauses.push(`DROP KEY ${this.id(ix)}`);
+    }
+    if (!clauses.length) return null;
+    return {
+      sql: `ALTER TABLE ${this.qualified(list.table_name)} ${clauses.join(', ')}`,
+      intent: {
+        kind: 'set_rules',
+        fieldId: f.id,
+        table: list.table_name,
+        column: f.column_name,
+        required: next.is_required,
+        unique: next.is_unique,
+        indexed: next.is_indexed,
+        index: to,
+        ix,
+        uq,
+        ...(userId === undefined ? {} : { by: userId }),
+      },
+    };
   }
 
   /** MySQL refuses to drop a column holding a foreign key (1829): drop both at once. */
@@ -619,6 +722,18 @@ export class EngineService {
           intent.fieldId,
         ]);
         return;
+      case 'set_rules':
+        await qr.query(
+          'UPDATE cl_fields SET is_required = ?, is_unique = ?, is_indexed = ?, updated_by = COALESCE(?, updated_by) WHERE id = ?',
+          [
+            intent.required ? 1 : 0,
+            intent.unique ? 1 : 0,
+            intent.indexed ? 1 : 0,
+            intent.by ?? null,
+            intent.fieldId,
+          ],
+        );
+        return;
       case 'delete_field':
         await qr.query('DELETE FROM cl_fields WHERE id = ?', [intent.fieldId]);
         return;
@@ -683,6 +798,18 @@ export class EngineService {
           FIELD_TYPES[intent.type].sql,
           q,
         );
+      case 'set_rules': {
+        // One atomic statement: every part shows, or none does. The statement
+        // always changes at least one of them, so "before" never passes.
+        const nullable = await this.isNullable(intent.table, intent.column, q);
+        if (nullable === null || nullable === intent.required) return false;
+        const unique = await this.indexExists(intent.table, intent.uq, q);
+        const plain = await this.indexExists(intent.table, intent.ix, q);
+        return (
+          unique === (intent.index === 'unique') &&
+          plain === (intent.index === 'plain')
+        );
+      }
     }
   }
 
@@ -794,6 +921,11 @@ export class EngineService {
         'There are repeated values: the field cannot be unique while they exist.',
       );
     }
+    if (/Invalid use of NULL value/i.test(msg)) {
+      return new BadRequestException(
+        'Some records have no value in that field: it cannot be required while they exist.',
+      );
+    }
     if (
       /Data too long|Incorrect .* value|Out of range|Data truncated|Truncated incorrect/i.test(
         msg,
@@ -842,6 +974,33 @@ export class EngineService {
     const r = await this.run(
       'SELECT COUNT(*) AS n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
       [this.schema, table, column],
+      q,
+    );
+    return Number(r[0].n) > 0;
+  }
+
+  /** `null` when the column does not exist. */
+  private async isNullable(
+    table: string,
+    column: string,
+    q: QueryRunner,
+  ): Promise<boolean | null> {
+    const r = await this.run(
+      'SELECT IS_NULLABLE AS v FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+      [this.schema, table, column],
+      q,
+    );
+    return r.length ? String(r[0].v).toUpperCase() === 'YES' : null;
+  }
+
+  private async indexExists(
+    table: string,
+    index: string,
+    q: QueryRunner,
+  ): Promise<boolean> {
+    const r = await this.run(
+      'SELECT COUNT(*) AS n FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ?',
+      [this.schema, table, index],
       q,
     );
     return Number(r[0].n) > 0;
@@ -912,6 +1071,40 @@ export class EngineService {
       `SELECT COUNT(*) AS n FROM ${this.qualified(table)} WHERE ${this.id(column)} IS NOT NULL`,
     );
     return Number(r[0].n);
+  }
+
+  /** Records without a value in the column, inactive ones included. */
+  async countNull(
+    table: string,
+    column: string,
+    q?: QueryRunner,
+  ): Promise<number> {
+    const sql = `SELECT COUNT(*) AS n FROM ${this.qualified(table)} WHERE ${this.id(column)} IS NULL`;
+    const r = q ? await q.query(sql) : await this.cl.query(sql);
+    return Number(r[0].n);
+  }
+
+  /**
+   * Values more than one record holds, compared the way a unique key on the
+   * column would (its own collation: case and accents do not count in text).
+   * Empty values never repeat. Control lists are small: every group is read.
+   */
+  async repeatedValues(
+    table: string,
+    column: string,
+    q?: QueryRunner,
+  ): Promise<{ count: number; sample: string | null }> {
+    const col = this.id(column);
+    const sql =
+      `SELECT CAST(MIN(${col}) AS CHAR) AS v FROM ${this.qualified(table)} ` +
+      `WHERE ${col} IS NOT NULL GROUP BY ${col} HAVING COUNT(*) > 1 ORDER BY v`;
+    const rows: Array<{ v: string }> = q
+      ? await q.query(sql)
+      : await this.cl.query(sql);
+    return {
+      count: rows.length,
+      sample: rows.length ? String(rows[0].v) : null,
+    };
   }
 
   /**

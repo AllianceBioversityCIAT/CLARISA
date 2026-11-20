@@ -1426,6 +1426,27 @@ describeIf('control lists engine, real MySQL', () => {
       expect(await tableExists('cl_opt_v1')).toBe(false);
     });
 
+    it('options that only another script tells apart are accepted: the table decides what repeats', async () => {
+      const parent = await newParent('opt_scripts', false);
+      optionLists.push('opt_scripts_kind');
+      const r = await admin(
+        'post',
+        `schema/lists/${parent}/fields`,
+        relationBody('opt_scripts_kind', ['क', 'कि', 'Café']),
+      );
+      expect([r.status, r.body?.message]).toEqual([201, undefined]);
+      expect((await pub('opt_scripts_kind')).body).toHaveLength(3);
+      // Case and Latin accents still read as one value.
+      const again = await admin('post', `schema/lists/${parent}/fields`, {
+        ...relationBody('opt_scripts_other', ['Café', 'cafe']),
+        code: 'other',
+      });
+      expect([again.status, again.body.message]).toEqual([
+        400,
+        'The option "cafe" is repeated.',
+      ]);
+    });
+
     it('a failure after the options list was published is finished by repeating the request', async () => {
       const parent = await newParent('opt_resume_parent', false);
       optionLists.push('opt_resume_kinds');
@@ -1466,6 +1487,974 @@ describeIf('control lists engine, real MySQL', () => {
           )[0].n,
         ),
       ).toBe(1);
+    });
+  });
+
+  describe('editing a list', () => {
+    let id: number;
+    const listRow = async () =>
+      (await sql(`SELECT * FROM ${MAIN}.cl_lists WHERE id = ?`, [id]))[0];
+    const opsCount = async () =>
+      Number(
+        (
+          await sql(
+            `SELECT COUNT(*) AS n FROM ${MAIN}.cl_schema_ops WHERE list_id = ?`,
+            [id],
+          )
+        )[0].n,
+      );
+
+    beforeAll(async () => {
+      id = await createList('edit_me', [
+        { code: 'name', label: 'Name', type: 'text' },
+      ]);
+    });
+    afterAll(async () => {
+      await admin('delete', `schema/lists/${id}`);
+    });
+
+    it('changes the name and the description, never the code, the table or the status', async () => {
+      const before = await listRow();
+      const ops = await opsCount();
+      const r = await admin('patch', `schema/lists/${id}`, {
+        name: '  Crop types ',
+        description: 'Crops grown in the trials.',
+      });
+      expect([r.status, r.body?.message]).toEqual([200, undefined]);
+      expect(r.body).toMatchObject({
+        code: 'edit_me',
+        table_name: 'cl_edit_me',
+        status: 'published',
+        name: 'Crop types',
+        description: 'Crops grown in the trials.',
+      });
+      expect(Number(r.body.id)).toBe(id);
+      const after = await listRow();
+      expect(after).toMatchObject({
+        code: before.code,
+        table_name: before.table_name,
+        status: before.status,
+        owner_role_id: before.owner_role_id,
+        name: 'Crop types',
+        updated_by: String(USERS[A].id),
+      });
+      expect(
+        (await pub('')).body.find((l: any) => l.code === 'edit_me'),
+      ).toMatchObject({
+        name: 'Crop types',
+        description: 'Crops grown in the trials.',
+      });
+
+      // Only the named key changes; an empty description clears it.
+      const d = await admin('patch', `schema/lists/${id}`, {
+        description: '',
+      });
+      expect([d.status, d.body.name, d.body.description]).toEqual([
+        200,
+        'Crop types',
+        null,
+      ]);
+      expect(await opsCount()).toBe(ops);
+    });
+
+    it('the same request twice leaves the same row', async () => {
+      const body = { name: 'Twice', description: 'Same' };
+      const first = await admin('patch', `schema/lists/${id}`, body);
+      const row = await listRow();
+      const again = await admin('patch', `schema/lists/${id}`, body);
+      expect([first.status, again.status]).toEqual([200, 200]);
+      expect(again.body).toMatchObject({ name: 'Twice', description: 'Same' });
+      const { updated_at: _a, ...x } = row;
+      const { updated_at: _b, ...y } = await listRow();
+      expect(y).toEqual(x);
+    });
+
+    it('what is wrong is refused before anything is written', async () => {
+      const before = await listRow();
+      const ops = await opsCount();
+      const refused: [unknown, RegExp][] = [
+        [{}, /^There is nothing to change\.$/],
+        [{ request_id: 'x' }, /^There is nothing to change\.$/],
+        [{ name: '   ' }, /^The list name is required\.$/],
+        [{ name: null }, /^The list name is required\.$/],
+        [{ name: 'n'.repeat(151) }, /^The list name admits 150 characters/],
+        [{ description: 'd'.repeat(501) }, /admits 500 characters/],
+        [
+          { name: 'Other', code: 'edit_me' },
+          /^The code and the owner role of a list cannot be changed\.$/,
+        ],
+        [
+          { name: 'Other', owner_role_id: roleId.TEAM_A },
+          /^The code and the owner role of a list cannot be changed\.$/,
+        ],
+      ];
+      for (const [body, message] of refused) {
+        const r = await admin('patch', `schema/lists/${id}`, body);
+        expect([r.status, String(r.body?.message)]).toEqual([
+          400,
+          expect.stringMatching(message),
+        ]);
+      }
+      expect(await listRow()).toEqual(before);
+      expect(await opsCount()).toBe(ops);
+    });
+
+    it('another team gets 404; an editor gets 403', async () => {
+      const before = await listRow();
+      expect(
+        (
+          await admin(
+            'patch',
+            `schema/lists/${id}`,
+            { name: 'Stolen' },
+            'designer.b@e2e',
+          )
+        ).status,
+      ).toBe(404);
+      expect(
+        (
+          await admin(
+            'patch',
+            `schema/lists/${id}`,
+            { name: 'Stolen' },
+            'editor.a@e2e',
+          )
+        ).status,
+      ).toBe(403);
+      expect(await listRow()).toEqual(before);
+    });
+  });
+
+  describe('adding several records', () => {
+    let maize: number;
+    const nameField = {
+      code: 'name',
+      label: 'Name',
+      type: 'text',
+      is_required: true,
+      is_unique: true,
+    };
+    const count = async (table: string) =>
+      Number((await sql(`SELECT COUNT(*) AS n FROM ${LISTS}.${table}`))[0].n);
+    const bulk = (code: string, body: unknown, user = A) =>
+      admin('post', `data/${code}/bulk`, body, user);
+    const created: number[] = [];
+
+    beforeAll(async () => {
+      const crops = await createList('bulk_crops', [
+        nameField,
+        { code: 'yield', label: 'Yield', type: 'decimal' },
+      ]);
+      const plots = await createList('bulk_plots', [
+        { code: 'name', label: 'Name', type: 'text', is_required: true },
+        {
+          code: 'crop',
+          label: 'Crop',
+          type: 'relation',
+          relation_list_id: crops,
+        },
+        {
+          code: 'plot_no',
+          label: 'Plot number',
+          type: 'integer',
+          is_unique: true,
+        },
+      ]);
+      created.push(plots, crops);
+    });
+    afterAll(async () => {
+      for (const id of created) await admin('delete', `schema/lists/${id}`);
+    });
+
+    it('writes every row in order, in one go, with its author', async () => {
+      const r = await bulk('bulk_crops', {
+        request_id: 'bulk-1',
+        modification_justification: 'Import',
+        records: [
+          { name: 'Maize', yield: '12.5' },
+          { name: 'Rice' },
+          { name: 'Beans', yield: 3 },
+        ],
+      });
+      expect([r.status, r.body]).toEqual([201, { created: 3 }]);
+      const rows = await sql(
+        `SELECT name, yield, created_by, request_id, modification_justification
+           FROM ${LISTS}.cl_bulk_crops ORDER BY id`,
+      );
+      const by = String(USERS[A].id);
+      expect(rows).toEqual([
+        {
+          name: 'Maize',
+          yield: '12.5000',
+          created_by: by,
+          request_id: 'bulk-1:1',
+          modification_justification: 'Import',
+        },
+        {
+          name: 'Rice',
+          yield: null,
+          created_by: by,
+          request_id: 'bulk-1:2',
+          modification_justification: 'Import',
+        },
+        {
+          name: 'Beans',
+          yield: '3.0000',
+          created_by: by,
+          request_id: 'bulk-1:3',
+          modification_justification: 'Import',
+        },
+      ]);
+      maize = (await pub('bulk_crops')).body[0].id;
+    });
+
+    it('the same request_id again, and two identical requests at once: still N rows', async () => {
+      const again = await bulk('bulk_crops', {
+        request_id: 'bulk-1',
+        records: [
+          { name: 'Maize', yield: '12.5' },
+          { name: 'Rice' },
+          { name: 'Beans', yield: 3 },
+        ],
+      });
+      expect([again.status, again.body]).toEqual([201, { created: 3 }]);
+      expect(await count('cl_bulk_crops')).toBe(3);
+      // The form edited after a failed attempt and sent with the same id: it
+      // is NOT answered "created 3" (none of the new content would be there).
+      const edited = await bulk('bulk_crops', {
+        request_id: 'bulk-1',
+        records: [
+          { name: 'Maize', yield: '12.5' },
+          { name: 'Rice' },
+          { name: 'Beans', yield: 3 },
+          { name: 'Oats' },
+        ],
+      });
+      expect([edited.status, edited.body.message]).toEqual([
+        409,
+        'That operation id was already used for other records. Start again from the screen.',
+      ]);
+      expect(await count('cl_bulk_crops')).toBe(3);
+
+      const body = {
+        request_id: 'bulk-par',
+        records: [{ name: 'Wheat' }, { name: 'Barley' }],
+      };
+      // A read lock lets both look up the id and find nothing, then holds
+      // both INSERTs: the second one hits the unique key and must answer the
+      // first one's count.
+      const qr = root.createQueryRunner();
+      await qr.connect();
+      await qr.query(`LOCK TABLES ${LISTS}.cl_bulk_crops READ`);
+      let pending: Promise<request.Response[]>;
+      try {
+        pending = Promise.all([
+          bulk('bulk_crops', body),
+          bulk('bulk_crops', body),
+        ]);
+        await until(
+          'both inserts waiting',
+          async () =>
+            Number(
+              (
+                await sql(
+                  `SELECT COUNT(*) AS n FROM information_schema.PROCESSLIST
+                    WHERE ID <> CONNECTION_ID() AND INFO LIKE ?`,
+                  ['INSERT INTO %cl_bulk_crops%bulk-par%'],
+                )
+              )[0].n,
+            ) === 2,
+        );
+      } finally {
+        await qr.query('UNLOCK TABLES');
+        await qr.release();
+      }
+      const both = await pending;
+      expect(both.map((r) => [r.status, r.body])).toEqual([
+        [201, { created: 2 }],
+        [201, { created: 2 }],
+      ]);
+      expect(await count('cl_bulk_crops')).toBe(5);
+    });
+
+    it('what is wrong is refused before anything is written', async () => {
+      const refused: [string, unknown, RegExp, number?][] = [
+        [
+          'bulk_crops',
+          { records: [{ name: 'a' }] },
+          /^The operation id is required to add several records\.$/,
+        ],
+        [
+          'bulk_crops',
+          { request_id: 'r'.repeat(57), records: [{ name: 'a' }] },
+          /^The operation id is not valid\.$/,
+        ],
+        [
+          'bulk_crops',
+          { request_id: 7, records: [{ name: 'a' }] },
+          /^The operation id is not valid\.$/,
+        ],
+        // No ":" in the id: rows store "<id>:<n>", and "a" must never count the rows of "a:1".
+        [
+          'bulk_crops',
+          { request_id: 'bulk-1:1', records: [{ name: 'a' }] },
+          /^The operation id is not valid\.$/,
+        ],
+        [
+          'bulk_crops',
+          { request_id: 'v-empty', records: [] },
+          /^Send between 1 and 500 records\.$/,
+        ],
+        [
+          'bulk_crops',
+          { request_id: 'v-object', records: { name: 'a' } },
+          /^Send between 1 and 500 records\.$/,
+        ],
+        [
+          'bulk_crops',
+          {
+            request_id: 'v-501',
+            records: Array.from({ length: 501 }, (_, i) => ({
+              name: `crop ${i}`,
+            })),
+          },
+          /^Send between 1 and 500 records\.$/,
+        ],
+        [
+          'bulk_crops',
+          { request_id: 'v-shape', records: [{ name: 'a' }, 'b'] },
+          /^Row 2: a record must be an object with one value per field\.$/,
+        ],
+        [
+          'bulk_crops',
+          { request_id: 'v-array', records: [{ name: 'a' }, ['b']] },
+          /^Row 2: a record must be an object with one value per field\.$/,
+        ],
+        [
+          'bulk_crops',
+          {
+            request_id: 'v-key',
+            records: [{ name: 'a' }, { name: 'b', colour: 'red' }],
+          },
+          /^Row 2: "colour" is not a field of this list\.$/,
+        ],
+        [
+          'bulk_crops',
+          {
+            request_id: 'v-required',
+            records: [{ name: 'a' }, { name: ' ', yield: 2 }],
+          },
+          /^Row 2: "Name" is required\.$/,
+        ],
+        [
+          'bulk_crops',
+          { request_id: 'v-type', records: [{ name: 'a', yield: 'abc' }] },
+          /^Row 1: "Yield" expects a number, for example 12\.5$/,
+        ],
+        [
+          'bulk_crops',
+          {
+            request_id: 'v-repeat',
+            records: [{ name: 'Oats' }, { name: 'x' }, { name: 'óats' }],
+          },
+          /^Rows 1 and 3 repeat "Oats" in "Name", which does not admit repeats\.$/,
+        ],
+        [
+          'bulk_plots',
+          {
+            request_id: 'v-relation',
+            records: [
+              { name: 'p1', crop: maize },
+              { name: 'p2', crop: 99999 },
+            ],
+          },
+          /^Row 2: there is no record 99999 in "bulk crops"\.$/,
+        ],
+        [
+          'bulk_crops',
+          {
+            request_id: 'v-existing',
+            records: [{ name: 'Sorghum' }, { name: 'Maize' }],
+          },
+          /^"Maize" already exists in "Name", which does not admit repeats\.$/,
+          409,
+        ],
+      ];
+      for (const [code, body, message, status = 400] of refused) {
+        const before = await count(`cl_${code}`);
+        const r = await bulk(code, body);
+        expect([r.status, String(r.body?.message)]).toEqual([
+          status,
+          expect.stringMatching(message),
+        ]);
+        expect(await count(`cl_${code}`)).toBe(before);
+      }
+    });
+
+    it('empty unique values are no repeat; a single record that repeats names the field', async () => {
+      const r = await bulk('bulk_plots', {
+        request_id: 'plots-1',
+        records: [
+          { name: 'p1', crop: maize, plot_no: 1 },
+          { name: 'p2' },
+          { name: 'p3', plot_no: '' },
+        ],
+      });
+      expect([r.status, r.body]).toEqual([201, { created: 3 }]);
+
+      const one = await admin('post', 'data/bulk_plots', {
+        name: 'p4',
+        plot_no: 1,
+      });
+      expect([one.status, one.body.message]).toEqual([
+        409,
+        '"1" already exists in "Plot number", which does not admit repeats.',
+      ]);
+      const p2 = (await pub('bulk_plots')).body[1].id;
+      const edit = await admin('patch', `data/bulk_plots/${p2}`, {
+        plot_no: 1,
+      });
+      expect([edit.status, edit.body.message]).toEqual([
+        409,
+        '"1" already exists in "Plot number", which does not admit repeats.',
+      ]);
+    });
+
+    it('repeats are judged by the table, in any script; ids are exact', async () => {
+      const before = await count('cl_bulk_crops');
+      // "ß" reads as "ss" for the unique key: a repeat inside the request,
+      // said as such (MySQL would have answered that it "already exists").
+      const eszett = await bulk('bulk_crops', {
+        request_id: 'col-1',
+        records: [{ name: 'Strasse' }, { name: 'Teff' }, { name: 'Straße' }],
+      });
+      expect([eszett.status, eszett.body.message]).toEqual([
+        400,
+        'Rows 1 and 3 repeat "Strasse" in "Name", which does not admit repeats.',
+      ]);
+      expect(await count('cl_bulk_crops')).toBe(before);
+      // A Devanagari vowel sign makes another word: both are accepted.
+      const hindi = await bulk('bulk_crops', {
+        request_id: 'col-2',
+        records: [{ name: 'क' }, { name: 'कि' }],
+      });
+      expect([hindi.status, hindi.body]).toEqual([201, { created: 2 }]);
+
+      // Two ids that differ only by case are two requests…
+      const upper = await bulk('bulk_crops', {
+        request_id: 'Case-A',
+        records: [{ name: 'Quinoa' }],
+      });
+      const lower = await bulk('bulk_crops', {
+        request_id: 'case-a',
+        records: [{ name: 'Amaranth' }],
+      });
+      expect([upper.body, lower.body]).toEqual([
+        { created: 1 },
+        { created: 1 },
+      ]);
+      expect(await count('cl_bulk_crops')).toBe(before + 4);
+      // …and a single record can never take the id of a row of a bulk request.
+      const one = await admin('post', 'data/bulk_crops', {
+        name: 'Fonio',
+        request_id: 'Case-A:1',
+      });
+      expect([one.status, one.body.message]).toEqual([
+        400,
+        'The operation id is not valid.',
+      ]);
+      expect(await count('cl_bulk_crops')).toBe(before + 4);
+    });
+
+    it('a long text is measured in bytes: what does not fit is said, with the field', async () => {
+      const notes = await createList('bulk_notes', [
+        { code: 'note', label: 'Note', type: 'long_text' },
+      ]);
+      created.push(notes);
+      // 25,000 CJK characters are within the character limit and take 75,000 bytes.
+      const wide = await admin('post', 'data/bulk_notes', {
+        note: '字'.repeat(25_000),
+      });
+      expect([wide.status, wide.body.message]).toEqual([
+        400,
+        expect.stringMatching(
+          /^"Note" is too long: .* needs 75000 bytes of the 65535 a long text holds\.$/,
+        ),
+      ]);
+      const row = await bulk('bulk_notes', {
+        request_id: 'wide-1',
+        records: [{ note: 'ok' }, { note: '字'.repeat(25_000) }],
+      });
+      expect([row.status, row.body.message]).toEqual([
+        400,
+        expect.stringMatching(/^Row 2: "Note" is too long: /),
+      ]);
+      expect(await count('cl_bulk_notes')).toBe(0);
+      expect(
+        (await admin('post', 'data/bulk_notes', { note: '字'.repeat(20_000) }))
+          .status,
+      ).toBe(201);
+    });
+
+    it('an editor of the team can; another team and a draft list get 404', async () => {
+      const draft = await createList('bulk_draft', [nameField], false);
+      created.push(draft);
+      const before = await count('cl_bulk_crops');
+      const ok = await bulk(
+        'bulk_crops',
+        { request_id: 'ed-1', records: [{ name: 'Millet' }] },
+        'editor.a@e2e',
+      );
+      expect([ok.status, ok.body]).toEqual([201, { created: 1 }]);
+      const other = await bulk(
+        'bulk_crops',
+        { request_id: 'b-1', records: [{ name: 'Teff' }] },
+        'designer.b@e2e',
+      );
+      // Word for word what a list that does not exist answers.
+      expect([other.status, other.body.message]).toEqual([
+        404,
+        'There is no list "bulk_crops".',
+      ]);
+      expect(await count('cl_bulk_crops')).toBe(before + 1);
+      const d = await bulk('bulk_draft', {
+        request_id: 'd-1',
+        records: [{ name: 'a' }],
+      });
+      expect([d.status, d.body.message]).toEqual([
+        404,
+        'There is no list "bulk_draft".',
+      ]);
+    });
+  });
+
+  describe('changing the rules of a field', () => {
+    let kinds: number;
+    let crops: number;
+    const T = 'cl_rule_crops';
+    const ids: Record<string, number> = {};
+    const kindIds: number[] = [];
+    const rec: number[] = [];
+
+    const rules = (fieldId: number, body: unknown, user = A) =>
+      admin('patch', `schema/fields/${fieldId}/rules`, body, user);
+    /** `undefined` when the table has no index with that name; 0 = unique, 1 = plain. */
+    const index = async (table: string, name: string) => {
+      const r = await sql(
+        'SELECT NON_UNIQUE AS nu FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ?',
+        [LISTS, table, name],
+      );
+      return r.length ? Number(r[0].nu) : undefined;
+    };
+    const ix = (code: string) => `ix_cl_${crops}_${ids[code]}`;
+    const uq = (code: string) => `uq_cl_${crops}_${ids[code]}`;
+    const nullable = async (table: string, column: string) =>
+      (
+        await sql(
+          'SELECT IS_NULLABLE AS v FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+          [LISTS, table, column],
+        )
+      )[0].v;
+    const ruleOps = async (listId: number) =>
+      Number(
+        (
+          await sql(
+            `SELECT COUNT(*) AS n FROM ${MAIN}.cl_schema_ops WHERE list_id = ? AND kind = 'set_rules'`,
+            [listId],
+          )
+        )[0].n,
+      );
+    /** [required, unique, filterable] as the catalog holds them. */
+    const flags = async (listId: number, code: string) => {
+      const f = await fieldRow(listId, code);
+      return [f.is_required, f.is_unique, f.is_indexed].map(Number);
+    };
+    const refused = async (
+      fieldId: number,
+      body: unknown,
+      message: RegExp | string,
+      status = 400,
+    ) => {
+      const r = await rules(fieldId, body);
+      expect([r.status, r.body.message]).toEqual([
+        status,
+        typeof message === 'string' ? message : expect.stringMatching(message),
+      ]);
+    };
+
+    beforeAll(async () => {
+      kinds = await createList('rule_kinds', [
+        { code: 'name', label: 'Name', type: 'text', is_required: true },
+      ]);
+      for (const name of ['Cereal', 'Root']) {
+        const r = await admin('post', 'data/rule_kinds', { name });
+        expect(r.status).toBe(201);
+        kindIds.push(r.body.id);
+      }
+      crops = await createList('rule_crops', [
+        { code: 'name', label: 'Name', type: 'text' },
+        { code: 'code', label: 'Code', type: 'text' },
+        { code: 'notes', label: 'Notes', type: 'long_text' },
+        {
+          code: 'kind',
+          label: 'Kind',
+          type: 'relation',
+          relation_list_id: kinds,
+        },
+      ]);
+      for (const code of ['name', 'code', 'notes', 'kind'])
+        ids[code] = Number((await fieldRow(crops, code)).id);
+      for (const body of [
+        { name: 'Maize', code: 'MZ', kind: kindIds[0] },
+        { name: 'Rice', code: 'RC', kind: kindIds[1] },
+        // The same name for a unique key (case does not count); no code, no kind.
+        { name: 'maize' },
+      ]) {
+        const r = await admin('post', 'data/rule_crops', body);
+        expect([r.status, r.body?.message]).toEqual([201, undefined]);
+        rec.push(r.body.id);
+      }
+      // Inactive records keep their values: every rule counts them.
+      expect((await admin('delete', `data/rule_crops/${rec[2]}`)).status).toBe(
+        200,
+      );
+    });
+
+    it('a draft field changes in the catalog only, and the table is born with its rules', async () => {
+      const draft = await createList(
+        'rule_draft',
+        [
+          { code: 'name', label: 'Name', type: 'text' },
+          { code: 'notes', label: 'Notes', type: 'long_text' },
+        ],
+        false,
+      );
+      const name = await fieldRow(draft, 'name');
+      const notes = await fieldRow(draft, 'notes');
+
+      const r = await rules(name.id, { is_required: true, is_unique: true });
+      expect(r.status).toBe(200);
+      expect(await flags(draft, 'name')).toEqual([1, 1, 0]);
+      // Only what the request names changes.
+      expect((await rules(name.id, { is_indexed: true })).status).toBe(200);
+      expect(await flags(draft, 'name')).toEqual([1, 1, 1]);
+      expect(await ruleOps(draft)).toBe(0);
+
+      await refused(name.id, {}, 'There is nothing to change.');
+      await refused(name.id, { label: 'x' }, 'There is nothing to change.');
+      await refused(name.id, { is_unique: 'maybe' }, /must be true or false/);
+      await refused(name.id, { is_required: null }, /must be true or false/);
+      await refused(notes.id, { is_indexed: true }, /long text/);
+      await refused(notes.id, { is_unique: true }, /long text/);
+      expect(
+        (await rules(name.id, { is_unique: false }, 'designer.b@e2e')).status,
+      ).toBe(404);
+      expect(
+        (await rules(name.id, { is_unique: false }, 'editor.a@e2e')).status,
+      ).toBe(403);
+      expect(await flags(draft, 'name')).toEqual([1, 1, 1]);
+
+      expect(
+        (await admin('post', `schema/lists/${draft}/publish`, {})).status,
+      ).toBe(201);
+      expect(await nullable('cl_rule_draft', 'name')).toBe('NO');
+      expect(await index('cl_rule_draft', `uq_cl_${draft}_${name.id}`)).toBe(0);
+    });
+
+    it('the budget of filterable and unique fields holds here too', async () => {
+      const fields = Array.from({ length: 15 }, (_, i) => ({
+        code: `f${i}`,
+        type: 'text',
+        is_indexed: true,
+      }));
+      const full = await createList(
+        'rule_budget',
+        [...fields, { code: 'extra', label: 'Extra', type: 'text' }],
+        false,
+      );
+      const extra = await fieldRow(full, 'extra');
+      await refused(extra.id, { is_indexed: true }, /15 filterable or unique/);
+      await refused(extra.id, { is_unique: true }, /15 filterable or unique/);
+      // A rule that needs no index is not part of that budget.
+      expect((await rules(extra.id, { is_required: true })).status).toBe(200);
+      // A field that already counts can swap one kind of index for the other.
+      const first = await fieldRow(full, 'f0');
+      expect((await rules(first.id, { is_unique: true })).status).toBe(200);
+    });
+
+    it('required: refused while a record has no value, then the column is NOT NULL', async () => {
+      await refused(
+        ids.code,
+        { is_required: true, request_id: 'rules-req' },
+        '1 record(s) have no value in "Code" (inactive records count too). Fill them in first, then make the field required.',
+      );
+      expect(await op('rules-req')).toBeUndefined();
+      expect(await nullable(T, 'code')).toBe('YES');
+      expect(await flags(crops, 'code')).toEqual([0, 0, 0]);
+
+      expect(
+        (await admin('patch', `data/rule_crops/${rec[2]}`, { code: 'M2' }))
+          .status,
+      ).toBe(200);
+      const ok = await rules(ids.code, {
+        is_required: true,
+        request_id: 'rules-req',
+      });
+      expect([ok.status, Number(ok.body.is_required)]).toEqual([200, 1]);
+      expect(await nullable(T, 'code')).toBe('NO');
+      const applied = await op('rules-req');
+      expect([applied.kind, applied.status]).toEqual(['set_rules', 'applied']);
+      // The catalog keeps who changed it, published or not.
+      expect(String((await fieldRow(crops, 'code')).updated_by)).toBe(
+        String(USERS[A].id),
+      );
+      expect(
+        (await admin('post', 'data/rule_crops', { name: 'Cassava' })).body
+          .message,
+      ).toBe('"Code" is required.');
+
+      const back = await rules(ids.code, { is_required: false });
+      expect([back.status, Number(back.body.is_required)]).toEqual([200, 0]);
+      expect(await nullable(T, 'code')).toBe('YES');
+    });
+
+    it('unique: repeats are counted the way the key compares them, inactive records included', async () => {
+      await refused(
+        ids.name,
+        { is_unique: true },
+        /^1 value\(s\) appear more than once in "Name", for example "maize" \(inactive records count too\)\. Change them first, then make the field unique\.$/i,
+      );
+      expect(await index(T, uq('name'))).toBeUndefined();
+      expect(await flags(crops, 'name')).toEqual([0, 0, 0]);
+
+      expect(
+        (await admin('patch', `data/rule_crops/${rec[2]}`, { name: 'Millet' }))
+          .status,
+      ).toBe(200);
+      const ok = await rules(ids.name, { is_unique: true });
+      expect([ok.status, Number(ok.body.is_unique)]).toEqual([200, 1]);
+      expect(await index(T, uq('name'))).toBe(0);
+      // The key is real: a repeat is refused, and a unique field can be a filter.
+      expect(
+        (await admin('post', 'data/rule_crops', { name: 'RICE' })).status,
+      ).toBe(409);
+      expect((await pub('rule_crops?name=Rice')).body).toHaveLength(1);
+
+      expect((await rules(ids.name, { is_unique: false })).status).toBe(200);
+      expect(await index(T, uq('name'))).toBeUndefined();
+      expect(await index(T, ix('name'))).toBeUndefined();
+      expect((await pub('rule_crops?name=Rice')).status).toBe(400);
+      expect(
+        (await admin('post', 'data/rule_crops', { name: 'RICE' })).status,
+      ).toBe(201);
+    });
+
+    it('filterable: the index and the public filter come and go together', async () => {
+      expect((await pub('rule_crops?code=MZ')).status).toBe(400);
+      const on = await rules(ids.code, { is_indexed: true });
+      expect([on.status, Number(on.body.is_indexed)]).toEqual([200, 1]);
+      expect(await index(T, ix('code'))).toBe(1);
+      expect((await pub('rule_crops?code=MZ')).body).toHaveLength(1);
+
+      // Unique on top: the unique key replaces the plain one…
+      expect((await rules(ids.code, { is_unique: true })).status).toBe(200);
+      expect(await index(T, ix('code'))).toBeUndefined();
+      expect(await index(T, uq('code'))).toBe(0);
+      // …and when unique goes, a filterable field keeps a plain index.
+      expect((await rules(ids.code, { is_unique: false })).status).toBe(200);
+      expect(await index(T, ix('code'))).toBe(1);
+      expect(await index(T, uq('code'))).toBeUndefined();
+      expect(await flags(crops, 'code')).toEqual([0, 0, 1]);
+
+      expect((await rules(ids.code, { is_indexed: false })).status).toBe(200);
+      expect(await index(T, ix('code'))).toBeUndefined();
+      expect((await pub('rule_crops?code=MZ')).status).toBe(400);
+    });
+
+    it('a relation keeps its foreign key and always one index', async () => {
+      expect(await index(T, ix('kind'))).toBe(1);
+      const before = await ruleOps(crops);
+      // Filterable on a relation changes nothing in the table: no statement.
+      const flag = await rules(ids.kind, { is_indexed: true });
+      expect([flag.status, Number(flag.body.is_indexed)]).toEqual([200, 1]);
+      expect(await ruleOps(crops)).toBe(before);
+
+      expect((await rules(ids.kind, { is_unique: true })).status).toBe(200);
+      expect(await index(T, uq('kind'))).toBe(0);
+      expect(await index(T, ix('kind'))).toBeUndefined();
+      // Both constraints are alive after the swap.
+      const stray = await admin('post', 'data/rule_crops', {
+        name: 'Yam',
+        kind: 999999,
+      });
+      expect([stray.status, stray.body.message]).toEqual([
+        400,
+        'The related record you chose does not exist.',
+      ]);
+      expect(
+        (
+          await admin('post', 'data/rule_crops', {
+            name: 'Wheat',
+            kind: kindIds[0],
+          })
+        ).status,
+      ).toBe(409);
+
+      const off = await rules(ids.kind, {
+        is_unique: false,
+        is_indexed: false,
+      });
+      expect(off.status).toBe(200);
+      expect(await index(T, ix('kind'))).toBe(1);
+      expect(await index(T, uq('kind'))).toBeUndefined();
+      expect(await flags(crops, 'kind')).toEqual([0, 0, 0]);
+      // Still a filter: a relation always is.
+      expect((await pub(`rule_crops?kind=${kindIds[0]}`)).body).toHaveLength(1);
+
+      await refused(
+        ids.kind,
+        { is_required: true },
+        /^2 record\(s\) have no value in "Kind"/,
+      );
+    });
+
+    it('two requests for the same change at once: one statement, both answered', async () => {
+      const before = await ruleOps(crops);
+      // Different ids on purpose: one row in the log is then the work of the
+      // schema lock, not of the unique key on the id. Checked outside the lock,
+      // both would add the same index and one of them would be refused.
+      const [a, b] = await Promise.all([
+        rules(ids.name, { is_indexed: true, request_id: 'rules-par-a' }),
+        rules(ids.name, { is_indexed: true, request_id: 'rules-par-b' }),
+      ]);
+      expect([a.status, b.status]).toEqual([200, 200]);
+      expect([a.body.is_indexed, b.body.is_indexed].map(Number)).toEqual([
+        1, 1,
+      ]);
+      expect(await ruleOps(crops)).toBe(before + 1);
+      // The same id again, once applied: answered, nothing runs.
+      const again = await rules(ids.name, {
+        is_indexed: true,
+        request_id: 'rules-par-a',
+      });
+      expect(again.status).toBe(200);
+      expect(await ruleOps(crops)).toBe(before + 1);
+      expect(await index(T, ix('name'))).toBe(1);
+    });
+
+    it('the catalog fails after the ALTER: the table decides and the timer finishes it', async () => {
+      await sql(
+        `CREATE TRIGGER ${MAIN}.cl_e2e_rules_trap BEFORE UPDATE ON ${MAIN}.cl_fields FOR EACH ROW
+           BEGIN IF NEW.id = ${ids.code} AND NEW.is_unique = 1 THEN
+             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'catalog trap'; END IF; END`,
+      );
+      try {
+        const r = await rules(ids.code, {
+          is_unique: true,
+          request_id: 'rules-trap',
+        });
+        expect(r.status).toBe(500); // the failure happened: not a silent 200
+        expect((await op('rules-trap')).status).toBe('pending');
+        expect(await index(T, uq('code'))).toBe(0); // the statement landed…
+        expect(await flags(crops, 'code')).toEqual([0, 0, 0]); // …the catalog did not
+        // The list is held until that is settled.
+        expect((await rules(ids.name, { is_indexed: false })).status).toBe(409);
+      } finally {
+        await sql(`DROP TRIGGER IF EXISTS ${MAIN}.cl_e2e_rules_trap`);
+      }
+      await tick();
+      expect((await op('rules-trap')).status).toBe('applied');
+      expect(await flags(crops, 'code')).toEqual([0, 1, 0]);
+
+      // Statements that never reached the table: the structure says so part by
+      // part (nullability AND index), and after the grace period they are failed.
+      const lost = (over: Record<string, unknown>) =>
+        JSON.stringify({
+          kind: 'set_rules',
+          fieldId: ids.code,
+          table: T,
+          column: 'code',
+          required: false,
+          unique: true,
+          indexed: false,
+          index: 'unique',
+          ix: ix('code'),
+          uq: uq('code'),
+          ...over,
+        });
+      for (const [id, intent] of [
+        // The index is as asked, the nullability is not.
+        ['rules-lost-null', lost({ required: true })],
+        // The nullability is as asked, the index is not.
+        [
+          'rules-lost-index',
+          lost({ unique: false, indexed: true, index: 'plain' }),
+        ],
+      ]) {
+        await sql(
+          `INSERT INTO ${MAIN}.cl_schema_ops (request_id, list_id, kind, sql_text, intent_json, status, started_at)
+           VALUES (?, ?, 'set_rules', 'ALTER TABLE never sent', ?, 'pending', NOW() - INTERVAL 60 SECOND)`,
+          [id, crops, intent],
+        );
+        await tick();
+        expect((await op(id)).status).toBe('failed');
+      }
+      expect(await flags(crops, 'code')).toEqual([0, 1, 0]);
+      expect(await nullable(T, 'code')).toBe('YES');
+      expect(await index(T, uq('code'))).toBe(0);
+      // And the list is free again.
+      expect((await rules(ids.code, { is_unique: false })).status).toBe(200);
+    });
+
+    it('a busy table answers "try again" and leaves nothing half done', async () => {
+      const hold = await holdTable(T);
+      const started = Date.now();
+      const busy = await rules(ids.name, {
+        is_required: true,
+        request_id: 'rules-busy',
+      });
+      await hold.release();
+      expect([busy.status, busy.body.message]).toEqual([
+        409,
+        expect.stringMatching(/busy right now/),
+      ]);
+      expect(Date.now() - started).toBeLessThan(9_000);
+      expect(await nullable(T, 'name')).toBe('YES');
+      expect(await flags(crops, 'name')).toEqual([0, 0, 1]);
+
+      const retry = await rules(ids.name, {
+        is_required: true,
+        request_id: 'rules-busy',
+      });
+      expect([retry.status, Number(retry.body.is_required)]).toEqual([200, 1]);
+      expect(await nullable(T, 'name')).toBe('NO');
+      // Records are written again once the table lock is gone.
+      expect(
+        (await admin('post', 'data/rule_crops', { name: 'Sorghum' })).status,
+      ).toBe(201);
+    });
+
+    it('a reader that meets a locked table waits a bounded time and is told to try again', async () => {
+      // What a rules or type change does to the table (and to the lists
+      // related to it) while it counts and alters.
+      const qr = root.createQueryRunner();
+      await qr.connect();
+      await qr.query(`LOCK TABLES ${LISTS}.${T} WRITE`);
+      const started = Date.now();
+      let r: request.Response;
+      try {
+        r = await pub('rule_crops');
+      } finally {
+        await qr.query('UNLOCK TABLES');
+        await qr.release();
+      }
+      expect([r.status, r.body.message]).toEqual([
+        503,
+        expect.stringMatching(/busy right now/),
+      ]);
+      // The server default is a year: this is the session's own limit.
+      expect(Date.now() - started).toBeLessThan(15_000);
+      expect((await pub('rule_crops')).status).toBe(200);
     });
   });
 
