@@ -127,6 +127,11 @@ function bool(v: unknown): boolean {
   return v === true || v === 1 || v === '1' || v === 'true';
 }
 
+/** "1 record" / "7 records": a count the way a person reads it. */
+function count(n: number, one: string): string {
+  return `${n} ${n === 1 ? one : one + 's'}`;
+}
+
 /** A rule in a request: yes, no, or not named (`undefined`). Anything else is refused, never read as "no". */
 function flag(v: unknown, name: string): boolean | undefined {
   if (v === undefined) return undefined;
@@ -642,7 +647,7 @@ export class ListsService {
       const rows = await this.engine.countRows(list.table_name, lock.qr);
       if (rows > 0) {
         throw new BadRequestException(
-          `The list already has ${rows} record(s). A new field cannot start as required: create it optional and fill the data first.`,
+          `The list already has ${count(rows, 'record')}. A new field cannot start as required: create it optional and fill the data first.`,
         );
       }
     }
@@ -935,7 +940,7 @@ export class ListsService {
         affected: withData,
         message:
           (withData
-            ? `The field "${f.label}" is deleted with the values of ${withData} record(s). This cannot be undone.`
+            ? `The field "${f.label}" is deleted with the values of ${count(withData, 'record')}. This cannot be undone.`
             : `The field "${f.label}" is deleted. It holds no data.`) +
           ' Applications reading this list stop receiving it.',
       };
@@ -957,7 +962,7 @@ export class ListsService {
 
   private retypeMessage(f: FieldRow, to: FieldType, affected: number): string {
     return affected
-      ? `Changing "${f.label}" to ${FIELD_TYPES[to].label} changes or does not fit ${affected} record(s). Confirm with that number to go ahead.`
+      ? `Changing "${f.label}" to ${FIELD_TYPES[to].label} changes or does not fit ${count(affected, 'record')}. Confirm with that number to go ahead.`
       : `"${f.label}" changes to ${FIELD_TYPES[to].label}. No stored value changes.`;
   }
 
@@ -1206,7 +1211,7 @@ export class ListsService {
           );
           if (empty > 0) {
             throw new BadRequestException(
-              `${empty} record(s) have no value in "${f.label}" (inactive records count too). Fill them in first, then make the field required.`,
+              `${count(empty, 'record')} ${empty === 1 ? 'has' : 'have'} no value in "${f.label}" (inactive records count too). Fill ${empty === 1 ? 'it' : 'them'} in first, then make the field required.`,
             );
           }
         }
@@ -1219,7 +1224,7 @@ export class ListsService {
           if (repeated.count > 0) {
             const sample = String(repeated.sample);
             throw new BadRequestException(
-              `${repeated.count} value(s) appear more than once in "${f.label}", for example "${sample.length > 60 ? sample.slice(0, 60) + '…' : sample}" (inactive records count too). Change them first, then make the field unique.`,
+              `${count(repeated.count, 'value')} ${repeated.count === 1 ? 'appears' : 'appear'} more than once in "${f.label}", for example "${sample.length > 60 ? sample.slice(0, 60) + '…' : sample}" (inactive records count too). Change ${repeated.count === 1 ? 'it' : 'them'} first, then make the field unique.`,
             );
           }
         }
@@ -1360,7 +1365,7 @@ export class ListsService {
       message: dependents.length
         ? `"${list.name}" cannot be deleted: ${dependents.join(', ')} ${dependents.length === 1 ? 'uses' : 'use'} it as a relation.`
         : rows
-          ? `The whole list and its ${rows} record(s) are deleted, and its public address stops answering. This cannot be undone.`
+          ? `The whole list and its ${count(rows, 'record')} are deleted, and its public address stops answering. This cannot be undone.`
           : 'The list is deleted and its public address stops answering. It has no records.',
     };
   }

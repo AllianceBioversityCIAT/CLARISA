@@ -1857,7 +1857,7 @@ describeIf('control lists engine, real MySQL', () => {
             request_id: 'v-repeat',
             records: [{ name: 'Oats' }, { name: 'x' }, { name: 'óats' }],
           },
-          /^Rows 1 and 3 repeat "Oats" in "Name", which does not admit repeats\.$/,
+          /^Rows 1 and 3 repeat "Oats" in "Name", which must be unique\.$/,
         ],
         [
           'bulk_plots',
@@ -1876,7 +1876,7 @@ describeIf('control lists engine, real MySQL', () => {
             request_id: 'v-existing',
             records: [{ name: 'Sorghum' }, { name: 'Maize' }],
           },
-          /^"Maize" already exists in "Name", which does not admit repeats\.$/,
+          /^"Maize" already exists in "Name", which must be unique\.$/,
           409,
         ],
       ];
@@ -1908,7 +1908,7 @@ describeIf('control lists engine, real MySQL', () => {
       });
       expect([one.status, one.body.message]).toEqual([
         409,
-        '"1" already exists in "Plot number", which does not admit repeats.',
+        '"1" already exists in "Plot number", which must be unique.',
       ]);
       const p2 = (await pub('bulk_plots')).body[1].id;
       const edit = await admin('patch', `data/bulk_plots/${p2}`, {
@@ -1916,7 +1916,7 @@ describeIf('control lists engine, real MySQL', () => {
       });
       expect([edit.status, edit.body.message]).toEqual([
         409,
-        '"1" already exists in "Plot number", which does not admit repeats.',
+        '"1" already exists in "Plot number", which must be unique.',
       ]);
     });
 
@@ -1930,7 +1930,7 @@ describeIf('control lists engine, real MySQL', () => {
       });
       expect([eszett.status, eszett.body.message]).toEqual([
         400,
-        'Rows 1 and 3 repeat "Strasse" in "Name", which does not admit repeats.',
+        'Rows 1 and 3 repeat "Strasse" in "Name", which must be unique.',
       ]);
       expect(await count('cl_bulk_crops')).toBe(before);
       // A Devanagari vowel sign makes another word: both are accepted.
@@ -2186,7 +2186,7 @@ describeIf('control lists engine, real MySQL', () => {
       await refused(
         ids.code,
         { is_required: true, request_id: 'rules-req' },
-        '1 record(s) have no value in "Code" (inactive records count too). Fill them in first, then make the field required.',
+        '1 record has no value in "Code" (inactive records count too). Fill it in first, then make the field required.',
       );
       expect(await op('rules-req')).toBeUndefined();
       expect(await nullable(T, 'code')).toBe('YES');
@@ -2222,7 +2222,7 @@ describeIf('control lists engine, real MySQL', () => {
       await refused(
         ids.name,
         { is_unique: true },
-        /^1 value\(s\) appear more than once in "Name", for example "maize" \(inactive records count too\)\. Change them first, then make the field unique\.$/i,
+        /^1 value appears more than once in "Name", for example "maize" \(inactive records count too\)\. Change it first, then make the field unique\.$/i,
       );
       expect(await index(T, uq('name'))).toBeUndefined();
       expect(await flags(crops, 'name')).toEqual([0, 0, 0]);
@@ -2314,7 +2314,7 @@ describeIf('control lists engine, real MySQL', () => {
       await refused(
         ids.kind,
         { is_required: true },
-        /^2 record\(s\) have no value in "Kind"/,
+        /^2 records have no value in "Kind" \(inactive records count too\)\. Fill them in first/,
       );
     });
 

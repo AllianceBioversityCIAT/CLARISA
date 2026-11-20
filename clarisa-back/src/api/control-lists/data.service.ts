@@ -284,10 +284,10 @@ export class DataService {
         );
       if (f)
         throw new ConflictException(
-          `"${m[1]}" already exists in "${f.label}", which does not admit repeats.`,
+          `"${m[1]}" already exists in "${f.label}", which must be unique.`,
         );
       throw new ConflictException(
-        'A record with that value already exists in a field that does not admit repeats.',
+        'A record with that value already exists in a field that must be unique.',
       );
     }
     if (
@@ -557,7 +557,7 @@ export class DataService {
         const first = seen.get(key);
         if (first !== undefined)
           throw new BadRequestException(
-            `Rows ${first + 1} and ${i + 1} repeat "${rows[first][c]}" in "${f.label}", which does not admit repeats.`,
+            `Rows ${first + 1} and ${i + 1} repeat "${rows[first][c]}" in "${f.label}", which must be unique.`,
           );
         seen.set(key, i);
       });
@@ -585,7 +585,7 @@ export class DataService {
       const pair = await repeatedPair((q, p) => this.data.query(q, p), values);
       if (pair)
         throw new BadRequestException(
-          `Rows ${at[pair[0]] + 1} and ${at[pair[1]] + 1} repeat "${values[pair[0]]}" in "${f.label}", which does not admit repeats.`,
+          `Rows ${at[pair[0]] + 1} and ${at[pair[1]] + 1} repeat "${values[pair[0]]}" in "${f.label}", which must be unique.`,
         );
     }
   }
