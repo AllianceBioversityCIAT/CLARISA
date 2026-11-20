@@ -69,7 +69,7 @@
     </ng-template>
 
     <ng-template pTemplate="body" let-row>
-      <tr class="cl-row" (click)="open(row)">
+      <tr class="cl-row" (click)="open(row)" (keydown.enter)="open(row)">
         <td data-card-title data-label="Name" class="cl-flex-col">
           <a class="cell-link cell-primary" [routerLink]="[url, row.id]" (click)="$event.stopPropagation()">{{ row.name }}</a>
           <span class="cell-sub ls-desc" *ngIf="row.description" [attr.title]="row.description">{{ row.description }}</span>
