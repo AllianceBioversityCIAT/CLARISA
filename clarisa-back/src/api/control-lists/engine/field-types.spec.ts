@@ -152,6 +152,26 @@ describe('control lists · field types', () => {
     });
   });
 
+  describe('length before any pattern', () => {
+    it('refuses a huge value at once, whatever the type (the e-mail pattern backtracks)', () => {
+      const evil = 'a@' + '.'.repeat(200_000) + '@';
+      const started = Date.now();
+      expect(() => coerceValue('email', evil, 'Contact')).toThrow(
+        /"Contact" admits 255 characters at most/,
+      );
+      expect(() =>
+        coerceValue('url', 'https://' + 'x'.repeat(600), 'Site'),
+      ).toThrow(/500 characters at most/);
+      expect(() => coerceValue('integer', '1'.repeat(5_000), 'Age')).toThrow(
+        /64 characters at most/,
+      );
+      expect(Date.now() - started).toBeLessThan(200);
+      expect(coerceValue('email', 'maize@example.org', 'Contact')).toBe(
+        'maize@example.org',
+      );
+    });
+  });
+
   describe('long text', () => {
     it('is measured in bytes, the way the column holds it', () => {
       // 25,000 CJK characters: within the 65,000-character limit, 75,000 bytes.

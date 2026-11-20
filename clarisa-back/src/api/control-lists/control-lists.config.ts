@@ -48,15 +48,23 @@ export const ControlListsConfig = {
   },
   /** How often the reconciler looks for half-done operations. */
   get reconcileEveryMs(): number {
-    return (
-      parseInt(env.CONTROL_LISTS_RECONCILE_EVERY_SECONDS ?? '60', 10) * 1000
-    );
+    return seconds(env.CONTROL_LISTS_RECONCILE_EVERY_SECONDS, 60) * 1000;
   },
   /**
    * An operation whose DDL did not land is only declared failed after this
    * long: when the connection drops, the server may still be running it.
    */
   get reconcileGraceSeconds(): number {
-    return parseInt(env.CONTROL_LISTS_RECONCILE_GRACE_SECONDS ?? '120', 10);
+    return seconds(env.CONTROL_LISTS_RECONCILE_GRACE_SECONDS, 120);
   },
 };
+
+/**
+ * A positive number of seconds, or the default. An empty or odd value used to
+ * become NaN: a timer firing every millisecond, and a grace period that never
+ * ended.
+ */
+export function seconds(raw: string | undefined, fallback: number): number {
+  const n = Number.parseInt(raw ?? '', 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
