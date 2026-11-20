@@ -1,0 +1,133 @@
+/* The path of a new list. Tokens only, px only. */
+.path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 28px;
+  margin: 18px 0 16px;
+  padding: 14px 18px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-card);
+  background: var(--cl-surface);
+}
+
+.path__steps {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.path__step {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--cl-ink-3);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  /* The line that joins a step to the next one. */
+  &:not(:last-child)::after {
+    content: '';
+    width: 34px;
+    height: 2px;
+    margin: 0 12px;
+    border-radius: 2px;
+    background: var(--cl-line);
+  }
+
+  &.is-done {
+    color: var(--cl-ink-2);
+
+    &::after {
+      background: var(--cl-brand);
+    }
+
+    .path__dot {
+      border-color: var(--cl-brand-strong);
+      background: var(--cl-brand-strong);
+      color: var(--cl-surface);
+    }
+  }
+
+  &.is-current {
+    color: var(--cl-ink);
+
+    .path__dot {
+      border-color: var(--cl-brand-strong);
+      background: var(--cl-brand-soft);
+      color: var(--cl-brand-deeper);
+      box-shadow: 0 0 0 4px var(--cl-brand-ring);
+    }
+  }
+}
+
+.path__dot {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--cl-line);
+  border-radius: 50%;
+  background: var(--cl-surface);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+
+  .pi {
+    font-size: 11px;
+    font-weight: 700;
+  }
+}
+
+.path__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.path__now {
+  display: flex;
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.path__text {
+  flex: 1 1 240px;
+  margin: 0;
+  color: var(--cl-ink-2);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+  .path {
+    padding: 14px;
+  }
+
+  .path__step {
+    font-size: 13px;
+
+    &:not(:last-child)::after {
+      width: 14px;
+      margin: 0 8px;
+    }
+
+    /* On a phone only the current step keeps its name; the others are their dot. */
+    &:not(.is-current) .path__label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+  }
+}

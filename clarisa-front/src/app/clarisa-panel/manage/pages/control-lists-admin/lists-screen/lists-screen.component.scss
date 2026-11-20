@@ -1,0 +1,16 @@
+/* Long names and descriptions in the lists table. Tokens only, px only. */
+@use '../components/table-tablet';
+
+/* 768 px of declared columns + 182 px for the name = 950 px (the room beside the sidebar at 1280 px): the name never collapses, the table scrolls instead. */
+@include table-tablet.wide-table(950px);
+
+/* The full text stays in the `title`; the row keeps its height however long the description is. */
+.ls-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  /* ink-3 on the hovered row (surface-2) is about 3.7:1: this text carries information. */
+  color: var(--cl-ink-2);
+}

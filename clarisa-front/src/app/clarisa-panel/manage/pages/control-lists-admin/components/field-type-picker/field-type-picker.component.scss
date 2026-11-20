@@ -1,0 +1,116 @@
+/* The field type picker. Tokens only, px only. */
+.types {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 8px;
+}
+
+.types__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 6px 10px 6px 6px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface);
+  color: var(--cl-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background-color 0.12s ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--cl-brand);
+    background: var(--cl-surface-2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cl-brand);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  &.is-on {
+    border-color: var(--cl-brand-strong);
+    background: var(--cl-brand-soft);
+    box-shadow: inset 0 0 0 1px var(--cl-brand-strong);
+
+    .types__icon {
+      background: var(--cl-brand-strong);
+      color: var(--cl-surface);
+    }
+  }
+}
+
+.types__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--cl-surface-2);
+  color: var(--cl-ink-2);
+
+  .pi {
+    font-size: 14px;
+  }
+}
+
+.types__text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 1px;
+
+  strong {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  small {
+    overflow: hidden;
+    color: var(--cl-ink-2);
+    font-size: 12px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.types__check {
+  flex: none;
+  color: var(--cl-brand-deeper);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.types__empty {
+  margin: 6px 0 0;
+  color: var(--cl-error);
+  font-size: 13px;
+}
+
+/* On a phone the two columns stay; the example line gives its room to the name. */
+@media (max-width: 520px) {
+  .types__item {
+    gap: 8px;
+  }
+
+  .types__icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .types__text small {
+    display: none;
+  }
+}

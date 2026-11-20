@@ -105,6 +105,14 @@ export const MANAGE_ROUTES: Routes = [
           ),
         canActivate: guarded,
       },
+      {
+        path: 'control-lists',
+        loadChildren: () =>
+          import('./pages/control-lists-admin/control-lists-admin.module').then(
+            (m) => m.ControlListsAdminModule
+          ),
+        canActivate: guarded,
+      },
       ...conceptsAdminRoutes(MELIAF_TAXONOMY_HIDDEN),
     ],
   },

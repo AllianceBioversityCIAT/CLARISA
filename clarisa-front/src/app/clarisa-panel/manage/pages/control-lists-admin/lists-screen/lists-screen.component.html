@@ -1,0 +1,112 @@
+<header class="admin-page">
+  <div class="admin-page__head">
+    <span class="admin-page__eyebrow">Manage</span>
+    <h1 class="admin-page__title">Control lists</h1>
+    <p class="admin-page__hint">
+      Lists an administrative team creates and publishes without a deploy. Each published list gets a public read address.
+    </p>
+  </div>
+  <div class="admin-page__aside" *ngIf="state === 'ready'">
+    <button pButton type="button" label="New list" icon="pi pi-plus" class="btn-brand" (click)="openNew()"></button>
+  </div>
+</header>
+
+<section class="cl-state" *ngIf="state === 'loading'" role="status">
+  <i class="pi pi-spin pi-spinner cl-state__icon" aria-hidden="true"></i>
+  <h2 class="cl-state__title">Loading control lists…</h2>
+</section>
+
+<section class="cl-state" *ngIf="state === 'off'">
+  <i class="pi pi-power-off cl-state__icon" aria-hidden="true"></i>
+  <h2 class="cl-state__title">Control lists are switched off in this environment.</h2>
+  <p class="cl-state__text">Nothing to manage here until they are switched on.</p>
+</section>
+
+<section class="cl-state" *ngIf="state === 'forbidden'">
+  <i class="pi pi-lock cl-state__icon" aria-hidden="true"></i>
+  <h2 class="cl-state__title">Your roles do not include control lists.</h2>
+  <p class="cl-state__text">Ask a Super admin to add the role that owns them.</p>
+</section>
+
+<section class="cl-state" *ngIf="state === 'error'" role="alert">
+  <i class="pi pi-exclamation-circle cl-state__icon" aria-hidden="true"></i>
+  <h2 class="cl-state__title">The lists could not be loaded</h2>
+  <p class="cl-state__text">{{ errorMessage }}</p>
+  <button pButton type="button" label="Retry" icon="pi pi-refresh" class="btn-ghost" (click)="load()"></button>
+</section>
+
+<section class="cl-state" *ngIf="state === 'ready' && !rows.length">
+  <i class="pi pi-list cl-state__icon" aria-hidden="true"></i>
+  <h2 class="cl-state__title">No control lists yet</h2>
+  <p class="cl-state__text">Create a list, define its fields, publish it, and it gets a public address any system can read.</p>
+  <button pButton type="button" label="New list" icon="pi pi-plus" class="btn-brand" (click)="openNew()"></button>
+</section>
+
+<section class="panel-card" *ngIf="state === 'ready' && rows.length">
+  <p-table
+    [value]="rows"
+    [rowTrackBy]="trackRow"
+    dataKey="id"
+    sortField="name"
+    [sortOrder]="1"
+    [rows]="10"
+    [paginator]="true"
+    [rowsPerPageOptions]="rowsPerPage"
+    styleClass="p-datatable-sm admin-table"
+    responsiveLayout="scroll">
+    <ng-template pTemplate="header">
+      <tr>
+        <th scope="col" class="cl-flex-col" pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="code" style="width: 130px">Code <p-sortIcon field="code"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="status" style="width: 118px">Status <p-sortIcon field="status"></p-sortIcon></th>
+        <th scope="col" style="width: 90px">Owner</th>
+        <th scope="col" style="width: 70px">Fields</th>
+        <th scope="col" style="width: 80px">Records</th>
+        <th scope="col" style="width: 95px">Linked lists</th>
+        <th scope="col" pSortableColumn="updated_at" style="width: 105px">Updated <p-sortIcon field="updated_at"></p-sortIcon></th>
+        <th scope="col" class="cl-sticky-end" style="width: 80px">Actions</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-row>
+      <tr class="cl-row" (click)="open(row)" (keydown.enter)="open(row)">
+        <td data-card-title data-label="Name" class="cl-flex-col">
+          <a class="cell-link cell-primary" [routerLink]="[url, row.id]" (click)="$event.stopPropagation()">{{ row.name }}</a>
+          <span class="cell-sub ls-desc" *ngIf="row.description" [attr.title]="row.description">{{ row.description }}</span>
+        </td>
+        <td data-label="Code">
+          <code class="cl-mono">{{ row.code }}</code>
+        </td>
+        <td data-label="Status">
+          <span class="cl-chip" [ngClass]="'cl-chip--' + row.status"
+            ><span class="cl-chip__dot" aria-hidden="true"></span>{{ statusLabel(row) }}</span
+          >
+        </td>
+        <td data-label="Owner">{{ owner(row) }}</td>
+        <td data-label="Fields" class="cell-num">{{ row.counts === undefined ? '…' : row.counts ? row.counts.fields : '—' }}</td>
+        <td data-label="Records" class="cell-num">{{ row.counts === undefined ? '…' : row.counts ? row.counts.records : '—' }}</td>
+        <td data-label="Linked lists" class="cell-num">{{ row.counts === undefined ? '…' : row.counts ? row.counts.relations : '—' }}</td>
+        <td data-label="Updated" class="cell-num">{{ shortDate(row.updated_at) }}</td>
+        <td class="cl-sticky-end">
+          <div class="row-actions">
+            <button
+              pButton
+              type="button"
+              label="Open"
+              class="p-button-text p-button-sm"
+              [attr.aria-label]="'Open ' + row.name"
+              (click)="open(row); $event.stopPropagation()"></button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</section>
+
+<app-cl-new-list-dialog
+  [(visible)]="newVisible"
+  [owners]="owners"
+  [ownersFailed]="ownersFailed"
+  [ownersLoading]="ownersLoading"
+  (retryOwners)="retryOwners()"
+  (done)="onCreated($event)"></app-cl-new-list-dialog>

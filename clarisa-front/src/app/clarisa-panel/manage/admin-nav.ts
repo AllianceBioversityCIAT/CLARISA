@@ -100,7 +100,14 @@ const ALL_ADMIN_GROUPS: AdminGroup[] = [
         icon: 'fa fa-book',
         access: ['/api/glossary/admin/terms']
       },
-      MELIAF_TAXONOMY_LINK
+      MELIAF_TAXONOMY_LINK,
+      {
+        label: 'Control lists',
+        route: '/clarisa-panel/manage/control-lists',
+        icon: 'fa fa-list-alt',
+        // Design routes (`CL_DESIGNER`); the Super admin's `/api/control-lists/admin` is a substring of it.
+        access: ['/api/control-lists/admin/schema/lists']
+      }
     ]
   },
   {

@@ -1,0 +1,175 @@
+<header class="panel-head">
+  <div class="panel-head__text">
+    <h2 class="panel-head__title">Records</h2>
+    <p class="panel-head__desc">Deactivated records leave the public list but stay readable by their id.</p>
+  </div>
+  <div class="rt-actions" *ngIf="published">
+    <button
+      pButton
+      type="button"
+      label="Add several"
+      aria-label="Add several records"
+      icon="pi pi-list"
+      class="btn-ghost"
+      [disabled]="!canCreate"
+      (click)="openBulk()"></button>
+    <button pButton type="button" label="New record" icon="pi pi-plus" class="btn-brand" [disabled]="!canCreate" (click)="openCreate()"></button>
+  </div>
+</header>
+
+<section class="cl-state" *ngIf="!published">
+  <i class="pi pi-lock cl-state__icon" aria-hidden="true"></i>
+  <h3 class="cl-state__title">Publish the list to start adding records.</h3>
+  <p class="cl-state__text">Its table is created when you publish it.</p>
+</section>
+
+<section class="cl-state" *ngIf="published && error" role="alert">
+  <i class="pi pi-exclamation-circle cl-state__icon" aria-hidden="true"></i>
+  <h3 class="cl-state__title">The records could not be loaded</h3>
+  <p class="cl-state__text">{{ error }}</p>
+  <button pButton type="button" label="Retry" icon="pi pi-refresh" class="btn-ghost" (click)="load()"></button>
+</section>
+
+<section class="panel-card" *ngIf="published && !error">
+  <p-table
+    [value]="rows"
+    [loading]="loading"
+    [rowTrackBy]="trackRecord"
+    dataKey="id"
+    [rows]="10"
+    [paginator]="true"
+    [rowsPerPageOptions]="rowsPerPage"
+    styleClass="p-datatable-sm admin-table"
+    [style]="tableMin"
+    responsiveLayout="scroll">
+    <ng-template pTemplate="caption">
+      <div class="admin-table-toolbar">
+        <span class="p-input-icon-left">
+          <i class="pi pi-search" aria-hidden="true"></i>
+          <input pInputText type="text" placeholder="Search records" aria-label="Search records" [(ngModel)]="search" (ngModelChange)="recompute()" />
+        </span>
+        <nav class="admin-tabs" role="group" aria-label="Status filter">
+          <button
+            *ngFor="let option of filters"
+            type="button"
+            class="admin-tabs__item"
+            [class.is-active]="filter === option.id"
+            [attr.aria-pressed]="filter === option.id"
+            (click)="setFilter(option.id)">
+            <span>{{ option.label }}</span>
+            <span class="admin-tabs__count">{{ counts[option.id] }}</span>
+          </button>
+        </nav>
+        <span class="admin-table-toolbar__count">{{ rows.length }} shown</span>
+      </div>
+    </ng-template>
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th scope="col" pSortableColumn="id" style="width: 70px">ID <p-sortIcon field="id"></p-sortIcon></th>
+        <th scope="col" class="cl-flex-col" *ngFor="let f of fields" [pSortableColumn]="f.code">
+          {{ f.label }} <p-sortIcon [field]="f.code"></p-sortIcon>
+        </th>
+        <th scope="col" style="width: 118px">Status</th>
+        <th scope="col" class="cl-sticky-end" style="width: 100px">Actions</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-row>
+      <tr [class.row-inactive]="!isActive(row)">
+        <td data-label="ID" class="cell-num">#{{ row.id }}</td>
+        <td class="cl-flex-col" *ngFor="let f of fields" [attr.data-label]="f.label">
+          <span [class.cell-empty]="display(f, row) === '—'" class="cell-clamp" [title]="display(f, row)">{{ display(f, row) }}</span>
+        </td>
+        <td data-label="Status">
+          <span class="cl-chip" [ngClass]="isActive(row) ? 'cl-chip--active' : 'cl-chip--inactive'"
+            ><span class="cl-chip__dot" aria-hidden="true"></span>{{ isActive(row) ? 'Active' : 'Inactive' }}</span
+          >
+        </td>
+        <td class="cl-sticky-end">
+          <div class="row-actions">
+            <button
+              pButton
+              type="button"
+              icon="pi pi-pencil"
+              class="p-button-text p-button-sm"
+              pTooltip="Edit"
+              [attr.aria-label]="'Edit record ' + row.id"
+              (click)="openEdit(row)"></button>
+            <button
+              *ngIf="isActive(row)"
+              pButton
+              type="button"
+              icon="pi pi-ban"
+              class="p-button-text p-button-sm p-button-warning"
+              pTooltip="Deactivate"
+              [attr.aria-label]="'Deactivate record ' + row.id"
+              (click)="openStatus(row, 'deactivate')"></button>
+            <button
+              *ngIf="!isActive(row)"
+              pButton
+              type="button"
+              icon="pi pi-replay"
+              class="p-button-text p-button-sm"
+              pTooltip="Reactivate"
+              [attr.aria-label]="'Reactivate record ' + row.id"
+              (click)="openStatus(row, 'reactivate')"></button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td [attr.colspan]="fields.length + 3">
+          <div class="cl-empty-row">
+            <ng-container *ngIf="records.length === 0; else filtered">
+              <i class="pi pi-inbox" aria-hidden="true"></i>
+              <strong>No records yet</strong>
+              <span>Add the first record of this list.</span>
+              <div class="rt-actions">
+                <button
+                  pButton
+                  type="button"
+                  label="Add several"
+                  aria-label="Add several records"
+                  icon="pi pi-list"
+                  class="btn-ghost"
+                  (click)="openBulk()"></button>
+                <button pButton type="button" label="New record" icon="pi pi-plus" class="btn-brand" (click)="openCreate()"></button>
+              </div>
+            </ng-container>
+            <ng-template #filtered>
+              <strong>No records match</strong>
+              <span>Change the status filter or the search to see others.</span>
+            </ng-template>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</section>
+
+<app-cl-record-dialog
+  [(visible)]="recordVisible"
+  [code]="code"
+  [fields]="fields"
+  [record]="target"
+  [related]="related"
+  (done)="onWritten('saved')"
+  (unsettled)="onWritten('unsettled')"></app-cl-record-dialog>
+<app-cl-records-bulk-dialog
+  [(visible)]="bulkVisible"
+  [code]="code"
+  [fields]="fields"
+  [related]="related"
+  [existing]="records"
+  (done)="onWritten('saved')"
+  (unsettled)="onWritten('unsettled')"></app-cl-records-bulk-dialog>
+<app-cl-record-status-dialog
+  [(visible)]="statusVisible"
+  [code]="code"
+  [record]="target"
+  [mode]="statusMode"
+  (done)="onWritten('saved')"
+  (unsettled)="onWritten('unsettled')"></app-cl-record-status-dialog>
