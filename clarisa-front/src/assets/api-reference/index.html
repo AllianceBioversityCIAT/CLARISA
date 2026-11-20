@@ -835,12 +835,30 @@ const EMBEDDED = (() => { try { return window.parent !== window && window.parent
 
 /* «Back to the site»: inside the shell the jump goes through the Angular
    router (no full reload, no CloudFront 404 on the deep link); standalone the
-   plain href with `target="_top"` does the job. */
+   plain href with `target="_top"` does the job. The shell confirms it got the
+   request; without that confirmation (a shell that does not handle it) the
+   top page is loaded the plain way, so the link is never dead. */
+const LEAVE_ACK_TIMEOUT_MS = 800;
+let pendingLeave = null;
+
+window.addEventListener('message', event => {
+  if (event.origin !== window.location.origin || event.source !== window.parent) return;
+  if (event.data?.type === 'clarisa-docs:leave-ack' && pendingLeave) {
+    clearTimeout(pendingLeave);
+    pendingLeave = null;
+  }
+});
+
 function leaveTo(url, event) {
   if (!EMBEDDED) return true;
   try {
     parent.postMessage({ type: 'clarisa-docs:leave', url }, window.location.origin);
     if (event) event.preventDefault();
+    clearTimeout(pendingLeave);
+    pendingLeave = setTimeout(() => {
+      pendingLeave = null;
+      window.top.location.assign(url);
+    }, LEAVE_ACK_TIMEOUT_MS);
     return false;
   } catch { return true; }
 }
