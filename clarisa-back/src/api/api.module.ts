@@ -89,6 +89,7 @@ import { ProjectModule } from './project/project.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { GlobalConceptsModule } from './global-concepts/global-concepts.module';
 import { AccessAdminModule } from './access-admin/access-admin.module';
+import { ControlListsModule } from './control-lists/control-lists.module';
 
 @Module({
   controllers: [ApiController],
@@ -180,6 +181,7 @@ import { AccessAdminModule } from './access-admin/access-admin.module';
     MetricsModule,
     GlobalConceptsModule,
     AccessAdminModule,
+    ControlListsModule,
   ],
 })
 export class ApiModule {}
