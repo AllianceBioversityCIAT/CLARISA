@@ -20,14 +20,14 @@
         >
       </label>
 
-      <label class="cl-switch" for="cl-fr-uniq">
+      <label class="cl-switch" [class.is-unavailable]="longText" for="cl-fr-uniq">
         <p-inputSwitch inputId="cl-fr-uniq" name="unique" [(ngModel)]="isUnique" [disabled]="saving || longText"></p-inputSwitch>
         <span
           ><strong>Unique</strong><small>{{ longText ? hints.longText : hints.unique }}</small></span
         >
       </label>
 
-      <label class="cl-switch" for="cl-fr-idx">
+      <label class="cl-switch" [class.is-unavailable]="longText" for="cl-fr-idx">
         <p-inputSwitch
           inputId="cl-fr-idx"
           name="indexed"

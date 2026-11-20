@@ -135,13 +135,13 @@ export class RecordsBulkDialogComponent extends WriteDialogBase<{ created: numbe
   }
 
   /**
-   * The columns that hold a problem, in column order and each once (row length too): a
+   * The columns that hold a problem, in column order and each once (rows with extra columns too): a
    * problem in a column scrolled out of sight is at least announced under the summary.
    */
   get problemColumns(): string {
     if (!this.parsed.withProblems || this.tooBig) return '';
     const names = this.fields.filter((_, c) => this.parsed.rows.some(r => !!r.cells[c]?.problem)).map(f => f.label);
-    if (this.parsed.rows.some(r => !!r.problem)) names.push('row length');
+    if (this.parsed.rows.some(r => !!r.problem)) names.push('extra columns');
     return names.length ? `Problems in: ${names.join(', ')}.` : '';
   }
 

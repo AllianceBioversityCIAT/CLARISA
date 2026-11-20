@@ -354,10 +354,10 @@ describe('RecordsBulkDialogComponent', () => {
     expect(f.componentInstance.visible).toBe(true);
   });
 
-  it('names the columns that hold problems, in column order and once each, plus the row length', async () => {
+  it('names the columns that hold problems, in column order and once each, plus rows with extra columns', async () => {
     const f = await draw();
     await paste(f, 'Maize\tCerial\n\tRoot\nRice\tCerial\nBeans\tRoot\textra');
-    expect(text(f)).toContain('Problems in: Name, Type, row length.');
+    expect(text(f)).toContain('Problems in: Name, Type, extra columns.');
     await paste(f, 'Maize\tCerial');
     expect(text(f)).toContain('Problems in: Type.');
     await paste(f, 'Maize\tCereal');
