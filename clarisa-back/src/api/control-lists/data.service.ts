@@ -5,13 +5,14 @@ import {
 } from '@nestjs/common';
 import {
   FieldRow,
+  LIMITS,
   ListRow,
   assertListTable,
   quoteSchema,
 } from './engine/engine.service';
-import { coerceValue, formatValue } from './engine/field-types';
+import { TEXT_MAX, coerceValue, formatValue } from './engine/field-types';
 import { LazyDb } from './engine/lazy-db';
-import { ListsService } from './lists.service';
+import { ListsService, collationKey, repeatedPair } from './lists.service';
 
 /**
  * Records of a published list and the public read endpoint.
@@ -35,6 +36,40 @@ import { ListsService } from './lists.service';
 const MAX_EXPAND = 5;
 // `version` is read by CLARISA's version extractor on every route.
 const CONTROL_PARAMS = new Set(['show', 'expand', 'version']);
+/**
+ * Row n stores `<request_id>:<n>` in `request_id` (VARCHAR(64)). No `:` in the
+ * id itself, so the rows of one request are never counted as another's.
+ */
+const BULK_REQUEST_ID_RE = /^[A-Za-z0-9_-]{1,56}$/;
+const DUP_KEY_RE =
+  /^Duplicate entry '([\s\S]*)' for key '(?:[^']*\.)?uq_cl_(\d+)_(\d+)'/;
+
+/** What makes two values of a unique field the same for the table. */
+function repeatKey(f: FieldRow, v: string | number): string {
+  const s = String(v);
+  // The table's collation ignores case and accents.
+  if (TEXT_MAX[f.type] !== undefined) return collationKey(s);
+  if (f.type === 'decimal') {
+    let d = s.replace('-', '').replace(/^0+(?=\d)/, '');
+    if (d.includes('.')) d = d.replace(/\.?0+$/, '');
+    return s.startsWith('-') && d !== '0' ? '-' + d : d;
+  }
+  if (f.type === 'datetime' && s.length === 16) return s + ':00';
+  return s;
+}
+
+/**
+ * The value a record sends for a field. Own keys only: a plain object also
+ * answers `constructor`, and a code is never allowed to read what the request
+ * did not send (the code itself is reserved too, see `RESERVED`).
+ */
+function sent(body: unknown, code: string): unknown {
+  return body !== null &&
+    typeof body === 'object' &&
+    Object.prototype.hasOwnProperty.call(body, code)
+    ? (body as Record<string, unknown>)[code]
+    : undefined;
+}
 
 export class DataService {
   constructor(
@@ -235,10 +270,22 @@ export class DataService {
     return this.row(fields, rows[0]);
   }
 
-  private translate(e: any): never {
+  /** `fields`: the published fields of the list, to name the one a repeat hit. */
+  private translate(e: any, fields: FieldRow[] = []): never {
     const code = e?.driverError?.code ?? e?.code ?? '';
     const msg = String(e?.message ?? '');
     if (code === 'ER_DUP_ENTRY' || /Duplicate entry/i.test(msg)) {
+      const m = DUP_KEY_RE.exec(msg);
+      const f =
+        m &&
+        fields.find(
+          (x) =>
+            Number(x.list_id) === Number(m[2]) && Number(x.id) === Number(m[3]),
+        );
+      if (f)
+        throw new ConflictException(
+          `"${m[1]}" already exists in "${f.label}", which does not admit repeats.`,
+        );
       throw new ConflictException(
         'A record with that value already exists in a field that does not admit repeats.',
       );
@@ -277,6 +324,9 @@ export class DataService {
    */
   async create(list: ListRow, body: Record<string, unknown>, userId: number) {
     this.assertPublished(list);
+    // `<id>:<n>` is how the rows of an "add several" request are stored.
+    if (typeof body?.request_id === 'string' && body.request_id.includes(':'))
+      throw new BadRequestException('The operation id is not valid.');
     const fields = await this.publishedFields(list.id);
     const requestId =
       typeof body?.request_id === 'string' &&
@@ -292,7 +342,7 @@ export class DataService {
     const cols: string[] = [];
     const params: unknown[] = [];
     for (const f of fields) {
-      const value = coerceValue(f.type, body?.[f.code], f.label);
+      const value = coerceValue(f.type, sent(body, f.code), f.label);
       if (value === null && f.is_required)
         throw new BadRequestException(`"${f.label}" is required.`);
       cols.push(this.col(f.column_name));
@@ -319,7 +369,7 @@ export class DataService {
         const existing = await this.byRequestId(list, requestId);
         if (existing) return existing;
       }
-      this.translate(e);
+      this.translate(e, fields);
     }
   }
 
@@ -344,7 +394,7 @@ export class DataService {
     const params: unknown[] = [];
     for (const body of rows) {
       for (const f of fields) {
-        const value = coerceValue(f.type, body?.[f.code], f.label);
+        const value = coerceValue(f.type, sent(body, f.code), f.label);
         if (value === null && f.is_required)
           throw new BadRequestException(`"${f.label}" is required.`);
         params.push(value);
@@ -363,9 +413,209 @@ export class DataService {
     }
   }
 
+  /**
+   * Several records from the panel in ONE `INSERT`: all of them or none. Row n
+   * stores `<request_id>:<n>`, so the same request again (or two at once)
+   * answers the first one's count instead of writing twins.
+   */
+  async createBulk(
+    list: ListRow,
+    body: Record<string, unknown>,
+    userId: number,
+  ): Promise<{ created: number }> {
+    this.assertPublished(list);
+    const rid = body?.request_id;
+    if (rid === undefined || rid === null || rid === '')
+      throw new BadRequestException(
+        'The operation id is required to add several records.',
+      );
+    if (typeof rid !== 'string' || !BULK_REQUEST_ID_RE.test(rid))
+      throw new BadRequestException('The operation id is not valid.');
+    const done = await this.bulkCount(list, rid);
+    if (done) return this.sameBulk(done, body.records);
+
+    const records = body.records;
+    if (
+      !Array.isArray(records) ||
+      records.length < 1 ||
+      records.length > LIMITS.recordsPerBulk
+    )
+      throw new BadRequestException(
+        `Send between 1 and ${LIMITS.recordsPerBulk} records.`,
+      );
+    const fields = await this.publishedFields(list.id);
+    if (!fields.length)
+      throw new BadRequestException('This list has no published fields yet.');
+    const codes = new Set(fields.map((f) => f.code));
+    const justification = this.justification(body);
+
+    let bytes = 0;
+    const rows = records.map((rec, i) => {
+      const n = i + 1;
+      if (typeof rec !== 'object' || rec === null || Array.isArray(rec))
+        throw new BadRequestException(
+          `Row ${n}: a record must be an object with one value per field.`,
+        );
+      for (const key of Object.keys(rec))
+        if (!codes.has(key))
+          throw new BadRequestException(
+            `Row ${n}: "${key}" is not a field of this list.`,
+          );
+      return fields.map((f) => {
+        let value: string | number | null;
+        try {
+          value = coerceValue(f.type, sent(rec, f.code), f.label);
+        } catch (e) {
+          if (e instanceof BadRequestException)
+            throw new BadRequestException(`Row ${n}: ${e.message}`);
+          throw e;
+        }
+        if (value === null && f.is_required)
+          throw new BadRequestException(`Row ${n}: "${f.label}" is required.`);
+        if (typeof value === 'string') {
+          bytes += Buffer.byteLength(value, 'utf8');
+          if (bytes > LIMITS.bulkBytes)
+            throw new BadRequestException(
+              `These records carry too much text for one request (the limit is ${LIMITS.bulkBytes / 1_000_000} MB). Add them in smaller groups.`,
+            );
+        }
+        return value;
+      });
+    });
+    this.assertNoRepeats(fields, rows);
+    await this.assertNoRepeatsAsStored(fields, rows);
+    await this.assertRelationsExist(fields, rows);
+
+    const cols = [
+      ...fields.map((f) => this.col(f.column_name)),
+      '`created_by`',
+      '`modification_justification`',
+      '`request_id`',
+    ];
+    const params: unknown[] = [];
+    rows.forEach((values, i) =>
+      params.push(...values, userId, justification, `${rid}:${i + 1}`),
+    );
+    const one = `(${cols.map(() => '?').join(', ')})`;
+    try {
+      await this.data.query(
+        `INSERT INTO ${this.table(list)} (${cols.join(', ')}) VALUES ${rows.map(() => one).join(', ')}`,
+        params,
+      );
+      return { created: rows.length };
+    } catch (e) {
+      // Two identical requests at once: the loser answers the winner's count.
+      const won = await this.bulkCount(list, rid);
+      if (won) return this.sameBulk(won, records);
+      this.translate(e, fields);
+    }
+  }
+
+  /**
+   * The answer to a bulk request whose id already wrote `written` records.
+   * The same request again gets its first result. Another number of records
+   * under that id is another request (a form edited after a failed attempt
+   * and sent again): answering "created" would hide that none of it was
+   * written (review 2026-11-20).
+   */
+  private sameBulk(written: number, records: unknown): { created: number } {
+    if (Array.isArray(records) && records.length !== written)
+      throw new ConflictException(
+        'That operation id was already used for other records. Start again from the screen.',
+      );
+    return { created: written };
+  }
+
+  /** Records a bulk request already wrote: 0 when it never landed. */
+  private async bulkCount(list: ListRow, rid: string): Promise<number> {
+    const first = await this.data.query(
+      `SELECT \`id\` FROM ${this.table(list)} WHERE \`request_id\` = ? COLLATE utf8mb4_bin LIMIT 1`,
+      [`${rid}:1`],
+    );
+    if (!first.length) return 0;
+    // Exact prefix: `%` or `_` in the id are not wildcards here.
+    const prefix = `${rid}:`;
+    const r = await this.data.query(
+      `SELECT COUNT(*) AS n FROM ${this.table(list)} WHERE LEFT(\`request_id\`, CHAR_LENGTH(?)) = ? COLLATE utf8mb4_bin`,
+      [prefix, prefix],
+    );
+    return Number(r[0].n);
+  }
+
+  /** Repeats inside the request on unique fields; empty values never repeat. */
+  private assertNoRepeats(
+    fields: FieldRow[],
+    rows: (string | number | null)[][],
+  ): void {
+    fields.forEach((f, c) => {
+      if (!f.is_unique) return;
+      const seen = new Map<string, number>();
+      rows.forEach((values, i) => {
+        const v = values[c];
+        if (v === null) return;
+        const key = repeatKey(f, v);
+        const first = seen.get(key);
+        if (first !== undefined)
+          throw new BadRequestException(
+            `Rows ${first + 1} and ${i + 1} repeat "${rows[first][c]}" in "${f.label}", which does not admit repeats.`,
+          );
+        seen.set(key, i);
+      });
+    });
+  }
+
+  /**
+   * The same check with the table's own collation, for text: it also reads
+   * "ß" as "ss" or "Æ" as "AE". Without it MySQL refused the INSERT saying the
+   * value "already exists", when it only repeats inside the request.
+   */
+  private async assertNoRepeatsAsStored(
+    fields: FieldRow[],
+    rows: (string | number | null)[][],
+  ): Promise<void> {
+    for (const [c, f] of fields.entries()) {
+      if (!f.is_unique || TEXT_MAX[f.type] === undefined) continue;
+      const at: number[] = [];
+      const values: string[] = [];
+      rows.forEach((r, i) => {
+        if (r[c] === null) return;
+        at.push(i);
+        values.push(String(r[c]));
+      });
+      const pair = await repeatedPair((q, p) => this.data.query(q, p), values);
+      if (pair)
+        throw new BadRequestException(
+          `Rows ${at[pair[0]] + 1} and ${at[pair[1]] + 1} repeat "${values[pair[0]]}" in "${f.label}", which does not admit repeats.`,
+        );
+    }
+  }
+
+  /** Every related id exists in its list: one query per relation field. */
+  private async assertRelationsExist(
+    fields: FieldRow[],
+    rows: (string | number | null)[][],
+  ): Promise<void> {
+    for (const [c, f] of fields.entries()) {
+      if (f.type !== 'relation') continue;
+      const ids = [...new Set(rows.map((r) => r[c]).filter((v) => v !== null))];
+      if (!ids.length) continue;
+      const target = await this.lists.byId(Number(f.relation_list_id));
+      const found: { id: number }[] = await this.data.query(
+        `SELECT \`id\` FROM ${this.table(target)} WHERE \`id\` IN (${ids.map(() => '?').join(',')})`,
+        ids,
+      );
+      const have = new Set(found.map((r) => Number(r.id)));
+      const n = rows.findIndex((r) => r[c] !== null && !have.has(Number(r[c])));
+      if (n >= 0)
+        throw new BadRequestException(
+          `Row ${n + 1}: there is no record ${rows[n][c]} in "${target.name}".`,
+        );
+    }
+  }
+
   private async byRequestId(list: ListRow, requestId: string) {
     const rows = await this.data.query(
-      `SELECT \`id\` FROM ${this.table(list)} WHERE \`request_id\` = ? LIMIT 1`,
+      `SELECT \`id\` FROM ${this.table(list)} WHERE \`request_id\` = ? COLLATE utf8mb4_bin LIMIT 1`,
       [requestId],
     );
     return rows.length ? this.oneOf(list, Number(rows[0].id)) : null;
@@ -382,8 +632,9 @@ export class DataService {
     const sets: string[] = [];
     const params: unknown[] = [];
     for (const f of fields) {
-      if (!body || !(f.code in body)) continue;
-      const value = coerceValue(f.type, body[f.code], f.label);
+      const raw = sent(body, f.code);
+      if (raw === undefined) continue;
+      const value = coerceValue(f.type, raw, f.label);
       if (value === null && f.is_required)
         throw new BadRequestException(`"${f.label}" is required.`);
       sets.push(`${this.col(f.column_name)} = ?`);
@@ -404,7 +655,7 @@ export class DataService {
         params,
       );
     } catch (e) {
-      this.translate(e);
+      this.translate(e, fields);
     }
     if (!Number(r?.affectedRows))
       throw new NotFoundException(

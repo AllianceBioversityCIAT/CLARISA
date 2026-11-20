@@ -152,6 +152,23 @@ describe('control lists · field types', () => {
     });
   });
 
+  describe('long text', () => {
+    it('is measured in bytes, the way the column holds it', () => {
+      // 25,000 CJK characters: within the 65,000-character limit, 75,000 bytes.
+      expect(() =>
+        coerceValue('long_text', '字'.repeat(25_000), 'Note'),
+      ).toThrow(
+        /"Note" is too long: .* needs 75000 bytes of the 65535 a long text holds\./,
+      );
+      expect(
+        coerceValue('long_text', '字'.repeat(20_000), 'Note'),
+      ).toHaveLength(20_000);
+      expect(() =>
+        coerceValue('long_text', 'n'.repeat(65_001), 'Note'),
+      ).toThrow(/65000 characters at most/);
+    });
+  });
+
   describe('codes', () => {
     it('refuses system columns, reserved words and query parameters as field codes', () => {
       for (const bad of [
@@ -168,6 +185,16 @@ describe('control lists · field types', () => {
         expect(() => assertFieldCode(bad)).toThrow(BadRequestException);
       }
       expect(() => assertFieldCode('tipo_suelo')).not.toThrow();
+    });
+
+    it('refuses the one name every JavaScript object already answers to', () => {
+      // A record that did not send `constructor` would read Object's own: the
+      // text of a function ended up stored in the field.
+      expect(() => assertFieldCode('constructor')).toThrow(/reserved word/);
+      expect(() => assertListCode('constructor')).toThrow(/reserved word/);
+      // Every other inherited property carries capitals or underscores, which no code can.
+      for (const name of Object.getOwnPropertyNames(Object.prototype))
+        expect(() => assertFieldCode(name)).toThrow(BadRequestException);
     });
 
     it('refuses list codes that would shadow a route', () => {

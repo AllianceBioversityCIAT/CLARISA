@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm';
 import {
   EngineService,
   FieldRow,
+  FieldRules,
   LIMITS,
   ListRow,
   SchemaLock,
@@ -68,9 +69,40 @@ export type RecordsWriter = (
 /** The collation every list table is created with (`buildCreateTable`). */
 const OPTIONS_COLLATION = 'utf8mb4_0900_ai_ci';
 
-/** A first, cheap look at repeats: case and accents do not count. The database has the last word (`assertOptionsDistinct`). */
-function collationKey(value: string): string {
-  return value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+/**
+ * A first, cheap look at repeats: case and Latin accents do not count. Only
+ * what the tables' collation surely reads as one value: the marks of other
+ * scripts (a Devanagari vowel sign) DO tell two values apart, and stripping
+ * them refused valid data (review 2026-11-20). The database has the last
+ * word (`repeatedPair`).
+ */
+export function collationKey(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+/**
+ * Asks MySQL which two of these values the list tables' collation reads as
+ * one ("ß" and "ss", "Æ" and "AE", invisible characters): their positions,
+ * or `null` when every value is its own.
+ */
+export async function repeatedPair(
+  run: (sql: string, params: unknown[]) => Promise<any[]>,
+  values: string[],
+): Promise<[number, number] | null> {
+  if (values.length < 2) return null;
+  const rows = await run(
+    `SELECT MIN(t.i) AS a, MAX(t.i) AS b
+       FROM (${values.map(() => 'SELECT ? AS v, ? AS i').join(' UNION ALL ')}) t
+      GROUP BY CONVERT(t.v USING utf8mb4) COLLATE ${OPTIONS_COLLATION}
+     HAVING COUNT(*) > 1
+      ORDER BY a
+      LIMIT 1`,
+    values.flatMap((v, i) => [v, i]),
+  );
+  return rows.length ? [Number(rows[0].a), Number(rows[0].b)] : null;
 }
 
 function text(
@@ -93,6 +125,14 @@ function text(
 
 function bool(v: unknown): boolean {
   return v === true || v === 1 || v === '1' || v === 'true';
+}
+
+/** A rule in a request: yes, no, or not named (`undefined`). Anything else is refused, never read as "no". */
+function flag(v: unknown, name: string): boolean | undefined {
+  if (v === undefined) return undefined;
+  if (v === true || v === 1 || v === '1' || v === 'true') return true;
+  if (v === false || v === 0 || v === '0' || v === 'false') return false;
+  throw new BadRequestException(`${name} must be true or false.`);
 }
 
 /**
@@ -126,9 +166,14 @@ export class ListsService {
     return list;
   }
 
+  /** Someone else's list answers word for word like one that does not exist. */
   async ownedByCode(code: string, actor: Actor): Promise<ListRow> {
     const list = await this.byCode(code);
-    this.assertOwner(list, actor);
+    try {
+      this.assertOwner(list, actor);
+    } catch {
+      throw new NotFoundException(`There is no list "${code}".`);
+    }
     return list;
   }
 
@@ -345,6 +390,41 @@ export class ListsService {
       [code, name, description, owner, `cl_${code}`, actor.userId],
     );
     return this.byCode(code);
+  }
+
+  /**
+   * Name and description of a list. Catalog only: no DDL, so no schema lock
+   * and no `cl_schema_ops` row. The same request twice leaves the same row.
+   */
+  async updateList(
+    id: number,
+    dto: Record<string, unknown>,
+    actor: Actor,
+  ): Promise<ListRow> {
+    await this.owned(id, actor);
+    if ('code' in dto || 'owner_role_id' in dto)
+      throw new BadRequestException(
+        'The code and the owner role of a list cannot be changed.',
+      );
+    const sets: string[] = [];
+    const params: unknown[] = [];
+    if ('name' in dto) {
+      sets.push('name = ?');
+      params.push(text(dto.name, 'The list name', MAX.name));
+    }
+    if ('description' in dto) {
+      sets.push('description = ?');
+      params.push(
+        text(dto.description, 'The description', MAX.description, false),
+      );
+    }
+    if (!sets.length)
+      throw new BadRequestException('There is nothing to change.');
+    await this.main.query(
+      `UPDATE cl_lists SET ${sets.join(', ')}, updated_by = ? WHERE id = ?`,
+      [...params, actor.userId, id],
+    );
+    return this.find(id);
   }
 
   /**
@@ -631,18 +711,10 @@ export class ListsService {
     lock: SchemaLock,
     options: string[],
   ): Promise<void> {
-    if (options.length < 2) return;
-    const rows: { a: number; b: number }[] = await lock.qr.query(
-      `SELECT MIN(t.i) AS a, MAX(t.i) AS b
-         FROM (${options.map(() => 'SELECT ? AS v, ? AS i').join(' UNION ALL ')}) t
-        GROUP BY CONVERT(t.v USING utf8mb4) COLLATE ${OPTIONS_COLLATION}
-       HAVING COUNT(*) > 1
-        LIMIT 1`,
-      options.flatMap((v, i) => [v, i]),
-    );
-    if (rows.length) {
+    const pair = await repeatedPair((q, p) => lock.qr.query(q, p), options);
+    if (pair) {
       throw new BadRequestException(
-        `The options "${options[Number(rows[0].a)]}" and "${options[Number(rows[0].b)]}" read as the same value. Change one of them.`,
+        `The options "${options[pair[0]]}" and "${options[pair[1]]}" read as the same value. Change one of them.`,
       );
     }
   }
@@ -1032,6 +1104,135 @@ export class ListsService {
           'UPDATE cl_fields SET type = ?, updated_by = ? WHERE id = ?',
           [type, actor.userId, fieldId],
         );
+      }
+      return this.fieldRaw(fieldId);
+    });
+  }
+
+  /**
+   * Required, unique and filterable of an existing field; only the rules the
+   * request names change. On a published field it is ONE statement
+   * (`buildSetRules`). What the data forbids is counted first, with the table
+   * locked: the refusal says how many records are in the way, and a server
+   * whose `sql_mode` is lax can never turn empty values into '' or 0 to make
+   * a column NOT NULL.
+   */
+  async setRules(
+    fieldId: number,
+    dto: Record<string, unknown>,
+    actor: Actor,
+    requestId?: string,
+  ) {
+    const asked = {
+      is_required: flag(dto.is_required, 'Required'),
+      is_unique: flag(dto.is_unique, 'Unique'),
+      is_indexed: flag(dto.is_indexed, 'Filterable'),
+    };
+    if (Object.values(asked).every((v) => v === undefined))
+      throw new BadRequestException('There is nothing to change.');
+
+    return this.engine.withSchemaLock(async (lock) => {
+      const { f, list } = await this.settledField(lock, fieldId, actor);
+      const now: FieldRules = {
+        is_required: Boolean(f.is_required),
+        is_unique: Boolean(f.is_unique),
+        is_indexed: Boolean(f.is_indexed),
+      };
+      const next: FieldRules = {
+        is_required: asked.is_required ?? now.is_required,
+        is_unique: asked.is_unique ?? now.is_unique,
+        is_indexed: asked.is_indexed ?? now.is_indexed,
+      };
+      assertIndexable({ type: f.type, ...next, label: f.label });
+      // The second tap, or a repeat after it was applied: nothing left to do.
+      if (
+        next.is_required === now.is_required &&
+        next.is_unique === now.is_unique &&
+        next.is_indexed === now.is_indexed
+      )
+        return f;
+
+      const counts = (r: FieldRules) =>
+        r.is_unique || r.is_indexed || f.type === 'relation';
+      if (!counts(now) && counts(next)) {
+        const others = (await this.fields(list.id)).filter(
+          (x) =>
+            x.id !== f.id &&
+            (x.is_unique || x.is_indexed || x.type === 'relation'),
+        ).length;
+        if (others >= LIMITS.indexesPerList) {
+          throw new BadRequestException(
+            `This list already has ${LIMITS.indexesPerList} filterable or unique fields, the maximum.`,
+          );
+        }
+      }
+
+      const plan =
+        list.status === 'published' && f.status === 'published'
+          ? this.engine.buildSetRules(list, f, next, actor.userId)
+          : null;
+      if (!plan) {
+        // No column yet, or the table stays as it is: the catalog alone.
+        await this.main.query(
+          'UPDATE cl_fields SET is_required = ?, is_unique = ?, is_indexed = ?, updated_by = ? WHERE id = ?',
+          [
+            next.is_required ? 1 : 0,
+            next.is_unique ? 1 : 0,
+            next.is_indexed ? 1 : 0,
+            actor.userId,
+            fieldId,
+          ],
+        );
+        return this.fieldRaw(fieldId);
+      }
+
+      // Record writes do not take the schema lock: the table itself is locked
+      // between the counts and the ALTER, like a type change.
+      try {
+        await lock.qr.query(
+          `LOCK TABLES ${this.engine.qualified(list.table_name)} WRITE`,
+        );
+      } catch {
+        throw new ConflictException(
+          'The list is busy right now (someone is using or changing it). Try again in a few seconds.',
+        );
+      }
+      try {
+        if (next.is_required && !now.is_required) {
+          const empty = await this.engine.countNull(
+            list.table_name,
+            f.column_name,
+            lock.qr,
+          );
+          if (empty > 0) {
+            throw new BadRequestException(
+              `${empty} record(s) have no value in "${f.label}" (inactive records count too). Fill them in first, then make the field required.`,
+            );
+          }
+        }
+        if (next.is_unique && !now.is_unique) {
+          const repeated = await this.engine.repeatedValues(
+            list.table_name,
+            f.column_name,
+            lock.qr,
+          );
+          if (repeated.count > 0) {
+            const sample = String(repeated.sample);
+            throw new BadRequestException(
+              `${repeated.count} value(s) appear more than once in "${f.label}", for example "${sample.length > 60 ? sample.slice(0, 60) + '…' : sample}" (inactive records count too). Change them first, then make the field unique.`,
+            );
+          }
+        }
+        await this.engine.runDdl(lock, {
+          kind: 'set_rules',
+          sql: plan.sql,
+          listId: list.id,
+          requestId,
+          userId: actor.userId,
+          intent: plan.intent,
+        });
+      } finally {
+        await lock.qr.query('UNLOCK TABLES').catch(() => undefined);
       }
       return this.fieldRaw(fieldId);
     });
