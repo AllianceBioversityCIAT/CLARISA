@@ -99,7 +99,7 @@ export class ApiReferenceComponent implements OnInit, OnDestroy {
 
     if (message?.type === 'clarisa-docs:leave') {
       if (LEAVE_TARGETS.includes(message.url)) {
-        this.router.navigateByUrl(message.url);
+        this.leave(message.url, event.source);
       }
       return;
     }
@@ -115,6 +115,30 @@ export class ApiReferenceComponent implements OnInit, OnDestroy {
       replaceUrl: true,
     });
   };
+
+  /**
+   * Leaves the documentation for a page of the site. The frame is told the
+   * request arrived (otherwise it falls back to a plain page load by itself),
+   * and if the router cannot get there — a lazy chunk that no longer exists
+   * after a deploy, a navigation that is cancelled — the page is loaded the
+   * plain way, so «Back to the site» is never a dead button.
+   */
+  private leave(url: string, source: MessageEventSource | null): void {
+    (source as Window | null)?.postMessage?.({ type: 'clarisa-docs:leave-ack' }, window.location.origin);
+
+    this.router
+      .navigateByUrl(url)
+      .then((navigated) => {
+        if (!navigated) {
+          this.leaveWithPageLoad(url);
+        }
+      })
+      .catch(() => this.leaveWithPageLoad(url));
+  }
+
+  private leaveWithPageLoad(url: string): void {
+    window.location.assign(url);
+  }
 
   private buildUrl(
     group: string | null,

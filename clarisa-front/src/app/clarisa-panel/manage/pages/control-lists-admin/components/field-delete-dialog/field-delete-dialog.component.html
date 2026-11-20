@@ -1,0 +1,46 @@
+<p-dialog
+  header="Delete field"
+  [visible]="visible"
+  (visibleChange)="onVisibleChange($event)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [style]="{ width: '34rem' }"
+  [breakpoints]="{ '720px': '94vw' }"
+  styleClass="admin-dialog">
+  <form class="admin-form" (ngSubmit)="submit()">
+    <p class="cl-lead" *ngIf="field">
+      You are about to delete <strong>{{ field.label }}</strong> (<code>{{ field.code }}</code
+      >).
+    </p>
+    <p class="cl-loading" *ngIf="impactLoading" role="status">
+      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Checking what this would affect…
+    </p>
+    <p class="field-error cl-error" role="alert" *ngIf="impactError">
+      <i class="pi pi-times-circle" aria-hidden="true"></i> {{ impactError }}
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost p-button-sm cl-retry" (click)="retryImpact()"></button>
+    </p>
+
+    <div class="cl-impact cl-impact--danger" *ngIf="impact" role="status">
+      <strong class="cl-impact__count">{{ impact.affected }}</strong>
+      <div>
+        <span class="cl-impact__label">{{ impact.affected === 1 ? 'record affected' : 'records affected' }}</span>
+        <p>{{ impact.message }}</p>
+      </div>
+    </div>
+
+    <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="btn-ghost" autofocus [disabled]="saving" (click)="close()"></button>
+      <button
+        pButton
+        type="submit"
+        [label]="saving ? 'Deleting…' : 'Delete field'"
+        class="btn-caution-solid"
+        [loading]="saving"
+        [disabled]="!canSubmit"></button>
+    </div>
+  </form>
+</p-dialog>

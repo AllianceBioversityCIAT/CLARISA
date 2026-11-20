@@ -1,0 +1,330 @@
+/* Add several records: the column order, the paste box and its preview. Tokens only, px only. */
+@use '../sticky-actions' as sticky;
+.rb-intro {
+  margin: 0 0 10px;
+  color: var(--cl-ink-2);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* The fields as numbered chips: the order a spreadsheet row must follow. */
+.rb-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.rb-fields__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 3px;
+  border: 1px solid var(--cl-line);
+  border-radius: 999px;
+  background: var(--cl-surface);
+  color: var(--cl-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rb-fields__n {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--cl-surface-2);
+  color: var(--cl-ink-2);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rb-fields__req {
+  color: var(--cl-ink-2);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rb-text {
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-x: auto;
+
+  /* The example must not look like something already typed. */
+  &::placeholder {
+    color: var(--cl-ink-3);
+    font-style: italic;
+  }
+}
+
+.rb-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.rb-status:empty {
+  display: none;
+}
+
+.rb-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--cl-ink);
+  font-size: 14px;
+
+  .pi {
+    color: var(--cl-ok);
+  }
+
+  &.has-problems .pi {
+    color: var(--cl-error);
+  }
+}
+
+/* More rows than one request takes: said as a problem, with an icon, not as a quiet line. */
+.rb-limit {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 4px 0 0;
+  color: var(--cl-error);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+
+  .pi {
+    margin-top: 3px;
+    font-size: 12px;
+  }
+}
+
+.rb-quiet {
+  margin: 4px 0 0;
+  color: var(--cl-ink-2);
+  font-size: 13px;
+}
+
+.rb-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  min-height: 40px;
+  color: var(--cl-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--cl-brand-strong);
+  }
+
+  input:focus-visible {
+    outline: 2px solid var(--cl-brand);
+    outline-offset: 2px;
+  }
+}
+
+/* The rows as they will be sent: scrolls inside the dialog in both directions. */
+.rb-table-wrap {
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  /* Scroll shadows: the two covers move with the content (local), the two shadows stay on the edges (scroll).
+     When the table is wider than the box, a shadow shows on the side where more columns wait. */
+  background:
+    linear-gradient(to right, var(--cl-surface) 30%, transparent) left center / 40px 100% no-repeat local,
+    linear-gradient(to left, var(--cl-surface) 30%, transparent) right center / 40px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(16, 36, 28, 0.2), transparent) left center / 14px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(16, 36, 28, 0.2), transparent) right center / 14px 100% no-repeat scroll;
+  background-color: var(--cl-surface);
+
+  &:focus-visible {
+    outline: 2px solid var(--cl-brand);
+    outline-offset: 2px;
+  }
+}
+
+/* As wide as its content (at least the box): the wrapper scrolls sideways instead of words breaking letter by letter. */
+.rb-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--cl-surface-2);
+    color: var(--cl-ink);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--cl-surface-2);
+    color: var(--cl-ink-2);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  tbody th {
+    font-weight: 600;
+  }
+}
+
+.rb-num {
+  width: 56px;
+  white-space: nowrap;
+
+  .pi {
+    margin-right: 4px;
+    color: var(--cl-error);
+    font-size: 12px;
+  }
+}
+
+.rb-value {
+  display: block;
+  min-width: 4ch;
+  max-width: 260px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* What was pasted, when the saved value reads differently (an option's label, Yes, a decimal point). */
+.rb-from {
+  display: block;
+  max-width: 260px;
+  color: var(--cl-ink-2);
+  font-size: 12px;
+  overflow-wrap: break-word;
+}
+
+.rb-value--empty {
+  color: var(--cl-ink-3);
+}
+
+/* A cell with a problem: a left rule, a tint, an icon and the words — not colour alone. */
+.rb-cell--bad {
+  box-shadow: inset 3px 0 0 var(--cl-error);
+  background: rgba(180, 35, 24, 0.07);
+}
+
+.rb-problem {
+  display: block;
+  /* A long explanation (an ambiguous number) wraps under its value instead of stretching the table. */
+  max-width: 280px;
+  margin-top: 2px;
+  white-space: normal;
+  color: var(--cl-error);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+
+  .pi {
+    font-size: 11px;
+  }
+}
+
+.rb-rowproblem .rb-problem,
+.rb-cellproblems .rb-problem {
+  max-width: none;
+}
+
+/* Only on a phone (below): there the cell of a problem can be off-screen. */
+.rb-cellproblems {
+  display: none;
+}
+
+.rb-rowproblem td {
+  padding-top: 0;
+  background: rgba(180, 35, 24, 0.07);
+}
+
+.rb-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.rb-blocked {
+  flex: 1 1 auto;
+  margin: 0;
+  color: var(--cl-ink-2);
+  font-size: 13px;
+}
+
+/* The actions stay in sight however long the preview gets. */
+.rb .admin-form__actions {
+  @include sticky.sticky-actions;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  /* On a phone seven lines of paste pushed the preview under the fold: the rows and their problems are what matters once pasted. */
+  /* `max-height`: the admin form skin sets `height: auto` on every textarea with more weight than a class. */
+  .rb-text {
+    max-height: 104px;
+  }
+
+  .rb-table-wrap {
+    max-height: 220px;
+  }
+
+  /* On a phone the cell of a problem can be off-screen: each problem is written under its row, across the
+     visible width (the block stays put while the table scrolls sideways), and the cell keeps only its mark. */
+  .rb-cellproblems {
+    display: table-row;
+
+    td {
+      padding-top: 0;
+      background: rgba(180, 35, 24, 0.07);
+    }
+  }
+
+  .rb-cellproblems__in {
+    position: sticky;
+    left: 10px;
+    display: grid;
+    gap: 2px;
+    width: calc(100vw - 104px);
+  }
+
+  td:not([colspan]) > .rb-problem {
+    display: none;
+  }
+
+  /* The admin skin keeps 68vh for the content of a dialog on a phone, leaving room for a footer this
+     one does not have (its actions live inside the content): that room goes to the preview rows. */
+  :host ::ng-deep .rb-dialog.p-dialog .p-dialog-content {
+    max-height: 78vh;
+  }
+
+  .rb-blocked {
+    flex-basis: 100%;
+  }
+
+  .rb .admin-form__actions .p-button {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 44px;
+  }
+}

@@ -1,0 +1,6 @@
+/* Record: a form as tall as the list has fields, so its actions stick. Tokens only, px only. */
+@use '../sticky-actions' as sticky;
+
+.rd .admin-form__actions {
+  @include sticky.sticky-actions;
+}

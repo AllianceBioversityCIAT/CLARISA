@@ -1,0 +1,118 @@
+<p-dialog
+  header="New list"
+  [visible]="visible"
+  (visibleChange)="onVisibleChange($event)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [style]="{ width: '36rem' }"
+  [breakpoints]="{ '720px': '94vw' }"
+  styleClass="admin-dialog">
+  <form class="admin-form nl" (ngSubmit)="submit()" autocomplete="off">
+    <!-- First in the form: without the roles the list cannot be created, and on a phone the end of the form is under the fold. -->
+    <p class="admin-note cl-note cl-note--warn nl-roles" role="status" *ngIf="ownersFailed && !owners.length">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      <span class="nl-roles__text">{{
+        stillFailing
+          ? 'Your roles still could not be loaded. Check your connection and try again.'
+          : 'Your roles could not be loaded, and a list needs an owner role.'
+      }}</span>
+      <button
+        pButton
+        type="button"
+        label="Retry"
+        [icon]="ownersLoading ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"
+        class="btn-ghost p-button-sm nl-roles__retry"
+        [disabled]="ownersLoading || saving"
+        (click)="onRetry()"></button>
+    </p>
+
+    <div class="field">
+      <label for="cl-new-name">Name <span class="tag-req">Required</span></label>
+      <input
+        id="cl-new-name"
+        name="name"
+        pInputText
+        class="w-full"
+        autofocus
+        [attr.maxlength]="limits.listName"
+        [(ngModel)]="name"
+        (ngModelChange)="onNameChange()"
+        [disabled]="saving" />
+    </div>
+
+    <div class="field">
+      <label for="cl-new-code">Code <span class="tag-req">Required</span></label>
+      <input
+        id="cl-new-code"
+        name="code"
+        pInputText
+        class="w-full cl-mono"
+        [attr.maxlength]="limits.code"
+        [(ngModel)]="code"
+        (ngModelChange)="onCodeChange()"
+        [disabled]="saving"
+        [attr.aria-invalid]="codeInvalid"
+        aria-describedby="cl-new-code-hint" />
+      <small id="cl-new-code-hint" class="field-hint">
+        Lowercase letters, digits and underscores, starting with a letter. Its public address:
+        <code class="cl-address">{{ address }}</code>
+      </small>
+      <small class="field-error" role="alert" *ngIf="codeError">{{ codeError }}</small>
+    </div>
+
+    <div class="field">
+      <label for="cl-new-desc">Description <span class="tag-opt">Optional</span></label>
+      <textarea
+        id="cl-new-desc"
+        name="description"
+        pInputTextarea
+        rows="2"
+        class="w-full"
+        [attr.maxlength]="limits.description"
+        [(ngModel)]="description"
+        [disabled]="saving"></textarea>
+    </div>
+
+    <div class="field" *ngIf="owners.length">
+      <label id="cl-new-owner-label" [attr.for]="singleOwner ? null : 'cl-new-owner'"
+        >Owner role <span class="tag-req" *ngIf="owners.length > 1">Required</span></label
+      >
+      <div class="cl-readonly" *ngIf="singleOwner as owner" role="group" aria-labelledby="cl-new-owner-label">
+        <strong>{{ owner.acronym }}</strong
+        ><span *ngIf="owner.description"> · {{ owner.description }}</span>
+      </div>
+      <p-dropdown
+        *ngIf="!singleOwner"
+        inputId="cl-new-owner"
+        name="owner"
+        [options]="owners"
+        optionLabel="acronym"
+        optionValue="id"
+        [(ngModel)]="ownerId"
+        placeholder="Select the role that owns this list"
+        appendTo="body"
+        [style]="{ width: '100%' }"
+        styleClass="w-full admin-dropdown"
+        panelStyleClass="admin-dropdown-panel"
+        [disabled]="saving"></p-dropdown>
+      <small class="field-hint">Only members of this role can manage the list.</small>
+    </div>
+
+    <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <app-cl-discard-bar *ngIf="confirmingClose" (keep)="keepEditing()" (discard)="discard()"></app-cl-discard-bar>
+
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="close()"></button>
+      <button
+        pButton
+        type="submit"
+        [label]="saving ? 'Creating…' : 'Create list'"
+        class="btn-brand"
+        [loading]="saving"
+        [disabled]="saving || !valid"></button>
+    </div>
+  </form>
+</p-dialog>

@@ -1,0 +1,227 @@
+<p-dialog
+  header="Add field"
+  [visible]="visible"
+  (visibleChange)="onVisibleChange($event)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [style]="{ width: '42rem' }"
+  [breakpoints]="{ '720px': '94vw' }"
+  styleClass="admin-dialog">
+  <form class="admin-form af" (ngSubmit)="submit()" autocomplete="off">
+    <div class="field">
+      <label for="cl-fa-label">Label <span class="tag-req">Required</span></label>
+      <input
+        id="cl-fa-label"
+        name="label"
+        pInputText
+        class="w-full"
+        autofocus
+        placeholder="Crop type"
+        [attr.maxlength]="limits.fieldLabel"
+        [(ngModel)]="label"
+        (ngModelChange)="onLabelChange()"
+        [disabled]="saving" />
+
+      <p class="af-quiet" *ngIf="code && !codeOpen">
+        <span
+          >Code <code class="cl-mono">{{ code }}</code> · its name in the public address</span
+        >
+        <button type="button" class="af-link" [disabled]="saving" (click)="codeOpen = true">Edit</button>
+      </p>
+      <div class="af-sub" *ngIf="codeOpen">
+        <label for="cl-fa-code">Code <span class="tag-req">Required</span></label>
+        <input
+          id="cl-fa-code"
+          name="code"
+          pInputText
+          class="w-full cl-mono"
+          placeholder="crop_type"
+          [attr.maxlength]="limits.code"
+          [attr.aria-invalid]="codeInvalid"
+          [(ngModel)]="code"
+          (ngModelChange)="onCodeChange()"
+          [disabled]="saving" />
+        <small class="field-hint" *ngIf="!codeInvalid">The field name in the public address.</small>
+        <small class="field-error" role="alert" *ngIf="codeInvalid">{{ codeError }}</small>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="af-label" id="cl-fa-type-label">What will it hold? <span class="tag-req">Required</span></span>
+      <app-cl-field-type-picker
+        *ngIf="typeOpen || !chosenType"
+        [types]="types"
+        [value]="type"
+        (valueChange)="onTypeChange($event)"
+        (picked)="onTypePicked()"
+        [disabled]="saving"
+        labelledBy="cl-fa-type-label"></app-cl-field-type-picker>
+      <div class="af-chosen" *ngIf="!typeOpen && chosenType as chosen">
+        <span class="af-chosen__icon" aria-hidden="true"><i class="pi" [ngClass]="chosen.icon"></i></span>
+        <span class="af-chosen__text"
+          ><strong>{{ chosen.label }}</strong
+          ><small *ngIf="chosen.example">{{ chosen.example }}</small></span
+        >
+        <button #changeType type="button" class="af-link" [disabled]="saving" (click)="reopenTypes()">Change</button>
+      </div>
+    </div>
+
+    <section class="af-options" *ngIf="isRelation" aria-label="Options of this field">
+      <p class="admin-note cl-note cl-note--warn" role="status" *ngIf="listsFailed">
+        <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+        <span
+          >The other lists could not be loaded, so this dialog cannot check the code of the options list or offer an existing list. The server will
+          check the code when you add the field.</span
+        >
+      </p>
+      <div class="af-seg" role="radiogroup" aria-label="Where the options come from" *ngIf="targets.length">
+        <button
+          type="button"
+          role="radio"
+          class="af-seg__item"
+          [class.is-on]="source === 'new'"
+          [attr.aria-checked]="source === 'new'"
+          [disabled]="saving"
+          (click)="setSource('new')">
+          Write the options here
+        </button>
+        <button
+          type="button"
+          role="radio"
+          class="af-seg__item"
+          [class.is-on]="source === 'existing'"
+          [attr.aria-checked]="source === 'existing'"
+          [disabled]="saving"
+          (click)="setSource('existing')">
+          Use an existing list
+        </button>
+      </div>
+
+      <ng-container *ngIf="source === 'new'">
+        <div class="field">
+          <label for="cl-fa-options">Options <span class="tag-req">Required</span></label>
+          <textarea
+            id="cl-fa-options"
+            name="options"
+            pInputTextarea
+            rows="4"
+            class="w-full"
+            placeholder="Cereal&#10;Root&#10;Legume"
+            aria-describedby="cl-fa-options-hint"
+            [(ngModel)]="optionsText"
+            [disabled]="saving"></textarea>
+          <small id="cl-fa-options-hint" class="field-hint" *ngIf="!optionsError"
+            >One option per line<ng-container *ngIf="options.length">
+              · {{ options.length }} {{ options.length === 1 ? 'option' : 'options' }}</ng-container
+            >. You can add or deactivate options later.</small
+          >
+          <small class="field-error" role="alert" *ngIf="optionsError">{{ optionsError }}</small>
+        </div>
+
+        <p class="af-quiet" *ngIf="optionsName && !optionsOpen && !optionsCodeTaken && !optionsCodeInvalid">
+          <span
+            >Saved as the list <strong>{{ optionsName }}</strong> <code class="cl-mono">{{ optionsCode }}</code></span
+          >
+          <button type="button" class="af-link" [disabled]="saving" (click)="optionsOpen = true">Edit</button>
+        </p>
+        <div class="admin-form__grid af-sub" *ngIf="optionsOpen || optionsCodeTaken || optionsCodeInvalid">
+          <div class="field">
+            <label for="cl-fa-oname">Name of the options list <span class="tag-req">Required</span></label>
+            <input
+              id="cl-fa-oname"
+              name="optionsName"
+              pInputText
+              class="w-full"
+              [attr.maxlength]="limits.listName"
+              [(ngModel)]="optionsName"
+              (ngModelChange)="onOptionsNameChange()"
+              [disabled]="saving" />
+          </div>
+          <div class="field">
+            <label for="cl-fa-ocode">Its code <span class="tag-req">Required</span></label>
+            <input
+              id="cl-fa-ocode"
+              name="optionsCode"
+              pInputText
+              class="w-full cl-mono"
+              [attr.maxlength]="limits.code"
+              [(ngModel)]="optionsCode"
+              (ngModelChange)="onOptionsCodeChange()"
+              [disabled]="saving" />
+            <small class="field-error" *ngIf="optionsCodeTaken">A list with that code already exists.</small>
+            <small class="field-error" role="alert" *ngIf="optionsCodeInvalid">{{ optionsCodeError }}</small>
+          </div>
+        </div>
+      </ng-container>
+
+      <div class="field" *ngIf="source === 'existing'">
+        <label for="cl-fa-rel">Options list <span class="tag-req">Required</span></label>
+        <p-dropdown
+          inputId="cl-fa-rel"
+          name="relation"
+          [options]="targets"
+          optionLabel="name"
+          optionValue="id"
+          [(ngModel)]="relationListId"
+          placeholder="Select a published list"
+          appendTo="body"
+          [style]="{ width: '100%' }"
+          styleClass="w-full admin-dropdown"
+          panelStyleClass="admin-dropdown-panel"
+          [disabled]="saving"></p-dropdown>
+        <small class="field-hint">Published lists of the same owner role. Each record of this list will point to one of its records.</small>
+      </div>
+    </section>
+
+    <fieldset class="cl-switches af-rules" [disabled]="saving">
+      <legend>Rules</legend>
+      <div class="af-rules__row">
+        <label class="cl-switch" [class.is-unavailable]="requiredNote" for="cl-fa-req">
+          <p-inputSwitch inputId="cl-fa-req" name="required" [(ngModel)]="isRequired" [disabled]="saving || requiredNote"></p-inputSwitch>
+          <span
+            ><strong>Required</strong><small>{{ requiredNote ? 'Not available: this list already has records.' : hints.required }}</small></span
+          >
+        </label>
+        <label class="cl-switch" [class.is-unavailable]="longText" for="cl-fa-uniq">
+          <p-inputSwitch inputId="cl-fa-uniq" name="unique" [(ngModel)]="isUnique" [disabled]="saving || longText"></p-inputSwitch>
+          <span
+            ><strong>Unique</strong><small>{{ longText ? hints.longText : hints.unique }}</small></span
+          >
+        </label>
+        <label class="cl-switch" [class.is-unavailable]="longText" for="cl-fa-idx">
+          <p-inputSwitch
+            inputId="cl-fa-idx"
+            name="indexed"
+            [ngModel]="indexedShown"
+            (ngModelChange)="setIndexed($event)"
+            [disabled]="saving || longText || uniqueOn"></p-inputSwitch>
+          <span
+            ><strong>Filterable</strong><small>{{ longText ? hints.longText : uniqueOn ? hints.uniqueFilter : hints.indexed }}</small></span
+          >
+        </label>
+      </div>
+    </fieldset>
+
+    <p class="admin-note cl-note" *ngIf="requiredNote">
+      <i class="pi pi-info-circle" aria-hidden="true"></i>
+      <span>This list is published and already has records, so a new field cannot start as required.</span>
+    </p>
+
+    <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <app-cl-discard-bar *ngIf="confirmingClose" (keep)="keepEditing()" (discard)="discard()"></app-cl-discard-bar>
+
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="close()"></button>
+      <button
+        pButton
+        type="submit"
+        [label]="saving ? 'Adding…' : 'Add field'"
+        class="btn-brand"
+        [loading]="saving"
+        [disabled]="saving || !valid"></button>
+    </div>
+  </form>
+</p-dialog>
