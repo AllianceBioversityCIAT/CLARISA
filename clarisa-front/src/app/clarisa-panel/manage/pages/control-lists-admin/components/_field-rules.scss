@@ -36,3 +36,13 @@
     font-weight: 400;
   }
 }
+
+/* A rule this field cannot have (not one that is on and locked): its name steps back too, not only the switch. */
+.cl-switch.is-unavailable {
+  cursor: default;
+
+  strong {
+    color: var(--cl-ink-2);
+    font-weight: 500;
+  }
+}

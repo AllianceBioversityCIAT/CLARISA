@@ -178,19 +178,19 @@
     <fieldset class="cl-switches af-rules" [disabled]="saving">
       <legend>Rules</legend>
       <div class="af-rules__row">
-        <label class="cl-switch" for="cl-fa-req">
+        <label class="cl-switch" [class.is-unavailable]="requiredNote" for="cl-fa-req">
           <p-inputSwitch inputId="cl-fa-req" name="required" [(ngModel)]="isRequired" [disabled]="saving || requiredNote"></p-inputSwitch>
           <span
             ><strong>Required</strong><small>{{ requiredNote ? 'Not available: this list already has records.' : hints.required }}</small></span
           >
         </label>
-        <label class="cl-switch" for="cl-fa-uniq">
+        <label class="cl-switch" [class.is-unavailable]="longText" for="cl-fa-uniq">
           <p-inputSwitch inputId="cl-fa-uniq" name="unique" [(ngModel)]="isUnique" [disabled]="saving || longText"></p-inputSwitch>
           <span
             ><strong>Unique</strong><small>{{ longText ? hints.longText : hints.unique }}</small></span
           >
         </label>
-        <label class="cl-switch" for="cl-fa-idx">
+        <label class="cl-switch" [class.is-unavailable]="longText" for="cl-fa-idx">
           <p-inputSwitch
             inputId="cl-fa-idx"
             name="indexed"
