@@ -14,7 +14,8 @@ export function stableKey(value: unknown): string {
     JSON.stringify(value, (_key, v: unknown) =>
       v && typeof v === 'object' && !Array.isArray(v)
         ? Object.keys(v as Record<string, unknown>)
-            .sort()
+            // Code-unit order, not the locale's: the same content must give the same key in every browser.
+            .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
             .reduce<Record<string, unknown>>((out, k) => ((out[k] = (v as Record<string, unknown>)[k]), out), {})
         : v
     ) ?? 'undefined'
