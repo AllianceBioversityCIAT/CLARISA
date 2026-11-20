@@ -1,0 +1,72 @@
+/* Change rules: the switches stacked, then the notes their change brings. Tokens only, px only. */
+@use '../field-rules';
+
+/* The dialog title already says «Rules of …»: no box, and the legend stays for screen readers only. */
+.fr-rules {
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+.fr-rules .cl-switch {
+  min-height: 40px;
+}
+
+/* The notes of a change, together under the switches. */
+.fr-notes {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+
+  &:empty {
+    display: none;
+  }
+}
+
+/* What a change means for the records already there: an icon and words, never colour alone. */
+.fr-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+  background: var(--cl-surface-2);
+  color: var(--cl-ink);
+  font-size: 13px;
+  line-height: 1.45;
+
+  .pi {
+    margin-top: 2px;
+    color: var(--cl-ink-2);
+  }
+
+  /* `?code=…` reads as one piece: it goes to the next line whole. */
+  code {
+    display: inline-block;
+    max-width: 100%;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+}
+
+.fr-note--warn {
+  border-color: rgba(154, 107, 0, 0.35);
+  background: rgba(154, 107, 0, 0.1);
+
+  .pi {
+    color: var(--cl-warn);
+  }
+}

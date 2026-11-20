@@ -16,8 +16,7 @@
 
   .cl-mono,
   .cl-address,
-  .cl-code,
-  .cl-endpoint__url {
+  .cl-code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 
@@ -138,7 +137,7 @@
   }
 
   .row-inactive td {
-    color: var(--cl-ink-3);
+    color: var(--cl-ink-2);
   }
 
   /* The panel shell paints every button that is not outlined, text or link as
@@ -257,7 +256,11 @@
     line-height: 1.5;
   }
 
+  /* Flex on the baseline: the icon sits on the first line of the message, not above it. */
   .cl-error {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
     margin: 12px 0 0;
     padding: 10px 12px;
     border: 1px solid rgba(180, 35, 24, 0.3);
@@ -286,6 +289,15 @@
     font-size: 14px;
   }
 
+  /* «Optional» sits on surface-2: ink-3 there is about 3.7:1. */
+  .tag-opt {
+    color: var(--cl-ink-2);
+  }
+
+  .cl-retry {
+    margin-left: 10px;
+  }
+
   .cl-note--warn {
     border-color: rgba(154, 107, 0, 0.35);
     background: rgba(154, 107, 0, 0.1);
@@ -307,43 +319,6 @@
     display: block;
     padding: 10px 12px;
     font-size: 13px;
-  }
-
-  .cl-switches {
-    display: grid;
-    gap: 10px;
-    margin: 4px 0 0;
-    padding: 12px 14px;
-    border: 1px solid var(--cl-line);
-    border-radius: var(--cl-radius-control);
-
-    legend {
-      padding: 0 6px;
-      color: var(--cl-ink-2);
-      font-size: 13px;
-      font-weight: 600;
-    }
-  }
-
-  .cl-switch {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    margin: 0;
-    cursor: pointer;
-
-    span {
-      display: grid;
-      gap: 1px;
-      color: var(--cl-ink);
-      font-size: 14px;
-    }
-
-    small {
-      color: var(--cl-ink-3);
-      font-size: 12px;
-      font-weight: 400;
-    }
   }
 
   .cl-impact {
@@ -449,80 +424,6 @@
     }
   }
 
-  /* ---- endpoint ---- */
-  .cl-endpoint {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .cl-endpoint__url {
-    flex: 1 1 320px;
-    min-width: 0;
-    padding: 12px 14px;
-    border: 1px solid var(--cl-line);
-    border-radius: var(--cl-radius-control);
-    background: var(--cl-surface-2);
-    color: var(--cl-ink);
-    font-size: 14px;
-    word-break: break-all;
-  }
-
-  .cl-endpoint__url--small {
-    display: block;
-    margin-top: 6px;
-    padding: 6px 10px;
-    font-size: 12.5px;
-  }
-
-  .cl-endpoint__actions {
-    display: flex;
-    gap: 8px;
-  }
-
-  .cl-variants {
-    display: grid;
-    gap: 0;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-
-    li {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 14px;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--cl-line);
-    }
-
-    li:last-child {
-      border-bottom: 0;
-    }
-  }
-
-  .cl-variants__text {
-    display: grid;
-    min-width: 0;
-    flex: 1;
-
-    span {
-      color: var(--cl-ink-3);
-      font-size: 12.5px;
-    }
-  }
-
-  .cl-example-meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    margin: 0;
-    color: var(--cl-ink-2);
-    font-size: 13px;
-  }
-
   /* ---- phone ---- */
   @media (max-width: 900px) {
     .cl-admin {
@@ -538,14 +439,6 @@
     .cl-state {
       margin: 20px 0;
       padding: 28px 18px;
-    }
-
-    .cl-variants li {
-      flex-direction: column;
-    }
-
-    .cl-endpoint__actions {
-      width: 100%;
     }
   }
 }

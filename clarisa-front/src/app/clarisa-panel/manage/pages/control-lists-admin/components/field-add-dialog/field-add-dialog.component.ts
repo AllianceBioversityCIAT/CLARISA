@@ -2,15 +2,15 @@ import { Component, ElementRef, Input, ViewChild } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { ControlListsApiService } from '../../services/control-lists-api.service';
 import { FieldRow, FieldTypeOption, ListDetail, ListRow, NewFieldBody } from '../../models/control-lists.models';
-import { isValidCode, suggestCode } from '../../utils/code-suggest';
+import { codeProblem, isUsableCode, suggestCode } from '../../utils/code-suggest';
+import { LIMITS } from '../../utils/limits';
+import { cannotIndex, RULE_HINTS } from '../../utils/field-rules';
 import { freeCode, optionsProblem, parseOptions, TypeChoice, typeChoices } from '../../utils/field-types';
 import { FieldTypePickerComponent } from '../field-type-picker/field-type-picker.component';
 import { WriteDialogBase } from '../write-dialog.base';
 
 /** Where the options of an «Options» field come from. */
 export type OptionsSource = 'new' | 'existing';
-
-const MAX_LIST_NAME = 150;
 
 @Component({
   selector: 'app-cl-field-add-dialog',
@@ -24,10 +24,14 @@ export class FieldAddDialogComponent extends WriteDialogBase<FieldRow> {
   @Input() targets: ListRow[] = [];
   /** Codes of the lists this user sees: a new options list needs one that is free. */
   @Input() takenCodes: string[] = [];
+  /** The lists of this user could not be read: `takenCodes` is empty for that reason, not because none exist. */
+  @Input() listsFailed = false;
 
   @ViewChild('changeType') private changeType?: ElementRef<HTMLButtonElement>;
   @ViewChild(FieldTypePickerComponent) private picker?: FieldTypePickerComponent;
 
+  readonly limits = LIMITS;
+  readonly hints = RULE_HINTS;
   label = '';
   code = '';
   codeOpen = false;
@@ -88,8 +92,32 @@ export class FieldAddDialogComponent extends WriteDialogBase<FieldRow> {
     return !!this.list && this.list.status === 'published' && this.list.rows > 0;
   }
 
+  /** The back refuses unique and filterable on long text (it cannot index it). */
+  get longText(): boolean {
+    return cannotIndex(this.type);
+  }
+
+  /** A unique field always filters: Filterable shows on and locked while Unique is on. */
+  get uniqueOn(): boolean {
+    return this.isUnique && !this.longText;
+  }
+
+  /** What the Filterable switch shows; `isIndexed` stays the person's own value, and that is what travels. */
+  get indexedShown(): boolean {
+    return !this.longText && (this.uniqueOn || this.isIndexed);
+  }
+
+  setIndexed(on: boolean): void {
+    if (!this.longText && !this.uniqueOn) this.isIndexed = on;
+  }
+
+  /** Why the code cannot be used (wrong shape, or a word the back keeps for itself), or `''`. */
+  get codeError(): string {
+    return codeProblem(this.code, 'field');
+  }
+
   get codeInvalid(): boolean {
-    return this.code !== '' && !isValidCode(this.code);
+    return this.codeError !== '';
   }
 
   get options(): string[] {
@@ -104,35 +132,56 @@ export class FieldAddDialogComponent extends WriteDialogBase<FieldRow> {
     return this.optionsCode !== '' && this.takenCodes.includes(this.optionsCode);
   }
 
+  get optionsCodeError(): string {
+    return codeProblem(this.optionsCode, 'list');
+  }
+
   get optionsCodeInvalid(): boolean {
-    return this.optionsCode !== '' && !isValidCode(this.optionsCode);
+    return this.optionsCodeError !== '';
   }
 
   private get optionsReady(): boolean {
-    return this.options.length > 0 && !this.optionsError && this.optionsName.trim() !== '' && isValidCode(this.optionsCode) && !this.optionsCodeTaken;
+    return (
+      this.options.length > 0 &&
+      !this.optionsError &&
+      this.optionsName.trim() !== '' &&
+      isUsableCode(this.optionsCode, 'list') &&
+      !this.optionsCodeTaken
+    );
+  }
+
+  /** Typed content: the label, the options or a code the person wrote by hand. */
+  protected override isDirty(): boolean {
+    return this.label.trim() !== '' || this.optionsText.trim() !== '' || this.codeEdited || this.optionsNameEdited || this.optionsCodeEdited;
   }
 
   get valid(): boolean {
-    if (this.label.trim() === '' || !isValidCode(this.code) || !this.type) return false;
+    if (this.label.trim() === '' || !isUsableCode(this.code, 'field') || !this.type) return false;
     if (!this.isRelation) return true;
     return this.source === 'new' ? this.optionsReady : this.relationListId !== null;
   }
 
   onLabelChange(): void {
-    if (!this.codeEdited) this.code = suggestCode(this.label);
-    // A label with no letters gives no code: the person has to write one.
-    if (this.label.trim() !== '' && !isValidCode(this.code)) this.codeOpen = true;
+    if (!this.codeEdited) this.code = suggestCode(this.label, 'field');
+    // A label with no letters gives no code, and a code written by hand may be a reserved word: the person has to fix it.
+    if (this.label.trim() !== '' && !isUsableCode(this.code, 'field')) this.codeOpen = true;
     this.suggestOptionsList();
   }
 
   onCodeChange(): void {
     this.codeEdited = this.code !== '';
-    if (!this.codeEdited) this.code = suggestCode(this.label);
+    if (!this.codeEdited) this.code = suggestCode(this.label, 'field');
+    if (this.code !== '' && !isUsableCode(this.code, 'field')) this.codeOpen = true;
     this.suggestOptionsList();
   }
 
   onTypeChange(type: string): void {
     this.type = type;
+    // Long text cannot be unique or filterable: a switch left on from another type must not travel.
+    if (this.longText) {
+      this.isUnique = false;
+      this.isIndexed = false;
+    }
     if (this.isRelation) {
       // Writing the options here is the short way; the existing lists stay one click away.
       this.suggestOptionsList();
@@ -169,9 +218,9 @@ export class FieldAddDialogComponent extends WriteDialogBase<FieldRow> {
   private suggestOptionsList(): void {
     if (!this.list) return;
     const label = this.label.trim();
-    if (!this.optionsNameEdited) this.optionsName = label ? `${this.list.name} – ${label}`.slice(0, MAX_LIST_NAME) : '';
+    if (!this.optionsNameEdited) this.optionsName = label ? `${this.list.name} – ${label}`.slice(0, LIMITS.listName) : '';
     if (!this.optionsCodeEdited) {
-      this.optionsCode = this.code ? freeCode(suggestCode(`${this.list.code}_${this.code}`), this.takenCodes) : '';
+      this.optionsCode = this.code ? freeCode(suggestCode(`${this.list.code}_${this.code}`, 'list'), this.takenCodes) : '';
     }
   }
 
@@ -180,17 +229,17 @@ export class FieldAddDialogComponent extends WriteDialogBase<FieldRow> {
     const listId = this.list.id;
     const withOptions = this.isRelation && this.source === 'new';
     const options = this.options;
-    const body: NewFieldBody = {
+    const content: Omit<NewFieldBody, 'request_id'> = {
       code: this.code,
       label: this.label.trim(),
       type: this.type,
-      is_required: this.isRequired,
-      is_unique: this.isUnique,
-      is_indexed: this.isIndexed,
+      is_required: this.isRequired && !this.requiredNote,
+      is_unique: this.isUnique && !this.longText,
+      is_indexed: this.isIndexed && !this.longText,
       ...(this.isRelation && !withOptions && this.relationListId !== null ? { relation_list_id: this.relationListId } : {}),
-      ...(withOptions ? { options_list: { code: this.optionsCode, name: this.optionsName.trim(), options } } : {}),
-      request_id: this.requestId
+      ...(withOptions ? { options_list: { code: this.optionsCode, name: this.optionsName.trim(), options } } : {})
     };
+    const body: NewFieldBody = { ...content, request_id: this.requestIdFor({ listId, ...content }) };
     this.write(
       () => this.api.addField(listId, body),
       field =>

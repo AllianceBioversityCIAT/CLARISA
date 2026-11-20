@@ -26,7 +26,7 @@ export class PublishDialogComponent extends WriteDialogBase<ListRow> {
     if (this.saving || !this.list) return;
     const { id, name } = this.list;
     this.write(
-      () => this.api.publish(id, this.requestId),
+      () => this.api.publish(id, this.requestIdFor({ publish: id })),
       () => this.success('List published', `"${name}" is now public at its address.`)
     );
   }

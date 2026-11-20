@@ -1,13 +1,17 @@
 import { FieldRow, ListRecord } from '../models/control-lists.models';
 import {
+  ambiguousNumber,
   buildChangedBody,
   buildCreateBody,
   initialValues,
+  isMissing,
   publishedFields,
   recordIsActive,
   recordLabel,
   toApiValue,
-  toFormValue
+  toFormValue,
+  utf8Bytes,
+  valueProblem
 } from './record-values';
 
 const field = (type: string, over: Partial<FieldRow> = {}): FieldRow =>
@@ -53,7 +57,10 @@ describe('record values', () => {
 
     it('sends what is not a plain number as typed, so the back explains', () => {
       expect(toApiValue(field('integer'), '12.5')).toBe('12.5');
-      expect(toApiValue(field('decimal'), '12,5')).toBe('12,5');
+      // A comma between digits is a decimal separator; anything else (thousands, two commas) goes as typed.
+      expect(toApiValue(field('decimal'), '1,000.5')).toBe('1,000.5');
+      expect(toApiValue(field('decimal'), '1,2,3')).toBe('1,2,3');
+      expect(toApiValue(field('integer'), '12,5')).toBe('12,5');
       expect(toApiValue(field('integer'), '9007199254740993')).toBe('9007199254740993');
     });
 
@@ -80,6 +87,36 @@ describe('record values', () => {
       expect(toApiValue(field('relation'), 5)).toBe(5);
       expect(toApiValue(field('relation'), '5')).toBe(5);
       expect(toApiValue(field('relation'), null)).toBeNull();
+    });
+  });
+
+  describe('decimal typed with a comma', () => {
+    it('is sent with a dot', () => {
+      expect(toApiValue(field('decimal'), '3,5')).toBe(3.5);
+      expect(toApiValue(field('decimal'), ' -0,25 ')).toBe(-0.25);
+      expect(toApiValue(field('decimal'), '3.5')).toBe(3.5);
+    });
+
+    it('reaches the create and edit bodies as a number', () => {
+      const fields = [field('decimal', { code: 'share' })];
+      expect(buildCreateBody(fields, { share: '3,5' })).toEqual({ share: 3.5 });
+      expect(buildChangedBody(fields, { share: '1' }, { share: '3,5' })).toEqual({ share: 3.5 });
+    });
+  });
+
+  describe('isMissing', () => {
+    it('is true for a required field with nothing in it, and for blank text', () => {
+      expect(isMissing(field('text', { is_required: 1 }), '')).toBe(true);
+      expect(isMissing(field('text', { is_required: 1 }), '   ')).toBe(true);
+      expect(isMissing(field('relation', { is_required: 1 }), null)).toBe(true);
+      expect(isMissing(field('integer', { is_required: 1 }), undefined)).toBe(true);
+    });
+
+    it('is false for a value, for 0, for a switch, and for an optional field', () => {
+      expect(isMissing(field('text', { is_required: 1 }), 'Maize')).toBe(false);
+      expect(isMissing(field('integer', { is_required: 1 }), '0')).toBe(false);
+      expect(isMissing(field('boolean', { is_required: 1 }), false)).toBe(false);
+      expect(isMissing(field('text'), '')).toBe(false);
     });
   });
 
@@ -165,5 +202,41 @@ describe('record values', () => {
       expect(recordIsActive({ id: 1, is_active: false } as ListRecord)).toBe(false);
       expect(recordIsActive({ id: 1, is_active: 0 } as ListRecord)).toBe(false);
     });
+  });
+});
+
+describe('numbers that cannot be read safely, and long texts over their bytes', () => {
+  const decimal = field('decimal');
+  const notes = field('long_text');
+
+  it.each([
+    ['12,000', '12000', '12.0'],
+    ['1,234', '1234', '1.234'],
+    ['1,234,567', '1234567', '1.234567'],
+    ['-1,000', '-1000', '-1.0']
+  ])('refuses %s: thousands or a decimal comma, with both readings built from its digits', (typed, whole, dec) => {
+    expect(ambiguousNumber(typed)).toBe(`Ambiguous number: write ${whole} if the comma separates thousands, or ${dec} if it is the decimal point.`);
+    expect(valueProblem(decimal, typed)).toBe(ambiguousNumber(typed));
+    // Never converted: it goes as typed if anything ever sends it.
+    expect(toApiValue(decimal, typed)).toBe(typed);
+  });
+
+  it.each([
+    ['2,9', 2.9],
+    ['12,50', 12.5]
+  ])('keeps %s as a decimal comma', (typed, value) => {
+    expect(ambiguousNumber(typed)).toBeNull();
+    expect(valueProblem(decimal, typed)).toBeNull();
+    expect(toApiValue(decimal, typed)).toBe(value);
+  });
+
+  it('only decimals are checked for the comma', () => {
+    expect(valueProblem(field('text'), '12,000')).toBeNull();
+  });
+
+  it('counts UTF-8 bytes, and a long text over 65,535 of them is refused', () => {
+    expect(utf8Bytes('aé€😀')).toBe(1 + 2 + 3 + 4);
+    expect(valueProblem(notes, 'é'.repeat(32_768))).toBe('Too long: this text needs 65,536 bytes of the 65,535 a long text holds.');
+    expect(valueProblem(notes, 'é'.repeat(32_767))).toBeNull();
   });
 });

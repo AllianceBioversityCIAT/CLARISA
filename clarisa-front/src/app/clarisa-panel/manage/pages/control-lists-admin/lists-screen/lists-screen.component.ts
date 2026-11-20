@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { forkJoin, of, Subject } from 'rxjs';
-import { catchError, map, takeUntil } from 'rxjs/operators';
+import { catchError, finalize, map, takeUntil } from 'rxjs/operators';
 import { ControlListsApiService } from '../services/control-lists-api.service';
 import { ListCounts, ListRow, OwnerRole } from '../models/control-lists.models';
 import { readApiError } from '../utils/api-error';
@@ -17,13 +17,18 @@ export interface ListViewRow extends ListRow {
 
 @Component({
   selector: 'app-cl-lists-screen',
-  templateUrl: './lists-screen.component.html'
+  templateUrl: './lists-screen.component.html',
+  styleUrls: ['./lists-screen.component.scss']
 })
 export class ListsScreenComponent implements OnInit, OnDestroy {
   state: ListsState = 'loading';
   errorMessage = '';
   rows: ListViewRow[] = [];
   owners: OwnerRole[] = [];
+  /** The last read of the roles failed: «New list» says so and offers to read them again. */
+  ownersFailed = false;
+  /** The roles are being read again. */
+  ownersLoading = false;
   newVisible = false;
   readonly url = CONTROL_LISTS_URL;
   readonly statusLabel = statusLabel;
@@ -49,22 +54,44 @@ export class ListsScreenComponent implements OnInit, OnDestroy {
 
   openNew(): void {
     this.newVisible = true;
-    if (this.owners.length) return;
     // The first read of the roles failed: without them a user with several roles cannot choose the owner.
+    if (!this.owners.length) this.retryOwners();
+  }
+
+  /** Reads the roles again (on opening «New list» without them, or from its «Retry»). */
+  retryOwners(): void {
+    if (this.ownersLoading) return;
+    this.ownersLoading = true;
     this.api
       .owners()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({ next: owners => (this.owners = owners), error: () => undefined });
+      .pipe(
+        finalize(() => (this.ownersLoading = false)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: owners => {
+          this.owners = Array.isArray(owners) ? owners : [];
+          this.ownersFailed = false;
+        },
+        error: () => (this.ownersFailed = true)
+      });
   }
 
   load(): void {
     this.restart$.next();
     this.state = 'loading';
-    forkJoin({ lists: this.api.lists(), owners: this.api.owners().pipe(catchError(() => of([] as OwnerRole[]))) })
+    forkJoin({
+      lists: this.api.lists(),
+      owners: this.api.owners().pipe(
+        map(owners => ({ owners, failed: false })),
+        catchError(() => of({ owners: [] as OwnerRole[], failed: true }))
+      )
+    })
       .pipe(takeUntil(this.restart$), takeUntil(this.destroy$))
       .subscribe({
         next: ({ lists, owners }) => {
-          this.owners = owners;
+          this.owners = Array.isArray(owners.owners) ? owners.owners : [];
+          this.ownersFailed = owners.failed;
           this.rows = (Array.isArray(lists) ? lists : []).map(l => ({ ...l }));
           this.state = 'ready';
           this.loadCounts();

@@ -83,6 +83,26 @@ export interface NewFieldBody {
   request_id: string;
 }
 
+/** «Edit list details»: the code and the owner role never change. */
+export interface ListDetailsBody {
+  name: string;
+  description: string | null;
+}
+
+/** «Change rules»: the three rules, always sent together. */
+export interface FieldRulesBody {
+  is_required: boolean;
+  is_unique: boolean;
+  is_indexed: boolean;
+  request_id: string;
+}
+
+/** «Add several»: all or nothing, one object per record keyed by field code. */
+export interface BulkRecordsBody {
+  request_id: string;
+  records: Record<string, unknown>[];
+}
+
 export interface FieldImpact {
   rows: number;
   affected: number;
@@ -102,3 +122,6 @@ export interface PublicResponse {
   status: number;
   body: unknown;
 }
+
+/** Why the workspace reads the list again: it decides what the screen says if that read fails. */
+export type ReloadReason = 'saved' | 'unsettled' | 'check' | 'retry';

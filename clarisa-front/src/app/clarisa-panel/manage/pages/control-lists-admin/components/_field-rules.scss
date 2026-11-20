@@ -1,0 +1,38 @@
+/* The three rules of the field: a switch, its name and what it does. Used by «Add field» and «Change rules». Tokens only, px only. */
+.cl-switches {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--cl-radius-control);
+
+  legend {
+    padding: 0 6px;
+    color: var(--cl-ink-2);
+    font-size: 13px;
+    font-weight: 600;
+  }
+}
+
+.cl-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  cursor: pointer;
+
+  span {
+    display: grid;
+    gap: 1px;
+    color: var(--cl-ink);
+    font-size: 14px;
+  }
+
+  /* ink-3 would be about 3.7:1 on a dimmed row, and the hint says why a switch is off. */
+  small {
+    color: var(--cl-ink-2);
+    font-size: 12px;
+    font-weight: 400;
+  }
+}

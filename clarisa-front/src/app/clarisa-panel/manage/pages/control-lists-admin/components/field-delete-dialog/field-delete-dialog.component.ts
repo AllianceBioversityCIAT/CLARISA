@@ -26,9 +26,19 @@ export class FieldDeleteDialogComponent extends WriteDialogBase<unknown> {
   }
 
   protected override onOpen(): void {
+    this.loadImpact();
+  }
+
+  /** «Try again» after the impact could not be read. */
+  retryImpact(): void {
+    this.loadImpact();
+  }
+
+  private loadImpact(): void {
     this.impactSub?.unsubscribe();
     this.impact = null;
     this.impactError = null;
+    this.impactLoading = false;
     if (!this.field) return;
     this.impactLoading = true;
     this.impactSub = this.api.fieldImpact(this.field.id, 'delete').subscribe({
@@ -56,7 +66,7 @@ export class FieldDeleteDialogComponent extends WriteDialogBase<unknown> {
     if (!this.canSubmit || !this.field) return;
     const { id, label } = this.field;
     this.write(
-      () => this.api.deleteField(id, this.requestId),
+      () => this.api.deleteField(id, this.requestIdFor({ deleteField: id })),
       () => this.success('Field deleted', `"${label}" was removed from the list.`)
     );
   }

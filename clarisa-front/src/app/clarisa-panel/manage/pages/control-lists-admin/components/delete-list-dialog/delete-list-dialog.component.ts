@@ -26,9 +26,19 @@ export class DeleteListDialogComponent extends WriteDialogBase<unknown> {
   }
 
   protected override onOpen(): void {
+    this.loadImpact();
+  }
+
+  /** «Try again» after the impact could not be read. */
+  retryImpact(): void {
+    this.loadImpact();
+  }
+
+  private loadImpact(): void {
     this.impactSub?.unsubscribe();
     this.impact = null;
     this.impactError = null;
+    this.impactLoading = false;
     if (!this.list) return;
     this.impactLoading = true;
     this.impactSub = this.api.deleteImpact(this.list.id).subscribe({
@@ -61,7 +71,7 @@ export class DeleteListDialogComponent extends WriteDialogBase<unknown> {
     if (!this.canSubmit || !this.list) return;
     const { id, name } = this.list;
     this.write(
-      () => this.api.deleteList(id, this.requestId),
+      () => this.api.deleteList(id, this.requestIdFor({ deleteList: id })),
       () => this.success('List deleted', `"${name}" and its table were removed.`)
     );
   }

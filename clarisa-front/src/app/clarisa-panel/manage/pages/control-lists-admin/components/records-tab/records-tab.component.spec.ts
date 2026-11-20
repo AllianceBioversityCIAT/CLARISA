@@ -117,4 +117,14 @@ describe('RecordsTabComponent', () => {
     c.ngOnChanges({ detail: new SimpleChange(before, withField, false) });
     expect(api.records).toHaveBeenCalledTimes(2);
   });
+
+  it('tells the workspace why it should read the list again: a saved write or an unknown outcome', () => {
+    api.records.mockReturnValue(of([]));
+    const c = create(published([f('name', 'text')]));
+    const reasons: string[] = [];
+    c.changed.subscribe(r => reasons.push(r));
+    c.onWritten();
+    c.onWritten('unsettled');
+    expect(reasons).toEqual(['saved', 'unsettled']);
+  });
 });

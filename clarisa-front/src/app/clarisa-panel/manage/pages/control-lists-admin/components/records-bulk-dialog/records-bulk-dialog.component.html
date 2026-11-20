@@ -1,0 +1,126 @@
+<p-dialog
+  header="Add several records"
+  [visible]="visible"
+  (visibleChange)="onVisibleChange($event)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [style]="{ width: '47.5rem' }"
+  [breakpoints]="{ '720px': '94vw' }"
+  styleClass="admin-dialog rb-dialog">
+  <form class="admin-form rb" (ngSubmit)="submit()" autocomplete="off">
+    <p class="rb-intro" id="cl-rb-intro">
+      Paste one record per line. For more than one field, paste rows copied from a spreadsheet: each column goes to a field, in this order.
+    </p>
+    <ol class="rb-fields" aria-label="Fields, in column order">
+      <li class="rb-fields__item" *ngFor="let f of fields; let i = index">
+        <span class="rb-fields__n" aria-hidden="true">{{ i + 1 }}</span>
+        <span class="rb-fields__name">{{ f.label }}</span>
+        <span class="rb-fields__req" *ngIf="isOn(f.is_required)"><span class="rb-sr">, </span>required</span>
+      </li>
+    </ol>
+
+    <div class="field">
+      <label for="cl-rb-text">Records</label>
+      <textarea
+        id="cl-rb-text"
+        name="records"
+        pInputTextarea
+        rows="7"
+        class="w-full cl-mono rb-text"
+        spellcheck="false"
+        autofocus
+        aria-describedby="cl-rb-intro"
+        [placeholder]="placeholder"
+        [(ngModel)]="text"
+        (ngModelChange)="onTextChange()"
+        [disabled]="saving"></textarea>
+    </div>
+
+    <label class="rb-toggle rb-header" *ngIf="hasLines">
+      <input type="checkbox" name="headerOn" [ngModel]="headerOn" (ngModelChange)="setHeader($event)" [disabled]="saving" />
+      <span>The first line is a header</span>
+    </label>
+
+    <section class="rb-preview" aria-label="Preview">
+      <!-- Always in the page, so a screen reader hears the summary change; the table stays out of it. -->
+      <div class="rb-status" aria-live="polite">
+        <ng-container *ngIf="count > 0">
+          <p class="rb-summary" [class.has-problems]="blocked">
+            <i class="pi" [ngClass]="blocked ? 'pi-exclamation-circle' : 'pi-check-circle'" aria-hidden="true"></i>
+            <strong>{{ summary }}</strong>
+          </p>
+          <p class="rb-quiet" *ngIf="parsed.header === 'leading'">The first line is the header and was left out.</p>
+          <p class="rb-quiet" *ngIf="parsed.header === 'byName'">The first line is the header: its columns were matched by name.</p>
+          <p class="rb-limit" role="alert" *ngIf="parsed.overLimit">
+            <i class="pi pi-times-circle" aria-hidden="true"></i>
+            <span>You can add up to {{ max }} records at a time; this has {{ count }}. Add them in smaller groups.</span>
+          </p>
+          <p class="rb-limit" role="alert" *ngIf="parsed.tooMuchText && !parsed.overLimit">
+            <i class="pi pi-times-circle" aria-hidden="true"></i>
+            <span>These records carry too much text for one request (the limit is {{ maxTextMb }} MB). Add them in smaller groups.</span>
+          </p>
+        </ng-container>
+      </div>
+
+      <!-- Over the limit only the summary and the limit show: a huge paste must not draw thousands of rows. -->
+      <ng-container *ngIf="count > 0 && !tooBig">
+        <label class="rb-toggle rb-only" *ngIf="parsed.withProblems > 0">
+          <input type="checkbox" name="onlyProblems" [(ngModel)]="onlyProblems" />
+          <span>Show only rows with problems</span>
+        </label>
+
+        <div class="rb-table-wrap" tabindex="0" role="region" aria-label="Rows to add">
+          <table class="rb-table">
+            <thead>
+              <tr>
+                <th scope="col" class="rb-num">#</th>
+                <th scope="col" *ngFor="let f of fields">{{ f.label }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngFor="let row of visibleRows; trackBy: trackRow">
+                <tr [class.is-bad]="row.hasProblem">
+                  <th scope="row" class="rb-num">
+                    <i class="pi pi-exclamation-circle" *ngIf="row.hasProblem" aria-hidden="true"></i>{{ row.n }}
+                    <span class="rb-sr" *ngIf="row.hasProblem">, has problems</span>
+                  </th>
+                  <td *ngFor="let cell of row.cells" [class.rb-cell--bad]="!!cell.problem">
+                    <span class="rb-value" [class.rb-value--empty]="cell.text === ''">{{
+                      cell.text === '' ? '—' : cell.problem ? cell.text : cell.shown
+                    }}</span>
+                    <small class="rb-from" *ngIf="converted(cell)">from “{{ cell.text }}”</small>
+                    <small class="rb-problem" *ngIf="cell.problem"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ cell.problem }}</small>
+                  </td>
+                </tr>
+                <tr class="rb-rowproblem" *ngIf="row.problem">
+                  <td [attr.colspan]="fields.length + 1">
+                    <small class="rb-problem"><i class="pi pi-times-circle" aria-hidden="true"></i> Row {{ row.n }}: {{ row.problem }}</small>
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+      </ng-container>
+    </section>
+
+    <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <app-cl-discard-bar *ngIf="confirmingClose" (keep)="keepEditing()" (discard)="discard()"></app-cl-discard-bar>
+
+    <div class="admin-form__actions">
+      <p class="rb-blocked" id="cl-rb-blocked" *ngIf="parsed.withProblems > 0 && !tooBig">Fix the rows with problems to continue.</p>
+      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="close()"></button>
+      <button
+        pButton
+        type="submit"
+        [label]="submitLabel"
+        class="btn-brand"
+        [loading]="saving"
+        [attr.aria-describedby]="parsed.withProblems > 0 && !tooBig ? 'cl-rb-blocked' : null"
+        [disabled]="!canSubmit"></button>
+    </div>
+  </form>
+</p-dialog>

@@ -1,4 +1,4 @@
-import { freeCode, MAX_INLINE_OPTIONS, optionsProblem, parseOptions, typeChoices, typeName } from './field-types';
+import { foldText, freeCode, MAX_INLINE_OPTIONS, optionsProblem, parseOptions, typeChoices, typeName } from './field-types';
 
 describe('field types on screen', () => {
   const offered = [
@@ -54,5 +54,13 @@ describe('options written in the field', () => {
     expect(next).toHaveLength(50);
     expect(next.endsWith('_2')).toBe(true);
     expect(freeCode('', ['x'])).toBe('');
+  });
+});
+
+describe('foldText', () => {
+  it('drops case and accents, the way the options lists and unique indexes compare', () => {
+    expect(foldText('Légume')).toBe('legume');
+    expect(foldText('CAFÉ')).toBe(foldText('cafe'));
+    expect(foldText('Ñame')).toBe('name');
   });
 });

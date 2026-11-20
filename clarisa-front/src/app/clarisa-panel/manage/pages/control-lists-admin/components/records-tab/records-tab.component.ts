@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleCha
 import { forkJoin, of, Subject } from 'rxjs';
 import { catchError, map, switchMap, takeUntil } from 'rxjs/operators';
 import { ControlListsApiService } from '../../services/control-lists-api.service';
-import { FieldRow, ListDetail, ListRecord } from '../../models/control-lists.models';
+import { FieldRow, ListDetail, ListRecord, ReloadReason } from '../../models/control-lists.models';
 import { readApiError } from '../../utils/api-error';
 import { publishedFields, recordIsActive, recordLabel } from '../../utils/record-values';
 
@@ -10,12 +10,13 @@ export type RecordFilter = 'active' | 'inactive' | 'all';
 
 @Component({
   selector: 'app-cl-records-tab',
-  templateUrl: './records-tab.component.html'
+  templateUrl: './records-tab.component.html',
+  styleUrls: ['./records-tab.component.scss']
 })
 export class RecordsTabComponent implements OnChanges, OnDestroy {
   @Input() detail!: ListDetail;
   /** A record was written: the workspace reads the list again (its record count). */
-  @Output() changed = new EventEmitter<void>();
+  @Output() changed = new EventEmitter<ReloadReason>();
 
   fields: FieldRow[] = [];
   records: ListRecord[] = [];
@@ -36,6 +37,7 @@ export class RecordsTabComponent implements OnChanges, OnDestroy {
   ];
 
   recordVisible = false;
+  bulkVisible = false;
   statusVisible = false;
   statusMode: 'deactivate' | 'reactivate' = 'deactivate';
   target: ListRecord | null = null;
@@ -74,9 +76,9 @@ export class RecordsTabComponent implements OnChanges, OnDestroy {
     this.destroy$.complete();
   }
 
-  onWritten(): void {
+  onWritten(reason: ReloadReason = 'saved'): void {
     this.load();
-    this.changed.emit();
+    this.changed.emit(reason);
   }
 
   load(): void {
@@ -161,6 +163,15 @@ export class RecordsTabComponent implements OnChanges, OnDestroy {
 
   isActive(record: ListRecord): boolean {
     return recordIsActive(record);
+  }
+
+  /** «New record» and «Add several» wait for the records and need at least one published field. */
+  get canCreate(): boolean {
+    return this.loaded && !this.error && this.fields.length > 0;
+  }
+
+  openBulk(): void {
+    this.bulkVisible = true;
   }
 
   openCreate(): void {

@@ -15,13 +15,14 @@
     </p>
     <code class="cl-address cl-address--block">{{ address }}</code>
     <p class="field-hint cl-gap">
-      From then on you can add records, and any system can read them. You can still add, rename and remove fields afterwards.
+      From then on you can add records, and any system can read them. You can still add, rename and remove fields afterwards. A published list cannot
+      be unpublished, only deleted.
     </p>
 
     <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
 
     <div class="admin-form__actions">
-      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="close()"></button>
+      <button pButton type="button" label="Cancel" class="btn-ghost" autofocus [disabled]="saving" (click)="close()"></button>
       <button
         pButton
         type="submit"

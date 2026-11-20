@@ -19,6 +19,7 @@
         class="w-full"
         autofocus
         placeholder="Crop type"
+        [attr.maxlength]="limits.fieldLabel"
         [(ngModel)]="label"
         (ngModelChange)="onLabelChange()"
         [disabled]="saving" />
@@ -37,11 +38,13 @@
           pInputText
           class="w-full cl-mono"
           placeholder="crop_type"
+          [attr.maxlength]="limits.code"
+          [attr.aria-invalid]="codeInvalid"
           [(ngModel)]="code"
           (ngModelChange)="onCodeChange()"
           [disabled]="saving" />
         <small class="field-hint" *ngIf="!codeInvalid">The field name in the public address.</small>
-        <small class="field-error" *ngIf="codeInvalid">Lowercase letters, digits and underscores, starting with a letter.</small>
+        <small class="field-error" role="alert" *ngIf="codeInvalid">{{ codeError }}</small>
       </div>
     </div>
 
@@ -66,6 +69,13 @@
     </div>
 
     <section class="af-options" *ngIf="isRelation" aria-label="Options of this field">
+      <p class="admin-note cl-note cl-note--warn" role="status" *ngIf="listsFailed">
+        <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+        <span
+          >The other lists could not be loaded, so this dialog cannot check the code of the options list or offer an existing list. The server will
+          check the code when you add the field.</span
+        >
+      </p>
       <div class="af-seg" role="radiogroup" aria-label="Where the options come from" *ngIf="targets.length">
         <button
           type="button"
@@ -99,9 +109,10 @@
             rows="4"
             class="w-full"
             placeholder="Cereal&#10;Root&#10;Legume"
+            aria-describedby="cl-fa-options-hint"
             [(ngModel)]="optionsText"
             [disabled]="saving"></textarea>
-          <small class="field-hint" *ngIf="!optionsError"
+          <small id="cl-fa-options-hint" class="field-hint" *ngIf="!optionsError"
             >One option per line<ng-container *ngIf="options.length">
               · {{ options.length }} {{ options.length === 1 ? 'option' : 'options' }}</ng-container
             >. You can add or deactivate options later.</small
@@ -123,7 +134,7 @@
               name="optionsName"
               pInputText
               class="w-full"
-              maxlength="150"
+              [attr.maxlength]="limits.listName"
               [(ngModel)]="optionsName"
               (ngModelChange)="onOptionsNameChange()"
               [disabled]="saving" />
@@ -135,17 +146,18 @@
               name="optionsCode"
               pInputText
               class="w-full cl-mono"
+              [attr.maxlength]="limits.code"
               [(ngModel)]="optionsCode"
               (ngModelChange)="onOptionsCodeChange()"
               [disabled]="saving" />
             <small class="field-error" *ngIf="optionsCodeTaken">A list with that code already exists.</small>
-            <small class="field-error" *ngIf="optionsCodeInvalid">Lowercase letters, digits and underscores, starting with a letter.</small>
+            <small class="field-error" role="alert" *ngIf="optionsCodeInvalid">{{ optionsCodeError }}</small>
           </div>
         </div>
       </ng-container>
 
       <div class="field" *ngIf="source === 'existing'">
-        <label for="cl-fa-rel">List with the options <span class="tag-req">Required</span></label>
+        <label for="cl-fa-rel">Options list <span class="tag-req">Required</span></label>
         <p-dropdown
           inputId="cl-fa-rel"
           name="relation"
@@ -167,16 +179,27 @@
       <legend>Rules</legend>
       <div class="af-rules__row">
         <label class="cl-switch" for="cl-fa-req">
-          <p-inputSwitch inputId="cl-fa-req" name="required" [(ngModel)]="isRequired"></p-inputSwitch>
-          <span><strong>Required</strong><small>Every record must have a value.</small></span>
+          <p-inputSwitch inputId="cl-fa-req" name="required" [(ngModel)]="isRequired" [disabled]="saving || requiredNote"></p-inputSwitch>
+          <span
+            ><strong>Required</strong><small>{{ requiredNote ? 'Not available: this list already has records.' : hints.required }}</small></span
+          >
         </label>
         <label class="cl-switch" for="cl-fa-uniq">
-          <p-inputSwitch inputId="cl-fa-uniq" name="unique" [(ngModel)]="isUnique"></p-inputSwitch>
-          <span><strong>Unique</strong><small>No two records share a value.</small></span>
+          <p-inputSwitch inputId="cl-fa-uniq" name="unique" [(ngModel)]="isUnique" [disabled]="saving || longText"></p-inputSwitch>
+          <span
+            ><strong>Unique</strong><small>{{ longText ? hints.longText : hints.unique }}</small></span
+          >
         </label>
         <label class="cl-switch" for="cl-fa-idx">
-          <p-inputSwitch inputId="cl-fa-idx" name="indexed" [(ngModel)]="isIndexed"></p-inputSwitch>
-          <span><strong>Filterable</strong><small>Can filter the public address.</small></span>
+          <p-inputSwitch
+            inputId="cl-fa-idx"
+            name="indexed"
+            [ngModel]="indexedShown"
+            (ngModelChange)="setIndexed($event)"
+            [disabled]="saving || longText || uniqueOn"></p-inputSwitch>
+          <span
+            ><strong>Filterable</strong><small>{{ longText ? hints.longText : uniqueOn ? hints.uniqueFilter : hints.indexed }}</small></span
+          >
         </label>
       </div>
     </fieldset>
@@ -187,6 +210,8 @@
     </p>
 
     <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <app-cl-discard-bar *ngIf="confirmingClose" (keep)="keepEditing()" (discard)="discard()"></app-cl-discard-bar>
 
     <div class="admin-form__actions">
       <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="close()"></button>

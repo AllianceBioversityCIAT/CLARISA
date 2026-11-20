@@ -2,7 +2,18 @@ import { Component, Input } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { ControlListsApiService } from '../../services/control-lists-api.service';
 import { FieldRow, ListRecord } from '../../models/control-lists.models';
-import { buildChangedBody, buildCreateBody, FormValues, initialValues, isOn, recordIsActive, recordLabel } from '../../utils/record-values';
+import { valueMaxLength } from '../../utils/limits';
+import {
+  buildChangedBody,
+  buildCreateBody,
+  FormValues,
+  initialValues,
+  isMissing,
+  isOn,
+  recordIsActive,
+  recordLabel,
+  valueProblem
+} from '../../utils/record-values';
 import { WriteDialogBase } from '../write-dialog.base';
 
 export interface RelationOption {
@@ -14,7 +25,8 @@ export const REASON_MAX = 500;
 
 @Component({
   selector: 'app-cl-record-dialog',
-  templateUrl: './record-dialog.component.html'
+  templateUrl: './record-dialog.component.html',
+  styleUrls: ['./record-dialog.component.scss']
 })
 export class RecordDialogComponent extends WriteDialogBase<ListRecord> {
   @Input() code = '';
@@ -32,6 +44,7 @@ export class RecordDialogComponent extends WriteDialogBase<ListRecord> {
   private initial: FormValues = {};
 
   readonly isOn = isOn;
+  readonly maxLength = valueMaxLength;
 
   constructor(
     private api: ControlListsApiService,
@@ -73,8 +86,32 @@ export class RecordDialogComponent extends WriteDialogBase<ListRecord> {
     return Object.keys(this.changed).length > 0;
   }
 
+  /** The required fields that have no value yet, by label: the button waits for them. */
+  get missing(): string[] {
+    return this.fields.filter(f => isMissing(f, this.values[f.code])).map(f => f.label);
+  }
+
+  /** Why the value typed in this field cannot be sent as it is (an ambiguous decimal, a long text over its bytes), or `null`. */
+  problemOf(field: FieldRow): string | null {
+    return valueProblem(field, this.values[field.code]);
+  }
+
+  get hasProblems(): boolean {
+    return this.fields.some(f => this.problemOf(f) !== null);
+  }
+
+  /** A required Options field whose list has no active record to choose: the person has to add one there first. */
+  noOptions(field: FieldRow): boolean {
+    return field.type === 'relation' && isOn(field.is_required) && !this.relationFailed(field) && (this.options[field.code] ?? []).length === 0;
+  }
+
+  /** Something differs from what the dialog opened with, or a reason was written. */
+  protected override isDirty(): boolean {
+    return this.hasChanges || this.reason.trim() !== '';
+  }
+
   get canSubmit(): boolean {
-    return !this.saving && (!this.editing || this.hasChanges);
+    return !this.saving && (!this.editing || this.hasChanges) && this.missing.length === 0 && !this.hasProblems;
   }
 
   submit(): void {
@@ -89,7 +126,8 @@ export class RecordDialogComponent extends WriteDialogBase<ListRecord> {
       );
       return;
     }
-    const body = { ...buildCreateBody(this.fields, this.values), request_id: this.requestId };
+    const values = buildCreateBody(this.fields, this.values);
+    const body = { ...values, request_id: this.requestIdFor({ code: this.code, values }) };
     this.write(
       () => this.api.createRecord(this.code, body),
       created => this.success('Record created', `Record #${created.id} was added.`)

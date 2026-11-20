@@ -31,6 +31,10 @@ import { RecordStatusDialogComponent } from './components/record-status-dialog/r
 import { EndpointTabComponent } from './components/endpoint-tab/endpoint-tab.component';
 import { ListPathComponent } from './components/list-path/list-path.component';
 import { FieldTypePickerComponent } from './components/field-type-picker/field-type-picker.component';
+import { DiscardBarComponent } from './components/discard-bar/discard-bar.component';
+import { ListEditDialogComponent } from './components/list-edit-dialog/list-edit-dialog.component';
+import { FieldRulesDialogComponent } from './components/field-rules-dialog/field-rules-dialog.component';
+import { RecordsBulkDialogComponent } from './components/records-bulk-dialog/records-bulk-dialog.component';
 
 @NgModule({
   declarations: [
@@ -50,7 +54,11 @@ import { FieldTypePickerComponent } from './components/field-type-picker/field-t
     RecordStatusDialogComponent,
     EndpointTabComponent,
     ListPathComponent,
-    FieldTypePickerComponent
+    FieldTypePickerComponent,
+    DiscardBarComponent,
+    ListEditDialogComponent,
+    FieldRulesDialogComponent,
+    RecordsBulkDialogComponent
   ],
   imports: [
     CommonModule,

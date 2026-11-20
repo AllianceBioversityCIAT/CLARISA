@@ -17,7 +17,10 @@
     <p class="cl-loading" *ngIf="impactLoading" role="status">
       <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Checking what this would affect…
     </p>
-    <p class="field-error cl-error" role="alert" *ngIf="impactError"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ impactError }}</p>
+    <p class="field-error cl-error" role="alert" *ngIf="impactError">
+      <i class="pi pi-times-circle" aria-hidden="true"></i> {{ impactError }}
+      <button pButton type="button" label="Try again" icon="pi pi-refresh" class="btn-ghost p-button-sm cl-retry" (click)="retryImpact()"></button>
+    </p>
 
     <div class="cl-impact cl-impact--danger" *ngIf="impact" role="status">
       <strong class="cl-impact__count">{{ impact.affected }}</strong>

@@ -22,7 +22,18 @@
       <nav class="cl-crumbs" aria-label="Breadcrumb">
         <a [routerLink]="url"><i class="pi pi-arrow-left" aria-hidden="true"></i> Control lists</a>
       </nav>
-      <h1 class="admin-page__title">{{ list.name }}</h1>
+      <div class="ws-title">
+        <h1 class="admin-page__title cl-wrap">{{ list.name }}</h1>
+        <button
+          pButton
+          type="button"
+          label="Edit"
+          icon="pi pi-pencil"
+          class="btn-ghost p-button-sm ws-edit"
+          aria-label="Edit the name and description of this list"
+          [disabled]="refreshing"
+          (click)="editVisible = true"></button>
+      </div>
       <p class="cl-meta">
         <code class="cl-mono">{{ list.code }}</code>
         <span class="cl-chip" [ngClass]="'cl-chip--' + list.status"
@@ -32,40 +43,80 @@
           >Owner role <strong>{{ ownerName }}</strong></span
         >
       </p>
-      <p class="admin-page__hint" *ngIf="list.description">{{ list.description }}</p>
+      <p class="admin-page__hint cl-wrap" *ngIf="list.description">{{ list.description }}</p>
     </div>
   </header>
 
-  <app-cl-list-path [list]="list" [onRecords]="tab === 'records'" (publish)="publishVisible = true" (records)="setTab('records')"></app-cl-list-path>
-
-  <nav class="admin-tabs cl-tabs" role="tablist" aria-label="List sections">
+  <p class="admin-note cl-note cl-note--warn ws-partial" role="status" *ngIf="failedParts.length">
+    <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+    <span>Part of this screen could not be loaded: {{ partsText }}.</span>
     <button
-      *ngFor="let t of tabs"
+      pButton
       type="button"
-      role="tab"
-      class="admin-tabs__item"
-      [id]="'cl-tab-' + t.id"
-      [class.is-active]="tab === t.id"
-      [attr.aria-selected]="tab === t.id"
-      [attr.aria-controls]="'cl-panel'"
-      (click)="setTab(t.id)">
-      <span>{{ t.label }}</span>
-      <span class="admin-tabs__count" *ngIf="t.id === 'fields'">{{ list.fields.length }}</span>
-      <span class="admin-tabs__count" *ngIf="t.id === 'records' && published">{{ list.rows }}</span>
-    </button>
-  </nav>
+      label="Retry"
+      icon="pi pi-refresh"
+      class="btn-ghost p-button-sm"
+      [disabled]="refreshing"
+      (click)="retryParts()"></button>
+  </p>
 
-  <div id="cl-panel" role="tabpanel" [attr.aria-labelledby]="'cl-tab-' + tab" class="cl-panel">
+  <app-cl-list-path
+    class="ws-path"
+    [class.is-busy]="refreshing"
+    [attr.aria-busy]="refreshing ? 'true' : null"
+    [list]="list"
+    [onRecords]="tab === 'records'"
+    (publish)="publishVisible = true"
+    (records)="setTab('records')"></app-cl-list-path>
+
+  <div class="ws-tabrow">
+    <nav class="admin-tabs cl-tabs" role="tablist" aria-label="List sections">
+      <button
+        *ngFor="let t of tabs; let i = index"
+        type="button"
+        role="tab"
+        class="admin-tabs__item"
+        [id]="'cl-tab-' + t.id"
+        [class.is-active]="tab === t.id"
+        [attr.aria-selected]="tab === t.id"
+        [attr.aria-controls]="'cl-panel'"
+        [attr.tabindex]="tabIndex(t.id)"
+        (keydown)="onTabKey($event, i)"
+        (click)="setTab(t.id)">
+        <span>{{ t.label }}</span>
+        <span class="admin-tabs__count" *ngIf="t.id === 'fields'">{{ list.fields.length }}</span>
+        <span class="admin-tabs__count" *ngIf="t.id === 'records' && published">{{ list.rows }}</span>
+      </button>
+    </nav>
+    <!-- The live region stays in the page so the pill is announced when it appears. -->
+    <span class="ws-live" role="status"
+      ><span class="ws-pill" *ngIf="refreshing"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Updating…</span></span
+    >
+  </div>
+
+  <div id="cl-panel" role="tabpanel" [attr.aria-labelledby]="'cl-tab-' + tab" class="cl-panel ws-panel" [attr.aria-busy]="refreshing ? 'true' : null">
+    <!-- Over the panel, under any dialog: while the list is read again nothing in it can be clicked. -->
+    <div class="ws-veil" *ngIf="refreshing" aria-hidden="true"></div>
     <app-cl-fields-tab
       *ngIf="tab === 'fields'"
       [detail]="list"
       [types]="types"
       [lists]="lists"
-      (changed)="reload()"
+      [listsFailed]="has('lists')"
+      (changed)="reload($event)"
       (listDeleted)="onListDeleted()"></app-cl-fields-tab>
-    <app-cl-records-tab *ngIf="tab === 'records'" [detail]="list" (changed)="reload()"></app-cl-records-tab>
+    <app-cl-records-tab *ngIf="tab === 'records'" [detail]="list" (changed)="reload($event)"></app-cl-records-tab>
     <app-cl-endpoint-tab *ngIf="tab === 'endpoint'" [detail]="list"></app-cl-endpoint-tab>
   </div>
 
-  <app-cl-publish-dialog [(visible)]="publishVisible" [list]="list" (done)="reload()" (unsettled)="reload()"></app-cl-publish-dialog>
+  <app-cl-list-edit-dialog
+    [(visible)]="editVisible"
+    [list]="list"
+    (done)="reload('saved')"
+    (unsettled)="reload('unsettled')"></app-cl-list-edit-dialog>
+  <app-cl-publish-dialog
+    [(visible)]="publishVisible"
+    [list]="list"
+    (done)="reload('saved')"
+    (unsettled)="reload('unsettled')"></app-cl-publish-dialog>
 </ng-container>

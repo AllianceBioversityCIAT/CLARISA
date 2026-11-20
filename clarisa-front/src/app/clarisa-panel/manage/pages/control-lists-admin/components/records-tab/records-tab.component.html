@@ -3,15 +3,18 @@
     <h2 class="panel-head__title">Records</h2>
     <p class="panel-head__desc">Deactivated records leave the public list but stay readable by their id.</p>
   </div>
-  <button
-    *ngIf="published"
-    pButton
-    type="button"
-    label="New record"
-    icon="pi pi-plus"
-    class="btn-brand"
-    [disabled]="!loaded || !!error || fields.length === 0"
-    (click)="openCreate()"></button>
+  <div class="rt-actions" *ngIf="published">
+    <button
+      pButton
+      type="button"
+      label="Add several"
+      aria-label="Add several records"
+      icon="pi pi-list"
+      class="btn-ghost"
+      [disabled]="!canCreate"
+      (click)="openBulk()"></button>
+    <button pButton type="button" label="New record" icon="pi pi-plus" class="btn-brand" [disabled]="!canCreate" (click)="openCreate()"></button>
+  </div>
 </header>
 
 <section class="cl-state" *ngIf="!published">
@@ -121,7 +124,17 @@
               <i class="pi pi-inbox" aria-hidden="true"></i>
               <strong>No records yet</strong>
               <span>Add the first record of this list.</span>
-              <button pButton type="button" label="New record" icon="pi pi-plus" class="btn-brand" (click)="openCreate()"></button>
+              <div class="rt-actions">
+                <button
+                  pButton
+                  type="button"
+                  label="Add several"
+                  aria-label="Add several records"
+                  icon="pi pi-list"
+                  class="btn-ghost"
+                  (click)="openBulk()"></button>
+                <button pButton type="button" label="New record" icon="pi pi-plus" class="btn-brand" (click)="openCreate()"></button>
+              </div>
             </ng-container>
             <ng-template #filtered>
               <strong>No records match</strong>
@@ -140,12 +153,20 @@
   [fields]="fields"
   [record]="target"
   [related]="related"
-  (done)="onWritten()"
-  (unsettled)="onWritten()"></app-cl-record-dialog>
+  (done)="onWritten('saved')"
+  (unsettled)="onWritten('unsettled')"></app-cl-record-dialog>
+<app-cl-records-bulk-dialog
+  [(visible)]="bulkVisible"
+  [code]="code"
+  [fields]="fields"
+  [related]="related"
+  [existing]="records"
+  (done)="onWritten('saved')"
+  (unsettled)="onWritten('unsettled')"></app-cl-records-bulk-dialog>
 <app-cl-record-status-dialog
   [(visible)]="statusVisible"
   [code]="code"
   [record]="target"
   [mode]="statusMode"
-  (done)="onWritten()"
-  (unsettled)="onWritten()"></app-cl-record-status-dialog>
+  (done)="onWritten('saved')"
+  (unsettled)="onWritten('unsettled')"></app-cl-record-status-dialog>

@@ -1,4 +1,7 @@
+import { TimeoutError } from 'rxjs';
+
 export const GENERIC_ERROR = 'Could not complete the request. Try again.';
+export const TIMEOUT_ERROR = 'The server is taking too long to answer.';
 export const UNAVAILABLE_ERROR = 'Control lists are temporarily unavailable. Try again in a moment.';
 
 export interface ApiErrorInfo {
@@ -31,10 +34,14 @@ function asNumber(value: unknown): number | null {
  * Reads a failed call. The back answers `{ message, status, path }`, and the
  * retype 409 nests `{ message: { message, affected } }`; the same body can also
  * sit one level down under `response`. 4xx shows what the back said; a network
- * failure or a 5xx shows a generic line. A 503 the back wrote itself keeps its
+ * failure or a 5xx shows a generic line, and a call that never answered says so. A 503 the back wrote itself keeps its
  * text: it says the result is confirmed on its own and when to look again.
  */
 export function readApiError(err: unknown): ApiErrorInfo {
+  // The service gives up on a call after `REQUEST_TIMEOUT_MS`: for a write the outcome is unknown.
+  if (err instanceof TimeoutError || (err as { name?: string } | null)?.name === 'TimeoutError') {
+    return { status: 0, message: TIMEOUT_ERROR, affected: null, unsettled: true };
+  }
   const e = err as { status?: number; error?: unknown } | null;
   const status = typeof e?.status === 'number' ? e.status : 0;
   const body = e?.error as Record<string, unknown> | string | null | undefined;

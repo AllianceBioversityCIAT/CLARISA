@@ -1,11 +1,12 @@
 import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControlListsApiService } from '../../services/control-lists-api.service';
-import { FieldRow, FieldTypeOption, ListDetail, ListRow } from '../../models/control-lists.models';
+import { FieldRow, FieldTypeOption, ListDetail, ListRow, ReloadReason } from '../../models/control-lists.models';
 import { relationTargets } from '../../utils/list-format';
 import { isOn } from '../../utils/record-values';
 import { readApiError } from '../../utils/api-error';
 import { typeName } from '../../utils/field-types';
+import { filterableBy } from '../../utils/field-rules';
 import { CONTROL_LISTS_URL } from '../../utils/routes';
 
 @Component({
@@ -16,8 +17,10 @@ export class FieldsTabComponent implements OnChanges, OnDestroy {
   @Input() detail!: ListDetail;
   @Input() types: FieldTypeOption[] = [];
   @Input() lists: ListRow[] = [];
-  /** A write succeeded: the parent reloads the list from the server. */
-  @Output() changed = new EventEmitter<void>();
+  /** The parent reloads the list from the server; `reason` says why, so a failed reload is reported truthfully. */
+  @Output() changed = new EventEmitter<ReloadReason>();
+  /** The lists of this user could not be read: the Add field dialog says it cannot check codes. */
+  @Input() listsFailed = false;
   @Output() listDeleted = new EventEmitter<void>();
 
   readonly isOn = isOn;
@@ -29,6 +32,7 @@ export class FieldsTabComponent implements OnChanges, OnDestroy {
   addVisible = false;
   renameVisible = false;
   typeVisible = false;
+  rulesVisible = false;
   deleteFieldVisible = false;
   deleteListVisible = false;
   target: FieldRow | null = null;
@@ -56,12 +60,22 @@ export class FieldsTabComponent implements OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['lists']) this.takenCodes = this.lists.map(l => l.code);
+    // A reload brings new field objects: an open dialog reads the stored values of now, not of when it opened.
+    if (changes['detail'] && this.target) {
+      const id = this.target.id;
+      this.target = this.detail.fields.find(f => f.id === id) ?? this.target;
+    }
     // The definition changes after every schema write: refresh it while it is open.
     if (changes['detail'] && !changes['detail'].firstChange && this.sqlOpen) this.loadSql();
   }
 
   ngOnDestroy(): void {
     this.sqlSub?.unsubscribe();
+  }
+
+  /** The public address can filter by this field: it is unique, filterable or a relation (the dialog says the same). */
+  filterable(field: FieldRow): boolean {
+    return filterableBy(field.type, isOn(field.is_unique), isOn(field.is_indexed));
   }
 
   openAdd(): void {
@@ -76,6 +90,11 @@ export class FieldsTabComponent implements OnChanges, OnDestroy {
   openType(field: FieldRow): void {
     this.target = field;
     this.typeVisible = true;
+  }
+
+  openRules(field: FieldRow): void {
+    this.target = field;
+    this.rulesVisible = true;
   }
 
   openDeleteField(field: FieldRow): void {

@@ -1,7 +1,7 @@
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { ControlListsApiService } from '../services/control-lists-api.service';
 import { ListsScreenComponent } from './lists-screen.component';
 
@@ -83,6 +83,30 @@ describe('ListsScreenComponent', () => {
     api.list.mockReturnValue(of(detail(1, [])));
     const c = create();
     expect(c.owner(c.rows[0])).toBe('Role #1');
+  });
+
+  it('remembers that the roles failed, reads them again on «New list» and on Retry, and clears the failure when they load', () => {
+    api.owners.mockReturnValue(throwError(() => ({ status: 500 })));
+    api.lists.mockReturnValue(of([]));
+    const c = create();
+    expect(c.ownersFailed).toBe(true);
+
+    const answer = new Subject<unknown>();
+    api.owners.mockReturnValue(answer);
+    c.openNew();
+    expect(c.newVisible).toBe(true);
+    expect(c.ownersLoading).toBe(true);
+    c.retryOwners();
+    expect(api.owners).toHaveBeenCalledTimes(2);
+    answer.error({ status: 500 });
+    expect(c.ownersLoading).toBe(false);
+    expect(c.ownersFailed).toBe(true);
+
+    api.owners.mockReturnValue(of([{ id: 1, acronym: 'CL', description: '' }]));
+    c.retryOwners();
+    expect(c.ownersFailed).toBe(false);
+    expect(c.ownersLoading).toBe(false);
+    expect(c.owners.length).toBe(1);
   });
 
   it('opens the workspace of a row and of a new list', () => {
