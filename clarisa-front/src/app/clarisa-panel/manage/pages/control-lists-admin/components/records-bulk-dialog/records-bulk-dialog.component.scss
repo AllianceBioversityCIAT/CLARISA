@@ -140,7 +140,14 @@
   overflow: auto;
   border: 1px solid var(--cl-line);
   border-radius: var(--cl-radius-control);
-  background: var(--cl-surface);
+  /* Scroll shadows: the two covers move with the content (local), the two shadows stay on the edges (scroll).
+     When the table is wider than the box, a shadow shows on the side where more columns wait. */
+  background:
+    linear-gradient(to right, var(--cl-surface) 30%, transparent) left center / 40px 100% no-repeat local,
+    linear-gradient(to left, var(--cl-surface) 30%, transparent) right center / 40px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(16, 36, 28, 0.2), transparent) left center / 14px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(16, 36, 28, 0.2), transparent) right center / 14px 100% no-repeat scroll;
+  background-color: var(--cl-surface);
 
   &:focus-visible {
     outline: 2px solid var(--cl-brand);
@@ -234,8 +241,14 @@
   }
 }
 
-.rb-rowproblem .rb-problem {
+.rb-rowproblem .rb-problem,
+.rb-cellproblems .rb-problem {
   max-width: none;
+}
+
+/* Only on a phone (below): there the cell of a problem can be off-screen. */
+.rb-cellproblems {
+  display: none;
 }
 
 .rb-rowproblem td {
@@ -274,6 +287,29 @@
 
   .rb-table-wrap {
     max-height: 220px;
+  }
+
+  /* On a phone the cell of a problem can be off-screen: each problem is written under its row, across the
+     visible width (the block stays put while the table scrolls sideways), and the cell keeps only its mark. */
+  .rb-cellproblems {
+    display: table-row;
+
+    td {
+      padding-top: 0;
+      background: rgba(180, 35, 24, 0.07);
+    }
+  }
+
+  .rb-cellproblems__in {
+    position: sticky;
+    left: 10px;
+    display: grid;
+    gap: 2px;
+    width: calc(100vw - 104px);
+  }
+
+  td:not([colspan]) > .rb-problem {
+    display: none;
   }
 
   /* The admin skin keeps 68vh for the content of a dialog on a phone, leaving room for a footer this

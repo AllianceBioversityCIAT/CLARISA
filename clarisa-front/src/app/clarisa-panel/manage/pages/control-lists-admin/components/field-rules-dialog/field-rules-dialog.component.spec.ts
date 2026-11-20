@@ -103,15 +103,16 @@ describe('FieldRulesDialogComponent', () => {
     expect(input(f, 'cl-fr-uniq').disabled).toBe(true);
     expect(input(f, 'cl-fr-idx').disabled).toBe(true);
     expect(input(f, 'cl-fr-req').disabled).toBe(false);
-    expect((q(f, 'label[for=cl-fr-uniq]') as HTMLElement).textContent).toContain('Not available for long text');
-    expect((q(f, 'label[for=cl-fr-idx]') as HTMLElement).textContent).toContain('Not available for long text');
+    expect((q(f, 'label[for=cl-fr-uniq]') as HTMLElement).textContent).toContain('Not available for long text.');
+    expect((q(f, 'label[for=cl-fr-idx]') as HTMLElement).textContent).toContain('Not available for long text.');
   });
 
   it('a relation is always filterable: on, disabled, and its stored flag is what travels', async () => {
     const f = await draw({ type: 'relation', is_indexed: 0, relation_name: 'Crop types', relation_code: 'crop_types' });
     expect(input(f, 'cl-fr-idx').checked).toBe(true);
     expect(input(f, 'cl-fr-idx').disabled).toBe(true);
-    expect(text(f)).toContain('A relation can always be used as a filter.');
+    expect(text(f)).toContain('A field with an options list can always be used as a filter.');
+    expect(text(f)).not.toContain('relation');
     expect(f.componentInstance.changed).toBe(false);
     api.setFieldRules.mockReturnValue(new Subject());
     await flip(f, 'cl-fr-req');
@@ -252,11 +253,11 @@ describe('FieldRulesDialogComponent', () => {
     f.componentInstance.submit();
     answer.error({
       status: 400,
-      error: { message: '2 record(s) have no value in "Name" (inactive records count too). Fill them in first, then make the field required.' }
+      error: { message: '2 records have no value in "Name" (inactive records count too). Fill them in first, then make the field required.' }
     });
     await settle(f);
     expect(f.componentInstance.visible).toBe(true);
-    expect(q(f, '.cl-error').textContent).toContain('2 record(s) have no value in "Name"');
+    expect(q(f, '.cl-error').textContent).toContain('2 records have no value in "Name"');
   });
 
   it('asks before dropping a change on Cancel', async () => {

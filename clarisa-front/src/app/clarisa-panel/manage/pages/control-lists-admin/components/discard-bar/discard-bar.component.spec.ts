@@ -25,6 +25,7 @@ describe('DiscardBarComponent', () => {
 
   it('asks the question and offers the two ways out', () => {
     expect(fixture.nativeElement.textContent).toContain('Discard your changes?');
+    expect(fixture.nativeElement.textContent).toContain('They will not be saved.');
     expect(buttons().map(b => b.textContent?.trim())).toEqual(['Keep editing', 'Discard']);
     expect(fixture.nativeElement.querySelector('[role="group"]').getAttribute('aria-labelledby')).toBe('cl-discard-title');
   });

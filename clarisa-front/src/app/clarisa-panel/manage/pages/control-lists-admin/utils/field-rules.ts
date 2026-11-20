@@ -6,8 +6,8 @@ export const RULE_HINTS = {
   required: 'Every record must have a value.',
   unique: 'No two records share a value.',
   indexed: 'Can filter the public address.',
-  longText: 'Not available for long text',
-  relationFilter: 'A relation can always be used as a filter.',
+  longText: 'Not available for long text.',
+  relationFilter: 'A field with an options list can always be used as a filter.',
   uniqueFilter: 'A unique field can always be used as a filter.'
 } as const;
 

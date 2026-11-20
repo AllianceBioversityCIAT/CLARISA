@@ -11,7 +11,8 @@ import { CONTROL_LISTS_URL } from '../../utils/routes';
 
 @Component({
   selector: 'app-cl-fields-tab',
-  templateUrl: './fields-tab.component.html'
+  templateUrl: './fields-tab.component.html',
+  styleUrls: ['./fields-tab.component.scss']
 })
 export class FieldsTabComponent implements OnChanges, OnDestroy {
   @Input() detail!: ListDetail;

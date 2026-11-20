@@ -53,11 +53,15 @@
     color: var(--cl-ink-2);
   }
 
-  /* `?code=…` reads as one piece: it goes to the next line whole. */
+  /* `?code=…` reads as one piece: it goes to the next line whole. In the note's own ink (the theme's pink was about 1.9:1 here), bold, no chip. */
   code {
     display: inline-block;
     max-width: 100%;
+    padding: 0;
+    background: none;
+    color: inherit;
     font-size: 12px;
+    font-weight: 700;
     overflow-wrap: anywhere;
   }
 }

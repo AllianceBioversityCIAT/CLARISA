@@ -328,8 +328,8 @@ describe('the dialogs as drawn', () => {
       expect(filterable.disabled).toBe(true);
       expect(unique.checked).toBe(false);
       expect(filterable.checked).toBe(false);
-      expect((q(f, 'label[for=cl-fa-uniq]') as HTMLElement).textContent).toContain('Not available for long text');
-      expect((q(f, 'label[for=cl-fa-idx]') as HTMLElement).textContent).toContain('Not available for long text');
+      expect((q(f, 'label[for=cl-fa-uniq]') as HTMLElement).textContent).toContain('Not available for long text.');
+      expect((q(f, 'label[for=cl-fa-idx]') as HTMLElement).textContent).toContain('Not available for long text.');
       expect((q(f, '#cl-fa-req') as HTMLInputElement).disabled).toBe(false);
     });
 
@@ -721,7 +721,13 @@ describe('the lists screen as drawn', () => {
     expect(text(f)).not.toContain('Relations');
     const desc = q(f, '.ls-desc') as HTMLElement;
     expect(desc.getAttribute('title')).toBe(long);
-    expect(q(f, 'td.ls-name')).not.toBeNull();
+    expect(q(f, 'tbody td.cl-flex-col')).not.toBeNull();
+    // Tablet: Name keeps its minimum, Open stays in reach while the table scrolls.
+    expect(q(f, 'thead th.cl-flex-col')).not.toBeNull();
+    expect((Array.from(f.nativeElement.querySelectorAll('thead th')) as HTMLElement[]).pop()?.classList.contains('cl-sticky-end')).toBe(true);
+    expect(
+      (Array.from(f.nativeElement.querySelectorAll('tbody tr:first-child > td')) as HTMLElement[]).pop()?.classList.contains('cl-sticky-end')
+    ).toBe(true);
   });
 });
 
@@ -788,6 +794,19 @@ describe('the fields tab as drawn', () => {
     expect(rules).toEqual([['Unique', 'Filterable'], ['Filterable'], ['—']]);
   });
 
+  it('gives Label its minimum and Actions the sticky end on a tablet, with Code and Options list trimmed', async () => {
+    const f = await drawTab({ status: 'published' });
+    const heads = Array.from(f.nativeElement.querySelectorAll('thead th')) as HTMLElement[];
+    expect(heads[0].classList.contains('cl-flex-col')).toBe(true);
+    // 810 px declared + 140 px for the label = the 950 px minimum of the stylesheet (a fixed table gives the column without a width what is left).
+    expect(heads.map(h => h.style.width)).toEqual(['', '115px', '118px', '165px', '130px', '118px', '164px']);
+    expect(heads.reduce((sum, h) => sum + (parseInt(h.style.width, 10) || 0), 0)).toBe(810);
+    expect(heads[heads.length - 1].classList.contains('cl-sticky-end')).toBe(true);
+    const cells = Array.from(f.nativeElement.querySelectorAll('tbody tr:first-child > td')) as HTMLElement[];
+    expect(cells[0].classList.contains('cl-flex-col')).toBe(true);
+    expect(cells[cells.length - 1].classList.contains('cl-sticky-end')).toBe(true);
+  });
+
   it('after a reload, an open dialog reads the fresh field with the same id', async () => {
     const f = await drawTab({ status: 'published' });
     const c = f.componentInstance;
@@ -846,6 +865,16 @@ describe('the records tab as drawn', () => {
     expect(f.componentInstance.bulkVisible).toBe(true);
     const several = Array.from(f.nativeElement.querySelectorAll('button')).filter(b => (b as HTMLElement).textContent?.includes('Add several'));
     expect(several.map(b => (b as HTMLElement).getAttribute('aria-label'))).toEqual(['Add several records', 'Add several records']);
+  });
+
+  it('gives every data column its minimum and the actions the sticky end', async () => {
+    const f = await drawRecords([{ id: 1, name: 'Maize', is_active: true }]);
+    expect(f.nativeElement.querySelectorAll('thead th.cl-flex-col').length).toBe(1);
+    expect(f.nativeElement.querySelectorAll('tbody td.cl-flex-col').length).toBe(1);
+    expect((Array.from(f.nativeElement.querySelectorAll('thead th')) as HTMLElement[]).pop()?.classList.contains('cl-sticky-end')).toBe(true);
+    expect(
+      (Array.from(f.nativeElement.querySelectorAll('tbody tr:first-child > td')) as HTMLElement[]).pop()?.classList.contains('cl-sticky-end')
+    ).toBe(true);
   });
 
   it('keeps «Add several» off with «New record» while the records could not be read', async () => {

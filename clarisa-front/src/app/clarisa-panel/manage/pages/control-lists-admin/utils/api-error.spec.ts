@@ -57,8 +57,8 @@ describe('readApiError', () => {
   it('reads the retype 409 exactly as the back sends it', () => {
     // Body copied from the engine (PATCH schema/fields/:id/type with a wrong confirm_affected).
     const body = {
-      response: { message: 'Changing "Name" to Whole number changes or does not fit 3 record(s).', affected: 3 },
-      message: 'Changing "Name" to Whole number changes or does not fit 3 record(s).',
+      response: { message: 'Changing "Name" to Whole number changes or does not fit 3 records.', affected: 3 },
+      message: 'Changing "Name" to Whole number changes or does not fit 3 records.',
       status: 409,
       path: '/api/control-lists/admin/schema/fields/7/type'
     };
