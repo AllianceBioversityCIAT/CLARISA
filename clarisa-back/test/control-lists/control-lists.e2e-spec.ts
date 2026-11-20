@@ -260,7 +260,7 @@ describeIf('control lists engine, real MySQL', () => {
   async function clarisaSnapshot() {
     const tables = (await sql(`SHOW TABLES FROM ${MAIN}`))
       .map((r) => String(Object.values(r)[0]))
-      .sort();
+      .sort((x, y) => x.localeCompare(y));
     const rows: Record<string, unknown> = {};
     for (const t of tables)
       rows[t] = await sql(`SELECT * FROM ${MAIN}.\`${t}\` ORDER BY id`);
@@ -433,7 +433,7 @@ describeIf('control lists engine, real MySQL', () => {
     ]);
     for (const r of await sql(`SELECT id, acronym FROM ${MAIN}.roles`))
       roleId[r.acronym] = Number(r.id);
-    expect(Object.keys(roleId).sort()).toEqual([
+    expect(Object.keys(roleId).sort((x, y) => x.localeCompare(y))).toEqual([
       'CL_DESIGNER',
       'CL_EDITOR',
       'SA',
