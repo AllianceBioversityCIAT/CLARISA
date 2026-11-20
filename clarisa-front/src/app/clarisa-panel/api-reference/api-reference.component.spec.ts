@@ -63,6 +63,36 @@ describe('ApiReferenceComponent', () => {
     expect(navigate).toHaveBeenCalledWith('/landing-page/home');
   });
 
+  it('confirms the leave to the frame, so the frame does not fall back on its own', () => {
+    jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    const source = { postMessage: jest.fn() };
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: { type: 'clarisa-docs:leave', url: '/landing-page/home' },
+        origin: window.location.origin,
+        source: source as unknown as Window,
+      })
+    );
+
+    expect(source.postMessage).toHaveBeenCalledWith({ type: 'clarisa-docs:leave-ack' }, window.location.origin);
+  });
+
+  it('leaves with a full page load when the router cannot navigate (the button is never dead)', async () => {
+    const hard = jest.spyOn(fixture.componentInstance as any, 'leaveWithPageLoad').mockImplementation(() => undefined);
+
+    jest.spyOn(router, 'navigateByUrl').mockResolvedValueOnce(false);
+    window.dispatchEvent(new MessageEvent('message', { data: { type: 'clarisa-docs:leave', url: '/landing-page/home' }, origin: window.location.origin }));
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(hard).toHaveBeenCalledWith('/landing-page/home');
+
+    hard.mockClear();
+    jest.spyOn(router, 'navigateByUrl').mockRejectedValueOnce(new Error('ChunkLoadError: Loading chunk 101 failed'));
+    window.dispatchEvent(new MessageEvent('message', { data: { type: 'clarisa-docs:leave', url: '/landing-page/home' }, origin: window.location.origin }));
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(hard).toHaveBeenCalledWith('/landing-page/home');
+  });
+
   it('ignores leave requests to pages that are not on the allow-list, or from another origin', () => {
     const navigate = jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
 
