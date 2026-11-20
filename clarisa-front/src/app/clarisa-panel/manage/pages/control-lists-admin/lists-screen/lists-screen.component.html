@@ -56,21 +56,21 @@
     responsiveLayout="scroll">
     <ng-template pTemplate="header">
       <tr>
-        <th scope="col" pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="code" style="width: 170px">Code <p-sortIcon field="code"></p-sortIcon></th>
-        <th scope="col" pSortableColumn="status" style="width: 120px">Status <p-sortIcon field="status"></p-sortIcon></th>
-        <th scope="col" style="width: 100px">Owner</th>
-        <th scope="col" style="width: 80px">Fields</th>
-        <th scope="col" style="width: 90px">Records</th>
-        <th scope="col" style="width: 110px">Linked lists</th>
-        <th scope="col" pSortableColumn="updated_at" style="width: 120px">Updated <p-sortIcon field="updated_at"></p-sortIcon></th>
-        <th scope="col" style="width: 100px">Actions</th>
+        <th scope="col" class="cl-flex-col" pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="code" style="width: 130px">Code <p-sortIcon field="code"></p-sortIcon></th>
+        <th scope="col" pSortableColumn="status" style="width: 118px">Status <p-sortIcon field="status"></p-sortIcon></th>
+        <th scope="col" style="width: 90px">Owner</th>
+        <th scope="col" style="width: 70px">Fields</th>
+        <th scope="col" style="width: 80px">Records</th>
+        <th scope="col" style="width: 95px">Linked lists</th>
+        <th scope="col" pSortableColumn="updated_at" style="width: 105px">Updated <p-sortIcon field="updated_at"></p-sortIcon></th>
+        <th scope="col" class="cl-sticky-end" style="width: 80px">Actions</th>
       </tr>
     </ng-template>
 
     <ng-template pTemplate="body" let-row>
       <tr class="cl-row" (click)="open(row)">
-        <td data-card-title data-label="Name" class="ls-name">
+        <td data-card-title data-label="Name" class="cl-flex-col">
           <a class="cell-link cell-primary" [routerLink]="[url, row.id]" (click)="$event.stopPropagation()">{{ row.name }}</a>
           <span class="cell-sub ls-desc" *ngIf="row.description" [attr.title]="row.description">{{ row.description }}</span>
         </td>
@@ -87,7 +87,7 @@
         <td data-label="Records" class="cell-num">{{ row.counts === undefined ? '…' : row.counts ? row.counts.records : '—' }}</td>
         <td data-label="Linked lists" class="cell-num">{{ row.counts === undefined ? '…' : row.counts ? row.counts.relations : '—' }}</td>
         <td data-label="Updated" class="cell-num">{{ shortDate(row.updated_at) }}</td>
-        <td>
+        <td class="cl-sticky-end">
           <div class="row-actions">
             <button
               pButton

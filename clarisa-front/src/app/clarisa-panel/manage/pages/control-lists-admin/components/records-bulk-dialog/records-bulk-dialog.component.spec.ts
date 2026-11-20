@@ -133,6 +133,11 @@ describe('RecordsBulkDialogComponent', () => {
     expect(bad[0].textContent).toContain('No option “Cerial” in Crop types');
     expect(bad[1].textContent).toContain('Repeated in row 1');
     expect(bad.every(cell => cell.querySelector('.pi-times-circle'))).toBe(true);
+    // The same problems, with the label of their field, under each row: what a phone shows when the cell is off-screen.
+    expect(all(f, '.rb-cellproblems').map(tr => tr.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+      'Type: No option “Cerial” in Crop types',
+      'Name: Repeated in row 1'
+    ]);
     expect(submit(f).disabled).toBe(true);
     expect(text(f)).toContain('Fix the rows with problems to continue.');
     expect(submit(f).getAttribute('aria-describedby')).toBe('cl-rb-blocked');
@@ -141,7 +146,7 @@ describe('RecordsBulkDialogComponent', () => {
     expect(q(f, '.rb-only').textContent).toContain('Show only rows with problems');
     only.click();
     await settle(f);
-    expect(all(f, '.rb-table tbody tr').map(tr => tr.querySelector('th')?.textContent?.trim())).toEqual([
+    expect(all(f, '.rb-table tbody tr:not(.rb-cellproblems)').map(tr => tr.querySelector('th')?.textContent?.trim())).toEqual([
       expect.stringContaining('1'),
       expect.stringContaining('3')
     ]);
@@ -347,5 +352,29 @@ describe('RecordsBulkDialogComponent', () => {
     await settle(f);
     expect(q(f, '.cl-error').textContent).toContain('That operation id was already used for other records.');
     expect(f.componentInstance.visible).toBe(true);
+  });
+
+  it('names the columns that hold problems, in column order and once each, plus the row length', async () => {
+    const f = await draw();
+    await paste(f, 'Maize\tCerial\n\tRoot\nRice\tCerial\nBeans\tRoot\textra');
+    expect(text(f)).toContain('Problems in: Name, Type, row length.');
+    await paste(f, 'Maize\tCerial');
+    expect(text(f)).toContain('Problems in: Type.');
+    await paste(f, 'Maize\tCereal');
+    expect(text(f)).not.toContain('Problems in');
+  });
+
+  it('builds the example from the first three active records of the list, as they would be pasted', async () => {
+    const f = await draw();
+    const c = f.componentInstance;
+    c.existing = [
+      { id: 1, name: 'Wheat', kind: 1, is_active: false },
+      { id: 2, name: 'Maize', kind: 1, is_active: true },
+      { id: 3, name: 'Cassava', kind: 2, is_active: true }
+    ];
+    c.visible = true;
+    c.ngOnChanges({ visible: new SimpleChange(false, true, false) });
+    // Only Name: Type is optional and comes after the last required field. The inactive Wheat is left out.
+    expect(c.placeholder).toBe('Maize\nCassava');
   });
 });

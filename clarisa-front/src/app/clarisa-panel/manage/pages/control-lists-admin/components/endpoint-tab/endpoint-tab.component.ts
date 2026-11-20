@@ -77,7 +77,7 @@ export class EndpointTabComponent implements OnChanges, OnDestroy {
       variants.push({
         key: `e-${f.code}`,
         title: `Include the full record of ${f.relation_name || f.code}`,
-        note: `Replaces the id in ${f.code} with the related record.`,
+        note: `Replaces the id in ${f.code} with the whole record of the option it points to.`,
         url: `${base}?expand=${f.code}`
       });
     }

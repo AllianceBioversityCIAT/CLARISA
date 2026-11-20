@@ -40,6 +40,7 @@
     [paginator]="true"
     [rowsPerPageOptions]="rowsPerPage"
     styleClass="p-datatable-sm admin-table"
+    [style]="tableMin"
     responsiveLayout="scroll">
     <ng-template pTemplate="caption">
       <div class="admin-table-toolbar">
@@ -65,17 +66,19 @@
 
     <ng-template pTemplate="header">
       <tr>
-        <th scope="col" pSortableColumn="id" style="width: 80px">ID <p-sortIcon field="id"></p-sortIcon></th>
-        <th scope="col" *ngFor="let f of fields" [pSortableColumn]="f.code">{{ f.label }} <p-sortIcon [field]="f.code"></p-sortIcon></th>
-        <th scope="col" style="width: 120px">Status</th>
-        <th scope="col" style="width: 110px">Actions</th>
+        <th scope="col" pSortableColumn="id" style="width: 70px">ID <p-sortIcon field="id"></p-sortIcon></th>
+        <th scope="col" class="cl-flex-col" *ngFor="let f of fields" [pSortableColumn]="f.code">
+          {{ f.label }} <p-sortIcon [field]="f.code"></p-sortIcon>
+        </th>
+        <th scope="col" style="width: 118px">Status</th>
+        <th scope="col" class="cl-sticky-end" style="width: 100px">Actions</th>
       </tr>
     </ng-template>
 
     <ng-template pTemplate="body" let-row>
       <tr [class.row-inactive]="!isActive(row)">
         <td data-label="ID" class="cell-num">#{{ row.id }}</td>
-        <td *ngFor="let f of fields" [attr.data-label]="f.label">
+        <td class="cl-flex-col" *ngFor="let f of fields" [attr.data-label]="f.label">
           <span [class.cell-empty]="display(f, row) === '—'" class="cell-clamp" [title]="display(f, row)">{{ display(f, row) }}</span>
         </td>
         <td data-label="Status">
@@ -83,7 +86,7 @@
             ><span class="cl-chip__dot" aria-hidden="true"></span>{{ isActive(row) ? 'Active' : 'Inactive' }}</span
           >
         </td>
-        <td>
+        <td class="cl-sticky-end">
           <div class="row-actions">
             <button
               pButton

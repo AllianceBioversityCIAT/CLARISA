@@ -1,0 +1,11 @@
+/* Fields table: the label never collapses, and the row actions stay in reach when the table scrolls. Tokens only, px only. */
+@use '../table-tablet';
+
+/* 810 px of declared columns + 140 px for the label = 950 px: the room beside the sidebar on a 1280 px laptop (measured). */
+@include table-tablet.wide-table(950px);
+
+/* The code of the options list goes to the next line whole instead of dropping its last letter. */
+.ft-options .cl-mono {
+  display: inline-block;
+  max-width: 100%;
+}

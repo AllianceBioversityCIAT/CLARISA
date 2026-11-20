@@ -1,7 +1,7 @@
 import { FieldRow, ListRecord } from '../models/control-lists.models';
 import { foldText } from './field-types';
 import { BULK_MAX_TEXT_BYTES, MAX_BULK_RECORDS, valueMaxLength } from './limits';
-import { ambiguousNumber, FormValue, isOn, longTextTooBig, recordIsActive, recordLabel, toApiValue, utf8Bytes } from './record-values';
+import { ambiguousNumber, FormValue, isOn, longTextTooBig, recordIsActive, recordLabel, toApiValue, toFormValue, utf8Bytes } from './record-values';
 
 /**
  * «Add several records»: what a person pasted, read the way the back will read
@@ -203,7 +203,7 @@ function relationValue(
   text: string,
   related: Record<string, ListRecord[] | null>
 ): { value: ApiValue; shown: string; problem: string | null } {
-  const listName = field.relation_name || field.relation_code || 'the related list';
+  const listName = field.relation_name || field.relation_code || 'its options list';
   const options = activeOptions(field, related);
   if (options === null) {
     // Its list could not be read: an id goes as written and the back checks it.
@@ -379,18 +379,36 @@ const EXAMPLES: Record<string, string[]> = {
 /** Columns the example shows at most: enough to see the pattern without wrapping. */
 const EXAMPLE_COLUMNS = 4;
 
+/** A saved value as a person would paste it back: the option's label, Yes / No, the number, the date. */
+function pasteText(field: FieldRow, value: unknown, related: Record<string, ListRecord[] | null>): string {
+  if (value === null || value === undefined || value === '') return '';
+  if (field.type === 'relation') {
+    const id = Number(value);
+    const option = (field.relation_code ? related[field.relation_code] : null)?.find(o => o.id === id);
+    return option ? recordLabel(option) : String(id);
+  }
+  if (field.type === 'boolean') return value === true || value === 1 ? 'Yes' : 'No';
+  const form = toFormValue(field, value);
+  return field.type === 'datetime' ? String(form).replace('T', ' ') : String(form);
+}
+
 /**
  * Three example rows, with one column for every field up to the last required
- * one (at least the first): a list that needs two values must not suggest that
- * one per line is enough. Relations use real option names when their list loaded.
+ * one (at least the first, four at most): a list that needs two values must not
+ * suggest that one per line is enough. With records in the list, the rows are
+ * its first three active records, so every pair is real; else they are made up,
+ * and relations use real option names when their list loaded.
  */
-export function examplePaste(fields: FieldRow[], related: Record<string, ListRecord[] | null> = {}): string {
+export function examplePaste(fields: FieldRow[], related: Record<string, ListRecord[] | null> = {}, existing: ListRecord[] = []): string {
   if (!fields.length) return '';
   let last = 0;
   fields.forEach((f, i) => {
     if (isOn(f.is_required)) last = i;
   });
-  const columns = fields.slice(0, Math.min(last + 1, EXAMPLE_COLUMNS)).map(f => {
+  const shown = fields.slice(0, Math.min(last + 1, EXAMPLE_COLUMNS));
+  const saved = existing.filter(recordIsActive).slice(0, 3);
+  if (saved.length) return saved.map(record => shown.map(f => pasteText(f, record[f.code], related)).join('\t')).join('\n');
+  const columns = shown.map(f => {
     if (f.type === 'relation') {
       const labels = (activeOptions(f, related) ?? []).map(o => recordLabel(o));
       if (labels.length) return [0, 1, 2].map(i => labels[i % labels.length]);

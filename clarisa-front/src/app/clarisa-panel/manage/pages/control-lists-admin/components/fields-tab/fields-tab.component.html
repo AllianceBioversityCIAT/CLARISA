@@ -16,19 +16,19 @@
   <p-table [value]="detail.fields" [rowTrackBy]="trackField" dataKey="id" styleClass="p-datatable-sm admin-table" responsiveLayout="scroll">
     <ng-template pTemplate="header">
       <tr>
-        <th scope="col">Label</th>
-        <th scope="col" style="width: 170px">Code</th>
-        <th scope="col" style="width: 150px">Type</th>
-        <th scope="col" style="width: 210px">Rules</th>
-        <th scope="col" style="width: 190px">Options list</th>
-        <th scope="col" style="width: 120px">Status</th>
-        <th scope="col" style="width: 180px">Actions</th>
+        <th scope="col" class="cl-flex-col">Label</th>
+        <th scope="col" style="width: 115px">Code</th>
+        <th scope="col" style="width: 118px">Type</th>
+        <th scope="col" style="width: 165px">Rules</th>
+        <th scope="col" style="width: 130px">Options list</th>
+        <th scope="col" style="width: 118px">Status</th>
+        <th scope="col" class="cl-sticky-end" style="width: 164px">Actions</th>
       </tr>
     </ng-template>
 
     <ng-template pTemplate="body" let-field>
       <tr>
-        <td data-card-title data-label="Label">
+        <td data-card-title data-label="Label" class="cl-flex-col">
           <span class="cell-primary">{{ field.label }}</span>
         </td>
         <td data-label="Code">
@@ -41,7 +41,7 @@
           <span class="cl-flag" *ngIf="filterable(field)">Filterable</span>
           <span class="cell-empty" *ngIf="!isOn(field.is_required) && !filterable(field)">—</span>
         </td>
-        <td data-label="Options list">
+        <td data-label="Options list" class="ft-options">
           <ng-container *ngIf="field.type === 'relation'; else noRelation">
             <a
               class="cell-link"
@@ -61,7 +61,7 @@
             ><span class="cl-chip__dot" aria-hidden="true"></span>{{ field.status === 'published' ? 'Published' : 'Draft' }}</span
           >
         </td>
-        <td>
+        <td class="cl-sticky-end">
           <div class="row-actions">
             <button
               pButton

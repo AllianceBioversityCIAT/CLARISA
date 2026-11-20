@@ -329,6 +329,27 @@ describe('parseBulk', () => {
   });
 });
 
+describe('examplePaste from the records already in the list', () => {
+  it('uses the first three active records, with option labels, Yes / No, numbers and dates as a person pastes them', () => {
+    const staple = field('staple', 'boolean', { is_required: 1 });
+    const sown = field('sown', 'datetime');
+    const fields = [name, kind, staple, sown, area];
+    const existing = [
+      { id: 1, name: 'Old', kind: 1, staple: true, sown: null, is_active: false },
+      { id: 2, name: 'Maize', kind: 1, staple: 1, sown: '2026-03-15 14:30:00', is_active: true },
+      { id: 3, name: 'Cassava', kind: 3, staple: 0, sown: null, is_active: true },
+      { id: 4, name: 'Rice', kind: 99, staple: false, sown: null, is_active: 1 },
+      { id: 5, name: 'Beans', kind: 3, staple: true, sown: null, is_active: true }
+    ];
+    // Up to the last required field (staple, the 3rd), so area (5th) is left out.
+    expect(examplePaste(fields, related, existing)).toBe(['Maize\tCereal\tYes', 'Cassava\tLegume\tNo', 'Rice\t99\tNo'].join('\n'));
+  });
+
+  it('with no active record keeps the made-up example', () => {
+    expect(examplePaste([name], related, [{ id: 1, name: 'Old', is_active: false }])).toBe('Maize\nRice\nCassava');
+  });
+});
+
 describe('examplePaste', () => {
   it('three lines for the first field: crops for a text, real option names for a relation', () => {
     expect(examplePaste([name])).toBe('Maize\nRice\nCassava');

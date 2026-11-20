@@ -1,4 +1,8 @@
-/* Records: the two ways to add, side by side, wrapping on a phone. Tokens only, px only. */
+/* Records: the two ways to add, side by side, wrapping on a phone; data columns that scroll instead of squeezing. Tokens only, px only. */
+@use '../table-tablet';
+
+/* The columns are the list's fields: the component counts the minimum (`--cl-table-min`) and the table scrolls past it. */
+@include table-tablet.wide-table();
 .rt-actions {
   display: flex;
   flex-wrap: wrap;

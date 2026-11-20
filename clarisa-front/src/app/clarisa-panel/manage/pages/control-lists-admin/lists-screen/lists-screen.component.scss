@@ -1,9 +1,8 @@
 /* Long names and descriptions in the lists table. Tokens only, px only. */
-.ls-name {
-  min-width: 0;
-  /* `anywhere` (not `break-word`) also lowers the column's minimum width: a name with no spaces wraps instead of widening the row. */
-  overflow-wrap: anywhere;
-}
+@use '../components/table-tablet';
+
+/* 768 px of declared columns + 182 px for the name = 950 px (the room beside the sidebar at 1280 px): the name never collapses, the table scrolls instead. */
+@include table-tablet.wide-table(950px);
 
 /* The full text stays in the `title`; the row keeps its height however long the description is. */
 .ls-desc {

@@ -59,7 +59,7 @@ export class RecordsBulkDialogComponent extends WriteDialogBase<{ created: numbe
     this.parsed = EMPTY;
     this.onlyProblems = false;
     this.headerChoice = null;
-    this.placeholder = examplePaste(this.fields, this.related);
+    this.placeholder = examplePaste(this.fields, this.related, this.existing);
   }
 
   /** The fields, the options or the records already in the list changed under the open dialog: read the paste again. */
@@ -67,7 +67,7 @@ export class RecordsBulkDialogComponent extends WriteDialogBase<{ created: numbe
     super.ngOnChanges(changes);
     if (changes['visible'] || !this.visible) return;
     if (changes['fields'] || changes['related'] || changes['existing']) {
-      this.placeholder = examplePaste(this.fields, this.related);
+      this.placeholder = examplePaste(this.fields, this.related, this.existing);
       this.reparse();
     }
   }
@@ -134,6 +134,17 @@ export class RecordsBulkDialogComponent extends WriteDialogBase<{ created: numbe
     return this.canSubmit ? `Add ${records(this.count)}` : 'Add records';
   }
 
+  /**
+   * The columns that hold a problem, in column order and each once (row length too): a
+   * problem in a column scrolled out of sight is at least announced under the summary.
+   */
+  get problemColumns(): string {
+    if (!this.parsed.withProblems || this.tooBig) return '';
+    const names = this.fields.filter((_, c) => this.parsed.rows.some(r => !!r.cells[c]?.problem)).map(f => f.label);
+    if (this.parsed.rows.some(r => !!r.problem)) names.push('row length');
+    return names.length ? `Problems in: ${names.join(', ')}.` : '';
+  }
+
   /** The value to read in the preview differs from what was pasted by more than case or accents. */
   converted(cell: BulkCell): boolean {
     return !cell.problem && cell.text !== '' && foldText(cell.shown) !== foldText(cell.text);
@@ -141,6 +152,11 @@ export class RecordsBulkDialogComponent extends WriteDialogBase<{ created: numbe
 
   protected override isDirty(): boolean {
     return this.text.trim() !== '';
+  }
+
+  /** The problems of a row's cells, each with the label of its field: what a phone shows under the row. */
+  cellProblems(row: BulkRow): { label: string; problem: string }[] {
+    return row.cells.flatMap((cell, i) => (cell.problem ? [{ label: this.fields[i]?.label ?? '', problem: cell.problem }] : []));
   }
 
   trackRow(_: number, row: BulkRow): number {

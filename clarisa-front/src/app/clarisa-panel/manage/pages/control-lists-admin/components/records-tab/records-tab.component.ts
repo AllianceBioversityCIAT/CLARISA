@@ -165,6 +165,15 @@ export class RecordsTabComponent implements OnChanges, OnDestroy {
     return recordIsActive(record);
   }
 
+  /**
+   * The least the table needs so no column collapses: ID, Status and Actions (288 px declared)
+   * plus 130 px for each field. Read by the stylesheet above the phone cards; narrower than
+   * this, the table scrolls sideways inside its card.
+   */
+  get tableMin(): Record<string, string> {
+    return { '--cl-table-min': `${288 + 130 * this.fields.length}px` };
+  }
+
   /** «New record» and «Add several» wait for the records and need at least one published field. */
   get canCreate(): boolean {
     return this.loaded && !this.error && this.fields.length > 0;
