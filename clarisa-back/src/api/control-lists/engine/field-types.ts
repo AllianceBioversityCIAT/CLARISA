@@ -191,6 +191,9 @@ export function assertIndexable(f: {
   }
 }
 
+/** Longest text a number, a date or a Yes / No can be written with. */
+const VALUE_MAX = 64;
+
 const INT_RE = /^-?\d+$/;
 const DEC_RE = /^-?\d+(\.\d+)?$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -264,6 +267,14 @@ export function coerceValue(
     throw new BadRequestException(`"${label}" expects a single value.`);
   }
   const s = String(raw).trim();
+  // Length first, for every type: no pattern below ever runs on a huge value
+  // (the e-mail pattern backtracks; 64,000 characters held the server for
+  // seconds, and this is also reached by the public filters).
+  if (s.length > (TEXT_MAX[type] ?? VALUE_MAX)) {
+    throw new BadRequestException(
+      `"${label}" admits ${TEXT_MAX[type] ?? VALUE_MAX} characters at most (it has ${s.length}).`,
+    );
+  }
   switch (type) {
     case 'integer':
     case 'relation': {

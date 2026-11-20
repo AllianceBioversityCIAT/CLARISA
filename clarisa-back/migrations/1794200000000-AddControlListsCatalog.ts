@@ -5,8 +5,9 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *
  * The catalog (`cl_lists`, `cl_fields`, `cl_schema_ops`) lives in the main
  * schema, so its own structure evolves through this same migration channel.
- * The TABLES users create live in another schema (`CONTROL_LISTS_DB_NAME`)
- * and are never part of a migration: the engine creates them at runtime.
+ * The TABLES users create are never part of a migration: the engine creates
+ * them at runtime as `cl_<code>`, in CLARISA's own database by default (or in
+ * another one when `CONTROL_LISTS_DB_NAME` is set).
  *
  * `PermissionGuard` authorises when the request path contains a permission
  * name:
