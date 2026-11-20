@@ -1,0 +1,77 @@
+<p-dialog
+  [header]="header"
+  [visible]="visible"
+  (visibleChange)="onVisibleChange($event)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [style]="{ width: '36rem' }"
+  [breakpoints]="{ '720px': '94vw' }"
+  styleClass="admin-dialog">
+  <form class="admin-form" (ngSubmit)="submit()" autocomplete="off">
+    <fieldset class="cl-switches fr-rules" [disabled]="saving">
+      <legend>Rules</legend>
+
+      <label class="cl-switch" for="cl-fr-req">
+        <p-inputSwitch inputId="cl-fr-req" name="required" [(ngModel)]="isRequired" [disabled]="saving"></p-inputSwitch>
+        <span
+          ><strong>Required</strong><small>{{ hints.required }}</small></span
+        >
+      </label>
+
+      <label class="cl-switch" for="cl-fr-uniq">
+        <p-inputSwitch inputId="cl-fr-uniq" name="unique" [(ngModel)]="isUnique" [disabled]="saving || longText"></p-inputSwitch>
+        <span
+          ><strong>Unique</strong><small>{{ longText ? hints.longText : hints.unique }}</small></span
+        >
+      </label>
+
+      <label class="cl-switch" for="cl-fr-idx">
+        <p-inputSwitch
+          inputId="cl-fr-idx"
+          name="indexed"
+          [ngModel]="indexedShown"
+          (ngModelChange)="setIndexed($event)"
+          [disabled]="saving || indexedLocked"></p-inputSwitch>
+        <span
+          ><strong>Filterable</strong><small>{{ indexedHint }}</small></span
+        >
+      </label>
+    </fieldset>
+
+    <!-- Always in the dialog, so each note is announced when it appears inside it. -->
+    <div class="fr-notes" aria-live="polite">
+      <p class="fr-note" *ngIf="requiredTurnedOn">
+        <i class="pi pi-info-circle" aria-hidden="true"></i>
+        <span>Every existing record must already have a value in this field.</span>
+      </p>
+      <p class="fr-note" *ngIf="uniqueTurnedOn">
+        <i class="pi pi-info-circle" aria-hidden="true"></i>
+        <span>No two records may share a value, inactive ones included.</span>
+      </p>
+      <p class="fr-note fr-note--warn" *ngIf="stopsFiltering">
+        <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+        <span
+          >Applications that filter by this field with <code class="cl-mono">?{{ field?.code }}=…</code> will get an error after this
+          change.<ng-container *ngIf="uniqueEndsFilter"> Turn on Filterable to keep that filter.</ng-container></span
+        >
+      </p>
+    </div>
+
+    <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
+
+    <app-cl-discard-bar *ngIf="confirmingClose" (keep)="keepEditing()" (discard)="discard()"></app-cl-discard-bar>
+
+    <div class="admin-form__actions">
+      <button pButton type="button" label="Cancel" class="btn-ghost" autofocus [disabled]="saving" (click)="close()"></button>
+      <button
+        pButton
+        type="submit"
+        [label]="saving ? 'Saving…' : 'Save rules'"
+        class="btn-brand"
+        [loading]="saving"
+        [disabled]="saving || !changed"></button>
+    </div>
+  </form>
+</p-dialog>

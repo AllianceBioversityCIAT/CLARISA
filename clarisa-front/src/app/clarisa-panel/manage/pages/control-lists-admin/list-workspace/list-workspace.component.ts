@@ -63,6 +63,8 @@ export class ListWorkspaceComponent implements OnInit, OnDestroy {
   owners: OwnerRole[] = [];
   tab: WorkspaceTab = 'fields';
   publishVisible = false;
+  /** «Edit list details» is open. */
+  editVisible = false;
   /** The list is being read again after a write: what is on screen may not show it yet. */
   refreshing = false;
   /** What of the reference data could not be read; the screen stays usable without it. */

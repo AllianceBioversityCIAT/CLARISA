@@ -9,7 +9,25 @@
   [style]="{ width: '36rem' }"
   [breakpoints]="{ '720px': '94vw' }"
   styleClass="admin-dialog">
-  <form class="admin-form" (ngSubmit)="submit()" autocomplete="off">
+  <form class="admin-form nl" (ngSubmit)="submit()" autocomplete="off">
+    <!-- First in the form: without the roles the list cannot be created, and on a phone the end of the form is under the fold. -->
+    <p class="admin-note cl-note cl-note--warn nl-roles" role="status" *ngIf="ownersFailed && !owners.length">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      <span class="nl-roles__text">{{
+        stillFailing
+          ? 'Your roles still could not be loaded. Check your connection and try again.'
+          : 'Your roles could not be loaded, and a list needs an owner role.'
+      }}</span>
+      <button
+        pButton
+        type="button"
+        label="Retry"
+        [icon]="ownersLoading ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"
+        class="btn-ghost p-button-sm nl-roles__retry"
+        [disabled]="ownersLoading || saving"
+        (click)="onRetry()"></button>
+    </p>
+
     <div class="field">
       <label for="cl-new-name">Name <span class="tag-req">Required</span></label>
       <input

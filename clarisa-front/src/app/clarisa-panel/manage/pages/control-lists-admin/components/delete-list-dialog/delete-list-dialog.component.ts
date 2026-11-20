@@ -71,7 +71,7 @@ export class DeleteListDialogComponent extends WriteDialogBase<unknown> {
     if (!this.canSubmit || !this.list) return;
     const { id, name } = this.list;
     this.write(
-      () => this.api.deleteList(id, this.requestId),
+      () => this.api.deleteList(id, this.requestIdFor({ deleteList: id })),
       () => this.success('List deleted', `"${name}" and its table were removed.`)
     );
   }

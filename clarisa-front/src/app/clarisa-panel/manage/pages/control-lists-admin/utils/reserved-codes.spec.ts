@@ -1,3 +1,4 @@
+import { suggestCode } from './code-suggest';
 import { isReservedCode, reservedMessage } from './reserved-codes';
 
 describe('reserved codes', () => {
@@ -22,6 +23,14 @@ describe('reserved codes', () => {
     }
     // `fields` is a route AND a reserved word: it is refused for both.
     expect(isReservedCode('fields', 'field')).toBe(true);
+  });
+
+  it('refuses «constructor» for both kinds, and the suggestion steps around it', () => {
+    expect(isReservedCode('constructor', 'field')).toBe(true);
+    expect(isReservedCode('constructor', 'list')).toBe(true);
+    expect(suggestCode('Constructor', 'field')).toBe('constructor_field');
+    expect(suggestCode('Constructor', 'list')).toBe('constructor_list');
+    expect(suggestCode('Constructor type', 'field')).toBe('constructor_type');
   });
 
   it('lets an ordinary code through', () => {

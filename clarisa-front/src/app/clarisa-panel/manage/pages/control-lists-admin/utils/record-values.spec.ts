@@ -1,5 +1,6 @@
 import { FieldRow, ListRecord } from '../models/control-lists.models';
 import {
+  ambiguousNumber,
   buildChangedBody,
   buildCreateBody,
   initialValues,
@@ -8,7 +9,9 @@ import {
   recordIsActive,
   recordLabel,
   toApiValue,
-  toFormValue
+  toFormValue,
+  utf8Bytes,
+  valueProblem
 } from './record-values';
 
 const field = (type: string, over: Partial<FieldRow> = {}): FieldRow =>
@@ -199,5 +202,41 @@ describe('record values', () => {
       expect(recordIsActive({ id: 1, is_active: false } as ListRecord)).toBe(false);
       expect(recordIsActive({ id: 1, is_active: 0 } as ListRecord)).toBe(false);
     });
+  });
+});
+
+describe('numbers that cannot be read safely, and long texts over their bytes', () => {
+  const decimal = field('decimal');
+  const notes = field('long_text');
+
+  it.each([
+    ['12,000', '12000', '12.0'],
+    ['1,234', '1234', '1.234'],
+    ['1,234,567', '1234567', '1.234567'],
+    ['-1,000', '-1000', '-1.0']
+  ])('refuses %s: thousands or a decimal comma, with both readings built from its digits', (typed, whole, dec) => {
+    expect(ambiguousNumber(typed)).toBe(`Ambiguous number: write ${whole} if the comma separates thousands, or ${dec} if it is the decimal point.`);
+    expect(valueProblem(decimal, typed)).toBe(ambiguousNumber(typed));
+    // Never converted: it goes as typed if anything ever sends it.
+    expect(toApiValue(decimal, typed)).toBe(typed);
+  });
+
+  it.each([
+    ['2,9', 2.9],
+    ['12,50', 12.5]
+  ])('keeps %s as a decimal comma', (typed, value) => {
+    expect(ambiguousNumber(typed)).toBeNull();
+    expect(valueProblem(decimal, typed)).toBeNull();
+    expect(toApiValue(decimal, typed)).toBe(value);
+  });
+
+  it('only decimals are checked for the comma', () => {
+    expect(valueProblem(field('text'), '12,000')).toBeNull();
+  });
+
+  it('counts UTF-8 bytes, and a long text over 65,535 of them is refused', () => {
+    expect(utf8Bytes('aé€😀')).toBe(1 + 2 + 3 + 4);
+    expect(valueProblem(notes, 'é'.repeat(32_768))).toBe('Too long: this text needs 65,536 bytes of the 65,535 a long text holds.');
+    expect(valueProblem(notes, 'é'.repeat(32_767))).toBeNull();
   });
 });

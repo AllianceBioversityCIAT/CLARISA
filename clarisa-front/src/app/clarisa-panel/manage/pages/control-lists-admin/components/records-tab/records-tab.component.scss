@@ -1,0 +1,11 @@
+/* Records: the two ways to add, side by side, wrapping on a phone. Tokens only, px only. */
+.rt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.panel-head .rt-actions {
+  justify-content: flex-end;
+}

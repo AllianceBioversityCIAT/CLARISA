@@ -66,7 +66,7 @@ export class FieldDeleteDialogComponent extends WriteDialogBase<unknown> {
     if (!this.canSubmit || !this.field) return;
     const { id, label } = this.field;
     this.write(
-      () => this.api.deleteField(id, this.requestId),
+      () => this.api.deleteField(id, this.requestIdFor({ deleteField: id })),
       () => this.success('Field deleted', `"${label}" was removed from the list.`)
     );
   }

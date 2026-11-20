@@ -24,7 +24,7 @@ describe('DiscardBarComponent', () => {
   const buttons = (): HTMLButtonElement[] => Array.from(fixture.nativeElement.querySelectorAll('button'));
 
   it('asks the question and offers the two ways out', () => {
-    expect(fixture.nativeElement.textContent).toContain('Discard what you wrote?');
+    expect(fixture.nativeElement.textContent).toContain('Discard your changes?');
     expect(buttons().map(b => b.textContent?.trim())).toEqual(['Keep editing', 'Discard']);
     expect(fixture.nativeElement.querySelector('[role="group"]').getAttribute('aria-labelledby')).toBe('cl-discard-title');
   });

@@ -9,4 +9,7 @@ import { Component } from '@angular/core';
   templateUrl: './control-lists-admin.component.html',
   styleUrls: ['./control-lists-admin.component.scss']
 })
-export class ControlListsAdminComponent {}
+export class ControlListsAdminComponent {
+  /** Under 480 px the toast is as wide as the screen, 12 px from each edge. */
+  readonly toastBreakpoints = { '480px': { width: 'calc(100% - 24px)', left: '12px', right: '12px' } };
+}

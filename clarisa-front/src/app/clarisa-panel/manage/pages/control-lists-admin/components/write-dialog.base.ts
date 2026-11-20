@@ -1,9 +1,25 @@
-import { Directive, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
+import { Directive, EventEmitter, HostListener, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ApiErrorInfo, readApiError } from '../utils/api-error';
 import { newRequestId } from '../utils/request-id';
+
+/** PrimeNG overlays that Escape closes on their own: a dropdown, a popup calendar, a multiselect, an autocomplete. */
+export const OVERLAY_SELECTOR = '.p-dropdown-panel, .p-datepicker:not(.p-datepicker-inline), .p-multiselect-panel, .p-autocomplete-panel';
+
+/** JSON with the keys of every object sorted: the same content always gives the same text. */
+export function stableKey(value: unknown): string {
+  return (
+    JSON.stringify(value, (_key, v: unknown) =>
+      v && typeof v === 'object' && !Array.isArray(v)
+        ? Object.keys(v as Record<string, unknown>)
+            .sort()
+            .reduce<Record<string, unknown>>((out, k) => ((out[k] = (v as Record<string, unknown>)[k]), out), {})
+        : v
+    ) ?? 'undefined'
+  );
+}
 
 export const UNKNOWN_OUTCOME = 'The change may still have been applied: check the list before trying again.';
 
@@ -27,11 +43,18 @@ export abstract class WriteDialogBase<R = void> implements OnChanges, OnDestroy 
   /** This opening already wrote: Enter during the closing animation must not write again. */
   private finished = false;
   error: string | null = null;
-  /** A close was asked while there is typed content: the «Discard what you wrote?» bar shows. */
+  /** A close was asked while there is typed content: the «Discard your changes?» bar shows. */
   confirmingClose = false;
   /** What had the keyboard when the dialog opened: it gets it back when the dialog closes. */
   private opener: HTMLElement | null = null;
-  protected requestId = '';
+  /**
+   * One `request_id` per CONTENT within an opening: a true retry of the same body carries the
+   * same id (the back recognises it and does not write twice), and an edited body gets a new
+   * one (the back would otherwise answer the first result and drop the new content).
+   */
+  private requestIds = new Map<string, string>();
+  /** This Escape was meant for an open overlay (a dropdown, a calendar): the dialog must not take it too. */
+  private escapeForOverlay = false;
   protected readonly destroy$ = new Subject<void>();
 
   constructor(protected toast: MessageService) {}
@@ -43,7 +66,7 @@ export abstract class WriteDialogBase<R = void> implements OnChanges, OnDestroy 
       this.error = null;
       this.confirmingClose = false;
       this.opener = typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
-      this.requestId = newRequestId();
+      this.requestIds = new Map();
       this.onOpen();
     }
   }
@@ -51,6 +74,17 @@ export abstract class WriteDialogBase<R = void> implements OnChanges, OnDestroy 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /** The id of this content in this opening: the same content always gets the same id until the dialog opens again. */
+  protected requestIdFor(content: unknown): string {
+    const key = stableKey(content);
+    let id = this.requestIds.get(key);
+    if (!id) {
+      id = newRequestId();
+      this.requestIds.set(key, id);
+    }
+    return id;
   }
 
   /** Reset the dialog's own fields from its inputs. */
@@ -66,9 +100,23 @@ export abstract class WriteDialogBase<R = void> implements OnChanges, OnDestroy 
     return false;
   }
 
-  /** Dismiss from the header or Escape: ignored while a request is open. */
+  /**
+   * Any Escape on the page: if a PrimeNG overlay is open at that moment, that overlay is
+   * what it closes. The note lasts until the next macrotask, long enough for the dialog's
+   * own Escape handler of the same key press to see it.
+   */
+  @HostListener('document:keydown.escape')
+  onDocumentEscape(): void {
+    if (typeof document === 'undefined' || !document.querySelector(OVERLAY_SELECTOR)) return;
+    this.escapeForOverlay = true;
+    setTimeout(() => (this.escapeForOverlay = false));
+  }
+
+  /** Dismiss from the header or Escape: ignored while a request is open, and when the Escape closed an overlay. */
   onVisibleChange(open: boolean): void {
-    if (!open) this.close();
+    if (open) return;
+    if (this.escapeForOverlay) return;
+    this.close();
   }
 
   /**
@@ -103,13 +151,22 @@ export abstract class WriteDialogBase<R = void> implements OnChanges, OnDestroy 
     this.restoreFocus();
   }
 
-  /** After the closing animation: the dialog's own buttons are gone, so the opener is the next stop. */
+  /**
+   * After the closing animation: the dialog's own buttons are gone, so the opener is the next
+   * stop. When the opener left the page (an empty-state button that vanished once records
+   * exist), the selected tab of the workspace takes the keyboard instead of the page body.
+   */
   private restoreFocus(): void {
     const opener = this.opener;
     this.opener = null;
     if (!opener || typeof document === 'undefined') return;
     setTimeout(() => {
-      if (opener !== document.body && document.contains(opener)) opener.focus();
+      if (opener === document.body) return;
+      if (document.contains(opener)) {
+        opener.focus();
+        return;
+      }
+      document.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
     });
   }
 

@@ -6,6 +6,7 @@ import { relationTargets } from '../../utils/list-format';
 import { isOn } from '../../utils/record-values';
 import { readApiError } from '../../utils/api-error';
 import { typeName } from '../../utils/field-types';
+import { filterableBy } from '../../utils/field-rules';
 import { CONTROL_LISTS_URL } from '../../utils/routes';
 
 @Component({
@@ -31,6 +32,7 @@ export class FieldsTabComponent implements OnChanges, OnDestroy {
   addVisible = false;
   renameVisible = false;
   typeVisible = false;
+  rulesVisible = false;
   deleteFieldVisible = false;
   deleteListVisible = false;
   target: FieldRow | null = null;
@@ -58,12 +60,22 @@ export class FieldsTabComponent implements OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['lists']) this.takenCodes = this.lists.map(l => l.code);
+    // A reload brings new field objects: an open dialog reads the stored values of now, not of when it opened.
+    if (changes['detail'] && this.target) {
+      const id = this.target.id;
+      this.target = this.detail.fields.find(f => f.id === id) ?? this.target;
+    }
     // The definition changes after every schema write: refresh it while it is open.
     if (changes['detail'] && !changes['detail'].firstChange && this.sqlOpen) this.loadSql();
   }
 
   ngOnDestroy(): void {
     this.sqlSub?.unsubscribe();
+  }
+
+  /** The public address can filter by this field: it is unique, filterable or a relation (the dialog says the same). */
+  filterable(field: FieldRow): boolean {
+    return filterableBy(field.type, isOn(field.is_unique), isOn(field.is_indexed));
   }
 
   openAdd(): void {
@@ -78,6 +90,11 @@ export class FieldsTabComponent implements OnChanges, OnDestroy {
   openType(field: FieldRow): void {
     this.target = field;
     this.typeVisible = true;
+  }
+
+  openRules(field: FieldRow): void {
+    this.target = field;
+    this.rulesVisible = true;
   }
 
   openDeleteField(field: FieldRow): void {

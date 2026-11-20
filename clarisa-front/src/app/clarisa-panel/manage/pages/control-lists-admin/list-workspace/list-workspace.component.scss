@@ -3,6 +3,24 @@
   overflow-wrap: anywhere;
 }
 
+/* The title and its «Edit» side by side; on a phone, or with a long name, «Edit» wraps under it. */
+.ws-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.ws-edit {
+  flex: none;
+}
+
+@media (max-width: 720px) {
+  .ws-edit {
+    min-height: 40px;
+  }
+}
+
 .ws-partial {
   margin-top: 16px;
 }

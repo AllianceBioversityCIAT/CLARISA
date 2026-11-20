@@ -24,3 +24,12 @@ const TEXT_MAX: Record<string, number> = {
 export function valueMaxLength(type: string): number | null {
   return TEXT_MAX[type] ?? null;
 }
+
+/** Most records «Add several» sends in one request (`LIMITS.recordsPerBulk` of the back). */
+export const MAX_BULK_RECORDS = 500;
+
+/** A long text (MySQL TEXT) holds 65,535 bytes of UTF-8, whatever its number of characters. */
+export const LONG_TEXT_MAX_BYTES = 65_535;
+
+/** The texts of one «Add several» request together (the back's body limit). */
+export const BULK_MAX_TEXT_BYTES = 2_000_000;

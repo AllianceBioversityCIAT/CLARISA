@@ -4,11 +4,14 @@ import { Observable } from 'rxjs';
 import { map, timeout } from 'rxjs/operators';
 import { environment } from '../../../../../../environments/environment';
 import {
+  BulkRecordsBody,
   FieldImpact,
   FieldRow,
+  FieldRulesBody,
   FieldTypeOption,
   ListDeleteImpact,
   ListDetail,
+  ListDetailsBody,
   ListRecord,
   ListRow,
   NewFieldBody,
@@ -56,6 +59,11 @@ export class ControlListsApiService {
     return this.t(this.http.post<ListRow>(`${this.admin}schema/lists`, body));
   }
 
+  /** Name and description only: catalogue, no table change. */
+  updateList(id: number, body: ListDetailsBody): Observable<ListRow> {
+    return this.t(this.http.patch<ListRow>(`${this.admin}schema/lists/${id}`, body));
+  }
+
   list(id: number): Observable<ListDetail> {
     return this.t(this.http.get<ListDetail>(`${this.admin}schema/lists/${id}`));
   }
@@ -92,6 +100,10 @@ export class ControlListsApiService {
     return this.t(this.http.patch<FieldRow>(`${this.admin}schema/fields/${fieldId}`, body));
   }
 
+  setFieldRules(fieldId: number, body: FieldRulesBody): Observable<FieldRow> {
+    return this.t(this.http.patch<FieldRow>(`${this.admin}schema/fields/${fieldId}/rules`, body));
+  }
+
   changeType(fieldId: number, body: { type: string; confirm_affected: number; request_id: string }): Observable<FieldRow> {
     return this.t(this.http.patch<FieldRow>(`${this.admin}schema/fields/${fieldId}/type`, body));
   }
@@ -108,6 +120,11 @@ export class ControlListsApiService {
 
   createRecord(code: string, body: Record<string, unknown>): Observable<ListRecord> {
     return this.t(this.http.post<ListRecord>(`${this.admin}data/${encodeURIComponent(code)}`, body));
+  }
+
+  /** Several records at once, all or nothing: `{ created }` is how many were added. */
+  createRecords(code: string, body: BulkRecordsBody): Observable<{ created: number }> {
+    return this.t(this.http.post<{ created: number }>(`${this.admin}data/${encodeURIComponent(code)}/bulk`, body));
   }
 
   updateRecord(code: string, id: number, body: Record<string, unknown>): Observable<ListRecord> {

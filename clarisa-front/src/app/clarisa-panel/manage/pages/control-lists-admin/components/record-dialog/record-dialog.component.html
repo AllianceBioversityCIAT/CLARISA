@@ -9,7 +9,7 @@
   [style]="{ width: '40rem' }"
   [breakpoints]="{ '720px': '94vw' }"
   styleClass="admin-dialog">
-  <form class="admin-form" (ngSubmit)="submit()" autocomplete="off">
+  <form class="admin-form rd" (ngSubmit)="submit()" autocomplete="off">
     <div class="field" *ngFor="let f of fields; let first = first">
       <label [for]="'cl-rec-' + f.code">
         {{ f.label }}
@@ -138,6 +138,7 @@
           [(ngModel)]="values[f.code]"
           [disabled]="saving" />
       </ng-container>
+      <small class="field-error" role="alert" *ngIf="problemOf(f) as problem">{{ problem }}</small>
     </div>
 
     <div class="field" *ngIf="editing">

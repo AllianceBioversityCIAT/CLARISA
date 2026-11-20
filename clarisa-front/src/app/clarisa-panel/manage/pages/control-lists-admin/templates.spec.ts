@@ -1,5 +1,6 @@
 import { Component, ContentChildren, EventEmitter, Input, NO_ERRORS_SCHEMA, Output, QueryList, SimpleChange, Type } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { MessageService, PrimeTemplate, SharedModule } from 'primeng/api';
@@ -10,11 +11,14 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputTextareaModule } from 'primeng/inputtextarea';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { BehaviorSubject, of, Subject, throwError } from 'rxjs';
+import { ControlListsAdminComponent } from './control-lists-admin.component';
 import { DeleteListDialogComponent } from './components/delete-list-dialog/delete-list-dialog.component';
 import { DiscardBarComponent } from './components/discard-bar/discard-bar.component';
 import { FieldAddDialogComponent } from './components/field-add-dialog/field-add-dialog.component';
 import { FieldRenameDialogComponent } from './components/field-rename-dialog/field-rename-dialog.component';
+import { FieldTypeDialogComponent } from './components/field-type-dialog/field-type-dialog.component';
 import { FieldsTabComponent } from './components/fields-tab/fields-tab.component';
+import { RecordsTabComponent } from './components/records-tab/records-tab.component';
 import { NewListDialogComponent } from './components/new-list-dialog/new-list-dialog.component';
 import { PublishDialogComponent } from './components/publish-dialog/publish-dialog.component';
 import { RecordDialogComponent } from './components/record-dialog/record-dialog.component';
@@ -74,7 +78,9 @@ const api = {
   lists: jest.fn(),
   types: jest.fn(),
   owners: jest.fn(),
-  sql: jest.fn()
+  sql: jest.fn(),
+  records: jest.fn(),
+  addField: jest.fn()
 };
 
 const field = (over: Partial<FieldRow> = {}): FieldRow =>
@@ -170,6 +176,97 @@ describe('the dialogs as drawn', () => {
       expect(q(f, '[aria-labelledby="cl-new-owner-label"]')?.textContent).toContain('CL');
     });
 
+    it('roles that failed to load: a note with Retry, Create off, until the roles arrive', async () => {
+      const f = await draw(NewListDialogComponent, { owners: [], ownersFailed: true });
+      const c: any = f.componentInstance;
+      c.name = 'Crops';
+      c.onNameChange();
+      await settle(f);
+      const note = q(f, '.cl-note--warn') as HTMLElement;
+      expect(note.textContent).toContain('Your roles could not be loaded, and a list needs an owner role.');
+      expect((q(f, 'button[type=submit]') as HTMLButtonElement).disabled).toBe(true);
+
+      const retried = jest.fn();
+      c.retryOwners.subscribe(retried);
+      const retry = note.querySelector('button') as HTMLButtonElement;
+      retry.click();
+      expect(retried).toHaveBeenCalledTimes(1);
+
+      c.ownersLoading = true;
+      await settle(f);
+      expect(retry.disabled).toBe(true);
+      expect(note.querySelector('.pi-spinner')).not.toBeNull();
+      expect((q(f, 'button[type=submit]') as HTMLButtonElement).disabled).toBe(true);
+
+      // Several roles arrive: the dropdown, required as always.
+      c.owners = roles;
+      c.ownersFailed = false;
+      c.ownersLoading = false;
+      c.ngOnChanges({ owners: new SimpleChange([], roles, false) });
+      await settle(f);
+      expect(q(f, '.cl-note--warn')).toBeNull();
+      expect(q(f, '#cl-new-owner')).not.toBeNull();
+      expect((q(f, 'button[type=submit]') as HTMLButtonElement).disabled).toBe(true);
+      c.ownerId = 2;
+      await settle(f);
+      expect((q(f, 'button[type=submit]') as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it('one role arriving after a failure is shown read-only and becomes the owner', async () => {
+      const f = await draw(NewListDialogComponent, { owners: [], ownersFailed: true });
+      const c: any = f.componentInstance;
+      c.name = 'Crops';
+      c.onNameChange();
+      c.owners = [roles[0]];
+      c.ownersFailed = false;
+      c.ngOnChanges({ owners: new SimpleChange([], [roles[0]], false) });
+      await settle(f);
+      expect(c.ownerId).toBe(1);
+      expect(q(f, '[aria-labelledby="cl-new-owner-label"]')?.textContent).toContain('CL');
+      expect((q(f, 'button[type=submit]') as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it('a Retry that fails again changes the words of the note, so it is heard', async () => {
+      const f = await draw(NewListDialogComponent, { owners: [], ownersFailed: true });
+      const c: any = f.componentInstance;
+      expect(q(f, '.nl-roles__text')?.textContent).toContain('Your roles could not be loaded, and a list needs an owner role.');
+      (q(f, '.nl-roles button') as HTMLButtonElement).click();
+      c.ownersLoading = true;
+      c.ngOnChanges({ ownersLoading: new SimpleChange(false, true, false) });
+      c.ownersLoading = false;
+      c.ngOnChanges({ ownersLoading: new SimpleChange(true, false, false) });
+      await settle(f);
+      expect(q(f, '.nl-roles')?.getAttribute('role')).toBe('status');
+      expect(q(f, '.nl-roles__text')?.textContent).toContain('Your roles still could not be loaded. Check your connection and try again.');
+    });
+
+    it('when the roles arrive after Retry, the keyboard goes to the owner dropdown, or to Name with one role', async () => {
+      jest.useFakeTimers();
+      try {
+        const several = await draw(NewListDialogComponent, { owners: [], ownersFailed: true });
+        const c: any = several.componentInstance;
+        (q(several, '.nl-roles button') as HTMLButtonElement).click();
+        c.owners = roles;
+        c.ownersFailed = false;
+        c.ngOnChanges({ owners: new SimpleChange([], roles, false) });
+        several.detectChanges();
+        jest.runAllTimers();
+        expect(document.activeElement?.id).toBe('cl-new-owner');
+
+        const one = await draw(NewListDialogComponent, { owners: [], ownersFailed: true });
+        const d: any = one.componentInstance;
+        (q(one, '.nl-roles button') as HTMLButtonElement).click();
+        d.owners = [roles[0]];
+        d.ownersFailed = false;
+        d.ngOnChanges({ owners: new SimpleChange([], [roles[0]], false) });
+        one.detectChanges();
+        jest.runAllTimers();
+        expect(document.activeElement?.id).toBe('cl-new-name');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     it('stops typing at the limits of the back', async () => {
       const f = await draw(NewListDialogComponent, { owners: [] });
       expect(q(f, '#cl-new-name')?.getAttribute('maxlength')).toBe('150');
@@ -188,7 +285,7 @@ describe('the dialogs as drawn', () => {
       expect(q(f, '#cl-new-code')?.getAttribute('aria-invalid')).toBe('true');
     });
 
-    it('shows «Discard what you wrote?» above the buttons when closed with a name typed, and not before', async () => {
+    it('shows «Discard your changes?» above the buttons when closed with a name typed, and not before', async () => {
       const f = await draw(NewListDialogComponent, { owners: [] });
       expect(q(f, 'app-cl-discard-bar')).toBeNull();
       const c: any = f.componentInstance;
@@ -252,6 +349,41 @@ describe('the dialogs as drawn', () => {
       expect((q(f, '#cl-fa-req') as HTMLInputElement).checked).toBe(false);
       expect((q(f, 'label[for=cl-fa-req]') as HTMLElement).textContent).toContain('Not available');
       expect((q(f, '#cl-fa-uniq') as HTMLInputElement).disabled).toBe(false);
+    });
+
+    it('while saving, a click on any switch does not change the rules', async () => {
+      api.addField.mockReturnValue(new Subject());
+      const f = await draw(FieldAddDialogComponent, { list });
+      const c: any = f.componentInstance;
+      c.label = 'Name';
+      c.onLabelChange();
+      c.onTypeChange('text');
+      c.submit();
+      await settle(f);
+      expect(c.saving).toBe(true);
+      for (const id of ['cl-fa-req', 'cl-fa-uniq', 'cl-fa-idx']) {
+        ((q(f, '#' + id) as HTMLElement).closest('.p-inputswitch') as HTMLElement).click();
+      }
+      await settle(f);
+      expect([c.isRequired, c.isUnique, c.isIndexed]).toEqual([false, false, false]);
+      expect((q(f, '#cl-fa-uniq') as HTMLInputElement).disabled).toBe(true);
+    });
+
+    it('while Unique is on, Filterable shows on and locked, and the person’s own Filterable is what travels', async () => {
+      api.addField.mockReturnValue(new Subject());
+      const f = await draw(FieldAddDialogComponent, { list });
+      const c: any = f.componentInstance;
+      c.label = 'Code';
+      c.onLabelChange();
+      c.onTypeChange('text');
+      ((q(f, '#cl-fa-uniq') as HTMLElement).closest('.p-inputswitch') as HTMLElement).click();
+      await settle(f);
+      const idx = q(f, '#cl-fa-idx') as HTMLInputElement;
+      expect(idx.checked).toBe(true);
+      expect(idx.disabled).toBe(true);
+      expect((q(f, 'label[for=cl-fa-idx]') as HTMLElement).textContent).toContain('A unique field can always be used as a filter.');
+      c.submit();
+      expect(api.addField.mock.calls[0][1]).toMatchObject({ is_unique: true, is_indexed: false });
     });
 
     it('Required stays free on a draft', async () => {
@@ -434,6 +566,11 @@ describe('the dialogs as drawn', () => {
       const f = await draw(PublishDialogComponent, { list });
       expect(text(f)).toContain('A published list cannot be unpublished, only deleted.');
     });
+
+    it('opens with the keyboard inside: Cancel carries autofocus, the element p-dialog focuses', async () => {
+      const f = await draw(PublishDialogComponent, { list });
+      expect(q(f, '[autofocus]')?.textContent).toContain('Cancel');
+    });
   });
 
   describe('delete list', () => {
@@ -526,6 +663,22 @@ describe('the workspace as drawn', () => {
     expect(document.activeElement).toBe(tabs[1]);
   });
 
+  it('offers «Edit» next to the title, named for what it edits, off while the list is read again', async () => {
+    const f = await drawWorkspace();
+    const edit = q(f, '.ws-title button') as HTMLButtonElement;
+    expect(edit.textContent).toContain('Edit');
+    expect(edit.getAttribute('aria-label')).toBe('Edit the name and description of this list');
+    expect(q(f, '.ws-title h1')?.textContent).toContain('Crops');
+    expect(edit.disabled).toBe(false);
+    edit.click();
+    expect(f.componentInstance.editVisible).toBe(true);
+
+    api.list.mockReturnValue(new Subject());
+    f.componentInstance.reload('saved');
+    f.detectChanges();
+    expect(edit.disabled).toBe(true);
+  });
+
   it('shows one warning with Retry when part of the reference data could not be loaded', async () => {
     api.types.mockReturnValue(throwError(() => ({ status: 500 })));
     const f = await drawWorkspace();
@@ -605,5 +758,110 @@ describe('the fields tab as drawn', () => {
     ) as HTMLButtonElement;
     check.click();
     expect(reasons).toEqual(['check']);
+  });
+
+  it('has four actions per field, «Change rules» between «Change type» and «Delete», off while a change is applied', async () => {
+    const f = await drawTab({ status: 'published' });
+    const labels = Array.from(f.nativeElement.querySelectorAll('.row-actions button')).map(b => (b as HTMLElement).getAttribute('aria-label'));
+    expect(labels).toEqual(['Rename Name', 'Change type of Name', 'Change rules of Name', 'Delete Name']);
+    const rules = q(f, '[aria-label="Change rules of Name"]') as HTMLButtonElement;
+    expect(rules.getAttribute('ptooltip') ?? rules.getAttribute('pTooltip')).toBe('Change rules');
+    rules.click();
+    expect(f.componentInstance.rulesVisible).toBe(true);
+    expect(f.componentInstance.target?.id).toBe(11);
+
+    const locked = await drawTab({ pending_changes: 1 });
+    expect((q(locked, '[aria-label="Change rules of Name"]') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('shows «Filterable» whenever the public address can filter by the field: unique, filterable or a relation', async () => {
+    const f = await drawTab({
+      fields: [
+        field({ id: 1, label: 'Code', is_unique: 1, is_indexed: 0 }),
+        field({ id: 2, label: 'Type', type: 'relation', is_indexed: 0 }),
+        field({ id: 3, label: 'Notes', is_indexed: 0 })
+      ]
+    });
+    const rules = (Array.from(f.nativeElement.querySelectorAll('td[data-label="Rules"]')) as HTMLElement[]).map(td =>
+      Array.from(td.querySelectorAll('.cl-flag, .cell-empty')).map(chip => chip.textContent?.trim())
+    );
+    expect(rules).toEqual([['Unique', 'Filterable'], ['Filterable'], ['—']]);
+  });
+
+  it('after a reload, an open dialog reads the fresh field with the same id', async () => {
+    const f = await drawTab({ status: 'published' });
+    const c = f.componentInstance;
+    c.openRules(c.detail.fields[0]);
+    const fresh = field({ is_required: 1 });
+    const detail = { ...c.detail, fields: [fresh] } as ListDetail;
+    c.detail = detail;
+    c.ngOnChanges({ detail: new SimpleChange(null, detail, false) });
+    expect(c.target).toBe(fresh);
+  });
+});
+
+describe('the shell as drawn', () => {
+  it('gives this module’s toast its own class and spans it across a phone with 12 px margins', async () => {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      declarations: [ControlListsAdminComponent],
+      schemas: [NO_ERRORS_SCHEMA]
+    }).compileComponents();
+    const f = TestBed.createComponent(ControlListsAdminComponent);
+    f.detectChanges();
+    const toast = f.debugElement.query(By.css('p-toast'));
+    expect(toast.attributes['styleClass']).toBe('cl-toast');
+    expect(toast.properties['breakpoints']).toEqual({ '480px': { width: 'calc(100% - 24px)', left: '12px', right: '12px' } });
+  });
+});
+
+describe('the records tab as drawn', () => {
+  async function drawRecords(records: unknown[]): Promise<ComponentFixture<RecordsTabComponent>> {
+    api.records.mockReturnValue(of(records));
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      declarations: [RecordsTabComponent, TableStub],
+      imports: [ButtonModule, FormsModule, SharedModule, NoopAnimationsModule],
+      providers: [{ provide: ControlListsApiService, useValue: api }],
+      schemas: [NO_ERRORS_SCHEMA]
+    }).compileComponents();
+    const f = TestBed.createComponent(RecordsTabComponent);
+    const detail = { ...list, status: 'published', fields: [field()] } as ListDetail;
+    f.componentInstance.detail = detail;
+    f.componentInstance.ngOnChanges({ detail: new SimpleChange(undefined, detail, true) });
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    return f;
+  }
+
+  const buttons = (f: ComponentFixture<unknown>, selector: string): HTMLButtonElement[] =>
+    Array.from(f.nativeElement.querySelectorAll(selector + ' button')) as HTMLButtonElement[];
+
+  it('offers «Add several» next to «New record», in the header and in the empty state, opening the bulk dialog', async () => {
+    const f = await drawRecords([]);
+    expect(buttons(f, '.panel-head .rt-actions').map(b => b.textContent?.trim())).toEqual(['Add several', 'New record']);
+    expect(buttons(f, '.cl-empty-row .rt-actions').map(b => b.textContent?.trim())).toEqual(['Add several', 'New record']);
+    buttons(f, '.panel-head .rt-actions')[0].click();
+    expect(f.componentInstance.bulkVisible).toBe(true);
+    const several = Array.from(f.nativeElement.querySelectorAll('button')).filter(b => (b as HTMLElement).textContent?.includes('Add several'));
+    expect(several.map(b => (b as HTMLElement).getAttribute('aria-label'))).toEqual(['Add several records', 'Add several records']);
+  });
+
+  it('keeps «Add several» off with «New record» while the records could not be read', async () => {
+    const f = await drawRecords([]);
+    api.records.mockReturnValue(throwError(() => ({ status: 500 })));
+    f.componentInstance.load();
+    f.detectChanges();
+    expect(buttons(f, '.panel-head .rt-actions').map(b => b.disabled)).toEqual([true, true]);
+  });
+});
+
+describe('change type as drawn', () => {
+  it('opens with the keyboard on the type dropdown', async () => {
+    api.fieldImpact.mockReturnValue(of({ rows: 0, affected: 0, message: 'Nothing changes.' }));
+    const f = await draw(FieldTypeDialogComponent, { field: field(), types: [{ value: 'integer', label: 'Whole number' }] });
+    const dropdown = f.debugElement.query(By.css('p-dropdown'));
+    expect(dropdown.componentInstance.autofocus).toBe(true);
   });
 });

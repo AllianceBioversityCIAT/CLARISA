@@ -4,6 +4,7 @@ import { ControlListsApiService } from '../../services/control-lists-api.service
 import { FieldRow, FieldTypeOption, ListDetail, ListRow, NewFieldBody } from '../../models/control-lists.models';
 import { codeProblem, isUsableCode, suggestCode } from '../../utils/code-suggest';
 import { LIMITS } from '../../utils/limits';
+import { cannotIndex, RULE_HINTS } from '../../utils/field-rules';
 import { freeCode, optionsProblem, parseOptions, TypeChoice, typeChoices } from '../../utils/field-types';
 import { FieldTypePickerComponent } from '../field-type-picker/field-type-picker.component';
 import { WriteDialogBase } from '../write-dialog.base';
@@ -30,6 +31,7 @@ export class FieldAddDialogComponent extends WriteDialogBase<FieldRow> {
   @ViewChild(FieldTypePickerComponent) private picker?: FieldTypePickerComponent;
 
   readonly limits = LIMITS;
+  readonly hints = RULE_HINTS;
   label = '';
   code = '';
   codeOpen = false;
@@ -92,7 +94,21 @@ export class FieldAddDialogComponent extends WriteDialogBase<FieldRow> {
 
   /** The back refuses unique and filterable on long text (it cannot index it). */
   get longText(): boolean {
-    return this.type === 'long_text';
+    return cannotIndex(this.type);
+  }
+
+  /** A unique field always filters: Filterable shows on and locked while Unique is on. */
+  get uniqueOn(): boolean {
+    return this.isUnique && !this.longText;
+  }
+
+  /** What the Filterable switch shows; `isIndexed` stays the person's own value, and that is what travels. */
+  get indexedShown(): boolean {
+    return !this.longText && (this.uniqueOn || this.isIndexed);
+  }
+
+  setIndexed(on: boolean): void {
+    if (!this.longText && !this.uniqueOn) this.isIndexed = on;
   }
 
   /** Why the code cannot be used (wrong shape, or a word the back keeps for itself), or `''`. */
@@ -213,7 +229,7 @@ export class FieldAddDialogComponent extends WriteDialogBase<FieldRow> {
     const listId = this.list.id;
     const withOptions = this.isRelation && this.source === 'new';
     const options = this.options;
-    const body: NewFieldBody = {
+    const content: Omit<NewFieldBody, 'request_id'> = {
       code: this.code,
       label: this.label.trim(),
       type: this.type,
@@ -221,9 +237,9 @@ export class FieldAddDialogComponent extends WriteDialogBase<FieldRow> {
       is_unique: this.isUnique && !this.longText,
       is_indexed: this.isIndexed && !this.longText,
       ...(this.isRelation && !withOptions && this.relationListId !== null ? { relation_list_id: this.relationListId } : {}),
-      ...(withOptions ? { options_list: { code: this.optionsCode, name: this.optionsName.trim(), options } } : {}),
-      request_id: this.requestId
+      ...(withOptions ? { options_list: { code: this.optionsCode, name: this.optionsName.trim(), options } } : {})
     };
+    const body: NewFieldBody = { ...content, request_id: this.requestIdFor({ listId, ...content }) };
     this.write(
       () => this.api.addField(listId, body),
       field =>

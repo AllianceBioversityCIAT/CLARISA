@@ -57,7 +57,8 @@ export class FieldRenameDialogComponent extends WriteDialogBase<FieldRow> {
   submit(): void {
     if (this.saving || !this.valid || !this.field) return;
     const id = this.field.id;
-    const body = { label: this.label.trim(), code: this.code, request_id: this.requestId };
+    const change = { label: this.label.trim(), code: this.code };
+    const body = { ...change, request_id: this.requestIdFor({ fieldId: id, ...change }) };
     this.write(
       () => this.api.renameField(id, body),
       field => this.success('Field renamed', `"${field.label}" was updated.`)

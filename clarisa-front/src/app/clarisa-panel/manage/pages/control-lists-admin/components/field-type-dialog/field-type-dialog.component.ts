@@ -95,7 +95,8 @@ export class FieldTypeDialogComponent extends WriteDialogBase<FieldRow> {
   submit(): void {
     if (!this.canSubmit || !this.field || !this.type || !this.impact) return;
     const id = this.field.id;
-    const body = { type: this.type, confirm_affected: this.impact.affected, request_id: this.requestId };
+    const change = { type: this.type, confirm_affected: this.impact.affected };
+    const body = { ...change, request_id: this.requestIdFor({ fieldId: id, ...change }) };
     this.write(
       () => this.api.changeType(id, body),
       field => this.success('Type changed', `"${field.label}" is now ${typeName(field.type, field.type_label)}.`)

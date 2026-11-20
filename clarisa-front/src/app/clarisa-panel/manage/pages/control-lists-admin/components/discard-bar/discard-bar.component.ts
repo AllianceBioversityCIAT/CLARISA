@@ -1,7 +1,7 @@
 import { AfterViewInit, Component, ElementRef, EventEmitter, OnInit, Output, ViewChild } from '@angular/core';
 
 /**
- * «Discard what you wrote?»: the inline question a dialog shows, above its
+ * «Discard your changes?»: the inline question a dialog shows, above its
  * buttons, when it is closed with typed content. It exists only while it is
  * shown: it puts the keyboard on «Keep editing» and gives it back to what had
  * it before.

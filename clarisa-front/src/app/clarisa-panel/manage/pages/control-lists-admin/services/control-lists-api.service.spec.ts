@@ -111,6 +111,25 @@ describe('ControlListsApiService', () => {
     update.flush({});
   });
 
+  it('edits the name and description of a list, the rules of a field, and adds several records at once', () => {
+    api.updateList(7, { name: 'Crop species', description: null }).subscribe();
+    const edit = expectOne('PATCH', `${admin}schema/lists/7`);
+    expect(edit.request.body).toEqual({ name: 'Crop species', description: null });
+    edit.flush({});
+
+    api.setFieldRules(3, { is_required: true, is_unique: false, is_indexed: true, request_id: 'r' }).subscribe();
+    const rules = expectOne('PATCH', `${admin}schema/fields/3/rules`);
+    expect(rules.request.body).toEqual({ is_required: true, is_unique: false, is_indexed: true, request_id: 'r' });
+    rules.flush({});
+
+    let created: unknown = null;
+    api.createRecords('crop types', { request_id: 'b', records: [{ name: 'Maize' }, { name: 'Rice' }] }).subscribe(r => (created = r));
+    const bulk = expectOne('POST', `${admin}data/crop%20types/bulk`);
+    expect(bulk.request.body).toEqual({ request_id: 'b', records: [{ name: 'Maize' }, { name: 'Rice' }] });
+    bulk.flush({ created: 2 });
+    expect(created).toEqual({ created: 2 });
+  });
+
   it('deactivates a record with a DELETE that carries the justification in its body', () => {
     api.deactivateRecord('crops', 4, 'duplicate').subscribe();
     const req = expectOne('DELETE', `${admin}data/crops/4`);
@@ -157,6 +176,9 @@ describe('ControlListsApiService', () => {
       ['PATCH', 'rename field', a => a.renameField(3, { label: 'A', code: 'a', request_id: 'r' })],
       ['PATCH', 'change type', a => a.changeType(3, { type: 'integer', confirm_affected: 0, request_id: 'r' })],
       ['PATCH', 'update record', a => a.updateRecord('crops', 4, {})],
+      ['PATCH', 'edit list', a => a.updateList(7, { name: 'C', description: null })],
+      ['PATCH', 'field rules', a => a.setFieldRules(3, { is_required: false, is_unique: false, is_indexed: false, request_id: 'r' })],
+      ['POST', 'create records', a => a.createRecords('crops', { request_id: 'r', records: [{}] })],
       ['DELETE', 'delete list', a => a.deleteList(7, 'r')],
       ['DELETE', 'delete field', a => a.deleteField(3, 'r')],
       ['DELETE', 'deactivate record', a => a.deactivateRecord('crops', 4)]

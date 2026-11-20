@@ -48,12 +48,17 @@ export function parseOptions(text: string): string[] {
     .filter(line => line !== '');
 }
 
-/** The options list keeps unique names, and its table compares without case or accents. */
-function optionKey(option: string): string {
-  return option
+/** Text compared the way the options lists and the unique indexes of MySQL compare it: without case or accents. */
+export function foldText(text: string): string {
+  return text
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
+}
+
+/** The options list keeps unique names, and its table compares without case or accents. */
+function optionKey(option: string): string {
+  return foldText(option);
 }
 
 /** Why the written options cannot be saved, or `''`. An empty list is not an error to show: it is just not ready. */

@@ -22,7 +22,7 @@
     <p class="field-error cl-error" role="alert" *ngIf="error"><i class="pi pi-times-circle" aria-hidden="true"></i> {{ error }}</p>
 
     <div class="admin-form__actions">
-      <button pButton type="button" label="Cancel" class="btn-ghost" [disabled]="saving" (click)="close()"></button>
+      <button pButton type="button" label="Cancel" class="btn-ghost" autofocus [disabled]="saving" (click)="close()"></button>
       <button
         pButton
         type="submit"

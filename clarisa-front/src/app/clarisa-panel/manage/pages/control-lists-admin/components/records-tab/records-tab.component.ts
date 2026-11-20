@@ -10,7 +10,8 @@ export type RecordFilter = 'active' | 'inactive' | 'all';
 
 @Component({
   selector: 'app-cl-records-tab',
-  templateUrl: './records-tab.component.html'
+  templateUrl: './records-tab.component.html',
+  styleUrls: ['./records-tab.component.scss']
 })
 export class RecordsTabComponent implements OnChanges, OnDestroy {
   @Input() detail!: ListDetail;
@@ -36,6 +37,7 @@ export class RecordsTabComponent implements OnChanges, OnDestroy {
   ];
 
   recordVisible = false;
+  bulkVisible = false;
   statusVisible = false;
   statusMode: 'deactivate' | 'reactivate' = 'deactivate';
   target: ListRecord | null = null;
@@ -161,6 +163,15 @@ export class RecordsTabComponent implements OnChanges, OnDestroy {
 
   isActive(record: ListRecord): boolean {
     return recordIsActive(record);
+  }
+
+  /** «New record» and «Add several» wait for the records and need at least one published field. */
+  get canCreate(): boolean {
+    return this.loaded && !this.error && this.fields.length > 0;
+  }
+
+  openBulk(): void {
+    this.bulkVisible = true;
   }
 
   openCreate(): void {

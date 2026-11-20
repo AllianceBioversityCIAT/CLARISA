@@ -22,7 +22,18 @@
       <nav class="cl-crumbs" aria-label="Breadcrumb">
         <a [routerLink]="url"><i class="pi pi-arrow-left" aria-hidden="true"></i> Control lists</a>
       </nav>
-      <h1 class="admin-page__title cl-wrap">{{ list.name }}</h1>
+      <div class="ws-title">
+        <h1 class="admin-page__title cl-wrap">{{ list.name }}</h1>
+        <button
+          pButton
+          type="button"
+          label="Edit"
+          icon="pi pi-pencil"
+          class="btn-ghost p-button-sm ws-edit"
+          aria-label="Edit the name and description of this list"
+          [disabled]="refreshing"
+          (click)="editVisible = true"></button>
+      </div>
       <p class="cl-meta">
         <code class="cl-mono">{{ list.code }}</code>
         <span class="cl-chip" [ngClass]="'cl-chip--' + list.status"
@@ -98,6 +109,11 @@
     <app-cl-endpoint-tab *ngIf="tab === 'endpoint'" [detail]="list"></app-cl-endpoint-tab>
   </div>
 
+  <app-cl-list-edit-dialog
+    [(visible)]="editVisible"
+    [list]="list"
+    (done)="reload('saved')"
+    (unsettled)="reload('unsettled')"></app-cl-list-edit-dialog>
   <app-cl-publish-dialog
     [(visible)]="publishVisible"
     [list]="list"

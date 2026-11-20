@@ -841,6 +841,24 @@ describe('the keyboard goes back to what opened the dialog', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
+  it('falls back to the selected tab of the workspace when the opener left the page', async () => {
+    const tab = document.createElement('button');
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', 'true');
+    const other = document.createElement('button');
+    other.setAttribute('role', 'tab');
+    other.setAttribute('aria-selected', 'false');
+    document.body.append(other, tab);
+    const dialog = await openFromButton(PublishDialogComponent, { list });
+    opener.remove();
+    dialog.close();
+    jest.runAllTimers();
+    expect(document.activeElement).toBe(tab);
+    tab.remove();
+    other.remove();
+    dialog.__inside.remove();
+  });
+
   it('remembers the opener of each opening, not the first one', async () => {
     const dialog = await openFromButton(PublishDialogComponent, { list });
     dialog.__inside.remove();
@@ -1252,5 +1270,151 @@ describe('a write that never answers', () => {
     dialog.submit();
     dialog.submit();
     expect(api.renameField.mock.calls[1][1].request_id).toBe(api.renameField.mock.calls[0][1].request_id);
+  });
+});
+
+describe('Escape that closes an overlay inside a dialog', () => {
+  const escape = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  let panel: HTMLElement | null = null;
+
+  afterEach(() => {
+    panel?.remove();
+    panel = null;
+  });
+
+  it('closes only the dropdown: the dialog stays open and does not ask to discard', async () => {
+    const dialog = await open(NewListDialogComponent, { owners: [] });
+    dialog.name = 'Crops';
+    dialog.onNameChange();
+    panel = document.createElement('div');
+    panel.className = 'p-dropdown-panel';
+    document.body.appendChild(panel);
+    escape();
+    dialog.onVisibleChange(false);
+    expect(dialog.visible).toBe(true);
+    expect(dialog.confirmingClose).toBe(false);
+  });
+
+  it('without an open overlay, Escape asks to discard as before; and the note does not outlive its key press', async () => {
+    const dialog = await open(NewListDialogComponent, { owners: [] });
+    dialog.name = 'Crops';
+    dialog.onNameChange();
+    escape();
+    dialog.onVisibleChange(false);
+    expect(dialog.confirmingClose).toBe(true);
+    dialog.keepEditing();
+
+    panel = document.createElement('div');
+    panel.className = 'p-datepicker';
+    document.body.appendChild(panel);
+    escape();
+    await new Promise(resolve => setTimeout(resolve));
+    dialog.onVisibleChange(false);
+    expect(dialog.confirmingClose).toBe(true);
+  });
+
+  it('an inline calendar is not an overlay', async () => {
+    const dialog = await open(RecordDialogComponent, { code: 'crops', fields: [field()], record: null });
+    dialog.values = { name: 'Maize' };
+    panel = document.createElement('div');
+    panel.className = 'p-datepicker p-datepicker-inline';
+    document.body.appendChild(panel);
+    escape();
+    dialog.onVisibleChange(false);
+    expect(dialog.confirmingClose).toBe(true);
+  });
+});
+
+describe('one request id per content', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  /** The `request_id` of the n-th rename call. */
+  const idOf = (n: number): string => api.renameField.mock.calls[n][1].request_id;
+
+  function failOnce(dialog: any): void {
+    const answer = new Subject<unknown>();
+    api.renameField.mockReturnValueOnce(answer);
+    dialog.submit();
+    answer.error({ status: 504 });
+  }
+
+  it('the same content keeps its id (a true retry); edited content gets a new one; going back finds the first again', async () => {
+    const dialog = await open(FieldRenameDialogComponent, { field: field() });
+    dialog.label = 'Title';
+    failOnce(dialog);
+    failOnce(dialog);
+    expect(idOf(1)).toBe(idOf(0));
+
+    dialog.label = 'Crop title';
+    failOnce(dialog);
+    expect(idOf(2)).not.toBe(idOf(0));
+
+    dialog.label = 'Title';
+    failOnce(dialog);
+    expect(idOf(3)).toBe(idOf(0));
+  });
+
+  it('a new opening gives new ids, even to the same content', async () => {
+    const dialog = await open(FieldRenameDialogComponent, { field: field() });
+    dialog.label = 'Title';
+    failOnce(dialog);
+    dialog.visible = true;
+    dialog.ngOnChanges({ visible: new SimpleChange(false, true, false) });
+    dialog.label = 'Title';
+    failOnce(dialog);
+    expect(idOf(1)).not.toBe(idOf(0));
+  });
+
+  it('does not depend on the order of the keys', async () => {
+    const dialog = await open(FieldRenameDialogComponent, { field: field() });
+    expect(dialog.requestIdFor({ a: 1, b: { c: 2, d: 3 } })).toBe(dialog.requestIdFor({ b: { d: 3, c: 2 }, a: 1 }));
+    expect(dialog.requestIdFor([1, 2])).not.toBe(dialog.requestIdFor([2, 1]));
+  });
+
+  it('a new record whose value was edited after an unknown outcome is sent with a new id', async () => {
+    const dialog = await open(RecordDialogComponent, { code: 'crops', fields: [field()], record: null });
+    const first = new Subject<unknown>();
+    api.createRecord.mockReturnValueOnce(first);
+    dialog.values = { name: 'Maize' };
+    dialog.submit();
+    first.error({ status: 0 });
+    expect(dialog.visible).toBe(true);
+
+    api.createRecord.mockReturnValueOnce(new Subject());
+    dialog.values = { name: 'Rice' };
+    dialog.submit();
+    const [a, b] = api.createRecord.mock.calls.map(c => c[1]);
+    expect(a).toMatchObject({ name: 'Maize' });
+    expect(b).toMatchObject({ name: 'Rice' });
+    expect(b.request_id).not.toBe(a.request_id);
+  });
+});
+
+describe('record: values that cannot be sent as typed', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('refuses an ambiguous decimal before sending, and accepts a decimal comma', async () => {
+    const area = field({ code: 'area', label: 'Area', type: 'decimal', is_required: 0 });
+    const dialog = await open(RecordDialogComponent, { code: 'crops', fields: [field(), area], record: null });
+    dialog.values = { name: 'Maize', area: '12,000' };
+    expect(dialog.problemOf(area)).toBe('Ambiguous number: write 12000 if the comma separates thousands, or 12.0 if it is the decimal point.');
+    expect(dialog.canSubmit).toBe(false);
+    dialog.submit();
+    expect(api.createRecord).not.toHaveBeenCalled();
+
+    dialog.values = { name: 'Maize', area: '2,9' };
+    expect(dialog.problemOf(area)).toBeNull();
+    expect(dialog.canSubmit).toBe(true);
+    api.createRecord.mockReturnValue(new Subject());
+    dialog.submit();
+    expect(api.createRecord.mock.calls[0][1]).toMatchObject({ name: 'Maize', area: 2.9 });
+  });
+
+  it('refuses a long text over 65,535 bytes', async () => {
+    const notes = field({ code: 'notes', label: 'Notes', type: 'long_text', is_required: 0 });
+    const dialog = await open(RecordDialogComponent, { code: 'crops', fields: [field(), notes], record: null });
+    dialog.values = { name: 'Maize', notes: '€'.repeat(21_846) };
+    expect(dialog.problemOf(notes)).toBe('Too long: this text needs 65,538 bytes of the 65,535 a long text holds.');
+    expect(dialog.canSubmit).toBe(false);
   });
 });

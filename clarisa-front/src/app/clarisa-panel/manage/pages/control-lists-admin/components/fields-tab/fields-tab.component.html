@@ -22,7 +22,7 @@
         <th scope="col" style="width: 210px">Rules</th>
         <th scope="col" style="width: 190px">Options list</th>
         <th scope="col" style="width: 120px">Status</th>
-        <th scope="col" style="width: 140px">Actions</th>
+        <th scope="col" style="width: 180px">Actions</th>
       </tr>
     </ng-template>
 
@@ -38,8 +38,8 @@
         <td data-label="Rules">
           <span class="cl-flag" *ngIf="isOn(field.is_required)">Required</span>
           <span class="cl-flag" *ngIf="isOn(field.is_unique)">Unique</span>
-          <span class="cl-flag" *ngIf="isOn(field.is_indexed)">Filterable</span>
-          <span class="cell-empty" *ngIf="!isOn(field.is_required) && !isOn(field.is_unique) && !isOn(field.is_indexed)">—</span>
+          <span class="cl-flag" *ngIf="filterable(field)">Filterable</span>
+          <span class="cell-empty" *ngIf="!isOn(field.is_required) && !filterable(field)">—</span>
         </td>
         <td data-label="Options list">
           <ng-container *ngIf="field.type === 'relation'; else noRelation">
@@ -81,6 +81,15 @@
               [attr.aria-label]="'Change type of ' + field.label"
               [disabled]="locked || field.type === 'relation'"
               (click)="openType(field)"></button>
+            <button
+              pButton
+              type="button"
+              icon="pi pi-sliders-h"
+              class="p-button-text p-button-sm"
+              pTooltip="Change rules"
+              [attr.aria-label]="'Change rules of ' + field.label"
+              [disabled]="locked"
+              (click)="openRules(field)"></button>
             <button
               pButton
               type="button"
@@ -161,6 +170,12 @@
   [types]="types"
   (done)="changed.emit('saved')"
   (unsettled)="changed.emit('unsettled')"></app-cl-field-type-dialog>
+<app-cl-field-rules-dialog
+  [(visible)]="rulesVisible"
+  [field]="target"
+  [published]="published && target?.status === 'published'"
+  (done)="changed.emit('saved')"
+  (unsettled)="changed.emit('unsettled')"></app-cl-field-rules-dialog>
 <app-cl-field-delete-dialog
   [(visible)]="deleteFieldVisible"
   [field]="target"

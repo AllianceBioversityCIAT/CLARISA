@@ -103,4 +103,10 @@
   </p-table>
 </section>
 
-<app-cl-new-list-dialog [(visible)]="newVisible" [owners]="owners" (done)="onCreated($event)"></app-cl-new-list-dialog>
+<app-cl-new-list-dialog
+  [(visible)]="newVisible"
+  [owners]="owners"
+  [ownersFailed]="ownersFailed"
+  [ownersLoading]="ownersLoading"
+  (retryOwners)="retryOwners()"
+  (done)="onCreated($event)"></app-cl-new-list-dialog>

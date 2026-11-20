@@ -4,7 +4,10 @@
  * back stays the judge, this only saves a round trip and lets the suggestion avoid them.
  */
 
-/** MySQL words and public-address query parameters: refused as a field code AND as a list code. */
+/**
+ * MySQL words, public-address query parameters and `constructor` (every JavaScript object
+ * already answers to that key): refused as a field code AND as a list code.
+ */
 const RESERVED = new Set([
   'select',
   'insert',
@@ -76,7 +79,8 @@ const RESERVED = new Set([
   'fields',
   'expand',
   'dir',
-  'version'
+  'version',
+  'constructor'
 ]);
 
 /** Columns the engine owns: refused as a field code only. */
