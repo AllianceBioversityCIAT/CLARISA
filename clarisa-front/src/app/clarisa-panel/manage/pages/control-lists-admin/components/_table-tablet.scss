@@ -1,0 +1,51 @@
+/*
+ * The module's tables above the phone cards (> 720 px).
+ *
+ * The admin tables are `table-layout: fixed`: every column is as wide as its
+ * `th` says and the one without a width takes what is left. When the wrapper
+ * is narrower than the declared widths, "what is left" is ZERO: the first
+ * column collapsed to a letter per line on a tablet AND on a 1280 px laptop
+ * (a minimum on the cell does nothing in a fixed table). So the TABLE gets the
+ * minimum: the sum of its declared widths plus the room its flexible column
+ * needs. Narrower than that, the wrapper scrolls sideways.
+ *
+ * - `$min-width`: that sum. Without it the table reads `--cl-table-min`, set
+ *   by a component whose columns are not known beforehand (records).
+ * - `.cl-flex-col`: the flexible column wraps between words (the shared table
+ *   lets a cell break anywhere).
+ * - `.cl-sticky-end`: the row actions stay at the right edge of the wrapper
+ *   while it scrolls, on the row's own background, with a hairline on the left.
+ *
+ * Nothing applies on the phone cards. Tokens only, px only.
+ */
+@mixin wide-table($min-width: null) {
+  @media (min-width: 721px) {
+    :host ::ng-deep .admin-table.p-datatable {
+      .p-datatable-table {
+        @if $min-width {
+          min-width: $min-width;
+        } @else {
+          min-width: var(--cl-table-min, 880px);
+        }
+      }
+
+      .p-datatable-thead > tr > th.cl-flex-col,
+      .p-datatable-tbody > tr > td.cl-flex-col {
+        overflow-wrap: break-word;
+        word-break: normal;
+      }
+
+      .p-datatable-thead > tr > th.cl-sticky-end,
+      .p-datatable-tbody > tr > td.cl-sticky-end {
+        position: sticky;
+        right: 0;
+        z-index: 1;
+        box-shadow: inset 1px 0 0 var(--cl-line);
+      }
+
+      .p-datatable-tbody > tr > td.cl-sticky-end {
+        background: inherit;
+      }
+    }
+  }
+}

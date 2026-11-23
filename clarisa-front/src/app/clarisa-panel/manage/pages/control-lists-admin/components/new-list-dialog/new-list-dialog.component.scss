@@ -1,0 +1,24 @@
+/* New list: the actions stick on a phone, and the note about the roles keeps its Retry whole. Tokens only, px only. */
+@use '../sticky-actions' as sticky;
+
+.nl .admin-form__actions {
+  @include sticky.sticky-actions;
+  /* Room above the bar: the focus ring of the last field (the owner dropdown) is not hidden under it. */
+  margin-top: 12px;
+}
+
+/* Icon, words and Retry: the words take what is left, and Retry drops to its own line before it is cut. */
+.nl-roles {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.nl-roles__text {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.nl-roles__retry {
+  flex: none;
+  min-height: 40px;
+}

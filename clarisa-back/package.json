@@ -21,6 +21,7 @@
     "test:e2e": "jest --verbose --config ./test/jest-e2e.json --detectOpenHandles",
     "glossary:parity": "jest --verbose --runInBand --config ./test/jest-glossary-parity.json",
     "glossary:store": "jest --verbose --runInBand --config ./test/jest-glossary-store.json",
+    "control-lists:e2e": "jest --verbose --runInBand --config ./test/jest-control-lists.json",
     "typeorm": "ts-node ./node_modules/typeorm/cli.js",
     "migration:empty": "cross-replace npm run typeorm migration:create ./migrations/${npm_config_name}",
     "migration:generate": "cross-replace npm run typeorm migration:generate -- ./migrations/${npm_config_name} -d ./src/ormconfig.ts",

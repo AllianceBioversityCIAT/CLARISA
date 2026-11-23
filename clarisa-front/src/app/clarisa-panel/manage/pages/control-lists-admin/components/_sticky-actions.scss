@@ -1,0 +1,25 @@
+/*
+ * The way out and the way forward stay in sight however long the form gets: the
+ * actions bar of a dialog sticks to its bottom edge. Used by the dialogs whose
+ * content can be taller than a phone. Tokens only, px only.
+ */
+@mixin sticky-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: 4px;
+  padding: 12px 0;
+  border-top: 1px solid var(--cl-line);
+  background: var(--cl-surface);
+
+  /* The dialog pads its content: this covers that strip, so nothing shows under the bar while it sticks. */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    height: 32px;
+    background: var(--cl-surface);
+  }
+}

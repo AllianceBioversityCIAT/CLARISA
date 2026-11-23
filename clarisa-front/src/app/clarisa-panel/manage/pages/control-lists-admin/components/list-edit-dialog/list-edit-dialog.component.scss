@@ -1,0 +1,11 @@
+/* Edit list details: the read-only code line. Tokens only, px only. */
+.le-code {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0;
+  color: var(--cl-ink-2);
+  font-size: 13px;
+  line-height: 1.45;
+}

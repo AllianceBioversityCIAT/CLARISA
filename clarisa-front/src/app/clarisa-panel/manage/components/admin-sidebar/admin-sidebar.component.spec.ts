@@ -78,10 +78,11 @@ describe('AdminSidebarComponent', () => {
     expect(labels()).toContain('Glossary');
     // MELIAF taxonomy is hidden (MELIAF_TAXONOMY_HIDDEN, 2026-11-11).
     expect(labels()).not.toContain('MELIAF taxonomy');
-    // 6 links directos: los 7 de la lista menos «Microservices & API keys», que
+    // 7 links directos: los 8 de la lista menos «Microservices & API keys», que
     // es un toggle (botón) en vez de un link. El último es «Parameters».
+    expect(labels()).toContain('Control lists');
     expect(labels()).toContain('Parameters');
-    expect(labels()?.length).toBe(6);
+    expect(labels()?.length).toBe(7);
   });
 
   // La columna blanca que esto reemplazó mostraba sus tres pestañas siempre a

@@ -183,6 +183,21 @@ describe('admin navigation', () => {
       expect(labels(groupsFor({ isSuper: false, permissions: ['/api/access-admin'] }))).toEqual(['Users', 'Roles']);
     });
 
+    it('opens Control lists, in Manage after Glossary, for the design routes or the whole admin, never for records only', () => {
+      const entry = adminLinkFor('/clarisa-panel/manage/control-lists/7?tab=records')!;
+      expect(entry.label).toBe('Control lists');
+      const manage = ADMIN_GROUPS.find(group => group.title === 'Manage')!.links.map(link => link.label);
+      expect(manage.indexOf('Control lists')).toBeGreaterThan(manage.indexOf('Glossary'));
+
+      const opens = (permissions: string[]) => canOpenLink(entry, { isSuper: false, permissions });
+      expect(opens(['/api/control-lists/admin/schema'])).toBe(true);
+      expect(opens(['/api/control-lists/admin'])).toBe(true);
+      expect(opens(['/api/control-lists/admin/data'])).toBe(false);
+      expect(opens(['/api/glossary/admin', '/api/access-admin'])).toBe(false);
+      expect(opens([])).toBe(false);
+      expect(canOpenLink(entry, { isSuper: true, permissions: [] })).toBe(true);
+    });
+
     it('finds the entry of a URL and says whether it opens', () => {
       const glossary = adminLinkFor('/clarisa-panel/manage/glossary-admin/14?x=1');
       expect(glossary?.label).toBe('Glossary');

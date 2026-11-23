@@ -1,0 +1,28 @@
+<section class="path" *ngIf="view as v" aria-label="Steps to put this list in use">
+  <ol class="path__steps">
+    <li
+      *ngFor="let step of v.steps; let i = index"
+      class="path__step"
+      [ngClass]="'is-' + step.state"
+      [attr.aria-current]="step.state === 'current' ? 'step' : null">
+      <span class="path__dot" aria-hidden="true">
+        <i class="pi pi-check" *ngIf="step.state === 'done'; else number"></i>
+        <ng-template #number>{{ i + 1 }}</ng-template>
+      </span>
+      <span class="path__label">{{ step.label }}<span class="path__sr" *ngIf="step.state === 'done'"> (done)</span></span>
+    </li>
+  </ol>
+
+  <div class="path__now">
+    <p class="path__text">{{ v.text }}</p>
+    <button
+      *ngIf="v.action && !(v.current === 'records' && onRecords)"
+      pButton
+      type="button"
+      [label]="v.action"
+      [icon]="v.current === 'publish' ? 'pi pi-cloud-upload' : ''"
+      class="btn-brand"
+      [disabled]="v.blocked"
+      (click)="act()"></button>
+  </div>
+</section>

@@ -1,0 +1,14 @@
+@import 'control-lists';
+
+:host {
+  display: block;
+}
+
+:host ::ng-deep {
+  @include cl-skin;
+}
+
+/* The theme draws every toast at 90 % opacity: over the header its text was hard to read. Only this module's toast. */
+:host ::ng-deep .p-toast.cl-toast {
+  opacity: 1;
+}
