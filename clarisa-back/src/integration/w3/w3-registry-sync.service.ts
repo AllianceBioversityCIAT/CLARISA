@@ -9,6 +9,7 @@ import { firstValueFrom } from 'rxjs';
 import { W3RegistryApi } from './w3-registry.api';
 import {
   W3RegistryMappingDto,
+  W3RegistryProjectDetailsDto,
   W3RegistryProjectDto,
 } from './dto/w3-registry-project.dto';
 import { Project } from '../../api/project/entity/project.entity';
@@ -64,6 +65,18 @@ export function isRecognizedMappingStatus(source?: string | null): boolean {
  */
 export function toMappingStatus(source?: string | null): MappingStatus {
   return isRecognizedMappingStatus(source) ? 'Confirmed' : 'Pending';
+}
+
+/**
+ * Resumen del proyecto para `project.summary`. El W3 Registry lo manda en
+ * `details.summary`, no en `description`. Texto vacío o `/` (el marcador de
+ * vacío del registro) queda `null`.
+ */
+export function toProjectSummary(
+  details?: W3RegistryProjectDetailsDto | null,
+): string | null {
+  const summary = details?.summary?.trim();
+  return summary && summary !== '/' ? summary : null;
 }
 
 @Injectable()
@@ -237,6 +250,11 @@ export class W3RegistrySyncService {
       project.description = this.normalizeDescription(
         sourceProject.description,
       );
+      // Sin la clave `details` (respuesta de una versión del registro que no
+      // la trae) no se toca el resumen guardado.
+      if (sourceProject.details !== undefined) {
+        project.summary = toProjectSummary(sourceProject.details);
+      }
       project.start_date = sourceProject.startDate;
       project.end_date = sourceProject.endDate;
       project.total_budget = sourceProject.totalBudget ?? '0.00';
