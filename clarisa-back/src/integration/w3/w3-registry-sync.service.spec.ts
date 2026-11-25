@@ -7,6 +7,7 @@ import {
   W3RegistrySyncService,
   isRecognizedMappingStatus,
   toMappingStatus,
+  toProjectSummary,
 } from './w3-registry-sync.service';
 import { W3RegistryMappingDto } from './dto/w3-registry-project.dto';
 import { Project } from '../../api/project/entity/project.entity';
@@ -51,6 +52,29 @@ describe('W3RegistrySyncService', () => {
       expect(isRecognizedMappingStatus('')).toBe(false);
       expect(isRecognizedMappingStatus(undefined)).toBe(false);
       expect(isRecognizedMappingStatus(null)).toBe(false);
+    });
+  });
+
+  describe('toProjectSummary', () => {
+    it('takes the summary from details.summary, trimmed', () => {
+      expect(
+        toProjectSummary({
+          summary: '  The overall objective of TRANSFORMED  ',
+        }),
+      ).toBe('The overall objective of TRANSFORMED');
+    });
+
+    it('returns null when details or its summary is missing', () => {
+      expect(toProjectSummary(undefined)).toBeNull();
+      expect(toProjectSummary(null)).toBeNull();
+      expect(toProjectSummary({})).toBeNull();
+      expect(toProjectSummary({ summary: null })).toBeNull();
+    });
+
+    it("returns null for an empty summary or the registry's '/' placeholder", () => {
+      expect(toProjectSummary({ summary: '' })).toBeNull();
+      expect(toProjectSummary({ summary: '   ' })).toBeNull();
+      expect(toProjectSummary({ summary: ' / ' })).toBeNull();
     });
   });
 
