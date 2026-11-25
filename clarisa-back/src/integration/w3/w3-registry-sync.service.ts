@@ -68,9 +68,9 @@ export function toMappingStatus(source?: string | null): MappingStatus {
 }
 
 /**
- * Resumen del proyecto para `project.summary`. El W3 Registry lo manda en
- * `details.summary`, no en `description`. Texto vacío o `/` (el marcador de
- * vacío del registro) queda `null`.
+ * Project summary for `project.summary`. The W3 Registry sends it in
+ * `details.summary`, not in `description`. Empty text or `/` (the registry's
+ * empty placeholder) becomes `null`.
  */
 export function toProjectSummary(
   details?: W3RegistryProjectDetailsDto | null,
@@ -250,8 +250,8 @@ export class W3RegistrySyncService {
       project.description = this.normalizeDescription(
         sourceProject.description,
       );
-      // Sin la clave `details` (respuesta de una versión del registro que no
-      // la trae) no se toca el resumen guardado.
+      // Without a `details` key (a registry response that does not send it),
+      // the stored summary is left untouched.
       if (sourceProject.details !== undefined) {
         project.summary = toProjectSummary(sourceProject.details);
       }

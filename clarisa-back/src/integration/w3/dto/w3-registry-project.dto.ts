@@ -15,9 +15,9 @@ export interface W3RegistryMappingDto {
 }
 
 /**
- * Bloque `details` del W3 Registry. El resumen del proyecto viene aquí, no en
- * `description`. Solo `summary` se guarda hoy (en `project.summary`); los demás
- * campos quedan en el snapshot y su tipo no está verificado.
+ * `details` block of the W3 Registry. The project summary comes here, not in
+ * `description`. Only `summary` is stored today (in `project.summary`); the
+ * other keys stay in the snapshot and their types are not verified.
  */
 export interface W3RegistryProjectDetailsDto {
   summary?: string | null;
